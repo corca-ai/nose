@@ -57,7 +57,7 @@ pub struct RefactorFamily {
     /// `"mixed"` (logic duplicated *across* the test boundary — ranked normally
     /// because it's a real leak, unlike intentional test scaffolding).
     pub scope: &'static str,
-    /// Refactor-worthiness discount in `(0, 1]` from [`refactor_discount`] — demotes
+    /// Refactor-worthiness discount in `(0, 1]` from `refactor_discount` — demotes
     /// all-type-definition and all-generated families. Applied to *both* `value` and
     /// `extractability` so the default ranking honors it too.
     pub discount: f64,
