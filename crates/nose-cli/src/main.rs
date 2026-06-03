@@ -1315,10 +1315,16 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // shared content is credited for its whole extractable block (boilerplate included).
     // Cross-language families have no shared *source* lines to diff, so they keep
     // `shared_weight = 0` and fall back to the structural estimate in `extractability()`.
-    let mut lines = FileLineCache::default();
-    let idf = corpus_line_idf(&refs, &exclude, &mut lines);
-    for f in &mut families {
-        if f.languages == 1 && f.locations.len() >= 2 {
+    // Only same-language families with ≥2 sites get an honest shared-line count; the
+    // rest keep the detector's structural estimate. Computing the corpus line-IDF means
+    // re-reading every scanned file, so skip it entirely when no family qualifies (a
+    // clean repo, or a run where `--min-value`/`--min-members` filtered everything) —
+    // otherwise a quiet scan pays a full second corpus read for nothing.
+    let needs_shared = |f: &nose_detect::RefactorFamily| f.languages == 1 && f.locations.len() >= 2;
+    if families.iter().any(needs_shared) {
+        let mut lines = FileLineCache::default();
+        let idf = corpus_line_idf(&refs, &exclude, &mut lines);
+        for f in families.iter_mut().filter(|f| needs_shared(f)) {
             if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
                 let substantive: f64 = shared
                     .iter()
