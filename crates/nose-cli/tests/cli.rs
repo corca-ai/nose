@@ -57,10 +57,10 @@ fn refactor_reports_the_clone_family() {
         "10",
     ]);
     assert!(
-        out.contains("refactoring candidate families"),
+        out.contains("refactoring candidates"),
         "has a header: {out}"
     );
-    assert!(out.contains("sites"), "lists a family with sites: {out}");
+    assert!(out.contains("copies"), "lists a family: {out}");
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -136,9 +136,9 @@ fn min_value_filters_low_value_families() {
     // A value floor above any family's value hides them all; zero keeps them.
     let all = run(&["scan", p, "--min-tokens", "12", "--min-value", "0"]);
     let none = run(&["scan", p, "--min-tokens", "12", "--min-value", "100000"]);
-    assert!(all.contains("sites"), "unfiltered shows a family: {all}");
+    assert!(all.contains("copies"), "unfiltered shows a family: {all}");
     assert!(
-        !none.contains("sites"),
+        !none.contains("copies"),
         "a high value floor hides every family: {none}"
     );
     let _ = fs::remove_dir_all(&dir);
@@ -318,7 +318,7 @@ fn baseline_hides_accepted_families() {
     let bls = bl.to_str().unwrap();
 
     // Sanity: without a baseline there IS a family.
-    assert!(run(&["scan", p, "--min-tokens", "12"]).contains("sites"));
+    assert!(run(&["scan", p, "--min-tokens", "12"]).contains("copies"));
 
     // Accept current state…
     let _ = Command::new(bin())
@@ -496,5 +496,36 @@ fn proposal_shows_shared_skeleton_and_parameters() {
         out.contains("⟨param 1⟩"),
         "should show a parameter placeholder: {out}"
     );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn sort_keys_label_the_ranking_and_reject_garbage() {
+    let dir = make_project("sort");
+    let p = dir.to_str().unwrap();
+    // Default ranking is extractability — the header says so, in plain language.
+    let def = run(&["scan", p, "--min-tokens", "12"]);
+    assert!(
+        def.contains("ranked by extractability"),
+        "default header names the ranking: {def}"
+    );
+    // Families are described in plain language (copies + removable lines), not a
+    // wall of internal metrics.
+    assert!(
+        def.contains("copies") && def.contains("lines removable"),
+        "family summary is plain-language: {def}"
+    );
+    // --sort value switches the header.
+    let byval = run(&["scan", p, "--min-tokens", "12", "--sort", "value"]);
+    assert!(
+        byval.contains("raw duplicated volume"),
+        "--sort value names the ranking: {byval}"
+    );
+    // An unknown sort key is rejected by clap.
+    let bad = Command::new(bin())
+        .args(["scan", p, "--sort", "bogus"])
+        .output()
+        .expect("run nose");
+    assert!(!bad.status.success(), "unknown --sort value is rejected");
     let _ = fs::remove_dir_all(&dir);
 }

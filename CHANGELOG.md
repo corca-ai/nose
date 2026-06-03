@@ -27,11 +27,27 @@ break.
   short-circuit reduction. Free-monoid string model, map/filter fusion, and a
   ternary-return decomposition (`return a if c else b` ↔ `if c {return a} else {return b}`)
   also landed on the value graph.
-- **`nose scan`** — ranked architecture/design-level refactoring candidates:
-  clone families sorted by refactoring value (removable lines × similarity ×
-  cross-module/-file/-language spread). Human / JSON / Markdown / SARIF output;
-  `--diff` shows source diffs between representatives, `--proposal` shows extraction
-  skeletons with the differing parts marked as parameters.
+- **`nose scan`** — ranked architecture/design-level refactoring candidates.
+  Human / JSON / Markdown / SARIF output; `--diff` shows source diffs between
+  representatives, `--proposal` shows extraction skeletons with the differing parts
+  marked as parameters.
+- **`nose scan --sort`** — `extractability` (default), `value`, or `sites`.
+  The default ranks by how cleanly a family folds into one helper — *invariant*
+  (shared) lines × copies × spread, weighted by **tightness** (shared/total: 22 shared
+  of 384 lines is 6% invariant — barely a dedup) and penalized by parameter count —
+  instead of raw duplicated volume, which over-rewards a big block whose copies share
+  little. The all-type-definition / all-generated **discount and `.d.ts` exclusion**
+  now apply to extractability too (they previously only touched `value`). Same-language
+  families with **no** shared invariant lines (a language idiom like Go
+  `if err != nil { return err }`, or two unrelated type literals of the same shape) have
+  nothing to extract and sink to the bottom — they no longer top the list at a
+  misleading `sim 1.00`. Field evaluation across six real projects drove these fixes.
+- **Honest shared-line reporting** — the report's similarity cell now shows `N/M
+  shared · Pp` (invariant lines of total, with P parameter spots) for same-language
+  families, computed by the same anti-unification as `--proposal`. Replaces a bare
+  `sim 1.00` that read as "identical" even when two copies shared only a handful of
+  literal lines (a dispatch skeleton over divergent bodies). Cross-language families,
+  which share no *source* lines, still show structural `sim`.
 - **Refactoring-candidate mode** (`--candidates` on `detect`, default for `scan`):
   gates off + lower threshold, ~99% review-worthy on a refactoring-worthiness rubric.
 - **Rust, Java, C, and Ruby frontends** — 8 base languages (Python, JS, TS, Go,
@@ -50,6 +66,20 @@ break.
 - `--version`; richer CLI help; LICENSE.
 
 ### Changed
+- **Contiguous copy-paste channel is same-language by construction** — its k-gram
+  table is keyed by `(hash, language)`, so a literal-copy-paste family can no longer
+  span languages (you don't copy-paste TS into a `.mjs`; cross-language equivalence is
+  Type-4, recovered by the value-graph channel). Removes a class of false cross-language
+  merges (unrelated functions grouped by a shared normalized-IL token run) that the new
+  ranking couldn't catch — cross-language families bypass the shared-line check. Also
+  stops a collision in one language from masking a real same-language match in another.
+- **Overlapping families merge** — a family whose sites are a window-shifted overlap
+  (≥60%) of a larger family's sites is now subsumed, not reported twice. Previously
+  only strict containment collapsed; the contiguous channel finding the same run at a
+  few different start lines surfaced as several near-identical families.
+- **`.gitignore` is respected even outside a git checkout** (`require_git(false)` on
+  the walker), so an extracted tarball / vendored sub-tree honors its own `.gitignore`
+  instead of leaking generated and vendored files into the report.
 - **Detector modes split**: strict behavioral-clone mode (precision gates on, the
   default for `detect`) vs candidate mode. Behavioral precision raised ~6%→~78%
   (unbiased, judge-validated) via string-literal value retention, RANSAC re-weighting,

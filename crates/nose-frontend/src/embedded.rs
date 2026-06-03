@@ -26,11 +26,15 @@ pub(crate) fn lower(
     } else {
         Lang::JavaScript
     };
-    let mut il = crate::js_ts::lower(file, path, &blanked, script_lang, interner)?;
-    // Report under the real container language (`vue`/`svelte`/`html`), not the
-    // script dialect it was parsed as.
-    il.meta.lang = container;
-    Ok(il)
+    // Tag the IL with the *script* language it's actually analyzed as (TS/JS), not the
+    // container (`vue`/`svelte`/`html`). The file path already shows it's a component;
+    // tagging by container made a `<script lang="ts">` block and a plain `.ts` file
+    // look like a *cross-language* clone ("2 languages: svelte, typescript") when they
+    // are both TypeScript — which mislabeled honest same-language type/code duplication
+    // and sent it down the cross-language (no line-diff) path. They're still a
+    // cross-*container* family (different files); the language count is just honest now.
+    let _ = container;
+    crate::js_ts::lower(file, path, &blanked, script_lang, interner)
 }
 
 /// Byte ranges of every `<script>…</script>` block's *content*, plus whether any

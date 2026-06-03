@@ -6,6 +6,7 @@
 //! [scan]
 //! exclude = ["tests/**", "**/*.generated.ts", "vendor/**"]
 //! min-value = 200
+//! sort = "extractability"
 //! min-members = 3
 //! threshold = 0.72
 //! min-lines = 8
@@ -22,6 +23,7 @@ use std::path::{Path, PathBuf};
 pub(crate) struct ScanConfig {
     pub exclude: Vec<String>,
     pub min_value: Option<f64>,
+    pub sort: Option<crate::SortKey>,
     pub min_members: Option<usize>,
     pub threshold: Option<f64>,
     pub min_lines: Option<u32>,

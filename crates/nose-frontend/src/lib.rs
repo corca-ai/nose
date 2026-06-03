@@ -52,8 +52,12 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
     // Honor .gitignore *within* the target tree (skips node_modules, build dirs)
     // but not gitignores in parent directories outside it — pointing the tool at
     // a path that happens to sit under an ignored dir should still scan it.
+    // `require_git(false)` so a tree's .gitignore is respected even when it isn't a
+    // git checkout (extracted tarball, sub-tree, vendored copy) — otherwise `ignore`
+    // only activates gitignore rules under an actual `.git`, and generated/vendored
+    // files leak into the report (a real surprise the field eval hit).
     let mut builder = WalkBuilder::new(root);
-    builder.parents(false);
+    builder.parents(false).require_git(false);
     if !exclude.is_empty() {
         // `!glob` in an override means "ignore matches"; with only ignore globs,
         // every non-matching file is still included.

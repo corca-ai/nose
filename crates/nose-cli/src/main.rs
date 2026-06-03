@@ -117,6 +117,10 @@ enum Cmd {
         /// large repos). 0 shows everything. [default: 0]
         #[arg(long)]
         min_value: Option<f64>,
+        /// Rank families by: `extractability` (how cleanly it folds into one helper —
+        /// the default), `value` (raw duplicated volume), or `sites` (most copies).
+        #[arg(long)]
+        sort: Option<SortKey>,
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
@@ -277,6 +281,115 @@ enum ReportFormat {
     Sarif,
 }
 
+/// How to rank families — what "most worth your attention first" means.
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum SortKey {
+    /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
+    /// by the number of parameters the helper would need. Surfaces the duplication you
+    /// can actually fold into one helper, not the biggest block that merely *looks*
+    /// similar. The default.
+    Extractability,
+    /// Raw duplicated volume: removable lines × similarity × spread. The most
+    /// *code* you'd delete, even if the copies diverge a lot (more manual work).
+    Value,
+    /// Most copies first — the most-repeated patterns.
+    Sites,
+}
+
+impl SortKey {
+    /// The ranking score for `f` under this key (higher = ranked first).
+    fn score(self, f: &nose_detect::RefactorFamily) -> f64 {
+        match self {
+            SortKey::Extractability => f.extractability(),
+            SortKey::Value => f.value,
+            SortKey::Sites => f.members as f64,
+        }
+    }
+}
+
+/// Plain-language name of the active ranking, shown once in the header (the per-family
+/// lines don't repeat a cryptic score — the order already conveys it).
+fn sort_name(s: SortKey) -> &'static str {
+    match s {
+        SortKey::Extractability => "extractability (cleanest to fold into one helper)",
+        SortKey::Value => "raw duplicated volume",
+        SortKey::Sites => "number of copies",
+    }
+}
+
+/// One plain-language line describing a family: how many copies, how much is actually
+/// shared vs varies, how many lines you'd remove, and where the duplication lives. No
+/// internal ranking numbers — those only order the list, they're not for the reader.
+fn family_summary(f: &nose_detect::RefactorFamily) -> String {
+    let detail = if f.languages > 1 {
+        format!(
+            "same logic in {} languages ({})",
+            f.languages,
+            family_langs(f)
+        )
+    } else {
+        let rep = f
+            .locations
+            .first()
+            .map(|l| l.end_line.saturating_sub(l.start_line) + 1)
+            .unwrap_or(f.mean_lines)
+            .max(f.shared_lines);
+        match f.params {
+            0 => format!("{} of {rep} lines identical", f.shared_lines),
+            1 => format!("{} of {rep} lines shared, 1 spot differs", f.shared_lines),
+            p => format!("{} of {rep} lines shared, {p} spots differ", f.shared_lines),
+        }
+    };
+    let scope = match f.scope {
+        "test" => "  · in test code",
+        "mixed" => "  · same code in tests and prod",
+        _ => "",
+    };
+    format!(
+        "{} copies · {detail} · ~{} lines removable{scope}",
+        f.members,
+        removable_lines(f)
+    )
+}
+
+/// Lines you'd actually delete by extracting one shared copy. For same-language
+/// families this is the *invariant* lines folded out of each redundant copy
+/// (`(copies−1) × shared_lines`) — not `(copies−1) × mean_lines`, which counts the
+/// varying parts that *survive* extraction and so overstates the win (e.g. four
+/// 38-line copies sharing only 15 lines remove ~45, not ~114). Cross-language families
+/// have no shared-line count, so they keep the span-based estimate.
+fn removable_lines(f: &nose_detect::RefactorFamily) -> u32 {
+    let copies = f.members.saturating_sub(1) as u32;
+    if f.languages == 1 && f.shared_lines > 0 {
+        copies * f.shared_lines
+    } else {
+        f.dup_lines
+    }
+}
+
+/// The honest similarity cell. A bare `sim 1.00` misleads — two same-language copies
+/// can be structurally identical yet share *no* literal lines (a language idiom, or two
+/// unrelated type literals with the same shape). For same-language families always
+/// report the real shared-line count `18/42 shared · 2p` — 18 invariant lines of the 42
+/// in the largest copy, even when it's `0/42` (nothing to extract). Only cross-language
+/// families, which have no shared *source* lines to diff, fall back to structural `sim`.
+fn similarity_cell(f: &nose_detect::RefactorFamily) -> String {
+    if f.languages > 1 {
+        return format!("sim {:.2}", f.mean_score);
+    }
+    // Denominator is the representative copy's own line count (the two largest members
+    // are what was diffed), not the family-wide `mean_lines` — otherwise a family whose
+    // biggest copies run longer than average reads as "47/43 shared".
+    let rep = f
+        .locations
+        .first()
+        .map(|l| l.end_line.saturating_sub(l.start_line) + 1)
+        .unwrap_or(f.mean_lines)
+        .max(f.shared_lines);
+    format!("{}/{} shared · {}p", f.shared_lines, rep, f.params)
+}
+
 /// Stack size for the worker pool and the main worker thread. Lowering/normalization
 /// walk the syntax tree recursively, so a pathologically deep file (minified bundle,
 /// generated code) can need a deep stack — far more than the default ~2 MB (rayon
@@ -353,6 +466,7 @@ fn run() -> Result<()> {
             top,
             min_members,
             min_value,
+            sort,
             config,
             hotspots,
             cache_dir,
@@ -372,6 +486,7 @@ fn run() -> Result<()> {
             top,
             min_members,
             min_value,
+            sort,
             config,
             hotspots,
             cache_dir,
@@ -1016,6 +1131,7 @@ struct ScanArgs {
     top: Option<usize>,
     min_members: Option<usize>,
     min_value: Option<f64>,
+    sort: Option<SortKey>,
     config: Option<PathBuf>,
     hotspots: bool,
     cache_dir: Option<PathBuf>,
@@ -1076,6 +1192,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let top = args.top.or(cfg.top).unwrap_or(30);
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
+    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
     let threshold = args.threshold.or(cfg.threshold).unwrap_or(0.70);
     let min_lines = cfg.min_lines.unwrap_or(5);
     let min_tokens = args.min_tokens.or(cfg.min_tokens).unwrap_or(24);
@@ -1124,6 +1241,44 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             }
         }
     }
+    // Compute the honest shared-line count for each family, then rank. This layer has
+    // source access; the detector deals only in IL.
+    //
+    // `shared_lines` (displayed) is the count of *all* lines invariant across the family
+    // — including boilerplate, so it matches what `--proposal` shows. For *ranking*
+    // (`shared_weight`) we separate signal from noise: sum the IDF weight of the
+    // substantive lines (non-trivial, and rare across the corpus — a `if err != nil {`
+    // that appears in most files contributes ~0), then use that as a **gate** on the
+    // full block. A family whose shared lines are all boilerplate/idiom has ~0
+    // substantive weight → it scores ~0 however much it "shares"; a family with real
+    // shared content is credited for its whole extractable block (boilerplate included).
+    // Cross-language families have no shared *source* lines to diff, so they keep
+    // `shared_weight = 0` and fall back to the structural estimate in `extractability()`.
+    let mut lines = FileLineCache::default();
+    let idf = corpus_line_idf(&refs, &exclude, &mut lines);
+    for f in &mut families {
+        if f.languages == 1 && f.locations.len() >= 2 {
+            if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
+                let substantive: f64 = shared
+                    .iter()
+                    .filter(|l| !is_trivial_line(l))
+                    .map(|l| idf.weight(l))
+                    .sum();
+                // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
+                let gate = (substantive / 2.0).clamp(0.0, 1.0);
+                f.shared_lines = shared.len() as u32;
+                f.shared_weight = shared.len() as f64 * gate;
+                f.params = params;
+            }
+        }
+    }
+    families.sort_by(|a, b| {
+        sort.score(b)
+            .total_cmp(&sort.score(a))
+            // Deterministic tie-breaks: raw value, then first site's location.
+            .then(b.value.total_cmp(&a.value))
+            .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
+    });
     // Baseline: write the current state, or hide already-accepted families so only
     // new duplication is reported and gated.
     if args.write_baseline {
@@ -1152,7 +1307,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             println!("{}", serde_json::to_string_pretty(&shown)?);
         }
         ReportFormat::Markdown => print_refactor_markdown(&families, &shown),
-        ReportFormat::Human => print_refactor_human(&families, &shown, args.diff, args.proposal),
+        ReportFormat::Human => {
+            print_refactor_human(&families, &shown, sort, args.diff, args.proposal)
+        }
         ReportFormat::Sarif => println!("{}", refactor_sarif(&shown)?),
     }
     if args.hotspots && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown) {
@@ -1319,7 +1476,13 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     // method extracted from the repeated region; functions/methods → a helper.
     let all_classes = f.locations.iter().all(|l| l.kind == UnitKind::Class);
     let all_blocks = f.locations.iter().all(|l| l.kind == UnitKind::Block);
-    let extract = if all_classes {
+    // A computation-poor "class" unit is really a type/interface/enum/schema
+    // declaration (lowered to a `Class` skeleton); its refactor is "move to one shared
+    // type", not "extract a function with parameters".
+    let type_decl = all_classes && f.mean_sem < 12.0;
+    let extract = if type_decl {
+        "consolidate into one shared type"
+    } else if all_classes {
         "extract a shared base class / mixin"
     } else if all_blocks {
         "extract a method from the repeated block"
@@ -1343,51 +1506,36 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
 fn print_refactor_human(
     all: &[nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
+    sort: SortKey,
     diff: bool,
     proposal: bool,
 ) {
     println!(
-        "{} refactoring candidate families  ·  ~{} duplicated lines  (showing {})",
+        "{} refactoring candidates, ranked by {}  ·  ~{} duplicated lines  (showing {})",
         all.len(),
+        sort_name(sort),
         total_dup_lines(all),
         shown.len()
     );
+    // Every site is listed (you can't act on a clone you can't see); only pathological
+    // fanout is capped, with a pointer to the full machine-readable list.
+    const SITE_CAP: usize = 30;
     for (i, f) in shown.iter().enumerate() {
-        let xlang = if f.languages > 1 {
-            format!(" · {} langs ({})", f.languages, family_langs(f))
-        } else {
-            String::new()
-        };
-        // Tag non-production families: `test` (intentional scaffolding, discounted)
-        // and `mixed` (logic duplicated across the test boundary — a real smell).
-        let scope = match f.scope {
-            "test" => " · test",
-            "mixed" => " · test↔prod",
-            _ => "",
-        };
-        println!(
-            "\n#{:<3} value {:>7.0}  ·  {} sites · {} files · {} modules{}{} · sim {:.2} · ~{} dup lines",
-            i + 1,
-            f.value,
-            f.members,
-            f.files,
-            f.modules,
-            xlang,
-            scope,
-            f.mean_score,
-            f.dup_lines
-        );
-        println!("     → {}", family_hint(f));
-        for l in f.locations.iter().take(6) {
+        println!("\n#{}  {}", i + 1, family_summary(f));
+        println!("    → {}", family_hint(f));
+        for l in f.locations.iter().take(SITE_CAP) {
             let name = l
                 .name
                 .as_deref()
                 .map(|n| format!("  {n}"))
                 .unwrap_or_default();
-            println!("     {}:{}-{}{}", l.file, l.start_line, l.end_line, name);
+            println!("    {}:{}-{}{}", l.file, l.start_line, l.end_line, name);
         }
-        if f.locations.len() > 6 {
-            println!("     … +{} more", f.locations.len() - 6);
+        if f.locations.len() > SITE_CAP {
+            println!(
+                "    … and {} more sites (--format json lists every one)",
+                f.locations.len() - SITE_CAP
+            );
         }
         if diff && f.locations.len() >= 2 {
             print_member_diff(&f.locations[0], &f.locations[1]);
@@ -1432,15 +1580,31 @@ fn print_member_proposal(a: &nose_detect::Loc, b: &nose_detect::Loc) {
     };
     let ar: Vec<&str> = la.iter().map(String::as_str).collect();
     let br: Vec<&str> = lb.iter().map(String::as_str).collect();
-    let diff = line_diff(&ar, &br);
-    // Collapse each maximal run of differing lines into one parameter placeholder.
+    let (skeleton, shared, params) = anti_unify(&ar, &br);
+    println!(
+        "     proposal  extract a shared helper · {shared} shared lines · {params} parameter(s) vary"
+    );
+    for line in skeleton.iter().take(40) {
+        println!("       │ {line}");
+    }
+}
+
+/// Anti-unify two line-blocks at line granularity: the lines they share become the
+/// body of the extracted helper, and each maximal run of differing lines collapses to
+/// one `⟨param N⟩` placeholder (a candidate parameter). Returns the skeleton, the
+/// count of shared (invariant) lines, and the parameter count. Shared by the
+/// `--proposal` view and by extractability ranking / honest shared-line reporting.
+fn anti_unify(a: &[&str], b: &[&str]) -> (Vec<String>, u32, u32) {
+    let diff = line_diff(a, b);
     let mut skeleton: Vec<String> = Vec::new();
-    let mut params = 0usize;
+    let mut shared = 0u32;
+    let mut params = 0u32;
     let mut in_hole = false;
     let mut indent = "";
     for (tag, line) in &diff {
         if *tag == ' ' {
             in_hole = false;
+            shared += 1;
             // remember the indentation to align the placeholder
             indent = &line[..line.len() - line.trim_start().len()];
             skeleton.push(line.clone());
@@ -1450,12 +1614,190 @@ fn print_member_proposal(a: &nose_detect::Loc, b: &nose_detect::Loc) {
             skeleton.push(format!("{indent}⟨param {params}⟩"));
         }
     }
-    let common = diff.iter().filter(|(t, _)| *t == ' ').count();
-    println!(
-        "     proposal  extract a shared helper · {common} shared lines · {params} parameter(s) vary"
-    );
-    for line in skeleton.iter().take(40) {
-        println!("       │ {line}");
+    (skeleton, shared, params)
+}
+
+/// The invariant (shared) source lines across a family, plus the parameter count — the
+/// honest counterpart to structural similarity. Returns *all* shared lines, including
+/// boilerplate (`if err != nil {`, `}`): when a family genuinely shares a block, that
+/// boilerplate is part of the helper you'd extract. The caller separates signal from
+/// noise by *gating* on the substantive (non-trivial, rare) shared lines — a family
+/// that shares only boilerplate scores ~0, while one with real shared content is
+/// credited for its whole block (this is what stops idioms from ranking yet still
+/// credits a `resolve*()` trio that shares a 13-line skeleton around a few varying args).
+///
+/// The shared set is intersected over a *majority* of members (up to `MEMBER_CAP`), not
+/// just the closest pair — so a diverging copy shrinks the count honestly rather than
+/// the flattering pair count overstating `N of M shared`. Parameters come from the first
+/// pair (a lower bound on the varying spots). `None` if the first two spans can't read.
+fn shared_lines_of(
+    locs: &[nose_detect::Loc],
+    cache: &mut FileLineCache,
+) -> Option<(Vec<String>, u32)> {
+    // Lines invariant across the representative pair, plus the parameter count.
+    let pair = |a: &nose_detect::Loc, b: &nose_detect::Loc, cache: &mut FileLineCache| {
+        let la = cache.slice(&a.file, a.start_line, a.end_line)?;
+        let lb = cache.slice(&b.file, b.start_line, b.end_line)?;
+        let ar: Vec<&str> = la.iter().map(String::as_str).collect();
+        let br: Vec<&str> = lb.iter().map(String::as_str).collect();
+        let mut shared = Vec::new();
+        let mut params = 0u32;
+        let mut in_hole = false;
+        for (tag, line) in &line_diff(&ar, &br) {
+            if *tag == ' ' {
+                in_hole = false;
+                let t = line.trim();
+                if !t.is_empty() {
+                    shared.push(t.to_string());
+                }
+            } else if !in_hole {
+                in_hole = true;
+                params += 1;
+            }
+        }
+        Some((shared, params))
+    };
+    const MEMBER_CAP: usize = 8;
+    // Count, per representative-line, how many other members share it. Keep the lines
+    // shared by a *majority* (≥60%) of members: honest about a diverging copy (a line
+    // only one other member has is dropped) yet robust to a single outlier (a 6-copy
+    // family isn't tanked because its 6th copy differs). Parameters come from the first
+    // pair (a lower bound on the varying spots).
+    let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut n_others = 0usize;
+    let mut params = 0u32;
+    for (i, b) in locs.iter().skip(1).take(MEMBER_CAP - 1).enumerate() {
+        let Some((s, p)) = pair(&locs[0], b, cache) else {
+            continue;
+        };
+        if i == 0 {
+            params = p;
+        }
+        n_others += 1;
+        let uniq: std::collections::HashSet<String> = s.into_iter().collect();
+        for l in uniq {
+            *counts.entry(l).or_insert(0) += 1;
+        }
+    }
+    if n_others == 0 {
+        return None;
+    }
+    let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
+    let shared: Vec<String> = counts
+        .into_iter()
+        .filter(|(_, c)| *c >= need)
+        .map(|(l, _)| l)
+        .collect();
+    Some((shared, params))
+}
+
+/// A line with no extractable content on its own: blank, pure delimiters (`}`, `});`,
+/// `)`), or a bare control keyword. Sharing one of these between two blocks says
+/// nothing about whether they're the same code.
+fn is_trivial_line(t: &str) -> bool {
+    t.is_empty()
+        || t.chars().all(|c| {
+            matches!(
+                c,
+                '{' | '}' | '(' | ')' | '[' | ']' | ';' | ',' | ' ' | '\t'
+            )
+        })
+        || matches!(
+            t,
+            "return" | "break" | "continue" | "else" | "else {" | "};" | "})" | "});"
+        )
+}
+
+/// How *idiomatic* (pervasive) each source line is across the scanned corpus, by the
+/// fraction of files it appears in. A line in a large fraction of files is a language
+/// idiom (`if err != nil {`, a ubiquitous logging call) and earns ~0 weight; a line in
+/// few files is specific and earns full weight — so a language idiom, however often it's
+/// literally duplicated, can't rank as an extractable refactor, with no hardcoded
+/// idiom list. The floor is generous (`LO`): ordinary cross-file duplication — the very
+/// thing we want to surface — keeps full weight; only genuinely pervasive lines are
+/// docked. This matters on small repos, where naive IDF would penalize everything.
+struct LineIdf {
+    df: std::collections::HashMap<String, u32>,
+    n_files: f64,
+}
+
+impl LineIdf {
+    fn weight(&self, line: &str) -> f64 {
+        if self.n_files <= 1.0 {
+            return 1.0; // single-file corpus: no frequency signal
+        }
+        let frac = self.df.get(line).copied().unwrap_or(1) as f64 / self.n_files;
+        const LO: f64 = 0.25; // ≤25% of files: specific → full weight
+        const HI: f64 = 0.60; // ≥60% of files: pervasive idiom → no weight
+        ((HI - frac) / (HI - LO)).clamp(0.0, 1.0)
+    }
+}
+
+/// Build the [`LineIdf`] by reading every scanned file once (through `cache`, which the
+/// per-family diffs then reuse) and counting, per trimmed non-trivial line, how many
+/// distinct files contain it.
+fn corpus_line_idf(
+    refs: &[&std::path::Path],
+    exclude: &[String],
+    cache: &mut FileLineCache,
+) -> LineIdf {
+    let mut df: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+    let mut n_files = 0u32;
+    for root in refs {
+        for (path, _lang) in nose_frontend::discover_paths(root, exclude) {
+            let Some(all) = cache.whole(&path) else {
+                continue;
+            };
+            n_files += 1;
+            let mut seen = std::collections::HashSet::new();
+            for l in all {
+                let t = l.trim();
+                if !is_trivial_line(t) && seen.insert(t.to_string()) {
+                    *df.entry(t.to_string()).or_insert(0) += 1;
+                }
+            }
+        }
+    }
+    LineIdf {
+        df,
+        n_files: n_files.max(1) as f64,
+    }
+}
+
+/// Deterministic ranking tie-break: a family's first site `(file, start line)`.
+fn family_anchor(f: &nose_detect::RefactorFamily) -> (String, u32) {
+    f.locations
+        .first()
+        .map(|l| (l.file.clone(), l.start_line))
+        .unwrap_or_default()
+}
+
+/// Memoizes file contents (split into lines) so ranking many families that touch the
+/// same files reads each file at most once. `None` for files that fail to read.
+#[derive(Default)]
+struct FileLineCache(std::collections::HashMap<String, Option<Vec<String>>>);
+
+impl FileLineCache {
+    /// All lines of `file`, reading and caching on first touch. `None` if unreadable.
+    fn whole(&mut self, file: &str) -> Option<&[String]> {
+        self.0
+            .entry(file.to_string())
+            .or_insert_with(|| {
+                std::fs::read_to_string(file)
+                    .ok()
+                    .map(|t| t.lines().map(str::to_string).collect())
+            })
+            .as_deref()
+    }
+
+    /// Lines `start..=end` (1-based) of `file`.
+    fn slice(&mut self, file: &str, start: u32, end: u32) -> Option<Vec<String>> {
+        let all = self.whole(file)?;
+        let (s, e) = (
+            start.saturating_sub(1) as usize,
+            (end as usize).min(all.len()),
+        );
+        (s < e).then(|| all[s..e].to_vec())
     }
 }
 
@@ -1524,13 +1866,13 @@ fn print_refactor_markdown(
             s => format!(" · cross-language: {s}"),
         };
         println!(
-            "## {}. {} sites, {} files, {} modules — ~{} dup lines (sim {:.2}){}",
+            "## {}. {} sites, {} files, {} modules — ~{} dup lines ({}){}",
             i + 1,
             f.members,
             f.files,
             f.modules,
             f.dup_lines,
-            f.mean_score,
+            similarity_cell(f),
             xlang
         );
         println!("\n*{}*\n", family_hint(f));
@@ -1820,9 +2162,13 @@ mod tests {
             mean_score: 0.9,
             mean_lines: 10,
             dup_lines: 10,
+            shared_lines: 0,
+            params: 0,
+            shared_weight: 0.0,
             locations,
             mean_sem: 50.0,
             scope: "prod",
+            discount: 1.0,
         }
     }
 

@@ -26,6 +26,22 @@ pub(crate) struct Stream {
     tags: Vec<u64>,
     start: Vec<u32>,
     end: Vec<u32>,
+    /// Per-token: does this node perform a computation (a call, operator, branch,
+    /// loop, assignment…)? A duplicated run with *no* operations is a flat list of
+    /// names / fields / literals — a prop list, a destructuring pattern, an import or
+    /// enum list, a type-member list — not extractable logic. Such runs are skipped, so
+    /// e.g. a hook call site `useX({ a, b, c })` no longer "clones" the hook's own
+    /// parameter destructure `const { a, b, c } = input` (both are `Seq` of `Var`).
+    op: Vec<bool>,
+}
+
+/// Does this node kind perform a computation (vs. just name/structure a value)?
+fn is_operation(kind: nose_il::NodeKind) -> bool {
+    use nose_il::NodeKind::*;
+    matches!(
+        kind,
+        Assign | Return | If | Loop | Break | Continue | Throw | Try | Call | BinOp | UnOp | HoF
+    )
 }
 
 /// Flatten an `Il` to its full pre-order token stream (with per-token spans), like a
@@ -40,6 +56,7 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
         tags: Vec::new(),
         start: Vec::new(),
         end: Vec::new(),
+        op: Vec::new(),
     };
     let suppressed = &il.suppressed;
     let is_suppressed = |b: u32| suppressed.iter().any(|&(lo, hi)| b >= lo && b < hi);
@@ -51,6 +68,7 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
             s.tags.push(node_tag_valued(n.kind, n.payload, interner));
             s.start.push(n.span.start_line);
             s.end.push(n.span.end_line);
+            s.op.push(is_operation(n.kind));
         }
         for &c in il.children(nid).iter().rev() {
             stack.push(c);
@@ -145,8 +163,14 @@ fn loc(s: &Stream, lo: usize, hi: usize) -> Loc {
 /// pass stays linear even on highly repetitive code.
 pub(crate) fn detect(streams: &[Stream]) -> Vec<crate::Group> {
     let (k, mint, minl) = (k(), min_tokens(), min_lines());
-    // first occurrence of each k-gram hash: hash -> (stream, pos)
-    let mut seen: FxHashMap<u64, (usize, usize)> = FxHashMap::default();
+    // First occurrence of each k-gram, keyed by (hash, language): `(hash, lang) ->
+    // (stream, pos)`. Keying on language makes the contiguous channel **same-language
+    // by construction** — literal copy-paste (Type-1/2) doesn't cross languages, so a
+    // cross-language "duplicated run" here is a false merge (unrelated code sharing a
+    // normalized-IL token run). Cross-language equivalence is Type-4 and is recovered
+    // by the value-graph channel instead. Per-language keying also stops an unrelated
+    // collision in one language from masking a real same-language match in another.
+    let mut seen: FxHashMap<(u64, nose_il::Lang), (usize, usize)> = FxHashMap::default();
     let grams: Vec<Vec<u64>> = streams.iter().map(|s| kgrams(&s.tags, k)).collect();
 
     // Emitted clone instances and the pairs linking them (for union-find clustering).
@@ -163,18 +187,26 @@ pub(crate) fn detect(streams: &[Stream]) -> Vec<crate::Group> {
     };
 
     for (si, g) in grams.iter().enumerate() {
+        let lang = streams[si].lang;
         let mut i = 0;
         while i < g.len() {
             let h = g[i];
-            if let Some(&(sj, j)) = seen.get(&h) {
-                // Don't match a stream against an overlapping window of itself.
+            if let Some(&(sj, j)) = seen.get(&(h, lang)) {
+                // `sj` is the same language as `si` by construction (the key includes
+                // `lang`). Don't match a stream against an overlapping window of itself.
                 let self_overlap = sj == si && i.abs_diff(j) < k;
                 if !self_overlap {
                     let len = extend(&streams[sj], j, &streams[si], i);
                     let la = loc(&streams[sj], j, j + len);
                     let lb = loc(&streams[si], i, i + len);
                     let lines = lb.end_line.saturating_sub(lb.start_line) + 1;
-                    if len >= mint && lines >= minl {
+                    // Require the run to contain at least one operation — a flat
+                    // name/field/literal list (prop list, destructure, import/enum list)
+                    // is not extractable logic, however literally it repeats.
+                    let has_op = streams[si].op[i..(i + len).min(streams[si].op.len())]
+                        .iter()
+                        .any(|&o| o);
+                    if has_op && len >= mint && lines >= minl {
                         let a = intern_loc(&mut locs, la);
                         let b = intern_loc(&mut locs, lb);
                         if a != b {
@@ -186,7 +218,7 @@ pub(crate) fn detect(streams: &[Stream]) -> Vec<crate::Group> {
                     }
                 }
             } else {
-                seen.insert(h, (si, i));
+                seen.insert((h, lang), (si, i));
             }
             i += 1;
         }
@@ -221,6 +253,9 @@ mod tests {
         Stream {
             path: path.into(),
             lang: nose_il::Lang::Python,
+            // These tests exercise the run-matching mechanism, not the operation gate,
+            // so every token counts as an operation.
+            op: vec![true; tags.len()],
             tags,
             start: (1..=n).collect(),
             end: (1..=n).collect(),
@@ -252,5 +287,39 @@ mod tests {
         let mut b = vec![9, 8, 7];
         b.extend(&shared);
         assert!(detect(&[mk("a.py", a), mk("b.py", b)]).is_empty());
+    }
+
+    /// A run with no operation tokens (a flat name/field/literal list — a prop list, a
+    /// destructuring pattern, an import/enum list) is not extractable logic and is
+    /// dropped, even when it repeats verbatim and is long enough.
+    #[test]
+    fn ignores_operationless_runs() {
+        let shared: Vec<u64> = (100..125).collect(); // 25 tokens, well over MIN_TOKENS
+        let stream = |path: &str| {
+            let n = shared.len() as u32;
+            Stream {
+                path: path.into(),
+                lang: nose_il::Lang::Python,
+                op: vec![false; shared.len()], // no operations anywhere in the run
+                tags: shared.clone(),
+                start: (1..=n).collect(),
+                end: (1..=n).collect(),
+            }
+        };
+        assert!(
+            detect(&[stream("a.py"), stream("b.py")]).is_empty(),
+            "an operation-free run is not a refactor candidate"
+        );
+        // The same run with one operation token IS reported.
+        let with_op = |path: &str| {
+            let mut s = stream(path);
+            s.op[5] = true;
+            s
+        };
+        assert_eq!(
+            detect(&[with_op("a.py"), with_op("b.py")]).len(),
+            1,
+            "a run containing an operation is a clone"
+        );
     }
 }

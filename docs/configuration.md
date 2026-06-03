@@ -10,6 +10,7 @@ back to the built-in default. Back to [home](home.md).
 ```toml
 [scan]
 exclude     = ["tests/**", "**/*.generated.ts", "vendor/**"]
+sort        = "extractability"
 min-value   = 200
 min-members = 3
 threshold   = 0.72
@@ -28,6 +29,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | key | type | default | same as flag |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
+| `sort` | `extractability`\|`value`\|`sites` | `extractability` | `--sort` |
 | `min-value` | float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
 | `threshold` | float | `0.70` | `--threshold` |

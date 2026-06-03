@@ -33,6 +33,22 @@ pub struct RefactorFamily {
     /// Lines that could be removed by extracting one shared copy
     /// (≈ `(members − 1) × mean_lines`).
     pub dup_lines: u32,
+    /// Invariant (shared) source lines between the two representative copies — the
+    /// body of the helper you'd extract. The honest counterpart to `mean_score`: two
+    /// copies can be `sim 1.00` structurally yet share few literal lines (a dispatch
+    /// skeleton wrapping divergent bodies). Computed at the presentation layer (needs
+    /// source); `0` until then, or for cross-language families (no shared lines).
+    pub shared_lines: u32,
+    /// Number of varying spots between the two representative copies — the parameters
+    /// the extracted helper would take. High param count ⇒ a costlier, uglier extract.
+    /// Computed alongside `shared_lines`; `0` until then.
+    pub params: u32,
+    /// The same shared-line measure as `shared_lines`, but unrounded *and* weighted by
+    /// how specific each line is (a pervasive idiom contributes ~0) — the value the
+    /// ranking actually uses. Kept as a float so families don't collapse into integer
+    /// ties (which would let the raw-volume tie-break re-dominate the order).
+    /// `shared_lines` is just this rounded, for display. `0.0` until computed.
+    pub shared_weight: f64,
     /// The duplicated sites, largest first.
     pub locations: Vec<Loc>,
     /// Mean value-graph size across members (low → computation-poor type/data def).
@@ -41,6 +57,65 @@ pub struct RefactorFamily {
     /// `"mixed"` (logic duplicated *across* the test boundary — ranked normally
     /// because it's a real leak, unlike intentional test scaffolding).
     pub scope: &'static str,
+    /// Refactor-worthiness discount in `(0, 1]` from [`refactor_discount`] — demotes
+    /// all-type-definition and all-generated families. Applied to *both* `value` and
+    /// `extractability` so the default ranking honors it too.
+    pub discount: f64,
+}
+
+impl RefactorFamily {
+    /// How cleanly this family extracts into one shared helper — the default ranking.
+    /// Where `value` ranks by raw duplicated *volume* (and so over-rewards a big block
+    /// whose copies actually share little), extractability ranks by the lines you'd
+    /// truly remove: the *invariant* lines, dampened by the number of parameters the
+    /// helper would need. A 400-line dispatcher sharing 9 lines across 30 varying spots
+    /// sinks below a 20-line pair sharing 18 lines with one parameter.
+    ///
+    /// The honest extractable size depends on whether the copies are comparable as text:
+    /// - **same-language** (`languages == 1`): `shared_lines` is the truth. If it is 0,
+    ///   the family shares no invariant lines — a structural-only match (a language
+    ///   idiom like `if err != nil { return err }`, or two unrelated type literals with
+    ///   the same shape). There is *nothing to extract*, so the score is 0. This is the
+    ///   key correction over volume ranking, which floated these to the top with a
+    ///   misleading `sim 1.00`.
+    /// - **cross-language** (`languages > 1`): there are no shared *source* lines to
+    ///   diff, yet these are real Type-4 clones — fall back to the structural estimate
+    ///   `mean_lines × mean_score` so cross-language spread still ranks on its merits.
+    ///
+    /// Two cleanliness factors scale the result: a **parameter penalty** (each varying
+    /// spot widens the helper signature) and, for same-language families, **tightness**
+    /// — the fraction of each copy that is invariant (`shared_lines / rep_lines`).
+    /// Tightness is what separates `15/15` (extract the whole thing) from `22/384`
+    /// (extract a 22-line helper and leave 360 unique lines at every site — barely a
+    /// dedup); absolute shared lines alone can't tell them apart.
+    pub fn extractability(&self) -> f64 {
+        let (extract_lines, tightness) = if self.languages > 1 {
+            // cross-language: there are no shared *source* lines to diff, so we can
+            // neither weight out idioms nor measure tightness. Require *substance*
+            // instead — a tiny cross-language "clone" (a few lines) is almost always a
+            // shared idiom (an error check, a one-liner), and we can't verify it line by
+            // line — whereas a real cross-language abstraction is a substantial routine.
+            // Confidence ramps from 0 at ≤3 lines to 1 at ≥9, standing in for tightness.
+            let confidence = ((self.mean_lines as f64 - 3.0) / 6.0).clamp(0.0, 1.0);
+            (self.mean_lines as f64 * self.mean_score, confidence)
+        } else {
+            let rep = self
+                .locations
+                .first()
+                .map_or(self.mean_lines, span_lines)
+                .max(1) as f64;
+            (self.shared_weight, (self.shared_weight / rep).min(1.0))
+        };
+        // Each extra parameter makes the helper's signature wider and the call sites
+        // noisier; 1–2 is clean, a dozen means the "shared" code is mostly scaffolding.
+        let param_penalty = 1.0 / (1.0 + 0.5 * self.params as f64);
+        extract_lines
+            * effective_copies(self.members)
+            * spread(self.files, self.modules, self.languages)
+            * param_penalty
+            * tightness
+            * self.discount
+    }
 }
 
 /// The directory ("module") a file lives in — the design-level grouping key.
@@ -80,26 +155,33 @@ fn refactor_value(
     modules: usize,
     languages: usize,
 ) -> f64 {
-    // Removable code grows with the number of copies, but with DIMINISHING returns:
-    // the first few dedups capture the design win, whereas a fragment repeated across
-    // hundreds of sites is almost always an idiom / generated / boilerplate pattern
-    // (a Javadoc nav block, test scaffolding), not an extractable abstraction. So the
-    // copy count is linear up to a small knee, then square-root-dampened — fanout no
-    // longer rewards the ranking *linearly* (a 400-copy family is ~20× a 2-copy one,
-    // not 400×). The reported `dup_lines` stays the honest `mean_lines × (members−1)`;
-    // only this ranking score is dampened.
+    mean_lines as f64 * effective_copies(members) * mean_score * spread(files, modules, languages)
+}
+
+/// Copies, dampened. Removable code grows with the number of copies, but with
+/// DIMINISHING returns: the first few dedups capture the design win, whereas a
+/// fragment repeated across hundreds of sites is almost always an idiom / generated
+/// / boilerplate pattern (a Javadoc nav block, test scaffolding), not an extractable
+/// abstraction. So the copy count is linear up to a small knee, then
+/// square-root-dampened — fanout no longer rewards the ranking *linearly* (a 400-copy
+/// family is ~20× a 2-copy one, not 400×). The reported `dup_lines` stays the honest
+/// `mean_lines × (members−1)`; only the ranking scores are dampened.
+fn effective_copies(members: usize) -> f64 {
     let copies = members.saturating_sub(1) as f64;
     const KNEE: f64 = 6.0;
-    let effective_copies = if copies <= KNEE {
+    if copies <= KNEE {
         copies
     } else {
         KNEE + (copies - KNEE).sqrt()
-    };
-    let spread = 1.0
-        + 0.30 * (files.min(8) as f64 - 1.0).max(0.0)
+    }
+}
+
+/// Design-spread multiplier: cross-module duplication is a missing abstraction;
+/// cross-language is a notable (if harder) design signal.
+fn spread(files: usize, modules: usize, languages: usize) -> f64 {
+    1.0 + 0.30 * (files.min(8) as f64 - 1.0).max(0.0)
         + 0.50 * (modules.min(6) as f64 - 1.0).max(0.0)
-        + 0.50 * (languages as f64 - 1.0).max(0.0);
-    mean_lines as f64 * effective_copies * mean_score * spread
+        + 0.50 * (languages as f64 - 1.0).max(0.0)
 }
 
 /// Is this site test code, by the usual path / unit-name conventions? Conservative:
@@ -147,6 +229,7 @@ fn is_generated_loc(l: &Loc) -> bool {
         ".pb.",
         "_pb2",
         ".g.dart",
+        ".d.ts", // TS ambient declarations: not extractable refactor targets (often generated)
         "generated/",
         "/gen/",
         ".generated.",
@@ -243,6 +326,7 @@ fn family_of(group: &Group) -> RefactorFamily {
     let all_class = locs.iter().all(|l| l.kind == nose_il::UnitKind::Class);
     let all_generated = locs.iter().all(is_generated_loc);
 
+    let discount = refactor_discount(all_class, mean_sem, all_generated);
     let value = refactor_value(
         mean_lines,
         members,
@@ -250,7 +334,7 @@ fn family_of(group: &Group) -> RefactorFamily {
         files.len(),
         modules.len(),
         langs.len(),
-    ) * refactor_discount(all_class, mean_sem, all_generated);
+    ) * discount;
     RefactorFamily {
         value,
         members,
@@ -260,21 +344,41 @@ fn family_of(group: &Group) -> RefactorFamily {
         mean_score: group.score,
         mean_lines,
         dup_lines,
+        // Filled in at the presentation layer (needs source access).
+        shared_lines: 0,
+        params: 0,
+        shared_weight: 0.0,
         locations: locs,
         mean_sem,
         scope,
+        discount,
     }
 }
 
 /// Rank a detection report's groups as refactoring opportunities, highest value
 /// first. Trivial families (a single pair of tiny fragments) sink to the bottom.
 pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
-    let mut fams: Vec<RefactorFamily> = report.groups.iter().map(family_of).collect();
-    fams.sort_by(|a, b| b.value.total_cmp(&a.value));
-    // Drop families subsumed by a higher-value one: block-unit extraction can make a
-    // family of inner blocks (e.g. a shared loop body) alongside the family of the
-    // enclosing functions that contain it — the same regions, reported twice. Keep
-    // the larger (already first by value), drop the contained one.
+    let mut fams: Vec<RefactorFamily> = report
+        .groups
+        .iter()
+        .map(family_of)
+        // Drop families living entirely in generated / vendored / ambient-declaration
+        // files (`vendor/`, `.min.`, `*.d.ts`, `// Generated`-style paths): you don't
+        // refactor code a tool regenerates. A *partly*-generated family is kept — that's
+        // a real leak of hand-written logic into generated output.
+        .filter(|f| !f.locations.iter().all(is_generated_loc))
+        .collect();
+    // Dedup overlapping families by total span, LARGEST FIRST, so the most complete
+    // family of a region is the one kept and the sub-blocks inside it are dropped. (A
+    // value/extractability order would keep whichever scored highest — often a sub-block
+    // — leaving its enclosing family *also* in the list: the same OAuth test-server or
+    // design-verifier function reported as several overlapping entries. The caller
+    // re-sorts the survivors by the chosen key, so this order only governs dedup.)
+    fams.sort_by(|a, b| {
+        total_span(b)
+            .cmp(&total_span(a))
+            .then(b.value.total_cmp(&a.value))
+    });
     let mut kept: Vec<RefactorFamily> = Vec::with_capacity(fams.len());
     for f in fams {
         if !kept.iter().any(|k| subsumes(k, &f)) {
@@ -284,17 +388,29 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
     kept
 }
 
-/// Does family `outer` subsume `inner` — i.e. every `inner` site sits inside some
-/// `outer` site in the same file? Then `inner` is a sub-structure already covered.
+/// Total source lines a family spans across all its sites — its "size" for dedup.
+fn total_span(f: &RefactorFamily) -> u32 {
+    f.locations.iter().map(span_lines).sum()
+}
+
+/// Does family `outer` subsume `inner` — i.e. every `inner` site lands on (mostly
+/// inside) some `outer` site in the same file? Then `inner` reports the same regions
+/// already covered. This catches two cases the field eval flagged as double-counting:
+/// strict containment (a shared loop body reported alongside the enclosing functions),
+/// and **window-shifted overlap** — the contiguous channel finding the same run at a
+/// few different start lines, surfacing as several near-identical families. Requiring
+/// the bulk (≥60%) of each inner site to fall in an outer site collapses both without
+/// merging genuinely distinct code (which would need >60% line overlap to qualify).
 fn subsumes(outer: &RefactorFamily, inner: &RefactorFamily) -> bool {
     if outer.locations.len() < inner.locations.len() {
         return false;
     }
+    const COVER: f64 = 0.60;
     inner.locations.iter().all(|i| {
         outer
             .locations
             .iter()
-            .any(|o| o.file == i.file && o.start_line <= i.start_line && o.end_line >= i.end_line)
+            .any(|o| o.file == i.file && overlap_frac(o, i) >= COVER)
     })
 }
 
@@ -327,6 +443,121 @@ mod tests {
             sem,
         }
     }
+    /// A family with the given locations and metrics, other fields at neutral values.
+    fn fam(
+        value: f64,
+        mean_lines: u32,
+        shared: u32,
+        params: u32,
+        locs: Vec<Loc>,
+    ) -> RefactorFamily {
+        RefactorFamily {
+            value,
+            members: locs.len(),
+            files: locs
+                .iter()
+                .map(|l| &l.file)
+                .collect::<std::collections::HashSet<_>>()
+                .len(),
+            modules: 1,
+            languages: locs
+                .iter()
+                .map(|l| &l.lang)
+                .collect::<std::collections::HashSet<_>>()
+                .len()
+                .max(1),
+            mean_score: 1.0,
+            mean_lines,
+            dup_lines: mean_lines,
+            shared_lines: shared,
+            params,
+            shared_weight: shared as f64,
+            locations: locs,
+            mean_sem: 50.0,
+            scope: "prod",
+            discount: 1.0,
+        }
+    }
+
+    #[test]
+    fn extractability_ranks_tight_over_bloated() {
+        // A: a big block whose copies share little (a dispatch skeleton over divergent
+        // bodies) — high raw `value`, few shared lines, many params. B: a small tight
+        // pair. Extractability must rank B above A even though A's `value` is larger.
+        let bloated = fam(
+            5000.0,
+            200,
+            9,
+            22,
+            vec![loc("a.rs", 1, 200, "rs"), loc("b.rs", 1, 200, "rs")],
+        );
+        let tight = fam(
+            200.0,
+            22,
+            18,
+            1,
+            vec![loc("c.rs", 1, 22, "rs"), loc("d.rs", 1, 22, "rs")],
+        );
+        assert!(
+            bloated.value > tight.value,
+            "old ranking favors the bloated block"
+        );
+        assert!(
+            tight.extractability() > bloated.extractability(),
+            "extractability favors the cleanly-extractable pair"
+        );
+    }
+
+    #[test]
+    fn extractability_falls_back_without_shared() {
+        // Cross-language families have no shared *source* lines (shared_lines = 0); the
+        // fallback keeps them ranked on structural similarity × volume, not at zero.
+        let xlang = fam(
+            0.0,
+            40,
+            0,
+            0,
+            vec![
+                loc("a.py", 1, 40, "python"),
+                loc("a.ts", 1, 40, "typescript"),
+            ],
+        );
+        assert!(xlang.extractability() > 0.0);
+    }
+
+    #[test]
+    fn subsumes_collapses_window_shift() {
+        // A block family whose sites are a few-line-shifted window of a larger family's
+        // sites (the contiguous channel finding the same run at different starts) is
+        // subsumed — the field-eval double-counting case.
+        let outer = fam(
+            10.0,
+            7,
+            7,
+            0,
+            vec![loc("a.rs", 11, 17, "rs"), loc("b.rs", 10, 14, "rs")],
+        );
+        let inner = fam(
+            10.0,
+            10,
+            10,
+            0,
+            vec![loc("a.rs", 8, 17, "rs"), loc("b.rs", 7, 14, "rs")],
+        );
+        assert!(subsumes(&outer, &inner), "≥60%-overlapping sites collapse");
+        let distinct = fam(
+            10.0,
+            11,
+            11,
+            0,
+            vec![loc("a.rs", 40, 50, "rs"), loc("b.rs", 40, 50, "rs")],
+        );
+        assert!(
+            !subsumes(&outer, &distinct),
+            "non-overlapping family is kept"
+        );
+    }
+
     fn report(groups: Vec<Group>) -> Report {
         Report {
             tool: "nose",
