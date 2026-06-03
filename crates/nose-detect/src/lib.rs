@@ -543,11 +543,27 @@ pub fn detect_from_units(
         .collect();
     duplicates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
-    // Group score = mean pair score among members (approximated by member count).
+    // Group score = mean of the accepted-pair scores within the group. Accumulate it in
+    // ONE pass over `accepted` instead of rescanning every accepted pair for every group
+    // (which was O(groups × accepted) — ~1e9 iterations / ~0.9s on guava's 17.6k groups ×
+    // 59k pairs, the detector's real hot spot). Each accepted pair was unioned, so its two
+    // endpoints share a component; index its contribution by that component's root. The
+    // per-group sum still walks `accepted` in order, so the float total — and the rounded
+    // score — is byte-identical to the per-group rescan.
+    let mut by_root: rustc_hash::FxHashMap<usize, (f64, u32)> = rustc_hash::FxHashMap::default();
+    for &(i, _j, s) in &accepted {
+        let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
+        e.0 += s;
+        e.1 += 1;
+    }
     let groups: Vec<Group> = raw_groups
         .iter()
         .map(|members| {
-            let score = group_score(members, &accepted);
+            let (sum, n) = by_root
+                .get(&uf.find(members[0]))
+                .copied()
+                .unwrap_or((0.0, 0));
+            let score = if n == 0 { 0.0 } else { sum / n as f64 };
             Group {
                 score: round3(score),
                 members: members.iter().map(|&m| loc_of(&units[m])).collect(),
@@ -598,23 +614,6 @@ pub fn detect_from_units(
     };
 
     (report, dump)
-}
-
-fn group_score(members: &[usize], accepted: &[(usize, usize, f64)]) -> f64 {
-    let set: rustc_hash::FxHashSet<usize> = members.iter().copied().collect();
-    let mut sum = 0.0;
-    let mut n = 0;
-    for &(i, j, s) in accepted {
-        if set.contains(&i) && set.contains(&j) {
-            sum += s;
-            n += 1;
-        }
-    }
-    if n == 0 {
-        0.0
-    } else {
-        sum / n as f64
-    }
 }
 
 fn round3(x: f64) -> f64 {
