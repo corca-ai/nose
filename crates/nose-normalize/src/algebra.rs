@@ -17,6 +17,7 @@
 //! canonical form is non-obvious) is also deferred; a confluent rewrite gives a
 //! normal form without the cost/ambiguity of equality saturation.
 
+use crate::combine;
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span, Unit};
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -64,13 +65,6 @@ struct Rewriter<'a> {
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
     interner: &'a Interner,
-}
-
-const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
-
-#[inline]
-fn combine(a: u64, b: u64) -> u64 {
-    (a.rotate_left(7) ^ b).wrapping_mul(SEED)
 }
 
 impl Rewriter<'_> {

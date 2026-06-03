@@ -18,6 +18,7 @@
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
 
+use crate::combine;
 use crate::types::Ty;
 use nose_il::{Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -2321,13 +2322,6 @@ fn identity_of(opc: u32) -> Option<u32> {
     } else {
         None
     }
-}
-
-const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
-
-#[inline]
-fn combine(a: u64, b: u64) -> u64 {
-    (a.rotate_left(7) ^ b).wrapping_mul(SEED)
 }
 
 fn op_tag(op: &ValOp) -> u64 {

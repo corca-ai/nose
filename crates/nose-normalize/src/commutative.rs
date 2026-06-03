@@ -4,6 +4,7 @@
 //! `cfg_norm` and the value graph) and [`node_tag`]. The arena is built
 //! post-order (children precede parents), so a single forward pass suffices.
 
+use crate::combine;
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 
 /// Structural hash of every node, indexed by `NodeId`. Identifier *names* are
@@ -19,8 +20,6 @@ pub fn subtree_hashes(il: &Il, interner: &Interner) -> Vec<u64> {
     hashes
 }
 
-const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
-
 fn hash_node(il: &Il, id: NodeId, hashes: &[u64], interner: &Interner) -> u64 {
     let node = il.node(id);
     let mut h = node_tag(node.kind, node.payload, interner);
@@ -28,11 +27,6 @@ fn hash_node(il: &Il, id: NodeId, hashes: &[u64], interner: &Interner) -> u64 {
         h = combine(h, hashes[c.0 as usize]);
     }
     h
-}
-
-#[inline]
-fn combine(a: u64, b: u64) -> u64 {
-    (a.rotate_left(7) ^ b).wrapping_mul(SEED)
 }
 
 /// A discriminant for `(kind, payload)`. Canonical ids (`Cid`) contribute their

@@ -31,6 +31,19 @@ pub use value_graph::{value_fingerprint, value_fingerprint_lits};
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Payload};
 use rustc_hash::FxHashSet;
 
+/// Mixing constant for [`combine`] (the golden-ratio odd constant, as in fxhash).
+const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
+
+/// Fold a child hash `b` into an accumulator `a` — the one hash combiner shared by
+/// every fingerprinting pass (`commutative`/`node_tag`, `algebra`, `value_graph`).
+/// It is deliberately a single definition: the structural and value-graph fingerprints
+/// only agree across passes if this stays byte-identical, so a lone copy removes the
+/// drift risk three parallel copies carried.
+#[inline]
+pub(crate) fn combine(a: u64, b: u64) -> u64 {
+    (a.rotate_left(7) ^ b).wrapping_mul(SEED)
+}
+
 /// Copy a node from `old` into `b` with the given (already-rebuilt) children,
 /// preserving its kind/payload/span. The rebuild passes' identical "generic" node
 /// copy delegates here (the pass-specific part is only the child recursion).
