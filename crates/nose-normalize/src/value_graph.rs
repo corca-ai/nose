@@ -1,0 +1,2327 @@
+//! Track 1 Stage 3 — value-graph / global value numbering (GVN).
+//!
+//! Symbolically evaluates a function unit into a DAG of *values*, hash-consed by
+//! `(op, operand-value-ids)`. Because a variable maps to the value it currently
+//! holds (not its name), and identical computations intern to one node:
+//!
+//! - temporaries and intermediate names dissolve (`t=a+b; …t…` ≡ inline),
+//! - common subexpressions share a node (CSE),
+//! - the order of data-independent statements stops mattering,
+//! - commutative operands are canonical.
+//!
+//! Branches merge variables with `Phi(cond, then, else)`. Loops are approximated:
+//! variables written in the body become opaque loop values (no fixpoint — bounded
+//! and deterministic). Calls/stores are treated as values too (fuzzy: identical
+//! calls CSE). The per-unit **fingerprint** is the multiset of value-node hashes
+//! reachable from the unit's sinks (returns, branch conditions, effects).
+//!
+//! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
+//! the detector can use instead of (or alongside) subtree shapes.
+
+use rustc_hash::{FxHashMap, FxHashSet};
+use crate::types::Ty;
+use nose_il::{Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
+
+/// Public entry: the value-graph fingerprint of the unit rooted at `root`
+/// (sorted multiset of `u64` value hashes). Equivalent computations → equal
+/// multisets.
+pub fn value_fingerprint(il: &Il, root: NodeId, interner: &Interner) -> Vec<u64> {
+    value_fingerprint_lits(il, root, interner).0
+}
+
+/// Like [`value_fingerprint`], but also returns (1) the sorted multiset of literal
+/// (`Const`) value hashes — for "data-table" detection — and (2) the sorted multiset
+/// of RETURN-sink value hashes — what the unit actually computes/returns, for a
+/// return-signature match (true clones return the same values).
+pub fn value_fingerprint_lits(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    b.fingerprint_lits()
+}
+
+type ValueId = u32;
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum ValOp {
+    Input(u32),  // a parameter or free variable, keyed by canonical id
+    Const(u32),  // literal class
+    Bin(u32),    // binary operator
+    Un(u32),     // unary operator
+    Field(u64),  // field access, keyed by content hash of the name
+    Index,       // base[index]
+    Call(u32),   // 0 = opaque callee; otherwise builtin discriminant + 1
+    Hof(u32),    // higher-order op kind
+    Seq,         // aggregate literal
+    Phi,         // branch merge: args = [cond, then, else]
+    Lambda(u64), // opaque, keyed by a structural hash of the lambda body
+    Loop(u32),   // loop-carried opaque value, keyed by canonical id
+    Elem(u64),   // an element drawn from an iterable, keyed by the iterable's hash
+    Idx(u64),    // the iteration index into a collection (range/while/enumerate)
+    Reduce(u32), // canonical fold over elements: args = [init, per-element contrib]
+    Opaque(u64), // anything not otherwise modeled, keyed by a tag (counter or subtree hash)
+}
+
+struct ValNode {
+    op: ValOp,
+    args: Vec<ValueId>,
+}
+
+#[derive(Clone, Copy)]
+enum SinkKind {
+    Return = 0,
+    Cond = 1,
+    Effect = 2,
+    Break = 3,
+}
+
+struct Builder<'a> {
+    il: &'a Il,
+    interner: &'a Interner,
+    nodes: Vec<ValNode>,
+    /// Structural hash per value node, kept in lockstep with `nodes`.
+    vhash: Vec<u64>,
+    intern: FxHashMap<(ValOp, Vec<ValueId>), ValueId>,
+    sinks: Vec<(SinkKind, ValueId)>,
+    opaque_ctr: u32,
+    /// Object field writes (`self.x = v`), keyed by field name → its CURRENT value
+    /// (last-write-wins). Flushed to sinks at the end as one (field, final-value) sink
+    /// each. This makes the fingerprint depend on the *final per-field state* — order-
+    /// insensitive across DISTINCT fields (so two constructors that assign the same
+    /// fields in swapped order converge, as they must: distinct field writes commute),
+    /// yet correct for same-field overwrites (`x=1;x=2` ≠ `x=2;x=1` — last value wins).
+    /// The old order-independent effect multiset got BOTH wrong (it split commuting
+    /// swaps — false split vs the oracle — and merged same-field overwrites — unsound).
+    field_env: FxHashMap<u64, ValueId>,
+    /// Lazily-computed subtree hash per IL node (kind + payload + children), used to
+    /// key unlowered `Raw` constructs and lambda bodies by content. Computed once per
+    /// graph (the whole-IL pass is O(n)); `None` until first needed.
+    subtree_hash: Option<Vec<u64>>,
+    /// Inferred coarse type per value node (kept in lockstep with `nodes`). Powers
+    /// type-aware canonicalization: `+` commutes only on numeric operands (string/list
+    /// concat is non-commutative), and numeric/boolean simplifications fire only when
+    /// proven. `Unknown` is the safe default — no type-gated rewrite fires on it.
+    vty: Vec<Ty>,
+    /// Inferred parameter types by position (from `types::infer_param_types`), seeding the
+    /// type of each `Input` node.
+    param_ty: Vec<Ty>,
+    /// The branch conditions currently in effect (each a `cond` or `Not(cond)`). A
+    /// `return`/`throw` reached under a non-empty path is tagged with that condition,
+    /// so `if c {return A} else {return B}` and the branch-swapped `if c {return B}
+    /// else {return A}` produce *different* fingerprints (path-sensitive returns).
+    path: Vec<ValueId>,
+    /// Active list-builder variables during a loop body (`r = []; for x: r.append(f(x))`):
+    /// cid → `Some((contrib, guard))` for a single clean per-element append, or `None` once
+    /// spoiled (a second append, multi-arg append, or other use). On loop exit a clean
+    /// builder's value becomes `Hof(Map, [contrib])` — the same node the comprehension
+    /// `[f(x) for x in xs]` / `.map`/`.collect` builds, so the two converge.
+    building: FxHashMap<u32, Option<(ValueId, Option<ValueId>)>>,
+}
+
+impl<'a> Builder<'a> {
+    fn new(il: &'a Il, interner: &'a Interner) -> Self {
+        Builder {
+            il,
+            interner,
+            nodes: Vec::new(),
+            vhash: Vec::new(),
+            intern: FxHashMap::default(),
+            sinks: Vec::new(),
+            opaque_ctr: 0,
+            field_env: FxHashMap::default(),
+            subtree_hash: None,
+            vty: Vec::new(),
+            param_ty: Vec::new(),
+            path: Vec::new(),
+            building: FxHashMap::default(),
+        }
+    }
+
+    fn vty(&self, v: ValueId) -> Ty {
+        self.vty.get(v as usize).copied().unwrap_or(Ty::Unknown)
+    }
+
+    /// Bottom-up coarse type of a fresh node from its op and already-typed operands.
+    fn ty_of(&self, op: &ValOp, args: &[ValueId]) -> Ty {
+        let at = |i: usize| args.get(i).map(|&a| self.vty(a)).unwrap_or(Ty::Unknown);
+        match op {
+            ValOp::Const(k) => const_ty(*k),
+            ValOp::Input(k) => self.param_ty.get(*k as usize).copied().unwrap_or(Ty::Unknown),
+            ValOp::Bin(o) => {
+                let o = *o;
+                if o == Op::Add as u32 {
+                    let (a, b) = (at(0), at(1));
+                    if a == Ty::Num && b == Ty::Num {
+                        Ty::Num
+                    } else if a == Ty::Str || b == Ty::Str {
+                        Ty::Str
+                    } else if a == Ty::List || b == Ty::List {
+                        Ty::List
+                    } else {
+                        Ty::Unknown
+                    }
+                } else if matches!(
+                    o,
+                    x if x == Op::Sub as u32 || x == Op::Mul as u32 || x == Op::Div as u32
+                        || x == Op::Mod as u32 || x == Op::Pow as u32 || x == Op::BitAnd as u32
+                        || x == Op::BitOr as u32 || x == Op::BitXor as u32
+                        || x == Op::Shl as u32 || x == Op::Shr as u32
+                ) {
+                    Ty::Num
+                } else if matches!(
+                    o,
+                    x if x == Op::Lt as u32 || x == Op::Le as u32 || x == Op::Gt as u32
+                        || x == Op::Ge as u32 || x == Op::Eq as u32 || x == Op::Ne as u32
+                ) {
+                    Ty::Bool
+                } else {
+                    Ty::Unknown
+                }
+            }
+            ValOp::Un(o) => {
+                let o = *o;
+                if o == Op::Neg as u32 || o == Op::Pos as u32 || o == Op::BitNot as u32 || o == ABS_CODE {
+                    Ty::Num
+                } else if o == Op::Not as u32 {
+                    Ty::Bool
+                } else {
+                    Ty::Unknown
+                }
+            }
+            ValOp::Seq => Ty::List,
+            _ => Ty::Unknown,
+        }
+    }
+
+    /// Flush accumulated object-field writes to sinks: one (field-name, final-value)
+    /// sink per distinct field, in canonical name order. See `field_env`.
+    fn flush_fields(&mut self) {
+        let mut entries: Vec<(u64, ValueId)> = self.field_env.drain().collect();
+        entries.sort_unstable_by_key(|(k, _)| *k);
+        for (name, v) in entries {
+            let f = self.mk(ValOp::Field(name), vec![v]);
+            self.sinks.push((SinkKind::Effect, f));
+        }
+    }
+
+    /// Content hash of an IL subtree (surface kind + payload + children), cached for the
+    /// whole graph. Used to key unlowered constructs by *what they are* rather than by
+    /// position — so two behaviorally-different `Raw` nodes stay DISTINCT.
+    fn subtree_hash(&mut self, expr: NodeId) -> u64 {
+        if self.subtree_hash.is_none() {
+            self.subtree_hash = Some(crate::subtree_hashes(self.il, self.interner));
+        }
+        self.subtree_hash
+            .as_ref()
+            .unwrap()
+            .get(expr.0 as usize)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// Push an effect sink, tagged with the current path condition — so a *conditional*
+    /// effect (`if c { append(x) }`) carries `c`, the way a guarded return does.
+    fn push_effect(&mut self, v: ValueId) {
+        let g = self.guarded(v);
+        self.sinks.push((SinkKind::Effect, g));
+    }
+
+    /// Tag a value with the current path condition: under branch conditions, the
+    /// returned/thrown value is `Phi(path, v, ⊥)` (a sentinel for "not on this path"),
+    /// so two branches that return swapped values no longer form the same multiset.
+    /// Push a `Return` sink for value `v`, DECOMPOSING a ternary return into guarded
+    /// returns. `return (a if c else b)` is behaviorally `if c {return a} else {return b}`,
+    /// so we split a `Phi(c, a, b)` return into a `c`-guarded return of `a` and a
+    /// `¬c`-guarded return of `b` — exactly the sink set the if-else / elif writing already
+    /// produces via guard-clause path narrowing. Recursing on nested `Phi` makes a nested
+    /// ternary converge with an `elif` cascade. Sound (behavior-preserving) and gated by the
+    /// `verify` oracle; the abs/min/max idiom recognition runs first in `mk`, so a recognized
+    /// `Abs`/`Min`/`Max` return is NOT a bare `Phi` here and stays atomic. Only genuine
+    /// ternaries (both arms real values, not the `bot` placeholder) are decomposed.
+    fn emit_return(&mut self, v: ValueId) {
+        if let ValOp::Phi = self.nodes[v as usize].op {
+            let args = self.nodes[v as usize].args.clone();
+            if args.len() == 3 {
+                let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+                let (cond, then_v, else_v) = (args[0], args[1], args[2]);
+                if then_v != bot && else_v != bot {
+                    self.path.push(cond);
+                    self.emit_return(then_v);
+                    self.path.pop();
+                    let ncond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+                    self.path.push(ncond);
+                    self.emit_return(else_v);
+                    self.path.pop();
+                    return;
+                }
+            }
+        }
+        let g = self.guarded(v);
+        self.sinks.push((SinkKind::Return, g));
+    }
+
+    fn guarded(&mut self, v: ValueId) -> ValueId {
+        let mut pc: Option<ValueId> = None;
+        for &c in &self.path.clone() {
+            pc = Some(match pc {
+                None => c,
+                Some(p) => self.mk(ValOp::Bin(Op::And as u32), vec![p, c]),
+            });
+        }
+        match pc {
+            None => v,
+            Some(pc) => {
+                let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+                self.mk(ValOp::Phi, vec![pc, v, bot])
+            }
+        }
+    }
+
+    fn mk(&mut self, mut op: ValOp, mut args: Vec<ValueId>) -> ValueId {
+        if let ValOp::Bin(opc) = op {
+            // Canonicalize comparison DIRECTION: `a > b` ≡ `b < a`, `a >= b` ≡ `b <= a`.
+            // Reduce the >/>= family to </<= with swapped operands so a guard converges
+            // however it was written or negated (`0 < v`, `v > 0`, `!(v <= 0)` all become
+            // one node). Language-agnostic and sound (total order). This is what lets a
+            // `reduce(λa,v: a+v if v>0 else a, …)` fold converge with its loop, whose
+            // guard may lower to the mirror comparison.
+            if args.len() == 2 {
+                if opc == Op::Gt as u32 {
+                    op = ValOp::Bin(Op::Lt as u32);
+                    args.swap(0, 1);
+                } else if opc == Op::Ge as u32 {
+                    op = ValOp::Bin(Op::Le as u32);
+                    args.swap(0, 1);
+                }
+            }
+            // Canonicalize commutative operands by structural hash. `+` commutes UNLESS an
+            // operand is PROVEN string/list — concat is non-commutative (`s + x` ≠ `x + s`)
+            // and the free-monoid oracle distinguishes the orders. Unknown operands keep
+            // commuting (optimistic, and the oracle still checks it), so the common untyped
+            // numeric case is unaffected; only known-concat is held ordered. Other
+            // commutative ops Err on non-numeric regardless of order, so stay safe.
+            if let ValOp::Bin(o) = op {
+                let concat = o == Op::Add as u32
+                    && args.len() == 2
+                    && (is_concat_ty(self.vty(args[0])) || is_concat_ty(self.vty(args[1])));
+                if is_commutative(o)
+                    && args.len() == 2
+                    && !concat
+                    && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
+                {
+                    args.swap(0, 1);
+                }
+            }
+        }
+        // Type-gated simplifications — now SOUND because the operand type is PROVEN (these
+        // were the 17 false merges when applied untyped; they only hold on numbers/bools):
+        //   -(-x) → x        when x : Num   (−(−x) = x; on a list it would Err ≠ x)
+        //   x & x, x | x → x when x : Num   (idempotent integer bitwise)
+        //   x && x, x || x → x when x : Bool (idempotent boolean)
+        if let ValOp::Un(o) = op {
+            // NEGATED COMPARISON: `!(a<=b) → a>b`, `!(a<b) → a>=b`, `!(a==b) → a!=b`, etc.
+            // Sound for a total order, and on non-numeric operands both sides Err
+            // (`!(Err)` propagates — see interp `un`), so the rewrite preserves behavior.
+            // This canonicalizes the residual `Not` the algebra pass leaves on a pushed
+            // double-negation (`!!(a<b)` → `!(b<=a)` → `a<b`), converging it with the bare
+            // comparison without the unsound untyped `!!x → x`.
+            if o == Op::Not as u32 && !args.is_empty() {
+                if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
+                    if let Some(neg) = negate_cmp_code(bo) {
+                        let cargs = self.nodes[args[0] as usize].args.clone();
+                        return self.mk(ValOp::Bin(neg), cargs);
+                    }
+                }
+            }
+            if o == Op::Neg as u32 && !args.is_empty() {
+                if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
+                    let inner = self.nodes[args[0] as usize].args[0];
+                    if io == Op::Neg as u32 && self.vty(inner) == Ty::Num {
+                        return inner;
+                    }
+                }
+                // Distribute negation over addition: `-(x + y) → (-x) + (-y)`. Sound for
+                // ALL types — `Neg` errors on non-numeric, and so does the distributed
+                // form (`-list` is Err either way). Pushing Neg inward gives a canonical
+                // form so `-(a+b)` converges with `-a - b` (= `-a + -b`).
+                if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
+                    if bo == Op::Add as u32 {
+                        let inner = self.nodes[args[0] as usize].args.clone();
+                        let negs: Vec<ValueId> = inner
+                            .iter()
+                            .map(|&t| self.mk(ValOp::Un(Op::Neg as u32), vec![t]))
+                            .collect();
+                        let mut acc = negs[0];
+                        for &n in &negs[1..] {
+                            acc = self.mk(ValOp::Bin(Op::Add as u32), vec![acc, n]);
+                        }
+                        return acc;
+                    }
+                }
+            }
+        }
+        if let ValOp::Bin(o) = op {
+            if args.len() == 2 && args[0] == args[1] {
+                let t = self.vty(args[0]);
+                let bitwise = o == Op::BitAnd as u32 || o == Op::BitOr as u32;
+                let logical = o == Op::And as u32 || o == Op::Or as u32;
+                if (bitwise && t == Ty::Num) || (logical && t == Ty::Bool) {
+                    return args[0];
+                }
+            }
+            // NOTE: arithmetic identity elimination (`x+0→x`, `x*1→x`) is deliberately NOT
+            // done — it is unsound for non-numeric `x` (`"a"+0` Errs; `self*1` on a
+            // non-number need not equal `self`), and type inference is OPTIMISTIC (it infers
+            // `x:Num` from `x*1` itself), so a Num gate would still merge `return self*1`
+            // with an identity `return self`. The oracle's all-types battery sees the
+            // difference. `x*1`/`x+0` keep their identity operand (algebra no longer drops
+            // it) and stay distinct from a bare `x` — a tiny convergence cost for soundness.
+        }
+        // `and`/`or` are TYPE-GATED on commutativity, exactly like `+` is gated on concat:
+        //   • both operands PROVEN Bool → boolean-and/or, which IS commutative
+        //     (`X && Y` = `Y && X` for booleans) — sort operands so `p∧q` converges with
+        //     `q∧p` (e.g. `(a>b)∧(b>0)` vs `(0<b)∧(b<a)` after comparison-direction canon).
+        //   • otherwise → short-circuit VALUE-and/or, which is NOT commutative and yields
+        //     the deciding operand's VALUE: `a or b ≡ a if a else b`, `a and b ≡ b if a
+        //     else a`. Canonicalize to the positional `Phi` the ternary builds, so a guard
+        //     written `a or b` converges with its `a if a else b` twin — without ever
+        //     merging `a or b` with `b or a` (the value-or false merge the oracle now sees).
+        // (Idempotent `x∧x`/`x∨x` on Bool, handled just above, returns before this.)
+        if let ValOp::Bin(o) = op {
+            let is_or = o == Op::Or as u32;
+            let is_and = o == Op::And as u32;
+            if (is_or || is_and) && args.len() == 2 {
+                if self.vty(args[0]) == Ty::Bool && self.vty(args[1]) == Ty::Bool {
+                    if self.vhash[args[0] as usize] > self.vhash[args[1] as usize] {
+                        args.swap(0, 1);
+                    }
+                } else if is_or {
+                    return self.mk(ValOp::Phi, vec![args[0], args[0], args[1]]);
+                } else {
+                    return self.mk(ValOp::Phi, vec![args[0], args[1], args[0]]);
+                }
+            }
+        }
+        // Recognize select idioms on EVERY branch merge — `Phi(cond, then, els)` is built
+        // both by a ternary (`a if c else b`) and by an if/else that assigns a variable, so
+        // doing this here (not just at the ternary) keeps the two forms convergent:
+        //   `x if x>=0 else -x` → Abs(x) ;  `x if x<y else y` → Min(x,y) / Max(x,y).
+        if let ValOp::Phi = op {
+            if args.len() == 3 {
+                if let Some(v) = self.abs_pattern(args[0], args[1], args[2]) {
+                    return v;
+                }
+                if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
+                    return v;
+                }
+            }
+        }
+        let key = (op.clone(), args.clone());
+        if let Some(&id) = self.intern.get(&key) {
+            return id;
+        }
+        let id = self.nodes.len() as ValueId;
+        let mut h = op_tag(&op);
+        for &a in &args {
+            h = combine(h, self.vhash[a as usize]);
+        }
+        let ty = self.ty_of(&op, &args);
+        self.nodes.push(ValNode { op, args });
+        self.vhash.push(h);
+        self.vty.push(ty);
+        self.intern.insert(key, id);
+        id
+    }
+
+    /// Flatten an associative-commutative chain of value nodes into `out`.
+    fn flatten_into(&self, vid: ValueId, opc: u32, out: &mut Vec<ValueId>) {
+        if let ValOp::Bin(o) = self.nodes[vid as usize].op {
+            if o == opc {
+                let args = self.nodes[vid as usize].args.clone();
+                for a in args {
+                    self.flatten_into(a, opc, out);
+                }
+                return;
+            }
+        }
+        out.push(vid);
+    }
+
+    fn fresh_opaque(&mut self) -> ValueId {
+        let c = self.opaque_ctr;
+        self.opaque_ctr += 1;
+        self.mk(ValOp::Opaque(c as u64), vec![])
+    }
+
+    /// Build the value graph for a `Func`/`Method`/class unit. The unit root may
+    /// be a `Func` (params + body) or a `Block` (class body of methods); for a
+    /// `Block` we process its statements directly.
+    fn build_unit(&mut self, root: NodeId) {
+        self.param_ty = crate::types::infer_param_types(self.il, root);
+        let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
+        match self.il.kind(root) {
+            NodeKind::Func => {
+                // Seed parameters as inputs *by position*, so duplicate-named params
+                // (which alpha-rename collapses to one cid) stay distinct values — the
+                // accessible one wins, as at runtime. For well-formed code param cid ==
+                // position, so this is identical to keying by cid.
+                let kids = self.il.children(root).to_vec();
+                let mut pos = 0u32;
+                for &k in &kids {
+                    if self.il.kind(k) == NodeKind::Param {
+                        if let Payload::Cid(c) = self.il.node(k).payload {
+                            let v = self.mk(ValOp::Input(pos), vec![]);
+                            env.insert(c, v);
+                            pos += 1;
+                        }
+                    }
+                }
+                if let Some(&body) = kids.last() {
+                    self.process_stmt(body, &mut env);
+                }
+                self.recognize_existence_reduction();
+            }
+            _ => {
+                // Class/other container unit. Two things make its data visible:
+                //  (1) attribute assignments (`name = value`) land in `env` but reach no
+                //      sink — a class's attributes ARE its data, so expose them (two
+                //      locale-table classes that differ only in values must differ);
+                //  (2) a container's *behavior* is the aggregate of its methods. Plain
+                //      `process_stmt` has no `Func` case, so a method definition fell to
+                //      the opaque-effect branch and the class collapsed to a near-empty
+                //      structural shell — a one-operator change deep inside a method left
+                //      the class fingerprint identical, so two classes were "behavioral
+                //      clones" on structure alone. Descend into each contained method and
+                //      fold its returns/effects into the container, so the class differs
+                //      exactly when its methods do.
+                self.process_container(root, &mut env);
+                let mut vals: Vec<ValueId> = env.values().copied().collect();
+                vals.sort_unstable();
+                vals.dedup();
+                for v in vals {
+                    self.sinks.push((SinkKind::Effect, v));
+                }
+            }
+        }
+        self.flush_fields();
+    }
+
+    /// Recognize an existence/universal loop written with an early return, and rewrite it
+    /// to the same `Reduce(REDUCE_ANY/ALL, [predicate])` the functional `any`/`all` builds:
+    ///   `for x in xs: if p(x): return True` ; `return False`        → `any(p(x) for x in xs)`
+    ///   `for x in xs: if not p(x): return False` ; `return True`    → `all(p(x) for x in xs)`
+    /// After lowering these are exactly two `Return` sinks (no effects): one guarded by a
+    /// predicate over a loop ELEMENT returning a bool constant, plus the unguarded
+    /// complementary bool constant. Behavior-preserving — `∃`/`∀` over a pure predicate
+    /// is order- and short-circuit-insensitive — and gated by the oracle. Requiring an
+    /// `Elem` in the guard ties it to genuine collection iteration (a first-element check
+    /// `if xs[0]>0` keeps an `Index`, not `Elem`, so it is not mistaken for `any`).
+    fn recognize_existence_reduction(&mut self) {
+        if self.sinks.len() != 2
+            || self.sinks.iter().any(|(k, _)| !matches!(k, SinkKind::Return))
+        {
+            return;
+        }
+        let r0 = self.sinks[0].1;
+        let r1 = self.sinks[1].1;
+        let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+        let tru = self.mk(ValOp::Const(0x3000_0002), vec![]);
+        let fls = self.mk(ValOp::Const(0x3000_0001), vec![]);
+        for &(guarded, plain) in &[(r0, r1), (r1, r0)] {
+            let ValOp::Phi = self.nodes[guarded as usize].op else {
+                continue;
+            };
+            let a = self.nodes[guarded as usize].args.clone();
+            if a.len() != 3 || a[2] != bot || !self.refs_elem(a[0]) {
+                continue;
+            }
+            let (guard, ret) = (a[0], a[1]);
+            let (code, pred) = if ret == tru && plain == fls {
+                (REDUCE_ANY, guard)
+            } else if ret == fls && plain == tru {
+                (REDUCE_ALL, self.mk(ValOp::Un(Op::Not as u32), vec![guard]))
+            } else {
+                continue;
+            };
+            let red = self.mk(ValOp::Reduce(code), vec![pred]);
+            self.sinks = vec![(SinkKind::Return, red)];
+            return;
+        }
+    }
+
+    /// The conjunction of the current branch path (`c₁ ∧ c₂ ∧ …`), or `None` at top level.
+    fn path_cond(&mut self) -> Option<ValueId> {
+        let mut pc: Option<ValueId> = None;
+        for &c in &self.path.clone() {
+            pc = Some(match pc {
+                None => c,
+                Some(p) => self.mk(ValOp::Bin(Op::And as u32), vec![p, c]),
+            });
+        }
+        pc
+    }
+
+    /// If `e` is a single-item `append(r, item)` to an ACTIVE builder var `r`, record the
+    /// per-element contribution under the current path guard and return true (the append IS
+    /// the build, not an effect). A multi-item form spoils the builder.
+    fn try_record_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, ValueId>) -> bool {
+        if self.il.kind(e) != NodeKind::Call
+            || !matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append))
+        {
+            return false;
+        }
+        let kids = self.il.children(e).to_vec();
+        let Some(&target) = kids.first() else {
+            return false;
+        };
+        let (NodeKind::Var, Payload::Cid(c)) =
+            (self.il.kind(target), self.il.node(target).payload)
+        else {
+            return false;
+        };
+        if !self.building.contains_key(&c) {
+            return false;
+        }
+        if kids.len() != 2 {
+            self.building.insert(c, None); // multi-item append — not a clean map
+            return true;
+        }
+        let contrib = self.eval(kids[1], env);
+        let guard = self.path_cond();
+        self.building.insert(c, Some((contrib, guard)));
+        true
+    }
+
+    /// Local list-builder candidates of a loop body: a var `r` (1) bound to an empty list
+    /// before the loop, (2) the target of exactly one single-item `append`, and (3) not
+    /// otherwise mentioned in the body. Such a loop builds `Map(elem, contrib)` — the same
+    /// node the comprehension `[contrib for x in xs]` / `.map`/`.collect` produces.
+    fn builder_candidates(&self, body: NodeId, env: &FxHashMap<u32, ValueId>) -> Vec<u32> {
+        let mut appends: FxHashMap<u32, u32> = FxHashMap::default();
+        let mut mentions: FxHashMap<u32, u32> = FxHashMap::default();
+        let mut spoiled: FxHashSet<u32> = FxHashSet::default();
+        let mut stack = vec![body];
+        while let Some(n) = stack.pop() {
+            if let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(n), self.il.node(n).payload) {
+                *mentions.entry(c).or_insert(0) += 1;
+            }
+            if self.il.kind(n) == NodeKind::Call
+                && matches!(self.il.node(n).payload, Payload::Builtin(Builtin::Append))
+            {
+                let k = self.il.children(n);
+                if let Some(&t) = k.first() {
+                    if let (NodeKind::Var, Payload::Cid(c)) =
+                        (self.il.kind(t), self.il.node(t).payload)
+                    {
+                        if k.len() == 2 {
+                            *appends.entry(c).or_insert(0) += 1;
+                        } else {
+                            spoiled.insert(c);
+                        }
+                    }
+                }
+            }
+            stack.extend(self.il.children(n).iter().copied());
+        }
+        appends
+            .iter()
+            .filter(|&(&c, &n)| {
+                n == 1
+                    && !spoiled.contains(&c)
+                    && mentions.get(&c).copied() == Some(1)
+                    && env.get(&c).is_some_and(|&v| {
+                        matches!(self.nodes[v as usize].op, ValOp::Seq)
+                            && self.nodes[v as usize].args.is_empty()
+                    })
+            })
+            .map(|(&c, _)| c)
+            .collect()
+    }
+
+    /// Does `v`'s value subgraph reference an `Elem` (a collection element)? Bounded DAG
+    /// walk; used to confirm a guard is a per-element predicate of a loop.
+    fn refs_elem(&self, v: ValueId) -> bool {
+        let mut seen = FxHashSet::default();
+        let mut stack = vec![v];
+        while let Some(n) = stack.pop() {
+            if !seen.insert(n) {
+                continue;
+            }
+            if matches!(self.nodes[n as usize].op, ValOp::Elem(_)) {
+                return true;
+            }
+            stack.extend(self.nodes[n as usize].args.iter().copied());
+        }
+        false
+    }
+
+    fn process_block(&mut self, block: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        let path_base = self.path.len();
+        for s in self.il.children(block).to_vec() {
+            self.process_stmt(s, env);
+            // GUARD-CLAUSE normalization: an `if c { …terminates… }` with no else means
+            // the REST of the block is reached only when `!c`. Narrow the path by `!c`
+            // for the remaining statements, so a guard-clause (`if c {return a}; return b`)
+            // produces the same guarded sinks as the if-else form (`if c {return a} else
+            // {return b}`) — converging the two writings of the same function (e.g. sympy
+            // `symmetric_residue` vs `gf_int`). Cascades for stacked guards.
+            if let Some(ncond) = self.guard_clause_negation(s, env) {
+                self.path.push(ncond);
+                continue;
+            }
+            // Statements after an UNCONDITIONAL terminator (a `return`/`throw` at this
+            // block level — only when no guard narrowing is in effect) are unreachable
+            // dead code; the interpreter takes the first return, so the value graph must
+            // too (else C `#if return 1 #else return 0`, both preproc branches lowered
+            // live, emits two order-independent return sinks → a branch-swapped twin
+            // collapses to the same multiset while behaving differently — a false merge).
+            if self.path.len() == path_base
+                && matches!(self.il.kind(s), NodeKind::Return | NodeKind::Throw)
+            {
+                break;
+            }
+        }
+        self.path.truncate(path_base);
+    }
+
+    /// If `s` is a guard clause — `if c { …unconditionally exits… }` with no else — return
+    /// `!c` (the condition under which control falls through to the rest of the block).
+    /// Used to narrow the path so guard-clause and if-else writings of a function converge.
+    fn guard_clause_negation(
+        &mut self,
+        s: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if self.il.kind(s) != NodeKind::If {
+            return None;
+        }
+        let kids = self.il.children(s).to_vec();
+        if kids.len() != 2 || !self.branch_exits(kids[1]) {
+            return None; // has an else, or the then-branch can fall through
+        }
+        let cond = self.eval(kids[0], env);
+        Some(self.mk(ValOp::Un(Op::Not as u32), vec![cond]))
+    }
+
+    /// Does this branch unconditionally exit its enclosing block (return / throw / break /
+    /// continue on every path)? Conservative: a block exits iff its last statement does;
+    /// an `if` exits iff both arms do.
+    fn branch_exits(&self, node: NodeId) -> bool {
+        match self.il.kind(node) {
+            NodeKind::Return | NodeKind::Throw | NodeKind::Break | NodeKind::Continue => true,
+            NodeKind::Block => self
+                .il
+                .children(node)
+                .last()
+                .is_some_and(|&c| self.branch_exits(c)),
+            NodeKind::If => {
+                let k = self.il.children(node);
+                k.len() >= 3 && self.branch_exits(k[1]) && self.branch_exits(k[2])
+            }
+            _ => false,
+        }
+    }
+
+    /// Walk a container (class/module body), folding each contained method's behavior
+    /// into the current sinks. A `Func` is processed in its own parameter scope (its
+    /// returns/effects become the container's), so the container's fingerprint is the
+    /// aggregate of its methods; `Block` wrappers are descended; anything else (field
+    /// initializers, attribute assigns) is processed as a normal statement.
+    fn process_container(&mut self, node: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        for c in self.il.children(node).to_vec() {
+            match self.il.kind(c) {
+                NodeKind::Func => {
+                    let kids = self.il.children(c).to_vec();
+                    let mut menv = env.clone();
+                    let mut pos = 0u32;
+                    for &k in &kids {
+                        if self.il.kind(k) == NodeKind::Param {
+                            if let Payload::Cid(cid) = self.il.node(k).payload {
+                                let v = self.mk(ValOp::Input(pos), vec![]);
+                                menv.insert(cid, v);
+                                pos += 1;
+                            }
+                        }
+                    }
+                    if let Some(&body) = kids.last() {
+                        self.process_stmt(body, &mut menv);
+                    }
+                }
+                NodeKind::Block => self.process_container(c, env),
+                _ => self.process_stmt(c, env),
+            }
+        }
+    }
+
+    fn process_stmt(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        match self.il.kind(stmt) {
+            NodeKind::Block => self.process_block(stmt, env),
+            NodeKind::Assign => {
+                let kids = self.il.children(stmt).to_vec();
+                if kids.len() == 2 {
+                    let rhs = self.eval(kids[1], env);
+                    if self.il.kind(kids[0]) == NodeKind::Var {
+                        if let Payload::Cid(c) = self.il.node(kids[0]).payload {
+                            env.insert(c, rhs);
+                            return;
+                        }
+                    }
+                    // A field write (`self.x = v`) updates per-field state (last-write-
+                    // wins), flushed as a (field, final-value) sink later — order-
+                    // insensitive across distinct fields, correct for overwrites.
+                    if self.il.kind(kids[0]) == NodeKind::Field {
+                        if let Payload::Name(s) = self.il.node(kids[0]).payload {
+                            let name = self.interner.symbol_hash(s);
+                            let g = self.guarded(rhs);
+                            self.field_env.insert(name, g);
+                            return;
+                        }
+                    }
+                    // store into an index / computed target → an ordered effect
+                    let target = self.eval(kids[0], env);
+                    let st = self.mk(ValOp::Call(0), vec![target, rhs]);
+                    self.push_effect(st);
+                }
+            }
+            NodeKind::Return => {
+                // A bare `return;` (no value) is still behaviorally significant: as an
+                // *early* exit inside a loop/branch it changes which later code runs, and
+                // its path guard distinguishes a conditional early-return from an
+                // unconditional one. Model it as a guarded void-return sink (previously a
+                // valueless return pushed nothing, so two functions differing only in a
+                // conditional early `return;` collapsed — cf. the break sink, §AS).
+                let v = match self.il.children(stmt).first() {
+                    Some(&e) => self.eval(e, env),
+                    None => self.mk(ValOp::Const(0xF00D_0000), vec![]),
+                };
+                self.emit_return(v);
+            }
+            NodeKind::Throw => {
+                if let Some(&e) = self.il.children(stmt).first() {
+                    let v = self.eval(e, env);
+                    self.push_effect(v);
+                }
+            }
+            NodeKind::ExprStmt => {
+                if let Some(&e) = self.il.children(stmt).first() {
+                    // A `coll.append(x)` to an ACTIVE local builder var records the
+                    // per-element contribution (so the loop becomes a `Map`) instead of an
+                    // opaque effect. Anything irregular (2nd append, multi-arg) spoils it.
+                    if self.try_record_append(e, env) {
+                        return;
+                    }
+                    let v = self.eval(e, env);
+                    // an expression statement is kept only if it has effect value
+                    self.push_effect(v);
+                }
+            }
+            NodeKind::If => self.process_if(stmt, env),
+            NodeKind::Loop => self.process_loop(stmt, env),
+            NodeKind::Try => {
+                for c in self.il.children(stmt).to_vec() {
+                    self.process_stmt(c, env);
+                }
+            }
+            NodeKind::Break => {
+                // An early `break` truncates the loop to a prefix — the result is NOT
+                // the full-iteration fold. Record the break's *path condition* as a sink
+                // so an early-exit loop no longer fingerprints identically to one that
+                // runs to completion, and two loops breaking on different conditions stay
+                // distinct. (`continue` needs no handling: desugaring already hoists the
+                // remainder of the body into the negated guard, so its filtering effect
+                // is captured by the normal path-guard machinery.)
+                let marker = self.mk(ValOp::Const(0xB2EA_C0DE), vec![]);
+                let g = self.guarded(marker);
+                self.sinks.push((SinkKind::Break, g));
+            }
+            NodeKind::Continue => {}
+            _ => {
+                // unknown statement: evaluate as effect best-effort
+                let v = self.eval(stmt, env);
+                self.push_effect(v);
+            }
+        }
+    }
+
+    fn process_if(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        let kids = self.il.children(stmt).to_vec();
+        if kids.is_empty() {
+            return;
+        }
+        // The condition is *not* a standalone sink: it is captured where it matters —
+        // in the `Phi` merge of any variable the branches update, and in the path-guard
+        // of any return/effect they perform. Emitting it separately would make a
+        // statement-`if` that updates a variable (`if c { x = a }`) diverge from the
+        // equivalent ternary (`x = a if c else x`), which has no such sink. (`cond` is
+        // still evaluated — for the path stack and so its sub-values are interned.)
+        let cond = self.eval(kids[0], env);
+
+        let mut env_then = env.clone();
+        if kids.len() >= 2 {
+            self.path.push(cond);
+            self.process_stmt(kids[1], &mut env_then);
+            self.path.pop();
+        }
+        let mut env_else = env.clone();
+        if kids.len() >= 3 {
+            let ncond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+            self.path.push(ncond);
+            self.process_stmt(kids[2], &mut env_else);
+            self.path.pop();
+        }
+
+        // Merge: for each var that differs across branches, insert a Phi.
+        let mut keys: Vec<u32> = env_then.keys().chain(env_else.keys()).copied().collect();
+        keys.sort_unstable();
+        keys.dedup();
+        for cid in keys {
+            let base = env.get(&cid).copied();
+            let t = env_then.get(&cid).copied().or(base);
+            let e = env_else.get(&cid).copied().or(base);
+            match (t, e) {
+                (Some(tv), Some(ev)) if tv == ev => {
+                    env.insert(cid, tv);
+                }
+                (Some(tv), Some(ev)) => {
+                    let phi = self.mk(ValOp::Phi, vec![cond, tv, ev]);
+                    env.insert(cid, phi);
+                }
+                (Some(v), None) | (None, Some(v)) => {
+                    env.insert(cid, v);
+                }
+                (None, None) => {}
+            }
+        }
+    }
+
+    fn process_loop(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        let kids = self.il.children(stmt).to_vec();
+        let kind = match self.il.node(stmt).payload {
+            Payload::Loop(k) => k,
+            _ => LoopKind::While,
+        };
+        let body = match kids.last() {
+            Some(&b) => b,
+            None => return,
+        };
+
+        // Discover the loop's *element source* so per-element computations converge
+        // across loop shapes (the §AH representation axis):
+        //   • `for pat in iterable`        → element is the pattern variable;
+        //   • `while i < len(xs) { … i+=1 }` → element is `xs[i]` for the induction
+        //     variable `i` (index bookkeeping is iteration mechanics, not a result).
+        // Both bind a single canonical `Elem(iterable)` value; an indexed `while`
+        // additionally rewrites `xs[i]` → `Elem(xs)` and drops the induction variable.
+        // Bindings applied to the loop's pattern/index variables (cid → value), and the
+        // set of values that play the role of an *index*. Any `C[idx]` for such an
+        // `idx` is the element of `C`, so indexed iteration converges with value
+        // iteration. Iteration variables are not accumulators.
+        let mut pattern_bindings: Vec<(u32, ValueId)> = Vec::new();
+        let mut index_vals: FxHashSet<ValueId> = FxHashSet::default();
+        let mut induction: FxHashSet<u32> = FxHashSet::default();
+
+        match kind {
+            LoopKind::ForEach if kids.len() >= 3 => {
+                let pat = kids[0];
+                let it = kids[1];
+                if let Some(c) = self.range_len_collection(it) {
+                    // `for i in range(len(C))`: `i` is a canonical index into `C`.
+                    let cv = self.eval(c, env);
+                    let ix = self.idx(cv);
+                    index_vals.insert(ix);
+                    for cid in self.pattern_cids(pat) {
+                        pattern_bindings.push((cid, ix));
+                    }
+                } else if self.il.kind(it) == NodeKind::Call
+                    && matches!(
+                        self.il.node(it).payload,
+                        Payload::Builtin(Builtin::Enumerate)
+                    )
+                {
+                    // `for i, x in enumerate(C)`: `i` is the index, `x` the element.
+                    let cids = self.pattern_cids(pat);
+                    if let Some(&cnode) = self.il.children(it).first() {
+                        let cv = self.eval(cnode, env);
+                        let ix = self.idx(cv);
+                        let el = self.elem(cv);
+                        index_vals.insert(ix);
+                        if cids.len() >= 2 {
+                            pattern_bindings.push((cids[0], ix));
+                            pattern_bindings.push((cids[1], el));
+                        } else if let Some(&only) = cids.first() {
+                            pattern_bindings.push((only, el));
+                        }
+                    }
+                } else {
+                    // Value iteration `for x in C` (or `for i in range(n)`): the
+                    // pattern var is an element of the iterable. NOTE: we do *not* treat
+                    // this element as a collection index — only a provably-*full* range
+                    // (`range_len_collection`, above) licenses `C[i] → Elem(C)`. A bare
+                    // `range(n)` or partial `range(1, len)` indexing `C[i]` must keep its
+                    // `Index(C, …)` so it stays distinct from the full-range loop (else a
+                    // subset sum merges with the full sum — a soundness bug).
+                    let iv = self.eval(it, env);
+                    let e = self.elem(iv);
+                    for cid in self.pattern_cids(pat) {
+                        pattern_bindings.push((cid, e));
+                    }
+                }
+            }
+            _ => {
+                let cond = kids
+                    .first()
+                    .filter(|&&c| self.il.kind(c) != NodeKind::Block);
+                // A genuine loop counter both steps by a constant *and* governs the
+                // loop condition. An accumulator updated by `acc = acc + 1` (a counting
+                // reduction) matches the `i = i ± c` shape too, so `induction_vars`
+                // alone misclassifies it as iteration mechanics — which binds it to the
+                // index and destroys the reduction (it would never reach a `Reduce`).
+                // Intersect with the variables the condition actually mentions so only
+                // the real counter(s) are treated as indices; the accumulator stays an
+                // accumulator. (Sum loops were spared by luck — `sum += xs[i]` has a
+                // non-literal operand, so `is_increment` already rejected them; counting
+                // loops like `if p: count += 1` were the ones that collapsed.)
+                let cond_cids = cond
+                    .map(|&c| mentioned_cids(self.il, c))
+                    .unwrap_or_default();
+                induction = induction_vars(self.il, body)
+                    .intersection(&cond_cids)
+                    .copied()
+                    .collect();
+                let iter_node = cond.and_then(|&c| self.loop_iterable(c, &induction));
+                match iter_node {
+                    // Indexed `while i < len(C)`: the raw `i < len(C)` guard is iteration
+                    // mechanics. A counter that steps by +1 from 0 visits *every* index
+                    // in order, so `C[i]` is the canonical `Elem(C)` (converges with `for
+                    // x in C`). A non-unit stride (`i += 2`) or non-zero start (`i = 1`)
+                    // visits a SUBSET — `C[i]` is NOT `Elem(C)` — so bind `i` to a strided
+                    // index that encodes start+step (distinct strides stay distinct) and
+                    // do NOT license the `C[i] → Elem(C)` rewrite (else a strided sum
+                    // merges with the full sum — the while-loop analog of the range bug).
+                    Some(it) if !induction.is_empty() => {
+                        let cv = self.eval(it, env);
+                        let zero = self.int_const(0);
+                        for &i in &induction {
+                            let step = induction_step(self.il, body, i);
+                            let start_zero = env.get(&i).is_some_and(|&s| s == zero);
+                            if step == Some(1) && start_zero {
+                                let ix = self.idx(cv);
+                                index_vals.insert(ix);
+                                pattern_bindings.push((i, ix));
+                            } else {
+                                let start_val = env.get(&i).copied().unwrap_or(zero);
+                                let step_val =
+                                    self.int_const(step.unwrap_or(0).rem_euclid(1 << 24) as u32);
+                                let base = self.idx(cv);
+                                let h = combine(
+                                    self.vhash[base as usize],
+                                    combine(
+                                        self.vhash[start_val as usize],
+                                        self.vhash[step_val as usize],
+                                    ),
+                                );
+                                let strided = self.mk(ValOp::Idx(h), vec![base, start_val, step_val]);
+                                pattern_bindings.push((i, strided));
+                            }
+                        }
+                    }
+                    // Plain `while`/other: keep the raw condition; no element model.
+                    _ => {
+                        induction.clear();
+                        if let Some(&c) = cond {
+                            let cv = self.eval(c, env);
+                            self.sinks.push((SinkKind::Cond, cv));
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut assigned = FxHashSet::default();
+        collect_assigned(self.il, body, &mut assigned);
+        let mut carried: Vec<u32> = assigned.iter().copied().collect();
+        carried.sort_unstable();
+
+        // Seed each loop-carried variable with a symbolic "previous iteration" value
+        // so the body expresses its update as a *recurrence* over `Loop(cid)`.
+        let mut body_env = env.clone();
+        let mut loop_vals: FxHashMap<u32, ValueId> = FxHashMap::default();
+        for &cid in &carried {
+            let lv = self.mk(ValOp::Loop(cid), vec![]);
+            loop_vals.insert(cid, lv);
+            body_env.insert(cid, lv);
+        }
+        // Pattern/index bindings override the `Loop` placeholder for iteration vars.
+        let iter_vars: FxHashSet<u32> = pattern_bindings.iter().map(|&(c, _)| c).collect();
+        for &(cid, v) in &pattern_bindings {
+            body_env.insert(cid, v);
+        }
+
+        // Every `C[idx]` for an index value `idx` is morally `Elem(C)`. Rewrite it
+        // everywhere the body deposits values — the sinks it pushes (guard conditions,
+        // effects) and the carried recurrences — so indexed iteration (`while i<len`,
+        // `for i in range(len)`, multi-collection `a[i]*b[i]`) matches value iteration,
+        // even when the accumulation is conditional (filter+reduce) not a clean fold.
+        // Activate local list-builder vars so their in-loop `append`s record a per-element
+        // contribution instead of an opaque effect (finalized to a `Map` below).
+        let builder_cands = self.builder_candidates(body, &body_env);
+        for &c in &builder_cands {
+            self.building.insert(c, None);
+        }
+        let sink_start = self.sinks.len();
+        self.process_stmt(body, &mut body_env);
+        if !index_vals.is_empty() {
+            let mut memo = FxHashMap::default();
+            for idx in sink_start..self.sinks.len() {
+                let (k, v) = self.sinks[idx];
+                self.sinks[idx] = (k, self.rewrite_indices(v, &index_vals, &mut memo));
+            }
+            for &cid in &carried {
+                if let Some(&v) = body_env.get(&cid) {
+                    let nv = self.rewrite_indices(v, &index_vals, &mut memo);
+                    body_env.insert(cid, nv);
+                }
+            }
+        }
+        // Finalize list builders: `r = []; for x: r.append(f(x))` → `r = Map(elem, f(x))`,
+        // converging the loop with the comprehension `[f(x) for x in xs]` / `.map`. A
+        // guarded append (`if cond: r.append(f(x))`) becomes the filtered map `Map(_, pred)`.
+        for &c in &builder_cands {
+            if let Some(Some((mut contrib, guard))) = self.building.remove(&c) {
+                let map = if !index_vals.is_empty() {
+                    let mut memo = FxHashMap::default();
+                    contrib = self.rewrite_indices(contrib, &index_vals, &mut memo);
+                    match guard {
+                        Some(g) => {
+                            let g = self.rewrite_indices(g, &index_vals, &mut memo);
+                            self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib, g])
+                        }
+                        None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib]),
+                    }
+                } else {
+                    match guard {
+                        Some(g) => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib, g]),
+                        None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib]),
+                    }
+                };
+                env.insert(c, map);
+            } else {
+                self.building.remove(&c);
+            }
+        }
+
+        // For each loop-carried accumulator, recognize an associative-commutative
+        // reduction `acc = acc ⊕ contrib` and canonicalize it to a `Reduce` value —
+        // so sum/product/min/max/count loops converge regardless of loop shape,
+        // accumulator name, or operand grouping (the §AH representation axis). The
+        // per-element `contrib` keys the value, so a `+`-loop and a `*`-loop (or
+        // `a[i]*b[i]` vs `a[i]+b[i]`) stay distinct (the behavior axis). When the
+        // update is not a clean reduction, thread the raw recurrence (still better
+        // than a bare opaque `Loop` value reaching the sinks).
+        for &cid in &carried {
+            if iter_vars.contains(&cid) || induction.contains(&cid) {
+                continue; // iteration mechanics, not an accumulator
+            }
+            let Some(&newv) = body_env.get(&cid) else {
+                continue;
+            };
+            let loopv = loop_vals[&cid];
+            match (env.get(&cid).copied(), self.as_reduction(newv, loopv)) {
+                (Some(init), Some((op, contrib))) => {
+                    // Selection reductions (min/max) carry no init; folds carry one.
+                    let args = if is_selection_code(op) {
+                        vec![contrib]
+                    } else {
+                        vec![init, contrib]
+                    };
+                    let red = self.mk(ValOp::Reduce(op), args);
+                    env.insert(cid, red);
+                }
+                _ => {
+                    env.insert(cid, newv);
+                }
+            }
+        }
+    }
+
+    /// The iterable of a `while i < len(xs)`-style loop: from a comparison whose
+    /// bound side is `len(iterable)`, return the `iterable` node. Requires the other
+    /// side to reference an induction variable (so we don't misread `a < len(b)`).
+    fn loop_iterable(&self, cond: NodeId, induction: &FxHashSet<u32>) -> Option<NodeId> {
+        if self.il.kind(cond) != NodeKind::BinOp {
+            return None;
+        }
+        let kids = self.il.children(cond).to_vec();
+        if kids.len() != 2 {
+            return None;
+        }
+        let mentions_ind = |n: NodeId| {
+            matches!((self.il.kind(n), self.il.node(n).payload),
+                (NodeKind::Var, Payload::Cid(c)) if induction.contains(&c))
+        };
+        if !kids.iter().any(|&k| mentions_ind(k)) {
+            return None;
+        }
+        // The other operand is `len(iterable)` → a Len builtin Call with one arg.
+        for &k in &kids {
+            if self.il.kind(k) == NodeKind::Call {
+                if let Payload::Builtin(Builtin::Len) = self.il.node(k).payload {
+                    if let Some(&arg) = self.il.children(k).first() {
+                        return Some(arg);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    /// Rewrite every `Index(C, idx)` whose index is in `index_vals` to `Elem(C)`,
+    /// throughout `val`'s subgraph (DAG-safe, memoized). This is what makes indexed
+    /// iteration converge with value iteration: `xs[i]` (any collection, any index
+    /// variable) becomes the canonical element of that collection.
+    fn rewrite_indices(
+        &mut self,
+        val: ValueId,
+        index_vals: &FxHashSet<ValueId>,
+        memo: &mut FxHashMap<ValueId, ValueId>,
+    ) -> ValueId {
+        if let Some(&m) = memo.get(&val) {
+            return m;
+        }
+        let (op, args) = {
+            let n = &self.nodes[val as usize];
+            (n.op.clone(), n.args.clone())
+        };
+        let new_args: Vec<ValueId> = args
+            .iter()
+            .map(|&a| self.rewrite_indices(a, index_vals, memo))
+            .collect();
+        // `C[idx]` with an index-role `idx` → `Elem(C)`.
+        let r = if matches!(op, ValOp::Index)
+            && new_args.len() == 2
+            && index_vals.contains(&new_args[1])
+        {
+            self.elem(new_args[0])
+        } else if new_args == args {
+            val
+        } else {
+            self.mk(op, new_args)
+        };
+        memo.insert(val, r);
+        r
+    }
+
+    /// Recognize an accumulator update `acc = acc ⊕ contrib` (⊕ associative and
+    /// commutative) where `acc` is the previous-iteration value `loopv`. Returns the
+    /// operator code and the canonical per-element `contrib` (with `acc` removed), or
+    /// `None` if the update is not a single clean reduction step.
+    fn as_reduction(&mut self, val: ValueId, loopv: ValueId) -> Option<(u32, ValueId)> {
+        // Guarded (filtered) reduction: `if cond { acc = acc ⊕ contrib }` merges to
+        // `Phi(cond, ⊕(acc, contrib), acc)`. Canonicalize to `Reduce(⊕, init, cond ?
+        // contrib : identity)` so a filtered loop converges with `sum(c for x if cond)`
+        // and the per-element contribution becomes 0/1 (the op identity) when filtered.
+        if matches!(self.nodes[val as usize].op, ValOp::Phi) {
+            let args = self.nodes[val as usize].args.clone();
+            if args.len() == 3 && args[2] == loopv {
+                // (a) guarded accumulation: `if cond { acc = acc ⊕ contrib }`.
+                if let Some((op, contrib)) = self.as_reduction(args[1], loopv) {
+                    if let Some(id) = identity_of(op) {
+                        let ident = self.int_const(id);
+                        let guarded = self.mk(ValOp::Phi, vec![args[0], contrib, ident]);
+                        return Some((op, guarded));
+                    }
+                }
+                // (b) selection (min/max): `if cand {>,<} acc { acc = cand }` —
+                // the new value does not reference the old accumulator and the guard
+                // compares the two. `acc = max(acc, cand)` / `min`.
+                let cand = args[1];
+                if !self.references(cand, loopv) {
+                    if let Some(code) = self.selection_code(args[0], cand, loopv) {
+                        return Some((code, cand));
+                    }
+                }
+            }
+            // Swapped polarity: `if cond { acc } else { acc ⊕ contrib }`. cfg_norm can
+            // flip a two-branch ternary's orientation, so the accumulator lands in the
+            // THEN branch with a negated guard — a `functools.reduce(lambda acc,v: acc+v
+            // if v>0 else acc, …)` lowers to `if v<=0 { acc } else { acc+v }`. Recognize
+            // it with the negated guard so it converges with the loop form `if v>0:
+            // acc+=v` (whose single-branch guard stays positive).
+            if args.len() == 3 && args[1] == loopv {
+                if let Some((op, contrib)) = self.as_reduction(args[2], loopv) {
+                    if let Some(id) = identity_of(op) {
+                        let ident = self.int_const(id);
+                        let ncond = self.negate_guard(args[0]);
+                        let guarded = self.mk(ValOp::Phi, vec![ncond, contrib, ident]);
+                        return Some((op, guarded));
+                    }
+                }
+            }
+            return None;
+        }
+        // A min/max accumulator written as a Min/Max node (`minmax_pattern` turned the
+        // conditional update `if x>acc { acc=x }` into `Max(acc, x)`): map the idiom code
+        // to the selection-reduction code so the loop converges with the `max()`/`min()`
+        // builtin (both → `Reduce(REDUCE_MAX/MIN, [contrib])`).
+        if let ValOp::Bin(o) = self.nodes[val as usize].op {
+            if o == MIN_CODE || o == MAX_CODE {
+                let a = self.nodes[val as usize].args.clone();
+                let red = if o == MAX_CODE { REDUCE_MAX } else { REDUCE_MIN };
+                if a[0] == loopv && !self.references(a[1], loopv) {
+                    return Some((red, a[1]));
+                }
+                if a[1] == loopv && !self.references(a[0], loopv) {
+                    return Some((red, a[0]));
+                }
+            }
+        }
+        let op = match self.nodes[val as usize].op {
+            ValOp::Bin(o) if is_assoc_comm_code(o) => o,
+            _ => return None,
+        };
+        let mut operands = Vec::new();
+        self.flatten_into(val, op, &mut operands);
+        // Exactly one top-level operand must be the previous accumulator, and it must
+        // not reappear nested in the remaining contribution (`acc = acc + acc*x`).
+        if operands.iter().filter(|&&o| o == loopv).count() != 1 {
+            return None;
+        }
+        let pos = operands.iter().position(|&o| o == loopv)?;
+        operands.remove(pos);
+        if operands.is_empty() || operands.iter().any(|&o| self.references(o, loopv)) {
+            return None;
+        }
+        operands.sort_by_key(|&v| self.vhash[v as usize]);
+        let mut acc = operands[0];
+        for &o in &operands[1..] {
+            acc = self.mk(ValOp::Bin(op), vec![acc, o]);
+        }
+        Some((op, acc))
+    }
+
+    /// The canonical negation of a guard value: a comparison flips to its complement
+    /// (`a<=b` → `a>b`, `a==b` → `a!=b`, …) — same operands, so a negated guard
+    /// converges with the positive guard a loop produces — and anything else is wrapped
+    /// in logical `Not`.
+    fn negate_guard(&mut self, v: ValueId) -> ValueId {
+        if let ValOp::Bin(opc) = self.nodes[v as usize].op {
+            if let Some(flip) = negate_cmp_code(opc) {
+                let args = self.nodes[v as usize].args.clone();
+                return self.mk(ValOp::Bin(flip), args);
+            }
+        }
+        self.mk(ValOp::Un(Op::Not as u32), vec![v])
+    }
+
+    /// If `cond` compares `cand` against the accumulator `loopv` (`cand > loopv` etc.),
+    /// classify the selection as max or min. Operand order is meaningful (comparisons
+    /// are not commutative-canonicalized), so `cand > acc` and `acc < cand` both → max.
+    fn selection_code(&self, cond: ValueId, cand: ValueId, loopv: ValueId) -> Option<u32> {
+        let n = &self.nodes[cond as usize];
+        let opc = match n.op {
+            ValOp::Bin(o) => o,
+            _ => return None,
+        };
+        if n.args.len() != 2 {
+            return None;
+        }
+        let cand_first = n.args[0] == cand && n.args[1] == loopv;
+        let acc_first = n.args[0] == loopv && n.args[1] == cand;
+        if !cand_first && !acc_first {
+            return None;
+        }
+        // `cand > acc` / `acc < cand` → take the larger ⇒ max; the reverse ⇒ min.
+        let greater = opc == Op::Gt as u32 || opc == Op::Ge as u32;
+        let lesser = opc == Op::Lt as u32 || opc == Op::Le as u32;
+        if (greater && cand_first) || (lesser && acc_first) {
+            Some(REDUCE_MAX)
+        } else if (lesser && cand_first) || (greater && acc_first) {
+            Some(REDUCE_MIN)
+        } else {
+            None
+        }
+    }
+
+    /// Recognize the absolute-value idiom `x if x>=0 else -x` (and its mirror
+    /// `-x if x<0 else x`) as `Un(ABS_CODE, [x])`, so it converges with `abs(x)`.
+    fn abs_pattern(&mut self, cond: ValueId, then: ValueId, els: ValueId) -> Option<ValueId> {
+        let is_neg_of = |s: &Self, neg: ValueId, base: ValueId| {
+            matches!(s.nodes[neg as usize].op, ValOp::Un(o) if o == Op::Neg as u32)
+                && s.nodes[neg as usize].args == [base]
+        };
+        // (v, the positive branch is `then`)
+        let (v, pos_is_then) = if is_neg_of(self, els, then) {
+            (then, true) // then = v (the x>=0 branch), else = -v
+        } else if is_neg_of(self, then, els) {
+            (els, false) // else = v, then = -v
+        } else {
+            return None;
+        };
+        let cn = &self.nodes[cond as usize];
+        let opc = match cn.op {
+            ValOp::Bin(o) => o,
+            _ => return None,
+        };
+        if cn.args.len() != 2 || cn.args[0] != v {
+            return None;
+        }
+        let cmp_zero =
+            matches!(self.nodes[cn.args[1] as usize].op, ValOp::Const(c) if c == 0x1000_0000);
+        if !cmp_zero {
+            return None;
+        }
+        let nonneg = opc == Op::Ge as u32 || opc == Op::Gt as u32; // v >= 0
+        let neg = opc == Op::Lt as u32 || opc == Op::Le as u32; // v < 0
+                                                                // `then` is the value when the condition holds: positive branch must be `v`
+                                                                // exactly when the condition says v is non-negative.
+        if (nonneg && pos_is_then) || (neg && !pos_is_then) {
+            Some(self.mk(ValOp::Un(ABS_CODE), vec![v]))
+        } else {
+            None
+        }
+    }
+
+    /// Recognize a 2-way min/max selection `x if x<y else y` (and its variants) as a
+    /// canonical `Bin(MIN_CODE/MAX_CODE, [x, y])`, so the ternary idiom converges with a
+    /// `min(x, y)` / `max(x, y)` call. The condition has already been canonicalized to the
+    /// `</<= ` family by `mk` (`x>y` → `y<x`). Sound: it is the literal meaning of the
+    /// ternary (and `MIN_CODE`/`MAX_CODE` are interpreted as exactly that).
+    fn minmax_pattern(&mut self, cond: ValueId, then: ValueId, els: ValueId) -> Option<ValueId> {
+        let cn = &self.nodes[cond as usize];
+        let opc = match cn.op {
+            ValOp::Bin(o) => o,
+            _ => return None,
+        };
+        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) || cn.args.len() != 2 {
+            return None;
+        }
+        let (x, y) = (cn.args[0], cn.args[1]); // cond is `x < y`
+        // `x if x<y else y` → min(x,y);  `y if x<y else x` → max(x,y).
+        if then == x && els == y {
+            Some(self.mk(ValOp::Bin(MIN_CODE), vec![x, y]))
+        } else if then == y && els == x {
+            Some(self.mk(ValOp::Bin(MAX_CODE), vec![x, y]))
+        } else {
+            None
+        }
+    }
+
+    /// An integer-literal value, keyed identically to `eval`'s `LitInt` path so a
+    /// builtin's implicit init (`sum` → 0) matches a loop's explicit `acc = 0`.
+    fn int_const(&mut self, v: u32) -> ValueId {
+        self.mk(ValOp::Const(0x1000_0000u32.wrapping_add(v)), vec![])
+    }
+
+    /// A canonical "element of `coll`" value. The collection is carried as an argument
+    /// (not just folded into the key) so it is reachable from the fingerprint wherever
+    /// the element is used — identically for a loop, a `reduce`, and a `sum(map)` over
+    /// the same collection, so they converge without a separate iterable sink.
+    fn elem(&mut self, coll: ValueId) -> ValueId {
+        // FUNCTOR LAW / map fusion: an element drawn from `map(f, c)` is `f` applied to an
+        // element of `c`, and a pure Map node's `contrib` (args[0]) already *is* that
+        // per-element value. So `Elem(Map(f, c)) → contrib`, which fuses nested maps:
+        // `map(g, map(f, xs))` and `map(g∘f, xs)` converge to one fingerprint. Sound
+        // (functor composition law: map g ∘ map f = map (g∘f)). A *filtered* map carries a
+        // predicate (args.len() == 2) and is NOT peeled (the filter changes which elements).
+        if let ValOp::Hof(k) = self.nodes[coll as usize].op {
+            if k == HoFKind::Map as u32 && self.nodes[coll as usize].args.len() == 1 {
+                return self.nodes[coll as usize].args[0];
+            }
+        }
+        self.mk(ValOp::Elem(self.vhash[coll as usize]), vec![coll])
+    }
+
+    /// A canonical "iteration index into `coll`". `for i in range(len(xs))`, an indexed
+    /// `while`, and `for i, _ in enumerate(xs)` all bind their index variable to this,
+    /// so they converge — and `C[Idx(C)]` rewrites to `Elem(C)`.
+    fn idx(&mut self, coll: ValueId) -> ValueId {
+        self.mk(ValOp::Idx(self.vhash[coll as usize]), vec![coll])
+    }
+
+    /// The canonical-id variables of a loop pattern: a single `Var`, or the elements
+    /// of a tuple pattern `(i, x)` (lowered as a `Seq` of `Var`s).
+    fn pattern_cids(&self, pat: NodeId) -> Vec<u32> {
+        let mut out = Vec::new();
+        let push = |n: NodeId, out: &mut Vec<u32>| {
+            if let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(n), self.il.node(n).payload) {
+                out.push(c);
+            }
+        };
+        if self.il.kind(pat) == NodeKind::Seq {
+            for c in self.il.children(pat) {
+                push(*c, &mut out);
+            }
+        } else {
+            push(pat, &mut out);
+        }
+        out
+    }
+
+    /// If `node` is a *full* index range over `C` — `range(len(C))` or `range(0,
+    /// len(C))` — return `C`: the loop visits every index of `C`, so `C[i]` is the
+    /// canonical `Elem(C)`. A non-zero start (`range(1, len(C))`), an explicit step
+    /// (`range(_, _, k)`), or any other form iterates a *subset*, so its element is NOT
+    /// `Elem(C)` — abstracting `C[i]` to `Elem(C)` there drops the start/step bound and
+    /// merges behaviorally-different loops (a soundness bug). Such forms return `None`.
+    fn range_len_collection(&self, node: NodeId) -> Option<NodeId> {
+        if self.il.kind(node) != NodeKind::Call
+            || !matches!(self.il.node(node).payload, Payload::Builtin(Builtin::Range))
+        {
+            return None;
+        }
+        let kids = self.il.children(node);
+        let len_arg = match kids.len() {
+            1 => kids[0],
+            // `range(start, stop)` is a full iteration only when `start` is literally 0.
+            2 if matches!(self.il.node(kids[0]).payload, Payload::LitInt(0)) => kids[1],
+            _ => return None,
+        };
+        if self.il.kind(len_arg) == NodeKind::Call
+            && matches!(self.il.node(len_arg).payload, Payload::Builtin(Builtin::Len))
+        {
+            return self.il.children(len_arg).first().copied();
+        }
+        None
+    }
+
+    /// Fold a reduction builtin (`sum`, `reduce`) to the canonical `Reduce(op, init,
+    /// per-element contrib)` — the same value a loop accumulator produces. Returns
+    /// `None` if it isn't a recognized clean reduction (caller falls back to a Call).
+    fn eval_reduction_builtin(
+        &mut self,
+        b: Builtin,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        match b {
+            Builtin::Sum => {
+                let av = self.eval(*kids.first()?, env);
+                // `sum(map)` → the mapped stream's per-element contribution; a *filtered*
+                // map `Hof(Map, [contrib, pred])` → `pred ? contrib : 0`, matching a
+                // guarded loop `if pred: acc += contrib`; `sum(xs)` → the raw element.
+                let (op, args) = {
+                    let n = &self.nodes[av as usize];
+                    (n.op.clone(), n.args.clone())
+                };
+                let contrib = match op {
+                    ValOp::Hof(_) if args.len() >= 2 => {
+                        let zero = self.int_const(0);
+                        self.mk(ValOp::Phi, vec![args[1], args[0], zero])
+                    }
+                    ValOp::Hof(_) if args.len() == 1 => args[0],
+                    _ => self.elem(av),
+                };
+                let init = self.int_const(0);
+                Some(self.mk(ValOp::Reduce(Op::Add as u32), vec![init, contrib]))
+            }
+            Builtin::Reduce => {
+                if kids.len() < 2 {
+                    return None;
+                }
+                let coll = self.eval(kids[1], env);
+                let elem = self.elem(coll);
+                let acc = self.fresh_opaque();
+                let body = self.eval_lambda_body(kids[0], &[acc, elem])?;
+                let (op, contrib) = self.as_reduction(body, acc)?;
+                let init = kids
+                    .get(2)
+                    .map(|&i| self.eval(i, env))
+                    .unwrap_or_else(|| self.int_const(0));
+                Some(self.mk(ValOp::Reduce(op), vec![init, contrib]))
+            }
+            Builtin::Min | Builtin::Max => {
+                let code = if matches!(b, Builtin::Max) {
+                    REDUCE_MAX
+                } else {
+                    REDUCE_MIN
+                };
+                let av = self.eval(*kids.first()?, env);
+                // `max(f(x) for x in xs)` → the mapped per-element value; `max(xs)` →
+                // the raw element. No init (selection reductions carry none), so it
+                // matches a `best = max(best, f(x))` loop regardless of its seed.
+                let (op, args) = {
+                    let n = &self.nodes[av as usize];
+                    (n.op.clone(), n.args.clone())
+                };
+                let contrib = match op {
+                    ValOp::Hof(_) if !args.is_empty() => args[0],
+                    _ => self.elem(av),
+                };
+                Some(self.mk(ValOp::Reduce(code), vec![contrib]))
+            }
+            Builtin::Any | Builtin::All => {
+                let code = if matches!(b, Builtin::All) { REDUCE_ALL } else { REDUCE_ANY };
+                // `xs.some(p)` / `xs.any(p)` — method form `[coll, λ]`: the per-element
+                // contribution is `p(Elem coll)`. `any(p(x) for x in xs)` — generator form
+                // `[Map]`: the mapped predicate value; a *filtered* generator carries its
+                // predicate, guarded by the OR/AND identity (false for any, true for all).
+                let contrib = if kids.len() >= 2 && self.il.kind(kids[1]) == NodeKind::Lambda {
+                    let coll = self.eval(kids[0], env);
+                    let elem = self.elem(coll);
+                    self.eval_lambda_body(kids[1], &[elem])?
+                } else {
+                    let av = self.eval(*kids.first()?, env);
+                    let (op, args) = {
+                        let n = &self.nodes[av as usize];
+                        (n.op.clone(), n.args.clone())
+                    };
+                    match op {
+                        ValOp::Hof(_) if args.len() >= 2 => {
+                            let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                            self.mk(ValOp::Phi, vec![args[1], args[0], ident])
+                        }
+                        ValOp::Hof(_) if args.len() == 1 => args[0],
+                        _ => self.elem(av),
+                    }
+                };
+                Some(self.mk(ValOp::Reduce(code), vec![contrib]))
+            }
+            _ => None,
+        }
+    }
+
+    /// The element value(s) a map lambda binds to, plus any predicate CARRIED by the
+    /// collection (map/filter fusion). If the collection evaluates to a *filtered* Map
+    /// `Hof(Map,[c,p])`, the element is `c` and the carried predicate is `p` — so an outer
+    /// map composes into one `filtered-map`, converging `map(h, map(f, filter p))` with the
+    /// direct `filtered-map (h∘f)@p`. A pure Map collection is peeled by `elem`; `zip` binds
+    /// multiple elements and carries no predicate.
+    fn map_source(
+        &mut self,
+        coll_node: Option<NodeId>,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> (Vec<ValueId>, Option<ValueId>) {
+        let Some(c) = coll_node else {
+            return (Vec::new(), None);
+        };
+        if self.il.kind(c) == NodeKind::Call
+            && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
+        {
+            return (self.elem_bindings(Some(c), env), None);
+        }
+        let cv = self.eval(c, env);
+        if let ValOp::Hof(k) = self.nodes[cv as usize].op {
+            if k == HoFKind::Map as u32 && self.nodes[cv as usize].args.len() == 2 {
+                let args = self.nodes[cv as usize].args.clone();
+                return (vec![args[0]], Some(args[1]));
+            }
+        }
+        (vec![self.elem(cv)], None)
+    }
+
+    /// Conjoin two optional predicates (a filter's own predicate and one carried up through
+    /// a fused collection): both → `p ∧ q`, one → it, none → none.
+    fn and_preds(&mut self, a: Option<ValueId>, b: Option<ValueId>) -> Option<ValueId> {
+        match (a, b) {
+            (Some(x), Some(y)) => Some(self.mk(ValOp::Bin(Op::And as u32), vec![x, y])),
+            (Some(x), None) | (None, Some(x)) => Some(x),
+            (None, None) => None,
+        }
+    }
+
+    /// The per-element value(s) a map/filter lambda's parameters bind to: a single
+    /// `Elem(coll)`, or — for `zip(a, b)` with a tuple pattern — `[Elem(a), Elem(b)]`.
+    fn elem_bindings(
+        &mut self,
+        coll_node: Option<NodeId>,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Vec<ValueId> {
+        let Some(c) = coll_node else {
+            return Vec::new();
+        };
+        if self.il.kind(c) == NodeKind::Call
+            && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
+        {
+            let mut out = Vec::new();
+            for k in self.il.children(c).to_vec() {
+                let v = self.eval(k, env);
+                out.push(self.elem(v));
+            }
+            return out;
+        }
+        let cv = self.eval(c, env);
+        vec![self.elem(cv)]
+    }
+
+    /// Evaluate a lambda's body with its positional parameters bound to `params`,
+    /// returning the value of its first `return` (intermediate assignments update the
+    /// local env). Used to unfold a `map`/`reduce` lambda over a canonical `Elem`.
+    fn eval_lambda_body(&mut self, lambda: NodeId, params: &[ValueId]) -> Option<ValueId> {
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return None;
+        }
+        let kids = self.il.children(lambda).to_vec();
+        let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
+        let mut pi = 0;
+        for &k in &kids {
+            if self.il.kind(k) == NodeKind::Param {
+                if let Payload::Cid(c) = self.il.node(k).payload {
+                    if let Some(&v) = params.get(pi) {
+                        env.insert(c, v);
+                    }
+                    pi += 1;
+                }
+            }
+        }
+        let body = *kids.last()?;
+        self.eval_block_return(body, &mut env)
+    }
+
+    /// Walk a (possibly nested) block, applying assignments to `env`, and return the
+    /// value of the first `return` expression reached.
+    fn eval_block_return(
+        &mut self,
+        node: NodeId,
+        env: &mut FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        match self.il.kind(node) {
+            NodeKind::Block => {
+                let kids = self.il.children(node).to_vec();
+                let n = kids.len();
+                for (i, &s) in kids.iter().enumerate() {
+                    // An explicit `return` anywhere wins; a let-binding binds; the LAST
+                    // statement is the *implicit* return value (Rust closures and Ruby
+                    // blocks have no `return` — their trailing expression is the result).
+                    if let Some(v) = self.eval_block_return(s, env) {
+                        return Some(v);
+                    }
+                    if i + 1 == n {
+                        if let NodeKind::ExprStmt = self.il.kind(s) {
+                            return self.il.children(s).first().map(|&e| self.eval(e, env));
+                        }
+                    }
+                }
+                None
+            }
+            NodeKind::Return => self.il.children(node).first().map(|&e| self.eval(e, env)),
+            NodeKind::Assign => {
+                let kids = self.il.children(node).to_vec();
+                if kids.len() == 2 && self.il.kind(kids[0]) == NodeKind::Var {
+                    if let Payload::Cid(c) = self.il.node(kids[0]).payload {
+                        let rhs = self.eval(kids[1], env);
+                        env.insert(c, rhs);
+                    }
+                }
+                None
+            }
+            // A bare-expression lambda body (`|a, v| a + v`) — its value is the result.
+            NodeKind::ExprStmt => self.il.children(node).first().map(|&e| self.eval(e, env)),
+            _ => Some(self.eval(node, env)),
+        }
+    }
+
+    /// Whether `target` appears anywhere in `v`'s value subgraph (DAG-safe).
+    fn references(&self, v: ValueId, target: ValueId) -> bool {
+        let mut stack = vec![v];
+        let mut seen = FxHashSet::default();
+        while let Some(x) = stack.pop() {
+            if x == target {
+                return true;
+            }
+            if seen.insert(x) {
+                stack.extend(self.nodes[x as usize].args.iter().copied());
+            }
+        }
+        false
+    }
+
+    fn eval(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
+        let node = *self.il.node(expr);
+        match node.kind {
+            NodeKind::Var => match node.payload {
+                Payload::Cid(c) => env
+                    .get(&c)
+                    .copied()
+                    .unwrap_or_else(|| self.mk(ValOp::Input(c), vec![])),
+                // A free variable (global / un-canonicalized callee) kept its name in
+                // alpha — give it a STABLE identity keyed by that name (high-bit range,
+                // clear of positional cids), so `foo(x)` ≠ `bar(x)` while two uses of
+                // `foo` agree. Without this, distinct globals collapsed to one cid.
+                Payload::Name(s) => {
+                    let key = 0x8000_0000u32 | (self.interner.symbol_hash(s) as u32);
+                    self.mk(ValOp::Input(key), vec![])
+                }
+                _ => self.fresh_opaque(),
+            },
+            NodeKind::Lit => {
+                // Behavior-defining constants must be distinct values: `0` ≠ `1`
+                // (else `x % 2 == 0` and `x % 2 == 1` collapse). Retained small ints
+                // key by value (offset clear of the class range); others by class.
+                let key = match node.payload {
+                    Payload::LitInt(v) => 0x1000_0000u32.wrapping_add(v as u32),
+                    // strings in a separate key range from ints to avoid collision
+                    Payload::LitStr(h) => 0x2000_0000u32.wrapping_add(h as u32),
+                    // floats keyed by source-text hash, in their own range (so `3.14`≠`2.71`)
+                    Payload::LitFloat(h) => 0x4000_0000u32.wrapping_add(h as u32),
+                    // true/false are behavior-defining and must be distinct (own range)
+                    Payload::LitBool(b) => 0x3000_0001u32 + b as u32,
+                    Payload::Lit(c) => c as u32,
+                    _ => 0,
+                };
+                self.mk(ValOp::Const(key), vec![])
+            }
+            NodeKind::BinOp => {
+                let op = op_code(node.payload);
+                let kids = self.il.children(expr).to_vec();
+                // Canonicalize subtraction to addition-of-negation: `a - b ≡ a + (-b)`
+                // (sound for the two's-complement Int model: a.wrapping_sub(b) ==
+                // a.wrapping_add(-b)). Routing it through the AC `+` normalization unifies
+                // `a - b`, `a + (-b)`, and `-b + a` to one fingerprint — converging the
+                // many subtraction/negation algebraic variants (e.g. sympy `__sub__`
+                // `self + (-a)` with a sibling `self - a`). `verify` is the soundness gate.
+                if op == Op::Sub as u32 && kids.len() == 2 {
+                    let a = self.eval(kids[0], env);
+                    let b = self.eval(kids[1], env);
+                    let neg_b = self.mk(ValOp::Un(Op::Neg as u32), vec![b]);
+                    let mut operands = Vec::new();
+                    self.flatten_into(a, Op::Add as u32, &mut operands);
+                    self.flatten_into(neg_b, Op::Add as u32, &mut operands);
+                    // Sort unless an operand is proven concat (string/list); otherwise the
+                    // operands Err in the oracle regardless of order, so sorting is safe.
+                    if operands.iter().all(|&v| !is_concat_ty(self.vty(v))) {
+                        operands.sort_by_key(|&v| self.vhash[v as usize]);
+                    }
+                    let mut acc = operands[0];
+                    for &o in &operands[1..] {
+                        acc = self.mk(ValOp::Bin(Op::Add as u32), vec![acc, o]);
+                    }
+                    return acc;
+                }
+                if is_assoc_comm_code(op) {
+                    // Flatten the chain (resolving temps), sort by structural hash, and
+                    // rebuild canonically — so groupings/temps converge. EXCEPT `+` is only
+                    // commutative on numeric operands; on strings/lists it is concat, which
+                    // is ordered, so we keep source order there (sorting would be unsound).
+                    let mut operands = Vec::new();
+                    for k in kids {
+                        let v = self.eval(k, env);
+                        self.flatten_into(v, op, &mut operands);
+                    }
+                    let do_sort = op != Op::Add as u32
+                        || operands.iter().all(|&v| !is_concat_ty(self.vty(v)));
+                    if do_sort {
+                        operands.sort_by_key(|&v| self.vhash[v as usize]);
+                    }
+                    let mut acc = operands[0];
+                    for &o in &operands[1..] {
+                        acc = self.mk(ValOp::Bin(op), vec![acc, o]);
+                    }
+                    acc
+                } else {
+                    let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                    self.mk(ValOp::Bin(op), a)
+                }
+            }
+            NodeKind::UnOp => {
+                let kids = self.il.children(expr).to_vec();
+                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                let op = op_code(node.payload);
+                self.mk(ValOp::Un(op), a)
+            }
+            NodeKind::Field => {
+                let kids = self.il.children(expr).to_vec();
+                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                let name = match node.payload {
+                    Payload::Name(s) => self.interner.symbol_hash(s),
+                    _ => 0,
+                };
+                self.mk(ValOp::Field(name), a)
+            }
+            NodeKind::Index => {
+                let kids = self.il.children(expr).to_vec();
+                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                self.mk(ValOp::Index, a)
+            }
+            NodeKind::Call => {
+                let kids = self.il.children(expr).to_vec();
+                // Reduction builtins fold a collection to one value — canonicalize to
+                // the same `Reduce(op, init, per-element contrib)` a loop produces, so
+                // `sum(x*x for x in xs)` / `reduce(λa,x. a+x*x, xs, 0)` converge with
+                // the explicit accumulator loop (§AI representation axis).
+                if let Payload::Builtin(Builtin::Abs) = node.payload {
+                    if let Some(&arg) = kids.first() {
+                        let v = self.eval(arg, env);
+                        return self.mk(ValOp::Un(ABS_CODE), vec![v]);
+                    }
+                }
+                if let Payload::Builtin(b) = node.payload {
+                    if let Some(r) = self.eval_reduction_builtin(b, &kids, env) {
+                        return r;
+                    }
+                }
+                // Iteration-identity adapters: `xs.iter()` / `.into_iter()` / `.collect()`
+                // / `.to_vec()` / `.copied()` / `.cloned()` don't change *what* is iterated
+                // or produced, so peel them — `xs.iter().map(f).collect()` (Rust) converges
+                // with `[f(x) for x in xs]` (Python). The callee is a `Field` whose base is
+                // the receiver; the call has no value arguments.
+                if kids.len() == 1 && self.il.kind(kids[0]) == NodeKind::Field {
+                    if let Payload::Name(s) = self.il.node(kids[0]).payload {
+                        if matches!(
+                            self.interner.resolve(s),
+                            "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec"
+                                | "copied" | "cloned"
+                        ) {
+                            if let Some(&base) = self.il.children(kids[0]).first() {
+                                return self.eval(base, env);
+                            }
+                        }
+                    }
+                }
+                // 2-way `min(x, y)` / `max(x, y)` → canonical Min/Max, converging with the
+                // ternary idiom `x if x<y else y`. (1-arg `min(iterable)` is a reduction,
+                // handled above.) The callee is a free `Var` keeping its name after alpha.
+                if kids.len() == 3 {
+                    if let (NodeKind::Var, Payload::Name(s)) =
+                        (self.il.kind(kids[0]), self.il.node(kids[0]).payload)
+                    {
+                        let code = match self.interner.resolve(s) {
+                            "min" => Some(MIN_CODE),
+                            "max" => Some(MAX_CODE),
+                            _ => None,
+                        };
+                        if let Some(c) = code {
+                            let x = self.eval(kids[1], env);
+                            let y = self.eval(kids[2], env);
+                            return self.mk(ValOp::Bin(c), vec![x, y]);
+                        }
+                    }
+                }
+                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                let tag = match node.payload {
+                    Payload::Builtin(b) => b as u32 + 1,
+                    _ => 0,
+                };
+                self.mk(ValOp::Call(tag), a)
+            }
+            NodeKind::HoF => {
+                let kind = match node.payload {
+                    Payload::HoF(h) => h,
+                    _ => HoFKind::Map,
+                };
+                let kids = self.il.children(expr).to_vec();
+                match kind {
+                    // `xs.map(λx. body)` / a comprehension → the per-element value over a
+                    // canonical `Elem(xs)`, so `[x*x for x in xs]` and `xs.map(x=>x*x)`
+                    // converge regardless of the (opaque) lambda's syntax. If the mapped
+                    // collection is itself a `HoF(Filter)` (a comprehension with an `if`),
+                    // unwrap it so the real collection and the predicate share one `Elem`,
+                    // and emit `Hof(Map, [contrib, predicate])` — the filtered stream.
+                    HoFKind::Map => {
+                        let (coll_node, pred_lam) = match kids.first() {
+                            Some(&c)
+                                if self.il.kind(c) == NodeKind::HoF
+                                    && matches!(
+                                        self.il.node(c).payload,
+                                        Payload::HoF(HoFKind::Filter)
+                                    ) =>
+                            {
+                                let fk = self.il.children(c).to_vec();
+                                (fk.first().copied(), fk.get(1).copied())
+                            }
+                            other => (other.copied(), None),
+                        };
+                        // Element bindings for the lambda's parameter(s) — and any predicate
+                        // CARRIED by a (filtered) Map/Filter collection value. The latter is
+                        // map/filter FUSION: `map(h, filter(p, xs))` ≡ `filtered-map h@p`, so
+                        // `[h(y) for y in [x for x in xs if p]]` and `[h(x) for x in xs if p]`
+                        // converge. (zip binds multiple elems and carries no predicate.)
+                        let (elems, carried_pred) = self.map_source(coll_node, env);
+                        let fallback = elems
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| self.fresh_opaque());
+                        let contrib = match kids.get(1) {
+                            Some(&l) => self.eval_lambda_body(l, &elems).unwrap_or(fallback),
+                            None => fallback,
+                        };
+                        let own_pred = pred_lam.and_then(|l| self.eval_lambda_body(l, &elems));
+                        // NOTE: peeling an identity map to a bare `Filter` (`map(id,c) ≡ c`,
+                        // `[x for x in c if p] ≡ filter(p,c)`) is sound in principle
+                        // (functor identity law, `formal/Functor.lean:map_id`) but the
+                        // current `Filter` node — which stores only its predicate, not its
+                        // collection's element stream — does not faithfully represent the
+                        // filtered LOOP form, so the rewrite introduced 2 false merges (the
+                        // oracle caught them) and broke `filtered_comprehension_matches_
+                        // filtered_loop`. Closing filter-of-filter needs `Filter` to carry
+                        // its element (a deferred representation change), not this peel.
+                        match self.and_preds(own_pred, carried_pred) {
+                            Some(p) => self.mk(ValOp::Hof(kind as u32), vec![contrib, p]),
+                            None => self.mk(ValOp::Hof(kind as u32), vec![contrib]),
+                        }
+                    }
+                    HoFKind::Filter => {
+                        // A standalone filter (`xs.filter(λx. cond)`): the predicate over
+                        // a canonical element.
+                        let elem = kids.first().map(|&c| {
+                            let cv = self.eval(c, env);
+                            self.elem(cv)
+                        });
+                        let pred = match (kids.get(1), elem) {
+                            (Some(&l), Some(e)) => self.eval_lambda_body(l, &[e]).unwrap_or(e),
+                            _ => elem.unwrap_or_else(|| self.fresh_opaque()),
+                        };
+                        self.mk(ValOp::Hof(kind as u32), vec![pred])
+                    }
+                    _ => {
+                        let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                        self.mk(ValOp::Hof(kind as u32), a)
+                    }
+                }
+            }
+            NodeKind::Seq => {
+                let kids = self.il.children(expr).to_vec();
+                let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                self.mk(ValOp::Seq, a)
+            }
+            NodeKind::If => {
+                // ternary expression
+                let kids = self.il.children(expr).to_vec();
+                let a: Vec<ValueId> = kids.iter().take(3).map(|&k| self.eval(k, env)).collect();
+                // abs/min/max idiom recognition happens in `mk(Phi, …)` so it applies to
+                // both the ternary and the equivalent if/else-assign form uniformly.
+                self.mk(ValOp::Phi, a)
+            }
+            NodeKind::Lambda => {
+                let hash = self.subtree_hash(expr);
+                self.mk(ValOp::Lambda(hash), vec![])
+            }
+            // Any unlowered / unhandled construct — notably `Raw`, which wraps a
+            // macro, C compound literal, `#ifdef`, parse-ERROR, etc. Key it by its full
+            // subtree hash (surface kind + lowered children), exactly like `Lambda`, so
+            // behaviorally-different unlowered constructs produce DIFFERENT fingerprints.
+            // A positional opaque counter collapsed them (e.g. two distinct C compound
+            // literals → one fingerprint = an unsound false merge the interpreter oracle
+            // can't catch, since `Raw` is uninterpretable). Identical constructs converge.
+            _ => {
+                let hash = self.subtree_hash(expr);
+                self.mk(ValOp::Opaque(hash), vec![])
+            }
+        }
+    }
+
+    /// Multiset of value-node hashes reachable from the unit's sinks, plus the
+    /// sink-tagged hashes themselves, and (separately) just the literal `Const`
+    /// hashes. Sorted for a canonical, order-independent fingerprint.
+    fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+        let h = &self.vhash; // structural hashes, maintained during construction
+                             // reachable from sinks
+        let mut reachable = vec![false; self.nodes.len()];
+        let mut stack: Vec<ValueId> = self.sinks.iter().map(|(_, v)| *v).collect();
+        while let Some(v) = stack.pop() {
+            let vi = v as usize;
+            if reachable[vi] {
+                continue;
+            }
+            reachable[vi] = true;
+            for &a in &self.nodes[vi].args {
+                if !reachable[a as usize] {
+                    stack.push(a);
+                }
+            }
+        }
+        let mut out: Vec<u64> = Vec::new();
+        let mut lits: Vec<u64> = Vec::new();
+        for i in 0..self.nodes.len() {
+            if reachable[i] {
+                out.push(h[i]);
+                if matches!(self.nodes[i].op, ValOp::Const(_)) {
+                    lits.push(h[i]);
+                }
+            }
+        }
+        let mut returns: Vec<u64> = Vec::new();
+        for (kind, v) in &self.sinks {
+            out.push(combine(0x5117 + *kind as u64, h[*v as usize]));
+            if matches!(kind, SinkKind::Return) {
+                returns.push(h[*v as usize]);
+            }
+        }
+        out.sort_unstable();
+        lits.sort_unstable();
+        returns.sort_unstable();
+        (out, lits, returns)
+    }
+}
+
+fn collect_assigned(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
+    if il.kind(node) == NodeKind::Assign {
+        if let Some(&lhs) = il.children(node).first() {
+            if il.kind(lhs) == NodeKind::Var {
+                if let Payload::Cid(c) = il.node(lhs).payload {
+                    out.insert(c);
+                }
+            }
+        }
+    }
+    for &c in il.children(node) {
+        collect_assigned(il, c, out);
+    }
+}
+
+fn op_code(p: Payload) -> u32 {
+    match p {
+        Payload::Op(op) => op as u32,
+        _ => 0,
+    }
+}
+
+/// All canonical variable ids referenced anywhere in `node`'s subtree.
+fn mentioned_cids(il: &Il, node: NodeId) -> FxHashSet<u32> {
+    let mut out = FxHashSet::default();
+    mentioned_scan(il, node, &mut out);
+    out
+}
+
+fn mentioned_scan(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
+    if il.kind(node) == NodeKind::Var {
+        if let Payload::Cid(c) = il.node(node).payload {
+            out.insert(c);
+        }
+    }
+    for &c in il.children(node) {
+        mentioned_scan(il, c, out);
+    }
+}
+
+/// Loop induction variables: those updated by `i = i ± constant` in the body.
+fn induction_vars(il: &Il, body: NodeId) -> FxHashSet<u32> {
+    let mut out = FxHashSet::default();
+    induction_scan(il, body, &mut out);
+    out
+}
+
+fn induction_scan(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
+    if il.kind(node) == NodeKind::Assign {
+        let kids = il.children(node);
+        if kids.len() == 2 && il.kind(kids[0]) == NodeKind::Var {
+            if let Payload::Cid(c) = il.node(kids[0]).payload {
+                if is_increment(il, kids[1], c) {
+                    out.insert(c);
+                }
+            }
+        }
+    }
+    for &c in il.children(node) {
+        induction_scan(il, c, out);
+    }
+}
+
+/// The constant step of induction variable `cid` if the body updates it *exactly once*
+/// as `i = i + k` / `i = k + i` / `i = i - k` (k an int literal); else `None`. `k - i`
+/// is a reflection (not a step) and is rejected, as is a variable updated 0 or ≥2 times.
+fn induction_step(il: &Il, body: NodeId, cid: u32) -> Option<i64> {
+    let mut step = None;
+    let mut count = 0u32;
+    induction_step_scan(il, body, cid, &mut step, &mut count);
+    if count == 1 {
+        step
+    } else {
+        None
+    }
+}
+
+fn induction_step_scan(il: &Il, node: NodeId, cid: u32, step: &mut Option<i64>, count: &mut u32) {
+    if il.kind(node) == NodeKind::Assign {
+        let kids = il.children(node);
+        if kids.len() == 2 && il.kind(kids[0]) == NodeKind::Var {
+            if let Payload::Cid(c) = il.node(kids[0]).payload {
+                if c == cid {
+                    *count += 1;
+                    *step = increment_amount(il, kids[1], cid);
+                }
+            }
+        }
+    }
+    for &c in il.children(node) {
+        induction_step_scan(il, c, cid, step, count);
+    }
+}
+
+/// The signed step if `expr` is `cid + k`, `k + cid`, or `cid - k` (k an int literal);
+/// `k - cid` and anything else → `None`.
+fn increment_amount(il: &Il, expr: NodeId, cid: u32) -> Option<i64> {
+    if il.kind(expr) != NodeKind::BinOp {
+        return None;
+    }
+    let kids = il.children(expr);
+    if kids.len() != 2 {
+        return None;
+    }
+    let is_self = |n: NodeId| {
+        matches!((il.kind(n), il.node(n).payload), (NodeKind::Var, Payload::Cid(c)) if c == cid)
+    };
+    let lit = |n: NodeId| match il.node(n).payload {
+        Payload::LitInt(v) => Some(v),
+        _ => None,
+    };
+    match il.node(expr).payload {
+        Payload::Op(Op::Add) => {
+            if is_self(kids[0]) {
+                lit(kids[1])
+            } else if is_self(kids[1]) {
+                lit(kids[0])
+            } else {
+                None
+            }
+        }
+        // Only `i - k` is a step; `k - i` reflects.
+        Payload::Op(Op::Sub) if is_self(kids[0]) => lit(kids[1]).map(|v| -v),
+        _ => None,
+    }
+}
+
+/// Whether `expr` is `cid ± literal` — a step of the induction variable `cid`.
+fn is_increment(il: &Il, expr: NodeId, cid: u32) -> bool {
+    if il.kind(expr) != NodeKind::BinOp
+        || !matches!(
+            il.node(expr).payload,
+            Payload::Op(Op::Add) | Payload::Op(Op::Sub)
+        )
+    {
+        return false;
+    }
+    let mut refs_self = false;
+    let mut others_literal = true;
+    for &k in il.children(expr) {
+        match (il.kind(k), il.node(k).payload) {
+            (NodeKind::Var, Payload::Cid(c)) if c == cid => refs_self = true,
+            (NodeKind::Lit, _) => {}
+            _ => others_literal = false,
+        }
+    }
+    refs_self && others_literal
+}
+
+/// The complementary comparison op code, if `opc` is a comparison; else `None`.
+fn negate_cmp_code(opc: u32) -> Option<u32> {
+    let flip = if opc == Op::Lt as u32 {
+        Op::Ge
+    } else if opc == Op::Le as u32 {
+        Op::Gt
+    } else if opc == Op::Gt as u32 {
+        Op::Le
+    } else if opc == Op::Ge as u32 {
+        Op::Lt
+    } else if opc == Op::Eq as u32 {
+        Op::Ne
+    } else if opc == Op::Ne as u32 {
+        Op::Eq
+    } else {
+        return None;
+    };
+    Some(flip as u32)
+}
+
+fn is_commutative(opc: u32) -> bool {
+    is_assoc_comm_code(opc)
+        || opc == Op::Eq as u32
+        || opc == Op::Ne as u32
+        || opc == MIN_CODE
+        || opc == MAX_CODE
+}
+
+/// Coarse type of a `Const` value node from its key range (mirrors the `eval` Lit keys):
+/// int range → Num, string range → Str, bool range → Bool, small `LitClass` codes → their
+/// type; sentinels (⊥, void-return, break) → Unknown.
+/// Is this type a concatenation monoid (string/list) — where `+` is non-commutative?
+fn is_concat_ty(t: Ty) -> bool {
+    matches!(t, Ty::Str | Ty::List)
+}
+
+fn const_ty(k: u32) -> Ty {
+    match k {
+        0x1000_0000..=0x1FFF_FFFF => Ty::Num,
+        0x2000_0000..=0x2FFF_FFFF => Ty::Str,
+        0x3000_0001 | 0x3000_0002 => Ty::Bool,
+        0x4000_0000..=0x4FFF_FFFF => Ty::Num, // retained float
+        0 | 1 => Ty::Num, // LitClass::Int / Float
+        2 => Ty::Str,     // LitClass::Str
+        3 => Ty::Bool,    // LitClass::Bool
+        _ => Ty::Unknown,
+    }
+}
+
+/// Associative *and* commutative operators (flatten-eligible).
+fn is_assoc_comm_code(opc: u32) -> bool {
+    // NOTE: logical `And`/`Or` are deliberately ABSENT — short-circuit value-and/or is
+    // associative but NOT commutative (`1 or 2` ≠ `2 or 1`; it returns the deciding
+    // operand's value). Treating them as commutative here swapped their operands by hash
+    // and silently merged `a or b` with `b or a` (a false merge the post-normalize oracle
+    // can't see). They are instead rewritten to the positional `Phi` form in `mk`.
+    opc == Op::Add as u32
+        || opc == Op::Mul as u32
+        || opc == Op::BitAnd as u32
+        || opc == Op::BitOr as u32
+        || opc == Op::BitXor as u32
+}
+
+/// `Reduce` op codes for the selection reductions (min/max). Kept clear of the small
+/// `Op` discriminants (used for `+`/`*` folds) and of the `Const` int range.
+const REDUCE_MAX: u32 = 0xFF00;
+const REDUCE_MIN: u32 = 0xFF01;
+/// `Reduce` op codes for the boolean short-circuit reductions: `any`/`some` (existential
+/// OR) and `all`/`every` (universal AND). `REDUCE_ALL == REDUCE_ANY + 1` (the fold reuses
+/// the offset to pick the OR/AND identity false/true).
+const REDUCE_ANY: u32 = 0xFF02;
+const REDUCE_ALL: u32 = 0xFF03;
+
+/// `Un` op code for absolute value — `abs(x)` and the `x if x>=0 else -x` idiom both
+/// canonicalize to `Un(ABS_CODE, [x])`. Clear of the small `Op` discriminants.
+const ABS_CODE: u32 = 0xAB5;
+/// Pseudo-ops for the 2-way min/max idiom (`x if x<y else y` ≡ `min(x,y)`), clear of the
+/// `Op` discriminants and `ABS_CODE`. Commutative (min/max are symmetric).
+const MIN_CODE: u32 = 0x319;
+const MAX_CODE: u32 = 0x32A;
+
+/// A selection reduction (min/max) keeps no additive/multiplicative identity, so its
+/// `Reduce` carries only the per-element contribution (no init) — a `max`-loop and
+/// `max(gen)` then converge regardless of the loop's incidental seed value.
+fn is_selection_code(op: u32) -> bool {
+    // any/all carry only the per-element predicate (no accumulator seed), like min/max.
+    op == REDUCE_MAX || op == REDUCE_MIN || op == REDUCE_ANY || op == REDUCE_ALL
+}
+
+/// The identity element of a reduction operator (`acc ⊕ identity = acc`), used to
+/// neutralize a filtered-out element in a guarded reduction. Only the operators with
+/// an integer-literal identity are handled (`+`→0, `*`→1).
+fn identity_of(opc: u32) -> Option<u32> {
+    if opc == Op::Add as u32 {
+        Some(0)
+    } else if opc == Op::Mul as u32 {
+        Some(1)
+    } else {
+        None
+    }
+}
+
+const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
+
+#[inline]
+fn combine(a: u64, b: u64) -> u64 {
+    (a.rotate_left(7) ^ b).wrapping_mul(SEED)
+}
+
+fn op_tag(op: &ValOp) -> u64 {
+    let (k, p): (u64, u64) = match op {
+        ValOp::Input(c) => (1, *c as u64),
+        ValOp::Const(c) => (2, *c as u64),
+        ValOp::Bin(o) => (3, *o as u64),
+        ValOp::Un(o) => (4, *o as u64),
+        ValOp::Field(n) => (5, *n),
+        ValOp::Index => (6, 0),
+        ValOp::Call(t) => (7, *t as u64),
+        ValOp::Hof(h) => (8, *h as u64),
+        ValOp::Seq => (9, 0),
+        ValOp::Phi => (10, 0),
+        ValOp::Lambda(h) => (11, *h),
+        ValOp::Loop(c) => (12, *c as u64),
+        ValOp::Elem(h) => (14, *h),
+        ValOp::Reduce(o) => (15, *o as u64),
+        ValOp::Idx(h) => (16, *h),
+        ValOp::Opaque(c) => (13, *c),
+    };
+    combine(k.wrapping_mul(0xF00D), p)
+}

@@ -1,0 +1,36 @@
+# cargo-deny configuration — supply-chain quality gate.
+# Run: `cargo deny check`  (advisories · licenses · bans · sources)
+
+[advisories]
+# Fail on any crate with a known security advisory (RUSTSEC) or that is yanked.
+yanked = "deny"
+ignore = []
+
+[licenses]
+# Only permissive, redistribution-friendly licenses. A new dependency under
+# anything else fails the gate until explicitly reviewed and added here.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[bans]
+# Catch accidental dependency bloat: more than one version of the same crate in
+# the tree, and wildcard ("*") version requirements on *external* crates.
+multiple-versions = "warn"
+wildcards = "deny"
+# Internal workspace crates are path deps (no version req) — not real wildcards.
+allow-wildcard-paths = true
+
+[sources]
+# Dependencies must come from crates.io — no unvetted git or alternative registries.
+unknown-registry = "deny"
+unknown-git = "deny"

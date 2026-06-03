@@ -1,0 +1,14 @@
+/target
+
+# Python scratch/cache
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store
+
+# synthetic/bench scratch
+/tmp/
+
+# vendored benchmark repos (large; reconstruct via bench/setup_repos.sh)
+/bench/repos/

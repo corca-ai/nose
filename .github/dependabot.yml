@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Rust dependencies (Cargo.toml / Cargo.lock across the workspace).
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine patch/minor bumps — less review churn; the full CI
+      # suite (incl. MSRV, cargo-deny, the copy-paste gate) vets each batch.
+      cargo-minor:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "deps"
+
+  # Keep the GitHub Actions used in CI current (pinned action versions).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"

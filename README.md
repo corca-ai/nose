@@ -1,0 +1,214 @@
+# nose
+
+**Find refactoring candidates and semantic (Type-4) code clones across Python,
+JavaScript, TypeScript (incl. JSX/TSX), Go, Rust, Java, C, and Ruby — plus the
+`<script>` logic inside Vue, Svelte, and HTML** — fast, in one self-contained Rust binary.
+
+*The name: a **nose** sniffs out code smells — the duplication worth refactoring away, even
+when it's been renamed, restructured, or rewritten in another language.*
+
+## See it
+
+These three functions compute the same thing — **sum a list** — in three languages and three
+styles. A token-based copy-paste detector sees three unrelated files.
+**nose reports them as one clone family**, because it matches on *what the code computes*:
+
+```python
+# Python — explicit loop
+def total(xs):
+    s = 0
+    for x in xs:
+        s += x
+    return s
+```
+```javascript
+// JavaScript — reduce
+const total = xs => xs.reduce((a, b) => a + b, 0);
+```
+```go
+// Go — indexed loop
+func Total(xs []int) int {
+    n := 0
+    for i := 0; i < len(xs); i++ { n += xs[i] }
+    return n
+}
+```
+
+Same logic, three languages, **zero shared tokens**. nose sees through renamed variables,
+reordered statements, and loop ↔ `reduce` ↔ comprehension rewrites — so it finds the
+duplicated *logic* worth refactoring, not just literal copy-paste. And the match isn't a
+guess: an equal fingerprint is a soundness guarantee — *fingerprint-equal ⟹ behavior-equal*,
+enforced by an interpreter oracle (`nose verify`) and machine-checked in Lean.
+
+## How it works
+
+nose parses each language with tree-sitter and lowers it into a single normalized
+**intermediate language (IL)** designed so that semantically-equivalent code converges
+to (near-)identical structure: identifiers alpha-renamed, loops unified, surface sugar
+desugared, operators/idioms canonicalized, plus a hash-consed **value graph** (GVN) that
+captures *what the code computes* (invariant to temporaries, statement order, and common
+subexpressions). On top of the IL it detects clones and ranks **design-level refactoring
+opportunities**. Every IL node carries inline provenance, so every match traces back to
+its source span.
+
+The value graph is **sound by intent** — two fragments sharing a fingerprint must compute
+the same thing. That contract is enforced by a differential interpreter oracle (`nose
+verify`, which interprets the *pre-canonicalization* IL so a rewrite can't mask its own
+bug) and by machine-checked **Lean proofs** of the core canonicalizations (`formal/`).
+See [docs/architecture.md](docs/architecture.md) and Experiments §AJ/§AX.
+
+## Clone types
+
+Against the standard taxonomy (Roy, Cordy & Koschke, 2009):
+
+- **Type-1 / Type-2** (identical; renamed identifiers and types) — fully.
+- **Type-3** (statements added / removed / changed) — as ranked near-duplicate families.
+- **Type-4** (same computation, different syntax) — the equivalence classes nose *models*
+  (loop ↔ reduce ↔ comprehension, control-flow forms, commutativity, cross-language), with a
+  soundness guarantee — **not** arbitrary algorithmic equivalence, and not recursion ↔ iteration.
+
+See [docs/clone-types.md](docs/clone-types.md) for the precise per-type scope and limits.
+
+## What it does
+
+`nose scan <paths>` finds code *similar enough to review* — near-duplicate
+families across files, modules, and languages — and ranks them by how much
+duplication they represent, so you review the highest-value refactoring
+opportunities first. Add `--strict` for clean behavioral (Type-4) clones: it
+turns on behavioral-precision gates (literal/string-value awareness, data-table
+and return-signature gates) and a higher threshold.
+
+## Quick start
+
+```sh
+cargo build --release
+
+# Rank design-level refactoring candidates:
+./target/release/nose scan path/to/project
+
+# Markdown report (for a PR / issue):
+./target/release/nose scan src --format markdown > REFACTOR.md
+
+# JSON (machine-readable), top 50 families:
+./target/release/nose scan src --format json --top 50
+
+# Strict behavioral (Type-4) clones only:
+./target/release/nose scan src --strict
+```
+
+### Example
+
+```
+$ nose scan examples --min-tokens 8
+4 refactoring candidate families  ·  ~41 duplicated lines  (showing 4)
+
+#1   value      36  ·  3 sites · 3 files · 1 modules · 3 langs (go, python, typescript) · sim 1.00 · ~14 dup lines
+     → local duplication — extract a helper (cross-language)
+     examples/sum.go:3-9  SumFor
+     examples/sum.py:1-7  sum_while
+     examples/sum.ts:1-7  sumFor
+```
+
+(Runs on the repo's own `examples/`, which differ in language and loop form yet are one
+family. `--min-tokens 8` because the demo functions are tiny; the default minimum is 24.)
+
+Each family carries a one-line **hint** (`→`) grounded in the facts — a shared symbol
+name, cross-language spread, or how many modules it touches — so you know what kind of
+refactor applies before opening a file.
+
+Each **family** is one refactoring decision (extract a shared helper / base class /
+data table). Families are ranked by **refactoring value** = removable lines ×
+similarity × cross-module/-file/-language spread, so a pattern repeated across many
+modules outranks a local copy-paste.
+
+## Pipeline
+
+```
+source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL ──▶ units + features
+                                                                      │
+                                       MinHash + LSH candidate gen ◀──┘
+                                                  │
+                          structural + value-graph scoring ──▶ clusters ──▶ ranked families
+```
+
+- **Normalization** (`nose-normalize`): loop unification, desugaring (`x+=1`, ternary,
+  comprehensions, `match`/`switch` → canonical forms), alpha-renaming, operator/idiom
+  canonicalization, control-flow normalization, and the value graph (GVN).
+- **Detection** (`nose-detect`): two channels feeding one ranking.
+  - *Structural* — per-unit subtree-shape multisets + value-graph fingerprints,
+    MinHash/LSH candidate generation (near-linear), blended structural + semantic
+    scoring with RANSAC alignment, union-find clustering. Catches Type-2/3/4
+    (renamed, gapped, semantically-equivalent) families at unit granularity.
+  - *Contiguous* — a Rabin-Karp scan over each file's IL token stream that finds
+    duplicated runs regardless of unit boundaries (the Type-1/2 copy-paste floor a
+    token detector catches), on by default for `scan`
+    (`--no-contiguous` to disable).
+
+## CLI
+
+- `nose scan <paths…>` — ranked refactoring candidates.
+  - filter/shape: `--top N`, `--min-members N`, `--min-value V`, `--min-tokens N`
+    (the one minimum-size gate), `--threshold T`, `--strict`, `--exclude <glob>`
+    (gitignore-syntax; `.gitignore` also respected).
+  - review: `--diff` (show each family inline as a diff of its two copies),
+    `--proposal` (the shared skeleton with the varying spots as `⟨param N⟩` — what to
+    extract and how many parameters it needs),
+    `--hotspots` (directories ranked by duplicated lines), `--format human|json|markdown|sarif`.
+  - workflow: `nose.toml` config (`[scan]`), `--baseline <file>` + `--write-baseline`
+    (flag only *new* duplication), `--fail` (CI gate), `--cache-dir <dir>` (fast re-runs).
+  - inline `// nose-ignore` marks a clone as intentionally kept.
+- `nose il <file> [--normalized] [--format sexpr|json]` — inspect the IL.
+- `nose stats <paths…>` — IL lowering coverage per language.
+
+A `detect` command (raw clone pairs/groups) and `eval`/`ceiling` (benchmark
+scoring against a gold set) also exist as the strict/research surface; they're
+hidden from `--help` because `scan` is the command for everyday use.
+
+## Documentation
+
+Full guides live in the [`docs/`](docs/home.md) wiki — **for users**:
+[Usage](docs/usage.md), [Configuration](docs/configuration.md),
+[Continuous-Integration](docs/continuous-integration.md),
+[Languages](docs/languages.md); **for contributors**:
+[Architecture](docs/architecture.md), [Normalization](docs/normalization.md),
+[Experiments](docs/experiments.md), [Benchmark](docs/benchmark.md),
+[Field-Evaluation](docs/field-evaluation.md), [Dogfooding](docs/dogfooding.md).
+
+## Crates
+
+| crate | role |
+|---|---|
+| `nose-il` | arena IL model, provenance spans, interner, serialization |
+| `nose-frontend` | tree-sitter parse + per-language CST→IL lowering |
+| `nose-normalize` | normalization passes + value graph (GVN) |
+| `nose-detect` | fingerprints, LSH, scoring, clustering, refactor ranking |
+| `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) |
+| `nose-cli` | the `nose` binary |
+
+## Status
+
+Pre-1.0. Languages: Python, JavaScript, TypeScript (with JSX/TSX), Go, Rust, Java, C, Ruby,
+and the embedded `<script>` of Vue/Svelte/HTML (IL lowering coverage ≈ 99.99% — Raw-node
+ratio < 0.01% on the vendored corpus). Output is **deterministic** — byte-identical
+across runs, thread counts, *and* machines. The pipeline is parallel and frontend-bound
+(parse+lower scales ~11.6× across cores); per-file throughput is corpus-dependent —
+reproduce with `NOSE_TIME=1 nose scan <path>` (≈19.5k files/sec warm; see
+[experiments](docs/experiments.md) §T).
+
+Correctness is anchored by **cross-language convergence tests**: the same algorithm written
+in different languages (and equivalent forms — `for`/`while`, ternary/`switch`, comprehension/`.map`,
+f-string/template/interpolation, guard clauses, De Morgan) must normalize to one IL hash, while
+behaviorally different code (sum vs product) must not. See `docs/experiments.md` for the
+methodology and the bugs this discipline caught (§S).
+
+## Quality gates
+
+`./scripts/check.sh` runs every gate CI runs: rustfmt, clippy (`-D warnings`), doc-link
+check, the test suite, **cargo-machete** (unused deps), **cargo-deny** (advisories /
+licenses / bans), and a **copy-paste gate** — nose run on its own source, so the clone
+detector polices its own duplication. Lint policy lives once in `[workspace.lints]`. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## License
+
+MIT

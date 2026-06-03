@@ -1,0 +1,27 @@
+[package]
+name = "nose-frontend"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+nose-il = { workspace = true }
+rustc-hash = { workspace = true }
+rayon = { workspace = true }
+ignore = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+
+tree-sitter = "0.24"
+tree-sitter-python = "0.23"
+tree-sitter-javascript = "0.23"
+tree-sitter-typescript = "0.23"
+tree-sitter-go = "0.23"
+tree-sitter-rust = "0.23"
+tree-sitter-java = "0.23"
+tree-sitter-c = "0.23"
+tree-sitter-ruby = "0.23"
+
+[lints]
+workspace = true

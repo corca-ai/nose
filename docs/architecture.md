@@ -1,0 +1,84 @@
+# Architecture
+
+nose lowers every language into one normalized intermediate language (IL),
+designed so that semantically-equivalent code converges toward identical
+structure, then finds and ranks duplication on top of it. The IL is **not** the
+deliverable — it's the substrate. Back to [home](home.md).
+
+## The pipeline
+
+```
+source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL ──▶ units + features
+                                                                      │
+                                       MinHash + LSH candidate gen ◀──┘
+                                                  │
+                          structural + value-graph scoring ──▶ clusters ──▶ ranked families
+```
+
+1. **Lower** ([languages](languages.md)): tree-sitter parses each file; a per-language pass
+   walks the CST and emits raw IL using a small, desugared core node set. Every
+   node copies its source span, so every match traces back to exact lines.
+   Frontends also tag syntactic unit boundaries (function/method/class/block),
+   which gives detection accurate boundaries for free.
+2. **Normalize** ([normalization](normalization.md)): ordered passes canonicalize the IL —
+   desugaring, alpha-renaming, idiom/operator canonicalization, control-flow
+   normalization, dataflow, algebra, and a hash-consed **value graph** (GVN) that
+   captures *what the code computes*, invariant to temporaries, statement order,
+   and common subexpressions.
+3. **Extract units & features**: each unit becomes a multiset of subtree-shape
+   hashes, a value-graph fingerprint, a pre-order linearization for alignment, a
+   MinHash signature, plus literal- and return-value multisets used by the strict
+   precision gates.
+4. **Candidate generation**: LSH banding over the MinHash signatures yields
+   candidate pairs in near-linear time, avoiding the O(n²) all-pairs comparison.
+5. **Score**: each candidate pair is rescored with structural alignment (RANSAC)
+   blended with weighted Jaccard of subtree-shape multisets and a value-graph
+   comparison; accept above the threshold.
+6. **Cluster & rank**: union-find over accepted pairs forms clone groups, which
+   are grouped into **families** and sorted by refactoring value (removable lines
+   × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the
+   ranked report reads.
+
+## Crates
+
+A Cargo workspace; data flows left-to-right through them.
+
+| crate | role |
+|---|---|
+| `nose-il` | arena IL model (`Vec<Node>`, `NodeId(u32)`, out-of-line edges), provenance spans, interner, serialization, IR verifier |
+| `nose-frontend` | tree-sitter parse + per-language CST→IL lowering (one module per language; embedded `<script>` extraction) |
+| `nose-normalize` | the normalization passes + the value graph (GVN) |
+| `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |
+| `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |
+| `nose-cli` | the `nose` binary, config loading, baselines, caching |
+
+## Design choices worth knowing
+
+- **Arena, not boxed trees.** The IL is a flat `Vec<Node>` with `NodeId(u32)`
+  indices and out-of-line child edges — cache-friendly and cheap to serialize,
+  which is what makes per-file feature caching ([continuous-integration](continuous-integration.md))
+  possible.
+- **Interner-independent features.** A unit's features are content-derived
+  hashes, not interner ids, so they're portable across runs — the basis for the
+  content-hash cache.
+- **Determinism is a hard invariant.** Output is byte-identical across runs *and*
+  thread counts. File ids come from a sorted path list; nothing iterates a
+  `HashMap` into the output. There are tests for both.
+- **Parallel by default.** Discovery, lowering, and the detection stages run
+  under rayon; the LSH stage is sort-based so it parallelizes cleanly. See
+  [experiments](experiments.md) §T for the throughput work.
+- **The behavioral fingerprint is sound by intent.** The value graph's contract
+  (§AJ) is *fingerprint-equal ⟹ behavior-equal* — two units sharing a value-graph
+  fingerprint must compute the same thing; a *false merge* is a bug, not an accepted
+  approximation. Two mechanisms enforce it. (1) A tree-walking **interpreter oracle**
+  (`nose verify`) runs every interpretable unit on a battery of inputs and flags any
+  fingerprint-equal pair whose behavior differs. Crucially it interprets the
+  *pre-canonicalization* core IL, not the fully-normalized IL it fingerprints, so a
+  behavior-changing canonicalization cannot mask itself (§AX). (2) A **canon-preservation**
+  check requires each unit's core-IL behavior to equal its full-IL behavior — catching a
+  bad canon even with no colliding twin. The core algebraic/control canonicalizations are
+  additionally **machine-checked in Lean** (`formal/`). Both checks currently report zero
+  violations; the fuzziness a clone detector needs lives in the *candidate* axis and its
+  scoring, never in the behavioral base (the two-axis principle, §AH).
+
+For *why* the normalization passes look the way they do, read [normalization](normalization.md).

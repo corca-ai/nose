@@ -1,0 +1,835 @@
+//! A small interpreter over the normalized IL — the *behavioral oracle* for the
+//! value-graph soundness check (§AJ).
+//!
+//! The value graph claims that two units with the same fingerprint compute the same
+//! thing. Nothing verified that until now. This interpreter runs a unit on concrete
+//! inputs and returns its observable behavior (the value it returns, plus an effect
+//! trace), so a checker can assert: **fingerprint-equal ⟹ behavior-equal on every
+//! sampled input** (soundness — no false merges, the cardinal sin of a clone
+//! detector). It is intentionally partial: any construct it cannot model (opaque
+//! calls, field access, exceptions, …) makes the whole unit *uninterpretable*, and
+//! the checker excludes it rather than guess. Determinism + a step budget guarantee
+//! termination; the exact arithmetic need not match any real language, only be
+//! self-consistent — a genuinely-equivalent pair agrees under *any* consistent
+//! semantics, so a fingerprint merge the interpreter contradicts is a real bug.
+
+use rustc_hash::{FxHashMap, FxHashSet};
+use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload};
+
+/// A runtime value. `List` is nested so `zip`/`enumerate` can yield pairs.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum Value {
+    Int(i64),
+    Bool(bool),
+    /// A string/builder value modeled as the FREE MONOID over its appended pieces: an
+    /// ordered sequence of opaque token hashes. A literal is one token; `+`/concat
+    /// appends (associative, identity = empty), and is ORDER-SENSITIVE — so `s + x` and
+    /// `x + s` differ, exactly as string concatenation does (this is what makes the
+    /// builder/join family interpretable and exposes any unsound commutative treatment of
+    /// `+` on strings). No real character content is needed — the ordered pieces capture
+    /// append behavior. (Char-level ops like length/index stay `Err`: unknown from pieces.)
+    Str(Vec<u64>),
+    List(Vec<Value>),
+    Null,
+    /// A runtime error (type mismatch, out-of-range, divide-by-zero). This is itself
+    /// observable behavior — two equivalent programs err on the same inputs.
+    Err,
+}
+
+/// The observable behavior of one run: the returned value, an ordered I/O effect trace
+/// (appended/printed values, in order — order IS observable), and the final per-field
+/// object state (`self.x = …`) as a name→value map in canonical name order. Field state
+/// is order-INSENSITIVE across distinct fields (writing two distinct fields commutes —
+/// the resulting object is identical) but reflects last-write-wins per field. Two units
+/// are behaviorally equal on an input iff all three components match.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct Behavior {
+    pub ret: Value,
+    pub effects: Vec<Value>,
+    pub fields: Vec<(i64, Value)>,
+}
+
+/// Marker: the unit hit a construct the interpreter does not model. The whole unit is
+/// then excluded from the soundness check (we never guess at behavior).
+struct Unsupported;
+
+type R<T> = Result<T, Unsupported>;
+
+enum Flow {
+    Normal,
+    Ret(Value),
+    Break,
+    Continue,
+    /// A type error in a CONDITION (an `Err` value used as an if/loop/ternary test). It
+    /// propagates as `Err` behavior rather than being silently treated as false — so a
+    /// lenient manual form (a `x>0?x:-x` abs, an accumulator loop) ERRS on a
+    /// type-mismatched input exactly as the strict builtin it canonicalizes to (`abs`,
+    /// `sum`) does. Without this the two diverged on non-numeric battery inputs (the
+    /// manual form returned a value / its init while the builtin returned `Err`),
+    /// surfacing as a false merge the value graph correctly unified.
+    Err,
+}
+
+const STEP_BUDGET: u64 = 200_000;
+
+struct Interp<'a> {
+    il: &'a Il,
+    steps: u64,
+    effects: Vec<Value>,
+    fields: FxHashMap<i64, Value>,
+    /// Parameter cids — appending to one is a caller-visible mutation (an effect); appending
+    /// to a LOCAL list var builds that list's value (faithful, converges with a comprehension).
+    params: FxHashSet<u32>,
+}
+
+/// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
+/// Returns its [`Behavior`], or `None` if the unit is uninterpretable.
+pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
+    if il.kind(root) != NodeKind::Func {
+        return None;
+    }
+    let mut it = Interp {
+        il,
+        steps: 0,
+        effects: Vec::new(),
+        fields: FxHashMap::default(),
+        params: FxHashSet::default(),
+    };
+    let mut env: FxHashMap<u32, Value> = FxHashMap::default();
+    let kids = il.children(root).to_vec();
+    let mut pi = 0;
+    for &k in &kids {
+        if il.kind(k) == NodeKind::Param {
+            if let Payload::Cid(c) = il.node(k).payload {
+                env.insert(c, args.get(pi).cloned().unwrap_or(Value::Null));
+                it.params.insert(c);
+                pi += 1;
+            }
+        }
+    }
+    let body = *kids.last()?;
+    let ret = match it.exec(body, &mut env) {
+        Ok(Flow::Ret(v)) => v,
+        Ok(Flow::Err) => Value::Err,
+        Ok(_) => Value::Null,
+        Err(_) => return None,
+    };
+    let mut fields: Vec<(i64, Value)> = it.fields.into_iter().collect();
+    fields.sort_by_key(|&(k, _)| k);
+    Some(Behavior {
+        ret,
+        effects: it.effects,
+        fields,
+    })
+}
+
+impl<'a> Interp<'a> {
+    fn tick(&mut self) -> R<()> {
+        self.steps += 1;
+        if self.steps > STEP_BUDGET {
+            Err(Unsupported)
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Execute a statement (or block), threading control flow.
+    fn exec(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Flow> {
+        self.tick()?;
+        match self.il.kind(node) {
+            NodeKind::Block => {
+                for s in self.il.children(node).to_vec() {
+                    match self.exec(s, env)? {
+                        Flow::Normal => {}
+                        other => return Ok(other),
+                    }
+                }
+                Ok(Flow::Normal)
+            }
+            NodeKind::Assign => {
+                let kids = self.il.children(node).to_vec();
+                if kids.len() != 2 {
+                    return Err(Unsupported);
+                }
+                let rhs = self.eval(kids[1], env)?;
+                self.bind(kids[0], rhs, env)?;
+                Ok(Flow::Normal)
+            }
+            NodeKind::ExprStmt => {
+                if let Some(&e) = self.il.children(node).first() {
+                    if !self.exec_stmt_append(e, env)? {
+                        self.eval(e, env)?;
+                    }
+                }
+                Ok(Flow::Normal)
+            }
+            NodeKind::Return => {
+                let v = match self.il.children(node).first() {
+                    Some(&e) => self.eval(e, env)?,
+                    None => Value::Null,
+                };
+                Ok(Flow::Ret(v))
+            }
+            NodeKind::If => {
+                let kids = self.il.children(node).to_vec();
+                if kids.is_empty() {
+                    return Ok(Flow::Normal);
+                }
+                let cond = self.eval(kids[0], env)?;
+                if matches!(cond, Value::Err) {
+                    return Ok(Flow::Err);
+                }
+                if truthy(&cond) {
+                    if let Some(&t) = kids.get(1) {
+                        return self.exec(t, env);
+                    }
+                } else if let Some(&e) = kids.get(2) {
+                    return self.exec(e, env);
+                }
+                Ok(Flow::Normal)
+            }
+            NodeKind::Loop => self.exec_loop(node, env),
+            NodeKind::Break => Ok(Flow::Break),
+            NodeKind::Continue => Ok(Flow::Continue),
+            // Empty block / no-op pass lowers to an empty Block (handled above) or a
+            // Seq with no children; anything else as a statement we don't model.
+            NodeKind::Seq if self.il.children(node).is_empty() => Ok(Flow::Normal),
+            _ => Err(Unsupported),
+        }
+    }
+
+    fn exec_loop(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Flow> {
+        let kind = match self.il.node(node).payload {
+            Payload::Loop(k) => k,
+            _ => LoopKind::While,
+        };
+        let kids = self.il.children(node).to_vec();
+        match kind {
+            LoopKind::While if kids.len() == 2 => {
+                loop {
+                    self.tick()?;
+                    let c = self.eval(kids[0], env)?;
+                    if matches!(c, Value::Err) {
+                        return Ok(Flow::Err); // type error in the loop test → Err behavior
+                    }
+                    if !truthy(&c) {
+                        break;
+                    }
+                    match self.exec(kids[1], env)? {
+                        Flow::Normal | Flow::Continue => {}
+                        Flow::Break => break,
+                        other => return Ok(other), // Ret / Err propagate
+                    }
+                }
+                Ok(Flow::Normal)
+            }
+            LoopKind::ForEach if kids.len() == 3 => {
+                let seq = match self.eval(kids[1], env)? {
+                    Value::List(xs) => xs,
+                    _ => return Err(Unsupported),
+                };
+                for item in seq {
+                    self.tick()?;
+                    self.bind(kids[0], item, env)?;
+                    match self.exec(kids[2], env)? {
+                        Flow::Normal | Flow::Continue => {}
+                        Flow::Break => break,
+                        other => return Ok(other), // Ret / Err propagate
+                    }
+                }
+                Ok(Flow::Normal)
+            }
+            LoopKind::CStyle if kids.len() == 4 => {
+                // [init, cond, update, body] — desugar normally rewrites this away.
+                match self.exec(kids[0], env)? {
+                    Flow::Normal => {}
+                    other => return Ok(other),
+                }
+                loop {
+                    self.tick()?;
+                    let c = self.eval(kids[1], env)?;
+                    if matches!(c, Value::Err) {
+                        return Ok(Flow::Err);
+                    }
+                    if !truthy(&c) {
+                        break;
+                    }
+                    match self.exec(kids[3], env)? {
+                        Flow::Normal | Flow::Continue => {}
+                        Flow::Break => break,
+                        other => return Ok(other), // Ret / Err propagate
+                    }
+                    self.exec(kids[2], env)?;
+                }
+                Ok(Flow::Normal)
+            }
+            _ => Err(Unsupported),
+        }
+    }
+
+    /// Bind a target (Var / tuple `Seq` / `Index` store) to a value.
+    fn bind(&mut self, target: NodeId, val: Value, env: &mut FxHashMap<u32, Value>) -> R<()> {
+        match self.il.kind(target) {
+            NodeKind::Var => {
+                if let Payload::Cid(c) = self.il.node(target).payload {
+                    env.insert(c, val);
+                    Ok(())
+                } else {
+                    Err(Unsupported)
+                }
+            }
+            NodeKind::Seq => {
+                // tuple unpack: `a, b = pair`
+                let names = self.il.children(target).to_vec();
+                let vals = match val {
+                    Value::List(vs) if vs.len() == names.len() => vs,
+                    _ => return Err(Unsupported),
+                };
+                for (t, v) in names.into_iter().zip(vals) {
+                    self.bind(t, v, env)?;
+                }
+                Ok(())
+            }
+            // A store into a field/index is an effect; record *what* is written to as
+            // well as the value, so `self.a = x` and `self.b = x` (or `xs[i]=` vs
+            // `xs[j]=`) are distinguished — otherwise field-blindness conflates
+            // near-twin setters and pollutes the completeness signal with false leads.
+            // A field store updates per-field object state (last-write-wins), keyed by
+            // field name — NOT an ordered effect. Writing distinct fields commutes (same
+            // resulting object), so `self.a=x; self.b=y` and the swap are behaviorally
+            // equal; same-field overwrites keep the last value. (Previously pushed to the
+            // ordered effect trace, which wrongly made commuting field-write order
+            // observable — splitting equivalent constructors the value graph merges.)
+            NodeKind::Field => {
+                if let Payload::Name(sym) = self.il.node(target).payload {
+                    self.fields.insert(nose_il::symbol_index(sym) as i64, val);
+                    Ok(())
+                } else {
+                    Err(Unsupported)
+                }
+            }
+            NodeKind::Index => {
+                if let Some(&ix) = self.il.children(target).to_vec().get(1) {
+                    let iv = self.eval(ix, env)?;
+                    self.effects.push(iv);
+                }
+                self.effects.push(val);
+                Ok(())
+            }
+            _ => Err(Unsupported),
+        }
+    }
+
+    fn eval(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        self.tick()?;
+        let n = *self.il.node(node);
+        match n.kind {
+            NodeKind::Var => match n.payload {
+                Payload::Cid(c) => env.get(&c).cloned().ok_or(Unsupported),
+                _ => Err(Unsupported),
+            },
+            NodeKind::Lit => match n.payload {
+                Payload::LitInt(v) => Ok(Value::Int(v)),
+                Payload::LitBool(b) => Ok(Value::Bool(b)),
+                Payload::LitStr(h) => Ok(Value::Str(vec![h])),
+                Payload::Lit(c) => match c {
+                    // A bool literal whose value wasn't retained — unknown, can't model.
+                    // (Retained bools take the `LitBool` arm above.)
+                    nose_il::LitClass::Bool => Err(Unsupported),
+                    nose_il::LitClass::Null => Ok(Value::Null),
+                    // Non-retained numeric/string literal: value unknown → can't model.
+                    _ => Err(Unsupported),
+                },
+                _ => Err(Unsupported),
+            },
+            NodeKind::BinOp => {
+                let kids = self.il.children(node).to_vec();
+                if kids.len() != 2 {
+                    return Err(Unsupported);
+                }
+                let op = op_of(n.payload);
+                // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
+                // operand is evaluated ONLY when the left doesn't already decide the result,
+                // and the operator yields the deciding OPERAND's value (value-and/or), not a
+                // coerced bool. So `a or b` ≡ `a if a else b` and `a and b` ≡ `b if a else a`
+                // exactly — including laziness (`x or f()` does not run `f()` when `x` is
+                // truthy) and Err-propagation only on the evaluated side. (Previously both
+                // operands were evaluated eagerly through `bin`, so `5 or (1/0)` wrongly
+                // Err'd and a value-or never converged with its ternary — an oracle bug.)
+                let a = self.eval(kids[0], env)?;
+                if matches!(op, Op::Or) {
+                    return Ok(if matches!(a, Value::Err) || truthy(&a) {
+                        a
+                    } else {
+                        self.eval(kids[1], env)?
+                    });
+                }
+                if matches!(op, Op::And) {
+                    return Ok(if matches!(a, Value::Err) || !truthy(&a) {
+                        a
+                    } else {
+                        self.eval(kids[1], env)?
+                    });
+                }
+                let b = self.eval(kids[1], env)?;
+                Ok(bin(op, &a, &b))
+            }
+            NodeKind::UnOp => {
+                let kids = self.il.children(node).to_vec();
+                let a = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
+                Ok(un(op_of(n.payload), &a))
+            }
+            NodeKind::Index => {
+                let kids = self.il.children(node).to_vec();
+                if kids.len() != 2 {
+                    return Err(Unsupported);
+                }
+                let base = self.eval(kids[0], env)?;
+                let idx = self.eval(kids[1], env)?;
+                match (base, idx) {
+                    (Value::List(xs), Value::Int(i)) => {
+                        let i = if i < 0 { i + xs.len() as i64 } else { i };
+                        Ok(xs.get(i as usize).cloned().unwrap_or(Value::Err))
+                    }
+                    _ => Ok(Value::Err),
+                }
+            }
+            NodeKind::Seq => {
+                let mut out = Vec::new();
+                for c in self.il.children(node).to_vec() {
+                    out.push(self.eval(c, env)?);
+                }
+                Ok(Value::List(out))
+            }
+            NodeKind::If => {
+                // ternary expression
+                let kids = self.il.children(node).to_vec();
+                if kids.len() < 3 {
+                    return Err(Unsupported);
+                }
+                let c = self.eval(kids[0], env)?;
+                // A type error in the test is itself the result (matches the strict
+                // builtin a lenient `x>0?x:-x` canonicalizes to — both Err on non-numbers).
+                if matches!(c, Value::Err) {
+                    return Ok(Value::Err);
+                }
+                if truthy(&c) {
+                    self.eval(kids[1], env)
+                } else {
+                    self.eval(kids[2], env)
+                }
+            }
+            NodeKind::Call => self.eval_call(node, env),
+            NodeKind::HoF => self.eval_hof(node, env),
+            _ => Err(Unsupported),
+        }
+    }
+
+    fn eval_call(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        let b = match self.il.node(node).payload {
+            Payload::Builtin(b) => b,
+            _ => return Err(Unsupported), // opaque call — can't model
+        };
+        let kids = self.il.children(node).to_vec();
+        let mut args = Vec::new();
+        // `reduce(f, xs, init)` carries a lambda; evaluate it specially.
+        if matches!(b, Builtin::Reduce) {
+            return self.eval_reduce_call(&kids, env);
+        }
+        // `any`/`all` short-circuit over a (possibly predicate-mapped) collection. The
+        // method form `xs.some(λ)` carries a lambda; the generator form `any(p for x in xs)`
+        // is a pre-mapped list of predicate values.
+        if matches!(b, Builtin::Any | Builtin::All) {
+            return self.eval_any_all_call(matches!(b, Builtin::All), &kids, env);
+        }
+        if matches!(b, Builtin::Append) {
+            return self.eval_append(&kids, env);
+        }
+        for &k in &kids {
+            args.push(self.eval(k, env)?);
+        }
+        match b {
+            Builtin::Len => match args.first() {
+                Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
+                Some(Value::Str(_)) => Ok(Value::Int(1)),
+                _ => Ok(Value::Err),
+            },
+            Builtin::Abs => match args.first() {
+                Some(Value::Int(v)) => Ok(Value::Int(v.abs())),
+                _ => Ok(Value::Err),
+            },
+            Builtin::Sum => Ok(fold_ints(args.first(), 0, |a, x| a + x)),
+            Builtin::Min => Ok(fold_opt(args.first(), |a, x| a.min(x))),
+            Builtin::Max => Ok(fold_opt(args.first(), |a, x| a.max(x))),
+            Builtin::Range => match args.first() {
+                Some(Value::Int(n)) => Ok(Value::List((0..*n).map(Value::Int).collect())),
+                _ => Ok(Value::Err),
+            },
+            Builtin::Zip => match (args.first(), args.get(1)) {
+                (Some(Value::List(a)), Some(Value::List(b))) => Ok(Value::List(
+                    a.iter()
+                        .zip(b.iter())
+                        .map(|(x, y)| Value::List(vec![x.clone(), y.clone()]))
+                        .collect(),
+                )),
+                _ => Ok(Value::Err),
+            },
+            Builtin::Enumerate => match args.first() {
+                Some(Value::List(xs)) => Ok(Value::List(
+                    xs.iter()
+                        .enumerate()
+                        .map(|(i, x)| Value::List(vec![Value::Int(i as i64), x.clone()]))
+                        .collect(),
+                )),
+                _ => Ok(Value::Err),
+            },
+            // `for (x in list)` iterates the indices 0..n-1 (keys). Objects aren't
+            // modeled → Err (so such loops are non-interpretable, not falsely merged).
+            Builtin::Keys => match args.first() {
+                Some(Value::List(xs)) => {
+                    Ok(Value::List((0..xs.len() as i64).map(Value::Int).collect()))
+                }
+                _ => Ok(Value::Err),
+            },
+            Builtin::Append => unreachable!("handled by eval_append before arg eval"),
+            Builtin::Print => {
+                for a in &args {
+                    self.effects.push(a.clone());
+                }
+                Ok(Value::Null)
+            }
+            Builtin::Reduce | Builtin::Any | Builtin::All => unreachable!(),
+        }
+    }
+
+    /// `any`/`all` over a collection: short-circuit existential/universal truth. The method
+    /// form `[coll, λ]` applies the predicate per element; the generator form `[mapped-list]`
+    /// reads each element's truthiness directly. `all` of empty = true, `any` of empty =
+    /// false (the AND/OR identities).
+    /// `append(coll, items…)` as a VALUE (e.g. Go's `s = append(s, x...)`, which returns the
+    /// extended slice and does NOT mutate in place): functional — return `coll ++ items`.
+    /// The Python/JS *statement* form `r.append(x)` is handled in `exec` (in-place build for
+    /// a local list, effect for a parameter), not here.
+    fn eval_append(&mut self, kids: &[NodeId], env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        let mut items = Vec::with_capacity(kids.len().saturating_sub(1));
+        for &k in kids.iter().skip(1) {
+            items.push(self.eval(k, env)?);
+        }
+        match kids.first() {
+            Some(&t) => match self.eval(t, env)? {
+                Value::List(mut xs) => {
+                    xs.extend(items);
+                    Ok(Value::List(xs))
+                }
+                _ => Ok(Value::Null),
+            },
+            None => Ok(Value::Null),
+        }
+    }
+
+    /// A statement-level `r.append(x)` / `r.push(x)`: build `r` in place when it is a LOCAL
+    /// list var (so `return r` yields the constructed list, converging with `[x for …]`);
+    /// when `r` is a parameter (or non-list / non-var target) the append is a caller-visible
+    /// mutation, recorded as an effect. Returns true if `e` was an append (handled here).
+    fn exec_stmt_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, Value>) -> R<bool> {
+        if self.il.kind(e) != NodeKind::Call
+            || !matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append))
+        {
+            return Ok(false);
+        }
+        let kids = self.il.children(e).to_vec();
+        let mut items = Vec::with_capacity(kids.len().saturating_sub(1));
+        for &k in kids.iter().skip(1) {
+            items.push(self.eval(k, env)?);
+        }
+        if let Some(&t) = kids.first() {
+            if let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(t), self.il.node(t).payload) {
+                if !self.params.contains(&c) {
+                    if let Some(Value::List(xs)) = env.get_mut(&c) {
+                        xs.extend(items);
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        for a in items {
+            self.effects.push(a);
+        }
+        Ok(true)
+    }
+
+    fn eval_any_all_call(
+        &mut self,
+        all: bool,
+        kids: &[NodeId],
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let coll = match self.eval(*kids.first().ok_or(Unsupported)?, env)? {
+            Value::List(xs) => xs,
+            _ => return Ok(Value::Err),
+        };
+        let pred = kids
+            .get(1)
+            .filter(|&&k| self.il.kind(k) == NodeKind::Lambda);
+        for x in coll {
+            let v = match pred {
+                Some(&l) => self.apply(l, &[x], env)?,
+                None => x,
+            };
+            let t = truthy(&v);
+            // short-circuit: `any` stops at the first truthy, `all` at the first falsy.
+            if all != t {
+                return Ok(Value::Bool(t));
+            }
+        }
+        Ok(Value::Bool(all))
+    }
+
+    /// `reduce(f, xs[, init])`: fold `f` over `xs`.
+    fn eval_reduce_call(&mut self, kids: &[NodeId], env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        if kids.len() < 2 {
+            return Err(Unsupported);
+        }
+        let lambda = kids[0];
+        let seq = match self.eval(kids[1], env)? {
+            Value::List(xs) => xs,
+            _ => return Ok(Value::Err),
+        };
+        let mut it = seq.into_iter();
+        let mut acc = match kids.get(2) {
+            Some(&i) => self.eval(i, env)?,
+            None => match it.next() {
+                Some(v) => v,
+                None => return Ok(Value::Err),
+            },
+        };
+        for x in it {
+            acc = self.apply(lambda, &[acc, x], env)?;
+        }
+        Ok(acc)
+    }
+
+    fn eval_hof(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        let kind = match self.il.node(node).payload {
+            Payload::HoF(h) => h,
+            _ => return Err(Unsupported),
+        };
+        let kids = self.il.children(node).to_vec();
+        if kids.len() < 2 {
+            return Err(Unsupported);
+        }
+        let coll = match self.eval(kids[0], env)? {
+            Value::List(xs) => xs,
+            _ => return Ok(Value::Err),
+        };
+        let f = kids[1];
+        match kind {
+            HoFKind::Map => {
+                let mut out = Vec::new();
+                for x in coll {
+                    out.push(self.apply(f, &[x], env)?);
+                }
+                Ok(Value::List(out))
+            }
+            HoFKind::Filter => {
+                let mut out = Vec::new();
+                for x in coll {
+                    if truthy(&self.apply(f, std::slice::from_ref(&x), env)?) {
+                        out.push(x);
+                    }
+                }
+                Ok(Value::List(out))
+            }
+            HoFKind::Reduce => {
+                let mut it = coll.into_iter();
+                let mut acc = match it.next() {
+                    Some(v) => v,
+                    None => return Ok(Value::Err),
+                };
+                for x in it {
+                    acc = self.apply(f, &[acc, x], env)?;
+                }
+                Ok(acc)
+            }
+        }
+    }
+
+    /// Apply a `Lambda` node to positional `args`, returning its body's value. The
+    /// lambda's single tuple parameter destructures a pair element (zip/enumerate).
+    fn apply(
+        &mut self,
+        lambda: NodeId,
+        args: &[Value],
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return Err(Unsupported);
+        }
+        let kids = self.il.children(lambda).to_vec();
+        let mut local = env.clone();
+        let params: Vec<NodeId> = kids
+            .iter()
+            .copied()
+            .filter(|&k| self.il.kind(k) == NodeKind::Param)
+            .collect();
+        // Bind params positionally; a single param receiving a pair stays a list.
+        if params.len() == args.len() {
+            for (p, a) in params.iter().zip(args) {
+                if let Payload::Cid(c) = self.il.node(*p).payload {
+                    local.insert(c, a.clone());
+                }
+            }
+        } else if params.len() > 1 && args.len() == 1 {
+            // tuple-destructured params over a pair element: `λ(x,y). …` applied to a
+            // `[x, y]` element (a comprehension over zip/enumerate).
+            if let Value::List(vs) = &args[0] {
+                if vs.len() == params.len() {
+                    for (p, v) in params.iter().zip(vs) {
+                        if let Payload::Cid(c) = self.il.node(*p).payload {
+                            local.insert(c, v.clone());
+                        }
+                    }
+                } else {
+                    return Err(Unsupported);
+                }
+            } else {
+                return Err(Unsupported);
+            }
+        } else {
+            return Err(Unsupported);
+        }
+        let body = *kids.last().ok_or(Unsupported)?;
+        match self.exec(body, &mut local)? {
+            Flow::Ret(v) => Ok(v),
+            _ => Ok(Value::Null),
+        }
+    }
+}
+
+fn op_of(p: Payload) -> Op {
+    match p {
+        Payload::Op(o) => o,
+        _ => Op::Add,
+    }
+}
+
+fn truthy(v: &Value) -> bool {
+    match v {
+        Value::Bool(b) => *b,
+        Value::Int(i) => *i != 0,
+        Value::List(xs) => !xs.is_empty(),
+        Value::Str(v) => !v.is_empty(),
+        Value::Null | Value::Err => false,
+    }
+}
+
+fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value {
+    match v {
+        Some(Value::List(xs)) => {
+            let mut acc = init;
+            for x in xs {
+                match x {
+                    Value::Int(i) => acc = f(acc, *i),
+                    _ => return Value::Err,
+                }
+            }
+            Value::Int(acc)
+        }
+        _ => Value::Err,
+    }
+}
+
+fn fold_opt(v: Option<&Value>, f: impl Fn(i64, i64) -> i64) -> Value {
+    match v {
+        Some(Value::List(xs)) => {
+            let mut acc: Option<i64> = None;
+            for x in xs {
+                match x {
+                    Value::Int(i) => acc = Some(acc.map_or(*i, |a| f(a, *i))),
+                    _ => return Value::Err,
+                }
+            }
+            acc.map(Value::Int).unwrap_or(Value::Err)
+        }
+        _ => Value::Err,
+    }
+}
+
+fn bin(op: Op, a: &Value, b: &Value) -> Value {
+    use Value::{Bool, Int};
+    match (a, b) {
+        (Int(x), Int(y)) => match op {
+            Op::Add => Int(x.wrapping_add(*y)),
+            Op::Sub => Int(x.wrapping_sub(*y)),
+            Op::Mul => Int(x.wrapping_mul(*y)),
+            Op::Div => {
+                if *y == 0 {
+                    Value::Err
+                } else {
+                    Int(x.wrapping_div(*y))
+                }
+            }
+            Op::Mod => {
+                if *y == 0 {
+                    Value::Err
+                } else {
+                    Int(x.wrapping_rem(*y))
+                }
+            }
+            Op::Pow => Int(x.wrapping_pow((*y).max(0) as u32)),
+            Op::Eq => Bool(x == y),
+            Op::Ne => Bool(x != y),
+            Op::Lt => Bool(x < y),
+            Op::Le => Bool(x <= y),
+            Op::Gt => Bool(x > y),
+            Op::Ge => Bool(x >= y),
+            Op::BitAnd => Int(x & y),
+            Op::BitOr => Int(x | y),
+            Op::BitXor => Int(x ^ y),
+            Op::Shl => Int(x.wrapping_shl(*y as u32)),
+            Op::Shr => Int(x.wrapping_shr(*y as u32)),
+            Op::And => Int(if *x != 0 { *y } else { *x }),
+            Op::Or => Int(if *x != 0 { *x } else { *y }),
+            _ => Value::Err,
+        },
+        (Bool(x), Bool(y)) => match op {
+            Op::And => Bool(*x && *y),
+            Op::Or => Bool(*x || *y),
+            Op::Eq => Bool(x == y),
+            Op::Ne => Bool(x != y),
+            _ => Value::Err,
+        },
+        // String/builder concatenation — the free-monoid op: ordered append of pieces.
+        // Order-sensitive (`s + x` ≠ `x + s`), the defining non-commutative behavior.
+        (Value::Str(x), Value::Str(y)) if op == Op::Add => {
+            let mut v = x.clone();
+            v.extend_from_slice(y);
+            Value::Str(v)
+        }
+        // Membership `a in b`: a is an element of list b (directional). Modeled for
+        // lists so the value graph's `Op::In` is oracle-verifiable; other collections
+        // (strings/dicts) aren't modeled → Err.
+        (_, Value::List(items)) if op == Op::In => Bool(items.iter().any(|e| e == a)),
+        // Equality across the same shape (lists, strings, null).
+        _ => match op {
+            Op::Eq => Bool(a == b),
+            Op::Ne => Bool(a != b),
+            _ => Value::Err,
+        },
+    }
+}
+
+fn un(op: Op, a: &Value) -> Value {
+    match (op, a) {
+        (Op::Neg, Value::Int(i)) => Value::Int(-i),
+        (Op::Pos, Value::Int(i)) => Value::Int(*i),
+        (Op::BitNot, Value::Int(i)) => Value::Int(!i),
+        // Negating an ERROR propagates the error — `not (1/0)` raises in Python, it does
+        // NOT yield `True`. Without this, `not (a<=b)` on non-numeric operands wrongly gave
+        // `Bool(true)` while the direct `a>b` gave `Err`, making the SOUND comparison-
+        // negation canon (`!(a<=b) ≡ a>b`, a total order) look like a false merge.
+        (Op::Not, Value::Err) => Value::Err,
+        (Op::Not, _) => Value::Bool(!truthy(a)),
+        _ => Value::Err,
+    }
+}
