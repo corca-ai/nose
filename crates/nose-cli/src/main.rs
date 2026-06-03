@@ -1290,12 +1290,15 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // With --cache-dir, build units per file through the on-disk cache (skips
     // parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
     let (report, scope) = if let Some(dir) = &args.cache_dir {
-        let (units, files) = time_lower(|| cache::build_units_cached(&refs, &exclude, &opts, dir));
+        let (units, streams, files) =
+            time_lower(|| cache::build_units_cached(&refs, &exclude, &opts, dir));
         if files == 0 {
             warn_no_files(&args.paths);
         }
-        // The cache path knows only the file count, not a per-language breakdown.
-        let report = nose_detect::detect_from_units(units, files, &opts, &detector).0;
+        // The cache path knows only the file count, not a per-language breakdown. It now
+        // supplies the cached contiguous streams too, so it runs the same two channels as
+        // the non-cached path (previously it silently dropped every copy-paste clone).
+        let report = nose_detect::detect_from_units(units, files, &streams, &opts, &detector).0;
         (
             report,
             ScanScope {

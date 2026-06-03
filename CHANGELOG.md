@@ -105,6 +105,15 @@ break.
   raw-token detector behaves; token-detector-superset coverage held at 90.9%.
 
 ### Fixed
+- **`--cache-dir` no longer drops copy-paste clones.** The on-disk cache stored only
+  each file's value-graph units, so a cached run executed *only* the value-graph
+  channel and silently omitted every contiguous (Type-1/2 copy-paste) family —
+  e.g. radash reported 148 families uncached but 92 with `--cache-dir`, despite the
+  cache being documented as a transparent speed-up. The cache now also stores each
+  file's contiguous token stream (content-derived, so cacheable by source hash like
+  the units), and the copy-paste channel runs from it. Cached output is byte-identical
+  to a normal scan again (verified across the corpus). Cache schema bumped, so existing
+  caches repopulate.
 - **Byte-identical output restored across thread counts.** Three latent
   nondeterminism sources let `scan`/`verify` output vary with `RAYON_NUM_THREADS`
   (and the per-process hash seed) on some repos, violating the determinism

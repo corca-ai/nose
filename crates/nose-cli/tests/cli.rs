@@ -210,6 +210,16 @@ fn cache_output_matches_uncached_cold_and_warm() {
     // runs must both equal the non-cached output. This is the cache's correctness
     // contract — a stale/incorrect entry would diverge here.
     let dir = make_project("cache");
+    // make_project's clones are *renamed* copies — matched only by the value-graph
+    // channel. Add files with a *verbatim* duplicated block so the contiguous
+    // (copy-paste) channel also produces a family: the cache once stored only units and
+    // silently dropped that channel, so without the streams cached this run would diverge
+    // here. (Identical variable names → identical raw token stream → a contiguous match,
+    // unlike the renamed value-graph clones.)
+    let block = "def handle(events):\n    out = []\n    for e in events:\n        if e.kind == 1:\n            out.append(e.payload)\n            record(e.id, e.kind)\n    return out\n";
+    for name in ["dup_a", "dup_b", "dup_c"] {
+        fs::write(dir.join(format!("{name}.py")), block).unwrap();
+    }
     let p = dir.to_str().unwrap();
     let cache = std::env::temp_dir().join(format!("nose_cachedir_{}", std::process::id()));
     let _ = fs::remove_dir_all(&cache);

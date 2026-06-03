@@ -14,8 +14,16 @@ mod minhash;
 mod report;
 mod units;
 
+pub use contiguous::Stream;
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;
+
+/// Build one file's contiguous-channel token stream from its (raw) IL. Exposed so the
+/// CLI's `--cache-dir` can cache it per file and pass it to [`detect_from_units`] — the
+/// counterpart to [`units_of_file`] for the copy-paste channel.
+pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
+    contiguous::stream(il, interner)
+}
 
 use nose_il::{Corpus, Il, Interner};
 use nose_normalize::NormalizeOptions;
@@ -440,7 +448,7 @@ pub fn detect_with_dump(
     let seeds = minhash::seeds(opts.minhash_k);
     // Normalize each file once; extract its units and (when enabled) its contiguous
     // token stream from the same hot normalized IL.
-    let per_file: Vec<(Vec<UnitFeat>, Option<contiguous::Stream>)> = corpus
+    let per_file: Vec<(Vec<UnitFeat>, Option<Stream>)> = corpus
         .files
         .par_iter()
         .map(|il| {
@@ -466,7 +474,7 @@ pub fn detect_with_dump(
         })
         .collect();
     let mut units: Vec<UnitFeat> = Vec::new();
-    let mut streams: Vec<contiguous::Stream> = Vec::new();
+    let mut streams: Vec<Stream> = Vec::new();
     for (u, s) in per_file {
         units.extend(u);
         if let Some(s) = s {
@@ -475,23 +483,20 @@ pub fn detect_with_dump(
     }
     clk.lap("normalize+extract");
 
-    let (mut report, dump) = detect_from_units(units, corpus.files.len(), opts, detector);
-    if opts.contiguous {
-        let extra = contiguous::detect(&streams);
-        clk.lap("contiguous");
-        report.metrics.groups += extra.len();
-        report.groups.extend(extra);
-    }
-    (report, dump)
+    let out = detect_from_units(units, corpus.files.len(), &streams, opts, detector);
+    clk.lap("contiguous");
+    out
 }
 
-/// Run candidate-generation → scoring → clustering over already-built `units`,
-/// producing the report and diagnostic dump. Split from unit extraction so a caller
-/// (the CLI's cache path) can supply units it built — and cached — per file.
-/// `files` is the source file count, for the report's metrics only.
+/// Run candidate-generation → scoring → clustering over already-built `units` (the
+/// value-graph channel) and, when `opts.contiguous`, the copy-paste channel over
+/// `streams` — producing the report and diagnostic dump. Split from unit/stream
+/// extraction so a caller (the CLI's cache path) can supply both, built — and cached —
+/// per file. `files` is the source file count, for the report's metrics only.
 pub fn detect_from_units(
     units: Vec<UnitFeat>,
     files: usize,
+    streams: &[Stream],
     opts: &DetectOptions,
     detector: &dyn Detector,
 ) -> (Report, Dump) {
@@ -550,7 +555,7 @@ pub fn detect_from_units(
         })
         .collect();
 
-    let report = Report {
+    let mut report = Report {
         tool: "nose",
         version: env!("CARGO_PKG_VERSION"),
         detector: detector.name().to_string(),
@@ -564,6 +569,16 @@ pub fn detect_from_units(
         duplicates,
         groups,
     };
+
+    // Copy-paste channel over the (raw-IL) token streams. Runs here, after the
+    // value-graph channel, so both `detect` and the CLI's `--cache-dir` path produce
+    // the same families — the cache supplies cached streams, otherwise this would
+    // silently omit every contiguous clone.
+    if opts.contiguous {
+        let extra = contiguous::detect(streams);
+        report.metrics.groups += extra.len();
+        report.groups.extend(extra);
+    }
 
     let dump = Dump {
         units: units

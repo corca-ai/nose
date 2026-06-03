@@ -20,7 +20,14 @@ use nose_normalize::node_tag_valued;
 use rustc_hash::FxHashMap;
 
 /// One file's normalized-IL token stream, in source (pre-order) order.
-pub(crate) struct Stream {
+///
+/// Public + serializable because the CLI's `--cache-dir` stores it per file alongside
+/// the unit features: like [`crate::UnitFeat`], a stream's tokens are content-derived
+/// (interner-independent), so it can be cached by source-content hash and the contiguous
+/// channel run from the cache — otherwise `--cache-dir` would silently drop copy-paste
+/// clones (only the value-graph channel would run).
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Stream {
     path: String,
     lang: nose_il::Lang,
     tags: Vec<u64>,
@@ -33,6 +40,15 @@ pub(crate) struct Stream {
     /// e.g. a hook call site `useX({ a, b, c })` no longer "clones" the hook's own
     /// parameter destructure `const { a, b, c } = input` (both are `Seq` of `Var`).
     op: Vec<bool>,
+}
+
+impl Stream {
+    /// Point a cached stream at the path it was loaded for — identical content at a
+    /// different path shares one cache entry, so only `path` (used for the reported
+    /// location) differs between them. Mirrors `UnitFeat::path` retargeting.
+    pub fn set_path(&mut self, path: String) {
+        self.path = path;
+    }
 }
 
 /// Does this node kind perform a computation (vs. just name/structure a value)?
