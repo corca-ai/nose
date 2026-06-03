@@ -29,12 +29,14 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    hashes, a value-graph fingerprint, a pre-order linearization for alignment, a
    MinHash signature, plus literal- and return-value multisets used by the strict
    precision gates.
-4. **Candidate generation**: LSH banding over the MinHash signatures yields
-   candidate pairs in near-linear time, avoiding the O(n²) all-pairs comparison.
-5. **Score**: each candidate pair is rescored with structural alignment (RANSAC)
-   blended with weighted Jaccard of subtree-shape multisets and a value-graph
-   comparison; accept above the threshold.
-6. **Cluster & rank**: union-find over accepted pairs forms clone groups, which
+4. **Candidate generation**: the selected scan channels decide which candidates exist.
+   `semantic` uses value-fingerprint MinHash signatures, `near` uses shape MinHash
+   signatures, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
+5. **Accept / score**: `semantic` accepts exact value-fingerprint equality, `near`
+   scores candidates with structural alignment (RANSAC) plus weighted shape/value
+   Jaccard and accepts above `--threshold`, and `syntax` emits duplicated runs above
+   the line/token floors.
+6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the
    ranked report reads.

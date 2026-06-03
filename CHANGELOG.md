@@ -6,6 +6,22 @@ break.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-04
+
+### Changed
+- **`nose scan --mode` is now channel-based**: `syntax` (Type-1/2 copy-paste),
+  `semantic` (exact value-fingerprint Type-4), and `near` (Type-3 fuzzy
+  near-duplicates). Omitting `--mode` runs `syntax,semantic`; specifying `--mode`
+  runs exactly the comma-separated/repeated channels provided.
+- Removed the old `cpd`, `refactor`, `behavior`, and `behavior-strict` scan modes
+  and removed `--no-contiguous`. `--threshold` is now valid only when `near` is
+  enabled.
+- The `near` channel now uses shape-based candidate generation, so Type-3 edits
+  that change value fingerprints still reach fuzzy scoring instead of being
+  filtered out before scoring.
+- Documentation and CLI help now spell out that omitting `--mode` means
+  `syntax,semantic`, while specifying `--mode` replaces that default exactly.
+
 ## [0.1.1] - 2026-06-04
 
 ### Fixed
@@ -29,6 +45,11 @@ break.
 ## [0.1.0] - 2026-06-04
 
 ### Added
+- **`nose scan --mode`** — four explicit scan modes: `cpd` (copy-paste channel only,
+  jscpd-style CI gate), `refactor` (the default broad refactoring-candidate workflow),
+  `behavior` (strict behavioral scorer with the calibrated 0.86 threshold), and
+  `behavior-strict` (exact value-fingerprint Type-4 matches plus the copy-paste floor,
+  with no fuzzy similarity threshold).
 - **Independent soundness oracle** (`nose verify`) — the value-graph contract is
   *fingerprint-equal ⟹ behavior-equal*; a tree-walking interpreter runs every unit on an
   input battery and flags any fingerprint-equal pair whose behavior differs. It interprets

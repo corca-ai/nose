@@ -5,13 +5,11 @@
 //! CCFinder) catches: duplicated runs that start and end mid-unit, or span unit
 //! boundaries — repeated test tables, assertion blocks, switch arms, boilerplate.
 //!
-//! This channel finds them directly. Each file's *normalized* IL is flattened to a
-//! pre-order token stream (`node_tag`, which content-hashes symbols, so it is
-//! interner-independent and — being post-alpha-rename — catches identifier-renamed
-//! Type-2 copies that jscpd's raw-token matching misses). A single left-to-right
-//! Rabin-Karp pass over all streams finds maximal duplicated runs ≥ `MIN_TOKENS`,
-//! mapped back to source line spans via per-token provenance, then clustered into
-//! families like the structural channel.
+//! This channel finds them directly. Each file's raw IL is flattened to a pre-order
+//! token stream (`node_tag`, which content-hashes symbols, so it is
+//! interner-independent). A single left-to-right Rabin-Karp pass over all streams finds
+//! maximal duplicated runs above the caller's token/line floors, maps them back to
+//! source spans via per-token provenance, then clusters them into families.
 
 use crate::cluster::UnionFind;
 use crate::Loc;
@@ -95,7 +93,7 @@ pub(crate) fn stream(il: &Il, interner: &Interner) -> Stream {
 
 const BASE: u64 = 0x100_0000_01b3; // FNV prime, used as the rolling-hash base
 
-// Tunable during the jscpd-superset sweep via env; see the chosen defaults below.
+// Tunable during the jscpd-superset sweep via env.
 fn envu(key: &str, default: usize) -> usize {
     std::env::var(key)
         .ok()
@@ -106,19 +104,6 @@ fn envu(key: &str, default: usize) -> usize {
 /// signal (each tag hashes kind+payload), so a modest window keeps false seeds rare.
 fn k() -> usize {
     envu("NOSE_CONTIG_K", 10)
-}
-/// Minimum matched run, in IL tokens (coarser than source tokens, so well below
-/// jscpd's source-token default). Set to match jscpd-weak's granularity as the
-/// Type-1/2 floor. Small/high-fanout runs no longer dominate the user-facing top-N:
-/// the refactoring-value ranking dampens fanout (see `report::refactor_value`), so a
-/// fragment repeated in hundreds of sites (boilerplate / generated / test scaffolding)
-/// ranks low, while genuine few-site copy-paste surfaces.
-fn min_tokens() -> usize {
-    envu("NOSE_CONTIG_MIN_TOKENS", 10)
-}
-/// Minimum matched run, in source lines.
-fn min_lines() -> u32 {
-    envu("NOSE_CONTIG_MIN_LINES", 3) as u32
 }
 
 /// Rolling k-gram hashes for one stream (`tags.len() - k + 1` entries, or empty).
@@ -177,8 +162,8 @@ fn loc(s: &Stream, lo: usize, hi: usize) -> Loc {
 /// which is extended to its maximal length and (if large enough) emitted. After a
 /// match the scan skips past it, so each duplicated region is reported once and the
 /// pass stays linear even on highly repetitive code.
-pub(crate) fn detect(streams: &[Stream]) -> Vec<crate::Group> {
-    let (k, mint, minl) = (k(), min_tokens(), min_lines());
+pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> Vec<crate::Group> {
+    let (k, mint, minl) = (k(), min_tokens, min_lines);
     // First occurrence of each k-gram, keyed by (hash, language): `(hash, lang) ->
     // (stream, pos)`. Keying on language makes the contiguous channel **same-language
     // by construction** — literal copy-paste (Type-1/2) doesn't cross languages, so a
@@ -289,20 +274,20 @@ mod tests {
         let mut b = vec![9, 8];
         b.extend(&shared);
         b.extend([7, 6, 5, 4]);
-        let groups = detect(&[mk("a.py", a), mk("b.py", b)]);
+        let groups = detect(&[mk("a.py", a), mk("b.py", b)], 10, 3);
         assert_eq!(groups.len(), 1, "the shared run is one family");
         assert_eq!(groups[0].members.len(), 2, "one site per file");
     }
 
     #[test]
     fn ignores_runs_below_min_tokens() {
-        // An 8-token shared run is below MIN_TOKENS (10) → not a clone.
+        // An 8-token shared run is below the requested 10-token floor → not a clone.
         let shared: Vec<u64> = (200..208).collect();
         let mut a = vec![1, 2];
         a.extend(&shared);
         let mut b = vec![9, 8, 7];
         b.extend(&shared);
-        assert!(detect(&[mk("a.py", a), mk("b.py", b)]).is_empty());
+        assert!(detect(&[mk("a.py", a), mk("b.py", b)], 10, 3).is_empty());
     }
 
     /// A run with no operation tokens (a flat name/field/literal list — a prop list, a
@@ -310,7 +295,7 @@ mod tests {
     /// dropped, even when it repeats verbatim and is long enough.
     #[test]
     fn ignores_operationless_runs() {
-        let shared: Vec<u64> = (100..125).collect(); // 25 tokens, well over MIN_TOKENS
+        let shared: Vec<u64> = (100..125).collect(); // 25 tokens, well over the floor
         let stream = |path: &str| {
             let n = shared.len() as u32;
             Stream {
@@ -323,7 +308,7 @@ mod tests {
             }
         };
         assert!(
-            detect(&[stream("a.py"), stream("b.py")]).is_empty(),
+            detect(&[stream("a.py"), stream("b.py")], 10, 3).is_empty(),
             "an operation-free run is not a refactor candidate"
         );
         // The same run with one operation token IS reported.
@@ -333,7 +318,7 @@ mod tests {
             s
         };
         assert_eq!(
-            detect(&[with_op("a.py"), with_op("b.py")]).len(),
+            detect(&[with_op("a.py"), with_op("b.py")], 10, 3).len(),
             1,
             "a run containing an operation is a clone"
         );

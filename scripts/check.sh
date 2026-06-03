@@ -52,7 +52,7 @@ fi
 step "docs (awiki connectivity)"
 ./scripts/check-docs.sh
 
-step "copy-paste gate (nose on itself)"
+step "duplication gate (nose on itself)"
 ./scripts/check-duplication.sh
 
 printf '\n\033[1;32mAll quality gates passed.\033[0m\n'

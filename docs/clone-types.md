@@ -13,33 +13,39 @@ The four types:
 - **Type-4** — fragments that perform the same computation but are implemented by different
   syntactic variants (semantic clones).
 
-This page states what nose does for each — including where it stops. Back to
-[home](home.md); the engine is in [architecture](architecture.md).
+This page states what nose does for each — including where it stops. The scan modes are
+detector channels, not perfect taxonomy buckets: the default combines `syntax` and
+`semantic`, and `near` is the opt-in fuzzy Type-3 surface. Back to [home](home.md);
+the engine is in [architecture](architecture.md).
 
 ## Type-1 — fully
 
 Whitespace, layout, and comments never enter the IL, so Type-1 fragments produce identical
-fingerprints. Caught by both the unit fingerprints and the contiguous (Rabin-Karp) channel.
+fingerprints. They are caught by the `syntax` CPD floor and by the unit fingerprints.
 
 ## Type-2 — identifiers and types fully; literals on a two-axis split
 
-- **Identifiers** are alpha-renamed to canonical ids, so renamed copies converge.
+- **Identifiers** are alpha-renamed to canonical ids in the normalized unit channels, so
+  renamed copies can converge under `semantic` or `near`.
 - **Types** are erased during normalization.
 - **Literal values** are handled deliberately on two axes. The *behavioral* fingerprint
   RETAINS behavior-defining literals (`0` ≠ `1`, `true` ≠ `false`, distinct strings/floats) —
   different literals are different behavior. The *structural* fingerprint abstracts them to
-  their class. So a Type-2 clone that differs only in literal values is matched in candidate
-  mode (`nose scan`, structure-dominant), but deliberately kept distinct under `--strict`
-  (behavioral mode).
+  their class. So a Type-2 clone that differs only in literal values is matched by
+  `--mode near`, but deliberately kept distinct by exact `--mode semantic`.
+
+`--mode syntax` is intentionally the CPD floor: it is excellent for copied runs that a
+token detector should catch, including runs that cross function boundaries, but it is not
+the whole renamed-Type-2 story by itself. Use the default or add `near` when renamed or
+literal-varied copies matter.
 
 ## Type-3 — near-duplicate via similarity (the primary use)
 
 Unit pairs are scored by value-graph + shape similarity and structural alignment, and
-accepted above a threshold (0.70 in candidate mode). A copy with added/removed/changed
+accepted above a threshold (0.70 by default in `--mode near`). A copy with added/removed/changed
 statements scores below 1.0 but above the threshold, so it surfaces as a near-duplicate
-family — which is exactly what `nose scan` ranks. The contiguous channel adds the
-copy-paste floor. How much divergence still matches is bounded by the threshold (raise it
-for tighter matches, lower it for more recall).
+family. How much divergence still matches is bounded by the threshold (raise it for tighter
+matches, lower it for more recall).
 
 ## Type-4 — a modeled subset, not arbitrary equivalence
 
@@ -69,11 +75,16 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
 - Type-4 coverage is a **growing set of modeled equivalences**, not a guarantee about any
   given pair of semantically-equal fragments.
 
-## Two modes, and cross-language
+## Scan modes, and cross-language
 
-- **`nose scan`** (candidate mode): recall-oriented, structure-dominant — surfaces
-  Type-1/2/3 and the modeled Type-4 as ranked refactoring candidates.
-- **`nose scan --strict`** (behavioral mode): precision gates on — cleaner Type-4, where
-  literal/return-value differences correctly split pairs.
+- **`nose scan`**: default `syntax,semantic` — CPD-style syntax runs plus exact modeled
+  Type-4 semantic clones.
+- **`nose scan --mode syntax`**: copy-paste channel only — the Type-1/2 floor for
+  jscpd-style CI gates.
+- **`nose scan --mode semantic`**: exact value-fingerprint Type-4 matches only; high
+  confidence, lower recall, no fuzzy similarity threshold.
+- **`nose scan --mode near`**: Type-3 near-duplicates via shape candidates and fuzzy
+  structural/value scoring. This is the only channel that uses `--threshold`.
+- **Comma-lists compose channels**: `--mode syntax,semantic,near` runs all three.
 - The taxonomy is usually stated within a single language; because every language lowers to
   one shared IL, nose applies Type-1–4 **across languages** as well.

@@ -5,10 +5,11 @@
 //! ```toml
 //! [scan]
 //! exclude = ["tests/**", "**/*.generated.ts", "vendor/**"]
+//! mode = ["syntax", "semantic"]
 //! min-value = 200
 //! sort = "extractability"
 //! min-members = 3
-//! threshold = 0.72
+//! # threshold = 0.70 # only valid when mode includes "near"
 //! min-lines = 8
 //! min-tokens = 30
 //! ```
@@ -22,6 +23,7 @@ use std::path::{Path, PathBuf};
 #[serde(rename_all = "kebab-case", default)]
 pub(crate) struct ScanConfig {
     pub exclude: Vec<String>,
+    pub mode: Vec<crate::ScanMode>,
     pub min_value: Option<f64>,
     pub sort: Option<crate::SortKey>,
     pub min_members: Option<usize>,

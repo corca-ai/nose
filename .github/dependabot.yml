@@ -8,7 +8,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       # One PR for routine patch/minor bumps — less review churn; the full CI
-      # suite (incl. MSRV, cargo-deny, the copy-paste gate) vets each batch.
+      # suite (incl. MSRV, cargo-deny, the duplication gate) vets each batch.
       cargo-minor:
         update-types: [minor, patch]
     commit-message:

@@ -1,10 +1,10 @@
-//! Type-4 clone detector over the normalized IL.
+//! Clone detection over the normalized IL.
 //!
-//! Pipeline: normalize every file → extract units + features (subtree-shape
-//! multiset, linearized tags, MinHash) → LSH candidate generation → structural
-//! scoring (multiset Jaccard + LCS alignment) → union-find clustering. The
-//! [`Detector`] trait makes the scorer pluggable so simhash / tf-idf / graph
-//! variants can be compared later; v1 ships [`StructuralDetector`].
+//! Pipeline: normalize every file → extract units + features (value fingerprints,
+//! subtree-shape multisets, linearized tags, MinHash signatures) → channel-specific
+//! candidate generation (value for semantic, shape for near, token streams for syntax)
+//! → scoring/acceptance → union-find clustering. The [`Detector`] trait makes the unit
+//! scorer pluggable so simhash / tf-idf / graph variants can be compared later.
 
 mod align;
 mod cluster;
@@ -18,9 +18,9 @@ pub use contiguous::Stream;
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;
 
-/// Build one file's contiguous-channel token stream from its (raw) IL. Exposed so the
+/// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the
 /// CLI's `--cache-dir` can cache it per file and pass it to [`detect_from_units`] — the
-/// counterpart to [`units_of_file`] for the copy-paste channel.
+/// counterpart to [`units_of_file`] for the syntax channel.
 pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
     contiguous::stream(il, interner)
 }
@@ -48,12 +48,30 @@ pub struct DetectOptions {
     /// recall (0.610→0.621), pool-precision (0.064→0.106) and AUC-PR (0.34→0.42)
     /// with HN-FP flat. Disable with `--no-blocks`.
     pub block_units: bool,
-    /// Run the contiguous copy-paste channel alongside the structural one: a
-    /// Rabin-Karp scan over each file's normalized-IL token stream that finds
+    /// Minimum duplicated run size for the contiguous copy-paste channel, in IL
+    /// tokens. This is separate from structural unit size internally, but the CLI's
+    /// `scan --min-tokens` intentionally drives both so syntax gates have one size knob.
+    pub contiguous_min_tokens: usize,
+    /// Minimum duplicated run size for the contiguous copy-paste channel, in source
+    /// lines. The CLI's `scan --min-lines` drives both unit extraction and this floor.
+    pub contiguous_min_lines: u32,
+    /// Run the syntax copy-paste channel: a Rabin-Karp scan over each file's IL token
+    /// stream that finds
     /// maximal duplicated runs *regardless of unit boundaries* (the Type-1/2 floor
-    /// a token-based detector like jscpd catches). On by default for `scan`,
-    /// off for the strict/gold `detect` path so Type-4 benchmark numbers are stable.
+    /// a token-based detector like jscpd catches). Enabled by `scan --mode syntax`,
+    /// and off for the strict/gold `detect` path so Type-4 benchmark numbers are stable.
     pub contiguous: bool,
+    /// Run the unit detector used by the semantic and near channels. Turning this off
+    /// leaves only any enabled syntax copy-paste channel.
+    pub structural: bool,
+    /// Generate structural candidates from value fingerprints. This is the semantic
+    /// Type-4 path: loop/reduce/comprehension rewrites converge here even when their
+    /// surface shape differs.
+    pub value_candidates: bool,
+    /// Generate structural candidates from syntactic shape fingerprints. This is the
+    /// near Type-3 path: code can reach scoring even when behavior-defining literals or
+    /// operators differ and therefore the value fingerprint no longer matches.
+    pub shape_candidates: bool,
 }
 
 impl Default for DetectOptions {
@@ -74,7 +92,12 @@ impl Default for DetectOptions {
             dce: false,
             jaccard_weight: 0.5,
             block_units: true,
+            contiguous_min_tokens: 24,
+            contiguous_min_lines: 5,
             contiguous: false,
+            structural: true,
+            value_candidates: true,
+            shape_candidates: false,
         }
     }
 }
@@ -85,12 +108,49 @@ pub trait Detector: Sync {
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64;
 }
 
+/// A no-op scorer used when a scan mode intentionally runs only the contiguous
+/// copy-paste channel.
+pub struct CopyPasteDetector;
+
+impl Detector for CopyPasteDetector {
+    fn name(&self) -> &str {
+        "copy-paste"
+    }
+
+    fn score(&self, _a: &UnitFeat, _b: &UnitFeat) -> f64 {
+        0.0
+    }
+}
+
+/// Exact behavioral scorer: accept only the oracle-backed value-graph fast path.
+/// This gives the `semantic` scan channel a high-confidence Type-4 surface without fuzzy
+/// structural similarity.
+pub struct ExactBehaviorDetector;
+
+impl Detector for ExactBehaviorDetector {
+    fn name(&self) -> &str {
+        "exact-behavior"
+    }
+
+    fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
+        if a.value.len() >= 6 && a.value == b.value {
+            1.0
+        } else {
+            0.0
+        }
+    }
+}
+
 /// The v1 default: weighted multiset Jaccard over subtree shapes, blended with an
 /// LCS alignment over the linearized IL. A cheap Jaccard prefilter skips the
 /// (more expensive) LCS for obviously-dissimilar pairs.
 pub struct StructuralDetector {
     pub jaccard_weight: f64,
-    /// Refactoring-candidate mode: disable the behavioral-precision gates
+    /// Accept exact value-fingerprint matches before fuzzy structural scoring. Scan's
+    /// `near` channel disables this so Type-3 near-duplicates stay separate from the
+    /// exact semantic Type-4 channel.
+    pub exact_behavior: bool,
+    /// Near-candidate mode: disable the behavioral-precision gates
     /// (data-table, return-signature). Those gates demote "same shape, different
     /// data/operator" pairs — correct for behavioral-clone detection, but those
     /// pairs (locale-class families, comparison-operator families, sync/async
@@ -110,17 +170,25 @@ impl StructuralDetector {
     pub fn strict(jaccard_weight: f64) -> Self {
         Self {
             jaccard_weight,
+            exact_behavior: true,
             candidate_mode: false,
             accept_threshold: 0.0,
         }
     }
-    /// Refactoring-candidate detector: gates off (recall-oriented, ~99% review-worthy).
+    /// Near-candidate detector: gates off (recall-oriented, ~99% review-worthy).
     pub fn candidates(jaccard_weight: f64) -> Self {
         Self {
             jaccard_weight,
+            exact_behavior: true,
             candidate_mode: true,
             accept_threshold: 0.0,
         }
+    }
+    /// Disable the exact Type-4 fast path, leaving this detector to score only fuzzy
+    /// near-duplicate structure.
+    pub fn without_exact_behavior(mut self) -> Self {
+        self.exact_behavior = false;
+        self
     }
     /// Enable the threshold early-exit (set to the run's acceptance threshold).
     pub fn with_threshold(mut self, t: f64) -> Self {
@@ -146,7 +214,7 @@ impl Detector for StructuralDetector {
         // Type-4 clone (loop ≡ reduce ≡ comprehension) be detected even though its
         // shapes differ. Guarded by a minimum fingerprint size so trivial units don't
         // collapse. The size gate (min_tokens) already excludes tiny units upstream.
-        if a.value.len() >= 6 && a.value == b.value {
+        if self.exact_behavior && a.value.len() >= 6 && a.value == b.value {
             return 1.0;
         }
         // Score = wv·vj + ws·sj + wr·ransac (defaults reproduce the prior
@@ -176,7 +244,7 @@ impl Detector for StructuralDetector {
         }
         let l = align::ransac_ratio(&a.linear, &b.linear);
         let score = wv * vj + ws * sj + wr * l;
-        // Refactoring-candidate mode keeps the raw similarity — the gates below
+        // Near-candidate mode keeps the raw similarity — the gates below
         // demote precisely the near-duplicate families that are good refactor targets.
         // (Tested: applying the data-table gate here to demote locale/version-table
         // families gave no precision lift and cost recall on the labelset — §X.)
@@ -503,24 +571,46 @@ pub fn detect_from_units(
 ) -> (Report, Dump) {
     let mut clk = StageTimer::new();
 
-    // 3. LSH candidate generation over the value-graph fingerprint. (A second
-    //    coarse atom-bag channel was tried: it lifted candidate-reachable
-    //    27%→35% but the surfaced divergent pairs were not separable by the
-    //    scorer — net F1 flat, 6× candidates. Removed; see notes.)
-    let candidates = lsh::candidates(units.len(), |i| units[i].minhash.as_slice(), opts.bands);
-    clk.lap("candidates");
+    let (candidates, accepted) = if opts.structural {
+        // 3. LSH candidate generation. Semantic scans use the value-graph signature;
+        //    near-duplicate scans also use shape signatures so Type-3 edits that
+        //    change behavior-defining values still reach the scorer. When both
+        //    channels run, score the union once.
+        let mut candidates = Vec::new();
+        if opts.value_candidates {
+            candidates.extend(lsh::candidates(
+                units.len(),
+                |i| units[i].minhash.as_slice(),
+                opts.bands,
+            ));
+        }
+        if opts.shape_candidates {
+            candidates.extend(lsh::candidates(
+                units.len(),
+                |i| units[i].shape_minhash.as_slice(),
+                opts.bands,
+            ));
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+        clk.lap("candidates");
 
-    // 4. Score candidates in parallel; keep accepted pairs.
-    let accepted: Vec<(usize, usize, f64)> = candidates
-        .par_iter()
-        .filter_map(|&(i, j)| {
-            if is_nested(&units[i], &units[j]) {
-                return None;
-            }
-            let s = detector.score(&units[i], &units[j]);
-            (s >= opts.threshold).then_some((i, j, s))
-        })
-        .collect();
+        // 4. Score candidates in parallel; keep accepted pairs.
+        let accepted: Vec<(usize, usize, f64)> = candidates
+            .par_iter()
+            .filter_map(|&(i, j)| {
+                if is_nested(&units[i], &units[j]) {
+                    return None;
+                }
+                let s = detector.score(&units[i], &units[j]);
+                (s >= opts.threshold).then_some((i, j, s))
+            })
+            .collect();
+        (candidates, accepted)
+    } else {
+        clk.lap("candidates");
+        (Vec::new(), Vec::new())
+    };
 
     clk.lap("score");
 
@@ -593,7 +683,11 @@ pub fn detect_from_units(
     // the same families — the cache supplies cached streams, otherwise this would
     // silently omit every contiguous clone.
     if opts.contiguous {
-        let extra = contiguous::detect(streams);
+        let extra = contiguous::detect(
+            streams,
+            opts.contiguous_min_tokens,
+            opts.contiguous_min_lines,
+        );
         report.metrics.groups += extra.len();
         report.groups.extend(extra);
     }

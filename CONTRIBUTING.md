@@ -57,11 +57,11 @@ Enable it once per clone:
 git config core.hooksPath .githooks
 ```
 
-### The copy-paste gate (dogfooding)
+### The duplication gate (dogfooding)
 
 nose *is* a clone detector, so it polices its own duplication. The gate fails when
-the number of substantial duplicate families (refactoring value ≥ 40) on the crates
-exceeds the budget committed in `scripts/check-duplication.sh`. The currently
+the number of substantial Type-3 near-duplicate families (refactoring value ≥ 40) on
+the crates exceeds the budget committed in `scripts/check-duplication.sh`. The currently
 accepted families are reviewed and recorded in [`docs/dogfooding.md`](docs/dogfooding.md)
 (e.g. the borrow-checker-blocked `generic` node-copy). If your change introduces a
 new substantial family, either factor it out or — with a one-line justification in

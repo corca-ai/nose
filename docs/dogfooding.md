@@ -1,7 +1,7 @@
 # Dogfooding nose on nose — a critical review
 
 *Part of the [home](home.md) wiki. The third-party counterpart is [field-evaluation](field-evaluation.md);
-the copy-paste gate that grew out of this lives in [`CONTRIBUTING`](../CONTRIBUTING.md).*
+the duplication gate that grew out of this lives in [`CONTRIBUTING`](../CONTRIBUTING.md).*
 
 Goal: honestly assess whether `nose scan crates` produces *real* design-level
 refactoring opportunities on its own codebase, act on the genuine ones, and record
@@ -25,7 +25,7 @@ re-running on today's larger codebase reports more, since the crates have since 
 | `lower_func` (python/go/js/rust, sim 0.86) | name + params + body → `Func` unit | reconsidered → **real** | ✅ extracted `lower::function_unit(node, method, lower_params, lower_body)`; the per-grammar param/body lowering are closures. c/java/ruby keep bespoke versions (genuinely divergent param handling). |
 | `lower_switch` (c/java, sim 0.89) | switch → if/else-if chain | real, clean | ✅ extracted `lower::switch_to_if_chain(node, is_case, …)`; the case-node predicate is a clean parameter, not a leaked quirk. Centralizing it also documents the "case values not matched yet" limitation in one place. |
 | `mark`/`mark_defs` (dce/dataflow, sim 1.00) | collect scope params/defs/nested-fns | real, clean | ✅ extracted `normalize::collect_scope` (free fns, no borrow obstacle). |
-| `generic` node-copy (cfg_norm/dataflow/dce/desugar, 4 sites, sim 1.00) | recurse over children via `self.go`, then `rebuild_like` | real dup, extractable via **macro** | ✅ extracted into a `rebuild_generic!()` macro — re-opened when a later re-run pushed the copy-paste gate to 5 > 4. The earlier verdict (below) correctly ruled out a *trait* (a default method routes the disjoint `&mut self.b` + `&self.old` field borrows through `&self`/`&mut self` accessors, which the borrow checker can't see as disjoint), but didn't consider a **`macro_rules!`** — it expands in-place, preserving the disjoint field access. The right tool for "identical method body, sibling structs." |
+| `generic` node-copy (cfg_norm/dataflow/dce/desugar, 4 sites, sim 1.00) | recurse over children via `self.go`, then `rebuild_like` | real dup, extractable via **macro** | ✅ extracted into a `rebuild_generic!()` macro — re-opened when a later re-run pushed the duplication gate to 5 > 4. The earlier verdict (below) correctly ruled out a *trait* (a default method routes the disjoint `&mut self.b` + `&self.old` field borrows through `&self`/`&mut self` accessors, which the borrow checker can't see as disjoint), but didn't consider a **`macro_rules!`** — it expands in-place, preserving the disjoint field access. The right tool for "identical method body, sibling structs." |
 | `lower_unary` (go/js, sim 0.82) | unary op → `UnOp` or strip | real but **left** | ⚠️ the operand field name differs per grammar (`operand` vs `argument`); a shared helper would take that name as a parameter, leaking a grammar wart into the abstraction for only two callers — the duplication is the lesser evil. |
 | `lower_call` / `lower_new` (go/js/python) | per-grammar shapes | parallel-by-design | ⚠️ left: callee/arguments node shapes differ per grammar; coupling would leak quirks across frontends |
 | `NodeKind`/`UnitFeat`/`DetectOptions`/`ValOp`/`Payload` | enum/struct **type definitions** with similar field-count shape | **false positive for refactoring** | ❌ distinct domain types; no shared logic to extract |
@@ -68,7 +68,7 @@ false positives — is logged as a future candidate-mode improvement.
 
 ## Re-run (a later pass, after the IL-convergence work)
 
-Re-running the copy-paste gate found it over budget (5 > 4). Triage held up the original
+Re-running the duplication gate found it over budget (5 > 4). Triage held up the original
 verdicts: the top families were the per-language frontend lowering arms — each mapping a
 *grammar-specific* node-kind string to an *already-shared* `lower.rs` helper, so the residual
 similarity is the parallel match structure, not extractable logic (parallel-by-design, the

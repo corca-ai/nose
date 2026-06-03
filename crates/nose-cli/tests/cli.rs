@@ -35,6 +35,29 @@ fn make_project(tag: &str) -> PathBuf {
     dir
 }
 
+fn make_mode_project(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("nose_modes_{tag}_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    fs::write(
+        dir.join("renamed_a.py"),
+        "def total(items):\n    total = 0\n    for item in items:\n        if item > 0:\n            total = total + item * item\n    return total\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("renamed_b.py"),
+        "def score(values):\n    acc = 0\n    for value in values:\n        if value > 0:\n            acc = acc + value * value\n    return acc\n",
+    )
+    .unwrap();
+
+    let copied = "def copied(events):\n    out = []\n    for e in events:\n        if e.kind == 1:\n            out.append(e.payload)\n            record(e.id, e.kind)\n    return out\n";
+    fs::write(dir.join("copy_a.py"), copied).unwrap();
+    fs::write(dir.join("copy_b.py"), copied).unwrap();
+
+    dir
+}
+
 fn run(args: &[&str]) -> String {
     let out = Command::new(bin()).args(args).output().expect("run nose");
     assert!(
@@ -46,7 +69,169 @@ fn run(args: &[&str]) -> String {
 }
 
 #[test]
-fn refactor_reports_the_clone_family() {
+fn scan_mode_syntax_reports_copy_paste_only() {
+    let dir = make_mode_project("syntax");
+    let p = dir.to_str().unwrap();
+    let out = run(&[
+        "scan",
+        p,
+        "--mode",
+        "syntax",
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+    ]);
+    assert!(
+        out.contains("copy_a.py"),
+        "syntax reports exact copies: {out}"
+    );
+    assert!(
+        out.contains("copy_b.py"),
+        "syntax reports exact copies: {out}"
+    );
+    assert!(
+        !out.contains("renamed_a.py") && !out.contains("renamed_b.py"),
+        "syntax must not report semantic renamed clones: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_syntax_min_tokens_controls_copy_paste_floor() {
+    let dir = make_mode_project("syntax_floor");
+    let p = dir.to_str().unwrap();
+    let out = run(&[
+        "scan",
+        p,
+        "--mode",
+        "syntax",
+        "--min-tokens",
+        "80",
+        "--format",
+        "json",
+    ]);
+    assert_eq!(
+        out.trim(),
+        "[]",
+        "a high syntax token floor suppresses the short copy-paste run: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_keeps_renamed_exact_clone_candidates() {
+    let dir = make_mode_project("semantic_mode");
+    let p = dir.to_str().unwrap();
+    let out = run(&[
+        "scan",
+        p,
+        "--mode",
+        "semantic",
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+    ]);
+    assert!(
+        out.contains("renamed_a.py") && out.contains("renamed_b.py"),
+        "semantic mode keeps exact value-fingerprint candidates: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn default_mode_runs_syntax_and_semantic() {
+    let dir = make_mode_project("default_modes");
+    let p = dir.to_str().unwrap();
+    let out = run(&["scan", p, "--min-tokens", "12", "--format", "json"]);
+    assert!(
+        out.contains("copy_a.py") && out.contains("copy_b.py"),
+        "default mode includes syntax: {out}"
+    );
+    assert!(
+        out.contains("renamed_a.py") && out.contains("renamed_b.py"),
+        "default mode includes semantic: {out}"
+    );
+    let repeated = run(&[
+        "scan",
+        p,
+        "--mode",
+        "syntax",
+        "--mode",
+        "semantic",
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+    ]);
+    assert!(
+        repeated.contains("copy_a.py") && repeated.contains("copy_b.py"),
+        "repeated --mode includes syntax: {repeated}"
+    );
+    assert!(
+        repeated.contains("renamed_a.py") && repeated.contains("renamed_b.py"),
+        "repeated --mode includes semantic: {repeated}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn non_near_scan_modes_reject_similarity_thresholds() {
+    let dir = make_mode_project("exact_threshold");
+    for mode in ["syntax", "semantic", "syntax,semantic"] {
+        let out = Command::new(bin())
+            .args([
+                "scan",
+                dir.to_str().unwrap(),
+                "--mode",
+                mode,
+                "--threshold",
+                "0.5",
+            ])
+            .output()
+            .expect("run nose");
+        assert!(
+            !out.status.success(),
+            "{mode} must not accept a fuzzy similarity threshold"
+        );
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(
+            stderr.contains("--threshold is only valid when --mode includes near"),
+            "specific error explains the invalid threshold for {mode}: {stderr}"
+        );
+    }
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn near_scan_mode_accepts_similarity_threshold() {
+    let dir = make_mode_project("near_threshold");
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--mode",
+            "near",
+            "--threshold",
+            "0.5",
+            "--min-tokens",
+            "12",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run nose");
+    assert!(
+        out.status.success(),
+        "near mode should accept --threshold: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_reports_the_clone_family() {
     let dir = make_project("fam");
     let out = run(&[
         "scan",
@@ -56,10 +241,7 @@ fn refactor_reports_the_clone_family() {
         "--top",
         "10",
     ]);
-    assert!(
-        out.contains("refactoring candidates"),
-        "has a header: {out}"
-    );
+    assert!(out.contains("clone"), "has a header: {out}");
     assert!(out.contains("copies"), "lists a family: {out}");
     let _ = fs::remove_dir_all(&dir);
 }
@@ -392,7 +574,7 @@ fn inline_nose_ignore_suppresses_a_site() {
     fs::write(dir.join("b/f.py"), format!("# nose-ignore\n{body}")).unwrap();
     let p = dir.to_str().unwrap();
     assert!(
-        run(&["scan", p, "--min-tokens", "12"]).contains("0 refactoring"),
+        run(&["scan", p, "--min-tokens", "12"]).contains("0 clone"),
         "the marked copy must be suppressed, leaving no family"
     );
     let _ = fs::remove_dir_all(&dir);
@@ -443,6 +625,10 @@ fn diff_shows_the_differing_line() {
     let out = run(&[
         "scan",
         dir.to_str().unwrap(),
+        "--mode",
+        "near",
+        "--threshold",
+        "0.5",
         "--min-tokens",
         "10",
         "--diff",
@@ -490,7 +676,17 @@ fn broken_pipe_exits_cleanly() {
     }
 
     let mut child = Command::new(bin())
-        .args(["scan", dir.to_str().unwrap(), "--diff", "--top", "40"])
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--mode",
+            "near",
+            "--threshold",
+            "0.5",
+            "--diff",
+            "--top",
+            "40",
+        ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -544,6 +740,10 @@ fn proposal_shows_shared_skeleton_and_parameters() {
     let out = run(&[
         "scan",
         dir.to_str().unwrap(),
+        "--mode",
+        "near",
+        "--threshold",
+        "0.5",
         "--proposal",
         "--min-tokens",
         "12",
@@ -649,6 +849,10 @@ fn output_is_byte_identical_across_thread_counts_on_a_rich_project() {
             .args([
                 "scan",
                 p,
+                "--mode",
+                "near",
+                "--threshold",
+                "0.5",
                 "--min-tokens",
                 "12",
                 "--format",

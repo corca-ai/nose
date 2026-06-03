@@ -34,8 +34,9 @@ cargo build --release
 `nose scan <paths…>` scans one or more files/directories (recursively,
 respecting `.gitignore`), groups duplicated code into **families**, and ranks
 them by **extractability** — how cleanly each family folds into one shared helper —
-so the duplication you can actually act on surfaces first. (See [Ranking](#ranking)
-below to sort by raw volume, copy count, or spread instead.)
+so the duplication you can actually act on surfaces first. With no `--mode`, it
+runs `syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
+(See [Ranking](#ranking) below to sort by raw volume, copy count, or spread instead.)
 
 ```sh
 ./target/release/nose scan path/to/project
@@ -44,7 +45,7 @@ below to sort by raw volume, copy count, or spread instead.)
 ```
 $ nose scan bench/repos/radash
 scanned 23 files · typescript 19 · javascript 4
-148 refactoring candidates, ranked by extractability (cleanest to fold into one helper)  ·  ~5826 duplicated lines  (showing 30)
+148 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~5826 duplicated lines  (showing 30)
 
 #1  3 copies · same logic in 2 languages (javascript, typescript) · ~134 lines removable
     → consolidate `series` — 3 copies (cross-language)
@@ -91,9 +92,10 @@ Grouped by what they do. Anything here can also be set in [configuration](config
 | `--top N` | show only the top N families (default 30; `--top 0` = all) |
 | `--min-members N` | only families with at least N duplicated sites (default 2) |
 | `--min-value V` | hide families below this refactoring value (noise floor on large repos) |
-| `--min-tokens N` | ignore units smaller than this (structural size in IL nodes; default 24) — the single minimum-size knob |
-| `--threshold T` | acceptance similarity in `[0,1]` (default 0.70) |
-| `--strict` | behavioral-clone mode: precision gates on, threshold 0.86 (see below) |
+| `--min-tokens N` | ignore units or syntax copy-paste runs smaller than this IL-token size (default 24) |
+| `--min-lines N` | ignore units or syntax copy-paste runs spanning fewer source lines (default 5) |
+| `--mode MODE` | one or more of `syntax`, `semantic`, `near`; comma-list or repeatable; when present, replaces the default |
+| `--threshold T` | acceptance similarity in `[0,1]` for the `near` channel; invalid unless `--mode` includes `near` |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 
 ### Ranking
@@ -127,16 +129,36 @@ have nothing to extract and sink to the bottom, even at `sim 1.00`.
 **Workflow** (`--baseline`, `--write-baseline`, `--fail`, `--cache-dir`, `--config`)
 are covered in [continuous-integration](continuous-integration.md) and [configuration](configuration.md).
 
-### Candidate vs. strict mode
+### Scan Modes
 
-nose runs in **candidate mode** by default: it trades a little precision for
-recall and ranks families so you review the highest-value duplication first.
-This is the right mode for finding refactoring opportunities.
+`nose scan` has three orthogonal channels. Omitting `--mode` runs `syntax,semantic`.
+When `--mode` is present, nose runs exactly the channels you list; it does not add
+them to the default.
 
-`--strict` switches to **behavioral-clone (Type-4) mode**: it turns on
-precision gates (literal/string-value awareness, data-table and return-signature
-gates) and raises the threshold to 0.86, for clean dedup/clone-audit results.
-Both share one engine and one IL.
+| mode | clone type | detector channel | use when |
+|---|---|---|---|
+| `syntax` | Type-1/2 floor | jscpd-style contiguous copy-paste runs | replacing jscpd / blocking copy-paste clones in CI |
+| `semantic` | Type-4 | exact value-fingerprint matches | high-confidence semantic clones with no fuzzy threshold |
+| `near` | Type-3 | shape candidates + fuzzy structural/value scoring | finding near-duplicates for review |
+
+Examples:
+
+```sh
+nose scan src                                  # syntax + semantic
+nose scan src --mode syntax --fail             # jscpd-style gate
+nose scan src --mode semantic                  # exact Type-4 only
+nose scan src --mode near --threshold 0.70     # Type-3 only
+nose scan src --mode syntax,semantic,near      # all channels
+nose scan src --mode syntax --mode semantic    # same as --mode syntax,semantic
+```
+
+Only `near` uses `--threshold` (default `0.70`). `syntax` and `semantic` are exact
+channels, so `--threshold` is rejected unless `near` is also enabled.
+
+The `syntax` channel is the CPD floor: it finds duplicated token runs even when they
+start or end in the middle of a function. The normalized unit channels (`semantic` and
+`near`) are where renamed identifiers, cross-language convergence, and Type-3 edits are
+handled.
 
 ## Inspecting & measuring
 

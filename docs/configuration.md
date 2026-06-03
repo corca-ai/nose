@@ -10,10 +10,10 @@ back to the built-in default. Back to [home](home.md).
 ```toml
 [scan]
 exclude     = ["tests/**", "**/*.generated.ts", "vendor/**"]
+mode        = ["syntax", "semantic"]
 sort        = "extractability"
 min-value   = 200
 min-members = 3
-threshold   = 0.72
 min-tokens  = 30
 top         = 50
 ```
@@ -29,17 +29,38 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | key | type | default | same as flag |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
+| `mode` | list of `syntax`\|`semantic`\|`near` | `["syntax", "semantic"]` | `--mode` |
 | `sort` | `extractability`\|`value`\|`sites` | `extractability` | `--sort` |
 | `min-value` | float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
-| `threshold` | float | `0.70` | `--threshold` |
+| `threshold` | float | `0.70` when `near` is enabled | `--threshold` |
 | `min-tokens` | int | `24` | `--min-tokens` |
+| `min-lines` | int | `5` | `--min-lines` |
 | `top` | int | `30` | `--top` |
-| `min-lines` | int | `5` | *(advanced; no flag)* |
 
-`min-lines` is a coarse source-line size floor kept only as an advanced config
-key — the CLI exposes a single size knob, `--min-tokens` (structural size in IL
-nodes), which is what the detector actually gates on.
+`mode` is a TOML array, even for one channel:
+
+```toml
+[scan]
+mode = ["syntax"]                  # jscpd-style gate
+# mode = ["syntax", "semantic"]    # same as omitting mode
+# mode = ["syntax", "semantic", "near"]
+```
+
+`min-tokens` and `min-lines` apply to both structural units and the syntax copy-paste
+floor. For `--mode syntax`, those two settings are the jscpd-style size gate.
+
+`threshold` is valid only when `mode` includes `near`; `syntax` and `semantic` are
+exact channels and do not use fuzzy similarity. When omitted for `near`, the
+threshold defaults to `0.70`.
+
+If `threshold` is set in config and a CLI `--mode` override excludes `near`, the run
+fails instead of silently ignoring the threshold. Keep `threshold` next to a `mode` that
+includes `near`, or pass both on the command line:
+
+```sh
+nose scan src --mode syntax,semantic,near --threshold 0.70
+```
 
 ## Excludes
 

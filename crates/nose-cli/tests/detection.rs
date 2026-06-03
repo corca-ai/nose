@@ -167,6 +167,8 @@ fn contiguous_distinguishes_different_data_tables() {
     let opts = DetectOptions {
         min_tokens: 4,
         min_lines: 1,
+        contiguous_min_tokens: 4,
+        contiguous_min_lines: 1,
         contiguous: true,
         ..Default::default()
     };

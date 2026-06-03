@@ -8,7 +8,7 @@ There are two distinct questions, measured separately:
 
 | question | how | data |
 |---|---|---|
-| **Product quality** — does `nose scan` rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the v5 refactoring-family labelset |
+| **Product quality** — does the review-oriented scan surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the v5 refactoring-family labelset |
 | **Soundness** — does an equal fingerprint really mean equal behavior? | an interpreter oracle on a battery of inputs (`nose verify`) + Lean proofs | the pinned corpus |
 
 ## Product quality — the refactoring-family labelset
@@ -49,13 +49,15 @@ nose verify bench/repos   # SOUND / canon PRESERVED, + a completeness ratio
 The detector is parallel at every stage and deterministic across runs, threads, and
 machines. On the pinned corpus it sustains **~19,500 files/sec** (warm, full pipeline);
 the frontend (tree-sitter parse + lower, ~65%) dominates and scales ~11.6× on 18 cores.
-`NOSE_TIME=1 nose scan <path> --top 0` prints the per-stage breakdown. See
+`NOSE_TIME=1 nose scan <path> --top 0` prints the per-stage breakdown. Add
+`--mode syntax,semantic,near` when measuring the full review surface. See
 experiments §T for the throughput work.
 
 ## The research commands
 
-The everyday surface is `nose scan` ([usage](usage.md)); the benchmark also uses a
-hidden research surface:
+The everyday surface is `nose scan` ([usage](usage.md)). The exact default is
+`syntax,semantic`; benchmark runs that evaluate review-oriented Type-3 candidates should
+enable `near` explicitly. The benchmark also uses a hidden research surface:
 
 - `nose detect <paths> --out preds.json` — raw clone pairs/groups (the signal before the
   refactoring-family grouping).

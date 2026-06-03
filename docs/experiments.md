@@ -4,15 +4,18 @@
 in [benchmark](benchmark.md); the passes these experiments shaped are in [normalization](normalization.md)
 and [architecture](architecture.md).*
 
-A consistent record of what we tried and what happened. nose is a Type-4
-(semantic) code-clone detector: tree-sitter → normalized IL → fingerprints →
-LSH candidates → scored pairs → clusters.
+A consistent record of what we tried and what happened. The current user-facing
+`nose scan` command has three channels (`syntax`, `semantic`, `near`), described in
+[usage](usage.md). Internally, all channels share the same lower → normalize → feature
+pipeline where appropriate, with exact semantic matches coming from the value graph.
 
 > **Historical record.** This log spans the whole project, including a pre-v5 era whose
 > measurement code (many `bench/*.py` scripts — `bench.py`, `synth.py`, `value_add.py`,
 > `clone_bench.py`, the `judge/` pipeline, …) and gold sets (`typed4`,
 > `semantic_duplicates`, labelsets v1–v4, …) were later pruned to keep the repo lean. Those
 > names appear below as the reproduction record of the time; the files live in git history.
+> Older sections also mention removed scan spellings such as `--mode behavior` and
+> `--no-contiguous`; use [usage](usage.md) for the current CLI.
 > The **current** benchmark is the v5 refactoring-family labelset evaluated by
 > `bench/labels/eval_by_language.py` — see [benchmark](benchmark.md) (§AU onward).
 
@@ -36,7 +39,7 @@ LSH candidates → scored pairs → clusters.
 | | dev macro-F1 | held-out macro-F1 |
 |---|---|---|
 | prior token-based baseline (160 experiments) | ~0.034 | ~0.028 |
-| **nose current default** | **0.040** | **0.038** |
+| **nose default at the time of this measurement** | **0.040** | **0.038** |
 
 ---
 
@@ -1761,9 +1764,10 @@ This is exactly the §AH behavior axis, and it exposed a real split the §AM set
 - **candidate axis** (`scan`, structure-weighted, copy-paste floor on) — surfaces
   near-identical families worth consolidating. High representation recall; a behavioral
   near-miss is a *valid* candidate, so it is expected to link here.
-- **behavioral axis** (`refactor --strict --no-contiguous`, value-graph gates on,
-  representation-only copy-paste channel off) — "do these compute the same?". The
-  precision guard is read off this axis.
+- **behavioral axis** (historically `scan --mode behavior --no-contiguous`; current
+  exact scan surface is `scan --mode semantic`, and fuzzy behavioral benchmark runs live
+  on the hidden `detect` path) — "do these compute the same?". The precision guard is
+  read off this axis.
 
 **Baseline (held-out):**
 
@@ -1787,19 +1791,20 @@ made measurable across languages.
 negatives (lower = better):
 
 > **Correction (see §AP):** the `61%` below was measured at the wrong threshold —
-> `refactor --strict` ran the strict gates at refactor's `0.70` *candidate* default, not
-> the strict detector's calibrated `0.86`. At `0.86` the real behavioral-axis baseline
-> is **25%**, not 61%. The table is kept as recorded; read §AP for the corrected number.
+> the old refactor-path behavioral run used refactor's `0.70` *candidate* default,
+> not the strict detector's calibrated `0.86`. At `0.86` the real behavioral-axis
+> baseline is **25%**, not 61%. The table is kept as recorded; read §AP for the
+> corrected number.
 
 | | FP rate |
 |---|---|
 | jscpd | 0% (token runs below its floor) |
 | nose candidate | 97% (expected — near-misses *are* consolidation candidates) |
-| nose strict, contiguous **on** | 97% (the leak) |
-| nose behavioral (strict + no-contiguous) | **61%** [→ 25% at the calibrated 0.86; §AP] |
+| nose behavior, contiguous **on** | 97% (the leak) |
+| nose behavior, no contiguous floor | **61%** [→ 25% at the calibrated 0.86; §AP] |
 
-Two findings: (1) `refactor --strict` left the **contiguous copy-paste channel on**, and
-it reports at sim 1.0 *un-gated* — a partial shared fragment around the one differing
+Two findings: (1) with the contiguous floor left **on**, the behavioral scorer
+reports at sim 1.0 *un-gated* — a partial shared fragment around the one differing
 operator links the files, so the strict behavioral claim was contaminated by a pure
 representation signal (97%). Excluding it (the principled behavioral axis) drops FP to
 61%. (2) Even then, **61% is too high for a behavioral precision guard**: structure
@@ -1867,11 +1872,13 @@ Chasing the remaining Java FPs (20/20) surfaced a **measurement bug that had inf
 whole behavioral-axis baseline.** Bisecting a Java `linearSearch` near-miss (`==` vs
 `!=`) by threshold: at 0.86 the method pair is correctly rejected (value jaccard 0.57 →
 score 0.78 < 0.86). Yet the benchmark reported it as a FP. The cause: the benchmark read
-the behavioral axis off `refactor --strict --no-contiguous`, and `scan`'s *own*
-`--threshold` clap default is **0.70** (candidate mode) — so it ran the strict behavioral
-*gates* at the *candidate threshold*. The strict detector's calibrated operating point is
-**0.86** (the `detect` default). Passing `--threshold 0.86` explicitly is the honest
-behavioral axis.
+the behavioral axis through the old refactor-path behavioral run, whose `--threshold`
+default was **0.70** (candidate mode) — so it ran the strict behavioral *gates* at the
+*candidate threshold*. The strict detector's calibrated operating point is **0.86**.
+Passing `--threshold 0.86` explicitly gave the honest behavioral axis. That fuzzy
+behavior scan spelling was later removed; use `scan --mode semantic` for the exact
+Type-4 surface, or the hidden `detect` path to reproduce this historical thresholded
+benchmark.
 
 Corrected, the §AN/§AO numbers move sharply: **behavioral-axis neg-FP 61% → 25%**, and
 T4-strict held 25% → 18% (the higher threshold rejects partially-converged T4 clones too,

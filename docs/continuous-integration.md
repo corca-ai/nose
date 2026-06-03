@@ -6,16 +6,34 @@ and runs fast on every push. Back to [home](home.md).
 
 ## The `--fail` gate
 
-`--fail` makes nose exit non-zero if **any** family survives the filters. Combine
-it with the [configuration](configuration.md) thresholds so the gate fires only on duplication
-worth acting on:
+`--fail` makes nose exit non-zero if **any** family survives the filters. Pick the
+channels deliberately: `--mode syntax` is the closest jscpd replacement, while the
+default also reports exact semantic Type-4 clones.
+
+For a jscpd-style copy-paste gate:
+
+```sh
+nose scan src --mode syntax --fail
+```
+
+For a broader exact gate, omit `--mode` and keep only substantial findings:
 
 ```sh
 nose scan src --min-value 300 --min-members 3 --fail
 ```
 
-With those settings committed to `nose.toml`, the CI command is just
-`nose scan src --fail`.
+To include Type-3 near-duplicates in a review ratchet, add `near` and tune the fuzzy
+threshold. This is usually better as a report or ratchet with `--min-value` than as a
+bare "any finding fails" gate:
+
+```sh
+nose scan src --mode syntax,semantic,near --threshold 0.70 --min-value 300 --min-members 3 --fail
+```
+
+For an exact semantic-only gate, use `--mode semantic`. It does not use a
+similarity threshold.
+
+With committed settings in `nose.toml`, the CI command can be just `nose scan src --fail`.
 
 ## Baselines — incremental adoption
 

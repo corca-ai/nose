@@ -30,7 +30,7 @@ jobs:
         run: cargo build --release
       - name: test
         run: cargo test --release
-      - name: copy-paste gate (nose on itself)
+      - name: duplication gate (nose on itself)
         run: ./scripts/check-duplication.sh
 
   msrv:

@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/corca-ai/nose"
@@ -24,11 +24,11 @@ rust-version = "1.85"
 [workspace.dependencies]
 # Internal crates carry an explicit `version` (not just `path`) so the tree has no
 # wildcard deps and the crates stay publishable; `path` wins for local builds.
-nose-il = { path = "crates/nose-il", version = "0.1.1" }
-nose-frontend = { path = "crates/nose-frontend", version = "0.1.1" }
-nose-normalize = { path = "crates/nose-normalize", version = "0.1.1" }
-nose-detect = { path = "crates/nose-detect", version = "0.1.1" }
-nose-eval = { path = "crates/nose-eval", version = "0.1.1" }
+nose-il = { path = "crates/nose-il", version = "0.2.0" }
+nose-frontend = { path = "crates/nose-frontend", version = "0.2.0" }
+nose-normalize = { path = "crates/nose-normalize", version = "0.2.0" }
+nose-detect = { path = "crates/nose-detect", version = "0.2.0" }
+nose-eval = { path = "crates/nose-eval", version = "0.2.0" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

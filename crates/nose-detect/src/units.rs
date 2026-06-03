@@ -21,6 +21,8 @@ pub struct UnitFeat {
     pub token_count: usize,
     /// Sorted multiset of local shape hashes (syntactic structure).
     pub shapes: Vec<u64>,
+    /// MinHash signature over `shapes`, used by the Type-3 near-duplicate channel.
+    pub shape_minhash: Vec<u64>,
     /// Sorted multiset of value-graph (GVN) hashes — the semantic substrate that
     /// is invariant to temporaries, statement order, and common-subexpression
     /// duplication.
@@ -123,6 +125,9 @@ pub(crate) fn extract(
             shapes.push(shape);
         }
         shapes.sort_unstable();
+        let mut distinct_shapes = shapes.clone();
+        distinct_shapes.dedup();
+        let shape_minhash = crate::minhash::sign(&distinct_shapes, seeds);
 
         // Candidate generation keys on the value graph when present (so clones
         // that converge only semantically still become candidates).
@@ -143,6 +148,7 @@ pub(crate) fn extract(
             end_line: span.end_line,
             token_count: pre.len(),
             shapes,
+            shape_minhash,
             value,
             minhash,
             linear,

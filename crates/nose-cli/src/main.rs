@@ -1,4 +1,4 @@
-//! `nose` — semantic IL transpiler + Type-4 clone detector CLI.
+//! `nose` — multi-language code clone detector CLI.
 
 mod baseline;
 mod cache;
@@ -13,9 +13,10 @@ use std::path::PathBuf;
 #[command(
     name = "nose",
     version,
-    about = "Find refactoring candidates and semantic (Type-4) code clones",
+    about = "Find code clone families across syntax, semantic, and near-duplicate channels",
     long_about = "nose lowers each language into one normalized IL and finds duplicated code.\n\
-                  • `nose scan <paths>` — ranked architecture/design-level refactoring candidates\n\
+                  • `nose scan <paths>` — default: syntax + semantic clone families\n\
+                  • `nose scan <paths> --mode near` — opt into Type-3 near-duplicates\n\
                   • `nose stats <paths>`    — IL lowering coverage\n\
                   • `nose il <file>`        — inspect the IL"
 )]
@@ -40,7 +41,7 @@ enum Cmd {
         #[arg(long)]
         no_cfg_norm: bool,
     },
-    /// Detect Type-4 clones across one or more source trees (raw pairs/groups).
+    /// Research interface for raw unit clone pairs/groups.
     /// Hidden: `scan` is the user-facing command; `detect` is the strict/research
     /// and benchmark interface (`--bench-schema`, `--dump`, …).
     #[command(hide = true)]
@@ -54,14 +55,14 @@ enum Cmd {
         /// Minimum unit token (IL node) count.
         #[arg(long, default_value_t = 24)]
         min_tokens: usize,
-        /// Acceptance threshold in `[0,1]`. Defaults: 0.86 (strict behavioral mode),
-        /// 0.70 (--candidates mode). Lower for recall, raise for precision.
+        /// Acceptance threshold in `[0,1]`. Defaults: 0.86 on the strict research
+        /// path, 0.70 with --candidates. Lower for recall, raise for precision.
         #[arg(long)]
         threshold: Option<f64>,
-        /// Refactoring-candidate mode: disable the behavioral-precision gates and
-        /// default the threshold to 0.70. Surfaces near-duplicate FAMILIES (locale
-        /// classes, comparison operators, sync/async wrappers) for human review —
-        /// ~99% review-worthy. Use the default (strict) mode for behavioral clones.
+        /// Candidate mode: disable the behavioral-precision gates and default the
+        /// threshold to 0.70. Surfaces near-duplicate FAMILIES (locale classes,
+        /// comparison operators, sync/async wrappers) for human review. Use the
+        /// default strict path for behavioral-clone research runs.
         #[arg(long)]
         candidates: bool,
         /// MinHash signature length (LSH).
@@ -99,10 +100,8 @@ enum Cmd {
         #[arg(long)]
         dump: Option<PathBuf>,
     },
-    /// Find architecture/design-level refactoring candidates, ranked by how much
-    /// duplication they represent. Runs candidate mode and groups clones into
-    /// families (e.g. a set of near-identical classes across modules), sorted by
-    /// refactoring value (removable lines × similarity × cross-module spread).
+    /// Find clone families. Default: syntax (CPD) + exact semantic. Passing --mode
+    /// replaces that default with exactly the channels listed.
     Scan {
         /// Paths to source files or directories (recursively scanned).
         #[arg(required = true)]
@@ -114,7 +113,7 @@ enum Cmd {
         #[arg(long)]
         min_members: Option<usize>,
         /// Hide families whose refactoring value is below this (noise floor on
-        /// large repos). 0 shows everything. [default: 0]
+        /// large repos). 0 shows every family. [default: 0]
         #[arg(long)]
         min_value: Option<f64>,
         /// Rank families by: `extractability` (how cleanly it folds into one helper —
@@ -124,6 +123,17 @@ enum Cmd {
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
+        /// Detection channels to run. Omit for `syntax,semantic`. If present, this
+        /// replaces the default; pass a comma-list or repeat it, e.g.
+        /// `--mode syntax,near` or `--mode syntax --mode semantic`.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            num_args = 1,
+            action = clap::ArgAction::Append,
+            value_name = "MODE"
+        )]
+        mode: Vec<ScanMode>,
         /// After the report, print duplication hotspots — directories/modules
         /// ranked by total duplicated lines across families (architecture view).
         #[arg(long)]
@@ -133,8 +143,9 @@ enum Cmd {
         /// — much faster on repeated invocations (CI, pre-commit, iterating).
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
-        /// Exit with a non-zero status if any family is reported (after the filters
-        /// above). Turns `scan` into a CI gate: e.g.
+        /// Exit with a non-zero status if any family is reported after filters.
+        /// Turns `scan` into a CI gate, e.g.
+        /// `nose scan src --mode syntax --fail` or
         /// `nose scan src --min-value 300 --min-members 3 --fail`.
         #[arg(long)]
         fail: bool,
@@ -147,15 +158,13 @@ enum Cmd {
         /// and exit, instead of reporting.
         #[arg(long, requires = "baseline")]
         write_baseline: bool,
-        /// Acceptance threshold in `[0,1]`. [default: 0.70]
+        /// Acceptance threshold in `[0,1]` for the `near` channel. Rejected unless
+        /// --mode includes `near`; default with `near` is 0.70.
         #[arg(long)]
         threshold: Option<f64>,
         /// Output format.
         #[arg(long, default_value = "human")]
         format: ReportFormat,
-        /// Use strict behavioral-clone mode instead of candidate mode.
-        #[arg(long)]
-        strict: bool,
         /// Show each family's source inline (human format) as a unified diff between
         /// its two representative members — both copies and exactly what differs.
         #[arg(long)]
@@ -170,15 +179,14 @@ enum Cmd {
         /// (.gitignore is already respected automatically.)
         #[arg(long)]
         exclude: Vec<String>,
-        /// Ignore units smaller than this (structural size in IL nodes) — the single
-        /// minimum-size knob. [default: 24]
+        /// Ignore units or syntax copy-paste runs smaller than this IL-token size.
+        /// [default: 24]
         #[arg(long)]
         min_tokens: Option<usize>,
-        /// Disable the contiguous copy-paste channel (the Type-1/2 floor that finds
-        /// duplicated runs regardless of unit boundaries). Leaves only the structural
-        /// (design-level) families. On by default.
+        /// Ignore units or syntax copy-paste runs spanning fewer source lines.
+        /// [default: 5]
         #[arg(long)]
-        no_contiguous: bool,
+        min_lines: Option<u32>,
     },
     /// Recall-ceiling diagnostic: split gold recall across unit-extraction /
     /// candidate-generation stages. (Hidden — benchmark/research tooling.)
@@ -279,6 +287,83 @@ enum ReportFormat {
     Markdown,
     /// SARIF 2.1.0 (GitHub code-scanning / PR annotations).
     Sarif,
+}
+
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum ScanMode {
+    /// CPD-style syntax copy-paste runs (the Type-1/2 floor).
+    Syntax,
+    /// Exact value-fingerprint Type-4 semantic clones.
+    Semantic,
+    /// Fuzzy Type-3 near-duplicate candidates.
+    Near,
+}
+
+#[derive(Clone, Copy)]
+struct ScanChannels {
+    syntax: bool,
+    semantic: bool,
+    near: bool,
+}
+
+impl ScanChannels {
+    fn resolve(cli: Vec<ScanMode>, cfg: Vec<ScanMode>) -> Result<Self> {
+        let selected = if !cli.is_empty() {
+            cli
+        } else if !cfg.is_empty() {
+            cfg
+        } else {
+            vec![ScanMode::Syntax, ScanMode::Semantic]
+        };
+        let mut channels = ScanChannels {
+            syntax: false,
+            semantic: false,
+            near: false,
+        };
+        for mode in selected {
+            match mode {
+                ScanMode::Syntax => channels.syntax = true,
+                ScanMode::Semantic => channels.semantic = true,
+                ScanMode::Near => channels.near = true,
+            }
+        }
+        if !channels.syntax && !channels.semantic && !channels.near {
+            anyhow::bail!("--mode must include at least one of syntax, semantic, or near");
+        }
+        Ok(channels)
+    }
+
+    fn structural(self) -> bool {
+        self.semantic || self.near
+    }
+
+    fn uses_threshold(self) -> bool {
+        self.near
+    }
+
+    fn report_label(self, count: usize) -> &'static str {
+        let singular = count == 1;
+        match (self.syntax, self.semantic, self.near, singular) {
+            (true, false, false, true) => "syntax clone family",
+            (true, false, false, false) => "syntax clone families",
+            (false, true, false, true) => "semantic clone family",
+            (false, true, false, false) => "semantic clone families",
+            (false, false, true, true) => "near-duplicate family",
+            (false, false, true, false) => "near-duplicate families",
+            (_, _, _, true) => "clone family",
+            (_, _, _, false) => "clone families",
+        }
+    }
+
+    fn markdown_title(self) -> &'static str {
+        match (self.syntax, self.semantic, self.near) {
+            (true, false, false) => "Syntax Clone Families",
+            (false, true, false) => "Semantic Clone Families",
+            (false, false, true) => "Near-Duplicate Families",
+            _ => "Clone Families",
+        }
+    }
 }
 
 /// How to rank families — what "most worth your attention first" means.
@@ -545,6 +630,7 @@ fn run() -> Result<()> {
             min_value,
             sort,
             config,
+            mode,
             hotspots,
             cache_dir,
             fail,
@@ -552,12 +638,11 @@ fn run() -> Result<()> {
             write_baseline,
             threshold,
             format,
-            strict,
             diff,
             proposal,
             exclude,
             min_tokens,
-            no_contiguous,
+            min_lines,
         } => cmd_scan(ScanArgs {
             paths,
             top,
@@ -565,6 +650,7 @@ fn run() -> Result<()> {
             min_value,
             sort,
             config,
+            mode,
             hotspots,
             cache_dir,
             fail,
@@ -572,12 +658,11 @@ fn run() -> Result<()> {
             write_baseline,
             threshold,
             format,
-            strict,
             diff,
             proposal,
             exclude,
             min_tokens,
-            no_contiguous,
+            min_lines,
         }),
         Cmd::Ceiling {
             gold,
@@ -1236,6 +1321,7 @@ struct ScanArgs {
     min_value: Option<f64>,
     sort: Option<SortKey>,
     config: Option<PathBuf>,
+    mode: Vec<ScanMode>,
     hotspots: bool,
     cache_dir: Option<PathBuf>,
     fail: bool,
@@ -1243,12 +1329,55 @@ struct ScanArgs {
     write_baseline: bool,
     threshold: Option<f64>,
     format: ReportFormat,
-    strict: bool,
     diff: bool,
     proposal: bool,
     exclude: Vec<String>,
     min_tokens: Option<usize>,
-    no_contiguous: bool,
+    min_lines: Option<u32>,
+}
+
+struct ChannelDetector {
+    name: &'static str,
+    detectors: Vec<Box<dyn nose_detect::Detector>>,
+}
+
+impl nose_detect::Detector for ChannelDetector {
+    fn name(&self) -> &str {
+        self.name
+    }
+
+    fn score(&self, a: &nose_detect::UnitFeat, b: &nose_detect::UnitFeat) -> f64 {
+        self.detectors
+            .iter()
+            .map(|d| d.score(a, b))
+            .fold(0.0, f64::max)
+    }
+}
+
+fn scan_detector(
+    channels: ScanChannels,
+    opts: &nose_detect::DetectOptions,
+) -> Box<dyn nose_detect::Detector> {
+    let mut detectors: Vec<Box<dyn nose_detect::Detector>> = Vec::new();
+    if channels.semantic {
+        detectors.push(Box::new(nose_detect::ExactBehaviorDetector));
+    }
+    if channels.near {
+        detectors.push(Box::new(
+            nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
+                .without_exact_behavior()
+                .with_threshold(opts.threshold),
+        ));
+    }
+
+    match detectors.len() {
+        0 => Box::new(nose_detect::CopyPasteDetector),
+        1 => detectors.pop().expect("one detector"),
+        _ => Box::new(ChannelDetector {
+            name: "semantic+near",
+            detectors,
+        }),
+    }
 }
 
 /// Warn (to stderr) when discovery turned up nothing, so a mistyped path or an
@@ -1296,8 +1425,16 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let threshold = args.threshold.or(cfg.threshold).unwrap_or(0.70);
-    let min_lines = cfg.min_lines.unwrap_or(5);
+    let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
+    if !channels.uses_threshold() && (args.threshold.is_some() || cfg.threshold.is_some()) {
+        anyhow::bail!("--threshold is only valid when --mode includes near");
+    }
+    let threshold = if channels.uses_threshold() {
+        args.threshold.or(cfg.threshold).unwrap_or(0.70)
+    } else {
+        1.0
+    };
+    let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_tokens.or(cfg.min_tokens).unwrap_or(24);
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;
@@ -1307,17 +1444,15 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         threshold,
         min_lines,
         min_tokens,
-        // The contiguous copy-paste channel runs for `scan` (the Type-1/2 floor
-        // a token detector catches); it stays off for the strict/gold `detect` path.
-        contiguous: !args.no_contiguous,
+        contiguous_min_tokens: min_tokens,
+        contiguous_min_lines: min_lines,
+        structural: channels.structural(),
+        contiguous: channels.syntax,
+        value_candidates: channels.semantic,
+        shape_candidates: channels.near,
         ..Default::default()
     };
-    let detector = if args.strict {
-        nose_detect::StructuralDetector::strict(opts.jaccard_weight).with_threshold(opts.threshold)
-    } else {
-        nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
-            .with_threshold(opts.threshold)
-    };
+    let detector = scan_detector(channels, &opts);
 
     // With --cache-dir, build units per file through the on-disk cache (skips
     // parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
@@ -1327,10 +1462,11 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         if files == 0 {
             warn_no_files(&args.paths);
         }
-        // The cache path knows only the file count, not a per-language breakdown. It now
-        // supplies the cached contiguous streams too, so it runs the same two channels as
-        // the non-cached path (previously it silently dropped every copy-paste clone).
-        let report = nose_detect::detect_from_units(units, files, &streams, &opts, &detector).0;
+        // The cache path knows only the file count, not a per-language breakdown. It
+        // supplies both cached unit features and syntax streams, so every selected scan
+        // channel behaves the same as the non-cached path.
+        let report =
+            nose_detect::detect_from_units(units, files, &streams, &opts, detector.as_ref()).0;
         (
             report,
             ScanScope {
@@ -1342,7 +1478,10 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(&refs, &exclude));
         warn_if_empty(&corpus, &args.paths);
         let scope = ScanScope::from_corpus(&corpus);
-        (nose_detect::detect(&corpus, &opts, &detector), scope)
+        (
+            nose_detect::detect(&corpus, &opts, detector.as_ref()),
+            scope,
+        )
     };
 
     let mut families = nose_detect::rank_families(&report);
@@ -1433,11 +1572,11 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             // Scope line first — tells the reader what was actually scanned (so a small
             // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
             println!("{}\n", scope.summary());
-            print_refactor_markdown(&families, &shown);
+            print_refactor_markdown(&families, &shown, channels);
         }
         ReportFormat::Human => {
             println!("{}", scope.summary());
-            print_refactor_human(&families, &shown, sort, args.diff, args.proposal)
+            print_refactor_human(&families, &shown, sort, channels, args.diff, args.proposal)
         }
         ReportFormat::Sarif => println!("{}", refactor_sarif(&shown)?),
     }
@@ -1448,13 +1587,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // failure when --fail is set.
     if args.fail && !families.is_empty() {
         eprintln!(
-            "\nnose: {} refactoring {} found (--fail)",
+            "\nnose: {} {} found (--fail)",
             families.len(),
-            if families.len() == 1 {
-                "family"
-            } else {
-                "families"
-            }
+            channels.report_label(families.len())
         );
         std::process::exit(1);
     }
@@ -1636,12 +1771,14 @@ fn print_refactor_human(
     all: &[nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
     sort: SortKey,
+    mode: ScanChannels,
     diff: bool,
     proposal: bool,
 ) {
     println!(
-        "{} refactoring candidates, ranked by {}  ·  ~{} duplicated lines  (showing {})",
+        "{} {}, ranked by {}  ·  ~{} duplicated lines  (showing {})",
         all.len(),
+        mode.report_label(all.len()),
         sort_name(sort),
         total_dup_lines(all),
         shown.len()
@@ -1997,8 +2134,9 @@ fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
 fn print_refactor_markdown(
     all: &[nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
+    mode: ScanChannels,
 ) {
-    println!("# Refactoring candidates\n");
+    println!("# {}\n", mode.markdown_title());
     println!(
         "{} families · ~{} duplicated lines · showing top {}\n",
         all.len(),

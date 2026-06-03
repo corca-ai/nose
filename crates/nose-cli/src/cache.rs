@@ -16,10 +16,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v2: each entry
-/// now stores the file's contiguous-channel [`Stream`] alongside its units, so the cache
-/// path runs the copy-paste channel too instead of silently dropping it.)
-const SCHEMA: u32 = 2;
+/// cache entries then live under a different directory and are ignored. (v3: `UnitFeat`
+/// stores a shape-Minhash signature for the `near` scan channel.)
+const SCHEMA: u32 = 3;
 
 /// Build detection units **and contiguous-channel streams** for every source file under
 /// `roots`, using the on-disk cache at `dir`. Returns `(units, streams, files_seen)`.

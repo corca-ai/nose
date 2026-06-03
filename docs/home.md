@@ -1,6 +1,6 @@
 # nose documentation
 
-**nose** finds refactoring candidates and semantic (Type-4) code clones across
+**nose** finds syntax, semantic, and near-duplicate code clones across
 eight languages — plus the `<script>` logic inside Vue, Svelte, and HTML — by
 lowering every language into one normalized intermediate language (IL) and
 ranking duplicated code by how much it's worth refactoring. The repository
