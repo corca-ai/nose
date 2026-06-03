@@ -49,6 +49,9 @@ else
     echo "skipped — rustup toolchain install ${msrv}"
 fi
 
+step "docs (awiki connectivity)"
+./scripts/check-docs.sh
+
 step "copy-paste gate (nose on itself)"
 ./scripts/check-duplication.sh
 

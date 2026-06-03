@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fast pre-commit gate: formatting + docs connectivity (awiki). The heavy gates
+# (clippy, build, test, copy-paste, MSRV) stay in ./scripts/check.sh and CI, so a
+# commit is cheap while the two most common breakages are caught up front.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+echo "== rustfmt =="
+cargo fmt --all --check
+
+echo "== docs (awiki connectivity) =="
+./scripts/check-docs.sh

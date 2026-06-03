@@ -25,6 +25,7 @@ A green run here is a green CI. The gates, in order:
 | **tests** | `cargo test --release` | the full suite, incl. cross-language convergence |
 | **unused deps** | `cargo machete` | no dependency declared but unused (à la *knip*) |
 | **supply chain** | `cargo deny check` | no advisories/yanked crates, only allowed licenses, no dup/wildcard deps, crates.io-only |
+| **docs** | `./scripts/check-docs.sh` | the `docs/` wiki is one connected graph — no orphan pages or islands ([awiki](https://github.com/corca-ai/awiki) `lint`) |
 | **copy-paste** | `./scripts/check-duplication.sh` | nose run on its own source — substantial duplicate families stay within budget |
 | **MSRV** | `cargo +$MSRV check --workspace` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
 
@@ -38,11 +39,22 @@ and inherited by every crate via `[lints] workspace = true`.
 
 ### One-time tool install
 
-`cargo-machete` and `cargo-deny` are optional (the runner skips them with a notice
-if absent). To run them locally:
+`cargo-machete`, `cargo-deny`, and [`awiki`](https://github.com/corca-ai/awiki)
+(the docs gate) are optional — the runner skips each with a notice if absent. To
+run them locally:
 
 ```sh
 cargo install cargo-machete cargo-deny
+brew install corca-ai/tap/awiki   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
+```
+
+### Git hooks
+
+A fast pre-commit hook (rustfmt + the awiki docs gate) lives in `.githooks`.
+Enable it once per clone:
+
+```sh
+git config core.hooksPath .githooks
 ```
 
 ### The copy-paste gate (dogfooding)

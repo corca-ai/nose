@@ -62,3 +62,17 @@ jobs:
         run: cargo machete
       - name: cargo-deny (advisories / licenses / bans / sources)
         run: cargo deny check
+
+  docs:
+    name: docs wiki connectivity (awiki)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      # awiki lints the docs/ wiki: fails on orphan pages or disconnected islands.
+      - name: install awiki
+        run: go install github.com/corca-ai/awiki/cmd/awiki@v0.1.4
+      - name: lint docs graph
+        run: awiki lint --root docs
