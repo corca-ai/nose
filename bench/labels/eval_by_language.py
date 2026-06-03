@@ -88,7 +88,7 @@ def main():
         a = acc[(lang, split)]
         a["n"] += len(labs)
         a["worthy"] += sum(x["worthy"] for x in labs)
-        r = subprocess.run([str(NOSE), "refactor", str(repo), "--format", "json", "--top", "1000000"],
+        r = subprocess.run([str(NOSE), "scan", str(repo), "--format", "json", "--top", "1000000"],
                            cwd=ROOT, capture_output=True, text=True, timeout=300)
         fams = sorted(json.loads(r.stdout or "[]"), key=lambda f: -f["value"])
         top = fams[:40]
