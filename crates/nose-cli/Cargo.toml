@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
+description = "Find refactoring candidates and semantic (Type-4) code clones across many languages — fast, in one self-contained Rust binary"
+homepage.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "nose"

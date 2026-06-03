@@ -13,6 +13,8 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+homepage = "https://github.com/corca-ai/nose"
+repository = "https://github.com/corca-ai/nose"
 # Minimum Supported Rust Version — verified by a dedicated CI job. Bump only
 # deliberately (it is a breaking change for downstream); the dev/CI toolchain is
 # pinned separately in rust-toolchain.toml. Floor is set by the dependency tree
@@ -62,3 +64,8 @@ uninlined_format_args = "warn"    # prefer `format!("{x}")` to `format!("{}", x)
 opt-level = 3
 lto = "thin"
 codegen-units = 1
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
