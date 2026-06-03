@@ -319,9 +319,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     _ => {}
                 }
             }
-            let none = |lo: &mut Lowering| {
-                lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
-            };
+            let none =
+                |lo: &mut Lowering| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]);
             let s = start.unwrap_or_else(|| none(lo));
             let e = end.unwrap_or_else(|| none(lo));
             let flag = lo.int_lit(if inclusive { "1" } else { "0" }, span);

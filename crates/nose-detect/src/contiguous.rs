@@ -15,9 +15,9 @@
 
 use crate::cluster::UnionFind;
 use crate::Loc;
-use rustc_hash::FxHashMap;
 use nose_il::{Il, Interner, NodeId, UnitKind};
 use nose_normalize::node_tag_valued;
+use rustc_hash::FxHashMap;
 
 /// One file's normalized-IL token stream, in source (pre-order) order.
 pub(crate) struct Stream {

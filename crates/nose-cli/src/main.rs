@@ -601,7 +601,10 @@ fn verify_probes(corpus: &Corpus) -> Vec<nose_normalize::Value> {
         v.truncate(k);
         v.into_iter().map(|(key, _)| key).collect()
     }
-    let mut probes: Vec<Value> = top(strs, 16).into_iter().map(|h| Value::Str(vec![h])).collect();
+    let mut probes: Vec<Value> = top(strs, 16)
+        .into_iter()
+        .map(|h| Value::Str(vec![h]))
+        .collect();
     probes.extend(top(ints, 16).into_iter().map(Value::Int));
     probes
 }
@@ -717,8 +720,7 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
                     canon_checked += 1;
                     if full_beh != beh && canon_violations.len() < 20 {
                         let s = n.node(root).span;
-                        canon_violations
-                            .push(format!("{}:{}", il.meta.path, s.start_line));
+                        canon_violations.push(format!("{}:{}", il.meta.path, s.start_line));
                     }
                 }
             }
@@ -757,7 +759,9 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
                 let distinct: std::collections::HashSet<&Value> =
                     r.beh.iter().map(|b| &b.ret).collect();
                 let trivial = distinct.len() < 2
-                    || r.beh.iter().all(|b| matches!(b.ret, Value::Null | Value::Err));
+                    || r.beh
+                        .iter()
+                        .all(|b| matches!(b.ret, Value::Null | Value::Err));
                 serde_json::json!({
                     "file": r.file,
                     "start_line": r.start,
@@ -768,7 +772,10 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
                 })
             })
             .collect();
-        println!("{}", serde_json::to_string(&serde_json::json!({ "units": recs_json }))?);
+        println!(
+            "{}",
+            serde_json::to_string(&serde_json::json!({ "units": recs_json }))?
+        );
         return Ok(());
     }
 

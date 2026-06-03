@@ -52,8 +52,12 @@ fn collect_top_items(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {
             continue; // the `#if COND` / `#ifdef NAME` test, not an item
         }
         match c.kind() {
-            "preproc_if" | "preproc_ifdef" | "preproc_else" | "preproc_elif"
-            | "preproc_elifdef" | "linkage_specification" => collect_top_items(lo, c, out),
+            "preproc_if"
+            | "preproc_ifdef"
+            | "preproc_else"
+            | "preproc_elif"
+            | "preproc_elifdef"
+            | "linkage_specification" => collect_top_items(lo, c, out),
             _ => {
                 if let Some(n) = lower_item(lo, c) {
                     out.push(n);

@@ -7,8 +7,8 @@
 //! the detector needs. Field names are *not* renamed (they carry API meaning).
 //! Lambdas share their enclosing function's scope so closures stay consistent.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{Il, LoopKind, NodeId, NodeKind, Payload, Symbol};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(il: &mut Il) {
     let root = il.root;

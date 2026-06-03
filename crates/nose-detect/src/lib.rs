@@ -17,9 +17,9 @@ mod units;
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;
 
-use rayon::prelude::*;
 use nose_il::{Corpus, Il, Interner};
 use nose_normalize::NormalizeOptions;
+use rayon::prelude::*;
 use serde::Serialize;
 
 #[derive(Clone, Copy, Debug)]
@@ -237,11 +237,7 @@ fn candidate_score_weights() -> (f64, f64, f64) {
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(d)
         };
-        (
-            g("NOSE_CWV", 0.3),
-            g("NOSE_CWS", 0.5),
-            g("NOSE_CWR", 0.2),
-        )
+        (g("NOSE_CWV", 0.3), g("NOSE_CWS", 0.5), g("NOSE_CWR", 0.2))
     })
 }
 

@@ -13,8 +13,8 @@
 //! self-consistent — a genuinely-equivalent pair agrees under *any* consistent
 //! semantics, so a fingerprint merge the interpreter contradicts is a real bug.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// A runtime value. `List` is nested so `zip`/`enumerate` can yield pairs.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]

@@ -431,7 +431,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "identifier" | "field_identifier" | "package_identifier" | "type_identifier" => {
             match lo.text(node) {
                 "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
-        "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
+                "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
                 "nil" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
                 other => lo.var(other, span),
             }
@@ -440,9 +440,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             let t = lo.text(node);
             lo.int_lit(t, span)
         }
-        "float_literal" | "imaginary_literal" => {
-            lo.float_lit(lo.text(node), span)
-        }
+        "float_literal" | "imaginary_literal" => lo.float_lit(lo.text(node), span),
         "interpreted_string_literal" | "raw_string_literal" | "rune_literal" => {
             let t = lo.text(node);
             lo.str_lit(t, span)
@@ -541,7 +539,9 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 let v = node
                     .child_by_field_name(field)
                     .map(|n| lower_expr(lo, n))
-                    .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]));
+                    .unwrap_or_else(|| {
+                        lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+                    });
                 kids.push(v);
             }
             lo.add(NodeKind::Index, Payload::None, span, &kids)

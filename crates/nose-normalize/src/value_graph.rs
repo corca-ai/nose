@@ -18,9 +18,9 @@
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use crate::types::Ty;
 use nose_il::{Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`
 /// (sorted multiset of `u64` value hashes). Equivalent computations → equal
@@ -149,7 +149,11 @@ impl<'a> Builder<'a> {
         let at = |i: usize| args.get(i).map(|&a| self.vty(a)).unwrap_or(Ty::Unknown);
         match op {
             ValOp::Const(k) => const_ty(*k),
-            ValOp::Input(k) => self.param_ty.get(*k as usize).copied().unwrap_or(Ty::Unknown),
+            ValOp::Input(k) => self
+                .param_ty
+                .get(*k as usize)
+                .copied()
+                .unwrap_or(Ty::Unknown),
             ValOp::Bin(o) => {
                 let o = *o;
                 if o == Op::Add as u32 {
@@ -183,7 +187,11 @@ impl<'a> Builder<'a> {
             }
             ValOp::Un(o) => {
                 let o = *o;
-                if o == Op::Neg as u32 || o == Op::Pos as u32 || o == Op::BitNot as u32 || o == ABS_CODE {
+                if o == Op::Neg as u32
+                    || o == Op::Pos as u32
+                    || o == Op::BitNot as u32
+                    || o == ABS_CODE
+                {
                     Ty::Num
                 } else if o == Op::Not as u32 {
                     Ty::Bool
@@ -521,7 +529,10 @@ impl<'a> Builder<'a> {
     /// `if xs[0]>0` keeps an `Index`, not `Elem`, so it is not mistaken for `any`).
     fn recognize_existence_reduction(&mut self) {
         if self.sinks.len() != 2
-            || self.sinks.iter().any(|(k, _)| !matches!(k, SinkKind::Return))
+            || self
+                .sinks
+                .iter()
+                .any(|(k, _)| !matches!(k, SinkKind::Return))
         {
             return;
         }
@@ -577,8 +588,7 @@ impl<'a> Builder<'a> {
         let Some(&target) = kids.first() else {
             return false;
         };
-        let (NodeKind::Var, Payload::Cid(c)) =
-            (self.il.kind(target), self.il.node(target).payload)
+        let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(target), self.il.node(target).payload)
         else {
             return false;
         };
@@ -1023,7 +1033,8 @@ impl<'a> Builder<'a> {
                                         self.vhash[step_val as usize],
                                     ),
                                 );
-                                let strided = self.mk(ValOp::Idx(h), vec![base, start_val, step_val]);
+                                let strided =
+                                    self.mk(ValOp::Idx(h), vec![base, start_val, step_val]);
                                 pattern_bindings.push((i, strided));
                             }
                         }
@@ -1269,7 +1280,11 @@ impl<'a> Builder<'a> {
         if let ValOp::Bin(o) = self.nodes[val as usize].op {
             if o == MIN_CODE || o == MAX_CODE {
                 let a = self.nodes[val as usize].args.clone();
-                let red = if o == MAX_CODE { REDUCE_MAX } else { REDUCE_MIN };
+                let red = if o == MAX_CODE {
+                    REDUCE_MAX
+                } else {
+                    REDUCE_MIN
+                };
                 if a[0] == loopv && !self.references(a[1], loopv) {
                     return Some((red, a[1]));
                 }
@@ -1399,7 +1414,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let (x, y) = (cn.args[0], cn.args[1]); // cond is `x < y`
-        // `x if x<y else y` → min(x,y);  `y if x<y else x` → max(x,y).
+                                               // `x if x<y else y` → min(x,y);  `y if x<y else x` → max(x,y).
         if then == x && els == y {
             Some(self.mk(ValOp::Bin(MIN_CODE), vec![x, y]))
         } else if then == y && els == x {
@@ -1480,7 +1495,10 @@ impl<'a> Builder<'a> {
             _ => return None,
         };
         if self.il.kind(len_arg) == NodeKind::Call
-            && matches!(self.il.node(len_arg).payload, Payload::Builtin(Builtin::Len))
+            && matches!(
+                self.il.node(len_arg).payload,
+                Payload::Builtin(Builtin::Len)
+            )
         {
             return self.il.children(len_arg).first().copied();
         }
@@ -1553,7 +1571,11 @@ impl<'a> Builder<'a> {
                 Some(self.mk(ValOp::Reduce(code), vec![contrib]))
             }
             Builtin::Any | Builtin::All => {
-                let code = if matches!(b, Builtin::All) { REDUCE_ALL } else { REDUCE_ANY };
+                let code = if matches!(b, Builtin::All) {
+                    REDUCE_ALL
+                } else {
+                    REDUCE_ANY
+                };
                 // `xs.some(p)` / `xs.any(p)` — method form `[coll, λ]`: the per-element
                 // contribution is `p(Elem coll)`. `any(p(x) for x in xs)` — generator form
                 // `[Map]`: the mapped predicate value; a *filtered* generator carries its
@@ -1570,7 +1592,8 @@ impl<'a> Builder<'a> {
                     };
                     match op {
                         ValOp::Hof(_) if args.len() >= 2 => {
-                            let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                            let ident =
+                                self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
                             self.mk(ValOp::Phi, vec![args[1], args[0], ident])
                         }
                         ValOp::Hof(_) if args.len() == 1 => args[0],
@@ -1861,8 +1884,13 @@ impl<'a> Builder<'a> {
                     if let Payload::Name(s) = self.il.node(kids[0]).payload {
                         if matches!(
                             self.interner.resolve(s),
-                            "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec"
-                                | "copied" | "cloned"
+                            "iter"
+                                | "into_iter"
+                                | "iter_mut"
+                                | "collect"
+                                | "to_vec"
+                                | "copied"
+                                | "cloned"
                         ) {
                             if let Some(&base) = self.il.children(kids[0]).first() {
                                 return self.eval(base, env);
@@ -2150,9 +2178,7 @@ fn increment_amount(il: &Il, expr: NodeId, cid: u32) -> Option<i64> {
     if kids.len() != 2 {
         return None;
     }
-    let is_self = |n: NodeId| {
-        matches!((il.kind(n), il.node(n).payload), (NodeKind::Var, Payload::Cid(c)) if c == cid)
-    };
+    let is_self = |n: NodeId| matches!((il.kind(n), il.node(n).payload), (NodeKind::Var, Payload::Cid(c)) if c == cid);
     let lit = |n: NodeId| match il.node(n).payload {
         Payload::LitInt(v) => Some(v),
         _ => None,
@@ -2237,9 +2263,9 @@ fn const_ty(k: u32) -> Ty {
         0x2000_0000..=0x2FFF_FFFF => Ty::Str,
         0x3000_0001 | 0x3000_0002 => Ty::Bool,
         0x4000_0000..=0x4FFF_FFFF => Ty::Num, // retained float
-        0 | 1 => Ty::Num, // LitClass::Int / Float
-        2 => Ty::Str,     // LitClass::Str
-        3 => Ty::Bool,    // LitClass::Bool
+        0 | 1 => Ty::Num,                     // LitClass::Int / Float
+        2 => Ty::Str,                         // LitClass::Str
+        3 => Ty::Bool,                        // LitClass::Bool
         _ => Ty::Unknown,
     }
 }

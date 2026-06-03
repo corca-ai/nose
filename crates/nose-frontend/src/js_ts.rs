@@ -186,8 +186,12 @@ fn lower_type_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_type_skeleton(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
-        "type_identifier" | "property_identifier" | "identifier" | "predefined_type"
-        | "shorthand_property_identifier" | "this_type" => lo.var(lo.text(node), span),
+        "type_identifier"
+        | "property_identifier"
+        | "identifier"
+        | "predefined_type"
+        | "shorthand_property_identifier"
+        | "this_type" => lo.var(lo.text(node), span),
         "string" => lo.str_lit(lo.text(node), span),
         "number" => lo.int_lit(lo.text(node).trim(), span),
         _ => {
@@ -499,7 +503,12 @@ fn lower_for_in(lo: &mut Lowering, node: TsNode) -> NodeId {
         found
     };
     if !is_of {
-        iter = lo.add(NodeKind::Call, Payload::Builtin(Builtin::Keys), span, &[iter]);
+        iter = lo.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Keys),
+            span,
+            &[iter],
+        );
     }
     let body = node
         .child_by_field_name("body")

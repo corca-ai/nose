@@ -453,17 +453,17 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             let mut cursor = node.walk();
             for child in node.children(&mut cursor) {
                 if child.kind() == ":" {
-                    slots.push(
-                        cur.take()
-                            .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])),
-                    );
+                    slots.push(cur.take().unwrap_or_else(|| {
+                        lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+                    }));
                 } else if child.is_named() {
                     cur = Some(lower_expr(lo, child));
                 }
             }
             slots.push(
-                cur.take()
-                    .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])),
+                cur.take().unwrap_or_else(|| {
+                    lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+                }),
             );
             lo.add(NodeKind::Seq, Payload::None, span, &slots)
         }
@@ -603,7 +603,16 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
     fn is_op_tok(t: &str) -> bool {
         matches!(
             t,
-            "<" | "<=" | ">" | ">=" | "==" | "!=" | "<>" | "in" | "not" | "is" | "not in"
+            "<" | "<="
+                | ">"
+                | ">="
+                | "=="
+                | "!="
+                | "<>"
+                | "in"
+                | "not"
+                | "is"
+                | "not in"
                 | "is not"
         )
     }

@@ -3,8 +3,8 @@
 //! *unhandled site*). The `Raw` ratio and a histogram of which surface kinds hit
 //! `Raw` per language tell us exactly where the IL is weak — and what to fix next.
 
-use rustc_hash::FxHashMap;
 use nose_il::{Corpus, NodeKind, Payload};
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 #[derive(Serialize)]

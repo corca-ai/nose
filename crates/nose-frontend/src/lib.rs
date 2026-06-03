@@ -15,8 +15,8 @@ mod rust;
 
 pub use coverage::{coverage, CoverageReport};
 
-use rayon::prelude::*;
 use nose_il::{Corpus, FileId, Il, Interner, Lang};
+use rayon::prelude::*;
 use std::path::Path;
 
 /// Lower a single in-memory source buffer.

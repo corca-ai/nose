@@ -16,8 +16,8 @@
 //! alpha-renaming) and keyed by *node id* (globally unique), so results from
 //! different scopes merge safely. The rewrite is a deterministic rebuild.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Unit};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il) -> Il {
     let mut analysis = Analysis::default();

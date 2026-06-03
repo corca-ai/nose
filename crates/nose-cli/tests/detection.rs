@@ -154,11 +154,15 @@ fn contiguous_distinguishes_different_data_tables() {
     };
     let a = tbl(
         "A",
-        &["alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa"],
+        &[
+            "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta", "iota", "kappa",
+        ],
     );
     let b = tbl(
         "B",
-        &["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"],
+        &[
+            "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+        ],
     );
     let opts = DetectOptions {
         min_tokens: 4,
@@ -179,11 +183,17 @@ fn contiguous_distinguishes_different_data_tables() {
         })
     };
     assert!(
-        !cross_file_clone(&[("a.js", &a, Lang::JavaScript), ("b.js", &b, Lang::JavaScript)]),
+        !cross_file_clone(&[
+            ("a.js", &a, Lang::JavaScript),
+            ("b.js", &b, Lang::JavaScript)
+        ]),
         "different string data tables must not form a contiguous clone"
     );
     assert!(
-        cross_file_clone(&[("a.js", &a, Lang::JavaScript), ("c.js", &a, Lang::JavaScript)]),
+        cross_file_clone(&[
+            ("a.js", &a, Lang::JavaScript),
+            ("c.js", &a, Lang::JavaScript)
+        ]),
         "identical string data tables ARE a copy-paste clone"
     );
 }

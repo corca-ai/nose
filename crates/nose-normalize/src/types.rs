@@ -10,8 +10,8 @@
 //! force `Num` — strings/lists don't support those ops); ambiguous or conflicting
 //! evidence stays `Unknown`. Sound by construction: we never assign a type we can't justify.
 
-use rustc_hash::FxHashMap;
 use nose_il::{Il, NodeId, NodeKind, Op, Payload};
+use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Ty {
@@ -120,7 +120,10 @@ pub(crate) fn infer_param_types(il: &Il, root: NodeId) -> Vec<Ty> {
         }
         stack.extend(kids);
     }
-    params.iter().map(|c| *ev.get(c).unwrap_or(&Ty::Unknown)).collect()
+    params
+        .iter()
+        .map(|c| *ev.get(c).unwrap_or(&Ty::Unknown))
+        .collect()
 }
 
 /// The type of a node IF it is a literal of known type, else `None` (used to type the

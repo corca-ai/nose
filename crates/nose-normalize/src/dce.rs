@@ -10,8 +10,8 @@
 //! Use-counts are scoped per function (cids reset at `Func`). A deterministic
 //! rebuild; unit roots are remapped.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Unit};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il) -> Il {
     // drop[assign node id] = rhs_is_pure (pure → drop entirely; else → ExprStmt)

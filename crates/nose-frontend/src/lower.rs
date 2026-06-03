@@ -87,7 +87,12 @@ impl<'a> Lowering<'a> {
             // `2.71` (JS has one `number` kind, so its floats arrive here). Hex/binary/
             // suffixed integers that don't parse stay the abstract `Int` class (unchanged).
             _ if t.contains(['.', 'e', 'E']) && !t.starts_with("0x") => self.float_lit(text, span),
-            _ => self.b.add(NodeKind::Lit, Payload::Lit(nose_il::LitClass::Int), span, &[]),
+            _ => self.b.add(
+                NodeKind::Lit,
+                Payload::Lit(nose_il::LitClass::Int),
+                span,
+                &[],
+            ),
         }
     }
 
@@ -96,7 +101,11 @@ impl<'a> Lowering<'a> {
     /// abstract `Float` class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn float_lit(&mut self, text: &str, span: Span) -> NodeId {
         let mut h: u64 = 0xcbf2_9ce4_8422_2325; // FNV-1a
-        for b in text.trim().trim_end_matches(['f', 'F', 'd', 'D']).as_bytes() {
+        for b in text
+            .trim()
+            .trim_end_matches(['f', 'F', 'd', 'D'])
+            .as_bytes()
+        {
             h = (h ^ *b as u64).wrapping_mul(0x0100_0000_01b3);
         }
         self.b.add(NodeKind::Lit, Payload::LitFloat(h), span, &[])
@@ -127,7 +136,6 @@ impl<'a> Lowering<'a> {
     pub(crate) fn push_unit(&mut self, root: NodeId, kind: UnitKind, name: Option<Symbol>) {
         self.units.push(Unit { root, kind, name });
     }
-
 
     /// Collect a CST node's named children into a `Vec` (decouples from the
     /// tree cursor so the borrow checker stays happy during recursion). Comments

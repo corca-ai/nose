@@ -17,8 +17,8 @@
 //! canonical form is non-obvious) is also deferred; a confluent rewrite gives a
 //! normal form without the cost/ambiguity of equality saturation.
 
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span, Unit};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();

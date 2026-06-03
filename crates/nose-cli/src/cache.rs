@@ -10,9 +10,9 @@
 //! independently. The cache key folds in a schema version and an options signature,
 //! so a format or option change transparently misses (never returns stale units).
 
-use rayon::prelude::*;
 use nose_detect::{DetectOptions, UnitFeat};
 use nose_il::{FileId, Interner, Lang};
+use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when `UnitFeat`'s layout, extraction, or feature hashing changes — old
@@ -63,8 +63,7 @@ pub(crate) fn build_units_cached(
             // Miss: lower with a throwaway interner (features are portable), extract,
             // and write the entry back best-effort.
             let interner = Interner::new();
-            let units = match nose_frontend::lower_source(FileId(0), path, &src, *lang, &interner)
-            {
+            let units = match nose_frontend::lower_source(FileId(0), path, &src, *lang, &interner) {
                 Ok(il) => nose_detect::units_of_file(&il, &interner, opts),
                 Err(_) => return Vec::new(),
             };

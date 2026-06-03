@@ -10,8 +10,8 @@
 //!   condition. `if a < b { X } else { Y }` ≡ `if a >= b { Y } else { X }`.
 
 use crate::commutative::subtree_hashes;
-use rustc_hash::FxHashMap;
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Unit};
+use rustc_hash::FxHashMap;
 
 // ----------------------------------------------------------------------------
 // structure: conjoined-guard merge + continue-guard unwrap (a rebuild)

@@ -13,10 +13,10 @@
 
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
-use rustc_hash::{FxHashMap, FxHashSet};
 use nose_il::{
     Builtin, FileMeta, Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload, Unit,
 };
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();

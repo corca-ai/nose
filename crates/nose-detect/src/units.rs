@@ -96,8 +96,7 @@ pub(crate) fn extract(
         // Blocks share the function gate: measurement showed the real sub-function
         // clones are small (24–40 tokens), so a stricter block gate drops signal
         // (pool-precision 0.106→0.074, AUC 0.42→0.17) faster than noise.
-        let dense_fn =
-            matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= 6;
+        let dense_fn = matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= 6;
         if (lines < min_lines || pre.len() < min_tokens) && !dense_fn {
             continue;
         }

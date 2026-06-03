@@ -28,8 +28,8 @@ pub use commutative::{node_tag, node_tag_valued, subtree_hashes};
 pub use interp::{run_unit, Behavior, Value};
 pub use value_graph::{value_fingerprint, value_fingerprint_lits};
 
-use rustc_hash::FxHashSet;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Payload};
+use rustc_hash::FxHashSet;
 
 /// Copy a node from `old` into `b` with the given (already-rebuilt) children,
 /// preserving its kind/payload/span. The rebuild passes' identical "generic" node

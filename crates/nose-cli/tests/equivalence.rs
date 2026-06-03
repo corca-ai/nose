@@ -913,7 +913,11 @@ fn algebra_double_negation() {
 #[test]
 fn list_builder_loop_converges_with_comprehension() {
     let i = Interner::new();
-    let comp = value_fp(&i, "def f(xs):\n    return [x*x for x in xs]\n", Lang::Python);
+    let comp = value_fp(
+        &i,
+        "def f(xs):\n    return [x*x for x in xs]\n",
+        Lang::Python,
+    );
     let loop_py = value_fp(
         &i,
         "def g(xs):\n    r=[]\n    for x in xs:\n        r.append(x*x)\n    return r\n",
@@ -925,14 +929,24 @@ fn list_builder_loop_converges_with_comprehension() {
         Lang::JavaScript,
     );
     assert_eq!(comp, loop_py, "append-loop ≡ list comprehension");
-    assert_eq!(comp, loop_js, "JS push-loop ≡ Python comprehension (cross-language)");
-    let fcomp = value_fp(&i, "def f(xs):\n    return [x*x for x in xs if x>0]\n", Lang::Python);
+    assert_eq!(
+        comp, loop_js,
+        "JS push-loop ≡ Python comprehension (cross-language)"
+    );
+    let fcomp = value_fp(
+        &i,
+        "def f(xs):\n    return [x*x for x in xs if x>0]\n",
+        Lang::Python,
+    );
     let floop = value_fp(
         &i,
         "def g(xs):\n    r=[]\n    for x in xs:\n        if x>0:\n            r.append(x*x)\n    return r\n",
         Lang::Python,
     );
-    assert_eq!(fcomp, floop, "filtered append-loop ≡ filtered comprehension");
+    assert_eq!(
+        fcomp, floop,
+        "filtered append-loop ≡ filtered comprehension"
+    );
     assert_ne!(comp, fcomp, "unfiltered and filtered must stay distinct");
 }
 
@@ -942,11 +956,31 @@ fn list_builder_loop_converges_with_comprehension() {
 #[test]
 fn cross_language_any_all_converges() {
     let i = Interner::new();
-    let any_py = value_fp(&i, "def f(xs):\n    return any(x > 0 for x in xs)\n", Lang::Python);
-    let any_js = value_fp(&i, "function g(xs){ return xs.some(x => x > 0); }", Lang::JavaScript);
-    let any_rs = value_fp(&i, "fn h(xs: &[i64]) -> bool { xs.iter().any(|x| *x > 0) }", Lang::Rust);
-    let all_py = value_fp(&i, "def f(xs):\n    return all(x > 0 for x in xs)\n", Lang::Python);
-    let all_js = value_fp(&i, "function g(xs){ return xs.every(x => x > 0); }", Lang::JavaScript);
+    let any_py = value_fp(
+        &i,
+        "def f(xs):\n    return any(x > 0 for x in xs)\n",
+        Lang::Python,
+    );
+    let any_js = value_fp(
+        &i,
+        "function g(xs){ return xs.some(x => x > 0); }",
+        Lang::JavaScript,
+    );
+    let any_rs = value_fp(
+        &i,
+        "fn h(xs: &[i64]) -> bool { xs.iter().any(|x| *x > 0) }",
+        Lang::Rust,
+    );
+    let all_py = value_fp(
+        &i,
+        "def f(xs):\n    return all(x > 0 for x in xs)\n",
+        Lang::Python,
+    );
+    let all_js = value_fp(
+        &i,
+        "function g(xs){ return xs.every(x => x > 0); }",
+        Lang::JavaScript,
+    );
     assert_eq!(any_py, any_js, "Python any ≡ JS some");
     assert_eq!(any_py, any_rs, "Python any ≡ Rust any");
     assert_eq!(all_py, all_js, "Python all ≡ JS every");
@@ -1000,8 +1034,10 @@ fn value_graph_distinguishes_range_start_offset() {
     // `a[i]` → `Elem(a)` for a *partial* range (dropping the start bound) is a false
     // merge — a genuine soundness bug.
     let i = Interner::new();
-    let full = "def f(a):\n    s = 0\n    for i in range(len(a)):\n        s += a[i]\n    return s\n";
-    let skip = "def g(a):\n    s = 0\n    for i in range(1, len(a)):\n        s += a[i]\n    return s\n";
+    let full =
+        "def f(a):\n    s = 0\n    for i in range(len(a)):\n        s += a[i]\n    return s\n";
+    let skip =
+        "def g(a):\n    s = 0\n    for i in range(1, len(a)):\n        s += a[i]\n    return s\n";
     assert_ne!(
         value_fp(&i, full, Lang::Python),
         value_fp(&i, skip, Lang::Python),
@@ -1017,12 +1053,18 @@ fn value_graph_distinguishes_constants() {
     let i = Interner::new();
     let m7 = "def f(x):\n    return x % 7\n";
     let m11 = "def f(x):\n    return x % 11\n";
-    assert_ne!(value_fp(&i, m7, Lang::Python), value_fp(&i, m11, Lang::Python),
-        "x%7 and x%11 are behaviorally different");
+    assert_ne!(
+        value_fp(&i, m7, Lang::Python),
+        value_fp(&i, m11, Lang::Python),
+        "x%7 and x%11 are behaviorally different"
+    );
     let a = "def f(x):\n    return x + 100\n";
     let b = "def f(x):\n    return x + 200\n";
-    assert_ne!(value_fp(&i, a, Lang::Python), value_fp(&i, b, Lang::Python),
-        "x+100 and x+200 are behaviorally different");
+    assert_ne!(
+        value_fp(&i, a, Lang::Python),
+        value_fp(&i, b, Lang::Python),
+        "x+100 and x+200 are behaviorally different"
+    );
 }
 
 #[test]
@@ -1031,8 +1073,11 @@ fn value_graph_distinguishes_for_in_vs_of() {
     let i = Interner::new();
     let of = "function f(a){ let s = 0; for (const x of a) { s += x; } return s; }";
     let in_ = "function f(a){ let s = 0; for (const x in a) { s += x; } return s; }";
-    assert_ne!(value_fp(&i, of, Lang::JavaScript), value_fp(&i, in_, Lang::JavaScript),
-        "for-of (values) must differ from for-in (keys)");
+    assert_ne!(
+        value_fp(&i, of, Lang::JavaScript),
+        value_fp(&i, in_, Lang::JavaScript),
+        "for-of (values) must differ from for-in (keys)"
+    );
 }
 
 #[test]
@@ -1042,8 +1087,11 @@ fn value_graph_distinguishes_conditional_early_return() {
     let i = Interner::new();
     let early = "def f(xs, x):\n    for v in xs:\n        if x > 0:\n            return\n        g(v)\n    h()\n";
     let always = "def f(xs, x):\n    for v in xs:\n        return\n        g(v)\n    h()\n";
-    assert_ne!(value_fp(&i, early, Lang::Python), value_fp(&i, always, Lang::Python),
-        "a conditional early return must differ from an unconditional one");
+    assert_ne!(
+        value_fp(&i, early, Lang::Python),
+        value_fp(&i, always, Lang::Python),
+        "a conditional early return must differ from an unconditional one"
+    );
 }
 
 #[test]
@@ -1054,17 +1102,29 @@ fn value_graph_distinguishes_membership_and_negation() {
     let inb = "def f(a, b):\n    return a in b\n";
     let bin = "def f(a, b):\n    return b in a\n";
     let eqb = "def f(a, b):\n    return a == b\n";
-    assert_ne!(value_fp(&i, inb, Lang::Python), value_fp(&i, bin, Lang::Python),
-        "a in b must differ from b in a (membership is directional)");
-    assert_ne!(value_fp(&i, inb, Lang::Python), value_fp(&i, eqb, Lang::Python),
-        "a in b must differ from a == b");
+    assert_ne!(
+        value_fp(&i, inb, Lang::Python),
+        value_fp(&i, bin, Lang::Python),
+        "a in b must differ from b in a (membership is directional)"
+    );
+    assert_ne!(
+        value_fp(&i, inb, Lang::Python),
+        value_fp(&i, eqb, Lang::Python),
+        "a in b must differ from a == b"
+    );
     let isn = "def f(a):\n    return a is None\n";
     let isnot = "def f(a):\n    return a is not None\n";
-    assert_ne!(value_fp(&i, isn, Lang::Python), value_fp(&i, isnot, Lang::Python),
-        "a is None must differ from a is not None (negation)");
+    assert_ne!(
+        value_fp(&i, isn, Lang::Python),
+        value_fp(&i, isnot, Lang::Python),
+        "a is None must differ from a is not None (negation)"
+    );
     let notin = "def f(a, b):\n    return a not in b\n";
-    assert_ne!(value_fp(&i, inb, Lang::Python), value_fp(&i, notin, Lang::Python),
-        "a in b must differ from a not in b (negation)");
+    assert_ne!(
+        value_fp(&i, inb, Lang::Python),
+        value_fp(&i, notin, Lang::Python),
+        "a in b must differ from a not in b (negation)"
+    );
 }
 
 #[test]
@@ -1330,10 +1390,16 @@ fn convergence_probe() {
     let mut gaps = 0;
     for (name, a, b) in pairs {
         let eq = value_fp(&i, a, Lang::Python) == value_fp(&i, b, Lang::Python);
-        if !eq { gaps += 1; }
+        if !eq {
+            gaps += 1;
+        }
         eprintln!("  [{}] {}", if eq { "CONVERGE" } else { "  GAP   " }, name);
     }
-    eprintln!("convergence probe: {}/{} converge", pairs.len() - gaps, pairs.len());
+    eprintln!(
+        "convergence probe: {}/{} converge",
+        pairs.len() - gaps,
+        pairs.len()
+    );
 }
 
 /// Cross-language + more-construct convergence probe (research): the SAME algorithm in
@@ -1367,10 +1433,16 @@ fn convergence_probe_xlang() {
     let mut gaps = 0;
     for (name, a, la, b, lb) in pairs {
         let eq = value_fp(&i, a, *la) == value_fp(&i, b, *lb);
-        if !eq { gaps += 1; }
+        if !eq {
+            gaps += 1;
+        }
         eprintln!("  [{}] {}", if eq { "CONVERGE" } else { "  GAP   " }, name);
     }
-    eprintln!("xlang probe: {}/{} converge", pairs.len() - gaps, pairs.len());
+    eprintln!(
+        "xlang probe: {}/{} converge",
+        pairs.len() - gaps,
+        pairs.len()
+    );
 }
 
 /// More-construct convergence probe (research, batch 2): widen the frontier map.
@@ -1394,7 +1466,9 @@ fn convergence_probe2() {
     let mut gaps = 0;
     for (name, a, la, b, lb) in pairs {
         let eq = value_fp(&i, a, *la) == value_fp(&i, b, *lb);
-        if !eq { gaps += 1; }
+        if !eq {
+            gaps += 1;
+        }
         eprintln!("  [{}] {}", if eq { "CONVERGE" } else { "  GAP   " }, name);
     }
     eprintln!("probe2: {}/{} converge", pairs.len() - gaps, pairs.len());
@@ -1421,7 +1495,9 @@ fn convergence_probe3() {
     let mut gaps = 0;
     for (name, a, la, b, lb) in pairs {
         let eq = value_fp(&i, a, *la) == value_fp(&i, b, *lb);
-        if !eq { gaps += 1; }
+        if !eq {
+            gaps += 1;
+        }
         eprintln!("  [{}] {}", if eq { "CONVERGE" } else { "  GAP   " }, name);
     }
     eprintln!("probe3: {}/{} converge", pairs.len() - gaps, pairs.len());
