@@ -363,6 +363,19 @@ impl ScanScope {
     }
 }
 
+/// The line count of the family's representative copy — the denominator for "`N of M`
+/// shared". It's the *first* (largest) site's own span, not the family-wide `mean_lines`:
+/// the two largest members are what got diffed, so a family whose biggest copies run
+/// longer than average must not read as "47/43 shared". Floored at `shared_lines` so the
+/// fraction is never inverted.
+fn representative_lines(f: &nose_detect::RefactorFamily) -> u32 {
+    f.locations
+        .first()
+        .map(|l| l.end_line.saturating_sub(l.start_line) + 1)
+        .unwrap_or(f.mean_lines)
+        .max(f.shared_lines)
+}
+
 /// One plain-language line describing a family: how many copies, how much is actually
 /// shared vs varies, how many lines you'd remove, and where the duplication lives. No
 /// internal ranking numbers — those only order the list, they're not for the reader.
@@ -374,12 +387,7 @@ fn family_summary(f: &nose_detect::RefactorFamily) -> String {
             family_langs(f)
         )
     } else {
-        let rep = f
-            .locations
-            .first()
-            .map(|l| l.end_line.saturating_sub(l.start_line) + 1)
-            .unwrap_or(f.mean_lines)
-            .max(f.shared_lines);
+        let rep = representative_lines(f);
         match f.params {
             0 => format!("{} of {rep} lines identical", f.shared_lines),
             1 => format!("{} of {rep} lines shared, 1 spot differs", f.shared_lines),
@@ -423,15 +431,7 @@ fn similarity_cell(f: &nose_detect::RefactorFamily) -> String {
     if f.languages > 1 {
         return format!("sim {:.2}", f.mean_score);
     }
-    // Denominator is the representative copy's own line count (the two largest members
-    // are what was diffed), not the family-wide `mean_lines` — otherwise a family whose
-    // biggest copies run longer than average reads as "47/43 shared".
-    let rep = f
-        .locations
-        .first()
-        .map(|l| l.end_line.saturating_sub(l.start_line) + 1)
-        .unwrap_or(f.mean_lines)
-        .max(f.shared_lines);
+    let rep = representative_lines(f);
     format!("{}/{} shared · {}p", f.shared_lines, rep, f.params)
 }
 
