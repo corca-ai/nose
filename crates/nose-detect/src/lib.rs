@@ -483,9 +483,10 @@ pub fn detect_with_dump(
     }
     clk.lap("normalize+extract");
 
-    let out = detect_from_units(units, corpus.files.len(), &streams, opts, detector);
-    clk.lap("contiguous");
-    out
+    // `detect_from_units` runs its own `StageTimer` for the detection sub-phases
+    // (candidates/score/groups/contiguous), so no lap here — a single outer lap would
+    // mislabel the whole call (group scoring dwarfs contiguous) as "contiguous".
+    detect_from_units(units, corpus.files.len(), &streams, opts, detector)
 }
 
 /// Run candidate-generation → scoring → clustering over already-built `units` (the
@@ -570,6 +571,7 @@ pub fn detect_from_units(
             }
         })
         .collect();
+    clk.lap("groups");
 
     let mut report = Report {
         tool: "nose",
@@ -595,6 +597,7 @@ pub fn detect_from_units(
         report.metrics.groups += extra.len();
         report.groups.extend(extra);
     }
+    clk.lap("contiguous");
 
     let dump = Dump {
         units: units
