@@ -1756,11 +1756,16 @@ fn shared_lines_of(
         return None;
     }
     let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
-    let shared: Vec<String> = counts
+    let mut shared: Vec<String> = counts
         .into_iter()
         .filter(|(_, c)| *c >= need)
         .map(|(l, _)| l)
         .collect();
+    // Sort to a deterministic order: the caller sums `idf.weight()` over these lines,
+    // and float addition isn't associative, so a `HashMap`-iteration order would make
+    // `shared_weight` (and, via sort ties, the family order) vary run-to-run and across
+    // thread counts — violating the byte-identical-output guarantee.
+    shared.sort_unstable();
     Some((shared, params))
 }
 
