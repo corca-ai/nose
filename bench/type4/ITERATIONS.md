@@ -3487,3 +3487,73 @@ exposed two true misses: Go `slices.Contains` over a local slice binding and Rus
 `vec![...]` local membership. The final detector now carries an import-aware Go
 canonicalization and a Rust `vec!` construction fact while keeping local mutation,
 wrong-element, and wrong-collection boundaries closed.
+
+## Batch-3 Go zero-value map defaults: loops 362-366
+
+This loop switches the cadence from one frontier at a time to a batch of three related
+frontiers under one proof rule. The batch stays within `literal_map_default_lookup` and
+extends Go literal map index proofs from `int|string|bool` zero values to:
+
+- `axis_map_default_go_zero_float_inline_identity`;
+- `axis_map_default_go_zero_float_local_identity`;
+- `axis_map_default_go_zero_nil_pointer_identity`.
+
+The invariant is still narrow: a Go `map[string]T{...}[key]` can be lowered to the same
+strict `GetOrDefault(map, key, zero(T))` coordinate only when every keyed entry is a
+literal of one supported zero-value family. Mixed value kinds remain a hard boundary.
+The nil-pointer case also avoids the degenerate "wrong key" mutation because all-nil
+maps have the same result for present and missing keys; its hard negative changes the
+right-side map value family instead.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 362 | batch frontier selection | group Go `float64` inline, Go `float64` local, and Go nil-pointer literal map index lookups | focused corpus: 6 positives, 6 hard negatives |
+| 363 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/6 false merges |
+| 364 | detector strengthening | add float-zero and null-zero default values to Go literal-zero map canonicalization and strict exact-safety checks | focused: 6/6 positives, 0/6 false merges |
+| 365 | strict regression tests | add value-graph and CLI semantic positives for float/nil plus wrong-key/wrong-map boundaries | targeted and full CLI/equivalence tests passed |
+| 366 | release focused/core gates | build release and run focused, map-default core, and all-cross core gates | focused 6/6, 0/6; map-default core 51/51, 0/122; all-cross 548/548, 0/1041 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=12, positive=0/6, false_merges=0/6
+candidate release: items=12, positive=6/6, false_merges=0/6
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_default_go_zero_float,axis_map_default_go_zero_nil CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 12
+positive recall: 6/6
+hard-negative false merges: 0/6
+Raw nodes: 0/420
+```
+
+Final release map-default core gate:
+
+```text
+GATE=core AXIS=literal_map_default_lookup CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 173/239
+positive recall: 51/51
+hard-negative false merges: 0/122
+Raw nodes: 0/7039
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1589/6430
+positive recall: 548/548
+hard-negative false merges: 0/1041
+Raw nodes: 0/58234
+```
+
+Assessment: batch-3 is a better loop unit when the items share one semantic invariant.
+This batch produced a real detector expansion, not just new benchmark rows: the previous
+release missed all six new cross-surface positives, while the candidate closes them with
+no added false merges in focused, axis-core, or compact all-cross gates. Keep future
+batches similarly scoped: three adjacent frontiers, one proof rule, one focused baseline,
+one detector change, and one combined focused/core verification pass.

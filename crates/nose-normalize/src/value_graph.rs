@@ -892,6 +892,11 @@ impl<'a> Builder<'a> {
                 self.mk(ValOp::Const(stable_string_const_key("")), vec![]),
             )),
             Payload::LitBool(_) => Some((3, self.mk(ValOp::Const(0x3000_0001), vec![]))),
+            Payload::LitFloat(_) => Some((
+                4,
+                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![]),
+            )),
+            Payload::Lit(nose_il::LitClass::Null) => Some((5, self.null_const())),
             _ => None,
         }
     }
@@ -4700,4 +4705,9 @@ fn stable_symbol_hash(name: &str) -> u64 {
 
 fn stable_string_const_key(value: &str) -> u32 {
     0x2000_0000u32.wrapping_add(stable_symbol_hash(value) as u32)
+}
+
+fn stable_float_const_key(value: &str) -> u32 {
+    let normalized = value.trim().trim_end_matches(['f', 'F', 'd', 'D']);
+    0x4000_0000u32.wrapping_add(stable_symbol_hash(normalized) as u32)
 }

@@ -1139,6 +1139,8 @@ fn strict_exact_go_zero_value_kind(payload: Payload) -> Option<u8> {
         Payload::LitInt(_) => Some(1),
         Payload::LitStr(_) => Some(2),
         Payload::LitBool(_) => Some(3),
+        Payload::LitFloat(_) => Some(4),
+        Payload::Lit(LitClass::Null) => Some(5),
         _ => None,
     }
 }

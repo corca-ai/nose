@@ -839,6 +839,18 @@ AXIS_PROPOSALS = {
         "axis": "literal_map_default_lookup",
         "why": "A Go inline `map[string]bool{...}[key]` lookup should prove literal-map default lookup with the boolean zero value fallback.",
     },
+    "axis_map_default_go_zero_float_inline_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go inline `map[string]float64{...}[key]` lookup should prove literal-map default lookup with the float zero value fallback.",
+    },
+    "axis_map_default_go_zero_float_local_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A local Go `map[string]float64{...}` binding followed by index lookup should preserve literal-map default proof coordinates.",
+    },
+    "axis_map_default_go_zero_nil_pointer_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go inline `map[string]*Item{...}[key]` lookup with nil entries should prove literal-map default lookup with the nil zero value fallback.",
+    },
     "axis_map_default_go_zero_wrong_key_boundary": {
         "axis": "literal_map_default_lookup",
         "why": "Go zero-value literal map lookups over different key parameters are different proof coordinates.",
@@ -3633,7 +3645,12 @@ pub fn {name}(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, ke
     raise ValueError(f"unsupported surface for dynamic map default axis: {surface.key}")
 
 
+GO_NIL_PTR = "__go_nil_ptr__"
+
+
 def map_default_py_literal(value: object) -> str:
+    if value == GO_NIL_PTR:
+        return "None"
     if isinstance(value, bool):
         return "True" if value else "False"
     if isinstance(value, str):
@@ -3642,6 +3659,8 @@ def map_default_py_literal(value: object) -> str:
 
 
 def map_default_ruby_literal(value: object) -> str:
+    if value == GO_NIL_PTR:
+        return "nil"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, str):
@@ -3650,6 +3669,8 @@ def map_default_ruby_literal(value: object) -> str:
 
 
 def map_default_go_literal(value: object) -> str:
+    if value == GO_NIL_PTR:
+        return "nil"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, str):
@@ -3658,8 +3679,12 @@ def map_default_go_literal(value: object) -> str:
 
 
 def map_default_go_kind(value: object) -> str:
+    if value == GO_NIL_PTR:
+        return "*Item"
     if isinstance(value, bool):
         return "bool"
+    if isinstance(value, float):
+        return "float64"
     if isinstance(value, str):
         return "string"
     return "int"
@@ -3686,6 +3711,15 @@ def map_default_axis_parts(
     if proposal_id == "axis_map_default_go_zero_bool_inline_identity":
         entries = (("red", True), ("blue", False))
         default = False
+    if proposal_id in {
+        "axis_map_default_go_zero_float_inline_identity",
+        "axis_map_default_go_zero_float_local_identity",
+    }:
+        entries = (("red", 1.5), ("blue", 2.5))
+        default = 0.0
+    if proposal_id == "axis_map_default_go_zero_nil_pointer_identity":
+        entries = (("red", GO_NIL_PTR), ("blue", GO_NIL_PTR))
+        default = GO_NIL_PTR
 
     if right and proposal_id == "axis_map_default_wrong_key_boundary":
         key = "other"
@@ -3775,9 +3809,14 @@ def map_default_axis_parts(
     if proposal_id in {
         "axis_map_default_go_zero_string_inline_identity",
         "axis_map_default_go_zero_bool_inline_identity",
+        "axis_map_default_go_zero_float_inline_identity",
+        "axis_map_default_go_zero_nil_pointer_identity",
     }:
         form = "go_map_inline" if right else "literal_api"
-    if proposal_id == "axis_map_default_go_zero_string_local_identity":
+    if proposal_id in {
+        "axis_map_default_go_zero_string_local_identity",
+        "axis_map_default_go_zero_float_local_identity",
+    }:
         form = "go_map_local" if right else "literal_api"
     if proposal_id in {
         "axis_map_default_go_zero_wrong_key_boundary",
@@ -3863,6 +3902,8 @@ def map_default_axis_parts(
         "axis_map_default_go_zero_string_inline_identity",
         "axis_map_default_go_zero_string_local_identity",
         "axis_map_default_go_zero_bool_inline_identity",
+        "axis_map_default_go_zero_float_inline_identity",
+        "axis_map_default_go_zero_float_local_identity",
         "axis_map_default_module_js_map_identity",
         "axis_map_default_module_ts_map_identity",
         "axis_map_default_module_java_map_identity",
@@ -3871,6 +3912,9 @@ def map_default_axis_parts(
             key = "other"
         else:
             default = 9
+    if right and negative and proposal_id == "axis_map_default_go_zero_nil_pointer_identity":
+        entries = (("red", "apple"), ("blue", "berry"))
+        default = ""
     return key, entries, default, form
 
 
@@ -3921,6 +3965,7 @@ end
     if surface.key == "go":
         value_type = map_default_go_value_type(entries)
         go_type = "interface{}" if value_type == "any" else value_type
+        type_decl = "type Item struct{}\n\n" if go_type == "*Item" else ""
         map_expr = (
             f'map[string]{go_type}{{"{k1}": {map_default_go_literal(v1)}, '
             f'"{k2}": {map_default_go_literal(v2)}}}'
@@ -3930,6 +3975,7 @@ end
         if form == "go_map_inline":
             src = f"""package p
 
+{type_decl}\
 func {name}(key string, other string) {go_type} {{
     return {map_expr}[{key}]
 }}
@@ -3938,6 +3984,7 @@ func {name}(key string, other string) {go_type} {{
         if form == "go_map_local":
             src = f"""package p
 
+{type_decl}\
 func {name}(key string, other string) {go_type} {{
     lookup := {map_expr}
     return lookup[{key}]
@@ -3947,6 +3994,7 @@ func {name}(key string, other string) {go_type} {{
         if form == "go_map_var":
             src = f"""package p
 
+{type_decl}\
 func {name}(key string, other string) {go_type} {{
     var lookup = {map_expr}
     return lookup[{key}]
@@ -6407,6 +6455,54 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     ],
                     "outputs": [],
                 }
+            if proposal_id and proposal_id.startswith("axis_map_default_go_zero_float_"):
+                return {
+                    "level": "E1",
+                    "kind": f"same-spec-{axis}",
+                    "property_inputs": [
+                        {
+                            "lookup": {"red": 1.5, "blue": 2.5},
+                            "other_lookup": {"red": 9.5, "blue": 2.5},
+                            "key": "red",
+                            "other_key": "green",
+                            "fallback": 0.0,
+                            "other_default": 9.0,
+                        },
+                        {
+                            "lookup": {"red": 1.5, "blue": 2.5},
+                            "other_lookup": {"red": 9.5, "blue": 2.5},
+                            "key": "green",
+                            "other_key": "red",
+                            "fallback": 0.0,
+                            "other_default": 9.0,
+                        },
+                    ],
+                    "outputs": [],
+                }
+            if proposal_id == "axis_map_default_go_zero_nil_pointer_identity":
+                return {
+                    "level": "E1",
+                    "kind": f"same-spec-{axis}",
+                    "property_inputs": [
+                        {
+                            "lookup": {"red": None, "blue": None},
+                            "other_lookup": {"red": "apple", "blue": "berry"},
+                            "key": "red",
+                            "other_key": "green",
+                            "fallback": None,
+                            "other_default": "missing",
+                        },
+                        {
+                            "lookup": {"red": None, "blue": None},
+                            "other_lookup": {"red": "apple", "blue": "berry"},
+                            "key": "green",
+                            "other_key": "red",
+                            "fallback": None,
+                            "other_default": "missing",
+                        },
+                    ],
+                    "outputs": [],
+                }
             if proposal_id and proposal_id.startswith("axis_map_default_go_zero_"):
                 return {
                     "level": "E1",
@@ -6651,6 +6747,21 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "input": {"key": "red", "other": "green"},
                 "left": True,
                 "right": False,
+            }
+        elif proposal_id in {
+            "axis_map_default_go_zero_float_inline_identity",
+            "axis_map_default_go_zero_float_local_identity",
+        }:
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": 1.5,
+                "right": 0.0,
+            }
+        elif proposal_id == "axis_map_default_go_zero_nil_pointer_identity":
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": None,
+                "right": "apple",
             }
         elif proposal_id in {
             "axis_map_default_wrong_map_boundary",
@@ -8891,6 +9002,9 @@ def generate_literal_map_default_cross_items(
         "axis_map_default_go_zero_string_inline_identity",
         "axis_map_default_go_zero_string_local_identity",
         "axis_map_default_go_zero_bool_inline_identity",
+        "axis_map_default_go_zero_float_inline_identity",
+        "axis_map_default_go_zero_float_local_identity",
+        "axis_map_default_go_zero_nil_pointer_identity",
     ):
         if not generation_filter.include_proposal(proposal_id):
             continue

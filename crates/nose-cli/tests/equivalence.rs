@@ -2109,6 +2109,24 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
         "package p\n\nfunc F(key string, other string) bool { return map[string]bool{\"red\": true, \"blue\": false}[key] }\n";
     let go_bool_wrong_map =
         "package p\n\nfunc F(key string, other string) bool { return map[string]bool{\"red\": false, \"blue\": false}[key] }\n";
+    let py_float_literal =
+        "def f(key, other):\n    return {\"red\": 1.5, \"blue\": 2.5}.get(key, 0.0)\n";
+    let ruby_float_literal =
+        "def f(key, other)\n  {\"red\" => 1.5, \"blue\" => 2.5}.fetch(key, 0.0)\nend\n";
+    let go_float_inline =
+        "package p\n\nfunc F(key string, other string) float64 { return map[string]float64{\"red\": 1.5, \"blue\": 2.5}[key] }\n";
+    let go_float_local =
+        "package p\n\nfunc F(key string, other string) float64 { lookup := map[string]float64{\"red\": 1.5, \"blue\": 2.5}; return lookup[key] }\n";
+    let go_float_wrong_key =
+        "package p\n\nfunc F(key string, other string) float64 { return map[string]float64{\"red\": 1.5, \"blue\": 2.5}[other] }\n";
+    let py_nil_literal =
+        "def f(key, other):\n    return {\"red\": None, \"blue\": None}.get(key, None)\n";
+    let ruby_nil_literal =
+        "def f(key, other)\n  {\"red\" => nil, \"blue\" => nil}.fetch(key, nil)\nend\n";
+    let go_nil_inline =
+        "package p\n\ntype Item struct{}\n\nfunc F(key string, other string) *Item { return map[string]*Item{\"red\": nil, \"blue\": nil}[key] }\n";
+    let go_nil_wrong_map =
+        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key] }\n";
     let go_mixed_value =
         "package p\n\nfunc F(key string, other string) interface{} { return map[string]interface{}{\"red\": \"apple\", \"blue\": false}[key] }\n";
 
@@ -2140,6 +2158,17 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
     assert_eq!(bool_fp, value_fp(&i, ruby_bool_literal, Lang::Ruby));
     assert_eq!(bool_fp, value_fp(&i, go_bool_inline, Lang::Go));
     assert_ne!(bool_fp, value_fp(&i, go_bool_wrong_map, Lang::Go));
+
+    let float_fp = value_fp(&i, py_float_literal, Lang::Python);
+    assert_eq!(float_fp, value_fp(&i, ruby_float_literal, Lang::Ruby));
+    assert_eq!(float_fp, value_fp(&i, go_float_inline, Lang::Go));
+    assert_eq!(float_fp, value_fp(&i, go_float_local, Lang::Go));
+    assert_ne!(float_fp, value_fp(&i, go_float_wrong_key, Lang::Go));
+
+    let nil_fp = value_fp(&i, py_nil_literal, Lang::Python);
+    assert_eq!(nil_fp, value_fp(&i, ruby_nil_literal, Lang::Ruby));
+    assert_eq!(nil_fp, value_fp(&i, go_nil_inline, Lang::Go));
+    assert_ne!(nil_fp, value_fp(&i, go_nil_wrong_map, Lang::Go));
 }
 
 #[test]

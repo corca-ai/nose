@@ -197,7 +197,7 @@ CANDIDATES = [
         4,
         4,
         "partially-covered",
-        "Literal Python/Ruby map lookup, JS/TS inline/local/module Map and object defaults, typed Go/Java/Rust maps, typed TypeScript Map fallbacks, typed Python `dict`/`Mapping` fallbacks, Java Map.of/Map.ofEntries literal factories, Java static-final Map.of bindings, Rust std HashMap/BTreeMap literal factories, and Go `map[string]int|string|bool{...}[key]` zero-value default lookups are covered; cross-file imports, richer receiver facts, untyped Python/Ruby/JS receiver defaults, other Go zero values, absent-key semantics beyond proven zero defaults, and mutation/effects remain open.",
+        "Literal Python/Ruby map lookup, JS/TS inline/local/module Map and object defaults, typed Go/Java/Rust maps, typed TypeScript Map fallbacks, typed Python `dict`/`Mapping` fallbacks, Java Map.of/Map.ofEntries literal factories, Java static-final Map.of bindings, Rust std HashMap/BTreeMap literal factories, and Go `map[string]int|string|bool|float64|*T{...}[key]` zero-value default lookups are covered; cross-file imports, richer receiver facts, untyped Python/Ruby/JS receiver defaults, remaining Go zero-value families, absent-key semantics beyond proven zero defaults, and mutation/effects remain open.",
         "Continue with imported or cross-file Map/object defaults only when receiver/key/default coordinates can be proven by import identity, immutable binding, type facts, and whole-file mutation exclusion beyond the current inline/local/module construction and Rust std factory cases.",
         (
             pat("go_map_lookup_ok", "go", r"\b\w+\s*,\s*\w+\s*:=\s*\w+\s*\[[^\]]+\]", "medium"),

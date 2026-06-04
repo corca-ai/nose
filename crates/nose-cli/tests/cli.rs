@@ -1654,6 +1654,41 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_float.py"),
+        "def lookup(key, other):\n    return {\"red\": 1.5, \"blue\": 2.5}.get(key, 0.0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_float.rb"),
+        "def lookup(key, other)\n  {\"red\" => 1.5, \"blue\" => 2.5}.fetch(key, 0.0)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_float_inline.go"),
+        "package p\n\nfunc Lookup(key string, other string) float64 {\n    return map[string]float64{\"red\": 1.5, \"blue\": 2.5}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_float_local.go"),
+        "package p\n\nfunc Lookup(key string, other string) float64 {\n    lookup := map[string]float64{\"red\": 1.5, \"blue\": 2.5}\n    return lookup[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_nil.py"),
+        "def lookup(key, other):\n    return {\"red\": None, \"blue\": None}.get(key, None)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_nil.rb"),
+        "def lookup(key, other)\n  {\"red\" => nil, \"blue\" => nil}.fetch(key, nil)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_nil_inline.go"),
+        "package p\n\ntype Item struct{}\n\nfunc Lookup(key string, other string) *Item {\n    return map[string]*Item{\"red\": nil, \"blue\": nil}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("object_hasown.js"),
         "function lookup(key, other) {\n  const values = { \"red\": 1, \"blue\": 2 };\n  return Object.hasOwn(values, key) ? values[key] : 0;\n}\n",
     )
@@ -1791,6 +1826,16 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     fs::write(
         dir.join("wrong_go_bool_map.go"),
         "package p\n\nfunc Wrong(key string, other string) bool {\n    return map[string]bool{\"red\": false, \"blue\": false}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_go_float_key.go"),
+        "package p\n\nfunc Wrong(key string, other string) float64 {\n    return map[string]float64{\"red\": 1.5, \"blue\": 2.5}[other]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_go_nil_map.go"),
+        "package p\n\nfunc Wrong(key string, other string) string {\n    return map[string]string{\"red\": \"apricot\", \"blue\": \"berry\"}[key]\n}\n",
     )
     .unwrap();
     fs::write(
@@ -1946,6 +1991,55 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         );
     }
 
+    let float_expected = [
+        "map_default_float.py",
+        "map_default_float.rb",
+        "map_default_go_float_inline.go",
+        "map_default_go_float_local.go",
+    ];
+    let float_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            float_expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one float map-default family: {semantic}")
+        });
+    let float_text = float_family.to_string();
+    for expected in float_expected {
+        assert!(
+            float_text.contains(expected),
+            "semantic mode should include float map-default {expected}: {semantic}"
+        );
+    }
+
+    let nil_expected = [
+        "map_default_nil.py",
+        "map_default_nil.rb",
+        "map_default_go_nil_inline.go",
+    ];
+    let nil_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            nil_expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one nil map-default family: {semantic}")
+        });
+    let nil_text = nil_family.to_string();
+    for expected in nil_expected {
+        assert!(
+            nil_text.contains(expected),
+            "semantic mode should include nil map-default {expected}: {semantic}"
+        );
+    }
+
     let boundary_files = [
         "wrong_key.py",
         "wrong_default.rb",
@@ -1972,6 +2066,8 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "go_keyed_slice.go",
         "wrong_go_string_key.go",
         "wrong_go_bool_map.go",
+        "wrong_go_float_key.go",
+        "wrong_go_nil_map.go",
         "go_mixed_value_map.go",
         "go_string_keyed_slice.go",
         "object_wrong_key.js",
@@ -1982,7 +2078,13 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "object_method.js",
         "object_shadowed.js",
     ];
-    for family_text in [&positive_text, &string_text, &bool_text] {
+    for family_text in [
+        &positive_text,
+        &string_text,
+        &bool_text,
+        &float_text,
+        &nil_text,
+    ] {
         for unexpected in &boundary_files {
             assert!(
                 !family_text.contains(*unexpected),
