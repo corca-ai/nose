@@ -475,6 +475,27 @@ impl<'a> Builder<'a> {
         self.is_free_name_value(value, name) && !self.java_file_defines_type_name(name)
     }
 
+    fn is_import_namespace_expr(
+        &mut self,
+        expr: NodeId,
+        module: &str,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
+        let value = self.eval(expr, env);
+        self.is_import_namespace_value(value, module)
+    }
+
+    fn is_import_namespace_value(&self, value: ValueId, module: &str) -> bool {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Seq(6)) || node.args.len() != 1 {
+            return false;
+        }
+        matches!(
+            self.nodes[node.args[0] as usize].op,
+            ValOp::Const(k) if k == stable_string_const_key(module)
+        )
+    }
+
     fn java_file_defines_type_name(&self, name: &str) -> bool {
         if self.il.meta.lang != Lang::Java {
             return false;
@@ -637,16 +658,17 @@ impl<'a> Builder<'a> {
             }
             None
         } else if method == "Contains" && kids.len() == 3 {
-            let module_name =
-                receiver.and_then(|r| match (self.il.kind(r), self.il.node(r).payload) {
-                    (NodeKind::Var, Payload::Name(s)) => Some(self.interner.resolve(s)),
-                    _ => None,
-                });
-            if module_name != Some("slices") || !self.is_collection_param_expr(kids[1]) {
+            let receiver = receiver?;
+            if !self.is_import_namespace_expr(receiver, "slices", env) {
                 return None;
             }
             let element = self.eval(kids[2], env);
-            let collection = self.eval_membership_collection(kids[1], env);
+            let collection = if self.is_collection_param_expr(kids[1]) {
+                self.eval_membership_collection(kids[1], env)
+            } else {
+                let value = self.eval(kids[1], env);
+                self.proven_collection_value(value)?
+            };
             Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]))
         } else {
             None
@@ -1216,6 +1238,7 @@ impl<'a> Builder<'a> {
     }
 
     fn module_binding_mutated(&self, name: Symbol) -> bool {
+        let top_level = self.top_level_statements();
         self.il
             .nodes
             .iter()
@@ -1224,8 +1247,16 @@ impl<'a> Builder<'a> {
                 NodeKind::Field => self
                     .field_mutates_binding(NodeId(idx as u32), name)
                     .unwrap_or(false),
+                NodeKind::Assign if !top_level.contains(&NodeId(idx as u32)) => self
+                    .assignment_mutates_binding(NodeId(idx as u32), name)
+                    .unwrap_or(false),
                 _ => false,
             })
+    }
+
+    fn assignment_mutates_binding(&self, assign: NodeId, name: Symbol) -> Option<bool> {
+        let lhs = self.il.children(assign).first().copied()?;
+        Some(self.node_contains_symbol(lhs, name))
     }
 
     fn field_mutates_binding(&self, field: NodeId, name: Symbol) -> Option<bool> {
@@ -1275,6 +1306,15 @@ impl<'a> Builder<'a> {
                 .is_some_and(|&symbol| symbol == name),
             _ => false,
         }
+    }
+
+    fn node_contains_symbol(&self, node: NodeId, name: Symbol) -> bool {
+        self.node_refers_to_symbol(node, name)
+            || self
+                .il
+                .children(node)
+                .iter()
+                .any(|&child| self.node_contains_symbol(child, name))
     }
 
     fn immutable_binding_safe(&self, node: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
@@ -3725,7 +3765,7 @@ impl<'a> Builder<'a> {
     fn seq_tag(&self, node: NodeId) -> u64 {
         match self.il.node(node).payload {
             Payload::Name(s) => match self.interner.resolve(s) {
-                "array" | "list" | "array_expression" => 1,
+                "array" | "list" | "array_expression" | "composite_literal" => 1,
                 "tuple" | "tuple_expression" => 2,
                 "object" | "dictionary" | "hash" => 3,
                 "pair" => 4,
@@ -4041,4 +4081,8 @@ fn stable_symbol_hash(name: &str) -> u64 {
         h = h.wrapping_mul(0x0000_0100_0000_01b3);
     }
     h
+}
+
+fn stable_string_const_key(value: &str) -> u32 {
+    0x2000_0000u32.wrapping_add(stable_symbol_hash(value) as u32)
 }

@@ -614,6 +614,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("go_slices_package.go"),
+        "package p\n\nimport \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc SlicesPackage(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_slices_alias.go"),
+        "package p\n\nimport sl \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc SlicesAlias(value string, other string) bool {\n    return sl.Contains(values, value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_slices_const.go"),
+        "package p\n\nimport \"slices\"\n\nconst first = \"red\"\nvar values = []string{first, \"blue\"}\n\nfunc SlicesConst(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_element.py"),
         "def wrong_element(value, other):\n    return other in [\"red\", \"blue\"]\n",
     )
@@ -641,6 +656,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     fs::write(
         dir.join("module_list_shadowed.java"),
         "class ModuleListShadowed {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleListShadowed(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n\nclass List<T> {\n    static java.util.List<String> of(String left, String right) {\n        return java.util.List.of(\"green\", right);\n    }\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_slices_mutated.go"),
+        "package p\n\nimport \"slices\"\n\nvar values = append([]string{\"red\", \"blue\"}, \"green\")\n\nfunc SlicesMutated(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_slices_unimported.go"),
+        "package p\n\ntype fakeSlices struct{}\n\nfunc (fakeSlices) Contains(values []string, value string) bool {\n    return false\n}\n\nvar slices fakeSlices\nvar values = []string{\"red\", \"blue\"}\n\nfunc SlicesUnimported(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
     )
     .unwrap();
 
@@ -676,6 +701,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "module_set.js",
         "module_set.ts",
         "module_list.java",
+        "go_slices_package.go",
+        "go_slices_alias.go",
+        "go_slices_const.go",
     ] {
         assert!(
             semantic_text.contains(expected),
@@ -689,6 +717,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "module_set_mutated.js",
         "module_set_shadowed.ts",
         "module_list_shadowed.java",
+        "go_slices_mutated.go",
+        "go_slices_unimported.go",
     ] {
         assert!(
             !semantic_text.contains(unexpected),

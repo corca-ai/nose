@@ -262,11 +262,25 @@ fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
 }
 
 fn module_binding_mutated(il: &Il, interner: &Interner, name: Symbol) -> bool {
+    let top_level = top_level_statements(il);
     il.nodes.iter().enumerate().any(|(idx, node)| {
-        il.kind(NodeId(idx as u32)) == NodeKind::Field
-            && field_mutates_binding(il, interner, NodeId(idx as u32), name).unwrap_or(false)
-            && matches!(node.payload, Payload::Name(_))
+        let node_id = NodeId(idx as u32);
+        match il.kind(node_id) {
+            NodeKind::Field => {
+                field_mutates_binding(il, interner, node_id, name).unwrap_or(false)
+                    && matches!(node.payload, Payload::Name(_))
+            }
+            NodeKind::Assign if !top_level.contains(&node_id) => {
+                assignment_mutates_binding(il, node_id, name).unwrap_or(false)
+            }
+            _ => false,
+        }
     })
+}
+
+fn assignment_mutates_binding(il: &Il, assign: NodeId, name: Symbol) -> Option<bool> {
+    let lhs = il.children(assign).first().copied()?;
+    Some(node_contains_symbol(il, lhs, name))
 }
 
 fn field_mutates_binding(
@@ -320,6 +334,14 @@ fn node_refers_to_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
             .is_some_and(|&symbol| symbol == name),
         _ => false,
     }
+}
+
+fn node_contains_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
+    node_refers_to_symbol(il, node, name)
+        || il
+            .children(node)
+            .iter()
+            .any(|&child| node_contains_symbol(il, child, name))
 }
 
 fn strict_exact_module_container_binding_safe(

@@ -447,6 +447,34 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A module-level collection factory with a shadowed `Set` constructor or Java `List` type is not proof of a standard collection factory.",
     },
+    "axis_membership_go_slices_package_identity": {
+        "axis": "literal_collection_membership",
+        "why": "Go `slices.Contains` over a package-level immutable slice literal should prove literal collection membership.",
+    },
+    "axis_membership_go_slices_alias_package_identity": {
+        "axis": "literal_collection_membership",
+        "why": "An aliased Go import of `slices` should preserve the same strict package coordinate for `Contains` membership.",
+    },
+    "axis_membership_go_slices_const_package_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Go package-level slice literal built from immutable const elements should prove the same literal collection membership.",
+    },
+    "axis_membership_go_slices_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Go `slices.Contains` over a package-level slice is still a proof over a specific element coordinate.",
+    },
+    "axis_membership_go_slices_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Go `slices.Contains` over a different package-level literal slice changes membership behavior.",
+    },
+    "axis_membership_go_slices_mutated_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Go package-level slice expanded through `append` is not a strict literal collection proof.",
+    },
+    "axis_membership_go_slices_unimported_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A receiver named `slices` is not proof of the standard Go `slices` package without a static import coordinate.",
+    },
     "axis_map_key_membership_identity": {
         "axis": "map_key_membership",
         "why": "Map key-presence APIs should prove the same key-in-map predicate when receiver and key coordinates are fixed.",
@@ -2146,6 +2174,8 @@ def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> boo
         return surface.key == "java"
     if proposal_id.startswith("axis_membership_module_"):
         return surface.key in {"python", "ruby", "javascript", "typescript", "java"}
+    if proposal_id.startswith("axis_membership_go_slices_"):
+        return surface.key in {"python", "ruby", "go"}
     return surface.key in {
         "python",
         "javascript",
@@ -2217,6 +2247,21 @@ def membership_axis_parts(
         form = "module_set_mutated" if right else "membership"
     if proposal_id == "axis_membership_module_shadowed_boundary":
         form = "module_collection" if right else "membership"
+    if proposal_id == "axis_membership_go_slices_package_identity":
+        form = "go_slices_package" if right else "membership"
+    if proposal_id == "axis_membership_go_slices_alias_package_identity":
+        form = "go_slices_alias_package" if right else "membership"
+    if proposal_id == "axis_membership_go_slices_const_package_identity":
+        form = "go_slices_const_package" if right else "membership"
+    if proposal_id in {
+        "axis_membership_go_slices_wrong_element_boundary",
+        "axis_membership_go_slices_wrong_collection_boundary",
+    }:
+        form = "go_slices_package" if right else "membership"
+    if proposal_id == "axis_membership_go_slices_mutated_boundary":
+        form = "go_slices_mutated" if right else "membership"
+    if proposal_id == "axis_membership_go_slices_unimported_boundary":
+        form = "go_slices_unimported" if right else "membership"
     if right and negative and proposal_id in {
         "axis_membership_set_param_identity",
         "axis_membership_set_inline_identity",
@@ -2227,6 +2272,9 @@ def membership_axis_parts(
         "axis_membership_module_js_set_identity",
         "axis_membership_module_ts_set_identity",
         "axis_membership_module_java_list_identity",
+        "axis_membership_go_slices_package_identity",
+        "axis_membership_go_slices_alias_package_identity",
+        "axis_membership_go_slices_const_package_identity",
     }:
         element = "other"
     if right and proposal_id == "axis_membership_set_wrong_element_boundary":
@@ -2418,6 +2466,72 @@ function {name}(value: string, other: string): boolean {{
         return Variant("axis", src, name)
 
     if surface.key == "go":
+        if form == "go_slices_package":
+            src = f"""package p
+
+import "slices"
+
+var values = []string{{"{left}", "{right_item}"}}
+
+func {name}(value string, other string) bool {{
+    return slices.Contains(values, {element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_slices_alias_package":
+            src = f"""package p
+
+import sl "slices"
+
+var values = []string{{"{left}", "{right_item}"}}
+
+func {name}(value string, other string) bool {{
+    return sl.Contains(values, {element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_slices_const_package":
+            src = f"""package p
+
+import "slices"
+
+const first = "{left}"
+var values = []string{{first, "{right_item}"}}
+
+func {name}(value string, other string) bool {{
+    return slices.Contains(values, {element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_slices_mutated":
+            src = f"""package p
+
+import "slices"
+
+var values = append([]string{{"{left}", "{right_item}"}}, "green")
+
+func {name}(value string, other string) bool {{
+    return slices.Contains(values, value)
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_slices_unimported":
+            src = f"""package p
+
+type fakeSlices struct{{}}
+
+func (fakeSlices) Contains(values []string, value string) bool {{
+    return false
+}}
+
+var slices fakeSlices
+var values = []string{{"{left}", "{right_item}"}}
+
+func {name}(value string, other string) bool {{
+    return slices.Contains(values, {element})
+}}
+"""
+            return Variant("axis", src, name)
         if form == "typed_membership":
             src = f"""package p
 
@@ -5443,6 +5557,12 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "left": False,
                 "right": True,
             }
+        elif proposal_id == "axis_membership_go_slices_mutated_boundary":
+            counterexample = {
+                "input": {"value": "green", "other": "red"},
+                "left": False,
+                "right": True,
+            }
         elif proposal_id == "axis_membership_substring_boundary":
             counterexample = {
                 "input": {"value": "predator", "other": "green"},
@@ -5861,6 +5981,8 @@ def generate_axis_items(
             if proposal_id.startswith("axis_membership_java_"):
                 continue
             if proposal_id.startswith("axis_membership_module_"):
+                continue
+            if proposal_id.startswith("axis_membership_go_slices_"):
                 continue
             if proposal_id.startswith("axis_map_key_") and not map_key_membership_axis_supported(
                 surface, proposal_id
@@ -6573,6 +6695,59 @@ def generate_literal_membership_cross_items(
                         "literal-membership-boundary",
                     )
                 )
+    go_slices_right = surface_by_key["go"]
+    for proposal_id in (
+        "axis_membership_go_slices_package_identity",
+        "axis_membership_go_slices_alias_package_identity",
+        "axis_membership_go_slices_const_package_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in module_reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    go_slices_right,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    go_slices_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_membership_go_slices_wrong_element_boundary",
+        "axis_membership_go_slices_wrong_collection_boundary",
+        "axis_membership_go_slices_mutated_boundary",
+        "axis_membership_go_slices_unimported_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in module_reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    go_slices_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal-membership-boundary",
+                )
+            )
     return items
 
 

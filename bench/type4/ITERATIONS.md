@@ -2294,3 +2294,84 @@ all mutation, coordinate, and shadowing boundaries. This also validates the fast
 cadence: three adjacent positives can be opened together when they share one proof rule
 and the generator attacks that rule with batch-level hard negatives before release gates
 are run.
+
+## Go package slice membership bindings: loops 271-276
+
+This loop keeps the accelerated batch-3 cadence and applies it to Go
+`slices.Contains` over package-level slice bindings. The batch opens three adjacent
+strict positives that share one proof channel:
+
+- default imported `slices.Contains(values, value)` where `values` is a package-level
+  literal slice;
+- aliased imported `sl "slices"` followed by `sl.Contains(values, value)`;
+- a package-level literal slice whose first element is derived from an immutable
+  `const`.
+
+The strict proof is narrower than a name check. The `Contains` receiver must resolve to
+the static import namespace for Go's `slices` package, and the collection argument must
+evaluate to a proven package-level literal/composite collection. Hard negatives cover
+wrong element, wrong collection, append-expanded construction, and a local value named
+`slices` with a `Contains` method. These boundaries are the reason the batch can move
+faster without weakening strict Type-4 semantics.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 271 | accelerated frontier selection | group default import, aliased import, and const-derived package slice under `axis_membership_go_slices_*` | focused corpus: 6 positives, 14 hard negatives |
+| 272 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/14 false merges |
+| 273 | generator adversary | add wrong-element, wrong-collection, append-expanded, and unimported-receiver boundaries | focused generator emits 20 items across Python/Ruby references and Go targets |
+| 274 | detector strengthening | canonicalize Go composite literals as proven collections and allow package-level proven slice values in `slices.Contains` only when the receiver has an import-namespace proof | candidate focused: 6/6 positives, 0/14 false merges |
+| 275 | strict-safe gate alignment | keep the exact-safe fact tied to the same proven collection value and import-coordinate receiver proof | CLI semantic and equivalence tests passed |
+| 276 | release focused/core gates | build release and run focused Go-slices, literal-membership core, and all-cross core gates | focused: 6/6, 0/14; literal core: 70/70, 0/201; all-cross core: 445/445, 0/836 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=20, positive=0/6, false_merges=0/14
+candidate release: items=20, positive=6/6, false_merges=0/14
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_go_slices CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 20
+positive recall: 6/6
+hard-negative false merges: 0/14
+Raw nodes: 0/698
+```
+
+Final release literal-membership compact gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 271/546
+positive recall: 70/70
+hard-negative false merges: 0/201
+Raw nodes: 0/8048
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1281/5768
+positive recall: 445/445
+hard-negative false merges: 0/836
+Raw nodes: 0/48142
+```
+
+Assessment: this is another real detector widening rather than benchmark-only growth.
+The previous detector handled inline Go slice literals and typed slice parameters, but it
+missed package-level proven slice bindings and aliased import coordinates. The new proof
+uses the same strict shape across all three positives while preserving the adversarial
+boundaries. The batch-3 cadence should remain the default for future loops, with one
+constraint: batch together only positives that share a single proof invariant, then add
+shared hard negatives that attack that invariant before running focused and compact core
+gates.
+
+Open next frontier: post-construction Go package mutation such as `values =
+append(values, "green")` inside `init` is still a better adversary than the current
+append-expanded initializer boundary. Opening or rejecting that safely needs a
+scope-aware global mutation fact before alpha-normalized names lose the original package
+binding coordinate.
