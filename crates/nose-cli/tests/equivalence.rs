@@ -1697,6 +1697,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_local_typed_array = "pub fn f(value: &str, other: &str) -> bool {\n    let values: [&str; 2] = [\"red\", \"blue\"];\n    values.contains(&value)\n}\n";
     let rust_local_slice_ref = "pub fn f(value: &str, other: &str) -> bool {\n    let values: &[&str] = &[\"red\", \"blue\"];\n    values.contains(&value)\n}\n";
     let rust_local_vec = "pub fn f(value: &str, other: &str) -> bool {\n    let values = vec![\"red\", \"blue\"];\n    values.contains(&value)\n}\n";
+    let rust_std_hashset = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
+    let rust_std_btreeset = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
+    let rust_std_vecdeque = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::VecDeque::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let java_wrong_element = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(other); } }";
     let java_wrong_collection = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"green\", \"blue\").contains(value); } }";
     let java_shadowed_list = "class C { static boolean f(Object List, String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
@@ -1717,6 +1720,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_local_wrong_collection = "pub fn f(value: &str, other: &str) -> bool {\n    let values = [\"green\", \"blue\"];\n    values.contains(&value)\n}\n";
     let rust_local_mutated = "pub fn f(value: &str, other: &str) -> bool {\n    let mut values = vec![\"red\", \"blue\"];\n    values.push(\"green\");\n    values.contains(&value)\n}\n";
     let rust_local_custom_receiver = "struct Values;\nimpl Values { fn contains(&self, _value: &&str) -> bool { false } }\npub fn f(value: &str, other: &str) -> bool {\n    let values = Values;\n    values.contains(&value)\n}\n";
+    let rust_std_wrong_element = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&other)\n}\n";
+    let rust_std_wrong_collection = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"green\", \"blue\"]);\n    values.contains(&value)\n}\n";
+    let rust_std_mutated = "pub fn f(value: &str, other: &str) -> bool {\n    let mut values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.insert(\"green\");\n    values.contains(&value)\n}\n";
 
     let literal_fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(literal_fp, value_fp(&i, py_set_factory, Lang::Python));
@@ -1789,6 +1795,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, rust_local_typed_array, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_local_slice_ref, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_local_vec, Lang::Rust));
+    assert_eq!(literal_fp, value_fp(&i, rust_std_hashset, Lang::Rust));
+    assert_eq!(literal_fp, value_fp(&i, rust_std_btreeset, Lang::Rust));
+    assert_eq!(literal_fp, value_fp(&i, rust_std_vecdeque, Lang::Rust));
     assert_ne!(literal_fp, value_fp(&i, js_wrong_element, Lang::JavaScript));
     assert_ne!(
         literal_fp,
@@ -1976,6 +1985,12 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         literal_fp,
         value_fp(&i, rust_local_custom_receiver, Lang::Rust)
     );
+    assert_ne!(literal_fp, value_fp(&i, rust_std_wrong_element, Lang::Rust));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, rust_std_wrong_collection, Lang::Rust)
+    );
+    assert_ne!(literal_fp, value_fp(&i, rust_std_mutated, Lang::Rust));
 
     let ts_array = "function f(values: string[], value: string, other: string): boolean { return values.includes(value); }";
     let ts_set = "function f(values: Set<string>, value: string, other: string): boolean { return values.has(value); }";

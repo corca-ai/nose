@@ -744,6 +744,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("rust_std_hashset.rs"),
+        "pub fn rust_std_hashset(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_std_btreeset.rs"),
+        "pub fn rust_std_btreeset(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_std_vecdeque.rs"),
+        "pub fn rust_std_vecdeque(value: &str, other: &str) -> bool {\n    let values = std::collections::VecDeque::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_element.py"),
         "def wrong_element(value, other):\n    return other in [\"red\", \"blue\"]\n",
     )
@@ -883,6 +898,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "struct Values;\n\nimpl Values {\n    fn contains(&self, _value: &&str) -> bool {\n        false\n    }\n}\n\npub fn rust_local_custom_receiver(value: &str, other: &str) -> bool {\n    let values = Values;\n    values.contains(&value)\n}\n",
     )
     .unwrap();
+    fs::write(
+        dir.join("rust_std_wrong_element.rs"),
+        "pub fn rust_std_wrong_element(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&(value.to_owned() + other))\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_std_wrong_collection.rs"),
+        "pub fn rust_std_wrong_collection(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"silver\", \"gold\"]);\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_std_mutated.rs"),
+        "pub fn rust_std_mutated(value: &str, other: &str) -> bool {\n    let mut values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.insert(\"green\");\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
 
     let semantic = run(&[
         "scan",
@@ -942,6 +972,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "rust_local_typed_array.rs",
         "rust_local_slice_ref.rs",
         "rust_local_vec.rs",
+        "rust_std_hashset.rs",
+        "rust_std_btreeset.rs",
+        "rust_std_vecdeque.rs",
     ] {
         assert!(
             semantic_text.contains(expected),
@@ -977,6 +1010,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "java_local_list_mutated.java",
         "rust_local_mutated.rs",
         "rust_local_custom_receiver.rs",
+        "rust_std_wrong_element.rs",
+        "rust_std_wrong_collection.rs",
+        "rust_std_mutated.rs",
     ] {
         assert!(
             !semantic_text.contains(unexpected),

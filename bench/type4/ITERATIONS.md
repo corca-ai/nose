@@ -3557,3 +3557,72 @@ release missed all six new cross-surface positives, while the candidate closes t
 no added false merges in focused, axis-core, or compact all-cross gates. Keep future
 batches similarly scoped: three adjacent frontiers, one proof rule, one focused baseline,
 one detector change, and one combined focused/core verification pass.
+
+## Batch-3 Rust std collection factory membership: loops 367-371
+
+This loop keeps the batch-3 cadence and applies it to `literal_collection_membership`.
+The selected frontier is a tight Rust std construction family:
+
+- `axis_membership_rust_std_hashset_identity`;
+- `axis_membership_rust_std_btreeset_identity`;
+- `axis_membership_rust_std_vecdeque_identity`.
+
+All three variants share the same proof invariant: `Collection::from([literal...])`
+creates a strict immutable collection coordinate for `.contains(&value)` when the
+receiver binding is local and unmutated. Wrong element, wrong collection, and post-
+construction mutation remain hard boundaries. This is the intended acceleration shape
+for future loops: add about three adjacent frontier cases together, but only when they
+share one detector rule and one negative boundary model.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 367 | batch frontier selection | group Rust std `HashSet::from`, `BTreeSet::from`, and `VecDeque::from` membership under `axis_membership_rust_std_*` | focused corpus: 6 positives, 12 hard negatives |
+| 368 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/12 false merges |
+| 369 | detector strengthening | canonicalize Rust std collection factory calls into proven collection values and mark the same factories strict exact-safe | focused: 6/6 positives, 0/12 false merges |
+| 370 | strict regression tests | add value-graph and CLI semantic positives plus wrong-element, wrong-collection, and mutation boundaries | targeted and full CLI/equivalence tests passed |
+| 371 | release focused/core gates | build release and run focused, membership core, and all-cross core gates | focused 6/6, 0/12; membership core 146/146, 0/353; all-cross 554/554, 0/1053 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=18, positive=0/6, false_merges=0/12
+candidate release: items=18, positive=6/6, false_merges=0/12
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_rust_std_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 18
+positive recall: 6/6
+hard-negative false merges: 0/12
+Raw nodes: 0/523
+```
+
+Final release membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 499/1112
+positive recall: 146/146
+hard-negative false merges: 0/353
+Raw nodes: 0/14878
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1607/6448
+positive recall: 554/554
+hard-negative false merges: 0/1053
+Raw nodes: 0/58757
+```
+
+Assessment: the batch-3 cadence is now justified for adjacent strict frontiers. This
+batch expands the detector, not just the benchmark: the previous release missed every
+new Rust std factory positive, while the candidate proves all six and preserves all
+focused, membership-core, and all-cross hard negatives. The limit is also clear:
+batching should be breadth-first across related surface families, not a license to mix
+unrelated semantics into one opaque detector change.
