@@ -1403,6 +1403,21 @@ fn value_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     nose_normalize::value_fingerprint(&n, first_func(&n), interner)
 }
 
+fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    let root = n
+        .units
+        .iter()
+        .find(|unit| {
+            unit.name
+                .is_some_and(|symbol| interner.resolve(symbol) == name)
+        })
+        .map(|unit| unit.root)
+        .unwrap_or_else(|| panic!("expected function unit named {name}"));
+    nose_normalize::value_fingerprint(&n, root, interner)
+}
+
 #[test]
 fn value_graph_ignores_statement_order() {
     // x and y are each used twice → NOT inlined; only the value graph (not the
@@ -1605,6 +1620,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         "def f(value, other):\n    return tuple([\"red\", \"blue\"]).__contains__(value)\n";
     let py_frozenset_factory =
         "def f(value, other):\n    return frozenset([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_import = "from collections import deque\n\ndef f(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_alias = "from collections import deque as Values\n\ndef f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_namespace = "import collections\n\ndef f(value, other):\n    return collections.deque([\"red\", \"blue\"]).__contains__(value)\n";
     let js_set_inline =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_set_local = "function f(value, other) { const values = new Set([\"red\", \"blue\"]); return values.has(value); }";
@@ -1716,6 +1734,12 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let py_factory_wrong_collection =
         "def f(value, other):\n    return set([\"green\", \"blue\"]).__contains__(value)\n";
     let py_factory_shadowed = "def f(value, other):\n    def set(_values):\n        class Box:\n            def __contains__(self, _value):\n                return False\n        return Box()\n    return set([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_wrong_element = "from collections import deque\n\ndef f(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(other)\n";
+    let py_deque_wrong_collection = "from collections import deque\n\ndef f(value, other):\n    return deque([\"green\", \"blue\"]).__contains__(value)\n";
+    let py_deque_missing_import =
+        "def f(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_shadowed = "from collections import deque\n\ndef deque(_values):\n    class Box:\n        def __contains__(self, _value):\n            return False\n    return Box()\n\ndef f(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_deque_mutated = "from collections import deque\n\ndef f(value, other):\n    values = deque([\"red\", \"blue\"])\n    values.append(\"green\")\n    return values.__contains__(value)\n";
     let go_slices_wrong_element = "package p\n\nimport \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, other) }\n";
     let go_slices_wrong_collection = "package p\n\nimport \"slices\"\n\nvar values = []string{\"green\", \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
     let go_slices_mutated = "package p\n\nimport \"slices\"\n\nvar values = append([]string{\"red\", \"blue\"}, \"green\")\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
@@ -1742,6 +1766,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, py_set_factory, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_tuple_factory, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_frozenset_factory, Lang::Python));
+    assert_eq!(literal_fp, value_fp(&i, py_deque_import, Lang::Python));
+    assert_eq!(literal_fp, value_fp(&i, py_deque_alias, Lang::Python));
+    assert_eq!(literal_fp, value_fp(&i, py_deque_namespace, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
@@ -1978,6 +2005,23 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         value_fp(&i, py_factory_wrong_collection, Lang::Python)
     );
     assert_ne!(literal_fp, value_fp(&i, py_factory_shadowed, Lang::Python));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_deque_wrong_element, Lang::Python)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_deque_wrong_collection, Lang::Python)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_deque_missing_import, Lang::Python)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp_named(&i, py_deque_shadowed, Lang::Python, "f")
+    );
+    assert_ne!(literal_fp, value_fp(&i, py_deque_mutated, Lang::Python));
     assert_ne!(literal_fp, value_fp(&i, go_slices_wrong_element, Lang::Go));
     assert_ne!(
         literal_fp,

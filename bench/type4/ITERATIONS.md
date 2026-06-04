@@ -3842,3 +3842,72 @@ local `Set` definitions, rejects mutated bindings, and still keeps wrong-coordin
 boundaries separate. The CLI test was also tightened to check negative boundaries
 against the positive family, because independently valid negative families can exact-
 clone each other without being false positives against the target frontier.
+
+## Batch-3 Python stdlib deque membership: loops 387-391
+
+This loop applies the accelerated batch-3 cadence to `literal_collection_membership`.
+The batch opens three surface forms under one proof invariant:
+
+- `axis_membership_python_deque_import_identity`;
+- `axis_membership_python_deque_alias_identity`;
+- `axis_membership_python_deque_namespace_identity`.
+
+The shared invariant is explicit stdlib provenance: `collections.deque([...])` is a
+strict static collection factory only when the callee is proven by a top-level
+`from collections import deque`, an alias import, or a `collections` namespace import.
+Missing imports, top-level shadowing/rebinding, local mutation after construction,
+wrong elements, and wrong collections remain hard boundaries.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 387 | batch frontier selection | group direct import, alias import, and namespace-qualified `collections.deque` membership under `axis_membership_python_deque_*` | focused corpus: 12 positives, 32 hard negatives |
+| 388 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/12 positives, 0/32 false merges |
+| 389 | detector strengthening | prove imported Python `collections.deque([literal...])` through `import_binding` / `import_namespace` value provenance | focused: 12/12 positives, 0/32 false merges |
+| 390 | strict boundary repair | reject top-level unit shadowing in value-graph import evidence, and require membership collection calls to be proven collection factories rather than arbitrary safe calls | targeted CLI/equivalence tests passed; shadowed deque no longer joins the positive family |
+| 391 | release focused/core gates | build release and run focused, membership core, and all-cross core gates | focused 12/12, 0/32; membership core 173/173, 0/421; all-cross 590/590, 0/1145 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=44, positive=0/12, false_merges=0/32
+candidate release: items=44, positive=12/12, false_merges=0/32
+delta:             +12 positive hits, +0 false merges
+Raw nodes:         0/1582 in both runs
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_python_deque_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 44
+positive recall: 12/12
+hard-negative false merges: 0/32
+Raw nodes: 0/1582
+```
+
+Final release membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 594/1218
+positive recall: 173/173
+hard-negative false merges: 0/421
+Raw nodes: 0/18006
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1735/6587
+positive recall: 590/590
+hard-negative false merges: 0/1145
+Raw nodes: 0/63441
+```
+
+Assessment: this batch confirms the accelerated cadence is viable when the three
+items share one proof invariant. The first CLI run exposed a real strictness gap:
+generic safe calls were accepted as membership collections, and top-level function
+shadowing could leave stale import evidence in the value graph. Fixing that gap
+improved the loop itself, not just the deque case, while preserving all existing core
+frontiers at zero false merges.

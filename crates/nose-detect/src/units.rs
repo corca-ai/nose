@@ -798,6 +798,14 @@ fn strict_exact_membership_collection_safe(
     node: NodeId,
 ) -> bool {
     if il.kind(node) != NodeKind::Seq {
+        if il.kind(node) == NodeKind::Call {
+            return strict_exact_set_constructor_collection_safe(il, interner, facts, node)
+                || strict_exact_python_collection_factory_safe(il, interner, facts, node)
+                || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
+                || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
+                || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
+                || strict_exact_java_collection_factory_safe(il, interner, facts, node);
+        }
         return strict_exact_safe_tree(il, interner, facts, node);
     }
     let tag_safe = match il.node(node).payload {
@@ -841,16 +849,118 @@ fn strict_exact_python_collection_factory_safe(
         return false;
     }
     let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+    if kids.len() != 2 {
         return false;
     }
-    let Payload::Name(name) = il.node(kids[0]).payload else {
-        return false;
+    let builtin = if il.kind(kids[0]) == NodeKind::Var {
+        let Payload::Name(name) = il.node(kids[0]).payload else {
+            return false;
+        };
+        let name = interner.resolve(name);
+        matches!(name, "list" | "set" | "frozenset" | "tuple")
+            && !file_defines_name(il, interner, name)
+    } else {
+        false
     };
-    let name = interner.resolve(name);
-    matches!(name, "list" | "set" | "frozenset" | "tuple")
-        && !file_defines_name(il, interner, name)
+    let imported_stdlib_factory =
+        strict_exact_python_imported_factory_name(il, interner, kids[0], "collections", "deque");
+    (builtin || imported_stdlib_factory)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
+}
+
+fn strict_exact_python_imported_factory_name(
+    il: &Il,
+    interner: &Interner,
+    callee: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    match il.kind(callee) {
+        NodeKind::Var => {
+            let Payload::Name(local) = il.node(callee).payload else {
+                return false;
+            };
+            !unit_defines_symbol(il, local)
+                && top_level_assignment_count(il, local) == 1
+                && top_level_assignment_rhs(il, local).is_some_and(|rhs| {
+                    import_binding_rhs_matches(il, interner, rhs, module, exported)
+                })
+        }
+        NodeKind::Field => {
+            let Payload::Name(method) = il.node(callee).payload else {
+                return false;
+            };
+            if interner.resolve(method) != exported {
+                return false;
+            }
+            let Some(&receiver) = il.children(callee).first() else {
+                return false;
+            };
+            if il.kind(receiver) != NodeKind::Var {
+                return false;
+            }
+            let Payload::Name(namespace) = il.node(receiver).payload else {
+                return false;
+            };
+            !unit_defines_symbol(il, namespace)
+                && top_level_assignment_count(il, namespace) == 1
+                && top_level_assignment_rhs(il, namespace)
+                    .is_some_and(|rhs| import_namespace_rhs_matches(il, interner, rhs, module))
+        }
+        _ => false,
+    }
+}
+
+fn unit_defines_symbol(il: &Il, symbol: Symbol) -> bool {
+    il.units
+        .iter()
+        .any(|unit| unit.name.is_some_and(|name| name == symbol))
+}
+
+fn top_level_assignment_count(il: &Il, symbol: Symbol) -> usize {
+    top_level_statements(il)
+        .iter()
+        .filter(|&&stmt| assignment_name(il, stmt).is_some_and(|name| name == symbol))
+        .count()
+}
+
+fn top_level_assignment_rhs(il: &Il, symbol: Symbol) -> Option<NodeId> {
+    top_level_statements(il).into_iter().find_map(|stmt| {
+        if !assignment_name(il, stmt).is_some_and(|name| name == symbol) {
+            return None;
+        }
+        let kids = il.children(stmt);
+        (kids.len() == 2).then_some(kids[1])
+    })
+}
+
+fn import_binding_rhs_matches(
+    il: &Il,
+    interner: &Interner,
+    rhs: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    let kids = il.children(rhs);
+    il.kind(rhs) == NodeKind::Seq
+        && matches!(
+            il.node(rhs).payload,
+            Payload::Name(seq_name) if interner.resolve(seq_name) == "import_binding"
+        )
+        && kids.len() == 2
+        && matches!(il.node(kids[0]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(module))
+        && matches!(il.node(kids[1]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(exported))
+}
+
+fn import_namespace_rhs_matches(il: &Il, interner: &Interner, rhs: NodeId, module: &str) -> bool {
+    let kids = il.children(rhs);
+    il.kind(rhs) == NodeKind::Seq
+        && matches!(
+            il.node(rhs).payload,
+            Payload::Name(seq_name) if interner.resolve(seq_name) == "import_namespace"
+        )
+        && kids.len() == 1
+        && matches!(il.node(kids[0]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(module))
 }
 
 fn strict_exact_ruby_set_factory_safe(

@@ -483,7 +483,8 @@ impl<'a> Builder<'a> {
         let builtin = ["list", "set", "frozenset", "tuple"]
             .into_iter()
             .any(|name| self.is_free_name_value(args[0], name) && !self.file_defines_name(name));
-        if !builtin {
+        let imported_stdlib_factory = self.is_import_binding_value(args[0], "collections", "deque");
+        if !builtin && !imported_stdlib_factory {
             return None;
         }
         let collection = args[1];
@@ -570,6 +571,20 @@ impl<'a> Builder<'a> {
         matches!(
             self.nodes[node.args[0] as usize].op,
             ValOp::Const(k) if k == stable_string_const_key(module)
+        )
+    }
+
+    fn is_import_binding_value(&self, value: ValueId, module: &str, exported: &str) -> bool {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Seq(5)) || node.args.len() != 2 {
+            return false;
+        }
+        matches!(
+            self.nodes[node.args[0] as usize].op,
+            ValOp::Const(k) if k == stable_string_const_key(module)
+        ) && matches!(
+            self.nodes[node.args[1] as usize].op,
+            ValOp::Const(k) if k == stable_string_const_key(exported)
         )
     }
 
@@ -1591,6 +1606,9 @@ impl<'a> Builder<'a> {
             let Some(name) = self.assignment_name(stmt) else {
                 continue;
             };
+            if self.unit_defines_symbol(name) {
+                continue;
+            }
             if counts.get(&name).copied().unwrap_or(0) != 1 {
                 continue;
             }
@@ -1655,6 +1673,13 @@ impl<'a> Builder<'a> {
             return None;
         };
         self.il.cid_names.get(cid as usize).copied()
+    }
+
+    fn unit_defines_symbol(&self, symbol: Symbol) -> bool {
+        self.il
+            .units
+            .iter()
+            .any(|unit| unit.name.is_some_and(|name| name == symbol))
     }
 
     fn module_binding_mutated(&self, name: Symbol) -> bool {

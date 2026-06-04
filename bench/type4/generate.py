@@ -411,6 +411,38 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A Python builtin `frozenset([...]).__contains__(value)` factory over static items should prove the same literal membership predicate.",
     },
+    "axis_membership_python_deque_import_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python `collections.deque` imported factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_deque_alias_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python aliased `collections.deque` imported factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_deque_namespace_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python namespace-qualified `collections.deque` factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_deque_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python deque factory membership remains tied to a specific element coordinate.",
+    },
+    "axis_membership_python_deque_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python deque factory membership over different static items changes behavior.",
+    },
+    "axis_membership_python_deque_missing_import_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A free Python `deque` name is not strict stdlib factory evidence without a proven import.",
+    },
+    "axis_membership_python_deque_shadowed_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Python `deque` binding shadowed after import is not proof of the stdlib factory.",
+    },
+    "axis_membership_python_deque_mutated_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Python deque binding mutated after construction is not the original static collection.",
+    },
     "axis_membership_python_factory_wrong_element_boundary": {
         "axis": "literal_collection_membership",
         "why": "Python builtin collection factory membership remains tied to a specific element coordinate.",
@@ -2664,6 +2696,23 @@ def membership_axis_parts(
         form = "python_tuple_factory" if right else "membership"
     if proposal_id == "axis_membership_python_frozenset_factory_identity":
         form = "python_frozenset_factory" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_import_identity":
+        form = "python_deque_import" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_alias_identity":
+        form = "python_deque_alias" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_namespace_identity":
+        form = "python_deque_namespace" if right else "membership"
+    if proposal_id in {
+        "axis_membership_python_deque_wrong_element_boundary",
+        "axis_membership_python_deque_wrong_collection_boundary",
+    }:
+        form = "python_deque_import" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_missing_import_boundary":
+        form = "python_deque_missing_import" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_shadowed_boundary":
+        form = "python_deque_shadowed" if right else "membership"
+    if proposal_id == "axis_membership_python_deque_mutated_boundary":
+        form = "python_deque_mutated" if right else "membership"
     if proposal_id in {
         "axis_membership_python_factory_wrong_element_boundary",
         "axis_membership_python_factory_wrong_collection_boundary",
@@ -2848,6 +2897,9 @@ def membership_axis_parts(
         "axis_membership_python_set_factory_identity",
         "axis_membership_python_tuple_factory_identity",
         "axis_membership_python_frozenset_factory_identity",
+        "axis_membership_python_deque_import_identity",
+        "axis_membership_python_deque_alias_identity",
+        "axis_membership_python_deque_namespace_identity",
         "axis_membership_local_go_slice_identity",
         "axis_membership_local_java_list_identity",
         "axis_membership_local_rust_vec_identity",
@@ -3157,6 +3209,45 @@ function {name}(value: string, other: string): boolean {{
 """
             src = f"""def {name}(value, other):
 {shadow}    return {ctor}(["{left}", "{right_item}"]).__contains__({element})
+"""
+            return Variant("axis", src, name)
+        if form.startswith("python_deque_"):
+            import_line = {
+                "python_deque_import": "from collections import deque\n\n",
+                "python_deque_alias": "from collections import deque as Values\n\n",
+                "python_deque_namespace": "import collections\n\n",
+                "python_deque_missing_import": "",
+                "python_deque_shadowed": "from collections import deque\n\n",
+                "python_deque_mutated": "from collections import deque\n\n",
+            }[form]
+            factory = {
+                "python_deque_import": "deque",
+                "python_deque_alias": "Values",
+                "python_deque_namespace": "collections.deque",
+                "python_deque_missing_import": "deque",
+                "python_deque_shadowed": "deque",
+                "python_deque_mutated": "deque",
+            }[form]
+            if form == "python_deque_shadowed":
+                src = f"""{import_line}def deque(_values):
+    class Box:
+        def __contains__(self, _value):
+            return False
+    return Box()
+
+def {name}(value, other):
+    return deque(["{left}", "{right_item}"]).__contains__({element})
+"""
+                return Variant("axis", src, name)
+            if form == "python_deque_mutated":
+                src = f"""{import_line}def {name}(value, other):
+    values = deque(["{left}", "{right_item}"])
+    values.append("green")
+    return values.__contains__(value)
+"""
+                return Variant("axis", src, name)
+            src = f"""{import_line}def {name}(value, other):
+    return {factory}(["{left}", "{right_item}"]).__contains__({element})
 """
             return Variant("axis", src, name)
         if form == "python_tuple_param":
@@ -7436,6 +7527,8 @@ def generate_axis_items(
                 continue
             if proposal_id.startswith("axis_membership_python_alias_"):
                 continue
+            if proposal_id.startswith("axis_membership_python_deque_"):
+                continue
             if proposal_id.startswith("axis_membership_ruby_set_"):
                 continue
             if proposal_id.startswith("axis_membership_set_"):
@@ -8139,6 +8232,65 @@ def generate_literal_membership_cross_items(
                     "not_equivalent",
                     "heldout",
                     "literal_collection_membership-semantic-mutation",
+                )
+            )
+    python_deque_reference_surfaces = python_factory_reference_surfaces
+    python_deque_right = surface_by_key["python"]
+    for proposal_id in (
+        "axis_membership_python_deque_import_identity",
+        "axis_membership_python_deque_alias_identity",
+        "axis_membership_python_deque_namespace_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in python_deque_reference_surfaces:
+            if left_surface.key == python_deque_right.key:
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    python_deque_right,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    python_deque_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_membership_python_deque_wrong_element_boundary",
+        "axis_membership_python_deque_wrong_collection_boundary",
+        "axis_membership_python_deque_missing_import_boundary",
+        "axis_membership_python_deque_shadowed_boundary",
+        "axis_membership_python_deque_mutated_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in python_deque_reference_surfaces:
+            if left_surface.key == python_deque_right.key:
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    python_deque_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal-membership-boundary",
                 )
             )
     local_constructed_reference_surfaces = [

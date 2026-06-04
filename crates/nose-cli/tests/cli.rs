@@ -589,6 +589,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("python_deque_import.py"),
+        "from collections import deque\n\n\ndef python_deque_import(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_alias.py"),
+        "from collections import deque as Values\n\n\ndef python_deque_alias(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_namespace.py"),
+        "import collections\n\n\ndef python_deque_namespace(value, other):\n    return collections.deque([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership.js"),
         "function membership(value, other) {\n  return [\"red\", \"blue\"].includes(value);\n}\n",
     )
@@ -889,6 +904,31 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("python_deque_wrong_element.py"),
+        "from collections import deque\n\n\ndef python_deque_wrong_element(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(other)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_wrong_collection.py"),
+        "from collections import deque\n\n\ndef python_deque_wrong_collection(value, other):\n    return deque([\"green\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_missing_import.py"),
+        "def python_deque_missing_import(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_shadowed.py"),
+        "from collections import deque\n\n\ndef deque(_values):\n    class Box:\n        def __contains__(self, _value):\n            return False\n    return Box()\n\n\ndef python_deque_shadowed(value, other):\n    return deque([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_deque_mutated.py"),
+        "from collections import deque\n\n\ndef python_deque_mutated(value, other):\n    values = deque([\"red\", \"blue\"])\n    values.append(\"green\")\n    return values.__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("go_slices_mutated.go"),
         "package p\n\nimport \"slices\"\n\nvar values = append([]string{\"red\", \"blue\"}, \"green\")\n\nfunc SlicesMutated(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
     )
@@ -989,6 +1029,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
                 "membership.py",
                 "membership.rb",
                 "python_set_factory.py",
+                "python_deque_import.py",
+                "python_deque_alias.py",
+                "python_deque_namespace.py",
                 "ruby_set_new_include.rb",
                 "ruby_set_new_member.rb",
                 "ruby_set_local.rb",
@@ -1014,6 +1057,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "python_set_factory.py",
         "python_tuple_factory.py",
         "python_frozenset_factory.py",
+        "python_deque_import.py",
+        "python_deque_alias.py",
+        "python_deque_namespace.py",
         "module_set.js",
         "module_set.ts",
         "array_some.js",
@@ -1072,6 +1118,11 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "module_set_shadowed.ts",
         "module_list_shadowed.java",
         "python_factory_shadowed.py",
+        "python_deque_wrong_element.py",
+        "python_deque_wrong_collection.py",
+        "python_deque_missing_import.py",
+        "python_deque_shadowed.py",
+        "python_deque_mutated.py",
         "go_slices_mutated.go",
         "go_slices_local_mutated.go",
         "go_slices_unimported.go",
