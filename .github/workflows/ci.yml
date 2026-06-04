@@ -13,7 +13,7 @@ jobs:
     name: build · test · lint · dup-gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -37,7 +37,7 @@ jobs:
     name: minimum supported rust version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # Read the MSRV from Cargo.toml so this job never drifts from the declared value.
       - id: msrv
         run: echo "v=$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*\"(.*)\".*/\1/')" >> "$GITHUB_OUTPUT"
@@ -52,7 +52,7 @@ jobs:
     name: unused-deps · advisories · licenses
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       # Prebuilt binaries — no compile cost.
       - uses: taiki-e/install-action@v2
@@ -67,7 +67,7 @@ jobs:
     name: docs wiki connectivity (awiki)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: stable
@@ -81,7 +81,7 @@ jobs:
     name: lean proofs (value-graph soundness)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # The formal/ proofs are standalone Lean 4 files (no Mathlib); each must type-check
       # with no `sorry`. They machine-check the value-graph canonicalization rules
       # (AC sort, distribution, map/filter fusion, …). See formal/README.md.
