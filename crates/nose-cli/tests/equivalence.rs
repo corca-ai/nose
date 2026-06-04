@@ -1578,12 +1578,18 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_set_inline =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_set_local = "function f(value, other) { const values = new Set([\"red\", \"blue\"]); return values.has(value); }";
+    let js_module_set =
+        "const VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value, other) { return VALUES.has(value); }";
+    let ts_module_set = "const VALUES = new Set<string>([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
+    let java_module_list = "import java.util.List;\n\nclass C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }";
     let js_wrong_element =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(other); }";
     let js_wrong_collection =
         "function f(value, other) { return new Set([\"green\", \"blue\"]).has(value); }";
     let js_shadowed_set =
         "function f(Set, value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
+    let js_module_set_mutated = "const VALUES = new Set([\"red\", \"blue\"]);\nVALUES.add(\"green\");\nfunction f(value, other) { return VALUES.has(value); }";
+    let ts_module_set_shadowed = "const Set: any = function(_values: any) { return { has: function() { return false; } }; };\nconst VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
     let java_list_of = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_set_of = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"red\", \"blue\").contains(value); } }";
     let java_arrays_aslist = "import java.util.Arrays;\n\nclass C { static boolean f(String value, String other) { return Arrays.asList(\"red\", \"blue\").contains(value); } }";
@@ -1591,23 +1597,39 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let java_wrong_collection = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"green\", \"blue\").contains(value); } }";
     let java_shadowed_list = "class C { static boolean f(Object List, String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_local_list_class = "class C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }\nclass List { static Box of(String a, String b) { return new Box(); } }\nclass Box { boolean contains(String value) { return false; } }";
+    let java_module_list_shadowed = "class C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }\nclass List<T> { static java.util.List<String> of(String left, String right) { return java.util.List.of(\"green\", right); } }";
 
     let literal_fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
     assert_eq!(literal_fp, value_fp(&i, java_list_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_set_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_arrays_aslist, Lang::Java));
+    assert_eq!(literal_fp, value_fp(&i, java_module_list, Lang::Java));
     assert_ne!(literal_fp, value_fp(&i, js_wrong_element, Lang::JavaScript));
     assert_ne!(
         literal_fp,
         value_fp(&i, js_wrong_collection, Lang::JavaScript)
     );
     assert_ne!(literal_fp, value_fp(&i, js_shadowed_set, Lang::JavaScript));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_module_set_mutated, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, ts_module_set_shadowed, Lang::TypeScript)
+    );
     assert_ne!(literal_fp, value_fp(&i, java_wrong_element, Lang::Java));
     assert_ne!(literal_fp, value_fp(&i, java_wrong_collection, Lang::Java));
     assert_ne!(literal_fp, value_fp(&i, java_shadowed_list, Lang::Java));
     assert_ne!(literal_fp, value_fp(&i, java_local_list_class, Lang::Java));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, java_module_list_shadowed, Lang::Java)
+    );
 
     let ts_array = "function f(values: string[], value: string, other: string): boolean { return values.includes(value); }";
     let ts_set = "function f(values: Set<string>, value: string, other: string): boolean { return values.has(value); }";

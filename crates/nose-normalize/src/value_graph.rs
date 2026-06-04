@@ -1156,10 +1156,13 @@ impl<'a> Builder<'a> {
             let value = if self.immutable_binding_safe(kids[1], &env) {
                 value
             } else if !self.module_binding_mutated(name) {
-                let Some(map) = self.proven_map_value(value) else {
+                let Some(proven) = self
+                    .proven_map_value(value)
+                    .or_else(|| self.proven_collection_value(value))
+                else {
                     continue;
                 };
-                map
+                proven
             } else {
                 continue;
             };
@@ -1231,18 +1234,30 @@ impl<'a> Builder<'a> {
         };
         if !matches!(
             self.interner.resolve(method),
-            "set"
+            "add"
+                | "addAll"
+                | "append"
                 | "delete"
                 | "clear"
-                | "put"
-                | "putAll"
-                | "remove"
-                | "replace"
-                | "replaceAll"
                 | "compute"
                 | "computeIfAbsent"
                 | "computeIfPresent"
                 | "merge"
+                | "pop"
+                | "push"
+                | "put"
+                | "putAll"
+                | "remove"
+                | "removeAll"
+                | "removeIf"
+                | "replace"
+                | "replaceAll"
+                | "retainAll"
+                | "shift"
+                | "sort"
+                | "splice"
+                | "unshift"
+                | "set"
         ) {
             return Some(false);
         }

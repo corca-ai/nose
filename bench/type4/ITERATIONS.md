@@ -2221,3 +2221,76 @@ adversary. Opening module-level `Map` construction would be unsound if `const` w
 mistaken for deep immutability, so the detector now requires both a proven map
 initializer and a whole-file exclusion of mutating receiver calls before exposing the
 binding through `global_env` or `exact_safe` facts.
+
+## Module-level collection membership bindings: loops 265-270
+
+This loop applies the accelerated batch-3 cadence to `literal_collection_membership`.
+Instead of opening one surface at a time, the batch opens three adjacent strict positives
+that share the same proof channel:
+
+- JavaScript `const VALUES = new Set([...])` followed by `VALUES.has(value)`;
+- TypeScript `const VALUES = new Set<string>(...)` followed by `VALUES.has(value)`;
+- Java `static final List<String> VALUES = List.of(...)` followed by
+  `VALUES.contains(value)`.
+
+The strict proof is intentionally the same as the module-map proof shape from loops
+259-264: the module/static binding must be assigned once, its initializer must be a
+proven standard collection construction/factory, and the same file must not mutate the
+binding through collection mutators such as `add`, `delete`, `clear`, `put`, `remove`,
+`push`, `sort`, or `splice`. Hard negatives cover wrong element, wrong collection,
+post-construction mutation, and shadowed `Set`/Java `List` boundaries.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 265 | accelerated frontier selection | group JS module `Set`, TS module `Set`, and Java static-final `List.of` under `axis_membership_module_*` | focused corpus: 6 positives, 28 hard negatives |
+| 266 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/28 false merges, 0 Raw nodes |
+| 267 | generator adversary | add wrong-coordinate, mutation, and shadow boundaries for module-level collection membership | focused generator emits 34 items across Python/Ruby refs and JS/TS/Java targets |
+| 268 | detector strengthening | seed module/global bindings with canonical proven collection values when the initializer is a proven collection constructor/factory and the binding is not mutated | candidate focused: 6/6 positives |
+| 269 | strict-safe gate alignment | mark the same module collection bindings as exact-safe only under the same initializer and mutation-exclusion proof | targeted value-graph and CLI semantic tests passed |
+| 270 | release focused/core gates | build release and run focused module-membership, literal-membership core, and all-cross core gates | focused: 6/6, 0/28; literal core: 64/64, 0/187; all-cross core: 439/439, 0/822 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=34, positive=0/6, false_merges=0/28
+candidate release: items=34, positive=6/6, false_merges=0/28
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_module CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 34
+positive recall: 6/6
+hard-negative false merges: 0/28
+Raw nodes: 0/1109
+```
+
+Final release literal-membership compact gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 251/526
+positive recall: 64/64
+hard-negative false merges: 0/187
+Raw nodes: 0/7346
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1261/5748
+positive recall: 439/439
+hard-negative false merges: 0/822
+Raw nodes: 0/47444
+```
+
+Assessment: the batch-3 loop materially widened the strict detector, not only the
+benchmark. The previous release missed every module-level collection membership
+positive, while the candidate proves all six focused cross-language pairs and preserves
+all mutation, coordinate, and shadowing boundaries. This also validates the faster loop
+cadence: three adjacent positives can be opened together when they share one proof rule
+and the generator attacks that rule with batch-level hard negatives before release gates
+are run.

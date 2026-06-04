@@ -212,9 +212,9 @@ impl StrictFacts {
                 continue;
             }
             let safe_literal = immutable_binding_safe(il, &env, &self.immutable_names, kids[1]);
-            let safe_map = !module_binding_mutated(il, interner, name)
-                && strict_exact_module_map_binding_safe(il, interner, self, kids[1]);
-            if safe_literal || safe_map {
+            let safe_proven_container = !module_binding_mutated(il, interner, name)
+                && strict_exact_module_container_binding_safe(il, interner, self, kids[1]);
+            if safe_literal || safe_proven_container {
                 self.immutable_names.insert(name);
                 if let Payload::Cid(cid) = il.node(kids[0]).payload {
                     env.insert(cid);
@@ -280,18 +280,30 @@ fn field_mutates_binding(
     };
     if !matches!(
         interner.resolve(method),
-        "set"
+        "add"
+            | "addAll"
+            | "append"
             | "delete"
             | "clear"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "replace"
-            | "replaceAll"
             | "compute"
             | "computeIfAbsent"
             | "computeIfPresent"
             | "merge"
+            | "pop"
+            | "push"
+            | "put"
+            | "putAll"
+            | "remove"
+            | "removeAll"
+            | "removeIf"
+            | "replace"
+            | "replaceAll"
+            | "retainAll"
+            | "shift"
+            | "sort"
+            | "splice"
+            | "unshift"
+            | "set"
     ) {
         return Some(false);
     }
@@ -310,7 +322,7 @@ fn node_refers_to_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
     }
 }
 
-fn strict_exact_module_map_binding_safe(
+fn strict_exact_module_container_binding_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -318,6 +330,8 @@ fn strict_exact_module_map_binding_safe(
 ) -> bool {
     strict_exact_map_constructor_entries_safe(il, interner, facts, node)
         || strict_exact_java_map_factory_safe(il, interner, facts, node)
+        || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
+        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
 }
 
 fn immutable_binding_safe(

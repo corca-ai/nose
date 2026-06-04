@@ -599,6 +599,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("module_set.js"),
+        "const VALUES = new Set([\"red\", \"blue\"]);\n\nfunction moduleSet(value, other) {\n  return VALUES.has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("module_set.ts"),
+        "const VALUES = new Set<string>([\"red\", \"blue\"]);\n\nfunction moduleSet(value: string, other: string): boolean {\n  return VALUES.has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("module_list.java"),
+        "import java.util.List;\n\nclass ModuleList {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleList(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_element.py"),
         "def wrong_element(value, other):\n    return other in [\"red\", \"blue\"]\n",
     )
@@ -611,6 +626,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     fs::write(
         dir.join("substring.rs"),
         "pub fn substring(value: &str, other: &str) -> bool {\n    value.contains(\"red\")\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("module_set_mutated.js"),
+        "const VALUES = new Set([\"red\", \"blue\"]);\nVALUES.add(\"green\");\n\nfunction moduleSetMutated(value, other) {\n  return VALUES.has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("module_set_shadowed.ts"),
+        "const Set: any = function(_values: any) {\n  return { has: function() { return false; } };\n};\nconst VALUES = new Set([\"red\", \"blue\"]);\n\nfunction moduleSetShadowed(value: string, other: string): boolean {\n  return VALUES.has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("module_list_shadowed.java"),
+        "class ModuleListShadowed {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleListShadowed(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n\nclass List<T> {\n    static java.util.List<String> of(String left, String right) {\n        return java.util.List.of(\"green\", right);\n    }\n}\n",
     )
     .unwrap();
 
@@ -643,13 +673,23 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "membership.go",
         "membership.rs",
         "membership.rb",
+        "module_set.js",
+        "module_set.ts",
+        "module_list.java",
     ] {
         assert!(
             semantic_text.contains(expected),
             "semantic mode should include {expected}: {semantic}"
         );
     }
-    for unexpected in ["wrong_element.py", "wrong_collection.js", "substring.rs"] {
+    for unexpected in [
+        "wrong_element.py",
+        "wrong_collection.js",
+        "substring.rs",
+        "module_set_mutated.js",
+        "module_set_shadowed.ts",
+        "module_list_shadowed.java",
+    ] {
         assert!(
             !semantic_text.contains(unexpected),
             "semantic mode must preserve literal membership boundaries: {semantic}"

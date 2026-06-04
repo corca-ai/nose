@@ -152,8 +152,8 @@ CANDIDATES = [
         3,
         3,
         "partially-covered",
-        "Static literal collection membership, typed dynamic receiver membership, proven Set construction, and Java literal collection factories are covered; substring contains, map-key membership, untyped dynamic sets, and ambiguous receiver contains must stay distinct.",
-        "Continue with dynamic collection/set membership only when receiver/key coordinates can be proven by import, construction, immutable binding, or richer type facts beyond the current typed-parameter, literal-Set, and Java literal-factory cases; keep substring, regex, map-key, and unproven receiver-overloaded calls as hard boundaries.",
+        "Static literal collection membership, typed dynamic receiver membership, proven Set construction, Java literal collection factories, and same-file module/static-final JS/TS/Java collection bindings are covered; substring contains, map-key membership, mutated bindings, shadowed constructors/types, untyped dynamic sets, and ambiguous receiver contains must stay distinct.",
+        "Continue with dynamic collection/set membership only when receiver/element coordinates can be proven by imported or cross-file immutable bindings, construction facts, or richer type facts beyond the current typed-parameter, literal-Set, Java literal-factory, and same-file module-binding cases; keep substring, regex, map-key, mutation, shadowing, and unproven receiver-overloaded calls as hard boundaries.",
         (
             pat("go_slices_contains", "go", r"\bslices\.Contains\s*\(", "high"),
             pat("go_map_ok", "go", r"\b_,\s*\w+\s*:=\s*\w+\s*\[[^\]]+\]", "high"),

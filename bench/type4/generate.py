@@ -419,6 +419,34 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A locally shadowed Java `Arrays` name is not proof of the standard `java.util.Arrays.asList` collection factory.",
     },
+    "axis_membership_module_js_set_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A module-level immutable JavaScript `Set` binding should prove literal collection membership when the binding is not mutated.",
+    },
+    "axis_membership_module_ts_set_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A module-level immutable TypeScript `Set` binding should prove literal collection membership when the binding is not mutated.",
+    },
+    "axis_membership_module_java_list_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Java static final `List.of(...)` binding should prove literal collection membership through the same collection/element coordinates.",
+    },
+    "axis_membership_module_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Module-level collection membership over different element parameters is a different proof coordinate.",
+    },
+    "axis_membership_module_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Module-level collection membership over different static items changes membership behavior.",
+    },
+    "axis_membership_module_mutated_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A module-level collection binding mutated after construction is not a strict literal collection proof.",
+    },
+    "axis_membership_module_shadowed_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A module-level collection factory with a shadowed `Set` constructor or Java `List` type is not proof of a standard collection factory.",
+    },
     "axis_map_key_membership_identity": {
         "axis": "map_key_membership",
         "why": "Map key-presence APIs should prove the same key-in-map predicate when receiver and key coordinates are fixed.",
@@ -2116,6 +2144,8 @@ def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> boo
         return surface.key in {"python", "javascript", "typescript", "go", "rust", "ruby"}
     if proposal_id.startswith("axis_membership_java_"):
         return surface.key == "java"
+    if proposal_id.startswith("axis_membership_module_"):
+        return surface.key in {"python", "ruby", "javascript", "typescript", "java"}
     return surface.key in {
         "python",
         "javascript",
@@ -2172,6 +2202,21 @@ def membership_axis_parts(
             form = "java_set_of"
         elif "_arrays_aslist_" in proposal_id:
             form = "java_arrays_aslist"
+    if proposal_id == "axis_membership_module_js_set_identity":
+        form = "module_set" if right else "membership"
+    if proposal_id == "axis_membership_module_ts_set_identity":
+        form = "module_set" if right else "membership"
+    if proposal_id == "axis_membership_module_java_list_identity":
+        form = "java_module_list" if right else "membership"
+    if proposal_id in {
+        "axis_membership_module_wrong_element_boundary",
+        "axis_membership_module_wrong_collection_boundary",
+    }:
+        form = "module_collection" if right else "membership"
+    if proposal_id == "axis_membership_module_mutated_boundary":
+        form = "module_set_mutated" if right else "membership"
+    if proposal_id == "axis_membership_module_shadowed_boundary":
+        form = "module_collection" if right else "membership"
     if right and negative and proposal_id in {
         "axis_membership_set_param_identity",
         "axis_membership_set_inline_identity",
@@ -2179,6 +2224,9 @@ def membership_axis_parts(
         "axis_membership_java_list_of_identity",
         "axis_membership_java_set_of_identity",
         "axis_membership_java_arrays_aslist_identity",
+        "axis_membership_module_js_set_identity",
+        "axis_membership_module_ts_set_identity",
+        "axis_membership_module_java_list_identity",
     }:
         element = "other"
     if right and proposal_id == "axis_membership_set_wrong_element_boundary":
@@ -2209,12 +2257,44 @@ def axis_membership_literal_variant(
     left, right_item = items
 
     if surface.language == "javascript":
+        if form == "module_collection":
+            form = "module_set"
+        if form == "module_collection_shadowed":
+            form = "module_set_shadowed"
         if form == "set_inline":
             expr = f'new Set(["{left}", "{right_item}"]).has({element})'
         elif form == "set_local":
             body = f"""function {name}(value, other) {{
   const values = new Set(["{left}", "{right_item}"]);
   return values.has({element});
+}}
+"""
+            return js_axis_source(surface, body, name)
+        elif form == "module_set":
+            body = f"""const VALUES = new Set(["{left}", "{right_item}"]);
+
+function {name}(value, other) {{
+  return VALUES.has({element});
+}}
+"""
+            return js_axis_source(surface, body, name)
+        elif form == "module_set_mutated":
+            body = f"""const VALUES = new Set(["{left}", "{right_item}"]);
+VALUES.add("green");
+
+function {name}(value, other) {{
+  return VALUES.has(value);
+}}
+"""
+            return js_axis_source(surface, body, name)
+        elif form == "module_set_shadowed":
+            body = f"""const Set = function(_values) {{
+  return {{ has: function() {{ return false; }} }};
+}};
+const VALUES = new Set(["{left}", "{right_item}"]);
+
+function {name}(value, other) {{
+  return VALUES.has({element});
 }}
 """
             return js_axis_source(surface, body, name)
@@ -2235,6 +2315,10 @@ def axis_membership_literal_variant(
         return js_axis_source(surface, body, name)
 
     if surface.key == "typescript":
+        if form == "module_collection":
+            form = "module_set"
+        if form == "module_collection_shadowed":
+            form = "module_set_shadowed"
         if form == "set_param":
             src = f"""function {name}(values: Set<string>, value: string, other: string): boolean {{
   return values.has({element});
@@ -2251,6 +2335,34 @@ def axis_membership_literal_variant(
             src = f"""function {name}(value: string, other: string): boolean {{
   const values = new Set<string>(["{left}", "{right_item}"]);
   return values.has({element});
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "module_set":
+            src = f"""const VALUES = new Set<string>(["{left}", "{right_item}"]);
+
+function {name}(value: string, other: string): boolean {{
+  return VALUES.has({element});
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "module_set_mutated":
+            src = f"""const VALUES = new Set<string>(["{left}", "{right_item}"]);
+VALUES.add("green");
+
+function {name}(value: string, other: string): boolean {{
+  return VALUES.has(value);
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "module_set_shadowed":
+            src = f"""const Set: any = function(_values: any) {{
+  return {{ has: function() {{ return false; }} }};
+}};
+const VALUES = new Set(["{left}", "{right_item}"]);
+
+function {name}(value: string, other: string): boolean {{
+  return VALUES.has({element});
 }}
 """
             return Variant("axis", src, name)
@@ -2366,6 +2478,44 @@ func {name}(value string, other string) bool {{
         return Variant("axis", src, name)
 
     if surface.key == "java":
+        if form == "membership":
+            src = f"""import java.util.List;
+
+class C {{ static boolean {name}(String value, String other) {{ return List.of("{left}", "{right_item}").contains({element}); }} }}
+"""
+            return Variant("axis", src, name)
+        if form == "module_collection":
+            form = "java_module_list"
+        if form == "module_collection_shadowed":
+            form = "java_module_list_shadowed"
+        if form == "java_module_list":
+            src = f"""import java.util.List;
+
+class C {{
+    static final List<String> VALUES = List.of("{left}", "{right_item}");
+
+    static boolean {name}(String value, String other) {{
+        return VALUES.contains({element});
+    }}
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "java_module_list_shadowed":
+            src = f"""class C {{
+    static final List<String> VALUES = List.of("{left}", "{right_item}");
+
+    static boolean {name}(String value, String other) {{
+        return VALUES.contains({element});
+    }}
+}}
+
+class List<T> {{
+    static java.util.List<String> of(String left, String right) {{
+        return java.util.List.of("green", right);
+    }}
+}}
+"""
+            return Variant("axis", src, name)
         if form.startswith("java_"):
             ctor_form = form.removesuffix("_shadowed")
             shadowed = form.endswith("_shadowed")
@@ -5287,7 +5437,13 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             },
         }
     elif axis == "literal_collection_membership":
-        if proposal_id == "axis_membership_substring_boundary":
+        if proposal_id == "axis_membership_module_mutated_boundary":
+            counterexample = {
+                "input": {"value": "green", "other": "red"},
+                "left": False,
+                "right": True,
+            }
+        elif proposal_id == "axis_membership_substring_boundary":
             counterexample = {
                 "input": {"value": "predator", "other": "green"},
                 "left": False,
@@ -5703,6 +5859,8 @@ def generate_axis_items(
             if proposal_id.startswith("axis_membership_set_"):
                 continue
             if proposal_id.startswith("axis_membership_java_"):
+                continue
+            if proposal_id.startswith("axis_membership_module_"):
                 continue
             if proposal_id.startswith("axis_map_key_") and not map_key_membership_axis_supported(
                 surface, proposal_id
@@ -6329,6 +6487,85 @@ def generate_literal_membership_cross_items(
                         out_dir,
                         capabilities,
                         proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-membership-boundary",
+                    )
+                )
+    module_reference_surfaces = [surface_by_key["python"], surface_by_key["ruby"]]
+    if cross_mode == "ring":
+        module_reference_surfaces = [surface_by_key["python"]]
+    elif cross_mode == "none":
+        module_reference_surfaces = []
+    module_right_surfaces_by_proposal = {
+        "axis_membership_module_js_set_identity": [surface_by_key["javascript"]],
+        "axis_membership_module_ts_set_identity": [surface_by_key["typescript"]],
+        "axis_membership_module_java_list_identity": [surface_by_key["java"]],
+    }
+    for proposal_id, module_right_surfaces in module_right_surfaces_by_proposal.items():
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in module_right_surfaces:
+            for left_surface in module_reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "equivalent",
+                        "heldout",
+                    )
+                )
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal_collection_membership-semantic-mutation",
+                    )
+                )
+    module_right_surfaces = [
+        surface_by_key["javascript"],
+        surface_by_key["typescript"],
+        surface_by_key["java"],
+    ]
+    for proposal_id in (
+        "axis_membership_module_wrong_element_boundary",
+        "axis_membership_module_wrong_collection_boundary",
+        "axis_membership_module_shadowed_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in module_right_surfaces:
+            for left_surface in module_reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-membership-boundary",
+                    )
+                )
+    if generation_filter.include_proposal("axis_membership_module_mutated_boundary"):
+        for right_surface in (surface_by_key["javascript"], surface_by_key["typescript"]):
+            for left_surface in module_reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        "axis_membership_module_mutated_boundary",
                         left_surface,
                         right_surface,
                         "not_equivalent",
