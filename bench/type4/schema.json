@@ -12,6 +12,7 @@
       "properties": {
         "generator": { "type": "string" },
         "proposal_file": { "type": "string" },
+        "capability_file": { "type": "string" },
         "cross_mode": { "enum": ["none", "ring", "all"] }
       }
     },
@@ -45,7 +46,14 @@
           },
           "matrix": {
             "type": "object",
-            "required": ["computation", "representations", "data_shape", "language_relation"],
+            "required": [
+              "computation",
+              "representations",
+              "data_shape",
+              "language_relation",
+              "semantic_axes",
+              "capabilities"
+            ],
             "properties": {
               "computation": { "type": "string" },
               "representations": {
@@ -55,6 +63,15 @@
               "data_shape": { "type": "string" },
               "language_relation": { "type": "string" },
               "negative_tag": { "type": ["string", "null"] },
+              "semantic_axes": {
+                "type": "array",
+                "items": { "type": "string" },
+                "minItems": 1
+              },
+              "capabilities": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              },
               "template_split": { "enum": ["dev", "heldout"] }
             }
           },

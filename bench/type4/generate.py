@@ -15,6 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROPOSALS = ROOT / "bench" / "type4" / "proposals.v1.json"
+DEFAULT_CAPABILITIES = ROOT / "bench" / "type4" / "capabilities.v1.json"
 
 SEMANTIC_SCOPE = (
     "pure integer lists, deterministic evaluation, no overflow modeling; "
@@ -44,6 +45,25 @@ PAIR_PROPERTY_INPUTS = [
     {"a": [0, 2, 3], "b": [7, 0, -1]},
     {"a": [-2, 4], "b": [-5, 6]},
 ]
+
+AXIS_PROPOSALS = {
+    "axis_immutable_binding": {
+        "axis": "immutable_binding",
+        "why": "Strict proof must carry immutable binding values instead of treating free names as equal.",
+    },
+    "axis_proven_callee_identity": {
+        "axis": "proven_callee_identity",
+        "why": "Opaque calls are exact only when the callee binding identity is proven and behavior-defining.",
+    },
+    "axis_table_access": {
+        "axis": "table_access",
+        "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
+    },
+    "axis_unsafe_boundary": {
+        "axis": "unsafe_boundary",
+        "why": "Unproven free globals and dynamic boundaries are not strict exact Type-4 evidence.",
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -211,6 +231,298 @@ def js_start_line(surface: Surface) -> int:
     if surface.key in {"vue", "html"}:
         return 3
     return 1
+
+
+def load_capabilities(path: Path) -> dict:
+    return json.loads(path.read_text())
+
+
+def surface_capability(capabilities: dict, surface: Surface, axis: str) -> str:
+    return capabilities["surfaces"].get(surface.key, {}).get(axis, "unsupported")
+
+
+def capability_exact_supported(capabilities: dict, surface: Surface, axis: str) -> bool:
+    return surface_capability(capabilities, surface, axis) in {"supported", "partial"}
+
+
+def js_axis_source(surface: Surface, body: str, entrypoint: str = "axisCase") -> Variant:
+    return Variant("axis", js_script_wrap(surface, body), entrypoint, js_start_line(surface))
+
+
+def axis_immutable_binding_variant(surface: Surface, negative: bool, right: bool) -> Variant:
+    value = 8 if negative else 7
+    if surface.language == "javascript":
+        name = "axisCase"
+        body = f"""function {name}(value) {{
+  const base = {value};
+  const limit = base;
+  return value + limit;
+}}
+"""
+        return js_axis_source(surface, body, name)
+    if surface.key == "typescript":
+        src = f"""function axisCase(value: number): number {{
+  const base = {value};
+  const limit = base;
+  return value + limit;
+}}
+"""
+        return Variant("axis", src, "axisCase")
+    if surface.key == "python":
+        src = f"""def axis_case(value):
+    base = {value}
+    limit = base
+    return value + limit
+"""
+        return Variant("axis", src, "axis_case")
+    if surface.key == "go":
+        src = f"""package p
+
+func AxisCase(value int) int {{
+    base := {value}
+    limit := base
+    return value + limit
+}}
+"""
+        return Variant("axis", src, "AxisCase")
+    if surface.key == "rust":
+        src = f"""pub fn axis_case(value: i32) -> i32 {{
+    let base = {value};
+    let limit = base;
+    value + limit
+}}
+"""
+        return Variant("axis", src, "axis_case")
+    if surface.key == "java":
+        src = f"""class AxisCase {{
+    static int axisCase(int value) {{
+        int base = {value};
+        int limit = base;
+        return value + limit;
+    }}
+}}
+"""
+        return Variant("axis", src, "axisCase")
+    if surface.key == "c":
+        src = f"""int axis_case(int value) {{
+    int base = {value};
+    int limit = base;
+    return value + limit;
+}}
+"""
+        return Variant("axis", src, "axis_case")
+    if surface.key == "ruby":
+        src = f"""def axis_case(value)
+  base = {value}
+  limit = base
+  value + limit
+end
+"""
+        return Variant("axis", src, "axis_case")
+    raise ValueError(f"unsupported surface for immutable axis: {surface.key}")
+
+
+def axis_callee_identity_variant(surface: Surface, negative: bool, right: bool) -> Variant:
+    delta = 2 if negative else 1
+    adjusted = "input" if right else "value"
+    if surface.language == "javascript":
+        name = "buildCase" if right else "axisCase"
+        body = f"""function helper(v) {{
+  return v + {delta};
+}}
+
+function {name}({adjusted}) {{
+  const shifted = {adjusted} + 1;
+  return helper(shifted);
+}}
+"""
+        return js_axis_source(surface, body, name)
+    if surface.key == "typescript":
+        name = "buildCase" if right else "axisCase"
+        src = f"""function helper(v: number): number {{
+  return v + {delta};
+}}
+
+function {name}({adjusted}: number): number {{
+  const shifted = {adjusted} + 1;
+  return helper(shifted);
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "python":
+        name = "build_case" if right else "axis_case"
+        src = f"""def helper(v):
+    return v + {delta}
+
+def {name}({adjusted}):
+    shifted = {adjusted} + 1
+    return helper(shifted)
+"""
+        return Variant("axis", src, name)
+    if surface.key == "go":
+        name = "BuildCase" if right else "AxisCase"
+        src = f"""package p
+
+func helper(v int) int {{
+    return v + {delta}
+}}
+
+func {name}({adjusted} int) int {{
+    shifted := {adjusted} + 1
+    return helper(shifted)
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "rust":
+        name = "build_case" if right else "axis_case"
+        src = f"""fn helper(v: i32) -> i32 {{
+    v + {delta}
+}}
+
+pub fn {name}({adjusted}: i32) -> i32 {{
+    let shifted = {adjusted} + 1;
+    helper(shifted)
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "java":
+        name = "buildCase" if right else "axisCase"
+        src = f"""class AxisCase {{
+    static int helper(int v) {{
+        return v + {delta};
+    }}
+
+    static int {name}(int {adjusted}) {{
+        int shifted = {adjusted} + 1;
+        return helper(shifted);
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "c":
+        name = "build_case" if right else "axis_case"
+        src = f"""int helper(int v) {{
+    return v + {delta};
+}}
+
+int {name}(int {adjusted}) {{
+    int shifted = {adjusted} + 1;
+    return helper(shifted);
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "ruby":
+        name = "build_case" if right else "axis_case"
+        src = f"""def helper(v)
+  v + {delta}
+end
+
+def {name}({adjusted})
+  shifted = {adjusted} + 1
+  helper(shifted)
+end
+"""
+        return Variant("axis", src, name)
+    raise ValueError(f"unsupported surface for callee axis: {surface.key}")
+
+
+def axis_table_access_variant(surface: Surface, negative: bool, right: bool) -> Variant:
+    key = "tomorrow" if negative else "today"
+    if surface.language == "javascript":
+        name = "buildCase" if right else "axisCase"
+        body = f"""function {name}(value) {{
+  const table = {{ today: 7, tomorrow: 8 }};
+  return value + table.{key};
+}}
+"""
+        return js_axis_source(surface, body, name)
+    if surface.key == "typescript":
+        name = "buildCase" if right else "axisCase"
+        src = f"""function {name}(value: number): number {{
+  const table = {{ today: 7, tomorrow: 8 }};
+  return value + table.{key};
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "python":
+        name = "build_case" if right else "axis_case"
+        src = f"""def {name}(value):
+    table = {{"today": 7, "tomorrow": 8}}
+    return value + table["{key}"]
+"""
+        return Variant("axis", src, name)
+    if surface.key == "ruby":
+        name = "build_case" if right else "axis_case"
+        ruby_key = f":{key}"
+        src = f"""def {name}(value)
+  table = {{ today: 7, tomorrow: 8 }}
+  value + table[{ruby_key}]
+end
+"""
+        return Variant("axis", src, name)
+    raise ValueError(f"unsupported surface for table axis: {surface.key}")
+
+
+def axis_unsafe_boundary_variant(surface: Surface, right: bool) -> Variant:
+    name = "buildCase" if right else "axisCase"
+    if surface.language == "javascript":
+        body = f"""function {name}(value) {{
+  return value + AMBIENT_LIMIT;
+}}
+"""
+        return js_axis_source(surface, body, name)
+    if surface.key == "typescript":
+        src = f"""function {name}(value: number): number {{
+  return value + AMBIENT_LIMIT;
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "python":
+        py_name = "build_case" if right else "axis_case"
+        src = f"""def {py_name}(value):
+    return value + AMBIENT_LIMIT
+"""
+        return Variant("axis", src, py_name)
+    if surface.key == "go":
+        go_name = "BuildCase" if right else "AxisCase"
+        src = f"""package p
+
+func {go_name}(value int) int {{
+    return value + AmbientLimit
+}}
+"""
+        return Variant("axis", src, go_name)
+    if surface.key == "rust":
+        rs_name = "build_case" if right else "axis_case"
+        src = f"""pub fn {rs_name}(value: i32) -> i32 {{
+    value + AMBIENT_LIMIT
+}}
+"""
+        return Variant("axis", src, rs_name)
+    if surface.key == "java":
+        java_name = "buildCase" if right else "axisCase"
+        src = f"""class AxisCase {{
+    static int {java_name}(int value) {{
+        return value + AMBIENT_LIMIT;
+    }}
+}}
+"""
+        return Variant("axis", src, java_name)
+    if surface.key == "c":
+        c_name = "build_case" if right else "axis_case"
+        src = f"""int {c_name}(int value) {{
+    return value + AMBIENT_LIMIT;
+}}
+"""
+        return Variant("axis", src, c_name)
+    if surface.key == "ruby":
+        rb_name = "build_case" if right else "axis_case"
+        src = f"""def {rb_name}(value)
+  value + AMBIENT_LIMIT
+end
+"""
+        return Variant("axis", src, rb_name)
+    raise ValueError(f"unsupported surface for unsafe axis: {surface.key}")
 
 
 def render_predicate(predicate: str, var: str) -> str:
@@ -1563,6 +1875,8 @@ def make_item(
             "data_shape": "aligned-list<int>" if OPERATIONS[operation].arity == 2 else "list<int>",
             "language_relation": cross_label,
             "negative_tag": negative_tag,
+            "semantic_axes": ["aggregate_reduction"],
+            "capabilities": {},
             "template_split": split,
         },
         "left": source_record(left_surface, left, left_path),
@@ -1610,6 +1924,8 @@ def make_c_contract_negative_item(out_dir: Path, proposal: dict, representation:
             "data_shape": "aligned-list<int>" if OPERATIONS[operation].arity == 2 else "list<int>",
             "language_relation": "same-surface",
             "negative_tag": representation,
+            "semantic_axes": ["aggregate_reduction", "pointer_length_contract"],
+            "capabilities": {},
             "template_split": "heldout",
         },
         "left": source_record(surface, left, left_path),
@@ -1625,6 +1941,166 @@ def make_c_contract_negative_item(out_dir: Path, proposal: dict, representation:
     }
 
 
+def axis_variants(surface: Surface, axis: str, negative: bool) -> tuple[Variant, Variant]:
+    if axis == "immutable_binding":
+        return (
+            axis_immutable_binding_variant(surface, False, False),
+            axis_immutable_binding_variant(surface, negative, True),
+        )
+    if axis == "proven_callee_identity":
+        return (
+            axis_callee_identity_variant(surface, False, False),
+            axis_callee_identity_variant(surface, negative, True),
+        )
+    if axis == "table_access":
+        return (
+            axis_table_access_variant(surface, False, False),
+            axis_table_access_variant(surface, negative, True),
+        )
+    if axis == "unsafe_boundary":
+        return (
+            axis_unsafe_boundary_variant(surface, False),
+            axis_unsafe_boundary_variant(surface, True),
+        )
+    raise ValueError(f"unknown axis: {axis}")
+
+
+def axis_evidence(axis: str, status: str, negative: bool) -> dict:
+    if status == "equivalent":
+        return {
+            "level": "E1",
+            "kind": f"same-spec-{axis}",
+            "property_inputs": [0, 1, 4],
+            "outputs": [],
+        }
+    if status == "unknown":
+        return {
+            "level": "E0",
+            "kind": f"unproven-{axis}-boundary",
+            "property_inputs": [],
+            "outputs": [],
+        }
+    if axis == "proven_callee_identity":
+        left_output = 3
+        right_output = 4
+    else:
+        left_output = 8
+        right_output = 9
+    return {
+        "level": "E2",
+        "kind": f"counterexample-{axis}",
+        "counterexample": {"input": 1, "left": left_output, "right": right_output},
+    }
+
+
+def make_axis_item(
+    out_dir: Path,
+    capabilities: dict,
+    proposal_id: str,
+    surface: Surface,
+    semantic_status: str,
+    split: str,
+    negative_tag: str | None = None,
+) -> dict:
+    proposal = AXIS_PROPOSALS[proposal_id]
+    axis = proposal["axis"]
+    capability = surface_capability(capabilities, surface, axis)
+    negative = semantic_status == "not_equivalent"
+    case_id = stable_id(
+        proposal_id,
+        surface.key,
+        semantic_status,
+        split,
+        negative_tag or "positive",
+    )
+    left, right = axis_variants(surface, axis, negative)
+    left_path = rel_source_path(case_id, "left", surface)
+    right_path = rel_source_path(case_id, "right", surface)
+    write_source(out_dir, left_path, left.source)
+    write_source(out_dir, right_path, right.source)
+    exact_supported = capability_exact_supported(capabilities, surface, axis)
+    equivalent = semantic_status == "equivalent"
+    transform_tags = [axis, "semantic-axis"]
+    if negative_tag is not None:
+        transform_tags += ["hard-negative", negative_tag]
+    return {
+        "case_id": case_id,
+        "proposal_id": proposal_id,
+        "split": split,
+        "semantic_status": semantic_status,
+        "expected_exact_detect": equivalent and exact_supported,
+        "semantic_scope": SEMANTIC_SCOPE,
+        "transform_tags": transform_tags,
+        "matrix": {
+            "computation": axis,
+            "representations": [left.representation, right.representation],
+            "data_shape": "scalar<int>" if axis != "table_access" else "map<string,int>",
+            "language_relation": "same-surface",
+            "negative_tag": negative_tag,
+            "semantic_axes": [axis],
+            "capabilities": {axis: capability},
+            "template_split": split,
+        },
+        "left": source_record(surface, left, left_path),
+        "right": source_record(surface, right, right_path),
+        "evidence": axis_evidence(axis, semantic_status, negative),
+        "llm_proposal": {
+            "why": proposal["why"],
+            "complexity_budget": {
+                "max_lines": 12,
+                "max_branch_count": 0,
+                "max_primary_transforms": 1,
+                "max_secondary_transforms": 1,
+            },
+        },
+    }
+
+
+def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
+    items: list[dict] = []
+    for surface in SURFACES:
+        for proposal_id, proposal in AXIS_PROPOSALS.items():
+            axis = proposal["axis"]
+            capability = surface_capability(capabilities, surface, axis)
+            if axis == "table_access" and capability != "supported":
+                continue
+            if axis == "unsafe_boundary":
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "unknown",
+                        "heldout",
+                        "unproven-free-binding",
+                    )
+                )
+                continue
+            items.append(
+                make_axis_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    surface,
+                    "equivalent",
+                    "dev",
+                )
+            )
+            items.append(
+                make_axis_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    surface,
+                    "not_equivalent",
+                    "heldout",
+                    f"{axis}-semantic-mutation",
+                )
+            )
+    return items
+
+
 def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surface]]:
     if mode == "none":
         return []
@@ -1635,12 +2111,14 @@ def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surfa
     raise ValueError(f"unknown cross mode: {mode}")
 
 
-def generate(out_dir: Path, proposal_file: Path, cross_mode: str, clean: bool) -> dict:
+def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mode: str, clean: bool) -> dict:
     if clean and out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     proposal_file = proposal_file.resolve()
+    capability_file = capability_file.resolve()
     proposals_doc = json.loads(proposal_file.read_text())
+    capabilities = load_capabilities(capability_file)
     validate_proposals(proposals_doc)
     items = []
     for proposal in proposals_doc["proposals"]:
@@ -1737,11 +2215,13 @@ def generate(out_dir: Path, proposal_file: Path, cross_mode: str, clean: bool) -
                     "cross-template-semantic-mutation",
                 )
             )
+    items.extend(generate_axis_items(out_dir, capabilities))
     return {
         "schema_version": "0.1.0",
         "source": {
             "generator": "bench/type4/generate.py",
             "proposal_file": str(proposal_file.relative_to(ROOT)),
+            "capability_file": str(capability_file.relative_to(ROOT)),
             "cross_mode": cross_mode,
         },
         "items": items,
@@ -1752,10 +2232,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--proposal-file", default=DEFAULT_PROPOSALS, type=Path)
+    parser.add_argument("--capability-file", default=DEFAULT_CAPABILITIES, type=Path)
     parser.add_argument("--cross", choices=["none", "ring", "all"], default="ring")
     parser.add_argument("--no-clean", action="store_true", help="do not clear the output directory first")
     args = parser.parse_args()
-    manifest = generate(args.out_dir, args.proposal_file, args.cross, clean=not args.no_clean)
+    manifest = generate(
+        args.out_dir,
+        args.proposal_file,
+        args.capability_file,
+        args.cross,
+        clean=not args.no_clean,
+    )
     manifest_path = args.out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     by_status: dict[str, int] = {}

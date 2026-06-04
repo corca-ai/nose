@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1.0",
+  "semantic_axes": {
+    "immutable_binding": "Local immutable aliases and single-assignment module constants can be used as proof facts.",
+    "proven_callee_identity": "Opaque calls are strict only when the callee identity is local, immutable, or a safe same-file function binding.",
+    "table_access": "Literal table construction and static key/index access retain behavior-defining key identity.",
+    "unsafe_boundary": "Unproven free globals, repeated assignment, spread/unpack, dynamic import, and reflection boundaries are excluded from exact semantic reporting."
+  },
+  "surfaces": {
+    "c": {
+      "immutable_binding": "partial",
+      "proven_callee_identity": "supported",
+      "table_access": "unsupported",
+      "unsafe_boundary": "supported"
+    },
+    "go": {
+      "immutable_binding": "partial",
+      "proven_callee_identity": "supported",
+      "table_access": "unsupported",
+      "unsafe_boundary": "supported"
+    },
+    "html": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "java": {
+      "immutable_binding": "partial",
+      "proven_callee_identity": "supported",
+      "table_access": "unsupported",
+      "unsafe_boundary": "supported"
+    },
+    "javascript": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "python": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "ruby": {
+      "immutable_binding": "partial",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "rust": {
+      "immutable_binding": "partial",
+      "proven_callee_identity": "supported",
+      "table_access": "unsupported",
+      "unsafe_boundary": "supported"
+    },
+    "svelte": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "typescript": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    },
+    "vue": {
+      "immutable_binding": "supported",
+      "proven_callee_identity": "supported",
+      "table_access": "supported",
+      "unsafe_boundary": "supported"
+    }
+  }
+}

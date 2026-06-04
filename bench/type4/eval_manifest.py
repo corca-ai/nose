@@ -120,6 +120,22 @@ def main() -> int:
             f"false merges {row['neg_hit']}/{row['neg']}"
         )
 
+    by_axis: dict[str, dict[str, int]] = defaultdict(count_row)
+    for item in manifest["items"]:
+        for axis in item.get("matrix", {}).get("semantic_axes", []):
+            row = by_axis[axis]
+            record_detection(row, item, detected[item["case_id"]])
+
+    if by_axis:
+        print("\nby semantic axis:")
+        for axis in sorted(by_axis):
+            row = by_axis[axis]
+            print(
+                f"  {axis}: "
+                f"positive {row['pos_hit']}/{row['pos']}, "
+                f"false merges {row['neg_hit']}/{row['neg']}"
+            )
+
     by_negative_tag: dict[str, dict[str, int]] = defaultdict(lambda: {"neg": 0, "neg_hit": 0})
     for item in negatives:
         tag = item.get("matrix", {}).get("negative_tag") or "unspecified"

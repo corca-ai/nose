@@ -5,6 +5,7 @@
 
 use nose_il::{Il, Interner, Lang, LitClass, NodeId, NodeKind, Payload, Symbol, UnitKind};
 use nose_normalize::node_tag;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// A unit ready for comparison. Self-contained (owns its features and location)
 /// so the detector can flatten units from many files into one vector. All feature
@@ -82,6 +83,7 @@ pub(crate) fn extract(
         collect_block_units(il, il.root, &mut roots);
     }
 
+    let facts = StrictFacts::collect(il, interner);
     let mut out = Vec::new();
     for (root, kind, uname) in roots {
         let span = il.node(root).span;
@@ -89,9 +91,7 @@ pub(crate) fn extract(
 
         let mut pre = Vec::new();
         collect_pre(il, root, &mut pre);
-        let exact_safe = pre
-            .iter()
-            .all(|&nid| strict_exact_safe_node(il, interner, il.meta.lang, nid));
+        let exact_safe = strict_exact_safe_tree(il, interner, &facts, root);
         // The value graph is the semantic fingerprint (already sorted), with the
         // literal-only multiset for data-table detection. Computed before the size
         // gate so the gate can consult semantic richness (below).
@@ -172,20 +172,171 @@ pub(crate) fn extract(
     out
 }
 
-fn strict_exact_safe_node(il: &Il, interner: &Interner, lang: Lang, node: NodeId) -> bool {
+#[derive(Default)]
+struct StrictFacts {
+    immutable_names: FxHashSet<Symbol>,
+    function_names: FxHashSet<Symbol>,
+}
+
+impl StrictFacts {
+    fn collect(il: &Il, interner: &Interner) -> Self {
+        let mut facts = StrictFacts::default();
+        facts.collect_immutable_bindings(il);
+        facts.collect_function_bindings(il, interner);
+        facts
+    }
+
+    fn proven_name(&self, name: Symbol) -> bool {
+        self.immutable_names.contains(&name) || self.function_names.contains(&name)
+    }
+
+    fn collect_immutable_bindings(&mut self, il: &Il) {
+        let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
+        for stmt in il.children(il.root) {
+            let Some(name) = assignment_name(il, *stmt) else {
+                continue;
+            };
+            *counts.entry(name).or_insert(0) += 1;
+        }
+
+        let mut env: FxHashSet<u32> = FxHashSet::default();
+        for stmt in il.children(il.root) {
+            let kids = il.children(*stmt);
+            if kids.len() != 2 {
+                continue;
+            }
+            let Some(name) = assignment_name(il, *stmt) else {
+                continue;
+            };
+            if counts.get(&name).copied().unwrap_or(0) != 1 {
+                continue;
+            }
+            if immutable_binding_safe(il, &env, &self.immutable_names, kids[1]) {
+                self.immutable_names.insert(name);
+                if let Payload::Cid(cid) = il.node(kids[0]).payload {
+                    env.insert(cid);
+                }
+            }
+        }
+    }
+
+    fn collect_function_bindings(&mut self, il: &Il, interner: &Interner) {
+        for unit in &il.units {
+            let Some(name) = unit.name else {
+                continue;
+            };
+            if function_binding_safe(il, interner, self, unit.root, unit.root) {
+                self.function_names.insert(name);
+            }
+        }
+    }
+}
+
+fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
+    if il.kind(stmt) != NodeKind::Assign {
+        return None;
+    }
+    let kids = il.children(stmt);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+        return None;
+    }
+    let Payload::Cid(cid) = il.node(kids[0]).payload else {
+        return None;
+    };
+    il.cid_names.get(cid as usize).copied()
+}
+
+fn immutable_binding_safe(
+    il: &Il,
+    env: &FxHashSet<u32>,
+    immutable_names: &FxHashSet<Symbol>,
+    node: NodeId,
+) -> bool {
+    match il.kind(node) {
+        NodeKind::Raw
+        | NodeKind::Call
+        | NodeKind::HoF
+        | NodeKind::Func
+        | NodeKind::Lambda
+        | NodeKind::Loop
+        | NodeKind::Try
+        | NodeKind::Throw
+        | NodeKind::Assign => false,
+        NodeKind::Var => match il.node(node).payload {
+            Payload::Cid(c) => env.contains(&c),
+            Payload::Name(s) => immutable_names.contains(&s),
+            _ => false,
+        },
+        NodeKind::Lit => exact_literal_safe(il, node),
+        _ => il
+            .children(node)
+            .iter()
+            .all(|&c| immutable_binding_safe(il, env, immutable_names, c)),
+    }
+}
+
+fn function_binding_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    root: NodeId,
+    node: NodeId,
+) -> bool {
+    match il.kind(node) {
+        NodeKind::Raw
+        | NodeKind::HoF
+        | NodeKind::Lambda
+        | NodeKind::Loop
+        | NodeKind::Try
+        | NodeKind::Throw => false,
+        NodeKind::Func if node != root => false,
+        NodeKind::Call => matches!(il.node(node).payload, Payload::Builtin(_)),
+        NodeKind::Seq => strict_exact_safe_seq(il, interner, node),
+        NodeKind::Lit => exact_literal_safe(il, node),
+        NodeKind::Var => strict_exact_safe_var(il, facts, node),
+        _ => il
+            .children(node)
+            .iter()
+            .all(|&c| function_binding_safe(il, interner, facts, root, c)),
+    }
+}
+
+fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
     match il.kind(node) {
         NodeKind::Raw => false,
-        NodeKind::Seq => strict_exact_safe_seq(il, interner, node),
-        NodeKind::Call => strict_exact_safe_call(il, interner, lang, node),
-        NodeKind::Lit => matches!(
-            il.node(node).payload,
-            Payload::LitInt(_)
-                | Payload::LitBool(_)
-                | Payload::LitStr(_)
-                | Payload::LitFloat(_)
-                | Payload::Lit(LitClass::Null)
-        ),
-        _ => true,
+        NodeKind::Seq => {
+            strict_exact_safe_seq(il, interner, node)
+                && il
+                    .children(node)
+                    .iter()
+                    .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
+        }
+        NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
+        NodeKind::Lit => exact_literal_safe(il, node),
+        NodeKind::Var => strict_exact_safe_var(il, facts, node),
+        _ => il
+            .children(node)
+            .iter()
+            .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
+    }
+}
+
+fn exact_literal_safe(il: &Il, node: NodeId) -> bool {
+    matches!(
+        il.node(node).payload,
+        Payload::LitInt(_)
+            | Payload::LitBool(_)
+            | Payload::LitStr(_)
+            | Payload::LitFloat(_)
+            | Payload::Lit(LitClass::Null)
+    )
+}
+
+fn strict_exact_safe_var(il: &Il, facts: &StrictFacts, node: NodeId) -> bool {
+    match il.node(node).payload {
+        Payload::Cid(_) => true,
+        Payload::Name(name) => facts.proven_name(name),
+        _ => false,
     }
 }
 
@@ -208,18 +359,22 @@ fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
     }
 }
 
-fn strict_exact_safe_call(il: &Il, interner: &Interner, lang: Lang, node: NodeId) -> bool {
+fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
     if matches!(il.node(node).payload, Payload::Builtin(_)) {
-        return true;
+        return il
+            .children(node)
+            .iter()
+            .all(|&c| strict_exact_safe_tree(il, interner, facts, c));
     }
     let Some(&callee) = il.children(node).first() else {
         return false;
     };
     if strict_exact_callee_name(il, interner, callee, "typeof") {
-        return true;
+        return strict_exact_call_args_safe(il, interner, facts, node);
     }
     if il.kind(callee) != NodeKind::Field {
-        return matches!(lang, Lang::JavaScript) && strict_exact_callee_identity(il, callee);
+        return strict_exact_callee_identity(il, facts, callee)
+            && strict_exact_call_args_safe(il, interner, facts, node);
     }
     let Payload::Name(name) = il.node(callee).payload else {
         return false;
@@ -229,18 +384,33 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, lang: Lang, node: NodeId
         let Some(&receiver) = il.children(callee).first() else {
             return false;
         };
-        return matches!(il.node(receiver).payload, Payload::LitStr(_));
+        return matches!(il.node(receiver).payload, Payload::LitStr(_))
+            && strict_exact_call_args_safe(il, interner, facts, node);
     }
     if method == "isArray" {
-        return strict_exact_field_receiver_name(il, interner, callee, "Array");
+        return strict_exact_field_receiver_name(il, interner, callee, "Array")
+            && strict_exact_call_args_safe(il, interner, facts, node);
     }
     if matches!(
         method,
         "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
     ) {
-        return true;
+        return strict_exact_call_args_safe(il, interner, facts, node);
     }
-    matches!(lang, Lang::JavaScript) && strict_exact_callee_identity(il, callee)
+    strict_exact_callee_identity(il, facts, callee)
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_call_args_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    il.children(node)
+        .iter()
+        .skip(1)
+        .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
 }
 
 fn strict_exact_field_receiver_name(
@@ -271,12 +441,15 @@ fn strict_exact_callee_name(il: &Il, interner: &Interner, callee: NodeId, expect
     interner.resolve(name) == expected
 }
 
-fn strict_exact_callee_identity(il: &Il, callee: NodeId) -> bool {
+fn strict_exact_callee_identity(il: &Il, facts: &StrictFacts, callee: NodeId) -> bool {
     match il.kind(callee) {
-        NodeKind::Var => matches!(il.node(callee).payload, Payload::Name(_) | Payload::Cid(_)),
+        NodeKind::Var => strict_exact_safe_var(il, facts, callee),
         NodeKind::Field => {
             matches!(il.node(callee).payload, Payload::Name(_))
-                && il.children(callee).first().is_some()
+                && il
+                    .children(callee)
+                    .first()
+                    .is_some_and(|&receiver| strict_exact_callee_identity(il, facts, receiver))
         }
         _ => false,
     }

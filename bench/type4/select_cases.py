@@ -49,6 +49,15 @@ def item_features(item: dict) -> set[str]:
     features.add(f"proposal:{proposal}:relation:{relation}:status:{status}")
     for tag in item.get("transform_tags", []):
         features.add(f"transform:{tag}:status:{status}")
+    for axis in matrix.get("semantic_axes", []):
+        features.add(f"semantic_axis:{axis}:status:{status}")
+        features.add(f"proposal:{proposal}:semantic_axis:{axis}:status:{status}")
+        features.add(f"surface:{left['surface']}:semantic_axis:{axis}:status:{status}")
+        features.add(f"surface:{right['surface']}:semantic_axis:{axis}:status:{status}")
+    for capability, state in matrix.get("capabilities", {}).items():
+        features.add(f"capability:{capability}:{state}:status:{status}")
+        features.add(f"surface:{left['surface']}:capability:{capability}:{state}:status:{status}")
+        features.add(f"surface:{right['surface']}:capability:{capability}:{state}:status:{status}")
     if negative_tag:
         features.add(f"negative_tag:{negative_tag}")
         features.add(f"negative_tag:{negative_tag}:proposal:{proposal}")
@@ -135,6 +144,10 @@ def print_summary(full_items: list[dict], selected: list[dict], suite: str) -> N
             tag = item["matrix"].get("negative_tag")
             if tag:
                 c[f"negative_tag:{tag}"] += 1
+            for axis in item["matrix"].get("semantic_axes", []):
+                c[f"axis:{axis}"] += 1
+            for capability, state in item["matrix"].get("capabilities", {}).items():
+                c[f"capability:{capability}:{state}"] += 1
         return c
 
     full_counts = counts(full_items)

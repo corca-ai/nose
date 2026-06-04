@@ -391,3 +391,62 @@ kept. JavaScript-only uninterpreted call identity is useful but still a provisio
 frontier: it recovers real helper clones without widening other languages. General
 cross-language call identity should not be reopened until imports/bindings are modeled
 explicitly enough to prove that two same-named callees are the same function.
+
+## Generic proof facts and semantic-axis smoke: loop 53
+
+Loop 52 intentionally left a language-specific JS call gate. Loop 53 replaces that with a
+language-neutral proof-fact model:
+
+- strict safety now uses file-level `StrictFacts`, not `Lang::JavaScript`;
+- free `Name` values are exact-safe only when proven by a single-assignment immutable
+  binding or a safe same-file function binding;
+- repeated top-level assignments are not captured as immutable values;
+- proven helper callees are keyed by a literal-sensitive function-binding hash, so
+  `helper(x + 1)` and `helper(x + 2)` do not collapse;
+- method calls are allowed generically when receiver identity and method name are proven;
+- unproven free globals remain `expected_exact_detect=false` unsafe-boundary cases.
+
+The generator now records `semantic_axes` and capability states in every manifest item and
+adds breadth-first axis cases for:
+
+- `immutable_binding`;
+- `proven_callee_identity`;
+- `table_access`;
+- `unsafe_boundary`.
+
+The compact selector now preserves semantic-axis and capability-state coverage, not only
+proposal/representation/cross-surface coverage. A capability matrix lives in
+`capabilities.v1.json`; import/re-export identity and table access for several compiled
+language surfaces remain explicit unsupported/partial cells instead of hidden TODOs.
+
+Focused axis validation after the detector change:
+
+```text
+SUITE=core CROSS=none compact axis check:
+items: 200
+positive recall: 66/66
+hard-negative false merges: 0/134
+
+by semantic axis:
+  aggregate_reduction: positive 37/37, false merges 0/94
+  immutable_binding: positive 11/11, false merges 0/11
+  proven_callee_identity: positive 11/11, false merges 0/11
+  table_access: positive 7/7, false merges 0/7
+  unsafe_boundary: positive 0/0, false merges 0/11
+```
+
+Final dense compact smoke:
+
+```text
+scripts/type4-smoke.sh SUITE=core CROSS=all
+selected items: 428/3220
+positive recall: 180/180
+hard-negative false merges: 0/248
+Raw nodes: 0/20684
+```
+
+Assessment: this is the intended direction. A rule learned from JavaScript helper clones is
+now represented as a common proof obligation, and the generator can exercise it across all
+surfaces that currently emit the necessary facts. The next frontier is structured import
+facts: same import coordinate should become proven callee identity, while wildcard imports,
+re-exports, dynamic import, and unresolved aliases should remain unsafe-boundary cases.

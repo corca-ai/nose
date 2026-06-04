@@ -6,6 +6,7 @@ described in [`docs/type4-benchmark.md`](../../docs/type4-benchmark.md).
 The factory is evidence-carrying by design:
 
 - proposal cards describe the semantic class to explore;
+- the capability matrix records which proof facts each supported surface currently emits;
 - `generate.py` emits positive and hard-negative source pairs for every supported
   language surface;
 - positives carry same-spec/spec-interpreter evidence;
@@ -33,6 +34,8 @@ By default the generator emits:
 - held-out indexed-loop positives and same-template negatives for single-list specs;
 - C pointer-length contract hard negatives for skipped-first and stride-two loops;
 - sign-normalizing `sum(abs(x))` map/reduce cases across every supported surface;
+- semantic-axis cases for immutable bindings, proven callee identity, literal table access,
+  and unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
 
@@ -65,13 +68,13 @@ positive recall: 407/407
 hard-negative false merges: 0/654
 ```
 
-With `--cross all`, the dense corpus now has 3151 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 3220 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 359/3151
-positive recall: 151/151
-hard-negative false merges: 0/208
+selected items: 428/3220
+positive recall: 180/180
+hard-negative false merges: 0/248
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic
@@ -139,6 +142,6 @@ OUT_DIR=/tmp/nose-type4-all-full COMPACT_DIR=/tmp/nose-type4-all-core SUITE=core
 ```
 
 `SUITE=core` first generates the full manifest, then writes a compact manifest whose cases
-preserve proposal, split, representation, transform, hard-negative tag, and cross-surface
-coverage. Use the compact suite for inner-loop detector work; keep full ring and dense
-all-cross runs as periodic validation.
+preserve proposal, split, representation, transform, hard-negative tag, cross-surface,
+semantic-axis, and capability-state coverage. Use the compact suite for inner-loop detector
+work; keep full ring and dense all-cross runs as periodic validation.

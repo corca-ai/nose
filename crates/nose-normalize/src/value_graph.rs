@@ -20,7 +20,9 @@
 
 use crate::combine;
 use crate::types::Ty;
-use nose_il::{Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
+use nose_il::{
+    Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload, Symbol, UnitKind,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`
@@ -101,6 +103,10 @@ struct Builder<'a> {
     /// key unlowered `Raw` constructs and lambda bodies by content. Computed once per
     /// graph (the whole-IL pass is O(n)); `None` until first needed.
     subtree_hash: Option<Vec<u64>>,
+    /// Literal-sensitive subtree hash used only for proven function binding identity.
+    /// The ordinary structural hash intentionally abstracts literals for shape work;
+    /// callee identity must distinguish `helper(x)+1` from `helper(x)+2`.
+    valued_subtree_hash: Option<Vec<u64>>,
     /// Inferred coarse type per value node (kept in lockstep with `nodes`). Powers
     /// type-aware canonicalization: `+` commutes only on numeric operands (string/list
     /// concat is non-commutative), and numeric/boolean simplifications fire only when
@@ -124,7 +130,7 @@ struct Builder<'a> {
     /// Function units keep global references as `Name`, while module-level assignment
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
     /// data (`const table = {...}`) to free uses inside the function.
-    global_env: FxHashMap<nose_il::Symbol, ValueId>,
+    global_env: FxHashMap<Symbol, ValueId>,
 }
 
 impl<'a> Builder<'a> {
@@ -139,6 +145,7 @@ impl<'a> Builder<'a> {
             opaque_ctr: 0,
             field_env: FxHashMap::default(),
             subtree_hash: None,
+            valued_subtree_hash: None,
             vty: Vec::new(),
             param_ty: Vec::new(),
             path: Vec::new(),
@@ -230,6 +237,28 @@ impl<'a> Builder<'a> {
             self.subtree_hash = Some(crate::subtree_hashes(self.il, self.interner));
         }
         self.subtree_hash
+            .as_ref()
+            .unwrap()
+            .get(expr.0 as usize)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    fn valued_subtree_hash(&mut self, expr: NodeId) -> u64 {
+        if self.valued_subtree_hash.is_none() {
+            let mut hashes = vec![0u64; self.il.nodes.len()];
+            for i in 0..self.il.nodes.len() {
+                let id = NodeId(i as u32);
+                let node = self.il.node(id);
+                let mut h = crate::node_tag_valued(node.kind, node.payload, self.interner);
+                for &child in self.il.children(id) {
+                    h = combine(h, hashes[child.0 as usize]);
+                }
+                hashes[i] = h;
+            }
+            self.valued_subtree_hash = Some(hashes);
+        }
+        self.valued_subtree_hash
             .as_ref()
             .unwrap()
             .get(expr.0 as usize)
@@ -567,7 +596,7 @@ impl<'a> Builder<'a> {
     /// `Block` we process its statements directly.
     fn build_unit(&mut self, root: NodeId) {
         self.param_ty = crate::types::infer_param_types(self.il, root);
-        self.seed_module_globals();
+        self.seed_immutable_bindings();
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         match self.il.kind(root) {
             NodeKind::Func => {
@@ -616,32 +645,74 @@ impl<'a> Builder<'a> {
         self.flush_fields();
     }
 
-    fn seed_module_globals(&mut self) {
+    fn seed_immutable_bindings(&mut self) {
+        self.seed_module_value_bindings();
+        self.seed_function_bindings();
+    }
+
+    fn seed_module_value_bindings(&mut self) {
+        let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
+        for stmt in self.il.children(self.il.root) {
+            let Some(name) = self.assignment_name(*stmt) else {
+                continue;
+            };
+            *counts.entry(name).or_insert(0) += 1;
+        }
+
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         for stmt in self.il.children(self.il.root).to_vec() {
-            if self.il.kind(stmt) != NodeKind::Assign {
-                continue;
-            }
             let kids = self.il.children(stmt);
-            if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Var {
+            if kids.len() != 2 {
                 continue;
             }
-            let Payload::Cid(cid) = self.il.node(kids[0]).payload else {
+            let Some(name) = self.assignment_name(stmt) else {
                 continue;
             };
-            let Some(&name) = self.il.cid_names.get(cid as usize) else {
+            if counts.get(&name).copied().unwrap_or(0) != 1 {
                 continue;
-            };
-            if !self.module_capture_safe(kids[1], &env) {
+            }
+            if !self.immutable_binding_safe(kids[1], &env) {
                 continue;
             }
             let value = self.eval(kids[1], &env);
-            env.insert(cid, value);
+            if let Payload::Cid(cid) = self.il.node(kids[0]).payload {
+                env.insert(cid, value);
+            }
             self.global_env.insert(name, value);
         }
     }
 
-    fn module_capture_safe(&self, node: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
+    fn seed_function_bindings(&mut self) {
+        for unit in self.il.units.clone() {
+            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) {
+                continue;
+            }
+            let Some(name) = unit.name else {
+                continue;
+            };
+            if self.function_binding_safe(unit.root, unit.root) {
+                let hash = self.valued_subtree_hash(unit.root);
+                let value = self.mk(ValOp::Lambda(hash), vec![]);
+                self.global_env.insert(name, value);
+            }
+        }
+    }
+
+    fn assignment_name(&self, stmt: NodeId) -> Option<Symbol> {
+        if self.il.kind(stmt) != NodeKind::Assign {
+            return None;
+        }
+        let kids = self.il.children(stmt);
+        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Cid(cid) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        self.il.cid_names.get(cid as usize).copied()
+    }
+
+    fn immutable_binding_safe(&self, node: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
         match self.il.kind(node) {
             NodeKind::Raw
             | NodeKind::Call
@@ -669,7 +740,38 @@ impl<'a> Builder<'a> {
                 .il
                 .children(node)
                 .iter()
-                .all(|&c| self.module_capture_safe(c, env)),
+                .all(|&c| self.immutable_binding_safe(c, env)),
+        }
+    }
+
+    fn function_binding_safe(&self, root: NodeId, node: NodeId) -> bool {
+        match self.il.kind(node) {
+            NodeKind::Raw
+            | NodeKind::HoF
+            | NodeKind::Lambda
+            | NodeKind::Loop
+            | NodeKind::Try
+            | NodeKind::Throw => false,
+            NodeKind::Func if node != root => false,
+            NodeKind::Call if !matches!(self.il.node(node).payload, Payload::Builtin(_)) => false,
+            NodeKind::Var => match self.il.node(node).payload {
+                Payload::Cid(_) => true,
+                Payload::Name(s) => self.global_env.contains_key(&s),
+                _ => false,
+            },
+            NodeKind::Lit => matches!(
+                self.il.node(node).payload,
+                Payload::LitInt(_)
+                    | Payload::LitBool(_)
+                    | Payload::LitStr(_)
+                    | Payload::LitFloat(_)
+                    | Payload::Lit(nose_il::LitClass::Null)
+            ),
+            _ => self
+                .il
+                .children(node)
+                .iter()
+                .all(|&c| self.function_binding_safe(root, c)),
         }
     }
 
@@ -2016,11 +2118,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn eval_len_builtin(
-        &mut self,
-        arg: NodeId,
-        env: &FxHashMap<u32, ValueId>,
-    ) -> Option<ValueId> {
+    fn eval_len_builtin(&mut self, arg: NodeId, env: &FxHashMap<u32, ValueId>) -> Option<ValueId> {
         if let Some(count) = self.eval_filter_count(arg, env) {
             return Some(count);
         }

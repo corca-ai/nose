@@ -67,12 +67,19 @@ Useful axes:
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
+| proof fact | immutable binding, proven callee identity, table-key identity, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property evidence, `E2` counterexample evidence, future interpreter/symbolic/proof evidence |
 
 Each item should declare the matrix cells it covers. The scheduler should prefer empty or
 under-covered cells over more complex variants of already-covered cells.
+
+The detector should not grow as a pile of language-specific exceptions. Each frontend should
+emit the thinnest facts it can prove, while the common strict engine consumes those facts:
+single-assignment immutable bindings, safe function-binding identity, receiver/method
+identity, literal table keys, and explicit unsafe boundaries. `capabilities.v1.json` records
+which surfaces currently emit which facts so unsupported cells stay visible.
 
 ## Breadth-first difficulty levels
 
@@ -334,6 +341,8 @@ compact manifest that preserves the coverage axes that matter for exact Type-4 b
   cross-surface `loop -> loop`;
 - transform tags and hard-negative tags;
 - language surface and cross-surface participation.
+- semantic-axis and capability-state coverage, so proof-fact regressions are not compacted
+  away.
 
 This is not random sampling. A compact suite is acceptable only if it is selected from the
 full manifest by explicit feature coverage, keeps the same evidence/counterexample records,
@@ -360,6 +369,7 @@ templates and hard negatives, but only evidence-backed pairs should enter the Ty
 The seed implementation lives in `bench/type4/`:
 
 - `proposals.v1.json` — LLM-planned semantic proposal cards;
+- `capabilities.v1.json` — current surface-by-surface proof-fact capability matrix;
 - `ITERATIONS.md` — the first ten coverage-expansion iterations and smoke results;
 - `generate.py` — deterministic source/manifest generator for all supported language
   surfaces;

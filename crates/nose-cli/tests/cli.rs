@@ -341,18 +341,18 @@ fn scan_mode_semantic_allows_safe_uninterpreted_calls() {
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     fs::write(
-        dir.join("call_a.js"),
-        "export function report(value) {\n    return helper({ kind: \"event\", value });\n}\n",
+        dir.join("call_a.py"),
+        "def report(helper, value):\n    adjusted = value + 1\n    return helper(adjusted)\n",
     )
     .unwrap();
     fs::write(
-        dir.join("call_b.js"),
-        "export function build(input) {\n    return helper({ kind: \"event\", value: input });\n}\n",
+        dir.join("call_b.py"),
+        "def build(callback, input):\n    adjusted = input + 1\n    return callback(adjusted)\n",
     )
     .unwrap();
     fs::write(
-        dir.join("call_negative.js"),
-        "export function other(value) {\n    return otherHelper({ kind: \"event\", value });\n}\n",
+        dir.join("call_negative.py"),
+        "def other(value, callback):\n    adjusted = value + 1\n    return callback(adjusted)\n",
     )
     .unwrap();
 
@@ -362,7 +362,7 @@ fn scan_mode_semantic_allows_safe_uninterpreted_calls() {
         "--mode",
         "semantic",
         "--min-lines",
-        "1",
+        "3",
         "--min-tokens",
         "1",
         "--format",
@@ -380,9 +380,9 @@ fn scan_mode_semantic_allows_safe_uninterpreted_calls() {
     );
     let semantic_text = semantic_json.to_string();
     assert!(
-        semantic_text.contains("call_a.js")
-            && semantic_text.contains("call_b.js")
-            && !semantic_text.contains("call_negative.js"),
+        semantic_text.contains("call_a.py")
+            && semantic_text.contains("call_b.py")
+            && !semantic_text.contains("call_negative.py"),
         "semantic mode must preserve uninterpreted callee identity: {semantic}"
     );
 
@@ -397,17 +397,17 @@ fn scan_mode_semantic_allows_safe_uninterpreted_method_calls() {
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("method_a.js"),
-        "export function assertLine(t, stderr) {\n    t.is(normalize(stderr), \"ok\");\n}\n",
+        "function normalize(value) { return value; }\nexport function assertLine(t, stderr) {\n    const line = normalize(stderr);\n    t.is(line, \"ok\");\n}\n",
     )
     .unwrap();
     fs::write(
         dir.join("method_b.js"),
-        "export function checkLine(assertion, output) {\n    assertion.is(normalize(output), \"ok\");\n}\n",
+        "function normalize(value) { return value; }\nexport function checkLine(assertion, output) {\n    const line = normalize(output);\n    assertion.is(line, \"ok\");\n}\n",
     )
     .unwrap();
     fs::write(
         dir.join("method_negative.js"),
-        "export function assertDeep(t, stderr) {\n    t.deepEqual(normalize(stderr), \"ok\");\n}\n",
+        "function normalize(value) { return value; }\nexport function assertDeep(t, stderr) {\n    const line = normalize(stderr);\n    t.deepEqual(line, \"ok\");\n}\n",
     )
     .unwrap();
 
@@ -417,7 +417,7 @@ fn scan_mode_semantic_allows_safe_uninterpreted_method_calls() {
         "--mode",
         "semantic",
         "--min-lines",
-        "1",
+        "3",
         "--min-tokens",
         "1",
         "--format",
@@ -692,6 +692,11 @@ fn scan_mode_semantic_captures_module_literal_bindings() {
         "const labels = { today: \"today\", tomorrow: \"tomorrow\" };\nexport function relativeLabel(key: string) {\n    return labels[key];\n}\n",
     )
     .unwrap();
+    fs::write(
+        dir.join("locale_mutated.ts"),
+        "let labels = { today: \"today\", tomorrow: \"tomorrow\" };\nlabels = { today: \"heute\", tomorrow: \"morgen\" };\nexport function mutatedLabel(key: string) {\n    return labels[key];\n}\n",
+    )
+    .unwrap();
 
     let semantic = run(&[
         "scan",
@@ -719,7 +724,8 @@ fn scan_mode_semantic_captures_module_literal_bindings() {
     assert!(
         semantic_text.contains("locale_a.ts")
             && semantic_text.contains("locale_a_copy.ts")
-            && !semantic_text.contains("locale_b.ts"),
+            && !semantic_text.contains("locale_b.ts")
+            && !semantic_text.contains("locale_mutated.ts"),
         "semantic mode must include captured module literal values: {semantic}"
     );
 
