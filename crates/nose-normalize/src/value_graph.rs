@@ -626,31 +626,88 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Seq(3), canonical_entries))
     }
 
-    fn proven_go_literal_int_map_entries(&mut self, value: ValueId) -> Option<ValueId> {
+    fn proven_go_literal_zero_map_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("go_literal_zero_map"))
+            || node.args.len() != 2
+        {
+            return None;
+        }
+        Some((node.args[1], node.args[0]))
+    }
+
+    fn proven_go_literal_zero_map_seq(
+        &mut self,
+        expr: NodeId,
+        args: &[ValueId],
+    ) -> Option<ValueId> {
         if self.il.meta.lang != Lang::Go {
             return None;
         }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(1)) || node.args.is_empty() {
+        let Payload::Name(name) = self.il.node(expr).payload else {
+            return None;
+        };
+        if self.interner.resolve(name) != "composite_literal" || args.is_empty() {
             return None;
         }
-        let entries = node.args.clone();
-        let mut canonical_entries = Vec::with_capacity(entries.len());
-        for entry in entries {
-            let entry_node = &self.nodes[entry as usize];
-            if !matches!(entry_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("keyed_element"))
-                || entry_node.args.len() != 2
+        let entry_nodes = self.il.children(expr).to_vec();
+        if entry_nodes.len() != args.len() {
+            return None;
+        }
+        let mut canonical_entries = Vec::with_capacity(args.len());
+        let mut value_kind = None;
+        let mut default = None;
+        for (&entry_node_id, &entry_value) in entry_nodes.iter().zip(args.iter()) {
+            if self.il.kind(entry_node_id) != NodeKind::Seq {
+                return None;
+            }
+            let Payload::Name(entry_name) = self.il.node(entry_node_id).payload else {
+                return None;
+            };
+            if self.interner.resolve(entry_name) != "keyed_element" {
+                return None;
+            }
+            let kv_nodes = self.il.children(entry_node_id);
+            if kv_nodes.len() != 2
+                || !matches!(self.il.node(kv_nodes[0]).payload, Payload::LitStr(_))
             {
                 return None;
             }
-            let key = entry_node.args[0];
-            let value = entry_node.args[1];
-            if !self.is_non_int_const_value(key) || !self.is_int_const_value(value) {
+            let (kind, value_default) =
+                self.go_literal_zero_default_from_payload(self.il.node(kv_nodes[1]).payload)?;
+            match value_kind {
+                Some(current_kind) if current_kind != kind => return None,
+                Some(_) => {}
+                None => {
+                    value_kind = Some(kind);
+                    default = Some(value_default);
+                }
+            }
+            let entry_value_node = &self.nodes[entry_value as usize];
+            if !matches!(entry_value_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("keyed_element"))
+                || entry_value_node.args.len() != 2
+            {
                 return None;
             }
-            canonical_entries.push(self.mk(ValOp::Seq(4), vec![key, value]));
+            canonical_entries.push(self.mk(ValOp::Seq(4), entry_value_node.args.clone()));
         }
-        Some(self.mk(ValOp::Seq(3), canonical_entries))
+        let map = self.mk(ValOp::Seq(3), canonical_entries);
+        Some(self.mk(
+            ValOp::Seq(stable_symbol_hash("go_literal_zero_map")),
+            vec![default?, map],
+        ))
+    }
+
+    fn go_literal_zero_default_from_payload(&mut self, payload: Payload) -> Option<(u8, ValueId)> {
+        match payload {
+            Payload::LitInt(_) => Some((1, self.int_const(0))),
+            Payload::LitStr(_) => Some((
+                2,
+                self.mk(ValOp::Const(stable_string_const_key("")), vec![]),
+            )),
+            Payload::LitBool(_) => Some((3, self.mk(ValOp::Const(0x3000_0001), vec![]))),
+            _ => None,
+        }
     }
 
     fn proven_map_value(&mut self, value: ValueId) -> Option<ValueId> {
@@ -660,7 +717,10 @@ impl<'a> Builder<'a> {
         self.proven_map_constructor_entries(value)
             .or_else(|| self.proven_java_map_factory_entries(value))
             .or_else(|| self.proven_rust_std_map_factory_entries(value))
-            .or_else(|| self.proven_go_literal_int_map_entries(value))
+            .or_else(|| {
+                self.proven_go_literal_zero_map_value(value)
+                    .map(|(map, _)| map)
+            })
     }
 
     fn proven_map_get_value(&mut self, value: ValueId) -> Option<(ValueId, ValueId)> {
@@ -3420,14 +3480,6 @@ impl<'a> Builder<'a> {
         matches!(self.il.node(node).payload, Payload::LitInt(1))
     }
 
-    fn is_int_const_value(&self, value: ValueId) -> bool {
-        matches!(self.nodes[value as usize].op, ValOp::Const(k) if k & 0xF000_0000 == 0x1000_0000)
-    }
-
-    fn is_non_int_const_value(&self, value: ValueId) -> bool {
-        matches!(self.nodes[value as usize].op, ValOp::Const(k) if k & 0xF000_0000 != 0x1000_0000)
-    }
-
     fn filter_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
         if self.il.kind(node) != NodeKind::HoF {
             return None;
@@ -3819,8 +3871,7 @@ impl<'a> Builder<'a> {
                 let kids = self.il.children(expr).to_vec();
                 let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 if a.len() == 2 {
-                    if let Some(map) = self.proven_go_literal_int_map_entries(a[0]) {
-                        let default = self.int_const(0);
+                    if let Some((map, default)) = self.proven_go_literal_zero_map_value(a[0]) {
                         return self.mk(
                             ValOp::Call(Builtin::GetOrDefault as u32 + 1),
                             vec![map, a[1], default],
@@ -4022,6 +4073,9 @@ impl<'a> Builder<'a> {
                 let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 if matches!(node.payload, Payload::Builtin(Builtin::DictEntry)) {
                     return self.dict_entry(a);
+                }
+                if let Some(map) = self.proven_go_literal_zero_map_seq(expr, &a) {
+                    return map;
                 }
                 self.mk(ValOp::Seq(self.seq_tag(expr)), a)
             }

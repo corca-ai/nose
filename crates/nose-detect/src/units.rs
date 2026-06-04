@@ -426,7 +426,7 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         }
         NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
         NodeKind::Index
-            if strict_exact_go_literal_int_map_index_safe(il, interner, facts, node) =>
+            if strict_exact_go_literal_zero_map_index_safe(il, interner, facts, node) =>
         {
             true
         }
@@ -985,7 +985,7 @@ fn strict_exact_map_entries_safe(
     })
 }
 
-fn strict_exact_go_literal_int_map_index_safe(
+fn strict_exact_go_literal_zero_map_index_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -996,11 +996,11 @@ fn strict_exact_go_literal_int_map_index_safe(
     }
     let kids = il.children(node);
     kids.len() == 2
-        && strict_exact_go_literal_int_map_safe(il, interner, facts, kids[0])
+        && strict_exact_go_literal_zero_map_safe(il, interner, facts, kids[0])
         && strict_exact_safe_tree(il, interner, facts, kids[1])
 }
 
-fn strict_exact_go_literal_int_map_safe(
+fn strict_exact_go_literal_zero_map_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -1015,6 +1015,7 @@ fn strict_exact_go_literal_int_map_safe(
     if interner.resolve(name) != "composite_literal" || il.children(node).is_empty() {
         return false;
     }
+    let mut value_kind = None;
     il.children(node).iter().all(|&entry| {
         if il.kind(entry) != NodeKind::Seq {
             return false;
@@ -1023,12 +1024,34 @@ fn strict_exact_go_literal_int_map_safe(
             return false;
         };
         let kv = il.children(entry);
-        interner.resolve(entry_name) == "keyed_element"
-            && kv.len() == 2
-            && !matches!(il.node(kv[0]).payload, Payload::LitInt(_))
-            && matches!(il.node(kv[1]).payload, Payload::LitInt(_))
-            && strict_exact_safe_tree(il, interner, facts, kv[0])
+        if interner.resolve(entry_name) != "keyed_element"
+            || kv.len() != 2
+            || !matches!(il.node(kv[0]).payload, Payload::LitStr(_))
+            || !strict_exact_safe_tree(il, interner, facts, kv[0])
+        {
+            return false;
+        }
+        let Some(kind) = strict_exact_go_zero_value_kind(il.node(kv[1]).payload) else {
+            return false;
+        };
+        match value_kind {
+            Some(current) if current != kind => false,
+            Some(_) => true,
+            None => {
+                value_kind = Some(kind);
+                true
+            }
+        }
     })
+}
+
+fn strict_exact_go_zero_value_kind(payload: Payload) -> Option<u8> {
+    match payload {
+        Payload::LitInt(_) => Some(1),
+        Payload::LitStr(_) => Some(2),
+        Payload::LitBool(_) => Some(3),
+        _ => None,
+    }
 }
 
 fn strict_exact_call_args_safe(

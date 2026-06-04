@@ -3066,7 +3066,7 @@ The batch opens three adjacent positive proposal IDs plus two boundaries:
 The generator marks Go `literal_map_default_lookup` as `partial` in the capability
 matrix, then creates Python/Ruby reference pairs against Go inline, local short-binding,
 and local `var` map-index forms. The detector canonicalizes only Go keyed composite
-literals whose entries are non-integer constant keys with integer literal values, turning
+literals whose entries are string-literal keys with integer literal values, turning
 `Index(map, key)` into `GetOrDefault(map, key, 0)`. This deliberately excludes keyed
 slice literals such as `[]int{0: 1}[i]` and string-valued maps such as
 `map[string]string{...}[key]`.
@@ -3122,5 +3122,85 @@ Assessment: this is a useful cross-language frontier expansion because it adds a
 literal-map proof to an axis previously dominated by Python/Ruby, JS/TS, Java, and Rust
 literal factories. The important strictness constraint is not to mistake all Go
 `composite_literal` index expressions for maps: the proof currently requires keyed
-entries, non-integer constant keys, integer literal values, and the implicit fallback
+entries, string-literal keys, integer literal values, and the implicit fallback
 `0`.
+
+## Go non-int literal map zero defaults: loops 337-342
+
+This macro-loop keeps the accelerated batch-3 cadence: choose about three adjacent
+frontier candidates with one shared proof invariant, generate them together, and run the
+expensive gates once for the batch. The selected frontier is the next Go zero-value map
+lookup slice: `map[string]string{...}[key]` has implicit fallback `""`, and
+`map[string]bool{...}[key]` has implicit fallback `false`. These are strict Type-4 only
+when the literal map has one homogeneous value literal kind and a string-keyed map
+shape; mixed-value maps and keyed slice literals must stay outside the proof.
+
+The batch opens three adjacent positive proposal IDs plus three boundaries:
+
+- `axis_map_default_go_zero_string_inline_identity`;
+- `axis_map_default_go_zero_string_local_identity`;
+- `axis_map_default_go_zero_bool_inline_identity`;
+- `axis_map_default_go_zero_wrong_key_boundary`;
+- `axis_map_default_go_zero_wrong_map_boundary`;
+- `axis_map_default_go_zero_mixed_value_boundary`.
+
+The detector now evaluates Go composite literals that satisfy the zero-map proof into a
+small `go_literal_zero_map(default, map)` value wrapper. Indexing that wrapper emits the
+same `GetOrDefault(map, key, default)` primitive used by Python/Ruby literal default
+lookups. This wrapper is deliberately built from the source IL payload kind rather than
+from evaluated string constant key ranges: string hashes are folded into 32-bit constant
+keys, so high-bit prefix checks are not reliable after wrapping.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 337 | batch frontier selection | group Go string inline, string local, and bool inline zero-value map defaults under `axis_map_default_go_zero_*` | focused corpus: 6 positives, 12 hard negatives |
+| 338 | baseline measurement | scan the focused batch with the previous release detector and current generator | baseline: 0/6 positives, 0/12 false merges |
+| 339 | generator adversary | add Python/Ruby references against Go string/bool right surfaces plus wrong-key, wrong-map, and mixed-value boundaries | focused generator emits 18 items |
+| 340 | detector strengthening | canonicalize homogeneous Go literal int/string/bool map values to a zero-default wrapper and unwrap it at index lookup | candidate focused: 6/6 positives, 0/12 false merges |
+| 341 | strict regression tests | add value-graph and CLI positives plus keyed-slice and mixed-value boundaries across string/bool cases | targeted and full tests passed |
+| 342 | release focused/core gates | build release and run focused Go zero, literal-map core, and all-cross core gates | focused 6/6, 0/12; literal-map core 45/45, 0/116; all-cross 493/493, 0/961 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=18, positive=0/6, false_merges=0/12
+candidate release: items=18, positive=6/6, false_merges=0/12
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_default_go_zero CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 18
+positive recall: 6/6
+hard-negative false merges: 0/12
+Raw nodes: 0/624
+```
+
+Final release literal-map core gate:
+
+```text
+GATE=core AXIS=literal_map_default_lookup CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 161/227
+positive recall: 45/45
+hard-negative false merges: 0/116
+Raw nodes: 0/6619
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1454/6292
+positive recall: 493/493
+hard-negative false merges: 0/961
+Raw nodes: 0/53733
+```
+
+Assessment: the batch-3 cadence worked here: one detector proof opened three positive
+proposal IDs, while the hard negatives kept each proof coordinate explicit. The useful
+generalization is not "all Go map indexes"; it is "homogeneous literal map values whose
+language zero value can be represented exactly." Composite, pointer, slice, struct, and
+interface-typed zero values remain open until they have their own source-level proof and
+boundaries.

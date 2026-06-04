@@ -2044,8 +2044,30 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
     let py_int_key_literal = "def f(key, other):\n    return {0: 1, 1: 2}.get(key, 0)\n";
     let go_keyed_slice =
         "package p\n\nfunc F(key int, other int) int { return []int{0: 1, 1: 2}[key] }\n";
-    let go_string_value =
-        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"one\", \"blue\": \"two\"}[key] }\n";
+    let py_string_literal =
+        "def f(key, other):\n    return {\"red\": \"apple\", \"blue\": \"berry\"}.get(key, \"\")\n";
+    let ruby_string_literal =
+        "def f(key, other)\n  {\"red\" => \"apple\", \"blue\" => \"berry\"}.fetch(key, \"\")\nend\n";
+    let go_string_inline =
+        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key] }\n";
+    let go_string_local =
+        "package p\n\nfunc F(key string, other string) string { lookup := map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}; return lookup[key] }\n";
+    let go_string_wrong_key =
+        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[other] }\n";
+    let py_string_int_key_literal =
+        "def f(key, other):\n    return {0: \"apple\", 1: \"berry\"}.get(key, \"\")\n";
+    let go_string_keyed_slice =
+        "package p\n\nfunc F(key int, other int) string { return []string{0: \"apple\", 1: \"berry\"}[key] }\n";
+    let py_bool_literal =
+        "def f(key, other):\n    return {\"red\": True, \"blue\": False}.get(key, False)\n";
+    let ruby_bool_literal =
+        "def f(key, other)\n  {\"red\" => true, \"blue\" => false}.fetch(key, false)\nend\n";
+    let go_bool_inline =
+        "package p\n\nfunc F(key string, other string) bool { return map[string]bool{\"red\": true, \"blue\": false}[key] }\n";
+    let go_bool_wrong_map =
+        "package p\n\nfunc F(key string, other string) bool { return map[string]bool{\"red\": false, \"blue\": false}[key] }\n";
+    let go_mixed_value =
+        "package p\n\nfunc F(key string, other string) interface{} { return map[string]interface{}{\"red\": \"apple\", \"blue\": false}[key] }\n";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
@@ -2058,7 +2080,23 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
         value_fp(&i, py_int_key_literal, Lang::Python),
         value_fp(&i, go_keyed_slice, Lang::Go)
     );
-    assert_ne!(fp, value_fp(&i, go_string_value, Lang::Go));
+    assert_ne!(fp, value_fp(&i, go_string_inline, Lang::Go));
+
+    let string_fp = value_fp(&i, py_string_literal, Lang::Python);
+    assert_eq!(string_fp, value_fp(&i, ruby_string_literal, Lang::Ruby));
+    assert_eq!(string_fp, value_fp(&i, go_string_inline, Lang::Go));
+    assert_eq!(string_fp, value_fp(&i, go_string_local, Lang::Go));
+    assert_ne!(string_fp, value_fp(&i, go_string_wrong_key, Lang::Go));
+    assert_ne!(string_fp, value_fp(&i, go_mixed_value, Lang::Go));
+    assert_ne!(
+        value_fp(&i, py_string_int_key_literal, Lang::Python),
+        value_fp(&i, go_string_keyed_slice, Lang::Go)
+    );
+
+    let bool_fp = value_fp(&i, py_bool_literal, Lang::Python);
+    assert_eq!(bool_fp, value_fp(&i, ruby_bool_literal, Lang::Ruby));
+    assert_eq!(bool_fp, value_fp(&i, go_bool_inline, Lang::Go));
+    assert_ne!(bool_fp, value_fp(&i, go_bool_wrong_map, Lang::Go));
 }
 
 #[test]

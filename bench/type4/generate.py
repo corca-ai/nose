@@ -767,6 +767,30 @@ AXIS_PROPOSALS = {
         "axis": "literal_map_default_lookup",
         "why": "Go literal map index default lookups over different static entries change present-key behavior.",
     },
+    "axis_map_default_go_zero_string_inline_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go inline `map[string]string{...}[key]` lookup should prove literal-map default lookup with the string zero value fallback.",
+    },
+    "axis_map_default_go_zero_string_local_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A local Go `map[string]string{...}` binding followed by index lookup should preserve literal-map default proof coordinates.",
+    },
+    "axis_map_default_go_zero_bool_inline_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go inline `map[string]bool{...}[key]` lookup should prove literal-map default lookup with the boolean zero value fallback.",
+    },
+    "axis_map_default_go_zero_wrong_key_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Go zero-value literal map lookups over different key parameters are different proof coordinates.",
+    },
+    "axis_map_default_go_zero_wrong_map_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Go zero-value literal map lookups over different static entries change present-key behavior.",
+    },
+    "axis_map_default_go_zero_mixed_value_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go literal map with mixed value literal kinds does not have one strict zero-value fallback proof.",
+    },
     "axis_map_default_module_js_map_identity": {
         "axis": "literal_map_default_lookup",
         "why": "A module-level immutable JavaScript `new Map([...])` binding should prove literal-map default lookup when the binding is not mutated.",
@@ -3175,7 +3199,7 @@ def literal_map_default_axis_supported(surface: Surface, proposal_id: str) -> bo
         return surface.key == "java"
     if proposal_id.startswith("axis_map_default_rust_"):
         return surface.key in {"python", "ruby", "rust"}
-    if proposal_id.startswith("axis_map_default_go_map_"):
+    if proposal_id.startswith(("axis_map_default_go_map_", "axis_map_default_go_zero_")):
         return surface.key in {"python", "ruby", "go"}
     if proposal_id.startswith("axis_map_default_module_"):
         return surface.key in {"python", "ruby", "javascript", "typescript", "java"}
@@ -3307,13 +3331,59 @@ pub fn {name}(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, ke
     raise ValueError(f"unsupported surface for dynamic map default axis: {surface.key}")
 
 
+def map_default_py_literal(value: object) -> str:
+    if isinstance(value, bool):
+        return "True" if value else "False"
+    if isinstance(value, str):
+        return json.dumps(value)
+    return str(value)
+
+
+def map_default_ruby_literal(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return json.dumps(value)
+    return str(value)
+
+
+def map_default_go_literal(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return json.dumps(value)
+    return str(value)
+
+
+def map_default_go_kind(value: object) -> str:
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, str):
+        return "string"
+    return "int"
+
+
+def map_default_go_value_type(entries: tuple[tuple[str, object], tuple[str, object]]) -> str:
+    kinds = {map_default_go_kind(value) for _, value in entries}
+    if len(kinds) == 1:
+        return next(iter(kinds))
+    return "any"
+
+
 def map_default_axis_parts(
     proposal_id: str, negative: bool, right: bool
-) -> tuple[str, tuple[tuple[str, int], tuple[str, int]], int, str]:
+) -> tuple[str, tuple[tuple[str, object], tuple[str, object]], object, str]:
     key = "key"
     entries = (("red", 1), ("blue", 2))
     default = 0
     form = "literal_api"
+
+    if proposal_id.startswith("axis_map_default_go_zero_"):
+        entries = (("red", "apple"), ("blue", "berry"))
+        default = ""
+    if proposal_id == "axis_map_default_go_zero_bool_inline_identity":
+        entries = (("red", True), ("blue", False))
+        default = False
 
     if right and proposal_id == "axis_map_default_wrong_key_boundary":
         key = "other"
@@ -3400,6 +3470,19 @@ def map_default_axis_parts(
         "axis_map_default_go_map_wrong_map_boundary",
     }:
         form = "go_map_inline" if right else "literal_api"
+    if proposal_id in {
+        "axis_map_default_go_zero_string_inline_identity",
+        "axis_map_default_go_zero_bool_inline_identity",
+    }:
+        form = "go_map_inline" if right else "literal_api"
+    if proposal_id == "axis_map_default_go_zero_string_local_identity":
+        form = "go_map_local" if right else "literal_api"
+    if proposal_id in {
+        "axis_map_default_go_zero_wrong_key_boundary",
+        "axis_map_default_go_zero_wrong_map_boundary",
+        "axis_map_default_go_zero_mixed_value_boundary",
+    }:
+        form = "go_map_inline" if right else "literal_api"
     if proposal_id == "axis_map_default_module_js_map_identity":
         form = "js_map_module" if right else "literal_api"
     if proposal_id == "axis_map_default_module_ts_map_identity":
@@ -3444,6 +3527,15 @@ def map_default_axis_parts(
         key = "other"
     if right and proposal_id == "axis_map_default_go_map_wrong_map_boundary":
         entries = (("red", 9), ("blue", 2))
+    if right and proposal_id == "axis_map_default_go_zero_wrong_key_boundary":
+        key = "other"
+    if proposal_id == "axis_map_default_go_zero_wrong_map_boundary":
+        entries = (("red", True), ("blue", False))
+        default = False
+    if right and proposal_id == "axis_map_default_go_zero_wrong_map_boundary":
+        entries = (("red", False), ("blue", False))
+    if right and proposal_id == "axis_map_default_go_zero_mixed_value_boundary":
+        entries = (("red", "apple"), ("blue", False))
     if right and proposal_id == "axis_map_default_module_wrong_key_boundary":
         key = "other"
     if right and proposal_id == "axis_map_default_module_wrong_default_boundary":
@@ -3466,11 +3558,14 @@ def map_default_axis_parts(
         "axis_map_default_go_map_inline_identity",
         "axis_map_default_go_map_local_identity",
         "axis_map_default_go_map_var_identity",
+        "axis_map_default_go_zero_string_inline_identity",
+        "axis_map_default_go_zero_string_local_identity",
+        "axis_map_default_go_zero_bool_inline_identity",
         "axis_map_default_module_js_map_identity",
         "axis_map_default_module_ts_map_identity",
         "axis_map_default_module_java_map_identity",
     }:
-        if proposal_id.startswith("axis_map_default_go_map_"):
+        if proposal_id.startswith(("axis_map_default_go_map_", "axis_map_default_go_zero_")):
             key = "other"
         else:
             default = 9
@@ -3510,25 +3605,30 @@ def axis_map_default_variant(
 
     if surface.key == "python":
         src = f"""def {name}(key, other):
-    return {{"{k1}": {v1}, "{k2}": {v2}}}.get({key}, {default})
+    return {{"{k1}": {map_default_py_literal(v1)}, "{k2}": {map_default_py_literal(v2)}}}.get({key}, {map_default_py_literal(default)})
 """
         return Variant("axis", src, name)
 
     if surface.key == "ruby":
         src = f"""def {name}(key, other)
-  {{"{k1}" => {v1}, "{k2}" => {v2}}}.fetch({key}, {default})
+  {{"{k1}" => {map_default_ruby_literal(v1)}, "{k2}" => {map_default_ruby_literal(v2)}}}.fetch({key}, {map_default_ruby_literal(default)})
 end
 """
         return Variant("axis", src, name)
 
     if surface.key == "go":
-        map_expr = f'map[string]int{{"{k1}": {v1}, "{k2}": {v2}}}'
+        value_type = map_default_go_value_type(entries)
+        go_type = "interface{}" if value_type == "any" else value_type
+        map_expr = (
+            f'map[string]{go_type}{{"{k1}": {map_default_go_literal(v1)}, '
+            f'"{k2}": {map_default_go_literal(v2)}}}'
+        )
         if form == "literal_api":
             form = "go_map_inline"
         if form == "go_map_inline":
             src = f"""package p
 
-func {name}(key string, other string) int {{
+func {name}(key string, other string) {go_type} {{
     return {map_expr}[{key}]
 }}
 """
@@ -3536,7 +3636,7 @@ func {name}(key string, other string) int {{
         if form == "go_map_local":
             src = f"""package p
 
-func {name}(key string, other string) int {{
+func {name}(key string, other string) {go_type} {{
     lookup := {map_expr}
     return lookup[{key}]
 }}
@@ -3545,7 +3645,7 @@ func {name}(key string, other string) int {{
         if form == "go_map_var":
             src = f"""package p
 
-func {name}(key string, other string) int {{
+func {name}(key string, other string) {go_type} {{
     var lookup = {map_expr}
     return lookup[{key}]
 }}
@@ -5981,6 +6081,54 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "outputs": [],
             }
         if axis == "literal_map_default_lookup":
+            if proposal_id and proposal_id.startswith("axis_map_default_go_zero_bool_"):
+                return {
+                    "level": "E1",
+                    "kind": f"same-spec-{axis}",
+                    "property_inputs": [
+                        {
+                            "lookup": {"red": True, "blue": False},
+                            "other_lookup": {"red": False, "blue": False},
+                            "key": "red",
+                            "other_key": "green",
+                            "fallback": False,
+                            "other_default": True,
+                        },
+                        {
+                            "lookup": {"red": True, "blue": False},
+                            "other_lookup": {"red": False, "blue": False},
+                            "key": "green",
+                            "other_key": "red",
+                            "fallback": False,
+                            "other_default": True,
+                        },
+                    ],
+                    "outputs": [],
+                }
+            if proposal_id and proposal_id.startswith("axis_map_default_go_zero_"):
+                return {
+                    "level": "E1",
+                    "kind": f"same-spec-{axis}",
+                    "property_inputs": [
+                        {
+                            "lookup": {"red": "apple", "blue": "berry"},
+                            "other_lookup": {"red": "apricot", "blue": "berry"},
+                            "key": "red",
+                            "other_key": "green",
+                            "fallback": "",
+                            "other_default": "missing",
+                        },
+                        {
+                            "lookup": {"red": "apple", "blue": "berry"},
+                            "other_lookup": {"red": "apricot", "blue": "berry"},
+                            "key": "green",
+                            "other_key": "red",
+                            "fallback": "",
+                            "other_default": "missing",
+                        },
+                    ],
+                    "outputs": [],
+                }
             return {
                 "level": "E1",
                 "kind": f"same-spec-{axis}",
@@ -6187,6 +6335,22 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "right": 0,
             }
         elif proposal_id in {
+            "axis_map_default_go_zero_string_inline_identity",
+            "axis_map_default_go_zero_string_local_identity",
+            "axis_map_default_go_zero_wrong_key_boundary",
+        }:
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": "apple",
+                "right": "",
+            }
+        elif proposal_id == "axis_map_default_go_zero_bool_inline_identity":
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": True,
+                "right": False,
+            }
+        elif proposal_id in {
             "axis_map_default_wrong_map_boundary",
             "axis_map_default_js_map_wrong_map_boundary",
             "axis_map_default_js_object_wrong_map_boundary",
@@ -6202,6 +6366,18 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "input": {"key": "red", "other": "green"},
                 "left": 1,
                 "right": 9,
+            }
+        elif proposal_id == "axis_map_default_go_zero_wrong_map_boundary":
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": True,
+                "right": False,
+            }
+        elif proposal_id == "axis_map_default_go_zero_mixed_value_boundary":
+            counterexample = {
+                "input": {"key": "blue", "other": "green"},
+                "left": "berry",
+                "right": False,
             }
         elif proposal_id in {
             "axis_map_default_js_object_unguarded_boundary",
@@ -6574,6 +6750,7 @@ def generate_axis_items(
                     "axis_map_default_java_map_",
                     "axis_map_default_rust_",
                     "axis_map_default_go_map_",
+                    "axis_map_default_go_zero_",
                     "axis_map_default_module_",
                 )
             ):
@@ -8219,6 +8396,59 @@ def generate_literal_map_default_cross_items(
     for proposal_id in (
         "axis_map_default_go_map_wrong_key_boundary",
         "axis_map_default_go_map_wrong_map_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in go_right_surfaces:
+            for left_surface in reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-map-default-boundary",
+                    )
+                )
+    for proposal_id in (
+        "axis_map_default_go_zero_string_inline_identity",
+        "axis_map_default_go_zero_string_local_identity",
+        "axis_map_default_go_zero_bool_inline_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in go_right_surfaces:
+            for left_surface in reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "equivalent",
+                        "heldout",
+                    )
+                )
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal_map_default_lookup-semantic-mutation",
+                    )
+                )
+    for proposal_id in (
+        "axis_map_default_go_zero_wrong_key_boundary",
+        "axis_map_default_go_zero_wrong_map_boundary",
+        "axis_map_default_go_zero_mixed_value_boundary",
     ):
         if not generation_filter.include_proposal(proposal_id):
             continue

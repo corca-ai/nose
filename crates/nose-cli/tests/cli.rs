@@ -1492,6 +1492,41 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_string.py"),
+        "def lookup(key, other):\n    return {\"red\": \"apple\", \"blue\": \"berry\"}.get(key, \"\")\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_string.rb"),
+        "def lookup(key, other)\n  {\"red\" => \"apple\", \"blue\" => \"berry\"}.fetch(key, \"\")\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_string_inline.go"),
+        "package p\n\nfunc Lookup(key string, other string) string {\n    return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_string_local.go"),
+        "package p\n\nfunc Lookup(key string, other string) string {\n    lookup := map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}\n    return lookup[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_bool.py"),
+        "def lookup(key, other):\n    return {\"red\": True, \"blue\": False}.get(key, False)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_bool.rb"),
+        "def lookup(key, other)\n  {\"red\" => true, \"blue\" => false}.fetch(key, false)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_bool_inline.go"),
+        "package p\n\nfunc Lookup(key string, other string) bool {\n    return map[string]bool{\"red\": true, \"blue\": false}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("object_hasown.js"),
         "function lookup(key, other) {\n  const values = { \"red\": 1, \"blue\": 2 };\n  return Object.hasOwn(values, key) ? values[key] : 0;\n}\n",
     )
@@ -1622,6 +1657,26 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("wrong_go_string_key.go"),
+        "package p\n\nfunc Wrong(key string, other string) string {\n    return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[other]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_go_bool_map.go"),
+        "package p\n\nfunc Wrong(key string, other string) bool {\n    return map[string]bool{\"red\": false, \"blue\": false}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_mixed_value_map.go"),
+        "package p\n\nfunc Wrong(key string, other string) interface{} {\n    return map[string]interface{}{\"red\": \"apple\", \"blue\": false}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_string_keyed_slice.go"),
+        "package p\n\nfunc Wrong(key int, other int) string {\n    return []string{0: \"apple\", 1: \"berry\"}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("object_wrong_key.js"),
         "function wrong_key(key, other) {\n  const values = { \"red\": 1, \"blue\": 2 };\n  return Object.hasOwn(values, other) ? values[other] : 0;\n}\n",
     )
@@ -1715,7 +1770,56 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
             "semantic mode should include {expected}: {semantic}"
         );
     }
-    for unexpected in [
+    let string_expected = [
+        "map_default_string.py",
+        "map_default_string.rb",
+        "map_default_go_string_inline.go",
+        "map_default_go_string_local.go",
+    ];
+    let string_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            string_expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one string map-default family: {semantic}")
+        });
+    let string_text = string_family.to_string();
+    for expected in string_expected {
+        assert!(
+            string_text.contains(expected),
+            "semantic mode should include string map-default {expected}: {semantic}"
+        );
+    }
+
+    let bool_expected = [
+        "map_default_bool.py",
+        "map_default_bool.rb",
+        "map_default_go_bool_inline.go",
+    ];
+    let bool_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            bool_expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one bool map-default family: {semantic}")
+        });
+    let bool_text = bool_family.to_string();
+    for expected in bool_expected {
+        assert!(
+            bool_text.contains(expected),
+            "semantic mode should include bool map-default {expected}: {semantic}"
+        );
+    }
+
+    let boundary_files = [
         "wrong_key.py",
         "wrong_default.rb",
         "wrong_map.py",
@@ -1739,6 +1843,10 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "wrong_go_key.go",
         "wrong_go_map.go",
         "go_keyed_slice.go",
+        "wrong_go_string_key.go",
+        "wrong_go_bool_map.go",
+        "go_mixed_value_map.go",
+        "go_string_keyed_slice.go",
         "object_wrong_key.js",
         "object_wrong_default.js",
         "object_wrong_map.js",
@@ -1746,11 +1854,14 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "object_in.js",
         "object_method.js",
         "object_shadowed.js",
-    ] {
-        assert!(
-            !positive_text.contains(unexpected),
-            "semantic mode must preserve literal map-default boundaries: {semantic}"
-        );
+    ];
+    for family_text in [&positive_text, &string_text, &bool_text] {
+        for unexpected in &boundary_files {
+            assert!(
+                !family_text.contains(*unexpected),
+                "semantic mode must preserve literal map-default boundaries: {semantic}"
+            );
+        }
     }
 
     let _ = fs::remove_dir_all(&dir);
