@@ -44,7 +44,7 @@
       "immutable_binding": "partial",
       "import_identity": "partial",
       "literal_collection_membership": "supported",
-      "literal_map_default_lookup": "unsupported",
+      "literal_map_default_lookup": "partial",
       "map_default_lookup": "supported",
       "map_key_membership": "supported",
       "null_presence_predicate": "supported",

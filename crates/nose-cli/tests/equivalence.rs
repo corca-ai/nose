@@ -2030,6 +2030,38 @@ fn literal_map_default_lookup_converges_with_rust_std_map_factory_boundaries() {
 }
 
 #[test]
+fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
+    let i = Interner::new();
+    let py_literal = "def f(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n";
+    let ruby_literal = "def f(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key, 0)\nend\n";
+    let go_inline = "package p\n\nfunc F(key string, other string) int { return map[string]int{\"red\": 1, \"blue\": 2}[key] }\n";
+    let go_local = "package p\n\nfunc F(key string, other string) int { lookup := map[string]int{\"red\": 1, \"blue\": 2}; return lookup[key] }\n";
+    let go_var = "package p\n\nfunc F(key string, other string) int { var lookup = map[string]int{\"red\": 1, \"blue\": 2}; return lookup[key] }\n";
+    let go_wrong_key =
+        "package p\n\nfunc F(key string, other string) int { return map[string]int{\"red\": 1, \"blue\": 2}[other] }\n";
+    let go_wrong_map =
+        "package p\n\nfunc F(key string, other string) int { return map[string]int{\"red\": 9, \"blue\": 2}[key] }\n";
+    let py_int_key_literal = "def f(key, other):\n    return {0: 1, 1: 2}.get(key, 0)\n";
+    let go_keyed_slice =
+        "package p\n\nfunc F(key int, other int) int { return []int{0: 1, 1: 2}[key] }\n";
+    let go_string_value =
+        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"one\", \"blue\": \"two\"}[key] }\n";
+
+    let fp = value_fp(&i, py_literal, Lang::Python);
+    assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
+    assert_eq!(fp, value_fp(&i, go_inline, Lang::Go));
+    assert_eq!(fp, value_fp(&i, go_local, Lang::Go));
+    assert_eq!(fp, value_fp(&i, go_var, Lang::Go));
+    assert_ne!(fp, value_fp(&i, go_wrong_key, Lang::Go));
+    assert_ne!(fp, value_fp(&i, go_wrong_map, Lang::Go));
+    assert_ne!(
+        value_fp(&i, py_int_key_literal, Lang::Python),
+        value_fp(&i, go_keyed_slice, Lang::Go)
+    );
+    assert_ne!(fp, value_fp(&i, go_string_value, Lang::Go));
+}
+
+#[test]
 fn literal_map_default_lookup_converges_with_module_map_bindings() {
     let i = Interner::new();
     let py_literal = "def f(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n";

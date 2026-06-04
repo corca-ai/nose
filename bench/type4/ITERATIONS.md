@@ -3045,3 +3045,82 @@ pattern is a polarity-aware canonicalizer: keep the source/lambda proof shared, 
 separate non-empty thresholds from zero-count thresholds so the value graph emits either
 `In` or `Not(In)` explicitly. The `NaN` boundary remains important because JS
 `includes` and callback equality do not have identical SameValueZero behavior.
+
+## Go literal map index default lookup: loops 331-336
+
+This macro-loop moves back to the broader multi-language `map_default_lookup` frontier.
+Go exposes a strict zero-value map lookup idiom: for `map[string]int`, `lookup[key]`
+returns the stored integer when the key is present and `0` when absent. That is
+exact-equivalent to Python/Ruby literal map default lookup with fallback `0`, but only
+for proven integer-valued Go map literals. Non-int value maps and keyed slice literals
+must stay outside the proof.
+
+The batch opens three adjacent positive proposal IDs plus two boundaries:
+
+- `axis_map_default_go_map_inline_identity`;
+- `axis_map_default_go_map_local_identity`;
+- `axis_map_default_go_map_var_identity`;
+- `axis_map_default_go_map_wrong_key_boundary`;
+- `axis_map_default_go_map_wrong_map_boundary`.
+
+The generator marks Go `literal_map_default_lookup` as `partial` in the capability
+matrix, then creates Python/Ruby reference pairs against Go inline, local short-binding,
+and local `var` map-index forms. The detector canonicalizes only Go keyed composite
+literals whose entries are non-integer constant keys with integer literal values, turning
+`Index(map, key)` into `GetOrDefault(map, key, 0)`. This deliberately excludes keyed
+slice literals such as `[]int{0: 1}[i]` and string-valued maps such as
+`map[string]string{...}[key]`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 331 | batch frontier selection | group Go inline/local/var `map[string]int{...}[key]` default lookups plus wrong-key/wrong-map boundaries under `axis_map_default_go_map_*` | focused corpus: 6 positives, 10 hard negatives |
+| 332 | baseline measurement | scan the focused batch with the previous release detector after opening Go capability to `partial` | baseline: 0/6 positives, 0/10 false merges |
+| 333 | generator adversary | add Python/Ruby references against Go right-surface variants and include semantic mutation negatives | focused generator emits inline, short local binding, and local `var` forms |
+| 334 | detector strengthening | canonicalize proven Go literal int-map index to `GetOrDefault(map, key, 0)` and add exact-safety for inline keyed map literals | candidate focused: 6/6 positives, 0/10 false merges |
+| 335 | strict regression tests | add value-graph and CLI positives plus wrong-key, wrong-map, keyed-slice, and string-value boundaries | targeted tests passed |
+| 336 | release focused/core gates | build release and run focused Go map, literal-map core, and all-cross core gates | focused 6/6, 0/10; literal-map core 39/39, 0/104; all-cross 487/487, 0/949 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=16, positive=0/6, false_merges=0/10
+candidate release: items=16, positive=6/6, false_merges=0/10
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_default_go_map CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 16
+positive recall: 6/6
+hard-negative false merges: 0/10
+Raw nodes: 0/568
+```
+
+Final release literal-map core gate:
+
+```text
+GATE=core AXIS=literal_map_default_lookup CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 143/209
+positive recall: 39/39
+hard-negative false merges: 0/104
+Raw nodes: 0/5995
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1436/6274
+positive recall: 487/487
+hard-negative false merges: 0/949
+Raw nodes: 0/53109
+```
+
+Assessment: this is a useful cross-language frontier expansion because it adds a Go
+literal-map proof to an axis previously dominated by Python/Ruby, JS/TS, Java, and Rust
+literal factories. The important strictness constraint is not to mistake all Go
+`composite_literal` index expressions for maps: the proof currently requires keyed
+entries, non-integer constant keys, integer literal values, and the implicit fallback
+`0`.

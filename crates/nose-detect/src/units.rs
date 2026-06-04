@@ -425,6 +425,11 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
                     .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
         }
         NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
+        NodeKind::Index
+            if strict_exact_go_literal_int_map_index_safe(il, interner, facts, node) =>
+        {
+            true
+        }
         NodeKind::BinOp if strict_exact_static_index_membership_safe(il, interner, facts, node) => {
             true
         }
@@ -977,6 +982,52 @@ fn strict_exact_map_entries_safe(
         il.kind(entry) == NodeKind::Seq
             && il.children(entry).len() == 2
             && strict_exact_safe_tree(il, interner, facts, entry)
+    })
+}
+
+fn strict_exact_go_literal_int_map_index_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.meta.lang != Lang::Go || il.kind(node) != NodeKind::Index {
+        return false;
+    }
+    let kids = il.children(node);
+    kids.len() == 2
+        && strict_exact_go_literal_int_map_safe(il, interner, facts, kids[0])
+        && strict_exact_safe_tree(il, interner, facts, kids[1])
+}
+
+fn strict_exact_go_literal_int_map_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    let Payload::Name(name) = il.node(node).payload else {
+        return false;
+    };
+    if interner.resolve(name) != "composite_literal" || il.children(node).is_empty() {
+        return false;
+    }
+    il.children(node).iter().all(|&entry| {
+        if il.kind(entry) != NodeKind::Seq {
+            return false;
+        }
+        let Payload::Name(entry_name) = il.node(entry).payload else {
+            return false;
+        };
+        let kv = il.children(entry);
+        interner.resolve(entry_name) == "keyed_element"
+            && kv.len() == 2
+            && !matches!(il.node(kv[0]).payload, Payload::LitInt(_))
+            && matches!(il.node(kv[1]).payload, Payload::LitInt(_))
+            && strict_exact_safe_tree(il, interner, facts, kv[0])
     })
 }
 

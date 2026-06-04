@@ -1477,6 +1477,21 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_go_inline.go"),
+        "package p\n\nfunc Lookup(key string, other string) int {\n    return map[string]int{\"red\": 1, \"blue\": 2}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_local.go"),
+        "package p\n\nfunc Lookup(key string, other string) int {\n    lookup := map[string]int{\"red\": 1, \"blue\": 2}\n    return lookup[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_go_var.go"),
+        "package p\n\nfunc Lookup(key string, other string) int {\n    var lookup = map[string]int{\"red\": 1, \"blue\": 2}\n    return lookup[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("object_hasown.js"),
         "function lookup(key, other) {\n  const values = { \"red\": 1, \"blue\": 2 };\n  return Object.hasOwn(values, key) ? values[key] : 0;\n}\n",
     )
@@ -1592,6 +1607,21 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("wrong_go_key.go"),
+        "package p\n\nfunc Wrong(key string, other string) int {\n    return map[string]int{\"red\": 1, \"blue\": 2}[other]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_go_map.go"),
+        "package p\n\nfunc Wrong(key string, other string) int {\n    return map[string]int{\"red\": 9, \"blue\": 2}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("go_keyed_slice.go"),
+        "package p\n\nfunc Wrong(key int, other int) int {\n    return []int{0: 1, 1: 2}[key]\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("object_wrong_key.js"),
         "function wrong_key(key, other) {\n  const values = { \"red\": 1, \"blue\": 2 };\n  return Object.hasOwn(values, other) ? values[other] : 0;\n}\n",
     )
@@ -1660,6 +1690,9 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "map_default_rust_hashmap.rs",
         "map_default_rust_btreemap.rs",
         "map_default_rust_local.rs",
+        "map_default_go_inline.go",
+        "map_default_go_local.go",
+        "map_default_go_var.go",
         "object_hasown.js",
         "object_hasown_call.js",
         "object_negated.ts",
@@ -1703,6 +1736,9 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "wrong_rust_default.rs",
         "wrong_rust_map.rs",
         "rust_map_mutated.rs",
+        "wrong_go_key.go",
+        "wrong_go_map.go",
+        "go_keyed_slice.go",
         "object_wrong_key.js",
         "object_wrong_default.js",
         "object_wrong_map.js",

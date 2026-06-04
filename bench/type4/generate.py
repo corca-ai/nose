@@ -747,6 +747,26 @@ AXIS_PROPOSALS = {
         "axis": "literal_map_default_lookup",
         "why": "A local Rust map binding mutated after construction is not a strict literal-map proof.",
     },
+    "axis_map_default_go_map_inline_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A Go inline `map[string]int{...}[key]` lookup should prove literal-map default lookup with the integer zero value fallback.",
+    },
+    "axis_map_default_go_map_local_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A local Go `map[string]int{...}` binding followed by index lookup should preserve literal-map default proof coordinates.",
+    },
+    "axis_map_default_go_map_var_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "A local Go `var lookup = map[string]int{...}` binding followed by index lookup should preserve literal-map default proof coordinates.",
+    },
+    "axis_map_default_go_map_wrong_key_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Go literal map index default lookups over different key parameters are different proof coordinates.",
+    },
+    "axis_map_default_go_map_wrong_map_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Go literal map index default lookups over different static entries change present-key behavior.",
+    },
     "axis_map_default_module_js_map_identity": {
         "axis": "literal_map_default_lookup",
         "why": "A module-level immutable JavaScript `new Map([...])` binding should prove literal-map default lookup when the binding is not mutated.",
@@ -3155,6 +3175,8 @@ def literal_map_default_axis_supported(surface: Surface, proposal_id: str) -> bo
         return surface.key == "java"
     if proposal_id.startswith("axis_map_default_rust_"):
         return surface.key in {"python", "ruby", "rust"}
+    if proposal_id.startswith("axis_map_default_go_map_"):
+        return surface.key in {"python", "ruby", "go"}
     if proposal_id.startswith("axis_map_default_module_"):
         return surface.key in {"python", "ruby", "javascript", "typescript", "java"}
     return surface.key in {"python", "ruby"}
@@ -3367,6 +3389,17 @@ def map_default_axis_parts(
         form = "rust_hashmap_from" if right else "literal_api"
     if proposal_id == "axis_map_default_rust_mutated_boundary":
         form = "rust_hashmap_mutated" if right else "literal_api"
+    if proposal_id == "axis_map_default_go_map_inline_identity":
+        form = "go_map_inline" if right else "literal_api"
+    if proposal_id == "axis_map_default_go_map_local_identity":
+        form = "go_map_local" if right else "literal_api"
+    if proposal_id == "axis_map_default_go_map_var_identity":
+        form = "go_map_var" if right else "literal_api"
+    if proposal_id in {
+        "axis_map_default_go_map_wrong_key_boundary",
+        "axis_map_default_go_map_wrong_map_boundary",
+    }:
+        form = "go_map_inline" if right else "literal_api"
     if proposal_id == "axis_map_default_module_js_map_identity":
         form = "js_map_module" if right else "literal_api"
     if proposal_id == "axis_map_default_module_ts_map_identity":
@@ -3407,6 +3440,10 @@ def map_default_axis_parts(
         default = 9
     if right and proposal_id == "axis_map_default_rust_wrong_map_boundary":
         entries = (("red", 9), ("blue", 2))
+    if right and proposal_id == "axis_map_default_go_map_wrong_key_boundary":
+        key = "other"
+    if right and proposal_id == "axis_map_default_go_map_wrong_map_boundary":
+        entries = (("red", 9), ("blue", 2))
     if right and proposal_id == "axis_map_default_module_wrong_key_boundary":
         key = "other"
     if right and proposal_id == "axis_map_default_module_wrong_default_boundary":
@@ -3426,11 +3463,17 @@ def map_default_axis_parts(
         "axis_map_default_rust_hashmap_from_identity",
         "axis_map_default_rust_btreemap_from_identity",
         "axis_map_default_rust_hashmap_local_identity",
+        "axis_map_default_go_map_inline_identity",
+        "axis_map_default_go_map_local_identity",
+        "axis_map_default_go_map_var_identity",
         "axis_map_default_module_js_map_identity",
         "axis_map_default_module_ts_map_identity",
         "axis_map_default_module_java_map_identity",
     }:
-        default = 9
+        if proposal_id.startswith("axis_map_default_go_map_"):
+            key = "other"
+        else:
+            default = 9
     return key, entries, default, form
 
 
@@ -3477,6 +3520,37 @@ def axis_map_default_variant(
 end
 """
         return Variant("axis", src, name)
+
+    if surface.key == "go":
+        map_expr = f'map[string]int{{"{k1}": {v1}, "{k2}": {v2}}}'
+        if form == "literal_api":
+            form = "go_map_inline"
+        if form == "go_map_inline":
+            src = f"""package p
+
+func {name}(key string, other string) int {{
+    return {map_expr}[{key}]
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_map_local":
+            src = f"""package p
+
+func {name}(key string, other string) int {{
+    lookup := {map_expr}
+    return lookup[{key}]
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "go_map_var":
+            src = f"""package p
+
+func {name}(key string, other string) int {{
+    var lookup = {map_expr}
+    return lookup[{key}]
+}}
+"""
+            return Variant("axis", src, name)
 
     if surface.key == "java":
         if form == "literal_api":
@@ -6102,11 +6176,23 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "right": 9,
             }
         elif proposal_id in {
+            "axis_map_default_go_map_inline_identity",
+            "axis_map_default_go_map_local_identity",
+            "axis_map_default_go_map_var_identity",
+            "axis_map_default_go_map_wrong_key_boundary",
+        }:
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": 1,
+                "right": 0,
+            }
+        elif proposal_id in {
             "axis_map_default_wrong_map_boundary",
             "axis_map_default_js_map_wrong_map_boundary",
             "axis_map_default_js_object_wrong_map_boundary",
             "axis_map_default_java_map_wrong_map_boundary",
             "axis_map_default_rust_wrong_map_boundary",
+            "axis_map_default_go_map_wrong_map_boundary",
             "axis_map_default_rust_mutated_boundary",
             "axis_map_default_module_wrong_map_boundary",
             "axis_map_default_module_mutated_boundary",
@@ -6487,6 +6573,7 @@ def generate_axis_items(
                     "axis_map_default_js_object_",
                     "axis_map_default_java_map_",
                     "axis_map_default_rust_",
+                    "axis_map_default_go_map_",
                     "axis_map_default_module_",
                 )
             ):
@@ -8083,6 +8170,59 @@ def generate_literal_map_default_cross_items(
         if not generation_filter.include_proposal(proposal_id):
             continue
         for right_surface in rust_right_surfaces:
+            for left_surface in reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-map-default-boundary",
+                    )
+                )
+    go_right_surfaces = [surface_by_key["go"]]
+    for proposal_id in (
+        "axis_map_default_go_map_inline_identity",
+        "axis_map_default_go_map_local_identity",
+        "axis_map_default_go_map_var_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in go_right_surfaces:
+            for left_surface in reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "equivalent",
+                        "heldout",
+                    )
+                )
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal_map_default_lookup-semantic-mutation",
+                    )
+                )
+    for proposal_id in (
+        "axis_map_default_go_map_wrong_key_boundary",
+        "axis_map_default_go_map_wrong_map_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in go_right_surfaces:
             for left_surface in reference_surfaces:
                 items.append(
                     make_axis_cross_item(
