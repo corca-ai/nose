@@ -78,9 +78,9 @@ under-covered cells over more complex variants of already-covered cells.
 The detector should not grow as a pile of language-specific exceptions. Each frontend should
 emit the thinnest facts it can prove, while the common strict engine consumes those facts:
 single-assignment immutable bindings, safe function-binding identity, receiver/method
-identity, static import coordinates, literal table keys, and explicit unsafe boundaries.
-`capabilities.v1.json` records which surfaces currently emit which facts so unsupported
-cells stay visible.
+identity, static import coordinates, static field/property projection coordinates, literal
+table keys, and explicit unsafe boundaries. `capabilities.v1.json` records which surfaces
+currently emit which facts so unsupported cells stay visible.
 
 ## Breadth-first difficulty levels
 

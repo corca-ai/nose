@@ -495,3 +495,53 @@ The generator found a real under-merge first, the detector fix was a common proo
 extension rather than a language-name exception, and the counterattack found a second real
 miss in multi-specifier imports. Unsupported forms remain explicit unsafe-boundary cases
 instead of being silently accepted.
+
+## Adversarial projection-identity coevolution: loops 64-73
+
+This run widened the strict frontier from import coordinates to static field/property
+projection coordinates. The rule is intentionally narrow: a frontend may emit ordinary
+`Field(base, key)` evidence only when both the receiver expression and projected key are
+static in the source form. Dynamic keys and destructuring defaults remain outside strict
+exact reporting unless a future proof establishes the missing facts.
+
+| loop | generator move | current-detector result | detector / loop change | result |
+|---|---|---:|---|---:|
+| 64 | add `projection_identity` capability axis with temp, destructuring, and static-key cases | projection positives 7/11, false merges 0/11 | no detector change yet; this established the frontier | JS-family destructuring, Rust destructuring, and JS static string-key misses recorded |
+| 65 | focus static string-key projection | `row['today']` did not converge with `row.today` | lower JS/TS static string subscript keys to the same `Field(base, key)` coordinate as dotted access | static-key positive 1/1 |
+| 66 | focus destructuring projection | object/struct patterns were not binding selected fields as values | lower JS object destructuring and Rust aliased struct patterns to projection assignments | destructuring positives closed in compact smoke |
+| 67 | add shorthand/multi destructuring plus default/dynamic-key hard negatives | compact smoke passed, but selection only sampled part of the new projection surface | add full-manifest evaluation as a countercheck for newly widened axes | compact projection 11/11, false merges 0/12 |
+| 68 | full-manifest countercheck | Rust shorthand struct destructuring missed outside compact selection | add conservative Rust struct-pattern text fallback for simple shorthand/alias fields | full projection 34/34, false merges 0/44 |
+| 69 | default destructuring boundary | no false merge | reject JS alias defaults as projection evidence; defaults need a field-presence proof | 0/5 false merges |
+| 70 | dynamic-key boundary | no false merge | no detector change; dynamic keys remain unproven projection bindings | 0/5 false merges |
+| 71 | focused CLI regression | synthetic smoke covered the behavior, but unit gate needed a smaller check | add `scan_mode_semantic_allows_static_projection_identity` for JS key/destructure and Rust shorthand | CLI test passed |
+| 72 | dense all-cross validation | full compact smoke needed to ensure aggregate/import/table frontiers stayed closed | no detector change | 471/3392 selected, 200/200 positives, 0/271 false merges |
+| 73 | real repo audit on `../craken-agents` | strict semantic families 32→32 | no detector change; this repo did not expose new projection-result families | 0 added, 0 removed |
+
+Final full same-surface manifest check for the projection counterattack:
+
+```text
+items: 1302
+positive recall: 509/509
+hard-negative false merges: 0/793
+
+by semantic axis:
+  projection_identity: positive 34/34, false merges 0/44
+```
+
+Final dense compact smoke:
+
+```text
+scripts/type4-smoke.sh SUITE=core CROSS=all
+selected items: 471/3392
+positive recall: 200/200
+hard-negative false merges: 0/271
+Raw nodes: 0/21812
+```
+
+Real-repo audit (`../craken-agents`) did not change the visible strict semantic family
+set: 32 before, 32 after, with no added or removed families. Assessment: the synthetic
+frontier expanded in a strict and useful way, but this particular repo does not yet
+validate projection identity as a high-yield real-world source of new refactoring
+candidates. The loop itself did improve: compact smoke missed one Rust shorthand case, so
+full-manifest evaluation should be used as a periodic adversarial countercheck whenever a
+new semantic axis is introduced or substantially widened.

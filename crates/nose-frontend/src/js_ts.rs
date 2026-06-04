@@ -8,7 +8,7 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
     UnitKind,
 };
 use tree_sitter::Node as TsNode;
@@ -365,10 +365,6 @@ fn lower_var_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
             continue;
         }
         let dspan = lo.span(d);
-        let lhs = match d.child_by_field_name("name") {
-            Some(n) => lower_expr(lo, n),
-            None => lo.empty_block(dspan),
-        };
         let name_node = d.child_by_field_name("name");
         let rhs = match d.child_by_field_name("value") {
             // `const f = (…) => {…}` / `const f = function(){…}` is a *named function*,
@@ -384,6 +380,16 @@ fn lower_var_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
             Some(v) => lower_expr(lo, v),
             None => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), dspan, &[]),
         };
+        if let Some(name) = name_node {
+            if let Some(mut projected) = lower_static_projection_pattern(lo, name, rhs, dspan) {
+                assigns.append(&mut projected);
+                continue;
+            }
+        }
+        let lhs = match name_node {
+            Some(n) => lower_expr(lo, n),
+            None => lo.empty_block(dspan),
+        };
         assigns.push(lo.add(NodeKind::Assign, Payload::None, dspan, &[lhs, rhs]));
     }
     if assigns.len() == 1 {
@@ -391,6 +397,78 @@ fn lower_var_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.add(NodeKind::Block, Payload::None, span, &assigns)
     }
+}
+
+fn lower_static_projection_pattern(
+    lo: &mut Lowering,
+    pattern: TsNode,
+    base: NodeId,
+    span: Span,
+) -> Option<Vec<NodeId>> {
+    if pattern.kind() != "object_pattern" {
+        return None;
+    }
+    let mut assigns = Vec::new();
+    for child in Lowering::named_children(pattern) {
+        let (field, local) = object_pattern_projection(lo, child)?;
+        let lhs = lo.var(&local, lo.span(child));
+        let key = lo.sym(&field);
+        let rhs = lo.add(NodeKind::Field, Payload::Name(key), lo.span(child), &[base]);
+        assigns.push(lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]));
+    }
+    (!assigns.is_empty()).then_some(assigns)
+}
+
+fn object_pattern_projection(lo: &Lowering, node: TsNode) -> Option<(String, String)> {
+    match node.kind() {
+        "shorthand_property_identifier_pattern" => {
+            let name = lo.text(node).to_string();
+            Some((name.clone(), name))
+        }
+        "pair_pattern" => {
+            let kids = Lowering::named_children(node);
+            let key = kids.first().and_then(|&k| static_property_key(lo, k))?;
+            let local = kids
+                .iter()
+                .skip(1)
+                .find_map(|&k| binding_pattern_name(lo, k))?;
+            Some((key, local))
+        }
+        _ => None,
+    }
+}
+
+fn binding_pattern_name(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "identifier" | "shorthand_property_identifier_pattern" | "property_identifier" => {
+            Some(lo.text(node).to_string())
+        }
+        _ => None,
+    }
+}
+
+fn static_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "property_identifier" | "shorthand_property_identifier_pattern" | "identifier" => {
+            Some(lo.text(node).to_string())
+        }
+        "string" => static_string_key(lo, node),
+        _ => None,
+    }
+}
+
+fn static_string_key(lo: &Lowering, node: TsNode) -> Option<String> {
+    let text = lo.text(node);
+    let bytes = text.as_bytes();
+    let quote = *bytes.first()?;
+    if bytes.len() < 2 || bytes.last().copied()? != quote || !matches!(quote, b'\'' | b'"') {
+        return None;
+    }
+    let inner = &text[1..text.len() - 1];
+    if inner.contains('\\') || inner.contains('\n') || inner.contains('\r') {
+        return None;
+    }
+    Some(inner.to_string())
 }
 
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -753,8 +831,12 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .child_by_field_name("object")
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
-            let idx = node
-                .child_by_field_name("index")
+            let index_node = node.child_by_field_name("index");
+            if let Some(key) = index_node.and_then(|i| static_string_key(lo, i)) {
+                let sym = lo.sym(&key);
+                return lo.add(NodeKind::Field, Payload::Name(sym), span, &[base]);
+            }
+            let idx = index_node
                 .map(|i| lower_expr(lo, i))
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.add(NodeKind::Index, Payload::None, span, &[base, idx])

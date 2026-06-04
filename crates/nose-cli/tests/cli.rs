@@ -553,6 +553,84 @@ fn scan_mode_semantic_allows_static_import_identity() {
 }
 
 #[test]
+fn scan_mode_semantic_allows_static_projection_identity() {
+    let dir = std::env::temp_dir().join(format!("nose_projection_identity_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("projection_direct.js"),
+        "function direct(record, value) {\n  return value + record.today;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("projection_keyed.js"),
+        "function keyed(row, amount) {\n  return amount + row['today'];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("projection_destructured.js"),
+        "function destructured(row, amount) {\n  const { today: selected } = row;\n  return amount + selected;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("projection_rust_direct.rs"),
+        "pub fn rust_direct(record: Reading, value: i32) -> i32 {\n    value + record.today\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("projection_rust_shorthand.rs"),
+        "pub fn rust_shorthand(row: Reading, amount: i32) -> i32 {\n    let Reading { today, .. } = row;\n    amount + today\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("projection_negative.js"),
+        "function negative(row, amount, key) {\n  return amount + row[key];\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert!(
+        !semantic_families.is_empty(),
+        "semantic mode should report static projection identities: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "projection_direct.js",
+        "projection_keyed.js",
+        "projection_destructured.js",
+        "projection_rust_direct.rs",
+        "projection_rust_shorthand.rs",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include {expected}: {semantic}"
+        );
+    }
+    assert!(
+        !semantic_text.contains("projection_negative.js"),
+        "semantic mode must not treat dynamic keys as fixed projections: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_converges_cross_language_list_literals() {
     let dir = std::env::temp_dir().join(format!("nose_list_cross_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

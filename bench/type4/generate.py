@@ -87,6 +87,34 @@ AXIS_PROPOSALS = {
         "axis": "import_identity",
         "why": "Wildcard, dynamic, or unresolved import forms must stay outside strict exact reporting.",
     },
+    "axis_projection_temp_identity": {
+        "axis": "projection_identity",
+        "why": "Projecting the same static field through a temporary binding should preserve exact value identity.",
+    },
+    "axis_projection_destructure_identity": {
+        "axis": "projection_identity",
+        "why": "Static destructuring patterns should prove the same field projection as direct member access.",
+    },
+    "axis_projection_destructure_shorthand_identity": {
+        "axis": "projection_identity",
+        "why": "Shorthand destructuring should prove the same field projection as direct member access.",
+    },
+    "axis_projection_destructure_multi_identity": {
+        "axis": "projection_identity",
+        "why": "Multiple static destructuring fields should still prove each selected field independently.",
+    },
+    "axis_projection_static_key_identity": {
+        "axis": "projection_identity",
+        "why": "Static string-key property access should prove the same coordinate as dotted member access where the surface semantics make them identical.",
+    },
+    "axis_projection_default_boundary": {
+        "axis": "projection_identity",
+        "why": "Destructuring defaults change behavior when the field is absent and must not become strict projection evidence without a presence proof.",
+    },
+    "axis_projection_dynamic_key_boundary": {
+        "axis": "projection_identity",
+        "why": "Dynamic property keys do not prove a fixed projected coordinate for strict exact reporting.",
+    },
     "axis_table_access": {
         "axis": "table_access",
         "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
@@ -494,6 +522,250 @@ end
 """
         return Variant("axis", src, name)
     raise ValueError(f"unsupported surface for table axis: {surface.key}")
+
+
+def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id == "axis_projection_temp_identity":
+        return True
+    if proposal_id in {
+        "axis_projection_destructure_identity",
+        "axis_projection_destructure_shorthand_identity",
+        "axis_projection_destructure_multi_identity",
+    }:
+        return surface.key in {"javascript", "typescript", "vue", "svelte", "html", "rust"}
+    if proposal_id in {
+        "axis_projection_static_key_identity",
+        "axis_projection_default_boundary",
+        "axis_projection_dynamic_key_boundary",
+    }:
+        return surface.key in JS_LIKE_SURFACES
+    return False
+
+
+def axis_projection_variant(surface: Surface, proposal_id: str, negative: bool, right: bool) -> Variant:
+    field = (
+        "tomorrow"
+        if negative
+        and right
+        and proposal_id
+        not in {"axis_projection_default_boundary", "axis_projection_dynamic_key_boundary"}
+        else "today"
+    )
+
+    if surface.language == "javascript":
+        name = "buildCase" if right else "axisCase"
+        if proposal_id == "axis_projection_destructure_identity" and right:
+            body = f"""function {name}(row, amount) {{
+  const {{ {field}: selected }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_shorthand_identity" and right:
+            body = f"""function {name}(row, amount) {{
+  const {{ {field} }} = row;
+  return amount + {field};
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_multi_identity" and right:
+            body = f"""function {name}(row, amount) {{
+  const {{ tomorrow: unused, {field}: selected }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_default_boundary" and right:
+            body = f"""function {name}(row, amount) {{
+  const {{ today: selected = 0 }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_dynamic_key_boundary" and right:
+            body = f"""function {name}(row, amount, key) {{
+  return amount + row[key];
+}}
+"""
+        elif proposal_id == "axis_projection_static_key_identity" and right:
+            body = f"""function {name}(row, amount) {{
+  return amount + row[{field!r}];
+}}
+"""
+        elif right:
+            body = f"""function {name}(row, amount) {{
+  const selected = row.{field};
+  return amount + selected;
+}}
+"""
+        else:
+            body = f"""function {name}(record, value) {{
+  return value + record.today;
+}}
+"""
+        return js_axis_source(surface, body, name)
+
+    if surface.key == "typescript":
+        name = "buildCase" if right else "axisCase"
+        type_sig = "{ today: number; tomorrow: number }"
+        if proposal_id == "axis_projection_destructure_identity" and right:
+            src = f"""function {name}(row: {type_sig}, amount: number): number {{
+  const {{ {field}: selected }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_shorthand_identity" and right:
+            src = f"""function {name}(row: {type_sig}, amount: number): number {{
+  const {{ {field} }} = row;
+  return amount + {field};
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_multi_identity" and right:
+            src = f"""function {name}(row: {type_sig}, amount: number): number {{
+  const {{ tomorrow: unused, {field}: selected }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_default_boundary" and right:
+            src = f"""function {name}(row: Partial<{type_sig}>, amount: number): number {{
+  const {{ today: selected = 0 }} = row;
+  return amount + selected;
+}}
+"""
+        elif proposal_id == "axis_projection_dynamic_key_boundary" and right:
+            src = f"""function {name}(row: {type_sig}, amount: number, key: keyof {type_sig}): number {{
+  return amount + row[key];
+}}
+"""
+        elif proposal_id == "axis_projection_static_key_identity" and right:
+            src = f"""function {name}(row: {type_sig}, amount: number): number {{
+  return amount + row[{field!r}];
+}}
+"""
+        elif right:
+            src = f"""function {name}(row: {type_sig}, amount: number): number {{
+  const selected = row.{field};
+  return amount + selected;
+}}
+"""
+        else:
+            src = f"""function {name}(record: {type_sig}, value: number): number {{
+  return value + record.today;
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "python":
+        name = "build_case" if right else "axis_case"
+        if right:
+            src = f"""def {name}(row, amount):
+    selected = row.{field}
+    return amount + selected
+"""
+        else:
+            src = f"""def {name}(record, value):
+    return value + record.today
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "go":
+        name = "BuildCase" if right else "AxisCase"
+        if right:
+            src = f"""package p
+
+func {name}(row Reading, amount int) int {{
+    selected := row.{field.title()}
+    return amount + selected
+}}
+"""
+        else:
+            src = f"""package p
+
+func {name}(record Reading, value int) int {{
+    return value + record.Today
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "rust":
+        name = "build_case" if right else "axis_case"
+        if proposal_id == "axis_projection_destructure_identity" and right:
+            src = f"""pub fn {name}(row: Reading, amount: i32) -> i32 {{
+    let Reading {{ {field}: selected, .. }} = row;
+    amount + selected
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_shorthand_identity" and right:
+            src = f"""pub fn {name}(row: Reading, amount: i32) -> i32 {{
+    let Reading {{ {field}, .. }} = row;
+    amount + {field}
+}}
+"""
+        elif proposal_id == "axis_projection_destructure_multi_identity" and right:
+            src = f"""pub fn {name}(row: Reading, amount: i32) -> i32 {{
+    let Reading {{ tomorrow: _unused, {field}: selected, .. }} = row;
+    amount + selected
+}}
+"""
+        elif right:
+            src = f"""pub fn {name}(row: Reading, amount: i32) -> i32 {{
+    let selected = row.{field};
+    amount + selected
+}}
+"""
+        else:
+            src = f"""pub fn {name}(record: Reading, value: i32) -> i32 {{
+    value + record.today
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "java":
+        name = "buildCase" if right else "axisCase"
+        if right:
+            src = f"""class AxisCase {{
+    static int {name}(Reading row, int amount) {{
+        int selected = row.{field};
+        return amount + selected;
+    }}
+}}
+"""
+        else:
+            src = f"""class AxisCase {{
+    static int {name}(Reading record, int value) {{
+        return value + record.today;
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "c":
+        name = "build_case" if right else "axis_case"
+        if right:
+            src = f"""int {name}(struct Reading row, int amount) {{
+    int selected = row.{field};
+    return amount + selected;
+}}
+"""
+        else:
+            src = f"""int {name}(struct Reading record, int value) {{
+    return value + record.today;
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "ruby":
+        name = "build_case" if right else "axis_case"
+        if right:
+            src = f"""def {name}(row, amount)
+  selected = row.{field}
+  amount + selected
+end
+"""
+        else:
+            src = f"""def {name}(record, value)
+  value + record.today
+end
+"""
+        return Variant("axis", src, name)
+
+    raise ValueError(f"unsupported surface for projection axis: {surface.key}")
 
 
 def axis_unsafe_boundary_variant(surface: Surface, right: bool) -> Variant:
@@ -2247,6 +2519,11 @@ def axis_variants(
             axis_table_access_variant(surface, False, False),
             axis_table_access_variant(surface, negative, True),
         )
+    if axis == "projection_identity":
+        return (
+            axis_projection_variant(surface, proposal_id, False, False),
+            axis_projection_variant(surface, proposal_id, negative, True),
+        )
     if axis == "unsafe_boundary":
         return (
             axis_unsafe_boundary_variant(surface, False),
@@ -2324,7 +2601,10 @@ def make_axis_item(
         "matrix": {
             "computation": axis,
             "representations": [left.representation, right.representation],
-            "data_shape": "scalar<int>" if axis != "table_access" else "map<string,int>",
+            "data_shape": {
+                "projection_identity": "record<today:int,tomorrow:int>",
+                "table_access": "map<string,int>",
+            }.get(axis, "scalar<int>"),
             "language_relation": "same-surface",
             "negative_tag": negative_tag,
             "semantic_axes": [axis],
@@ -2353,6 +2633,26 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
             axis = proposal["axis"]
             capability = surface_capability(capabilities, surface, axis)
             if proposal_id.startswith("axis_import_") and not import_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_projection_") and not projection_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id in {
+                "axis_projection_default_boundary",
+                "axis_projection_dynamic_key_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "unproven-projection-binding",
+                    )
+                )
                 continue
             if proposal_id in {"axis_import_unsafe_boundary", "axis_import_reexport_boundary"}:
                 items.append(

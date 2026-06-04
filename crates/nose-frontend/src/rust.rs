@@ -9,7 +9,7 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -195,6 +195,127 @@ fn ident_of(lo: &Lowering, pat: TsNode) -> Option<nose_il::Symbol> {
     }
 }
 
+fn lower_static_projection_pattern(
+    lo: &mut Lowering,
+    pattern: TsNode,
+    base: NodeId,
+    span: Span,
+) -> Option<Vec<NodeId>> {
+    if pattern.kind() != "struct_pattern" {
+        return None;
+    }
+    let mut assigns = Vec::new();
+    for child in Lowering::named_children(pattern) {
+        match child.kind() {
+            "type_identifier" | "scoped_type_identifier" | "qualified_type" => {}
+            "remaining_field_pattern" => {}
+            "field_pattern" => {
+                let (field, local) = rust_field_projection(lo, child)?;
+                assigns.push(rust_projection_assign(lo, base, &field, &local, span));
+            }
+            "shorthand_field_identifier_pattern" | "field_identifier" => {
+                let name = lo.text(child).to_string();
+                assigns.push(rust_projection_assign(lo, base, &name, &name, span));
+            }
+            _ => return rust_struct_pattern_text_projection(lo, pattern, base, span),
+        }
+    }
+    if assigns.is_empty() {
+        rust_struct_pattern_text_projection(lo, pattern, base, span)
+    } else {
+        Some(assigns)
+    }
+}
+
+fn rust_field_projection(lo: &Lowering, node: TsNode) -> Option<(String, String)> {
+    let kids = Lowering::named_children(node);
+    let field = kids.first().and_then(|&k| rust_field_name(lo, k))?;
+    let local = kids
+        .iter()
+        .skip(1)
+        .find_map(|&k| rust_binding_name(lo, k))
+        .unwrap_or_else(|| field.clone());
+    Some((field, local))
+}
+
+fn rust_field_name(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "field_identifier" | "identifier" => Some(lo.text(node).to_string()),
+        _ => None,
+    }
+}
+
+fn rust_binding_name(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "identifier" | "field_identifier" => Some(lo.text(node).to_string()),
+        "mut_pattern" | "ref_pattern" | "reference_pattern" => {
+            node.named_child(0).and_then(|n| rust_binding_name(lo, n))
+        }
+        _ => None,
+    }
+}
+
+fn rust_projection_assign(
+    lo: &mut Lowering,
+    base: NodeId,
+    field: &str,
+    local: &str,
+    span: Span,
+) -> NodeId {
+    let lhs = lo.var(local, span);
+    let sym = lo.sym(field);
+    let rhs = lo.add(NodeKind::Field, Payload::Name(sym), span, &[base]);
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+}
+
+fn rust_struct_pattern_text_projection(
+    lo: &mut Lowering,
+    pattern: TsNode,
+    base: NodeId,
+    span: Span,
+) -> Option<Vec<NodeId>> {
+    let text = lo.text(pattern);
+    let open = text.find('{')?;
+    let close = text.rfind('}')?;
+    if close <= open {
+        return None;
+    }
+    let mut assigns = Vec::new();
+    for part in text[open + 1..close].split(',') {
+        let part = part.trim();
+        if part.is_empty() || part == ".." {
+            continue;
+        }
+        let (field, local) = match part.split_once(':') {
+            Some((field, local)) => {
+                let field = field.trim();
+                let local = local.trim();
+                if !simple_rust_ident(field) || !simple_rust_ident(local) {
+                    return None;
+                }
+                (field, local)
+            }
+            None => {
+                if !simple_rust_ident(part) {
+                    return None;
+                }
+                (part, part)
+            }
+        };
+        assigns.push(rust_projection_assign(lo, base, field, local, span));
+    }
+    (!assigns.is_empty()).then_some(assigns)
+}
+
+fn simple_rust_ident(s: &str) -> bool {
+    let mut chars = s.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first == '_' || first.is_ascii_alphabetic())
+        && chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
+}
+
 /// Lower a function body block, wrapping its tail expression in a `Return` — in
 /// Rust the block's final expression *is* the return value, so this converges with
 /// an explicit `return` (and with other languages' explicit returns).
@@ -235,15 +356,33 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);
     match node.kind() {
         "let_declaration" => {
-            let lhs = node
-                .child_by_field_name("pattern")
-                .and_then(|p| ident_of(lo, p))
-                .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
-                .unwrap_or_else(|| lo.empty_block(span));
+            let pattern = node.child_by_field_name("pattern");
             let rhs = node
                 .child_by_field_name("value")
                 .map(|v| lower_expr(lo, v))
                 .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]));
+            if let Some(pattern) = pattern {
+                if let Some(assigns) = lower_static_projection_pattern(lo, pattern, rhs, span) {
+                    let out = if assigns.len() == 1 {
+                        assigns[0]
+                    } else {
+                        lo.add(NodeKind::Block, Payload::None, span, &assigns)
+                    };
+                    return Some(out);
+                }
+            }
+            if let Some(assigns) = rust_struct_pattern_text_projection(lo, node, rhs, span) {
+                let out = if assigns.len() == 1 {
+                    assigns[0]
+                } else {
+                    lo.add(NodeKind::Block, Payload::None, span, &assigns)
+                };
+                return Some(out);
+            }
+            let lhs = pattern
+                .and_then(|p| ident_of(lo, p))
+                .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
+                .unwrap_or_else(|| lo.empty_block(span));
             Some(lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]))
         }
         "expression_statement" => {
