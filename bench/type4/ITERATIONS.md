@@ -1663,3 +1663,74 @@ Assessment: this is a clean proof-fact reuse. It broadens the map-key frontier i
 TypeScript without trusting `has` by name. The next related frontier is not untyped
 JavaScript `Map.has`; it needs construction or import/binding facts that prove the receiver
 is a `Map` rather than a `Set` or arbitrary object.
+
+## Batched typed TypeScript map-default lookup: loops 217-222
+
+This is the first accelerated batch after adopting the "about three candidates per inner
+loop" rule. The three adjacent candidates share one proof channel: explicit
+`ParamSemantic::Map` receiver facts for TypeScript `Map<K,V>` parameters, lowered into the
+existing `GetOrDefault(map, key, fallback)` value-graph primitive.
+
+The batch candidates were:
+
+- `axis_map_fallback_ts_nullish_identity`: `lookup.get(key) ?? fallback`;
+- `axis_map_fallback_ts_has_get_identity`: `lookup.has(key) ? lookup.get(key) : fallback`;
+- `axis_map_fallback_ts_temp_guard_identity`: temp-bound `lookup.get(key)` followed by an
+  `undefined` guard.
+
+The hard-negative siblings cover wrong key, wrong default, wrong map, and an untyped
+receiver. The untyped receiver is intentionally not opened: a `.get` method by name alone
+does not prove `Map` absent-key semantics.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 217 | batched frontier selection | group three TypeScript map-default surfaces under `axis_map_fallback_ts_*` | focused corpus: 9 positives, 21 hard negatives |
+| 218 | baseline measurement | run the focused batch with the previous release detector | baseline: 3/9 positives, 0/21 false merges; only `has/get` already converged through typed `Map.has` |
+| 219 | detector strengthening | upgrade `ValueOrDefault(typed Map.get(map,key), fallback)` to `GetOrDefault(map,key,fallback)` | candidate focused: 9/9 positives, 0/21 false merges |
+| 220 | loop soundness hardening | stop extracting expression ternaries as sub-function block units | untyped `lookup.get(key) ?? fallback` no longer appears through a proof-context-free block clone |
+| 221 | targeted regression tests | add value-graph and CLI semantic tests for TS nullish, has/get, temp guard, and hard boundaries | CLI/equivalence targeted tests passed |
+| 222 | release validation | run release focused, map-default compact, and global compact all-cross gates | focused: 9/9, 0/21; map-default core: 14/14, 0/33; all-cross core: 343/343, 0/512 |
+
+Focused release/candidate comparison:
+
+```text
+previous release: items=30, positive=3/9, false_merges=0/21
+candidate:        items=30, positive=9/9, false_merges=0/21
+delta:            +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_fallback_ts CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 30
+positive recall: 9/9
+hard-negative false merges: 0/21
+Raw nodes: 0/1468
+```
+
+Final release map-default compact gate:
+
+```text
+GATE=core AXIS=map_default_lookup CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 47/60
+positive recall: 14/14
+hard-negative false merges: 0/33
+Raw nodes: 0/2326
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 855/5223
+positive recall: 343/343
+hard-negative false merges: 0/512
+Raw nodes: 0/33055
+```
+
+Assessment: batching worked here because all three positives share the same proof
+mechanism and the combined hard negatives made each boundary explicit. It also improved
+the loop itself: the untyped boundary exposed that expression ternaries were being
+extracted as exact block units without enough semantic context, so block extraction was
+tightened to statement-level `if` units only.

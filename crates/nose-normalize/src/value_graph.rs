@@ -334,7 +334,8 @@ impl<'a> Builder<'a> {
     }
 
     fn seed_param_semantics(&mut self, root: NodeId) {
-        for &k in self.il.children(root) {
+        let scope = self.param_semantic_scope(root).unwrap_or(root);
+        for &k in self.il.children(scope) {
             if self.il.kind(k) != NodeKind::Param {
                 continue;
             }
@@ -344,6 +345,28 @@ impl<'a> Builder<'a> {
                 self.param_semantic.insert(cid, semantic);
             }
         }
+    }
+
+    fn param_semantic_scope(&self, root: NodeId) -> Option<NodeId> {
+        if self.il.kind(root) == NodeKind::Func {
+            return Some(root);
+        }
+        let root_span = self.il.node(root).span;
+        let mut best: Option<(u32, NodeId)> = None;
+        for (idx, node) in self.il.nodes.iter().enumerate() {
+            if node.kind != NodeKind::Func {
+                continue;
+            }
+            let span = node.span;
+            if span.start_byte > root_span.start_byte || span.end_byte < root_span.end_byte {
+                continue;
+            }
+            let width = span.end_byte.saturating_sub(span.start_byte);
+            if best.is_none_or(|(best_width, _)| width < best_width) {
+                best = Some((width, NodeId(idx as u32)));
+            }
+        }
+        best.map(|(_, node)| node)
     }
 
     fn param_semantic_of_expr(&self, expr: NodeId) -> Option<ParamSemantic> {
@@ -365,6 +388,31 @@ impl<'a> Builder<'a> {
 
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
         matches!(self.param_semantic_of_expr(expr), Some(ParamSemantic::Map))
+    }
+
+    fn is_map_param_value(&self, value: ValueId) -> bool {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return false;
+        };
+        matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Map))
+    }
+
+    fn proven_map_get_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
+            return None;
+        }
+        let callee = &self.nodes[node.args[0] as usize];
+        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("get"))
+            || callee.args.len() != 1
+        {
+            return None;
+        }
+        let map = callee.args[0];
+        if !self.is_map_param_value(map) {
+            return None;
+        }
+        Some((map, node.args[1]))
     }
 
     fn eval_proven_collection_membership_call(
@@ -1084,6 +1132,12 @@ impl<'a> Builder<'a> {
             }
             (value_a, ret_a)
         };
+        if let Some((map, key)) = self.proven_map_get_value(value) {
+            return Some(self.mk(
+                ValOp::Call(Builtin::GetOrDefault as u32 + 1),
+                vec![map, key, default],
+            ));
+        }
         Some(self.mk(
             ValOp::Call(Builtin::ValueOrDefault as u32 + 1),
             vec![value, default],
@@ -2545,6 +2599,12 @@ impl<'a> Builder<'a> {
             }
             else_default.map(|(_, default)| default).unwrap_or(then_v)
         };
+        if let Some((map, key)) = self.proven_map_get_value(value) {
+            return Some(self.mk(
+                ValOp::Call(Builtin::GetOrDefault as u32 + 1),
+                vec![map, key, default],
+            ));
+        }
         Some(self.mk(
             ValOp::Call(Builtin::ValueOrDefault as u32 + 1),
             vec![value, default],

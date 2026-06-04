@@ -748,6 +748,96 @@ fn scan_mode_semantic_proves_typed_typescript_map_key_membership() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_typed_ts_map_default_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("map_default.go"),
+        "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := lookup[key]; if !ok { value = fallback }; return value }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_nullish.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  return lookup.get(key) ?? fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_has_get.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  return lookup.has(key) ? lookup.get(key) : fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_temp_guard.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  const selected = lookup.get(key);\n  return selected === undefined ? fallback : selected;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_wrong_key.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  return lookup.get(other_key) ?? fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_wrong_default.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  return lookup.get(key) ?? other_default;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_wrong_map.ts"),
+        "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number {\n  return other_lookup.get(key) ?? fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ts_untyped.ts"),
+        "function f(lookup, other_lookup, key, other_key, fallback, other_default) {\n  return lookup.get(key) ?? fallback;\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "map_default.go",
+        "ts_nullish.ts",
+        "ts_has_get.ts",
+        "ts_temp_guard.ts",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include typed TS Map default lookup {expected}: {semantic}"
+        );
+    }
+    for unexpected in [
+        "ts_wrong_key.ts",
+        "ts_wrong_default.ts",
+        "ts_wrong_map.ts",
+        "ts_untyped.ts",
+    ] {
+        assert!(
+            !semantic_text.contains(unexpected),
+            "semantic mode must preserve typed TS Map default boundaries: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let dir = std::env::temp_dir().join(format!("nose_map_default_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

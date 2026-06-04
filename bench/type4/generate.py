@@ -347,6 +347,18 @@ AXIS_PROPOSALS = {
         "axis": "map_default_lookup",
         "why": "Typed map default lookups should prove the same map/key/fallback behavior across contains-get and defaulting API forms.",
     },
+    "axis_map_fallback_ts_nullish_identity": {
+        "axis": "map_default_lookup",
+        "why": "A typed TypeScript `Map.get(key) ?? fallback` should prove the same map/key/fallback behavior as existing map-default forms.",
+    },
+    "axis_map_fallback_ts_has_get_identity": {
+        "axis": "map_default_lookup",
+        "why": "A typed TypeScript `Map.has(key) ? Map.get(key) : fallback` should prove the same map/key/fallback behavior as existing map-default forms.",
+    },
+    "axis_map_fallback_ts_temp_guard_identity": {
+        "axis": "map_default_lookup",
+        "why": "A typed TypeScript temp-bound `Map.get` undefined guard should prove the same map/key/fallback behavior as existing map-default forms.",
+    },
     "axis_map_fallback_wrong_key_boundary": {
         "axis": "map_default_lookup",
         "why": "Map default lookups over different dynamic key parameters are different proof coordinates.",
@@ -358,6 +370,22 @@ AXIS_PROPOSALS = {
     "axis_map_fallback_wrong_map_boundary": {
         "axis": "map_default_lookup",
         "why": "Different map receivers change present-key behavior and must not merge.",
+    },
+    "axis_map_fallback_ts_wrong_key_boundary": {
+        "axis": "map_default_lookup",
+        "why": "TypeScript Map default lookups over different dynamic key parameters are different proof coordinates.",
+    },
+    "axis_map_fallback_ts_wrong_default_boundary": {
+        "axis": "map_default_lookup",
+        "why": "Different TypeScript Map fallback parameters change absent-key behavior and must not merge.",
+    },
+    "axis_map_fallback_ts_wrong_map_boundary": {
+        "axis": "map_default_lookup",
+        "why": "Different TypeScript Map receivers change present-key behavior and must not merge.",
+    },
+    "axis_map_fallback_ts_untyped_boundary": {
+        "axis": "map_default_lookup",
+        "why": "An untyped TypeScript `.get` receiver is not proof of strict Map default semantics.",
     },
     "axis_table_access": {
         "axis": "table_access",
@@ -2103,24 +2131,49 @@ def literal_map_default_axis_supported(surface: Surface, proposal_id: str) -> bo
 def map_default_lookup_axis_supported(surface: Surface, proposal_id: str) -> bool:
     if not proposal_id.startswith("axis_map_fallback_"):
         return False
+    if proposal_id.startswith("axis_map_fallback_ts_"):
+        return surface.key in {"go", "java", "rust", "typescript"}
     return surface.key in {"go", "java", "rust"}
 
 
 def map_default_lookup_axis_parts(
     proposal_id: str, negative: bool, right: bool
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, str]:
     receiver = "lookup"
     key = "key"
     default = "fallback"
+    form = "default_api"
+    if proposal_id == "axis_map_fallback_ts_nullish_identity":
+        form = "ts_nullish"
+    if proposal_id == "axis_map_fallback_ts_has_get_identity":
+        form = "ts_has_get"
+    if proposal_id == "axis_map_fallback_ts_temp_guard_identity":
+        form = "ts_temp_guard"
+    if proposal_id.startswith("axis_map_fallback_ts_wrong_"):
+        form = "ts_nullish"
+    if proposal_id == "axis_map_fallback_ts_untyped_boundary":
+        form = "ts_untyped"
     if right and proposal_id == "axis_map_fallback_wrong_key_boundary":
         key = "other_key"
     if right and proposal_id == "axis_map_fallback_wrong_default_boundary":
         default = "other_default"
     if right and proposal_id == "axis_map_fallback_wrong_map_boundary":
         receiver = "other_lookup"
+    if right and proposal_id == "axis_map_fallback_ts_wrong_key_boundary":
+        key = "other_key"
+    if right and proposal_id == "axis_map_fallback_ts_wrong_default_boundary":
+        default = "other_default"
+    if right and proposal_id == "axis_map_fallback_ts_wrong_map_boundary":
+        receiver = "other_lookup"
     if right and negative and proposal_id == "axis_map_fallback_identity":
         key = "other_key"
-    return receiver, key, default
+    if right and negative and proposal_id in {
+        "axis_map_fallback_ts_nullish_identity",
+        "axis_map_fallback_ts_has_get_identity",
+        "axis_map_fallback_ts_temp_guard_identity",
+    }:
+        key = "other_key"
+    return receiver, key, default, form
 
 
 def axis_map_default_lookup_variant(
@@ -2129,10 +2182,11 @@ def axis_map_default_lookup_variant(
     negative: bool,
     right: bool,
 ) -> Variant:
-    receiver, key, default = map_default_lookup_axis_parts(proposal_id, negative, right)
+    receiver, key, default, form = map_default_lookup_axis_parts(proposal_id, negative, right)
     name = {
         "go": "BuildCase" if right else "AxisCase",
         "java": "buildCase" if right else "axisCase",
+        "typescript": "buildCase" if right else "axisCase",
     }.get(surface.language, "build_case" if right else "axis_case")
 
     if surface.key == "go":
@@ -2175,6 +2229,23 @@ class AxisCase {{
 
 pub fn {name}(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, key: &str, other_key: &str, fallback: i32, other_default: i32) -> i32 {{
     {expr}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "typescript":
+        receiver_type = "Map<string, number>" if form != "ts_untyped" else "any"
+        if form == "ts_has_get":
+            expr = f"{receiver}.has({key}) ? {receiver}.get({key})! : {default}"
+            body = f"return {expr};"
+        elif form == "ts_temp_guard":
+            body = f"""const selected = {receiver}.get({key});
+  return selected === undefined ? {default} : selected;"""
+        else:
+            expr = f"{receiver}.get({key}) ?? {default}"
+            body = f"return {expr};"
+        src = f"""function {name}(lookup: {receiver_type}, other_lookup: {receiver_type}, key: string, other_key: string, fallback: number, other_default: number): number {{
+  {body}
 }}
 """
         return Variant("axis", src, name)
@@ -4796,6 +4867,8 @@ def generate_axis_items(
                 surface, proposal_id
             ):
                 continue
+            if proposal_id.startswith("axis_map_fallback_ts_"):
+                continue
             if proposal_id in {
                 "axis_collection_threshold_boundary",
                 "axis_collection_wrong_receiver_boundary",
@@ -5477,6 +5550,70 @@ def generate_map_default_lookup_cross_items(
                     proposal_id,
                     left_surface,
                     right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "map-default-boundary",
+                )
+            )
+    surface_by_key = {surface.key: surface for surface in SURFACES}
+    ts_surface = surface_by_key["typescript"]
+    reference_surfaces = [
+        surface_by_key["go"],
+        surface_by_key["java"],
+        surface_by_key["rust"],
+    ]
+    if cross_mode == "ring":
+        reference_surfaces = [surface_by_key["go"]]
+    elif cross_mode == "none":
+        reference_surfaces = []
+
+    for proposal_id in (
+        "axis_map_fallback_ts_nullish_identity",
+        "axis_map_fallback_ts_has_get_identity",
+        "axis_map_fallback_ts_temp_guard_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    ts_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    ts_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "map_default_lookup-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_map_fallback_ts_wrong_key_boundary",
+        "axis_map_fallback_ts_wrong_default_boundary",
+        "axis_map_fallback_ts_wrong_map_boundary",
+        "axis_map_fallback_ts_untyped_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    ts_surface,
                     "not_equivalent",
                     "heldout",
                     "map-default-boundary",

@@ -503,7 +503,13 @@ fn strict_exact_callee_identity(il: &Il, facts: &StrictFacts, callee: NodeId) ->
 
 /// Collect sub-function block roots (loops / ifs / try) as extra unit candidates.
 fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<(NodeId, UnitKind, Option<Symbol>)>) {
-    if matches!(il.kind(node), NodeKind::Loop | NodeKind::If | NodeKind::Try) {
+    let is_statement_if = il.kind(node) == NodeKind::If
+        && il
+            .children(node)
+            .iter()
+            .skip(1)
+            .any(|&child| il.kind(child) == NodeKind::Block);
+    if matches!(il.kind(node), NodeKind::Loop | NodeKind::Try) || is_statement_if {
         out.push((node, UnitKind::Block, None));
     }
     for &c in il.children(node) {

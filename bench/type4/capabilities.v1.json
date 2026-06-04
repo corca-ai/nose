@@ -197,7 +197,7 @@
       "import_identity": "supported",
       "literal_collection_membership": "supported",
       "literal_map_default_lookup": "unsupported",
-      "map_default_lookup": "unsupported",
+      "map_default_lookup": "partial",
       "map_key_membership": "partial",
       "null_presence_predicate": "supported",
       "numeric_minmax_abs": "supported",

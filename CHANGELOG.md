@@ -45,11 +45,17 @@ break.
   `key in map`, map key APIs, Java `keySet().contains`, Rust `get(key).is_some`,
   TypeScript `Map.has`, and Go `_, ok := map[key]` while preserving wrong-key,
   wrong-map, and value-membership boundaries.
-- Strict Type-4 proof facts for typed map lookup with fallback across Go, Java, and
-  Rust. The detector now converges Go lookup-ok fallback assignments, Java
-  `containsKey/get` and `getOrDefault`, and Rust `contains_key`/index and
-  `get(key).unwrap_or(default)` shapes while preserving wrong-key, wrong-default, and
-  wrong-map boundaries.
+- Strict Type-4 proof facts for typed map lookup with fallback across Go, Java,
+  Rust, and typed TypeScript `Map` receivers. The detector now converges Go
+  lookup-ok fallback assignments, Java `containsKey/get` and `getOrDefault`,
+  Rust `contains_key`/index and `get(key).unwrap_or(default)`, and TypeScript
+  `Map.get(key) ?? fallback`, `has/get` ternaries, and temp-bound undefined guards
+  while preserving wrong-key, wrong-default, wrong-map, and untyped-receiver
+  boundaries.
+- Strict semantic block extraction no longer treats expression ternaries as
+  sub-function block units. This keeps exact semantic block candidates focused on
+  real statement blocks and prevents proof-context-free expression fragments from
+  bypassing function-level type facts.
 - Type-4 focused generation filters (`--axis`, `--proposal-prefix`) and smoke gates
   (`GATE=focused|core|full`) so detector co-evolution loops can run on one frontier
   before periodic compact/full validation.
