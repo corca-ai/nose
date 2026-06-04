@@ -47,7 +47,9 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
         path: old.meta.path.clone(),
         lang: old.meta.lang,
     };
-    rw.b.finish(new_root, meta, units, old.cid_names.clone())
+    let mut out = rw.b.finish(new_root, meta, units, old.cid_names.clone());
+    out.param_type_facts = old.param_type_facts.clone();
+    out
 }
 
 fn is_assoc_comm(op: Op) -> bool {

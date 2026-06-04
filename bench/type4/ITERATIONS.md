@@ -1565,3 +1565,53 @@ now: broad `.contains`/`.includes`/`include?`-style calls do not become Type-4 e
 unless an earlier proof fact canonicalized them to `Builtin::Contains`. The next
 membership recall step should add dynamic collection membership only with receiver/key type
 facts, not by matching method names.
+
+## Typed dynamic collection membership: loops 206-211
+
+This loop opens the next safe `membership_contains` slice after the unproven receiver
+boundary. The detector still does not trust method names alone; it now accepts dynamic
+collection membership only when an explicit parameter type proves the receiver is a
+collection. The first supported surfaces are Go, Java, Python, Rust, and TypeScript.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 206 | proof fact gap | IL erased Java/Rust/TypeScript/Go/Python parameter type annotations, so strict membership could not distinguish collection receivers from strings | add `ParamTypeFact(span, Collection/Map/String)` metadata and preserve it across normalization rebuilds |
+| 207 | generator adversary | add `axis_membership_typed_receiver_identity`, wrong-element, and typed-string hard boundaries | focused corpus: 5 positives, 13 hard negatives |
+| 208 | baseline measurement | run the typed corpus with the previous release | baseline: 2/5 positives, 0/13 false merges; Java/Rust/TypeScript missed |
+| 209 | detector strengthening | seed value-graph parameter semantics by alpha-renamed cid and lower only proven collection receiver calls to `Op::In`; unproven calls remain source-salted opaque | candidate focused: 5/5 positives, 0/13 false merges |
+| 210 | cross-surface pressure | run focused typed membership with `CROSS=all` | 15/15 positives, 0/36 false merges |
+| 211 | compact all-cross validation | run release compact all-cross after adding typed dynamic membership | 328/328 positives, 0/489 false merges |
+
+Focused release/candidate comparison:
+
+```text
+previous release: items=18, positive=2/5, false_merges=0/13
+candidate:        items=18, positive=5/5, false_merges=0/13
+delta:            +3 positive hits, +0 false merges
+```
+
+Final release typed membership focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_typed CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 51
+positive recall: 15/15
+hard-negative false merges: 0/36
+Raw nodes: 0/1328
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 817/5163
+positive recall: 328/328
+hard-negative false merges: 0/489
+Raw nodes: 0/31374
+```
+
+Assessment: this is a real strict-frontier expansion and not a broad method-name match.
+The previous release already handled Python/Go shapes but missed Java, Rust, and
+TypeScript after the unproven-call hardening. The new path recovers those positives only
+through explicit source-level receiver facts, while typed string and wrong-element
+adversaries remain separate.

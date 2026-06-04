@@ -95,6 +95,9 @@ fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
         for p in Lowering::named_children(params) {
             let pspan = lo.span(p);
             let sym = p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
+            if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
+                lo.record_param_semantic(pspan, semantic);
+            }
             kids.push(lo.add(
                 NodeKind::Param,
                 sym.map(Payload::Name).unwrap_or(Payload::None),

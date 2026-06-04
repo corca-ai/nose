@@ -124,6 +124,21 @@ pub enum Payload {
     Loop(LoopKind),
 }
 
+/// Coarse semantic facts about a function parameter recovered from explicit source
+/// annotations. These are proof gates only: `Unknown` is represented by absence.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum ParamSemantic {
+    Collection,
+    Map,
+    String,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub struct ParamTypeFact {
+    pub span: Span,
+    pub semantic: ParamSemantic,
+}
+
 /// Loop flavor; see [`NodeKind::Loop`] for the child layout each implies.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum LoopKind {

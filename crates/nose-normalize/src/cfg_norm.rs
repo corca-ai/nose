@@ -41,7 +41,9 @@ pub(crate) fn structure(old: &Il) -> Il {
         path: old.meta.path.clone(),
         lang: old.meta.lang,
     };
-    rb.b.finish(new_root, meta, units, old.cid_names.clone())
+    let mut out = rb.b.finish(new_root, meta, units, old.cid_names.clone());
+    out.param_type_facts = old.param_type_facts.clone();
+    out
 }
 
 struct SRebuilder<'a> {

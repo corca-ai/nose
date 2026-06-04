@@ -47,7 +47,9 @@ pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il 
         path: old.meta.path.clone(),
         lang: old.meta.lang,
     };
-    rb.b.finish(new_root, meta, units, Vec::new())
+    let mut out = rb.b.finish(new_root, meta, units, Vec::new());
+    out.param_type_facts = old.param_type_facts.clone();
+    out
 }
 
 struct Rebuilder<'a> {

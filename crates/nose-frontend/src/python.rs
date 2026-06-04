@@ -190,6 +190,9 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
+        if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
+            lo.record_param_semantic(span, semantic);
+        }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }
 }

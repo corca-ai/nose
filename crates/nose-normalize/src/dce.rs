@@ -42,7 +42,9 @@ pub(crate) fn run(old: &Il) -> Il {
         path: old.meta.path.clone(),
         lang: old.meta.lang,
     };
-    rb.b.finish(new_root, meta, units, old.cid_names.clone())
+    let mut out = rb.b.finish(new_root, meta, units, old.cid_names.clone());
+    out.param_type_facts = old.param_type_facts.clone();
+    out
 }
 
 fn analyze_scope(il: &Il, root: NodeId, is_root: bool, drop: &mut FxHashMap<u32, bool>) {

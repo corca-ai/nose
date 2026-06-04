@@ -13,7 +13,10 @@ pub mod span;
 mod sexpr;
 
 pub use intern::{symbol_index, Interner, Symbol};
-pub use node::{Builtin, HoFKind, LitClass, LoopKind, Node, NodeId, NodeKind, Op, Payload};
+pub use node::{
+    Builtin, HoFKind, LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact,
+    Payload,
+};
 pub use span::{FileId, FileMeta, Lang, Span};
 
 use serde::{Deserialize, Serialize};
@@ -57,6 +60,11 @@ pub struct Il {
     /// carries it, which is what the contiguous channel reads.
     #[serde(default)]
     pub suppressed: Vec<(u32, u32)>,
+    /// Explicit source-level parameter semantic facts, keyed by the original parameter
+    /// node span. Normalization preserves spans; after alpha-renaming the value graph can
+    /// connect these facts to canonical parameter ids for strict proof-gated rewrites.
+    #[serde(default)]
+    pub param_type_facts: Vec<ParamTypeFact>,
 }
 
 impl Il {
@@ -191,6 +199,7 @@ impl IlBuilder {
             units,
             cid_names,
             suppressed: Vec::new(),
+            param_type_facts: Vec::new(),
         }
     }
 }

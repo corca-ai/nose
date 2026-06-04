@@ -21,7 +21,8 @@
 use crate::combine;
 use crate::types::Ty;
 use nose_il::{
-    Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload, Symbol, UnitKind,
+    Builtin, HoFKind, Il, Interner, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, Symbol,
+    UnitKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -115,6 +116,9 @@ struct Builder<'a> {
     /// Inferred parameter types by position (from `types::infer_param_types`), seeding the
     /// type of each `Input` node.
     param_ty: Vec<Ty>,
+    /// Explicit source-level parameter semantic facts keyed by the alpha-renamed cid
+    /// currently in scope.
+    param_semantic: FxHashMap<u32, ParamSemantic>,
     /// The branch conditions currently in effect (each a `cond` or `Not(cond)`). A
     /// `return`/`throw` reached under a non-empty path is tagged with that condition,
     /// so `if c {return A} else {return B}` and the branch-swapped `if c {return B}
@@ -148,6 +152,7 @@ impl<'a> Builder<'a> {
             valued_subtree_hash: None,
             vty: Vec::new(),
             param_ty: Vec::new(),
+            param_semantic: FxHashMap::default(),
             path: Vec::new(),
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
@@ -303,7 +308,8 @@ impl<'a> Builder<'a> {
         };
         matches!(
             self.interner.resolve(name),
-            "contains"
+            "Contains"
+                | "contains"
                 | "containsKey"
                 | "containsValue"
                 | "contains_key"
@@ -316,6 +322,90 @@ impl<'a> Builder<'a> {
                 | "member?"
                 | "__contains__"
         )
+    }
+
+    fn param_semantic_for_param(&self, param: NodeId) -> Option<ParamSemantic> {
+        let span = self.il.node(param).span;
+        self.il
+            .param_type_facts
+            .iter()
+            .find(|fact| fact.span == span)
+            .map(|fact| fact.semantic)
+    }
+
+    fn seed_param_semantics(&mut self, root: NodeId) {
+        for &k in self.il.children(root) {
+            if self.il.kind(k) != NodeKind::Param {
+                continue;
+            }
+            if let (Payload::Cid(cid), Some(semantic)) =
+                (self.il.node(k).payload, self.param_semantic_for_param(k))
+            {
+                self.param_semantic.insert(cid, semantic);
+            }
+        }
+    }
+
+    fn param_semantic_of_expr(&self, expr: NodeId) -> Option<ParamSemantic> {
+        if self.il.kind(expr) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Cid(cid) = self.il.node(expr).payload else {
+            return None;
+        };
+        self.param_semantic.get(&cid).copied()
+    }
+
+    fn is_collection_param_expr(&self, expr: NodeId) -> bool {
+        matches!(
+            self.param_semantic_of_expr(expr),
+            Some(ParamSemantic::Collection)
+        )
+    }
+
+    fn eval_proven_collection_membership_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let &callee = kids.first()?;
+        let Payload::Name(name) = self.il.node(callee).payload else {
+            return None;
+        };
+        let method = self.interner.resolve(name);
+        if self.il.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let callee_kids = self.il.children(callee);
+        let receiver = callee_kids.first().copied();
+
+        let (element_node, collection_node) = if matches!(
+            method,
+            "contains" | "includes" | "include?" | "__contains__"
+        ) && kids.len() == 2
+        {
+            let receiver = receiver?;
+            if !self.is_collection_param_expr(receiver) {
+                return None;
+            }
+            (kids[1], receiver)
+        } else if method == "Contains" && kids.len() == 3 {
+            let module_name =
+                receiver.and_then(|r| match (self.il.kind(r), self.il.node(r).payload) {
+                    (NodeKind::Var, Payload::Name(s)) => Some(self.interner.resolve(s)),
+                    _ => None,
+                });
+            if module_name != Some("slices") || !self.is_collection_param_expr(kids[1]) {
+                return None;
+            }
+            (kids[2], kids[1])
+        } else {
+            return None;
+        };
+
+        let element = self.eval(element_node, env);
+        let collection = self.eval(collection_node, env);
+        Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]))
     }
 
     /// Push an effect sink, tagged with the current path condition — so a *conditional*
@@ -662,6 +752,8 @@ impl<'a> Builder<'a> {
     /// `Block` we process its statements directly.
     fn build_unit(&mut self, root: NodeId) {
         self.param_ty = crate::types::infer_param_types(self.il, root);
+        self.param_semantic.clear();
+        self.seed_param_semantics(root);
         self.seed_immutable_bindings();
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         match self.il.kind(root) {
@@ -1248,6 +1340,9 @@ impl<'a> Builder<'a> {
                 NodeKind::Func => {
                     let kids = self.il.children(c).to_vec();
                     let mut menv = env.clone();
+                    let saved_param_semantic = self.param_semantic.clone();
+                    self.param_semantic.clear();
+                    self.seed_param_semantics(c);
                     let mut pos = 0u32;
                     for &k in &kids {
                         if self.il.kind(k) == NodeKind::Param {
@@ -1261,6 +1356,7 @@ impl<'a> Builder<'a> {
                     if let Some(&body) = kids.last() {
                         self.process_stmt(body, &mut menv);
                     }
+                    self.param_semantic = saved_param_semantic;
                 }
                 NodeKind::Block => self.process_container(c, env),
                 _ => self.process_stmt(c, env),
@@ -3002,6 +3098,9 @@ impl<'a> Builder<'a> {
                             return self.mk(ValOp::Bin(c), vec![x, y]);
                         }
                     }
+                }
+                if let Some(r) = self.eval_proven_collection_membership_call(&kids, env) {
+                    return r;
                 }
                 if self.is_unproven_membership_like_call(expr, &kids) {
                     let salt = self.source_salted_hash(expr, 0x4D45_4D42_4552);

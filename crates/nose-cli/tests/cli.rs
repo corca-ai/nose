@@ -601,6 +601,89 @@ fn scan_mode_semantic_keeps_unproven_contains_calls_distinct() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_typed_dynamic_membership_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("membership.py"),
+        "def f(values: list[str], value: str, other: str) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership.ts"),
+        "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership.go"),
+        "package p\n\nimport \"slices\"\n\nfunc F(values []string, value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership.rs"),
+        "pub fn f(values: &[&str], value: &str, other: &str) -> bool {\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership.java"),
+        "import java.util.List;\n\nclass C { static boolean f(List<String> values, String value, String other) { return values.contains(value); } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_element.ts"),
+        "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(other);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("string_negative.java"),
+        "class C { static boolean f(String values, String value, String other) { return values.contains(value); } }\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "membership.py",
+        "membership.ts",
+        "membership.go",
+        "membership.rs",
+        "membership.java",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include typed dynamic membership {expected}: {semantic}"
+        );
+    }
+    for unexpected in ["wrong_element.ts", "string_negative.java"] {
+        assert!(
+            !semantic_text.contains(unexpected),
+            "semantic mode must preserve typed dynamic membership boundaries: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let dir = std::env::temp_dir().join(format!("nose_map_default_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

@@ -3,8 +3,8 @@
 //! mechanics live in one place.
 
 use nose_il::{
-    FileId, FileMeta, Il, IlBuilder, Interner, Lang, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    Symbol, Unit, UnitKind,
+    FileId, FileMeta, Il, IlBuilder, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
+    ParamTypeFact, Payload, Span, Symbol, Unit, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -14,6 +14,7 @@ pub(crate) struct Lowering<'a> {
     pub src: &'a [u8],
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
+    pub param_type_facts: Vec<ParamTypeFact>,
 }
 
 impl<'a> Lowering<'a> {
@@ -23,6 +24,7 @@ impl<'a> Lowering<'a> {
             src,
             interner,
             units: Vec::new(),
+            param_type_facts: Vec::new(),
         }
     }
 
@@ -54,6 +56,10 @@ impl<'a> Lowering<'a> {
         children: &[NodeId],
     ) -> NodeId {
         self.b.add(kind, payload, span, children)
+    }
+
+    pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
+        self.param_type_facts.push(ParamTypeFact { span, semantic });
     }
 
     /// An empty `Block` (used for absent loop init/update slots, empty bodies).
@@ -237,9 +243,51 @@ pub(crate) fn lower_file(
         lang,
     };
     let units = std::mem::take(&mut lo.units);
+    let param_type_facts = std::mem::take(&mut lo.param_type_facts);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
+    il.param_type_facts = param_type_facts;
     drop_suppressed_units(&mut il, src);
     Ok(il)
+}
+
+pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
+    let t: String = text
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect();
+    if t.contains("hashmap<")
+        || t.contains("btreemap<")
+        || t.contains("map<")
+        || t.contains("dict[")
+        || t.contains("dictionary[")
+        || t.contains("map[")
+    {
+        return Some(ParamSemantic::Map);
+    }
+    if t.contains("[]")
+        || t.contains(":&[")
+        || t.contains("list[")
+        || t.contains("list<")
+        || t.contains("set[")
+        || t.contains("set<")
+        || t.contains("hashset<")
+        || t.contains("btreeset<")
+        || t.contains("collection<")
+        || t.contains("iterable<")
+        || t.contains("iterable[")
+        || t.contains("sequence[")
+        || t.contains("array<")
+        || t.contains("readonlyarray<")
+        || t.contains("vec<")
+        || t.contains("slice<")
+    {
+        return Some(ParamSemantic::Collection);
+    }
+    if t.contains("string") || t.contains(":str") || t.contains(":&str") {
+        return Some(ParamSemantic::String);
+    }
+    None
 }
 
 /// Inline suppression: drop any unit whose source carries a `nose-ignore` marker

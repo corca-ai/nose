@@ -36,7 +36,7 @@ By default the generator emits:
 - sign-normalizing `sum(abs(x))` map/reduce cases across every supported surface;
 - semantic-axis cases for immutable bindings, proven callee identity, literal table access,
   static imports, static projections, nullish defaults, own-property guards,
-  record-shape guards, string prefix/suffix predicates, literal collection membership,
+  record-shape guards, string prefix/suffix predicates, literal and typed dynamic collection membership,
   literal map-default lookup, map key-membership predicates,
   null/none/nil/option presence predicates including Rust
   option-pattern predicates, scalar absolute-value and min/max idioms, and

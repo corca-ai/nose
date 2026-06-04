@@ -16,6 +16,11 @@ break.
   now converges Python `in`, literal receiver `includes/include?/contains`, and Go
   `slices.Contains` while keeping substring contains and arbitrary receiver contains
   outside strict semantic reporting.
+- Strict Type-4 proof facts for typed dynamic collection membership across Go, Java,
+  Python, Rust, and TypeScript. Frontends now preserve coarse parameter semantic facts
+  from explicit type annotations, and exact semantic mode uses them to converge
+  collection membership APIs while keeping typed string receivers and wrong-element
+  boundaries distinct.
 - Strict Type-4 proof facts for literal Python/Ruby map lookup with fallback. The detector
   now converges dict `.get(key, default)` and hash `.fetch(key, default)` only when the
   receiver is a static literal map, preserving wrong-key, wrong-default, and wrong-map

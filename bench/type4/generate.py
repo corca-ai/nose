@@ -299,6 +299,18 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "Receiver-overloaded membership-like calls are not strict proof unless the collection or map receiver coordinate is proven.",
     },
+    "axis_membership_typed_receiver_identity": {
+        "axis": "literal_collection_membership",
+        "why": "Typed collection receivers should prove dynamic element-in-collection membership without relying on method names alone.",
+    },
+    "axis_membership_typed_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Typed dynamic collection membership is still a proof over a specific element coordinate.",
+    },
+    "axis_membership_typed_string_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A typed string receiver's substring predicate is not dynamic collection membership.",
+    },
     "axis_map_key_membership_identity": {
         "axis": "map_key_membership",
         "why": "Map key-presence APIs should prove the same key-in-map predicate when receiver and key coordinates are fixed.",
@@ -1744,6 +1756,13 @@ end
 def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> bool:
     if not proposal_id.startswith("axis_membership_"):
         return False
+    if proposal_id in {
+        "axis_membership_typed_receiver_identity",
+        "axis_membership_typed_wrong_element_boundary",
+    }:
+        return surface.key in {"python", "typescript", "go", "rust", "java"}
+    if proposal_id == "axis_membership_typed_string_boundary":
+        return surface.key in {"typescript", "rust", "java"}
     if proposal_id == "axis_membership_unproven_receiver_boundary":
         return surface.key in {"java", "rust", "typescript"}
     return surface.key in {
@@ -1774,6 +1793,14 @@ def membership_axis_parts(
         form = "substring"
     if proposal_id == "axis_membership_unproven_receiver_boundary":
         form = "unproven_receiver" if right else "dynamic_collection"
+    if proposal_id.startswith("axis_membership_typed_"):
+        form = "typed_membership"
+    if right and negative and proposal_id == "axis_membership_typed_receiver_identity":
+        element = "other"
+    if right and proposal_id == "axis_membership_typed_wrong_element_boundary":
+        element = "other"
+    if right and proposal_id == "axis_membership_typed_string_boundary":
+        form = "unproven_receiver"
     if right and negative and proposal_id == "axis_membership_literal_identity":
         items = ("green", "blue")
     return element, items, form
@@ -1805,6 +1832,12 @@ def axis_membership_literal_variant(
         return js_axis_source(surface, body, name)
 
     if surface.key == "typescript":
+        if form == "typed_membership":
+            src = f"""function {name}(values: string[], value: string, other: string): boolean {{
+  return values.includes({element});
+}}
+"""
+            return Variant("axis", src, name)
         if form == "dynamic_collection":
             src = f"""function {name}(values: string[], value: string, other: string): boolean {{
   return values.includes(value);
@@ -1828,6 +1861,11 @@ def axis_membership_literal_variant(
         return Variant("axis", src, name)
 
     if surface.key == "python":
+        if form == "typed_membership":
+            src = f"""def {name}(values: list[str], value: str, other: str) -> bool:
+    return {element} in values
+"""
+            return Variant("axis", src, name)
         if form == "substring":
             expr = f'"{left}" in {element}'
         elif right:
@@ -1840,6 +1878,16 @@ def axis_membership_literal_variant(
         return Variant("axis", src, name)
 
     if surface.key == "go":
+        if form == "typed_membership":
+            src = f"""package p
+
+import "slices"
+
+func {name}(values []string, value string, other string) bool {{
+    return slices.Contains(values, {element})
+}}
+"""
+            return Variant("axis", src, name)
         if form == "substring":
             src = f"""package p
 
@@ -1861,6 +1909,12 @@ func {name}(value string, other string) bool {{
         return Variant("axis", src, name)
 
     if surface.key == "rust":
+        if form == "typed_membership":
+            src = f"""pub fn {name}(values: &[&str], value: &str, other: &str) -> bool {{
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
         if form == "dynamic_collection":
             src = f"""pub fn {name}(values: &[&str], value: &str, other: &str) -> bool {{
     values.contains(&value)
@@ -1884,7 +1938,12 @@ func {name}(value string, other string) bool {{
         return Variant("axis", src, name)
 
     if surface.key == "java":
-        if form == "dynamic_collection":
+        if form == "typed_membership":
+            src = f"""import java.util.List;
+
+class C {{ static boolean {name}(List<String> values, String value, String other) {{ return values.contains({element}); }} }}
+"""
+        elif form == "dynamic_collection":
             src = f"""import java.util.List;
 
 class C {{ static boolean {name}(List<String> values, String value, String other) {{ return values.contains(value); }} }}
@@ -4763,6 +4822,8 @@ def generate_axis_items(
                 "axis_membership_wrong_collection_boundary",
                 "axis_membership_substring_boundary",
                 "axis_membership_unproven_receiver_boundary",
+                "axis_membership_typed_wrong_element_boundary",
+                "axis_membership_typed_string_boundary",
             }:
                 items.append(
                     make_axis_item(
@@ -5174,6 +5235,58 @@ def generate_literal_membership_cross_items(
                     "literal-membership-boundary",
                 )
             )
+    if generation_filter.include_proposal("axis_membership_typed_receiver_identity"):
+        typed_surfaces = [
+            s
+            for s in SURFACES
+            if literal_membership_axis_supported(s, "axis_membership_typed_receiver_identity")
+        ]
+        for left_surface, right_surface in cross_pairs(typed_surfaces, cross_mode):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_membership_typed_receiver_identity",
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_membership_typed_receiver_identity",
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
+        for proposal_id in (
+            "axis_membership_typed_wrong_element_boundary",
+            "axis_membership_typed_string_boundary",
+        ):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
+            boundary_surfaces = [
+                s for s in SURFACES if literal_membership_axis_supported(s, proposal_id)
+            ]
+            for left_surface, right_surface in cross_pairs(boundary_surfaces, cross_mode):
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-membership-boundary",
+                    )
+                )
     return items
 
 
