@@ -55,6 +55,38 @@ AXIS_PROPOSALS = {
         "axis": "proven_callee_identity",
         "why": "Opaque calls are exact only when the callee binding identity is proven and behavior-defining.",
     },
+    "axis_import_named_identity": {
+        "axis": "import_identity",
+        "why": "Static named imports should prove helper identity by module coordinate and exported symbol.",
+    },
+    "axis_import_alias_identity": {
+        "axis": "import_identity",
+        "why": "Aliases should not break exact helper identity when the imported coordinate is unchanged.",
+    },
+    "axis_import_namespace_identity": {
+        "axis": "import_identity",
+        "why": "Namespace imports should prove receiver identity before member calls become exact.",
+    },
+    "axis_import_default_identity": {
+        "axis": "import_identity",
+        "why": "Default imports are a distinct static import coordinate, not a free-name guess.",
+    },
+    "axis_import_default_named_boundary": {
+        "axis": "import_identity",
+        "why": "A default export and a named export with the same local spelling are different coordinates.",
+    },
+    "axis_import_multi_specifier_identity": {
+        "axis": "import_identity",
+        "why": "Multiple static specifiers in one import statement should still prove each local binding separately.",
+    },
+    "axis_import_reexport_boundary": {
+        "axis": "import_identity",
+        "why": "Re-export syntax does not create a proven local binding for strict exact calls.",
+    },
+    "axis_import_unsafe_boundary": {
+        "axis": "import_identity",
+        "why": "Wildcard, dynamic, or unresolved import forms must stay outside strict exact reporting.",
+    },
     "axis_table_access": {
         "axis": "table_access",
         "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
@@ -110,6 +142,7 @@ SURFACES = [
     Surface("svelte", "javascript", "svelte", "script"),
     Surface("html", "javascript", "html", "script"),
 ]
+JS_LIKE_SURFACES = {"javascript", "typescript", "vue", "svelte", "html"}
 
 OPERATIONS = {
     "sum_positive": Operation(
@@ -523,6 +556,253 @@ end
 """
         return Variant("axis", src, rb_name)
     raise ValueError(f"unsupported surface for unsafe axis: {surface.key}")
+
+
+def import_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id in {"axis_import_named_identity", "axis_import_alias_identity"}:
+        return surface.key in {
+            "javascript",
+            "typescript",
+            "vue",
+            "svelte",
+            "html",
+            "python",
+            "rust",
+            "java",
+        }
+    if proposal_id == "axis_import_namespace_identity":
+        return surface.key in {
+            "javascript",
+            "typescript",
+            "vue",
+            "svelte",
+            "html",
+            "python",
+            "go",
+        }
+    if proposal_id == "axis_import_default_identity":
+        return surface.key in {"javascript", "typescript", "vue", "svelte", "html"}
+    if proposal_id == "axis_import_default_named_boundary":
+        return surface.key in {"javascript", "typescript", "vue", "svelte", "html"}
+    if proposal_id == "axis_import_multi_specifier_identity":
+        return surface.key in {"javascript", "typescript", "vue", "svelte", "html", "python"}
+    if proposal_id == "axis_import_reexport_boundary":
+        return surface.key in {"javascript", "typescript", "vue", "svelte", "html"}
+    if proposal_id == "axis_import_unsafe_boundary":
+        return True
+    return False
+
+
+def import_axis_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    entry = "buildCase" if right else "axisCase"
+    local = "calc" if right else "helper"
+    export = (
+        "otherHelper"
+        if negative and proposal_id in {"axis_import_named_identity", "axis_import_namespace_identity"}
+        else "helper"
+    )
+    module = (
+        "./other-math"
+        if negative and proposal_id in {"axis_import_alias_identity", "axis_import_default_identity"}
+        else "./shared-math"
+    )
+
+    if proposal_id in {"axis_import_unsafe_boundary", "axis_import_reexport_boundary"}:
+        if proposal_id == "axis_import_reexport_boundary" and surface.key not in JS_LIKE_SURFACES:
+            raise ValueError(f"{surface.key} does not support {proposal_id}")
+        if proposal_id == "axis_import_reexport_boundary":
+            body = f"""export {{ helper }} from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+            return js_axis_source(surface, body, entry)
+        if surface.key in JS_LIKE_SURFACES:
+            body = f"""import * as maybeMath from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+            return js_axis_source(surface, body, entry)
+        if surface.key == "python":
+            py_entry = "build_case" if right else "axis_case"
+            src = f"""from shared_math import *
+
+def {py_entry}(value):
+    return helper(value + 1)
+"""
+            return Variant("axis", src, py_entry)
+        if surface.key == "rust":
+            rs_entry = "build_case" if right else "axis_case"
+            src = f"""use crate::shared_math::*;
+
+pub fn {rs_entry}(value: i32) -> i32 {{
+    helper(value + 1)
+}}
+"""
+            return Variant("axis", src, rs_entry)
+        if surface.key == "java":
+            java_entry = "buildCase" if right else "axisCase"
+            src = f"""import static shared.Math.*;
+
+class AxisCase {{
+    static int {java_entry}(int value) {{
+        return helper(value + 1);
+    }}
+}}
+"""
+            return Variant("axis", src, java_entry)
+        if surface.key == "go":
+            go_entry = "BuildCase" if right else "AxisCase"
+            src = f"""package p
+
+import . "shared/math"
+
+func {go_entry}(value int) int {{
+    return Helper(value + 1)
+}}
+"""
+            return Variant("axis", src, go_entry)
+        if surface.key == "c":
+            c_entry = "build_case" if right else "axis_case"
+            src = f"""#include "shared_math.h"
+
+int {c_entry}(int value) {{
+    return helper(value + 1);
+}}
+"""
+            return Variant("axis", src, c_entry)
+        if surface.key == "ruby":
+            rb_entry = "build_case" if right else "axis_case"
+            src = f"""require_relative "shared_math"
+
+def {rb_entry}(value)
+  helper(value + 1)
+end
+"""
+            return Variant("axis", src, rb_entry)
+        raise ValueError(f"unsupported import unsafe surface: {surface.key}")
+
+    if surface.key in JS_LIKE_SURFACES:
+        if proposal_id == "axis_import_namespace_identity":
+            ns = "mathOps" if right else "util"
+            member = "otherHelper" if negative else "helper"
+            body = f"""import * as {ns} from {module!r};
+function {entry}(value) {{
+  return {ns}.{member}(value + 1);
+}}
+"""
+        elif proposal_id == "axis_import_default_identity":
+            body = f"""import {local} from {module!r};
+function {entry}(value) {{
+  return {local}(value + 1);
+}}
+"""
+        elif proposal_id == "axis_import_default_named_boundary":
+            if negative and right:
+                body = f"""import {{ helper }} from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+            else:
+                body = f"""import helper from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+        elif proposal_id == "axis_import_multi_specifier_identity":
+            imported = "otherHelper as calc" if negative and right else "helper as calc"
+            body = f"""import {{ unusedHelper, {imported} }} from {module!r};
+function {entry}(value) {{
+  return calc(value + 1);
+}}
+"""
+        else:
+            imported = f"{export} as {local}" if local != export else export
+            body = f"""import {{ {imported} }} from {module!r};
+function {entry}(value) {{
+  return {local}(value + 1);
+}}
+"""
+        return js_axis_source(surface, body, entry)
+
+    if surface.key == "python":
+        py_entry = "build_case" if right else "axis_case"
+        py_module = "other_math" if module == "./other-math" else "shared_math"
+        if proposal_id == "axis_import_namespace_identity":
+            ns = "math_ops" if right else "util"
+            member = "other_helper" if negative else "helper"
+            src = f"""import {py_module} as {ns}
+
+def {py_entry}(value):
+    return {ns}.{member}(value + 1)
+"""
+        elif proposal_id == "axis_import_multi_specifier_identity":
+            imported = "other_helper as calc" if negative and right else "helper as calc"
+            src = f"""from {py_module} import unused_helper, {imported}
+
+def {py_entry}(value):
+    return calc(value + 1)
+"""
+        else:
+            py_export = "other_helper" if export == "otherHelper" else "helper"
+            imported = f"{py_export} as {local}" if local != py_export else py_export
+            src = f"""from {py_module} import {imported}
+
+def {py_entry}(value):
+    return {local}(value + 1)
+"""
+        return Variant("axis", src, py_entry)
+
+    if surface.key == "rust":
+        rs_entry = "build_case" if right else "axis_case"
+        rs_module = "other_math" if module == "./other-math" else "shared_math"
+        rs_export = "other_helper" if export == "otherHelper" else "helper"
+        imported = f"{rs_export} as {local}" if local != rs_export else rs_export
+        src = f"""use crate::{rs_module}::{imported};
+
+pub fn {rs_entry}(value: i32) -> i32 {{
+    {local}(value + 1)
+}}
+"""
+        return Variant("axis", src, rs_entry)
+
+    if surface.key == "java":
+        java_entry = "buildCase" if right else "axisCase"
+        java_module = "other.Math" if module == "./other-math" else "shared.Math"
+        java_export = "otherHelper" if export == "otherHelper" else "helper"
+        src = f"""import static {java_module}.{java_export};
+
+class AxisCase {{
+    static int {java_entry}(int value) {{
+        return {java_export}(value + 1);
+    }}
+}}
+"""
+        return Variant("axis", src, java_entry)
+
+    if surface.key == "go":
+        go_entry = "BuildCase" if right else "AxisCase"
+        go_module = "other/math" if module == "./other-math" else "shared/math"
+        member = "OtherHelper" if negative else "Helper"
+        ns = "mathOps" if right else "util"
+        src = f"""package p
+
+import {ns} "{go_module}"
+
+func {go_entry}(value int) int {{
+    return {ns}.{member}(value + 1)
+}}
+"""
+        return Variant("axis", src, go_entry)
+
+    raise ValueError(f"{surface.key} does not support {proposal_id}")
 
 
 def render_predicate(predicate: str, var: str) -> str:
@@ -1941,7 +2221,17 @@ def make_c_contract_negative_item(out_dir: Path, proposal: dict, representation:
     }
 
 
-def axis_variants(surface: Surface, axis: str, negative: bool) -> tuple[Variant, Variant]:
+def axis_variants(
+    surface: Surface,
+    proposal_id: str,
+    axis: str,
+    negative: bool,
+) -> tuple[Variant, Variant]:
+    if proposal_id.startswith("axis_import_"):
+        return (
+            import_axis_variant(surface, proposal_id, False, False),
+            import_axis_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -2013,7 +2303,7 @@ def make_axis_item(
         split,
         negative_tag or "positive",
     )
-    left, right = axis_variants(surface, axis, negative)
+    left, right = axis_variants(surface, proposal_id, axis, negative)
     left_path = rel_source_path(case_id, "left", surface)
     right_path = rel_source_path(case_id, "right", surface)
     write_source(out_dir, left_path, left.source)
@@ -2062,6 +2352,21 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
         for proposal_id, proposal in AXIS_PROPOSALS.items():
             axis = proposal["axis"]
             capability = surface_capability(capabilities, surface, axis)
+            if proposal_id.startswith("axis_import_") and not import_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id in {"axis_import_unsafe_boundary", "axis_import_reexport_boundary"}:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "unknown",
+                        "heldout",
+                        "unproven-import-binding",
+                    )
+                )
+                continue
             if axis == "table_access" and capability != "supported":
                 continue
             if axis == "unsafe_boundary":

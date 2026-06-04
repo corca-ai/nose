@@ -652,15 +652,15 @@ impl<'a> Builder<'a> {
 
     fn seed_module_value_bindings(&mut self) {
         let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
-        for stmt in self.il.children(self.il.root) {
-            let Some(name) = self.assignment_name(*stmt) else {
+        for stmt in self.top_level_statements() {
+            let Some(name) = self.assignment_name(stmt) else {
                 continue;
             };
             *counts.entry(name).or_insert(0) += 1;
         }
 
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
-        for stmt in self.il.children(self.il.root).to_vec() {
+        for stmt in self.top_level_statements() {
             let kids = self.il.children(stmt);
             if kids.len() != 2 {
                 continue;
@@ -680,6 +680,18 @@ impl<'a> Builder<'a> {
             }
             self.global_env.insert(name, value);
         }
+    }
+
+    fn top_level_statements(&self) -> Vec<NodeId> {
+        let mut out = Vec::new();
+        for &stmt in self.il.children(self.il.root) {
+            if self.il.kind(stmt) == NodeKind::Block {
+                out.extend(self.il.children(stmt).iter().copied());
+            } else {
+                out.push(stmt);
+            }
+        }
+        out
     }
 
     fn seed_function_bindings(&mut self) {
@@ -2729,6 +2741,8 @@ impl<'a> Builder<'a> {
                 "tuple" | "tuple_expression" => 2,
                 "object" | "dictionary" | "hash" => 3,
                 "pair" => 4,
+                "import_binding" => 5,
+                "import_namespace" => 6,
                 _ => self.interner.symbol_hash(s),
             },
             _ => 0,

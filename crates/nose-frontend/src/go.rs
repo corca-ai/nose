@@ -77,7 +77,10 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             let e = lower_expr(lo, c);
             Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[e]))
         }
-        "import_declaration" | "package_clause" => Some(crate::lower::import_tokens(lo, node)),
+        "import_declaration" => Some(
+            lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
+        ),
+        "package_clause" => Some(crate::lower::import_tokens(lo, node)),
         "comment" | "type_declaration" => None,
         _ => {
             // call expressions etc. can appear directly as statements
@@ -93,6 +96,29 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             }
         }
     }
+}
+
+fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+    let span = lo.span(node);
+    let text = lo.text(node).trim();
+    let rest = text.strip_prefix("import ")?.trim();
+    if rest.starts_with('(') {
+        return None;
+    }
+    let quote_pos = rest.find('"')?;
+    let local = rest[..quote_pos].trim();
+    if local == "." || local == "_" {
+        return None;
+    }
+    let module_rest = &rest[quote_pos + 1..];
+    let end = module_rest.find('"')?;
+    let module = &module_rest[..end];
+    let local = if local.is_empty() {
+        module.rsplit('/').next().unwrap_or(module)
+    } else {
+        local
+    };
+    Some(crate::lower::import_namespace(lo, span, local, module))
 }
 
 fn is_expr_kind(k: &str) -> bool {

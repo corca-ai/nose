@@ -43,7 +43,9 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "struct_item" | "enum_item" | "union_item" => Some(lower_type_block(lo, node, false)),
         "mod_item" => node.child_by_field_name("body").map(|b| lower_items(lo, b)),
         "const_item" | "static_item" => Some(lower_value_item(lo, node)),
-        "use_declaration" | "extern_crate_declaration" => Some(crate::lower::import_tokens(lo, node)),
+        "use_declaration" | "extern_crate_declaration" => Some(
+            lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
+        ),
         // type aliases, macro defs, attributes: no behavior to model
         "type_item"
         | "macro_definition"
@@ -56,6 +58,29 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         | "block_comment" => None,
         _ => lower_stmt(lo, node),
     }
+}
+
+fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+    let span = lo.span(node);
+    let text = lo.text(node).trim().trim_end_matches(';').trim();
+    let path = text.strip_prefix("use ")?.trim();
+    if path.contains('*') || path.contains('{') {
+        return None;
+    }
+    let (path, local) = if let Some((path, local)) = path.split_once(" as ") {
+        (path.trim(), local.trim())
+    } else {
+        let local = path.rsplit("::").next()?.trim();
+        (path, local)
+    };
+    let (module, exported) = path.rsplit_once("::")?;
+    Some(crate::lower::import_binding(
+        lo,
+        span,
+        local,
+        module.trim(),
+        exported.trim(),
+    ))
 }
 
 /// `impl`/`trait`/`struct`/`enum` → a `Class` unit whose body holds methods (each

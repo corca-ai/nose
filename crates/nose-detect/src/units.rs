@@ -192,20 +192,20 @@ impl StrictFacts {
 
     fn collect_immutable_bindings(&mut self, il: &Il) {
         let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
-        for stmt in il.children(il.root) {
-            let Some(name) = assignment_name(il, *stmt) else {
+        for stmt in top_level_statements(il) {
+            let Some(name) = assignment_name(il, stmt) else {
                 continue;
             };
             *counts.entry(name).or_insert(0) += 1;
         }
 
         let mut env: FxHashSet<u32> = FxHashSet::default();
-        for stmt in il.children(il.root) {
-            let kids = il.children(*stmt);
+        for stmt in top_level_statements(il) {
+            let kids = il.children(stmt);
             if kids.len() != 2 {
                 continue;
             }
-            let Some(name) = assignment_name(il, *stmt) else {
+            let Some(name) = assignment_name(il, stmt) else {
                 continue;
             };
             if counts.get(&name).copied().unwrap_or(0) != 1 {
@@ -230,6 +230,18 @@ impl StrictFacts {
             }
         }
     }
+}
+
+fn top_level_statements(il: &Il) -> Vec<NodeId> {
+    let mut out = Vec::new();
+    for &stmt in il.children(il.root) {
+        if il.kind(stmt) == NodeKind::Block {
+            out.extend(il.children(stmt).iter().copied());
+        } else {
+            out.push(stmt);
+        }
+    }
+    out
 }
 
 fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
@@ -354,6 +366,8 @@ fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
                 | "tuple_expression"
                 | "object"
                 | "pair"
+                | "import_binding"
+                | "import_namespace"
         ),
         _ => false,
     }

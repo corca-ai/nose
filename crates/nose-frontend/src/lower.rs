@@ -162,6 +162,37 @@ pub(crate) fn import_tokens(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::Seq, Payload::None, span, &kids)
 }
 
+/// A strict semantic proof fact for a static import binding:
+/// local name → `(module coordinate, exported symbol)`.
+///
+/// Frontends only call this for import forms whose module/export identity is fully static.
+/// Ambiguous forms fall back to [`import_tokens`], remaining visible to syntax/near but
+/// unavailable to strict exact semantic mode.
+pub(crate) fn import_binding(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    module: &str,
+    exported: &str,
+) -> NodeId {
+    let lhs = lo.var(local, span);
+    let module = lo.str_lit(module, span);
+    let exported = lo.str_lit(exported, span);
+    let tag = lo.sym("import_binding");
+    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &[module, exported]);
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+}
+
+/// A strict semantic proof fact for a static namespace import:
+/// local namespace → module coordinate.
+pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {
+    let lhs = lo.var(local, span);
+    let module = lo.str_lit(module, span);
+    let tag = lo.sym("import_namespace");
+    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &[module]);
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+}
+
 /// Emit a `Var` token for every named leaf (identifier, string fragment, path
 /// component) in `node`'s subtree — the textual identity of an import.
 fn collect_leaf_tokens(lo: &mut Lowering, node: TsNode, out: &mut Vec<NodeId>) {

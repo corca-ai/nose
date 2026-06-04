@@ -98,9 +98,9 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
                 }
             }
         }
-        "import_statement" | "import_from_statement" | "future_import_statement" => {
-            Some(crate::lower::import_tokens(lo, node))
-        }
+        "import_statement" | "import_from_statement" | "future_import_statement" => Some(
+            lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
+        ),
         "global_statement" | "nonlocal_statement" | "comment" => None,
         // Anything else in statement position: treat as an expression statement
         // (lower_expr has its own Raw fallback for genuinely unknown nodes).
@@ -108,6 +108,54 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
             let e = lower_expr(lo, node);
             Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[e]))
         }
+    }
+}
+
+fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+    let span = lo.span(node);
+    let text = lo.text(node).trim();
+    let mut assigns = Vec::new();
+
+    if let Some(rest) = text.strip_prefix("from ") {
+        let (module, names) = rest.split_once(" import ")?;
+        if names.trim() == "*" {
+            return None;
+        }
+        for part in names.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+            let (exported, local) = py_import_specifier(part);
+            assigns.push(crate::lower::import_binding(
+                lo,
+                span,
+                local,
+                module.trim(),
+                exported,
+            ));
+        }
+    } else if let Some(rest) = text.strip_prefix("import ") {
+        for part in rest.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+            let (module, local) = py_import_specifier(part);
+            assigns.push(crate::lower::import_namespace(
+                lo,
+                span,
+                local,
+                module.trim(),
+            ));
+        }
+    }
+
+    match assigns.len() {
+        0 => None,
+        1 => assigns.pop(),
+        _ => Some(lo.add(NodeKind::Block, Payload::None, span, &assigns)),
+    }
+}
+
+fn py_import_specifier(part: &str) -> (&str, &str) {
+    if let Some((exported, local)) = part.split_once(" as ") {
+        (exported.trim(), local.trim())
+    } else {
+        let local = part.rsplit('.').next().unwrap_or(part).trim();
+        (part.trim(), local)
     }
 }
 

@@ -499,6 +499,60 @@ fn scan_mode_semantic_distinguishes_sequence_kinds() {
 }
 
 #[test]
+fn scan_mode_semantic_allows_static_import_identity() {
+    let dir = std::env::temp_dir().join(format!("nose_import_identity_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("import_a.py"),
+        "from shared_math import unused_helper, helper\n\ndef report(value):\n    shifted = value + 1\n    return helper(shifted)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("import_b.py"),
+        "from shared_math import unused_helper, helper as calc\n\ndef build(input):\n    shifted = input + 1\n    return calc(shifted)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("import_negative.py"),
+        "from shared_math import unused_helper, other_helper as calc\n\ndef other(input):\n    shifted = input + 1\n    return calc(shifted)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same import coordinate: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("import_a.py")
+            && semantic_text.contains("import_b.py")
+            && !semantic_text.contains("import_negative.py"),
+        "semantic mode must preserve static import coordinates: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_converges_cross_language_list_literals() {
     let dir = std::env::temp_dir().join(format!("nose_list_cross_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

@@ -450,3 +450,48 @@ now represented as a common proof obligation, and the generator can exercise it 
 surfaces that currently emit the necessary facts. The next frontier is structured import
 facts: same import coordinate should become proven callee identity, while wildcard imports,
 re-exports, dynamic import, and unresolved aliases should remain unsafe-boundary cases.
+
+## Adversarial import-identity coevolution: loops 54-63
+
+This run followed the stricter coevolution protocol: generator first, current detector
+measurement second, detector change only when a real frontier failure appeared, then an
+immediate generator counterattack.
+
+| loop | generator move | current-detector result | detector / loop change | result |
+|---|---|---:|---|---:|
+| 54 | add `import_identity` capability axis plus named/alias/namespace/default/unsafe import cases | import positives 0/9, false merges 0/11 | no detector change yet; this established the frontier | failure recorded |
+| 55 | same corpus, focused on static named/alias imports | miss confirmed for JS-family, Python, Rust, Java, Go namespace | lower static imports to common `import_binding` / `import_namespace` facts; extend strict-safe sequence tags | import positives 9/9, false merges 0/11 |
+| 56 | default import and default-vs-named boundary | passed after loop 55 | no detector change; kept as hard-negative coverage | 1/1 positive, 0/1 false merges |
+| 57 | multi-specifier import counterattack | Python multi-specifier positive missed | top-level synthetic `Block` assignment lists are flattened during strict fact collection and value-graph seeding | multi-specifier positive 1/1 |
+| 58 | re-export boundary | no false merge | no detector change; re-export remains unproven local binding | 0/1 false merges |
+| 59 | wildcard / unresolved import boundary | no false merge | no detector change; wildcard/dot/import-star remain unsafe-boundary cases | 0/5 false merges |
+| 60 | compact selector pressure | import-axis features appeared in compact suite, but only selected coverage cells | selector already preserved `semantic_axis` and `capability` features; no code change | import axis selected 21/94 |
+| 61 | focused CLI regression | synthetic smoke covered it, but unit gate needed a smaller regression | add `scan_mode_semantic_allows_static_import_identity` with Python multi-specifier alias positive and different export negative | CLI test passed |
+| 62 | dense all-cross validation | full compact smoke needed to ensure aggregate frontier stayed closed | no detector change | 449/3314 selected, 189/189 positives, 0/260 false merges |
+| 63 | real repo audit on `../craken-agents` | strict semantic families 26→32, removed 0 | no detector change; qualitative added families looked useful | +6 families, 0 removed |
+
+Final dense compact smoke:
+
+```text
+scripts/type4-smoke.sh SUITE=core CROSS=all
+selected items: 449/3314
+positive recall: 189/189
+hard-negative false merges: 0/260
+Raw nodes: 0/21324
+```
+
+Real-repo audit (`../craken-agents`) added six strict semantic families and removed none.
+Examples of added families:
+
+- `fileBrowserTargetHref` / `fileTargetHref`;
+- `interactionCheckResult` / `visualCheckResult`;
+- `agentTokenUsageCommand` / `readMessagePageFromStoreCommand`;
+- `agentEffectSink` fixtures;
+- `conversationKindBinding` helpers;
+- `queueBatch` fixtures.
+
+Assessment: this run matched the adversarial coevolution shape better than earlier loops.
+The generator found a real under-merge first, the detector fix was a common proof-fact
+extension rather than a language-name exception, and the counterattack found a second real
+miss in multi-specifier imports. Unsupported forms remain explicit unsafe-boundary cases
+instead of being silently accepted.
