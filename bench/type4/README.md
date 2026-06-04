@@ -132,6 +132,7 @@ Mine the pinned real-repo corpus before choosing the next semantic axis:
 
 ```sh
 python3 bench/type4/prioritize_frontier.py \
+  --cache /tmp/nose-frontier-priorities.cache.json \
   --json-out /tmp/nose-frontier-priorities.json \
   --markdown-out bench/type4/FRONTIER_PRIORITIES.md
 ```
@@ -150,6 +151,11 @@ Use the prioritizer as a repeated pattern loop, not as a one-off report:
 - compare installed/release and modified detectors on real repos;
 - update the candidate status so the next cost-effective axis rises.
 
+Use `--cache` for routine reruns. The cache is invalidated when candidate regexes, probe
+regexes, file metadata, `--max-bytes`, or `--sample-limit` change; unchanged corpus reruns
+reuse the previous result. The report also lists top matching repos per candidate, which
+are the default audit sample before doing a wider real-repo scan.
+
 For a new semantic axis, run this loop at least once end to end before adding more
 patterns. Continue for three to five passes while the top candidate still changes or real
 delta audits expose missed strict families. Stop expanding that axis when synthetic
@@ -167,11 +173,19 @@ scripts/type4-smoke.sh
 Useful knobs:
 
 ```sh
+GATE=focused AXIS=string_prefix_suffix NOSE=target/debug/nose scripts/type4-smoke.sh
+GATE=core AXIS=string_prefix_suffix NOSE=target/debug/nose scripts/type4-smoke.sh
+GATE=full AXIS=string_prefix_suffix NOSE=target/debug/nose scripts/type4-smoke.sh
 OUT_DIR=/tmp/nose-type4-next CROSS=none NOSE=target/debug/nose scripts/type4-smoke.sh
 BASELINE_JSON=/tmp/nose-type4-seed/frontier.json scripts/type4-smoke.sh
 OUT_DIR=/tmp/nose-type4-all CROSS=all scripts/type4-smoke.sh
 OUT_DIR=/tmp/nose-type4-all-full COMPACT_DIR=/tmp/nose-type4-all-core SUITE=core CROSS=all scripts/type4-smoke.sh
 ```
+
+`GATE=focused` requires `AXIS` or `PROPOSAL_PREFIX` and defaults to `CROSS=none`, so the
+inner detector loop exercises only the selected semantic class. `GATE=core` keeps the same
+focused filters but runs the coverage-preserving compact selector, and `GATE=full` runs the
+selected full manifest without compaction. Omit `GATE` for the historical full smoke.
 
 `SUITE=core` first generates the full manifest, then writes a compact manifest whose cases
 preserve proposal, split, representation, transform, hard-negative tag, cross-surface,

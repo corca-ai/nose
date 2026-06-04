@@ -215,6 +215,34 @@ class Surface:
 
 
 @dataclass(frozen=True)
+class GenerationFilter:
+    axes: frozenset[str]
+    proposal_prefixes: tuple[str, ...]
+
+    @property
+    def active(self) -> bool:
+        return bool(self.axes or self.proposal_prefixes)
+
+    def include_axis(self, axis: str) -> bool:
+        return not self.axes or axis in self.axes
+
+    def include_proposal(self, proposal_id: str) -> bool:
+        return not self.proposal_prefixes or any(
+            proposal_id.startswith(prefix) for prefix in self.proposal_prefixes
+        )
+
+    def include_base_proposal(self, proposal: dict) -> bool:
+        if not self.include_proposal(proposal["proposal_id"]):
+            return False
+        if not self.axes:
+            return True
+        return "aggregate_reduction" in self.axes or proposal["operation"] in self.axes
+
+    def include_axis_proposal(self, proposal_id: str, axis: str) -> bool:
+        return self.include_axis(axis) and self.include_proposal(proposal_id)
+
+
+@dataclass(frozen=True)
 class Variant:
     representation: str
     source: str
@@ -3242,11 +3270,17 @@ def make_axis_item(
     }
 
 
-def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
+def generate_axis_items(
+    out_dir: Path,
+    capabilities: dict,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
     items: list[dict] = []
     for surface in SURFACES:
         for proposal_id, proposal in AXIS_PROPOSALS.items():
             axis = proposal["axis"]
+            if not generation_filter.include_axis_proposal(proposal_id, axis):
+                continue
             capability = surface_capability(capabilities, surface, axis)
             if proposal_id.startswith("axis_import_") and not import_axis_supported(surface, proposal_id):
                 continue
@@ -3499,11 +3533,16 @@ def generate_string_prefix_cross_items(
     out_dir: Path,
     capabilities: dict,
     cross_mode: str,
+    generation_filter: GenerationFilter,
 ) -> list[dict]:
+    if not generation_filter.include_axis("string_prefix_suffix"):
+        return []
     surfaces = [s for s in SURFACES if string_prefix_axis_supported(s, "axis_string_prefix_identity")]
     items: list[dict] = []
     for left_surface, right_surface in cross_pairs(surfaces, cross_mode):
         for proposal_id in ("axis_string_prefix_identity", "axis_string_suffix_identity"):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
             items.append(
                 make_axis_cross_item(
                     out_dir,
@@ -3532,6 +3571,8 @@ def generate_string_prefix_cross_items(
             "axis_string_direction_boundary",
             "axis_string_wrong_receiver_boundary",
         ):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
             items.append(
                 make_axis_cross_item(
                     out_dir,
@@ -3557,7 +3598,23 @@ def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surfa
     raise ValueError(f"unknown cross mode: {mode}")
 
 
-def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mode: str, clean: bool) -> dict:
+def split_filters(values: list[str] | None) -> tuple[str, ...]:
+    if not values:
+        return ()
+    parts: list[str] = []
+    for value in values:
+        parts.extend(part.strip() for part in value.split(",") if part.strip())
+    return tuple(dict.fromkeys(parts))
+
+
+def generate(
+    out_dir: Path,
+    proposal_file: Path,
+    capability_file: Path,
+    cross_mode: str,
+    clean: bool,
+    generation_filter: GenerationFilter,
+) -> dict:
     if clean and out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -3568,6 +3625,8 @@ def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mo
     validate_proposals(proposals_doc)
     items = []
     for proposal in proposals_doc["proposals"]:
+        if not generation_filter.include_base_proposal(proposal):
+            continue
         for surface in SURFACES:
             items.append(
                 make_item(
@@ -3661,8 +3720,10 @@ def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mo
                     "cross-template-semantic-mutation",
                 )
             )
-    items.extend(generate_axis_items(out_dir, capabilities))
-    items.extend(generate_string_prefix_cross_items(out_dir, capabilities, cross_mode))
+    items.extend(generate_axis_items(out_dir, capabilities, generation_filter))
+    items.extend(
+        generate_string_prefix_cross_items(out_dir, capabilities, cross_mode, generation_filter)
+    )
     return {
         "schema_version": "0.1.0",
         "source": {
@@ -3670,6 +3731,8 @@ def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mo
             "proposal_file": str(proposal_file.relative_to(ROOT)),
             "capability_file": str(capability_file.relative_to(ROOT)),
             "cross_mode": cross_mode,
+            "axis_filter": sorted(generation_filter.axes),
+            "proposal_prefix_filter": list(generation_filter.proposal_prefixes),
         },
         "items": items,
     }
@@ -3681,14 +3744,29 @@ def main() -> None:
     parser.add_argument("--proposal-file", default=DEFAULT_PROPOSALS, type=Path)
     parser.add_argument("--capability-file", default=DEFAULT_CAPABILITIES, type=Path)
     parser.add_argument("--cross", choices=["none", "ring", "all"], default="ring")
+    parser.add_argument(
+        "--axis",
+        action="append",
+        help="only generate cases whose semantic axis/computation matches this value; may be repeated or comma-separated",
+    )
+    parser.add_argument(
+        "--proposal-prefix",
+        action="append",
+        help="only generate proposal ids with this prefix; may be repeated or comma-separated",
+    )
     parser.add_argument("--no-clean", action="store_true", help="do not clear the output directory first")
     args = parser.parse_args()
+    generation_filter = GenerationFilter(
+        axes=frozenset(split_filters(args.axis)),
+        proposal_prefixes=split_filters(args.proposal_prefix),
+    )
     manifest = generate(
         args.out_dir,
         args.proposal_file,
         args.capability_file,
         args.cross,
         clean=not args.no_clean,
+        generation_filter=generation_filter,
     )
     manifest_path = args.out_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")

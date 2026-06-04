@@ -204,6 +204,65 @@ and whether a frontier is already covered.
 - no filtered broad-probe samples
 
 
+## Audit Repo Samples
+
+### `numeric_minmax_abs`
+- `sympy` (heldout, Python; python): 2128 raw / 2128.0 weighted
+- `libgdx` (heldout, Java; c, java): 926 raw / 921.5 weighted
+- `h2database` (heldout, Java; java, javascript): 332 raw / 332.0 weighted
+- `graphhopper` (dev, Java; java, javascript, python): 313 raw / 313.0 weighted
+- `netty` (dev, Java; java, javascript): 285 raw / 285.0 weighted
+
+### `membership_contains`
+- `guava` (dev, Java; java): 2646 raw / 1746.5 weighted
+- `sympy` (heldout, Python; python): 2961 raw / 1628.5 weighted
+- `sqlalchemy` (heldout, Python; python): 2091 raw / 1150.0 weighted
+- `nushell` (dev, Rust; javascript, python, rust): 1359 raw / 763.6 weighted
+- `scrapy` (dev, Python; python): 744 raw / 409.2 weighted
+
+### `null_option_presence`
+- `vim` (heldout, C; c, python): 13453 raw / 13453.0 weighted
+- `nats-server` (dev, Go; go): 12704 raw / 12704.0 weighted
+- `minio` (heldout, Go; go, python): 10023 raw / 10023.0 weighted
+- `prometheus` (dev, Go; go, javascript, typescript): 5464 raw / 5460.9 weighted
+- `etcd` (heldout, Go; go): 5229 raw / 5229.0 weighted
+
+### `map_default_lookup`
+- `sqlalchemy` (heldout, Python; python): 796 raw / 796.0 weighted
+- `sympy` (heldout, Python; python): 610 raw / 610.0 weighted
+- `rubocop` (dev, Ruby; ruby): 275 raw / 275.0 weighted
+- `minio` (heldout, Go; go, python): 294 raw / 162.2 weighted
+- `poetry` (dev, Python; python): 134 raw / 134.0 weighted
+
+### `collection_empty_check`
+- `guava` (dev, Java; java): 1924 raw / 1924.0 weighted
+- `nats-server` (dev, Go; go): 1194 raw / 1194.0 weighted
+- `nushell` (dev, Rust; rust): 1023 raw / 1019.9 weighted
+- `prometheus` (dev, Go; go, typescript): 958 raw / 958.0 weighted
+- `minio` (heldout, Go; go, python): 828 raw / 827.1 weighted
+
+### `string_prefix_suffix`
+- `drizzle-orm` (dev, TypeScript; javascript, typescript): 506 raw / 506.0 weighted
+- `h2database` (heldout, Java; java, javascript): 434 raw / 434.0 weighted
+- `nushell` (dev, Rust; rust): 307 raw / 307.0 weighted
+- `esbuild` (heldout, Go; go, javascript, typescript): 258 raw / 258.0 weighted
+- `nats-server` (dev, Go; go): 244 raw / 244.0 weighted
+
+### `property_type_guard`
+- `jest` (dev, TypeScript; javascript, typescript): 89 raw / 89.0 weighted
+- `drizzle-orm` (dev, TypeScript; typescript): 76 raw / 76.0 weighted
+- `prettier` (dev, TypeScript; javascript): 60 raw / 60.0 weighted
+- `pixijs` (heldout, TypeScript; javascript, typescript): 58 raw / 58.0 weighted
+- `zod` (dev, TypeScript; typescript): 41 raw / 41.0 weighted
+
+### `own_property_guard`
+- `esbuild` (heldout, Go; javascript, typescript): 147 raw / 147.0 weighted
+- `drizzle-orm` (dev, TypeScript; javascript, typescript): 139 raw / 139.0 weighted
+- `jest` (dev, TypeScript; javascript, typescript): 80 raw / 80.0 weighted
+- `trpc` (heldout, TypeScript; typescript): 66 raw / 66.0 weighted
+- `prettier` (dev, TypeScript; javascript, typescript): 54 raw / 54.0 weighted
+
+
 ## Extraction Samples
 
 ### `numeric_minmax_abs`

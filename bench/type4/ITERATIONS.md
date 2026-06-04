@@ -849,3 +849,19 @@ the quantitative pattern loop, but only promote gaps that remain strict after ov
 filtering. The next ordinary open axis should likely be `membership_contains`, with a
 careful first split between substring contains, list/set membership, map-key membership,
 and Python iteration syntax.
+
+## Loop acceleration: loops 119-122
+
+Before widening the next semantic frontier, the loop machinery was made cheaper without
+adding a new orchestration script.
+
+| loop | bottleneck | change | measured result |
+|---|---|---|---:|
+| 119 | generator always emitted every semantic class | add `generate.py --axis` and `--proposal-prefix` filters | `string_prefix_suffix` focused corpus: 70 items instead of 2,006 ring items |
+| 120 | smoke gate had only full/compact knobs | add `GATE=focused|core|full` to `scripts/type4-smoke.sh`, passing focused filters through to the generator | `GATE=focused AXIS=string_prefix_suffix`: 20/20 positives, 0/50 false merges, Raw 0/1,512 |
+| 121 | prioritizer rescanned 59k files on every rerun | add input-fingerprint cache to `prioritize_frontier.py` | cached rerun: about 1.8s after a 61.8s cold run |
+| 122 | real-repo audit target selection was manual | report top matching repos per frontier candidate | `membership_contains` audit starts from `guava`, `sympy`, and `sqlalchemy` rather than arbitrary repos |
+
+The next detector loop should use `GATE=focused` for the new strict sub-axis, `GATE=core`
+after the first detector fix, and full/dense validation only when the focused frontier is
+closed.

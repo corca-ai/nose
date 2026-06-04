@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -482,6 +483,7 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
             "raw_matches": 0,
             "weighted_matches": 0.0,
             "repos": set(),
+            "repo_stats": {},
             "languages": set(),
             "splits": {},
             "samples": [],
@@ -555,6 +557,20 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                     bucket["repos"].add(repo["id"])
                     bucket["languages"].add(lang)
                     bucket["splits"][split] = bucket["splits"].get(split, 0) + raw_for_file
+                    repo_stat = bucket["repo_stats"].setdefault(
+                        repo["id"],
+                        {
+                            "repo": repo["id"],
+                            "split": split,
+                            "primary_language": repo.get("primary_language") or "",
+                            "raw_matches": 0,
+                            "weighted_matches": 0.0,
+                            "languages": set(),
+                        },
+                    )
+                    repo_stat["raw_matches"] += raw_for_file
+                    repo_stat["weighted_matches"] += weighted_for_file
+                    repo_stat["languages"].add(lang)
                 for probe_spec in probes:
                     for match in probe_spec.regex.finditer(text):
                         if is_comment_only_line(text, match.start(), lang):
@@ -612,6 +628,19 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 }
             )
         pattern_stats.sort(key=lambda stat: stat["weighted_matches"], reverse=True)
+        repo_stats = []
+        for stat in bucket["repo_stats"].values():
+            repo_stats.append(
+                {
+                    "repo": stat["repo"],
+                    "split": stat["split"],
+                    "primary_language": stat["primary_language"],
+                    "raw_matches": stat["raw_matches"],
+                    "weighted_matches": round(stat["weighted_matches"], 2),
+                    "languages": sorted(stat["languages"]),
+                }
+            )
+        repo_stats.sort(key=lambda stat: stat["weighted_matches"], reverse=True)
         rows.append(
             {
                 "candidate_id": candidate.candidate_id,
@@ -639,11 +668,12 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 "gap_samples": bucket["gap_samples"],
                 "filter_samples": bucket["filter_samples"],
                 "pattern_stats": pattern_stats,
+                "top_repos": repo_stats[:20],
             }
         )
     rows.sort(key=lambda row: row["score"], reverse=True)
     return {
-        "schema_version": "0.3.0",
+        "schema_version": "0.4.0",
         "repos_root": str(repos_root),
         "corpus": str(corpus_path),
         "repo_count": len(repos),
@@ -651,6 +681,71 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
         "bytes_scanned": bytes_scanned,
         "max_bytes_per_file": max_bytes,
         "ranking": rows,
+    }
+
+
+def candidate_signature() -> str:
+    payload = {
+        "candidates": [
+            {
+                "candidate_id": candidate.candidate_id,
+                "status": candidate.status,
+                "patterns": [
+                    {
+                        "pattern_id": spec.pattern_id,
+                        "lang": spec.lang,
+                        "regex": spec.regex.pattern,
+                        "precision": spec.precision,
+                    }
+                    for spec in candidate.patterns
+                ],
+                "probes": [
+                    {
+                        "probe_id": spec.probe_id,
+                        "lang": spec.lang,
+                        "regex": spec.regex.pattern,
+                    }
+                    for spec in PROBES_BY_CANDIDATE.get(candidate.candidate_id, ())
+                ],
+            }
+            for candidate in CANDIDATES
+        ],
+        "precision_weight": PRECISION_WEIGHT,
+        "schema": "0.4.0",
+    }
+    text = json.dumps(payload, sort_keys=True)
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def corpus_signature(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: int) -> dict:
+    repos = load_repos(corpus_path, repos_root)
+    h = hashlib.sha256()
+    files = 0
+    for repo in repos:
+        h.update(repo["id"].encode())
+        h.update((repo.get("split") or "").encode())
+        h.update((repo.get("primary_language") or "").encode())
+        for path, lang in iter_source_files(repo["path"], max_bytes):
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            rel = str(path.relative_to(repo["path"]))
+            h.update(repo["id"].encode())
+            h.update(rel.encode())
+            h.update(lang.encode())
+            h.update(str(stat.st_size).encode())
+            h.update(str(stat.st_mtime_ns).encode())
+            files += 1
+    return {
+        "candidate_signature": candidate_signature(),
+        "corpus_path": str(corpus_path.resolve()),
+        "repos_root": str(repos_root.resolve()),
+        "max_bytes": max_bytes,
+        "sample_limit": sample_limit,
+        "repo_count": len(repos),
+        "source_file_count": files,
+        "digest": h.hexdigest(),
     }
 
 
@@ -733,6 +828,19 @@ def markdown_report(result: dict, top: int) -> str:
                 f"- `{sample['repo']}/{sample['path']}:{sample['line']}` ({sample['language']}, {sample['probe_id']}, {sample['filter_reason']}): {sample['snippet']}"
             )
         lines.append("")
+    lines.extend(["", "## Audit Repo Samples", ""])
+    for row in result["ranking"][:top]:
+        lines.append(f"### `{row['candidate_id']}`")
+        if not row["top_repos"]:
+            lines.append("- no repo samples")
+            lines.append("")
+            continue
+        for sample in row["top_repos"][:5]:
+            langs = ", ".join(sample["languages"])
+            lines.append(
+                f"- `{sample['repo']}` ({sample['split']}, {sample['primary_language']}; {langs}): {sample['raw_matches']} raw / {sample['weighted_matches']:.1f} weighted"
+            )
+        lines.append("")
     lines.extend(["", "## Extraction Samples", ""])
     for row in result["ranking"][:top]:
         lines.append(f"### `{row['candidate_id']}`")
@@ -754,11 +862,32 @@ def main() -> None:
     parser.add_argument("--max-bytes", type=int, default=512_000)
     parser.add_argument("--sample-limit", type=int, default=12)
     parser.add_argument("--top", type=int, default=8)
+    parser.add_argument("--cache", type=Path, help="reuse a cached analysis when corpus and pattern inputs are unchanged")
+    parser.add_argument("--no-cache-read", action="store_true")
+    parser.add_argument("--no-cache-write", action="store_true")
     parser.add_argument("--json-out", type=Path)
     parser.add_argument("--markdown-out", type=Path)
     args = parser.parse_args()
 
-    result = analyze(args.corpus, args.repos_root, args.max_bytes, args.sample_limit)
+    result = None
+    cache_key = None
+    if args.cache:
+        cache_key = corpus_signature(args.corpus, args.repos_root, args.max_bytes, args.sample_limit)
+        if not args.no_cache_read and args.cache.exists():
+            try:
+                cache_doc = json.loads(args.cache.read_text())
+            except json.JSONDecodeError:
+                cache_doc = {}
+            if cache_doc.get("key") == cache_key:
+                result = cache_doc.get("result")
+    if result is None:
+        result = analyze(args.corpus, args.repos_root, args.max_bytes, args.sample_limit)
+        if args.cache and not args.no_cache_write:
+            args.cache.parent.mkdir(parents=True, exist_ok=True)
+            args.cache.write_text(
+                json.dumps({"key": cache_key, "result": result}, indent=2, ensure_ascii=False)
+                + "\n"
+            )
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
         args.json_out.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")

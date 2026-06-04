@@ -382,6 +382,20 @@ and copies only the selected source files into its own `sources/` tree so scan t
 drops. Compact gates are allowed to find detector failures; full ring and dense all-cross
 runs remain periodic validation that the selector did not hide an interaction.
 
+Routine detector work uses three gates:
+
+- `focused`: generate only the selected semantic axis or proposal prefix, usually with
+  `CROSS=none`; this is the fast inner loop for lowering/value-graph changes.
+- `core`: generate the selected scope, then run coverage-preserving compaction; this catches
+  interaction bugs without scanning the whole corpus.
+- `full`: run the selected full manifest; reserve dense all-cross and broad real-repo audits
+  for milestone validation.
+
+The prioritizer should be cached during routine work and should report the top matching
+repos for each candidate. Real-repo audits should start with those top repos for the active
+axis, then expand only when the focused/compact synthetic gates have closed or when a sampled
+repo shows a new strict family.
+
 ## Relationship to existing data
 
 The v5 refactoring-family labelset remains the product-quality benchmark. The Type-4 factory

@@ -11,11 +11,16 @@ break.
   Go, Java, JavaScript/TypeScript, Python, Ruby, Rust, and embedded script surfaces.
   The benchmark now includes same-surface and cross-surface positives plus affix,
   direction, and wrong-receiver hard negatives.
+- Type-4 focused generation filters (`--axis`, `--proposal-prefix`) and smoke gates
+  (`GATE=focused|core|full`) so detector co-evolution loops can run on one frontier
+  before periodic compact/full validation.
 
 ### Changed
 - Type-4 frontier prioritization now separates true uncovered broad-probe gaps from
   filtered probe overreach, so pattern loops do not promote non-strict examples just
   to improve apparent coverage.
+- Type-4 frontier prioritization can now reuse cached corpus analysis and reports top
+  matching repos per candidate for targeted real-repo audits.
 - Type-4 manifest evaluation and frontier summaries now index scan locations by file,
   making full-manifest validation practical after corpus growth.
 
