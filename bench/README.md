@@ -29,6 +29,18 @@ This is the metric the experiment log (`docs/experiments.md` §AU onward) report
 `v5` is the frozen current version; earlier versions (`v1`–`v4`) are kept for the
 historical measurements those sections cite.
 
+## Type-4 benchmark factory
+
+`type4/` contains the executable implementation for the evidence-carrying synthetic Type-4
+benchmark factory described in `docs/type4-benchmark.md`. It generates pair-level
+positive and hard-negative cases from semantic spec cards across every supported language
+surface, then evaluates `nose scan --mode semantic` against the manifest.
+
+```sh
+python3 bench/type4/generate.py --out-dir /tmp/nose-type4-seed
+python3 bench/type4/eval_manifest.py /tmp/nose-type4-seed/manifest.json
+```
+
 ## Original Type-4 gold set (historical)
 
 The project's first benchmark, superseded by the labelset above but kept for the results

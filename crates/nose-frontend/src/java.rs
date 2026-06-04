@@ -401,6 +401,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         "lambda_expression" => {
             let mut kids = Vec::new();
+            let body_node = node.child_by_field_name("body");
             if let Some(params) = node.child_by_field_name("parameters") {
                 for p in Lowering::named_children(params) {
                     let psym = if p.kind() == "identifier" {
@@ -416,9 +417,35 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                         &[],
                     ));
                 }
+            } else if let Some(p) = node.child_by_field_name("parameter") {
+                let psym = if p.kind() == "identifier" {
+                    Some(lo.sym(lo.text(p)))
+                } else {
+                    p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)))
+                };
+                kids.push(lo.add(
+                    NodeKind::Param,
+                    psym.map(Payload::Name).unwrap_or(Payload::None),
+                    lo.span(p),
+                    &[],
+                ));
+            } else if let Some(p) = node.named_child(0) {
+                let body_start = body_node.map(|b| b.start_byte());
+                if p.kind() == "identifier" && Some(p.start_byte()) != body_start {
+                    kids.push(lo.add(
+                        NodeKind::Param,
+                        Payload::Name(lo.sym(lo.text(p))),
+                        lo.span(p),
+                        &[],
+                    ));
+                }
             }
-            let body = node
-                .child_by_field_name("body")
+            if kids.is_empty() {
+                if let Some(name) = lambda_single_param_from_text(lo.text(node)) {
+                    kids.push(lo.add(NodeKind::Param, Payload::Name(lo.sym(name)), span, &[]));
+                }
+            }
+            let body = body_node
                 .map(|b| {
                     if b.kind() == "block" {
                         lower_block(lo, b)
@@ -525,6 +552,33 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lambda_single_param_from_text(text: &str) -> Option<&str> {
+    let (head, _) = text.split_once("->")?;
+    let head = head
+        .trim()
+        .trim_start_matches('(')
+        .trim_end_matches(')')
+        .trim();
+    if head.is_empty() || head.contains(',') {
+        return None;
+    }
+    let name = head.split_whitespace().last()?;
+    if is_java_identifier(name) {
+        Some(name)
+    } else {
+        None
+    }
+}
+
+fn is_java_identifier(name: &str) -> bool {
+    let mut chars = name.chars();
+    let Some(first) = chars.next() else {
+        return false;
+    };
+    (first == '_' || first == '$' || first.is_ascii_alphabetic())
+        && chars.all(|c| c == '_' || c == '$' || c.is_ascii_alphanumeric())
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {

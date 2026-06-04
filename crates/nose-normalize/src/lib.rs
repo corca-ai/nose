@@ -108,6 +108,14 @@ pub(crate) fn collect_scope(
     }
 }
 
+/// Side-effect-free for normalization rewrites that move or drop expressions.
+pub(crate) fn is_pure(il: &Il, node: NodeId) -> bool {
+    match il.kind(node) {
+        NodeKind::Call | NodeKind::HoF | NodeKind::Assign | NodeKind::Throw => false,
+        _ => il.children(node).iter().all(|&c| is_pure(il, c)),
+    }
+}
+
 /// Knobs for the normalization pipeline.
 #[derive(Clone, Copy, Debug)]
 pub struct NormalizeOptions {

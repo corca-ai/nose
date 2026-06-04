@@ -11,6 +11,11 @@ There are two distinct questions, measured separately:
 | **Product quality** — does the review-oriented scan surface rank *genuine* refactoring candidates first? | precision@10 + worthy-recall, per language, dev/held-out, bootstrap 95% CIs | the v5 refactoring-family labelset |
 | **Soundness** — does an equal fingerprint really mean equal behavior? | an interpreter oracle on a battery of inputs (`nose verify`) + Lean proofs | the pinned corpus |
 
+A third asset is the [Type-4 benchmark factory](type4-benchmark.md): an evidence-carrying
+synthetic benchmark for exact semantic equivalence classes. It is separate from the product
+labelset because Type-4 exactness asks whether two fragments compute the same thing under a
+declared semantics, not whether a reported family is worth refactoring.
+
 ## Product quality — the refactoring-family labelset
 
 The active gold set is `bench/labels/refactoring_families.v5.json` (105 repos, ~9.5k

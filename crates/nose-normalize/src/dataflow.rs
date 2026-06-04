@@ -182,7 +182,7 @@ fn find_inlines(
             if params.contains(&cid)
                 || def_count.get(&cid) != Some(&1)
                 || use_count.get(&cid) != Some(&1)
-                || !is_pure(il, rhs)
+                || !crate::is_pure(il, rhs)
             {
                 continue;
             }
@@ -208,14 +208,6 @@ fn find_inlines(
     }
     for &c in il.children(node) {
         find_inlines(il, c, false, def_count, use_count, use_node, params, a);
-    }
-}
-
-/// Side-effect-free for the purpose of moving an expression to its use site.
-fn is_pure(il: &Il, node: NodeId) -> bool {
-    match il.kind(node) {
-        NodeKind::Call | NodeKind::HoF | NodeKind::Assign | NodeKind::Throw => false,
-        _ => il.children(node).iter().all(|&c| is_pure(il, c)),
     }
 }
 

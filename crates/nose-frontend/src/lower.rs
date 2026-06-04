@@ -403,6 +403,26 @@ pub(crate) fn binary(
     }
 }
 
+/// Lower a `left`/`right` assignment-expression node into an `Assign`.
+/// JS/TS and Rust grammars use the same field names for simple assignment; compound
+/// assignment remains frontend-specific because operator spelling and rewrites differ.
+pub(crate) fn assignment(
+    lo: &mut Lowering,
+    node: TsNode,
+    mut lower_expr: impl FnMut(&mut Lowering, TsNode) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    let lhs = node
+        .child_by_field_name("left")
+        .map(|l| lower_expr(lo, l))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let rhs = node
+        .child_by_field_name("right")
+        .map(|r| lower_expr(lo, r))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+}
+
 /// Lower a `condition`/`body`-shaped CST node into a canonical `While` [`Loop`].
 /// Every C-family `while` lowers identically apart from *how* its condition and
 /// body sub-nodes are lowered, so each frontend supplies those two as closures

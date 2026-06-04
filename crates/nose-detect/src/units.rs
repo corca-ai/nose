@@ -3,7 +3,7 @@
 //! tag combined with its children's tags), a pre-order **linearization** of node
 //! tags for alignment, and a **MinHash** signature for candidate generation.
 
-use nose_il::{Il, Interner, Lang, NodeId, NodeKind, Symbol, UnitKind};
+use nose_il::{Il, Interner, Lang, LitClass, NodeId, NodeKind, Payload, Symbol, UnitKind};
 use nose_normalize::node_tag;
 
 /// A unit ready for comparison. Self-contained (owns its features and location)
@@ -40,6 +40,13 @@ pub struct UnitFeat {
     /// clones return the same computed values; used to demote near-identical units
     /// that differ only in their result (`<` vs `<=`, an extra effect).
     pub returns: Vec<u64>,
+    /// Whether the value fingerprint is safe to use as a strict semantic proof.
+    ///
+    /// `semantic` mode must not report units whose fingerprint passed through lossy
+    /// lowering (`Raw`, abstract literals such as JS regex, or opaque calls). Those
+    /// units can still participate in `near` via structural scoring.
+    #[serde(default)]
+    pub exact_safe: bool,
 }
 
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -48,6 +55,7 @@ const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
 /// fragment clone; bounds the cost of extracting features for every nested block in
 /// a very large function/class (which the enclosing unit already covers).
 const MAX_BLOCK_TOKENS: usize = 400;
+const EXACT_VALUE_MIN: usize = 4;
 
 #[inline]
 fn combine(a: u64, b: u64) -> u64 {
@@ -81,6 +89,9 @@ pub(crate) fn extract(
 
         let mut pre = Vec::new();
         collect_pre(il, root, &mut pre);
+        let exact_safe = pre
+            .iter()
+            .all(|&nid| strict_exact_safe_node(il, interner, il.meta.lang, nid));
         // The value graph is the semantic fingerprint (already sorted), with the
         // literal-only multiset for data-table detection. Computed before the size
         // gate so the gate can consult semantic richness (below).
@@ -92,13 +103,14 @@ pub(crate) fn extract(
         // multi-line loop (the value graph converges them to an *identical* fingerprint),
         // just compressed below the line/token gate. Admit such a function when its value
         // fingerprint is rich enough to be matched by the oracle-certified exact-match
-        // path (`value.len() >= 6`, the same floor that path uses) — this recovers the
+        // path (`value.len() >= 4`, the same floor that path uses) — this recovers the
         // compressed functional Type-4 forms without lowering the gate for trivial units
         // (`return x` has 1–2 atoms) or for blocks (kept strict; they are the noisy ones).
         // Blocks share the function gate: measurement showed the real sub-function
         // clones are small (24–40 tokens), so a stricter block gate drops signal
         // (pool-precision 0.106→0.074, AUC 0.42→0.17) faster than noise.
-        let dense_fn = matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= 6;
+        let dense_fn =
+            matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN;
         if (lines < min_lines || pre.len() < min_tokens) && !dense_fn {
             continue;
         }
@@ -154,9 +166,120 @@ pub(crate) fn extract(
             linear,
             lits,
             returns,
+            exact_safe,
         });
     }
     out
+}
+
+fn strict_exact_safe_node(il: &Il, interner: &Interner, lang: Lang, node: NodeId) -> bool {
+    match il.kind(node) {
+        NodeKind::Raw => false,
+        NodeKind::Seq => strict_exact_safe_seq(il, interner, node),
+        NodeKind::Call => strict_exact_safe_call(il, interner, lang, node),
+        NodeKind::Lit => matches!(
+            il.node(node).payload,
+            Payload::LitInt(_)
+                | Payload::LitBool(_)
+                | Payload::LitStr(_)
+                | Payload::LitFloat(_)
+                | Payload::Lit(LitClass::Null)
+        ),
+        _ => true,
+    }
+}
+
+fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    match il.node(node).payload {
+        Payload::None => true,
+        Payload::Name(name) => matches!(
+            interner.resolve(name),
+            "array"
+                | "list"
+                | "tuple"
+                | "dictionary"
+                | "hash"
+                | "array_expression"
+                | "tuple_expression"
+                | "object"
+                | "pair"
+        ),
+        _ => false,
+    }
+}
+
+fn strict_exact_safe_call(il: &Il, interner: &Interner, lang: Lang, node: NodeId) -> bool {
+    if matches!(il.node(node).payload, Payload::Builtin(_)) {
+        return true;
+    }
+    let Some(&callee) = il.children(node).first() else {
+        return false;
+    };
+    if strict_exact_callee_name(il, interner, callee, "typeof") {
+        return true;
+    }
+    if il.kind(callee) != NodeKind::Field {
+        return matches!(lang, Lang::JavaScript) && strict_exact_callee_identity(il, callee);
+    }
+    let Payload::Name(name) = il.node(callee).payload else {
+        return false;
+    };
+    let method = interner.resolve(name);
+    if method == "test" {
+        let Some(&receiver) = il.children(callee).first() else {
+            return false;
+        };
+        return matches!(il.node(receiver).payload, Payload::LitStr(_));
+    }
+    if method == "isArray" {
+        return strict_exact_field_receiver_name(il, interner, callee, "Array");
+    }
+    if matches!(
+        method,
+        "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
+    ) {
+        return true;
+    }
+    matches!(lang, Lang::JavaScript) && strict_exact_callee_identity(il, callee)
+}
+
+fn strict_exact_field_receiver_name(
+    il: &Il,
+    interner: &Interner,
+    field: NodeId,
+    expected: &str,
+) -> bool {
+    let Some(&receiver) = il.children(field).first() else {
+        return false;
+    };
+    if il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Name(name) = il.node(receiver).payload else {
+        return false;
+    };
+    interner.resolve(name) == expected
+}
+
+fn strict_exact_callee_name(il: &Il, interner: &Interner, callee: NodeId, expected: &str) -> bool {
+    if il.kind(callee) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Name(name) = il.node(callee).payload else {
+        return false;
+    };
+    interner.resolve(name) == expected
+}
+
+fn strict_exact_callee_identity(il: &Il, callee: NodeId) -> bool {
+    match il.kind(callee) {
+        NodeKind::Var => matches!(il.node(callee).payload, Payload::Name(_) | Payload::Cid(_)),
+        NodeKind::Field => {
+            matches!(il.node(callee).payload, Payload::Name(_))
+                && il.children(callee).first().is_some()
+        }
+        _ => false,
+    }
 }
 
 /// Collect sub-function block roots (loops / ifs / try) as extra unit candidates.
