@@ -2855,7 +2855,17 @@ impl<'a> Builder<'a> {
                 let contrib = if kids.len() >= 2 && self.il.kind(kids[1]) == NodeKind::Lambda {
                     let coll = self.eval(kids[0], env);
                     let elem = self.elem(coll);
-                    self.eval_lambda_body(kids[1], &[elem])?
+                    let pred = self.eval_lambda_body(kids[1], &[elem])?;
+                    if code == REDUCE_ANY && self.is_static_non_float_collection_expr(kids[0]) {
+                        if let Some((element, collection)) =
+                            self.static_literal_membership_predicate(pred)
+                        {
+                            return Some(
+                                self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]),
+                            );
+                        }
+                    }
+                    pred
                 } else {
                     let av = self.eval(*kids.first()?, env);
                     let (op, args) = {
@@ -3048,6 +3058,35 @@ impl<'a> Builder<'a> {
         None
     }
 
+    fn static_literal_membership_predicate(&self, pred: ValueId) -> Option<(ValueId, ValueId)> {
+        let node = &self.nodes[pred as usize];
+        if !matches!(node.op, ValOp::Bin(o) if o == Op::Eq as u32) || node.args.len() != 2 {
+            return None;
+        }
+        if let Some(collection) = self.static_literal_elem_collection(node.args[0]) {
+            return Some((node.args[1], collection));
+        }
+        if let Some(collection) = self.static_literal_elem_collection(node.args[1]) {
+            return Some((node.args[0], collection));
+        }
+        None
+    }
+
+    fn static_literal_elem_collection(&self, value: ValueId) -> Option<ValueId> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Elem(_)) || node.args.len() != 1 {
+            return None;
+        }
+        let collection = node.args[0];
+        self.is_static_membership_collection(collection)
+            .then_some(collection)
+    }
+
+    fn is_static_membership_collection(&self, value: ValueId) -> bool {
+        let node = &self.nodes[value as usize];
+        matches!(node.op, ValOp::Seq(1)) && !node.args.is_empty()
+    }
+
     fn own_property_condition(&self, cond: ValueId) -> Option<(ValueId, ValueId, bool)> {
         let parse = |node: &ValNode| {
             if matches!(node.op, ValOp::Seq(OWN_PROPERTY_GUARD_SEQ_TAG)) && node.args.len() == 4 {
@@ -3112,6 +3151,24 @@ impl<'a> Builder<'a> {
         let kids = self.il.children(collection).to_vec();
         let items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
         self.mk(ValOp::Seq(1), items)
+    }
+
+    fn is_static_non_float_collection_expr(&self, collection: NodeId) -> bool {
+        if self.il.kind(collection) != NodeKind::Seq {
+            return false;
+        }
+        let kids = self.il.children(collection);
+        !kids.is_empty()
+            && kids.iter().all(|&kid| {
+                self.il.kind(kid) == NodeKind::Lit
+                    && matches!(
+                        self.il.node(kid).payload,
+                        Payload::LitInt(_)
+                            | Payload::LitBool(_)
+                            | Payload::LitStr(_)
+                            | Payload::Lit(nose_il::LitClass::Null)
+                    )
+            })
     }
 
     fn eval_map_lookup_collection(

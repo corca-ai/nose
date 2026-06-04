@@ -1605,11 +1605,20 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_module_set =
         "const VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value, other) { return VALUES.has(value); }";
     let ts_module_set = "const VALUES = new Set<string>([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
+    let js_array_some =
+        "function f(value, other) { return [\"red\", \"blue\"].some((item) => item === value); }";
+    let ts_array_some = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].some((item: string) => item === value); }";
     let java_module_list = "import java.util.List;\n\nclass C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }";
     let js_wrong_element =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(other); }";
     let js_wrong_collection =
         "function f(value, other) { return new Set([\"green\", \"blue\"]).has(value); }";
+    let js_array_some_wrong_element =
+        "function f(value, other) { return [\"red\", \"blue\"].some((item) => item === other); }";
+    let js_array_some_wrong_collection =
+        "function f(value, other) { return [\"green\", \"blue\"].some((item) => item === value); }";
+    let js_nan_includes = "function f(value, other) { return [NaN].includes(value); }";
+    let js_nan_some = "function f(value, other) { return [NaN].some((item) => item === value); }";
     let js_shadowed_set =
         "function f(Set, value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_module_set_mutated = "const VALUES = new Set([\"red\", \"blue\"]);\nVALUES.add(\"green\");\nfunction f(value, other) { return VALUES.has(value); }";
@@ -1642,6 +1651,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_eq!(literal_fp, value_fp(&i, js_array_some, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, ts_array_some, Lang::TypeScript));
     assert_eq!(literal_fp, value_fp(&i, java_list_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_set_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_arrays_aslist, Lang::Java));
@@ -1656,6 +1667,18 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(
         literal_fp,
         value_fp(&i, js_wrong_collection, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_some_wrong_element, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_some_wrong_collection, Lang::JavaScript)
+    );
+    assert_ne!(
+        value_fp(&i, js_nan_includes, Lang::JavaScript),
+        value_fp(&i, js_nan_some, Lang::JavaScript)
     );
     assert_ne!(literal_fp, value_fp(&i, js_shadowed_set, Lang::JavaScript));
     assert_ne!(

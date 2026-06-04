@@ -609,6 +609,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_some.js"),
+        "function arraySome(value, other) {\n  return [\"red\", \"blue\"].some((item) => item === value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_some.ts"),
+        "function arraySome(value: string, other: string): boolean {\n  return [\"red\", \"blue\"].some((item: string) => item === value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("module_list.java"),
         "import java.util.List;\n\nclass ModuleList {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleList(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n",
     )
@@ -651,6 +661,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     fs::write(
         dir.join("wrong_collection.js"),
         "function wrongCollection(value, other) {\n  return [\"green\", \"blue\"].includes(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_some_wrong_element.js"),
+        "function arraySomeWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].some((item) => item === third);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_some_wrong_collection.ts"),
+        "function arraySomeWrongCollection(value: string, other: string): boolean {\n  return [\"purple\", \"orange\"].some((item: string) => item === value);\n}\n",
     )
     .unwrap();
     fs::write(
@@ -725,6 +745,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "membership.rb",
         "module_set.js",
         "module_set.ts",
+        "array_some.js",
+        "array_some.ts",
         "module_list.java",
         "go_slices_package.go",
         "go_slices_alias.go",
@@ -741,6 +763,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     for unexpected in [
         "wrong_element.py",
         "wrong_collection.js",
+        "array_some_wrong_element.js",
+        "array_some_wrong_collection.ts",
         "substring.rs",
         "module_set_mutated.js",
         "module_set_shadowed.ts",

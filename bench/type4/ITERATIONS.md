@@ -2593,3 +2593,78 @@ the proof system in the right place. Namespace imports already prove a module co
 the member access now contributes the exported member coordinate, making it equivalent to
 the corresponding named import. This helps later import-aware detector work without
 guessing behavior of arbitrary imported objects.
+
+## Static array existential membership: loops 295-300
+
+This is the first accelerated batch-3 macro-loop. Instead of opening one surface at a
+time, the loop adds one strict positive proposal and two hard boundaries together, then
+validates the batch as a single focused frontier. The target remains the highest-ranked
+`membership_contains` frontier, but the proof is deliberately narrow: a static literal
+JS-like array existential predicate
+`["red", "blue"].some(item => item === value)` denotes the same element-in-literal-set
+coordinate as `includes`, Python `in`, Ruby `include?`, and the existing strict
+collection-membership family.
+
+The batch opens three adjacent proposal IDs:
+
+- `axis_membership_array_some_identity`;
+- `axis_membership_array_some_wrong_element_boundary`;
+- `axis_membership_array_some_wrong_collection_boundary`.
+
+The detector rule is source-gated. It only rewrites `Any(Elem(collection) == value)` to
+`value in collection` when the original collection expression is a direct non-float
+static literal sequence. This keeps dynamic receivers, non-literal collections, and the
+`NaN`/SameValueZero edge outside the strict frontier.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 295 | batch frontier selection | group static JS-like array `.some` membership plus wrong-element/wrong-collection boundaries under `axis_membership_array_some_*` | focused corpus: 18 positives, 54 hard negatives |
+| 296 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/18 positives, 0/54 false merges |
+| 297 | generator adversary | add cross-surface Python/Ruby/JS/TS references against JS/TS/Vue/Svelte/HTML `.some` forms | semantic mutation and hard boundaries both held out |
+| 298 | detector strengthening | canonicalize source-gated `Any(Elem(static literal collection) == value)` to `In(value, collection)` | candidate focused: 18/18 positives, 0/54 false merges |
+| 299 | strict regression tests | extend value-graph and CLI membership tests, including a `NaN`/free-name boundary | targeted tests passed |
+| 300 | release focused/core gates | build release and run focused array-some, membership core, and all-cross core gates | focused 18/18, 0/54; membership core 80/80, 0/228; all-cross 461/461, 0/879 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=72, positive=0/18, false_merges=0/54
+candidate release: items=72, positive=18/18, false_merges=0/54
+delta:             +18 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_array_some CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 72
+positive recall: 18/18
+hard-negative false merges: 0/54
+Raw nodes: 0/2140
+```
+
+Final release literal-membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 308/638
+positive recall: 80/80
+hard-negative false merges: 0/228
+Raw nodes: 0/9111
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1340/5898
+positive recall: 461/461
+hard-negative false merges: 0/879
+Raw nodes: 0/50054
+```
+
+Assessment: the batch-3 cadence worked for this frontier. The three generated pressures
+shared one proof kernel, so the implementation remained small while the focused corpus
+grew enough to catch over-generalization. The key guard is the source-level literal
+check: without it, JavaScript `includes`/`some` can diverge on `NaN`; with it, static
+string/int/bool/null literal membership remains an exact Type-4 claim.
