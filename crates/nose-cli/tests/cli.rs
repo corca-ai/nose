@@ -625,6 +625,86 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_null_presence_predicates() {
+    let dir = std::env::temp_dir().join(format!("nose_null_presence_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("none_compare.py"),
+        "def is_missing(value, other):\n    return value is None\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("null_compare.c"),
+        "#include <stddef.h>\n\nint is_missing(void *value, void *other) {\n    return value == NULL;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("nil_method.rb"),
+        "def is_missing(value, other)\n  value.nil?\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("none_method.rs"),
+        "pub fn is_missing(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_none()\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("some_method.rs"),
+        "pub fn is_present(value: Option<i32>, other: Option<i32>) -> bool {\n    value.is_some()\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_value.py"),
+        "def wrong_value(value, other):\n    return other is None\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report one null-presence family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "none_compare.py",
+        "null_compare.c",
+        "nil_method.rb",
+        "none_method.rs",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include {expected}: {semantic}"
+        );
+    }
+    for unexpected in ["some_method.rs", "wrong_value.py"] {
+        assert!(
+            !semantic_text.contains(unexpected),
+            "semantic mode must preserve null-presence boundaries: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_reports_flattened_guard_span_only() {
     let dir = std::env::temp_dir().join(format!("nose_guard_span_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

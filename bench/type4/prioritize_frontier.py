@@ -174,8 +174,8 @@ CANDIDATES = [
         3,
         3,
         "partially-covered",
-        "Nullish default is covered for JS-family, but cross-language presence guards are not modeled as a common proof fact.",
-        "Generate pure presence predicates and hard negatives for falsy values, absent options, and pointer aliases.",
+        "Nullish default and null/none/nil/option presence predicates are covered; richer option unwrapping, pointer aliases, and effectful guard bodies remain open.",
+        "Continue with option unwrap/default and pointer-alias slices only when absence/presence coordinates are provable; keep truthy/falsy boundaries separate.",
         (
             pat("c_null_compare", "c", r"(?:==|!=)\s*NULL\b|\bNULL\s*(?:==|!=)", "high"),
             pat("go_nil_compare", "go", r"(?:==|!=)\s*nil\b|\bnil\s*(?:==|!=)", "high"),

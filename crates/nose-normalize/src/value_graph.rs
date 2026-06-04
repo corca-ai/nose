@@ -1928,6 +1928,10 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Const(0x1000_0000u32.wrapping_add(v)), vec![])
     }
 
+    fn null_const(&mut self) -> ValueId {
+        self.mk(ValOp::Const(nose_il::LitClass::Null as u32), vec![])
+    }
+
     /// A canonical "element of `coll`" value. The collection is carried as an argument
     /// (not just folded into the key) so it is reachable from the fingerprint wherever
     /// the element is used — identically for a loop, a `reduce`, and a `sum(map)` over
@@ -2615,6 +2619,18 @@ impl<'a> Builder<'a> {
                     if let Some(&arg) = kids.first() {
                         let v = self.eval(arg, env);
                         return self.mk(ValOp::Un(ABS_CODE), vec![v]);
+                    }
+                }
+                if let Payload::Builtin(Builtin::IsNull | Builtin::IsNotNull) = node.payload {
+                    if let Some(&arg) = kids.first() {
+                        let v = self.eval(arg, env);
+                        let op = if matches!(node.payload, Payload::Builtin(Builtin::IsNull)) {
+                            Op::Eq
+                        } else {
+                            Op::Ne
+                        };
+                        let nil = self.null_const();
+                        return self.mk(ValOp::Bin(op as u32), vec![v, nil]);
                     }
                 }
                 if let Payload::Builtin(Builtin::IsEmpty) = node.payload {

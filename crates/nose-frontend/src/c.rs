@@ -320,7 +320,13 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         // `sizeof x` / `sizeof(T)` is a compile-time integer constant; the operand is
         // often a type (which would itself be Raw), so lower to an int literal.
         "sizeof_expression" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Int), span, &[]),
-        "identifier" | "field_identifier" | "type_identifier" => lo.var(lo.text(node), span),
+        "identifier" | "field_identifier" | "type_identifier" => {
+            if lo.text(node) == "NULL" {
+                lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+            } else {
+                lo.var(lo.text(node), span)
+            }
+        }
         "number_literal" => {
             let t = lo.text(node);
             if t.contains('.') || t.contains('e') || t.contains('E') {

@@ -458,6 +458,14 @@ impl<'a> Interp<'a> {
                 Some(Value::List(xs)) => Ok(Value::Bool(xs.is_empty())),
                 _ => Ok(Value::Err),
             },
+            Builtin::IsNull => match args.first() {
+                Some(value) => Ok(Value::Bool(matches!(value, Value::Null))),
+                _ => Ok(Value::Err),
+            },
+            Builtin::IsNotNull => match args.first() {
+                Some(value) => Ok(Value::Bool(!matches!(value, Value::Null))),
+                _ => Ok(Value::Err),
+            },
             Builtin::StartsWith => Ok(string_affix(args.first(), args.get(1), true)),
             Builtin::EndsWith => Ok(string_affix(args.first(), args.get(1), false)),
             Builtin::Contains => match (args.first(), args.get(1)) {

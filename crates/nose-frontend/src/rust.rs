@@ -428,7 +428,11 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
         "identifier" | "type_identifier" | "field_identifier" | "scoped_identifier" => {
-            lo.var(lo.text(node), span)
+            if lo.text(node) == "None" {
+                lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+            } else {
+                lo.var(lo.text(node), span)
+            }
         }
         "self" => lo.var("self", span),
         "integer_literal" => {

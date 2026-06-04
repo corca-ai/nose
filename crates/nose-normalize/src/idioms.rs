@@ -189,6 +189,18 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: vec![base.unwrap()],
                         }
                     }
+                    "nil?" | "is_none" if base.is_some() && args.is_empty() => {
+                        return CallCanon::Builtin {
+                            op: Builtin::IsNull,
+                            arg_olds: vec![base.unwrap()],
+                        }
+                    }
+                    "is_some" if base.is_some() && args.is_empty() => {
+                        return CallCanon::Builtin {
+                            op: Builtin::IsNotNull,
+                            arg_olds: vec![base.unwrap()],
+                        }
+                    }
                     "startsWith" | "startswith" | "starts_with" | "start_with?"
                         if base.is_some() && args.len() == 1 =>
                     {

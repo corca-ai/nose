@@ -37,7 +37,8 @@ By default the generator emits:
 - semantic-axis cases for immutable bindings, proven callee identity, literal table access,
   static imports, static projections, nullish defaults, own-property guards,
   record-shape guards, string prefix/suffix predicates, literal collection membership,
-  literal map-default lookup, and unsafe/unproven binding boundaries;
+  literal map-default lookup, null/none/nil/option presence predicates, and
+  unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
 
@@ -57,26 +58,26 @@ becomes a CI gate.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 2116
-positive recall: 827/827
-hard-negative false merges: 0/1289
+items: 2204
+positive recall: 849/849
+hard-negative false merges: 0/1355
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1573
-positive recall: 587/587
-hard-negative false merges: 0/986
+items: 1617
+positive recall: 598/598
+hard-negative false merges: 0/1019
 ```
 
-With `--cross all`, the dense corpus now has 4163 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 4427 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 632/4163
-positive recall: 263/263
-hard-negative false merges: 0/369
+selected items: 678/4427
+positive recall: 280/280
+hard-negative false merges: 0/398
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic

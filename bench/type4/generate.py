@@ -99,6 +99,18 @@ AXIS_PROPOSALS = {
         "axis": "nullish_default",
         "why": "Truthy-or defaulting is not equivalent to nullish defaulting for falsy non-null values.",
     },
+    "axis_null_presence_method_identity": {
+        "axis": "null_presence_predicate",
+        "why": "Null/none/nil method predicates should prove the same absence check as explicit null comparison.",
+    },
+    "axis_null_presence_nonnull_boundary": {
+        "axis": "null_presence_predicate",
+        "why": "Presence and absence predicates are opposite directions and must not merge.",
+    },
+    "axis_null_presence_wrong_value_boundary": {
+        "axis": "null_presence_predicate",
+        "why": "Null presence is a proof over a specific value coordinate; checking another value is not equivalent.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -728,6 +740,107 @@ def axis_nullish_variant(surface: Surface, proposal_id: str, negative: bool, rig
         return Variant("axis", src, name)
 
     raise ValueError(f"unsupported surface for nullish axis: {surface.key}")
+
+
+def null_presence_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_null_presence_")
+
+
+def null_presence_expr(surface: Surface, proposal_id: str, negative: bool, right: bool) -> str:
+    target = "other" if right and proposal_id == "axis_null_presence_wrong_value_boundary" else "value"
+    nonnull = right and (
+        proposal_id == "axis_null_presence_nonnull_boundary"
+        or (negative and proposal_id == "axis_null_presence_method_identity")
+    )
+    method = right and proposal_id == "axis_null_presence_method_identity"
+
+    if surface.key == "python":
+        return f"{target} is not None" if nonnull else f"{target} is None"
+    if surface.key == "ruby":
+        if nonnull:
+            return f"!{target}.nil?"
+        return f"{target}.nil?" if method else f"{target} == nil"
+    if surface.key == "rust":
+        if nonnull:
+            return f"{target}.is_some()"
+        return f"{target}.is_none()" if method else f"{target} == None"
+    if surface.key == "go":
+        return f"{target} != nil" if nonnull else f"{target} == nil"
+    if surface.key == "java":
+        return f"{target} != null" if nonnull else f"{target} == null"
+    if surface.key == "c":
+        return f"{target} != NULL" if nonnull else f"{target} == NULL"
+    if surface.key in JS_LIKE_SURFACES:
+        return f"{target} != null" if nonnull else f"{target} == null"
+    raise ValueError(f"unsupported surface for null presence axis: {surface.key}")
+
+
+def axis_null_presence_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    name = "buildCase" if right else "axisCase"
+    snake_name = "build_case" if right else "axis_case"
+    expr = null_presence_expr(surface, proposal_id, negative, right)
+
+    if surface.language == "javascript":
+        body = f"""function {name}(value, other) {{
+  return {expr};
+}}
+"""
+        return js_axis_source(surface, body, name)
+    if surface.key == "typescript":
+        src = f"""function {name}(value: unknown | null | undefined, other: unknown | null | undefined): boolean {{
+  return {expr};
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "python":
+        src = f"""def {snake_name}(value, other):
+    return {expr}
+"""
+        return Variant("axis", src, snake_name)
+    if surface.key == "ruby":
+        src = f"""def {snake_name}(value, other)
+  {expr}
+end
+"""
+        return Variant("axis", src, snake_name)
+    if surface.key == "rust":
+        src = f"""pub fn {snake_name}(value: Option<i32>, other: Option<i32>) -> bool {{
+    {expr}
+}}
+"""
+        return Variant("axis", src, snake_name)
+    if surface.key == "go":
+        go_name = "BuildCase" if right else "AxisCase"
+        src = f"""package p
+
+func {go_name}(value any, other any) bool {{
+    return {expr}
+}}
+"""
+        return Variant("axis", src, go_name)
+    if surface.key == "java":
+        src = f"""class AxisCase {{
+    static boolean {name}(Object value, Object other) {{
+        return {expr};
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+    if surface.key == "c":
+        src = f"""#include <stddef.h>
+
+int {snake_name}(void *value, void *other) {{
+    return {expr};
+}}
+"""
+        return Variant("axis", src, snake_name)
+
+    raise ValueError(f"unsupported surface for null presence axis: {surface.key}")
 
 
 def record_guard_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -3348,6 +3461,11 @@ def axis_variants(
             axis_map_default_variant(surface, proposal_id, False, False),
             axis_map_default_variant(surface, proposal_id, negative, True),
         )
+    if axis == "null_presence_predicate":
+        return (
+            axis_null_presence_variant(surface, proposal_id, False, False),
+            axis_null_presence_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -3381,6 +3499,7 @@ def axis_data_shape(axis: str) -> str:
         "collection_empty_check": "list<int>",
         "literal_collection_membership": "set<string>",
         "literal_map_default_lookup": "map<string,int>+key",
+        "null_presence_predicate": "nullable<T>+alternate",
         "projection_identity": "record<today:int,tomorrow:int>",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
@@ -3408,6 +3527,17 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"key": "red", "other": "green"},
                     {"key": "blue", "other": "green"},
                     {"key": "green", "other": "red"},
+                ],
+                "outputs": [],
+            }
+        if axis == "null_presence_predicate":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"value": None, "other": 1},
+                    {"value": 1, "other": None},
+                    {"value": 0, "other": None},
                 ],
                 "outputs": [],
             }
@@ -3478,6 +3608,24 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "input": {"key": "red", "other": "green"},
                 "left": 1,
                 "right": 9 if proposal_id == "axis_map_default_wrong_map_boundary" else 0,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "null_presence_predicate":
+        if proposal_id == "axis_null_presence_wrong_value_boundary":
+            counterexample = {
+                "input": {"value": None, "other": 1},
+                "left": True,
+                "right": False,
+            }
+        else:
+            counterexample = {
+                "input": {"value": None, "other": 1},
+                "left": True,
+                "right": False,
             }
         return {
             "level": "E2",
@@ -3572,6 +3720,10 @@ def generate_axis_items(
             if proposal_id.startswith("axis_import_") and not import_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_nullish_") and not nullish_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id.startswith("axis_null_presence_") and not null_presence_axis_supported(
                 surface, proposal_id
             ):
                 continue
@@ -3709,6 +3861,22 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "truthy-default-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_null_presence_nonnull_boundary",
+                "axis_null_presence_wrong_value_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "null-presence-boundary",
                     )
                 )
                 continue
@@ -4039,6 +4207,66 @@ def generate_literal_map_default_cross_items(
     return items
 
 
+def generate_null_presence_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    cross_mode: str,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
+    if not generation_filter.include_axis("null_presence_predicate"):
+        return []
+    surfaces = [
+        s
+        for s in SURFACES
+        if null_presence_axis_supported(s, "axis_null_presence_method_identity")
+    ]
+    items: list[dict] = []
+    for left_surface, right_surface in cross_pairs(surfaces, cross_mode):
+        if generation_filter.include_proposal("axis_null_presence_method_identity"):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_null_presence_method_identity",
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_null_presence_method_identity",
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "null_presence_predicate-semantic-mutation",
+                )
+            )
+        for proposal_id in (
+            "axis_null_presence_nonnull_boundary",
+            "axis_null_presence_wrong_value_boundary",
+        ):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "null-presence-boundary",
+                )
+            )
+    return items
+
+
 def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surface]]:
     if mode == "none":
         return []
@@ -4182,6 +4410,11 @@ def generate(
     )
     items.extend(
         generate_literal_map_default_cross_items(
+            out_dir, capabilities, cross_mode, generation_filter
+        )
+    )
+    items.extend(
+        generate_null_presence_cross_items(
             out_dir, capabilities, cross_mode, generation_filter
         )
     )

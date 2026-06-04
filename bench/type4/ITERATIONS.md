@@ -992,3 +992,57 @@ The next open frontier is `property_type_guard`; however, broader partially-cove
 (`numeric_minmax_abs`, `null_option_presence`, and the remaining membership/map slices)
 may still be better if the next loop targets breadth rather than a new narrow JS-family
 axis.
+
+## Null/option presence predicates: loops 137-144
+
+The next loop chose a broader `null_option_presence` slice instead of the narrower
+JS-family `property_type_guard`. Existing comparison forms already converged in many
+languages, but method-form absence/presence predicates were not a common proof fact:
+Ruby `nil?`, Rust `is_none`/`is_some`, C `NULL`, and Rust `None` needed to meet the same
+strict value coordinate as explicit null comparisons.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 137 | avoid narrow JS-only work | choose `null_presence_predicate`: explicit null comparison plus method-form absence/presence direction | focused manifest generated 88 items: 22 positives, 66 negatives |
+| 138 | validate real algorithm delta | baseline `target/release/nose` before this loop had partial recall but no false merges | 17/22 positives, 0/66 false merges |
+| 139 | generator adversary check | fix identity semantic-mutation negatives so they actually flip to non-null direction | baseline stayed 17/22, 0/66 |
+| 140 | detector/frontend strengthening | add `Builtin::IsNull`/`IsNotNull`, lower Ruby `nil?` and Rust `is_none`/`is_some`, map C `NULL` and Rust `None` to null literals | CLI null-presence test passed |
+| 141 | focused gate | compare explicit null checks, method forms, non-null direction, and wrong-value boundaries | focused: 22/22 positives, 0/66 false merges |
+| 142 | compact core gate | run coverage-preserving core on the focused axis | selected 48/88; 19/19 positives, 0/29 false merges |
+| 143 | aggregate regression gate | run ring, same-surface, and dense all-cross compact gates | ring 849/849 and 0/1,355; same-surface 598/598 and 0/1,019; dense compact 280/280 and 0/398 |
+| 144 | reprioritize frontier | update `null_option_presence` as partially covered: presence predicates covered, richer option unwrap/default and pointer aliases remain | next open axis still `property_type_guard`; broad high-yield axes remain `numeric_minmax_abs` and remaining null/option slices |
+
+Final focused null-presence gate:
+
+```text
+items: 88
+positive recall: 22/22
+hard-negative false merges: 0/66
+```
+
+Final default ring smoke:
+
+```text
+items: 2204
+positive recall: 849/849
+hard-negative false merges: 0/1355
+
+by semantic axis:
+  null_presence_predicate: positive 22/22, false merges 0/66
+```
+
+Final dense all-cross compact smoke:
+
+```text
+GATE=core CROSS=all OUT_DIR=/tmp/nose-type4-smoke-all-null ./scripts/type4-smoke.sh
+selected items: 678/4427
+positive recall: 280/280
+hard-negative false merges: 0/398
+Raw nodes: 0/26487
+```
+
+Assessment: this loop is a better fit for the co-evolution goal than a narrow
+`property_type_guard` loop. It improved the detector on a broadly meaningful semantic
+axis, added adversarial hard negatives for direction and value-coordinate mistakes, and
+kept the full corpus false-merge count at zero. The remaining weakness is that this still
+does not model richer option operations such as unwrap/default, nor pointer alias facts.

@@ -255,6 +255,10 @@ pub enum Builtin {
     Contains,
     /// Static literal-map lookup with fallback over `(map, key, default)`.
     GetOrDefault,
+    /// Null/none/nil absence predicate over `(value)`.
+    IsNull,
+    /// Non-null/some presence predicate over `(value)`.
+    IsNotNull,
 }
 
 /// Kinds of canonical higher-order operation.

@@ -20,6 +20,9 @@ break.
   now converges dict `.get(key, default)` and hash `.fetch(key, default)` only when the
   receiver is a static literal map, preserving wrong-key, wrong-default, and wrong-map
   boundaries.
+- Strict Type-4 proof facts for null/none/nil/option presence predicates. The detector
+  now converges explicit null comparisons with Ruby `nil?` and Rust `is_none`/`is_some`
+  method forms, while preserving non-null direction and wrong-value boundaries.
 - Type-4 focused generation filters (`--axis`, `--proposal-prefix`) and smoke gates
   (`GATE=focused|core|full`) so detector co-evolution loops can run on one frontier
   before periodic compact/full validation.
