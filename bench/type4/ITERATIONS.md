@@ -2890,3 +2890,81 @@ the proof crosses into a callback. The useful pattern is still narrow: source li
 receiver, non-float elements, proven equality predicate, and membership-threshold
 comparison. That keeps raw index results, non-membership predicates, dynamic receivers,
 and `NaN`/SameValueZero differences outside strict Type-4.
+
+## Static array filter-length membership: loops 319-324
+
+This macro-loop uses a three-variant batch instead of one spelling at a time. A static
+literal JS-like array filter count such as
+`["red", "blue"].filter(item => item === value).length !== 0`, `.length > 0`,
+`0 < .length`, or `.length >= 1` is exact-equivalent to `value in ["red", "blue"]`
+only when the receiver is a direct non-float literal sequence, the callback proves
+equality between the iterated element and the searched coordinate, and the length
+comparison is a non-empty threshold.
+
+The batch opens three adjacent proposal IDs:
+
+- `axis_membership_array_filter_length_identity`;
+- `axis_membership_array_filter_length_wrong_element_boundary`;
+- `axis_membership_array_filter_length_wrong_collection_boundary`.
+
+The detector canonicalizes only `Len(Filter(static literal collection, equality
+lambda))` non-empty comparisons to `In(element, collection)`. Raw filtered lengths,
+zero-length absence checks, wrong element/collection boundaries, and float-sensitive
+literal collections stay distinct. A tempting adjacent family,
+`array.find(...) !== undefined`, is deliberately deferred because the current JS-like
+frontend lowers `undefined`, `null`, and loose null checks to the same literal-null
+shape; strict Type-4 should not prove that family until those values are distinguished.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 319 | batch frontier selection | group static JS-like `.filter(...).length` non-empty membership comparisons plus wrong-element/wrong-collection boundaries under `axis_membership_array_filter_length_*` | focused corpus: 18 positives, 54 hard negatives |
+| 320 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/18 positives, 0/54 false merges |
+| 321 | generator adversary | add cross-surface Python/Ruby/JS/TS references against JS/TS/Vue/Svelte/HTML filter-length forms | `!== 0`, `> 0`, reversed `0 <`, and `>= 1` spellings represented |
+| 322 | detector strengthening | canonicalize source-gated static filter-length equality callbacks to `In(element, collection)` | first candidate exposed rule-order pressure: `!== 0` was swallowed by length-zero canonicalization |
+| 323 | strict regression tests | add value-graph and CLI positives plus wrong-coordinate, raw-length, zero-length, and `NaN` boundaries | targeted tests passed |
+| 324 | release focused/core gates | run focused filter-length, membership core, and all-cross core gates | focused 18/18, 0/54; membership core 95/95, 0/276; all-cross 477/477, 0/927 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=72, positive=0/18, false_merges=0/54
+candidate release: items=72, positive=18/18, false_merges=0/54
+delta:             +18 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_array_filter_length CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 72
+positive recall: 18/18
+hard-negative false merges: 0/54
+Raw nodes: 0/2356
+```
+
+Final release literal-membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 371/926
+positive recall: 95/95
+hard-negative false merges: 0/276
+Raw nodes: 0/11020
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1404/6186
+positive recall: 477/477
+hard-negative false merges: 0/927
+Raw nodes: 0/52001
+```
+
+Assessment: batching roughly three tightly adjacent variants is a better default for
+the coevolution loop. It amortizes build/gate cost while still forcing the generator to
+add identity plus boundary pressure for the whole small family. The detector rule order
+is now part of the loop checklist: semantic membership rewrites that depend on
+`Len(Filter(...))` must run before the more general length-zero canonicalizer, or strict
+positive forms like `!== 0` can remain count-shaped and miss the exact clone.

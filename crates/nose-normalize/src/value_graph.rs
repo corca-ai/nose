@@ -2948,6 +2948,62 @@ impl<'a> Builder<'a> {
         }
     }
 
+    fn eval_static_filter_membership_comparison(
+        &mut self,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 2 {
+            return None;
+        }
+        if self.is_count_nonempty_threshold(op, false, kids[1]) {
+            if let Some((element, collection)) = self.static_filter_membership_parts(kids[0], env) {
+                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            }
+        }
+        if self.is_count_nonempty_threshold(op, true, kids[0]) {
+            if let Some((element, collection)) = self.static_filter_membership_parts(kids[1], env) {
+                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            }
+        }
+        None
+    }
+
+    fn static_filter_membership_parts(
+        &mut self,
+        len_expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<(ValueId, ValueId)> {
+        let filter = self.len_call_arg(len_expr)?;
+        let (source, predicate) = self.filter_parts(filter)?;
+        if !self.is_static_non_float_collection_expr(source) {
+            return None;
+        }
+        let collection = self.eval(source, env);
+        let elem = self.elem(collection);
+        let pred = self.eval_lambda_body(predicate, &[elem])?;
+        self.static_literal_membership_predicate(pred)
+    }
+
+    fn is_count_nonempty_threshold(
+        &self,
+        op: u32,
+        count_on_right: bool,
+        threshold: NodeId,
+    ) -> bool {
+        if self.is_zero_literal(threshold) {
+            return op == Op::Ne as u32
+                || (!count_on_right && op == Op::Gt as u32)
+                || (count_on_right && op == Op::Lt as u32);
+        }
+        if self.is_one_literal(threshold) {
+            return (!count_on_right && op == Op::Ge as u32)
+                || (count_on_right && op == Op::Le as u32);
+        }
+        false
+    }
+
     fn eval_static_index_membership_comparison(
         &mut self,
         op: u32,
@@ -3311,6 +3367,10 @@ impl<'a> Builder<'a> {
         matches!(self.il.node(node).payload, Payload::LitInt(0))
     }
 
+    fn is_one_literal(&self, node: NodeId) -> bool {
+        matches!(self.il.node(node).payload, Payload::LitInt(1))
+    }
+
     fn filter_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
         if self.il.kind(node) != NodeKind::HoF {
             return None;
@@ -3611,6 +3671,9 @@ impl<'a> Builder<'a> {
                     }
                     let collection = self.eval_membership_collection(kids[1], env);
                     return self.mk(ValOp::Bin(op), vec![element, collection]);
+                }
+                if let Some(v) = self.eval_static_filter_membership_comparison(op, &kids, env) {
+                    return v;
                 }
                 if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
                     return v;
