@@ -371,6 +371,34 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A Rust `VecDeque<T>` parameter should prove the same collection-membership predicate as other typed dynamic collections.",
     },
+    "axis_membership_python_alias_sequence_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python alias import of `typing.Sequence` used as a parameter annotation should prove typed dynamic collection membership.",
+    },
+    "axis_membership_python_alias_container_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python alias import of `collections.abc.Container` used as a parameter annotation should prove typed dynamic collection membership.",
+    },
+    "axis_membership_python_alias_set_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python alias import of `typing.Set` used as a parameter annotation should prove typed dynamic collection membership.",
+    },
+    "axis_membership_python_alias_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python alias-proven collection membership remains tied to a specific element coordinate.",
+    },
+    "axis_membership_python_alias_wrong_receiver_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python alias-proven collection membership remains tied to a specific receiver coordinate.",
+    },
+    "axis_membership_python_alias_unresolved_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Python collection annotation alias without a proven stdlib import is not strict collection-membership evidence.",
+    },
+    "axis_membership_python_alias_shadowed_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Python collection annotation alias shadowed before use is not strict collection-membership evidence.",
+    },
     "axis_membership_python_set_factory_identity": {
         "axis": "literal_collection_membership",
         "why": "A Python builtin `set([...]).__contains__(value)` factory over static items should prove the same literal membership predicate.",
@@ -2582,6 +2610,20 @@ def membership_axis_parts(
         form = "java_queue_param" if right else "typed_membership"
     if proposal_id == "axis_membership_typefact_rust_vecdeque_identity":
         form = "rust_vecdeque_param" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_sequence_identity":
+        form = "python_alias_sequence" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_container_identity":
+        form = "python_alias_container" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_set_identity":
+        form = "python_alias_set" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_wrong_element_boundary":
+        form = "python_alias_sequence" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_wrong_receiver_boundary":
+        form = "python_alias_wrong_receiver" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_unresolved_boundary":
+        form = "python_alias_unresolved" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_alias_shadowed_boundary":
+        form = "python_alias_shadowed" if right else "typed_membership"
     if proposal_id == "axis_membership_python_set_factory_identity":
         form = "python_set_factory" if right else "membership"
     if proposal_id == "axis_membership_python_tuple_factory_identity":
@@ -2744,6 +2786,9 @@ def membership_axis_parts(
         "axis_membership_rust_std_btreeset_identity",
         "axis_membership_rust_std_vecdeque_identity",
         "axis_membership_typefact_python_tuple_identity",
+        "axis_membership_python_alias_sequence_identity",
+        "axis_membership_python_alias_container_identity",
+        "axis_membership_python_alias_set_identity",
         "axis_membership_typefact_java_queue_identity",
         "axis_membership_typefact_rust_vecdeque_identity",
         "axis_membership_python_set_factory_identity",
@@ -3057,6 +3102,20 @@ function {name}(value: string, other: string): boolean {{
         if form == "python_tuple_param":
             src = f"""def {name}(values: tuple[str, ...], value: str, other: str) -> bool:
     return {element} in values
+"""
+            return Variant("axis", src, name)
+        if form.startswith("python_alias_"):
+            import_line = {
+                "python_alias_sequence": "from typing import Sequence as Values\n\n",
+                "python_alias_container": "from collections.abc import Container as Values\n\n",
+                "python_alias_set": "from typing import Set as Values\n\n",
+                "python_alias_wrong_receiver": "from typing import Sequence as Values\n\n",
+                "python_alias_unresolved": "",
+                "python_alias_shadowed": "from typing import Sequence as Values\nValues = str\n\n",
+            }[form]
+            receiver = "other_values" if form == "python_alias_wrong_receiver" else "values"
+            src = f"""{import_line}def {name}(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:
+    return {element} in {receiver}
 """
             return Variant("axis", src, name)
         if form == "typed_membership":
@@ -7270,6 +7329,8 @@ def generate_axis_items(
                 surface, proposal_id
             ):
                 continue
+            if proposal_id.startswith("axis_membership_python_alias_"):
+                continue
             if proposal_id.startswith("axis_membership_set_"):
                 continue
             if proposal_id.startswith("axis_membership_array_some_"):
@@ -7869,6 +7930,9 @@ def generate_literal_membership_cross_items(
         typefact_reference_surfaces = []
     typefact_right_surface_by_proposal = {
         "axis_membership_typefact_python_tuple_identity": surface_by_key["python"],
+        "axis_membership_python_alias_sequence_identity": surface_by_key["python"],
+        "axis_membership_python_alias_container_identity": surface_by_key["python"],
+        "axis_membership_python_alias_set_identity": surface_by_key["python"],
         "axis_membership_typefact_java_queue_identity": surface_by_key["java"],
         "axis_membership_typefact_rust_vecdeque_identity": surface_by_key["rust"],
     }
@@ -7899,6 +7963,30 @@ def generate_literal_membership_cross_items(
                     "not_equivalent",
                     "heldout",
                     "literal_collection_membership-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_membership_python_alias_wrong_element_boundary",
+        "axis_membership_python_alias_wrong_receiver_boundary",
+        "axis_membership_python_alias_unresolved_boundary",
+        "axis_membership_python_alias_shadowed_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        right_surface = surface_by_key["python"]
+        for left_surface in typefact_reference_surfaces:
+            if left_surface.key == right_surface.key:
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal-membership-boundary",
                 )
             )
     python_factory_reference_surfaces = [

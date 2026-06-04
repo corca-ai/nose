@@ -1138,6 +1138,21 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("membership_alias_sequence.py"),
+        "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_container.py"),
+        "from collections.abc import Container as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_set.py"),
+        "from typing import Set as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership_queue.java"),
         "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values, String value, String other) { return values.contains(value); } }\n",
     )
@@ -1150,6 +1165,26 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     fs::write(
         dir.join("wrong_element.ts"),
         "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(other);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_wrong_element.py"),
+        "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return other in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_wrong_receiver.py"),
+        "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in other_values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_unresolved.py"),
+        "def f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_alias_shadowed.py"),
+        "from typing import Sequence as Values\nValues = str\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n",
     )
     .unwrap();
     fs::write(
@@ -1174,25 +1209,48 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     ]);
     let semantic_json: serde_json::Value =
         serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_text = semantic_json.to_string();
-    for expected in [
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let expected = [
         "membership.py",
         "membership.ts",
         "membership.go",
         "membership.rs",
         "membership.java",
         "membership_tuple.py",
+        "membership_alias_sequence.py",
+        "membership_alias_container.py",
+        "membership_alias_set.py",
         "membership_queue.java",
         "membership_vecdeque.rs",
-    ] {
+    ];
+    let positive_family = semantic_families
+        .iter()
+        .find(|family| {
+            let family_text = family.to_string();
+            expected
+                .iter()
+                .all(|expected| family_text.contains(expected))
+        })
+        .unwrap_or_else(|| {
+            panic!("semantic mode should report one typed dynamic membership family: {semantic}")
+        });
+    let positive_text = positive_family.to_string();
+    for expected in expected {
         assert!(
-            semantic_text.contains(expected),
+            positive_text.contains(expected),
             "semantic mode should include typed dynamic membership {expected}: {semantic}"
         );
     }
-    for unexpected in ["wrong_element.ts", "string_negative.java"] {
+    for unexpected in [
+        "wrong_element.ts",
+        "membership_alias_wrong_element.py",
+        "membership_alias_wrong_receiver.py",
+        "membership_alias_unresolved.py",
+        "membership_alias_shadowed.py",
+        "string_negative.java",
+    ] {
         assert!(
-            !semantic_text.contains(unexpected),
+            !positive_text.contains(unexpected),
             "semantic mode must preserve typed dynamic membership boundaries: {semantic}"
         );
     }

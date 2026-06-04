@@ -414,6 +414,23 @@ pub(crate) fn stdlib_type_semantic(module: &str, exported: &str) -> Option<Param
     {
         return Some(ParamSemantic::Map);
     }
+    if matches!(module, "typing" | "collections.abc")
+        && matches!(
+            exported,
+            "Collection"
+                | "Container"
+                | "Deque"
+                | "FrozenSet"
+                | "List"
+                | "MutableSequence"
+                | "MutableSet"
+                | "Sequence"
+                | "Set"
+                | "Tuple"
+        )
+    {
+        return Some(ParamSemantic::Collection);
+    }
     None
 }
 

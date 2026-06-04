@@ -3695,3 +3695,79 @@ rather than name-based. The unresolved-alias and shadowed-alias boundaries are i
 `Alias[...]` alone is still not evidence, and a once-valid alias stops being evidence
 after rebinding. Only an active earlier static stdlib type import makes the alias safe
 enough for exact Type-4 reporting.
+
+## Batch-3 Python stdlib collection type aliases: loops 377-381
+
+This loop keeps the accelerated batch-3 cadence on `literal_collection_membership`.
+It targets Python annotation provenance for stdlib collection aliases:
+
+- `axis_membership_python_alias_sequence_identity`;
+- `axis_membership_python_alias_container_identity`;
+- `axis_membership_python_alias_set_identity`.
+
+The shared proof invariant is the active static type-import fact:
+`from typing|collections.abc import Sequence|Container|Set as Values` gives a
+parameter annotation `Values[...]` the same coarse `ParamSemantic::Collection` fact
+as a direct collection annotation. The alias spelling alone is not enough evidence.
+Unresolved aliases, shadowed aliases, wrong elements, and wrong receivers remain hard
+boundaries.
+
+This is the intended faster loop shape going forward: add about three adjacent positive
+frontiers in one generator batch, but only when they share one detector invariant and
+one boundary model. The focused gate still reports each proposal separately, so a bad
+case can be split back out without losing strictness.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 377 | batch frontier selection | group Python `Sequence as Values`, `Container as Values`, and `Set as Values` typed dynamic collection membership under `axis_membership_python_alias_*` | focused corpus: 12 positives, 28 hard negatives |
+| 378 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/12 positives, 0/28 false merges |
+| 379 | detector strengthening | extend stdlib type-alias semantic resolution from map aliases to collection aliases, while keeping alias clearing on shadowing | focused: 12/12 positives, 0/28 false merges |
+| 380 | strict regression tests | add value-graph and CLI semantic positives plus wrong-element, wrong-receiver, unresolved-alias, and shadowed-alias boundaries | targeted and full CLI/equivalence tests passed |
+| 381 | release focused/core gates | build release and run focused, membership core, and all-cross core gates | focused 12/12, 0/28; membership core 158/158, 0/381; all-cross 575/575, 0/1105 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=40, positive=0/12, false_merges=0/28
+candidate release: items=40, positive=12/12, false_merges=0/28
+delta:             +12 positive hits, +0 false merges
+Raw nodes:         0/1192 in both runs
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_python_alias_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 40
+positive recall: 12/12
+hard-negative false merges: 0/28
+Raw nodes: 0/1192
+```
+
+Final release membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 539/1152
+positive recall: 158/158
+hard-negative false merges: 0/381
+Raw nodes: 0/16070
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1680/6521
+positive recall: 575/575
+hard-negative false merges: 0/1105
+Raw nodes: 0/61505
+```
+
+Assessment: this is a real strict-frontier widening. The previous detector missed every
+new alias-backed collection positive, while the candidate proves all twelve and keeps
+focused, membership-core, and all-cross hard negatives at zero false merges. Two
+process fixes matter for future accelerated loops: keep auxiliary boundary parameters
+after the original coordinate parameters so wrong-coordinate tests stay meaningful, and
+assert CLI negatives against the positive family rather than against every unrelated
+opaque negative family that may exact-clone with another negative.

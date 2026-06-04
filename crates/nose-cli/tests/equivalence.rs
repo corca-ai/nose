@@ -1996,15 +1996,32 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let ts_set = "function f(values: Set<string>, value: string, other: string): boolean { return values.has(value); }";
     let py_tuple =
         "def f(values: tuple[str, ...], value: str, other: str) -> bool:\n    return value in values\n";
+    let py_alias_sequence = "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
+    let py_alias_container = "from collections.abc import Container as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
+    let py_alias_set = "from typing import Set as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
     let java_queue = "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values, String value, String other) { return values.contains(value); } }\n";
     let rust_vecdeque = "use std::collections::VecDeque;\n\npub fn f(values: &VecDeque<&str>, value: &str, other: &str) -> bool { values.contains(&value) }\n";
     let ts_untyped = "function f(values, value, other) { return values.has(value); }";
+    let py_alias_wrong_element = "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return other in values\n";
+    let py_alias_wrong_receiver = "from typing import Sequence as Values\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in other_values\n";
+    let py_alias_unresolved = "def f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
+    let py_alias_shadowed = "from typing import Sequence as Values\nValues = str\n\ndef f(values: Values[str], value: str, other: str, other_values: Values[str]) -> bool:\n    return value in values\n";
     let typed_fp = value_fp(&i, ts_array, Lang::TypeScript);
     assert_eq!(typed_fp, value_fp(&i, ts_set, Lang::TypeScript));
     assert_eq!(typed_fp, value_fp(&i, py_tuple, Lang::Python));
+    assert_eq!(typed_fp, value_fp(&i, py_alias_sequence, Lang::Python));
+    assert_eq!(typed_fp, value_fp(&i, py_alias_container, Lang::Python));
+    assert_eq!(typed_fp, value_fp(&i, py_alias_set, Lang::Python));
     assert_eq!(typed_fp, value_fp(&i, java_queue, Lang::Java));
     assert_eq!(typed_fp, value_fp(&i, rust_vecdeque, Lang::Rust));
     assert_ne!(typed_fp, value_fp(&i, ts_untyped, Lang::TypeScript));
+    assert_ne!(typed_fp, value_fp(&i, py_alias_wrong_element, Lang::Python));
+    assert_ne!(
+        typed_fp,
+        value_fp(&i, py_alias_wrong_receiver, Lang::Python)
+    );
+    assert_ne!(typed_fp, value_fp(&i, py_alias_unresolved, Lang::Python));
+    assert_ne!(typed_fp, value_fp(&i, py_alias_shadowed, Lang::Python));
 }
 
 #[test]
