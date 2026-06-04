@@ -53,9 +53,10 @@ break.
 - Strict Type-4 proof facts for scalar numeric idioms across C, Go, Java,
   JavaScript/TypeScript, Python, Ruby, and embedded script surfaces. The detector now converges
   explicit sign-normalizing conditionals with safe `abs`/`Math.abs`/`math.Abs` forms, and
-  scalar two-way `min`/`max` conditionals with proven builtin forms including Ruby
-  `value.abs` and two-element `[left, right].min/.max`, while preserving signed-identity,
-  wrong-value, min/max direction, and shadowed-`Math` boundaries.
+  scalar two-way `min`/`max` conditionals with proven builtin and method forms including Ruby
+  `value.abs`, Ruby two-element `[left, right].min/.max`, and Rust numeric
+  `.abs()/.min()/.max()`, while preserving signed-identity, wrong-value, min/max
+  direction, shadowed-`Math`, and Rust custom-method boundaries.
 - Strict Type-4 proof facts for map key-membership predicates across Go, Java, Python,
   Ruby, Rust, and typed TypeScript `Map` receivers. The detector now converges
   `key in map`, map key APIs, Java `keySet().contains`, Rust `get(key).is_some`,

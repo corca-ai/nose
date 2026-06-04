@@ -183,6 +183,42 @@ AXIS_PROPOSALS = {
         "axis": "numeric_minmax_abs",
         "why": "Shadowed JavaScript Math bindings are not the built-in maximum proof.",
     },
+    "axis_scalar_rust_abs_method_identity": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.abs()` should prove the same scalar absolute-value semantics as conditional and builtin forms.",
+    },
+    "axis_scalar_rust_min_method_identity": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.min()` should prove the same scalar minimum semantics as conditional and builtin forms.",
+    },
+    "axis_scalar_rust_max_method_identity": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.max()` should prove the same scalar maximum semantics as conditional and builtin forms.",
+    },
+    "axis_scalar_rust_abs_wrong_value_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.abs()` over a different value coordinate changes behavior.",
+    },
+    "axis_scalar_rust_min_wrong_value_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.min()` over a different right-hand value coordinate changes behavior.",
+    },
+    "axis_scalar_rust_max_wrong_value_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Rust numeric `.max()` over a different right-hand value coordinate changes behavior.",
+    },
+    "axis_scalar_rust_abs_custom_method_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "A Rust custom `.abs()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
+    },
+    "axis_scalar_rust_min_custom_method_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "A Rust custom `.min()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
+    },
+    "axis_scalar_rust_max_custom_method_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "A Rust custom `.max()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -1150,6 +1186,8 @@ def axis_null_presence_iflet_variant(
 
 
 def scalar_abs_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id.startswith("axis_scalar_rust_"):
+        return surface.key == "rust"
     if proposal_id in {
         "axis_scalar_abs_shadowed_math_boundary",
         "axis_scalar_min_shadowed_math_boundary",
@@ -1178,14 +1216,26 @@ def axis_scalar_abs_variant(
 ) -> Variant:
     name = "buildCase" if right else "axisCase"
     snake_name = "build_case" if right else "axis_case"
-    target = "other" if right and proposal_id == "axis_scalar_abs_wrong_value_boundary" else "value"
+    target = (
+        "other"
+        if right
+        and proposal_id
+        in {
+            "axis_scalar_abs_wrong_value_boundary",
+            "axis_scalar_rust_abs_wrong_value_boundary",
+        }
+        else "value"
+    )
     if right and negative and proposal_id in {
         "axis_scalar_abs_function_identity",
         "axis_scalar_abs_sign_boundary",
+        "axis_scalar_rust_abs_method_identity",
     }:
         mode = "identity"
     elif right and proposal_id == "axis_scalar_abs_shadowed_math_boundary":
         mode = "shadowed_math"
+    elif right and proposal_id == "axis_scalar_rust_abs_custom_method_boundary":
+        mode = "custom_method"
     else:
         mode = "builtin" if right else "conditional"
 
@@ -1318,6 +1368,35 @@ int {snake_name}(int value, int other) {{
 """
         return Variant("axis", src, snake_name)
 
+    if surface.key == "rust":
+        if mode == "custom_method":
+            src = f"""struct Wrap(i64);
+
+impl Wrap {{
+    fn abs(&self) -> i64 {{
+        0
+    }}
+}}
+
+pub fn {snake_name}(value: Wrap) -> i64 {{
+    let magnitude = value.abs();
+    magnitude + 1
+}}
+"""
+            return Variant("axis", src, snake_name)
+        if mode == "conditional":
+            expr = f"if {target} >= 0 {{ {target} }} else {{ -{target} }}"
+        elif mode == "identity":
+            expr = target
+        else:
+            expr = f"{target}.abs()"
+        src = f"""pub fn {snake_name}(value: i64, other: i64) -> i64 {{
+    let magnitude = {expr};
+    magnitude + other
+}}
+"""
+        return Variant("axis", src, snake_name)
+
     raise ValueError(f"unsupported surface for scalar abs axis: {surface.key}")
 
 
@@ -1339,15 +1418,23 @@ def axis_scalar_minmax_variant(
     if right and negative and proposal_id in {
         "axis_scalar_min_function_identity",
         "axis_scalar_max_function_identity",
+        "axis_scalar_rust_min_method_identity",
+        "axis_scalar_rust_max_method_identity",
     }:
         op = "max" if op == "min" else "min"
     wrong_value = right and proposal_id in {
         "axis_scalar_min_wrong_value_boundary",
         "axis_scalar_max_wrong_value_boundary",
+        "axis_scalar_rust_min_wrong_value_boundary",
+        "axis_scalar_rust_max_wrong_value_boundary",
     }
     shadowed_math = right and proposal_id in {
         "axis_scalar_min_shadowed_math_boundary",
         "axis_scalar_max_shadowed_math_boundary",
+    }
+    custom_method = right and proposal_id in {
+        "axis_scalar_rust_min_custom_method_boundary",
+        "axis_scalar_rust_max_custom_method_boundary",
     }
     a = "left"
     b = "other" if wrong_value else "right"
@@ -1445,6 +1532,30 @@ func {go_name}(left float64, right float64, other float64) float64 {{
 double {snake_name}(double left, double right, double other) {{
     double selected = {expr};
     return selected + other;
+}}
+"""
+        return Variant("axis", src, snake_name)
+
+    if surface.key == "rust":
+        if custom_method:
+            src = f"""struct Wrap(i64);
+
+impl Wrap {{
+    fn {op}(&self, _right: i64) -> i64 {{
+        0
+    }}
+}}
+
+pub fn {snake_name}(left: Wrap, right: i64, other: i64) -> i64 {{
+    let selected = left.{op}(right);
+    selected + other
+}}
+"""
+            return Variant("axis", src, snake_name)
+        expr = f"if {a} {cmp} {b} {{ {a} }} else {{ {b} }}" if not right else f"{a}.{op}({b})"
+        src = f"""pub fn {snake_name}(left: i64, right: i64, other: i64) -> i64 {{
+    let selected = {expr};
+    selected + other
 }}
 """
         return Variant("axis", src, snake_name)
@@ -4642,7 +4753,14 @@ def axis_variants(
             axis_null_presence_variant(surface, proposal_id, negative, True),
         )
     if axis == "numeric_minmax_abs":
-        if proposal_id.startswith(("axis_scalar_min_", "axis_scalar_max_")):
+        if proposal_id.startswith(
+            (
+                "axis_scalar_min_",
+                "axis_scalar_max_",
+                "axis_scalar_rust_min_",
+                "axis_scalar_rust_max_",
+            )
+        ):
             return (
                 axis_scalar_minmax_variant(surface, proposal_id, False, False),
                 axis_scalar_minmax_variant(surface, proposal_id, negative, True),
@@ -4792,7 +4910,12 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"left": 7, "right": 7, "other": -3},
                 ]
                 if proposal_id
-                and proposal_id.startswith(("axis_scalar_min_", "axis_scalar_max_"))
+                and (
+                    proposal_id.startswith(("axis_scalar_min_", "axis_scalar_max_"))
+                    or proposal_id.startswith(
+                        ("axis_scalar_rust_min_", "axis_scalar_rust_max_")
+                    )
+                )
                 else [
                     {"value": -3, "other": 4},
                     {"value": 0, "other": -2},
@@ -5028,8 +5151,13 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
         if proposal_id in {
             "axis_scalar_min_wrong_value_boundary",
             "axis_scalar_max_wrong_value_boundary",
+            "axis_scalar_rust_min_wrong_value_boundary",
+            "axis_scalar_rust_max_wrong_value_boundary",
         }:
-            is_min = proposal_id == "axis_scalar_min_wrong_value_boundary"
+            is_min = proposal_id in {
+                "axis_scalar_min_wrong_value_boundary",
+                "axis_scalar_rust_min_wrong_value_boundary",
+            }
             counterexample = {
                 "input": {"left": 2, "right": 5, "other": -1},
                 "left": (2 if is_min else 5) - 1,
@@ -5048,18 +5176,36 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
         elif proposal_id in {
             "axis_scalar_min_function_identity",
             "axis_scalar_max_function_identity",
+            "axis_scalar_rust_min_method_identity",
+            "axis_scalar_rust_max_method_identity",
         }:
-            is_min = proposal_id == "axis_scalar_min_function_identity"
+            is_min = proposal_id in {
+                "axis_scalar_min_function_identity",
+                "axis_scalar_rust_min_method_identity",
+            }
             counterexample = {
                 "input": {"left": 2, "right": 5, "other": 1},
                 "left": (2 if is_min else 5) + 1,
                 "right": (5 if is_min else 2) + 1,
             }
-        elif proposal_id == "axis_scalar_abs_wrong_value_boundary":
+        elif proposal_id in {
+            "axis_scalar_abs_wrong_value_boundary",
+            "axis_scalar_rust_abs_wrong_value_boundary",
+        }:
             counterexample = {
                 "input": {"value": -3, "other": 4},
                 "left": 7,
                 "right": 8,
+            }
+        elif proposal_id in {
+            "axis_scalar_rust_abs_custom_method_boundary",
+            "axis_scalar_rust_min_custom_method_boundary",
+            "axis_scalar_rust_max_custom_method_boundary",
+        }:
+            counterexample = {
+                "input": {"method": "custom receiver method returns 0"},
+                "left": "numeric intrinsic result",
+                "right": 0,
             }
         elif proposal_id == "axis_scalar_abs_shadowed_math_boundary":
             counterexample = {
@@ -5178,6 +5324,8 @@ def generate_axis_items(
             ):
                 continue
             if proposal_id.startswith("axis_scalar_") and not scalar_abs_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_scalar_rust_"):
                 continue
             if proposal_id.startswith("axis_own_property_") and not own_property_axis_supported(
                 surface, proposal_id
@@ -6341,6 +6489,80 @@ def generate_scalar_abs_cross_items(
     return items
 
 
+def generate_rust_numeric_method_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    cross_mode: str,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
+    if cross_mode == "none" or not generation_filter.include_axis("numeric_minmax_abs"):
+        return []
+    rust_surface = next(s for s in SURFACES if s.key == "rust")
+    reference_surfaces = [
+        s
+        for s in SURFACES
+        if s.key != "rust" and scalar_abs_axis_supported(s, "axis_scalar_abs_function_identity")
+    ]
+    if cross_mode == "ring":
+        reference_surfaces = reference_surfaces[:3]
+    items: list[dict] = []
+    for proposal_id in (
+        "axis_scalar_rust_abs_method_identity",
+        "axis_scalar_rust_min_method_identity",
+        "axis_scalar_rust_max_method_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "numeric_minmax_abs-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_scalar_rust_abs_wrong_value_boundary",
+        "axis_scalar_rust_min_wrong_value_boundary",
+        "axis_scalar_rust_max_wrong_value_boundary",
+        "axis_scalar_rust_abs_custom_method_boundary",
+        "axis_scalar_rust_min_custom_method_boundary",
+        "axis_scalar_rust_max_custom_method_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "numeric-rust-method-boundary",
+                )
+            )
+    return items
+
+
 def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surface]]:
     if mode == "none":
         return []
@@ -6504,6 +6726,11 @@ def generate(
     )
     items.extend(
         generate_scalar_abs_cross_items(
+            out_dir, capabilities, cross_mode, generation_filter
+        )
+    )
+    items.extend(
+        generate_rust_numeric_method_cross_items(
             out_dir, capabilities, cross_mode, generation_filter
         )
     )

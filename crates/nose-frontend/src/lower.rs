@@ -267,6 +267,7 @@ pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
     }
     if t.contains("[]")
         || t.contains(":&[")
+        || t.contains("&[")
         || t.contains("list[")
         || t.contains("list<")
         || t.contains("set[")
@@ -286,6 +287,71 @@ pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
     }
     if t.contains("string") || t.contains(":str") || t.contains(":&str") {
         return Some(ParamSemantic::String);
+    }
+    if t.contains(":number")
+        || matches!(
+            t.as_str(),
+            "number"
+                | "int"
+                | "int8"
+                | "int16"
+                | "int32"
+                | "int64"
+                | "uint"
+                | "uint8"
+                | "uint16"
+                | "uint32"
+                | "uint64"
+                | "float"
+                | "float32"
+                | "float64"
+                | "double"
+                | "long"
+                | "short"
+                | "byte"
+                | "i8"
+                | "i16"
+                | "i32"
+                | "i64"
+                | "i128"
+                | "isize"
+                | "u8"
+                | "u16"
+                | "u32"
+                | "u64"
+                | "u128"
+                | "usize"
+                | "f32"
+                | "f64"
+        )
+        || t.contains(":int")
+        || t.contains(":float")
+        || t.contains(":double")
+        || t.contains(":long")
+        || t.contains(":short")
+        || t.contains(":byte")
+        || t.starts_with("int")
+        || t.starts_with("float")
+        || t.starts_with("double")
+        || t.starts_with("long")
+        || t.starts_with("short")
+        || t.starts_with("byte")
+        || t.contains(":i8")
+        || t.contains(":i16")
+        || t.contains(":i32")
+        || t.contains(":i64")
+        || t.contains(":i128")
+        || t.contains(":isize")
+        || t.contains(":u8")
+        || t.contains(":u16")
+        || t.contains(":u32")
+        || t.contains(":u64")
+        || t.contains(":u128")
+        || t.contains(":usize")
+        || t.contains(":f32")
+        || t.contains(":f64")
+    {
+        return Some(ParamSemantic::Number);
     }
     None
 }

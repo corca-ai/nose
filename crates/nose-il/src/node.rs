@@ -130,6 +130,7 @@ pub enum Payload {
 pub enum ParamSemantic {
     Collection,
     Map,
+    Number,
     String,
 }
 

@@ -1945,3 +1945,72 @@ when all positives share one proof primitive and the batch includes hard negativ
 attack the exact same primitive. The remaining map-default work is imported/module-level
 construction, mutation/effect boundaries, and richer receiver proof facts beyond inline
 or immutable local construction.
+
+## Rust scalar numeric methods: loops 241-246
+
+This loop uses the same batch-3 rule on the next compact numeric frontier: Rust scalar
+methods `.abs()`, `.min()`, and `.max()`. The proof is intentionally typed. A Rust method
+call is treated as a numeric intrinsic only when the receiver has an explicit numeric
+parameter type fact; custom receiver methods with the same names remain hard boundaries.
+
+The three positive micro-frontiers were:
+
+- `value.abs()` converging with the absolute-value conditional;
+- `left.min(right)` converging with the two-way minimum conditional;
+- `left.max(right)` converging with the two-way maximum conditional.
+
+The hard-negative siblings cover wrong value/right-hand coordinates, semantic mutations,
+and custom Rust receiver methods named `abs`, `min`, or `max`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 241 | batched frontier selection | group three Rust numeric method surfaces under `axis_scalar_rust_*` | focused corpus: 30 positives, 90 hard negatives |
+| 242 | baseline measurement | scan the focused batch with the previous release detector after marking Rust numeric as in-scope | baseline: 10/30 positives, 10/90 false merges |
+| 243 | generator correction | route `axis_scalar_rust_min/max_*` proposals through min/max variants, not abs variants | true baseline established: `.abs` hit, `.min/.max` missed, custom `.abs` false-merged |
+| 244 | detector strengthening | add explicit `ParamSemantic::Number` facts and fold Rust numeric `.abs/.min/.max` into existing `Abs`/`Min`/`Max` value nodes only for proven numeric receivers | candidate focused: 30/30 positives |
+| 245 | strictness hardening | read Rust parameter type children directly and keep custom receiver methods outside numeric intrinsic proof; restore `&[T]` collection facts after narrowing type parsing | candidate focused: 30/30 positives, 0/90 false merges |
+| 246 | release focused/core gates | build release and run focused Rust numeric, numeric core, and all-cross core gates | focused: 30/30, 0/90; numeric core: 55/55, 0/135; all-cross core: 396/396, 0/662 |
+
+Focused release/candidate comparison:
+
+```text
+previous release: items=120, positive=10/30, false_merges=10/90
+candidate:        items=120, positive=30/30, false_merges=0/90
+delta:            +20 positive hits, -10 false merges
+```
+
+Final release Rust numeric focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_scalar_rust CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 120
+positive recall: 30/30
+hard-negative false merges: 0/90
+Raw nodes: 0/4344
+```
+
+Final release numeric compact gate:
+
+```text
+GATE=core AXIS=numeric_minmax_abs CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 190/685
+positive recall: 55/55
+hard-negative false merges: 0/135
+Raw nodes: 0/6803
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1058/5517
+positive recall: 396/396
+hard-negative false merges: 0/662
+Raw nodes: 0/40487
+```
+
+Assessment: this loop widened recall and strengthened strictness at the same time. The
+baseline already merged Rust `.abs()`, but it missed `.min/.max()` and also accepted a
+custom `.abs()` method. The final detector requires an explicit numeric receiver fact
+before treating method names as numeric intrinsics, so real Rust scalar methods converge
+without admitting arbitrary user-defined methods with the same spelling.

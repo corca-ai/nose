@@ -392,6 +392,13 @@ impl<'a> Builder<'a> {
         matches!(self.param_semantic_of_expr(expr), Some(ParamSemantic::Map))
     }
 
+    fn is_number_param_expr(&self, expr: NodeId) -> bool {
+        matches!(
+            self.param_semantic_of_expr(expr),
+            Some(ParamSemantic::Number)
+        )
+    }
+
     fn is_map_param_value(&self, value: ValueId) -> bool {
         let ValOp::Input(cid) = self.nodes[value as usize].op else {
             return false;
@@ -570,6 +577,44 @@ impl<'a> Builder<'a> {
             self.proven_map_value(receiver_value)?
         };
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
+    }
+
+    fn eval_proven_numeric_method_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let &callee = kids.first()?;
+        if self.il.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(name) = self.il.node(callee).payload else {
+            return None;
+        };
+        let method = self.interner.resolve(name);
+        let receiver = self.il.children(callee).first().copied()?;
+        let receiver_value = self.eval_proven_numeric_expr(receiver, env)?;
+        match (method, kids.len()) {
+            ("abs", 1) => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
+            ("min", 2) | ("max", 2) => {
+                let rhs = self.eval(kids[1], env);
+                let code = if method == "min" { MIN_CODE } else { MAX_CODE };
+                Some(self.mk(ValOp::Bin(code), vec![receiver_value, rhs]))
+            }
+            _ => None,
+        }
+    }
+
+    fn eval_proven_numeric_expr(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let value = self.eval(expr, env);
+        if self.il.kind(expr) == NodeKind::Var {
+            return self.is_number_param_expr(expr).then_some(value);
+        }
+        (self.vty(value) == Ty::Num).then_some(value)
     }
 
     /// Push an effect sink, tagged with the current path condition — so a *conditional*
@@ -931,6 +976,13 @@ impl<'a> Builder<'a> {
                 for &k in &kids {
                     if self.il.kind(k) == NodeKind::Param {
                         if let Payload::Cid(c) = self.il.node(k).payload {
+                            if matches!(self.param_semantic.get(&c), Some(ParamSemantic::Number)) {
+                                let pos_idx = pos as usize;
+                                if self.param_ty.len() <= pos_idx {
+                                    self.param_ty.resize(pos_idx + 1, Ty::Unknown);
+                                }
+                                self.param_ty[pos_idx] = Ty::Num;
+                            }
                             let v = self.mk(ValOp::Input(pos), vec![]);
                             env.insert(c, v);
                             pos += 1;
@@ -3283,6 +3335,9 @@ impl<'a> Builder<'a> {
                     return r;
                 }
                 if let Some(r) = self.eval_product_call(&kids, env) {
+                    return r;
+                }
+                if let Some(r) = self.eval_proven_numeric_method_call(&kids, env) {
                     return r;
                 }
                 // Iteration-identity adapters: `xs.iter()` / `.into_iter()` / `.collect()`

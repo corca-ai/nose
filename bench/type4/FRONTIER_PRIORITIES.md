@@ -20,7 +20,7 @@ and whether a frontier is already covered.
 | 3 | `collection_empty_check` | all-language | covered-current | 9.04 | 21562 | 18145.0 | 98 | 8 | 100.0% | 0 | 1 |
 | 4 | `string_prefix_suffix` | all-language | covered-current | 7.20 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 | 0 |
 | 5 | `null_option_presence` | all-language | covered-current | 6.34 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 | 0 |
-| 6 | `numeric_minmax_abs` | all-language | partially-covered | 5.14 | 425 | 425.0 | 15 | 1 | 100.0% | 0 | 0 |
+| 6 | `numeric_minmax_abs` | all-language | covered-current | 5.14 | 425 | 425.0 | 15 | 1 | 100.0% | 0 | 0 |
 | 7 | `own_property_guard` | language-family | covered-current | 0.60 | 764 | 764.0 | 23 | 2 | 100.0% | 0 | 0 |
 | 8 | `property_type_guard` | language-family | covered-current | 0.40 | 435 | 435.0 | 19 | 2 | 100.0% | 0 | 0 |
 
@@ -37,10 +37,10 @@ and whether a frontier is already covered.
    - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0
    - next probe: Continue with imported/module-level Map or object defaults only when receiver/key/default coordinates can be proven by static construction, import identity, or immutable binding facts beyond the current inline/local construction cases; keep arbitrary `.get`/index receivers and prototype-aware `in` as hard boundaries.
 3. `numeric_minmax_abs`
-   - why: Scalar min/max/abs expression facts are covered for C, Go, Java, JavaScript/TypeScript, Python, Ruby, and embedded script surfaces; Rust numeric methods remain the next compact strict slice.
+   - why: Scalar min/max/abs expression facts are covered for C, Go, Java, JavaScript/TypeScript, Python, Ruby, Rust, and embedded script surfaces, including Rust numeric `.abs()`, `.min()`, and `.max()` when the receiver has an explicit numeric type fact.
    - evidence: 425 raw / 425.0 weighted matches across 15 repos and 1 languages (rust)
    - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0
-   - next probe: Generate Rust scalar `.abs()`, `.min()`, and `.max()` positives with sign/order and wrong-value hard negatives.
+   - next probe: No ordinary detector slice remains open; only revisit if real-repo audit exposes a method-like numeric form that can be proven without accepting custom receiver methods.
 
 ## Pattern Diagnostics
 

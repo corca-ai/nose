@@ -154,7 +154,10 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             "self_parameter" => out.push(lo.add(NodeKind::Param, Payload::None, span, &[])),
             "parameter" => {
                 if let Some(pat) = p.child_by_field_name("pattern") {
-                    if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
+                    let semantic_text = p.child_by_field_name("type").map(|ty| lo.text(ty));
+                    if let Some(semantic) = crate::lower::param_semantic_from_text(
+                        semantic_text.unwrap_or_else(|| lo.text(p)),
+                    ) {
                         if let Some(sym) = ident_of(lo, pat) {
                             let pspan = lo.span(pat);
                             lo.record_param_semantic(pspan, semantic);

@@ -529,16 +529,21 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
     let go = "package p\n\nimport \"math\"\n\nfunc F(value float64, other float64) float64 { magnitude := math.Abs(value); return magnitude + other }\n";
     let java = "class C { static int f(int value, int other) { int magnitude = Math.abs(value); return magnitude + other; } }\n";
     let ruby_abs = "def f(value, other)\n  magnitude = value.abs\n  magnitude + other\nend\n";
+    let rust_abs =
+        "pub fn f(value: i64, other: i64) -> i64 { let magnitude = value.abs(); magnitude + other }\n";
     let shadowed_js = "function f(Math, value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
     let local_shadowed_js = "function f(value, other) { const Math = { abs: function(_value) { return 0; } }; const magnitude = Math.abs(value); return magnitude + other; }";
+    let custom_rust_abs = "struct Wrap(i64);\nimpl Wrap { fn abs(&self) -> i64 { 0 } }\npub fn f(value: Wrap) -> i64 { let magnitude = value.abs(); magnitude + 1 }\n";
     let fp = value_fp(&i, py, Lang::Python);
     assert_eq!(fp, value_fp(&i, js, Lang::JavaScript));
     assert_eq!(fp, value_fp(&i, ts, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, go, Lang::Go));
     assert_eq!(fp, value_fp(&i, java, Lang::Java));
     assert_eq!(fp, value_fp(&i, ruby_abs, Lang::Ruby));
+    assert_eq!(fp, value_fp(&i, rust_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, local_shadowed_js, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, custom_rust_abs, Lang::Rust));
 }
 
 #[test]
@@ -554,12 +559,16 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     let c_min = "#include <math.h>\n\ndouble f(double left, double right, double other) { double selected = fmin(left, right); return selected + other; }\n";
     let ruby_min =
         "def f(left, right, other)\n  selected = [left, right].min\n  selected + other\nend\n";
+    let rust_min = "pub fn f(left: i64, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
     let py_max = "def f(left, right, other):\n    selected = left if left >= right else right\n    return selected + other\n";
     let ruby_max =
         "def f(left, right, other)\n  selected = [left, right].max\n  selected + other\nend\n";
+    let rust_max = "pub fn f(left: i64, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
     let py_wrong_value =
         "def f(left, right, other):\n    selected = min(left, other)\n    return selected + other\n";
     let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
+    let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
+    let custom_rust_max = "struct Wrap(i64);\nimpl Wrap { fn max(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
 
     let fp = value_fp(&i, py_min, Lang::Python);
     assert_eq!(fp, value_fp(&i, py_min_call, Lang::Python));
@@ -569,13 +578,23 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     assert_eq!(fp, value_fp(&i, java_min, Lang::Java));
     assert_eq!(fp, value_fp(&i, c_min, Lang::C));
     assert_eq!(fp, value_fp(&i, ruby_min, Lang::Ruby));
+    assert_eq!(fp, value_fp(&i, rust_min, Lang::Rust));
     assert_ne!(fp, value_fp(&i, py_max, Lang::Python));
     assert_eq!(
         value_fp(&i, py_max, Lang::Python),
         value_fp(&i, ruby_max, Lang::Ruby)
     );
+    assert_eq!(
+        value_fp(&i, py_max, Lang::Python),
+        value_fp(&i, rust_max, Lang::Rust)
+    );
     assert_ne!(fp, value_fp(&i, py_wrong_value, Lang::Python));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, custom_rust_min, Lang::Rust));
+    assert_ne!(
+        value_fp(&i, py_max, Lang::Python),
+        value_fp(&i, custom_rust_max, Lang::Rust)
+    );
 }
 
 #[test]
