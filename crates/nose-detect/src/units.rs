@@ -527,7 +527,9 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         let Some(&receiver) = il.children(callee).first() else {
             return false;
         };
-        if strict_exact_java_collection_factory_safe(il, interner, facts, receiver) {
+        if strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
+            || strict_exact_java_collection_factory_safe(il, interner, facts, receiver)
+        {
             return strict_exact_call_args_safe(il, interner, facts, node);
         }
     }
@@ -553,6 +555,16 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     }
     strict_exact_callee_identity(il, facts, callee)
         && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_literal_collection_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    il.kind(node) == NodeKind::Seq
+        && strict_exact_membership_collection_safe(il, interner, facts, node)
 }
 
 fn strict_exact_membership_collection_safe(

@@ -2375,3 +2375,76 @@ append(values, "green")` inside `init` is still a better adversary than the curr
 append-expanded initializer boundary. Opening or rejecting that safely needs a
 scope-aware global mutation fact before alpha-normalized names lose the original package
 binding coordinate.
+
+## Rust local literal collection membership bindings: loops 277-282
+
+This loop keeps the batch-3 cadence on `literal_collection_membership` and targets a
+real Rust miss from the `rust_contains_ambiguous` frontier. The value graph already knew
+that a local literal collection binding could be inlined into the same membership value,
+but `semantic` scan did not report it because strict exact-safe rejected the normalized
+`seq.contains(value)` receiver.
+
+The batch opens three adjacent strict positives:
+
+- `let values = ["red", "blue"]; values.contains(&value)`;
+- `let values: [&str; 2] = ["red", "blue"]; values.contains(&value)`;
+- `let values: &[&str] = &["red", "blue"]; values.contains(&value)`.
+
+The proof is intentionally narrow: after normalization, the method receiver must be a
+literal collection sequence, not an arbitrary value with a custom `contains` method.
+Hard negatives cover wrong element, wrong collection, a locally mutated `Vec`, and a
+custom receiver implementing `contains`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 277 | accelerated frontier selection | group Rust local array, typed local array, and local slice-reference membership under `axis_membership_rust_local_*` | focused corpus: 6 positives, 14 hard negatives |
+| 278 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/14 false merges |
+| 279 | generator adversary | add wrong-coordinate, mutated-vector, and custom-receiver boundaries | focused generator emits 20 items across Python/Ruby references and Rust targets |
+| 280 | detector strengthening | allow strict exact-safe `contains` calls only when the normalized receiver is a literal membership collection sequence | candidate focused: 6/6 positives, 0/14 false merges |
+| 281 | strict-safe tests | extend semantic CLI and value-graph equivalence tests with Rust local positives and mutation/custom boundaries | targeted tests passed |
+| 282 | release focused/core gates | build release and run focused Rust-local, literal-membership core, and all-cross core gates | focused: 6/6, 0/14; literal core: 76/76, 0/215; all-cross core: 451/451, 0/850 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=20, positive=0/6, false_merges=0/14
+candidate release: items=20, positive=6/6, false_merges=0/14
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_rust_local CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 20
+positive recall: 6/6
+hard-negative false merges: 0/14
+Raw nodes: 0/554
+```
+
+Final release literal-membership compact gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 291/566
+positive recall: 76/76
+hard-negative false merges: 0/215
+Raw nodes: 0/8602
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1301/5788
+positive recall: 451/451
+hard-negative false merges: 0/850
+Raw nodes: 0/48696
+```
+
+Assessment: this widens the strict detector in the scan path, not only in the value
+graph. The previous release already had the semantic value available but refused to
+promote the local Rust form into exact semantic reports. The new exact-safe rule is
+minimal: it opens method `contains` only when the normalized receiver is a literal
+collection sequence, so custom receiver and mutated-vector boundaries remain outside
+strict Type-4.

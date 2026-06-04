@@ -629,6 +629,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("rust_local_array.rs"),
+        "pub fn rust_local_array(value: &str, other: &str) -> bool {\n    let values = [\"red\", \"blue\"];\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_local_typed_array.rs"),
+        "pub fn rust_local_typed_array(value: &str, other: &str) -> bool {\n    let values: [&str; 2] = [\"red\", \"blue\"];\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_local_slice_ref.rs"),
+        "pub fn rust_local_slice_ref(value: &str, other: &str) -> bool {\n    let values: &[&str] = &[\"red\", \"blue\"];\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_element.py"),
         "def wrong_element(value, other):\n    return other in [\"red\", \"blue\"]\n",
     )
@@ -668,6 +683,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "package p\n\ntype fakeSlices struct{}\n\nfunc (fakeSlices) Contains(values []string, value string) bool {\n    return false\n}\n\nvar slices fakeSlices\nvar values = []string{\"red\", \"blue\"}\n\nfunc SlicesUnimported(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
     )
     .unwrap();
+    fs::write(
+        dir.join("rust_local_mutated.rs"),
+        "pub fn rust_local_mutated(value: &str, other: &str) -> bool {\n    let mut values = vec![\"red\", \"blue\"];\n    values.push(\"green\");\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_local_custom_receiver.rs"),
+        "struct Values;\n\nimpl Values {\n    fn contains(&self, _value: &&str) -> bool {\n        false\n    }\n}\n\npub fn rust_local_custom_receiver(value: &str, other: &str) -> bool {\n    let values = Values;\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
 
     let semantic = run(&[
         "scan",
@@ -704,6 +729,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "go_slices_package.go",
         "go_slices_alias.go",
         "go_slices_const.go",
+        "rust_local_array.rs",
+        "rust_local_typed_array.rs",
+        "rust_local_slice_ref.rs",
     ] {
         assert!(
             semantic_text.contains(expected),
@@ -719,6 +747,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "module_list_shadowed.java",
         "go_slices_mutated.go",
         "go_slices_unimported.go",
+        "rust_local_mutated.rs",
+        "rust_local_custom_receiver.rs",
     ] {
         assert!(
             !semantic_text.contains(unexpected),

@@ -475,6 +475,34 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A receiver named `slices` is not proof of the standard Go `slices` package without a static import coordinate.",
     },
+    "axis_membership_rust_local_array_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust local immutable array literal followed by `.contains` should prove literal collection membership.",
+    },
+    "axis_membership_rust_local_typed_array_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust local array literal with an explicit array type should prove the same literal collection membership.",
+    },
+    "axis_membership_rust_local_slice_ref_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust local slice reference to a literal array should prove the same literal collection membership.",
+    },
+    "axis_membership_rust_local_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Rust local literal collection membership remains tied to a specific element coordinate.",
+    },
+    "axis_membership_rust_local_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Rust local literal collection membership remains tied to a specific collection value.",
+    },
+    "axis_membership_rust_local_mutated_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust local vector mutated after construction is not a strict literal collection proof.",
+    },
+    "axis_membership_rust_local_custom_receiver_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust receiver with a custom `contains` method is not proof of literal collection membership.",
+    },
     "axis_map_key_membership_identity": {
         "axis": "map_key_membership",
         "why": "Map key-presence APIs should prove the same key-in-map predicate when receiver and key coordinates are fixed.",
@@ -2176,6 +2204,8 @@ def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> boo
         return surface.key in {"python", "ruby", "javascript", "typescript", "java"}
     if proposal_id.startswith("axis_membership_go_slices_"):
         return surface.key in {"python", "ruby", "go"}
+    if proposal_id.startswith("axis_membership_rust_local_"):
+        return surface.key in {"python", "ruby", "rust"}
     return surface.key in {
         "python",
         "javascript",
@@ -2262,6 +2292,21 @@ def membership_axis_parts(
         form = "go_slices_mutated" if right else "membership"
     if proposal_id == "axis_membership_go_slices_unimported_boundary":
         form = "go_slices_unimported" if right else "membership"
+    if proposal_id == "axis_membership_rust_local_array_identity":
+        form = "rust_local_array" if right else "membership"
+    if proposal_id == "axis_membership_rust_local_typed_array_identity":
+        form = "rust_local_typed_array" if right else "membership"
+    if proposal_id == "axis_membership_rust_local_slice_ref_identity":
+        form = "rust_local_slice_ref" if right else "membership"
+    if proposal_id in {
+        "axis_membership_rust_local_wrong_element_boundary",
+        "axis_membership_rust_local_wrong_collection_boundary",
+    }:
+        form = "rust_local_array" if right else "membership"
+    if proposal_id == "axis_membership_rust_local_mutated_boundary":
+        form = "rust_local_mutated" if right else "membership"
+    if proposal_id == "axis_membership_rust_local_custom_receiver_boundary":
+        form = "rust_local_custom_receiver" if right else "membership"
     if right and negative and proposal_id in {
         "axis_membership_set_param_identity",
         "axis_membership_set_inline_identity",
@@ -2275,6 +2320,9 @@ def membership_axis_parts(
         "axis_membership_go_slices_package_identity",
         "axis_membership_go_slices_alias_package_identity",
         "axis_membership_go_slices_const_package_identity",
+        "axis_membership_rust_local_array_identity",
+        "axis_membership_rust_local_typed_array_identity",
+        "axis_membership_rust_local_slice_ref_identity",
     }:
         element = "other"
     if right and proposal_id == "axis_membership_set_wrong_element_boundary":
@@ -2563,6 +2611,50 @@ func {name}(value string, other string) bool {{
         return Variant("axis", src, name)
 
     if surface.key == "rust":
+        if form == "rust_local_array":
+            src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
+    let values = ["{left}", "{right_item}"];
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "rust_local_typed_array":
+            src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
+    let values: [&str; 2] = ["{left}", "{right_item}"];
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "rust_local_slice_ref":
+            src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
+    let values: &[&str] = &["{left}", "{right_item}"];
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "rust_local_mutated":
+            src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
+    let mut values = vec!["{left}", "{right_item}"];
+    values.push("green");
+    values.contains(&value)
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "rust_local_custom_receiver":
+            src = f"""struct Values;
+
+impl Values {{
+    fn contains(&self, _value: &&str) -> bool {{
+        false
+    }}
+}}
+
+pub fn {name}(value: &str, other: &str) -> bool {{
+    let values = Values;
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
         if form == "typed_membership":
             src = f"""pub fn {name}(values: &[&str], value: &str, other: &str) -> bool {{
     values.contains(&{element})
@@ -5557,7 +5649,10 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "left": False,
                 "right": True,
             }
-        elif proposal_id == "axis_membership_go_slices_mutated_boundary":
+        elif proposal_id in {
+            "axis_membership_go_slices_mutated_boundary",
+            "axis_membership_rust_local_mutated_boundary",
+        }:
             counterexample = {
                 "input": {"value": "green", "other": "red"},
                 "left": False,
@@ -5983,6 +6078,8 @@ def generate_axis_items(
             if proposal_id.startswith("axis_membership_module_"):
                 continue
             if proposal_id.startswith("axis_membership_go_slices_"):
+                continue
+            if proposal_id.startswith("axis_membership_rust_local_"):
                 continue
             if proposal_id.startswith("axis_map_key_") and not map_key_membership_axis_supported(
                 surface, proposal_id
@@ -6743,6 +6840,59 @@ def generate_literal_membership_cross_items(
                     proposal_id,
                     left_surface,
                     go_slices_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal-membership-boundary",
+                )
+            )
+    rust_local_right = surface_by_key["rust"]
+    for proposal_id in (
+        "axis_membership_rust_local_array_identity",
+        "axis_membership_rust_local_typed_array_identity",
+        "axis_membership_rust_local_slice_ref_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in module_reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_local_right,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_local_right,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_membership_rust_local_wrong_element_boundary",
+        "axis_membership_rust_local_wrong_collection_boundary",
+        "axis_membership_rust_local_mutated_boundary",
+        "axis_membership_rust_local_custom_receiver_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in module_reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust_local_right,
                     "not_equivalent",
                     "heldout",
                     "literal-membership-boundary",
