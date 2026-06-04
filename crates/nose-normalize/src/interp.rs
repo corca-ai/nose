@@ -514,6 +514,7 @@ impl<'a> Interp<'a> {
             // so dict-building units are excluded from the oracle rather than risk a false
             // merge. Their convergence rests on the DistinctEntry-vs-tuple representation.
             Builtin::DictEntry => Ok(Value::Err),
+            Builtin::GetOrDefault => Ok(Value::Err),
             Builtin::Reduce | Builtin::Any | Builtin::All => unreachable!(),
         }
     }

@@ -929,3 +929,66 @@ predicate, and the first real value is reducing future ambiguity around membersh
 The next cost-effective ordinary open axis is now `map_default_lookup`; remaining
 membership work should target map-key and dynamic set membership only when receiver/key
 coordinates are provable.
+
+## Literal map-default lookup: loops 130-136
+
+The next `map_default_lookup` split was narrowed to literal Python/Ruby maps first. This
+captures the highest-confidence dynamic-language part of the candidate without claiming
+typed map semantics for Go/Java/Rust or JS/TS object/Map missing-key behavior.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 130 | broad map-default APIs mix absent-key, typed-map, and mutation semantics | choose `literal_map_default_lookup`: static literal map, dynamic key, literal fallback | focused manifest generated 20 items: 4 positives, 16 negatives |
+| 131 | existing detector had no common map-default coordinate | baseline `target/release/nose` missed all focused positives | 0/4 positives, 0/16 false merges |
+| 132 | Python `.get` and Ruby `.fetch` needed one strict coordinate | add `Builtin::GetOrDefault`, lower only literal-map receivers, and normalize the map argument inside this builtin | CLI map-default test passed |
+| 133 | adversarial focused gate | keep wrong-key, wrong-default, wrong-map, and semantic-mutation negatives | focused: 4/4 positives, 0/16 false merges |
+| 134 | aggregate regression gate | run ring, same-surface, and dense all-cross compact gates | ring 827/827 and 0/1,289; same-surface 587/587 and 0/986; dense compact 263/263 and 0/369 |
+| 135 | top real-repo audit | compare pre-loop `target/release/nose` and modified detector on `sqlalchemy`, `sympy`, and `rubocop` | visible family sets unchanged: 0 added, 0 removed in all three repos |
+| 136 | reprioritize frontier | mark `map_default_lookup` partially-covered, leaving JS/TS object-or-Map and typed Go/Java/Rust maps open | next ordinary open axis: `property_type_guard` |
+
+Final focused map-default gate:
+
+```text
+items: 20
+positive recall: 4/4
+hard-negative false merges: 0/16
+```
+
+Final default ring smoke:
+
+```text
+items: 2116
+positive recall: 827/827
+hard-negative false merges: 0/1289
+
+by semantic axis:
+  literal_map_default_lookup: positive 4/4, false merges 0/16
+```
+
+Final dense all-cross compact smoke:
+
+```text
+GATE=core CROSS=all NOSE=target/debug/nose OUT_DIR=/tmp/nose-type4-smoke-map-core-allcross scripts/type4-smoke.sh
+selected items: 632/4163
+positive recall: 263/263
+hard-negative false merges: 0/369
+Raw nodes: 0/25612
+```
+
+Final prioritizer state:
+
+```text
+numeric_minmax_abs: partially-covered, score 64.36, 7,037 raw hits, 0 gaps
+null_option_presence: partially-covered, score 51.52, 126,057 raw hits, 0 gaps
+membership_contains: partially-covered, score 36.54, 22,979 raw hits, 0 gaps, 2,798 filtered
+map_default_lookup: partially-covered, score 20.30, 4,319 raw hits, 0 gaps
+property_type_guard: open, score 5.01, 435 raw hits, 0 gaps
+```
+
+Assessment: this loop again widened the strict frontier without adding visible real-repo
+families. The strict slice is intentionally small but useful: it prevents a future
+map-default implementation from conflating key, fallback, or literal map differences.
+The next open frontier is `property_type_guard`; however, broader partially-covered axes
+(`numeric_minmax_abs`, `null_option_presence`, and the remaining membership/map slices)
+may still be better if the next loop targets breadth rather than a new narrow JS-family
+axis.

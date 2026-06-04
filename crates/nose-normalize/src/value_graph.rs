@@ -2215,6 +2215,19 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Seq(1), items)
     }
 
+    fn eval_map_lookup_collection(
+        &mut self,
+        collection: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> ValueId {
+        if self.il.kind(collection) != NodeKind::Seq {
+            return self.eval(collection, env);
+        }
+        let kids = self.il.children(collection).to_vec();
+        let entries: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+        self.mk(ValOp::Seq(3), entries)
+    }
+
     fn len_call_arg(&self, node: NodeId) -> Option<NodeId> {
         if self.il.kind(node) != NodeKind::Call {
             return None;
@@ -2615,6 +2628,17 @@ impl<'a> Builder<'a> {
                         let element = self.eval(*element, env);
                         let collection = self.eval_membership_collection(*collection, env);
                         return self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]);
+                    }
+                }
+                if let Payload::Builtin(Builtin::GetOrDefault) = node.payload {
+                    if let [map, key, default] = kids.as_slice() {
+                        let map = self.eval_map_lookup_collection(*map, env);
+                        let key = self.eval(*key, env);
+                        let default = self.eval(*default, env);
+                        return self.mk(
+                            ValOp::Call(Builtin::GetOrDefault as u32 + 1),
+                            vec![map, key, default],
+                        );
                     }
                 }
                 if let Payload::Builtin(b) = node.payload {

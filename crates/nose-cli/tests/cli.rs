@@ -555,6 +555,76 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_literal_map_default_lookup() {
+    let dir = std::env::temp_dir().join(format!("nose_map_default_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("map_default.py"),
+        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default.rb"),
+        "def lookup(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key, 0)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_key.py"),
+        "def wrong_key(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(other, 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_default.rb"),
+        "def wrong_default(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key, 9)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_map.py"),
+        "def wrong_map(key, other):\n    return {\"red\": 9, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report one literal map-default family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    for expected in ["map_default.py", "map_default.rb"] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include {expected}: {semantic}"
+        );
+    }
+    for unexpected in ["wrong_key.py", "wrong_default.rb", "wrong_map.py"] {
+        assert!(
+            !semantic_text.contains(unexpected),
+            "semantic mode must preserve literal map-default boundaries: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_reports_flattened_guard_span_only() {
     let dir = std::env::temp_dir().join(format!("nose_guard_span_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

@@ -16,6 +16,10 @@ break.
   now converges Python `in`, literal receiver `includes/include?/contains`, and Go
   `slices.Contains` while keeping substring contains and arbitrary receiver contains
   outside strict semantic reporting.
+- Strict Type-4 proof facts for literal Python/Ruby map lookup with fallback. The detector
+  now converges dict `.get(key, default)` and hash `.fetch(key, default)` only when the
+  receiver is a static literal map, preserving wrong-key, wrong-default, and wrong-map
+  boundaries.
 - Type-4 focused generation filters (`--axis`, `--proposal-prefix`) and smoke gates
   (`GATE=focused|core|full`) so detector co-evolution loops can run on one frontier
   before periodic compact/full validation.

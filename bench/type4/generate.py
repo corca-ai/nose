@@ -211,6 +211,22 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "Substring contains and static literal collection membership are different semantics and must not merge.",
     },
+    "axis_map_default_literal_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "Static literal-map lookup with a literal fallback should prove the same key/default behavior across map APIs.",
+    },
+    "axis_map_default_wrong_key_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Map default lookups over different key parameters are different proof coordinates.",
+    },
+    "axis_map_default_wrong_default_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Different fallback values change missing-key behavior and must not merge.",
+    },
+    "axis_map_default_wrong_map_boundary": {
+        "axis": "literal_map_default_lookup",
+        "why": "Different literal map values change present-key behavior and must not merge.",
+    },
     "axis_table_access": {
         "axis": "table_access",
         "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
@@ -1265,6 +1281,56 @@ end
         return Variant("axis", src, name)
 
     raise ValueError(f"unsupported surface for literal membership axis: {surface.key}")
+
+
+def literal_map_default_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if not proposal_id.startswith("axis_map_default_"):
+        return False
+    return surface.key in {"python", "ruby"}
+
+
+def map_default_axis_parts(
+    proposal_id: str, negative: bool, right: bool
+) -> tuple[str, tuple[tuple[str, int], tuple[str, int]], int]:
+    key = "key"
+    entries = (("red", 1), ("blue", 2))
+    default = 0
+
+    if right and proposal_id == "axis_map_default_wrong_key_boundary":
+        key = "other"
+    if right and proposal_id == "axis_map_default_wrong_default_boundary":
+        default = 9
+    if right and proposal_id == "axis_map_default_wrong_map_boundary":
+        entries = (("red", 9), ("blue", 2))
+    if right and negative and proposal_id == "axis_map_default_literal_identity":
+        default = 9
+    return key, entries, default
+
+
+def axis_map_default_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    key, entries, default = map_default_axis_parts(proposal_id, negative, right)
+    name = "build_case" if right else "axis_case"
+    (k1, v1), (k2, v2) = entries
+
+    if surface.key == "python":
+        src = f"""def {name}(key, other):
+    return {{"{k1}": {v1}, "{k2}": {v2}}}.get({key}, {default})
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "ruby":
+        src = f"""def {name}(key, other)
+  {{"{k1}" => {v1}, "{k2}" => {v2}}}.fetch({key}, {default})
+end
+"""
+        return Variant("axis", src, name)
+
+    raise ValueError(f"unsupported surface for literal map default axis: {surface.key}")
 
 
 def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -3277,6 +3343,11 @@ def axis_variants(
             axis_membership_literal_variant(surface, proposal_id, False, False),
             axis_membership_literal_variant(surface, proposal_id, negative, True),
         )
+    if axis == "literal_map_default_lookup":
+        return (
+            axis_map_default_variant(surface, proposal_id, False, False),
+            axis_map_default_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -3309,6 +3380,7 @@ def axis_data_shape(axis: str) -> str:
     return {
         "collection_empty_check": "list<int>",
         "literal_collection_membership": "set<string>",
+        "literal_map_default_lookup": "map<string,int>+key",
         "projection_identity": "record<today:int,tomorrow:int>",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
@@ -3325,6 +3397,17 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"value": "red", "other": "green"},
                     {"value": "blue", "other": "green"},
                     {"value": "green", "other": "red"},
+                ],
+                "outputs": [],
+            }
+        if axis == "literal_map_default_lookup":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"key": "red", "other": "green"},
+                    {"key": "blue", "other": "green"},
+                    {"key": "green", "other": "red"},
                 ],
                 "outputs": [],
             }
@@ -3374,6 +3457,27 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "input": {"value": "red", "other": "green"},
                 "left": True,
                 "right": False,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "literal_map_default_lookup":
+        if proposal_id in {
+            "axis_map_default_literal_identity",
+            "axis_map_default_wrong_default_boundary",
+        }:
+            counterexample = {
+                "input": {"key": "green", "other": "red"},
+                "left": 0,
+                "right": 9,
+            }
+        else:
+            counterexample = {
+                "input": {"key": "red", "other": "green"},
+                "left": 1,
+                "right": 9 if proposal_id == "axis_map_default_wrong_map_boundary" else 0,
             }
         return {
             "level": "E2",
@@ -3508,6 +3612,10 @@ def generate_axis_items(
                 surface, proposal_id
             ):
                 continue
+            if proposal_id.startswith("axis_map_default_") and not literal_map_default_axis_supported(
+                surface, proposal_id
+            ):
+                continue
             if proposal_id in {
                 "axis_collection_threshold_boundary",
                 "axis_collection_wrong_receiver_boundary",
@@ -3555,6 +3663,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "literal-membership-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_map_default_wrong_key_boundary",
+                "axis_map_default_wrong_default_boundary",
+                "axis_map_default_wrong_map_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-map-default-boundary",
                     )
                 )
                 continue
@@ -3853,6 +3978,67 @@ def generate_literal_membership_cross_items(
     return items
 
 
+def generate_literal_map_default_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    cross_mode: str,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
+    if not generation_filter.include_axis("literal_map_default_lookup"):
+        return []
+    surfaces = [
+        s
+        for s in SURFACES
+        if literal_map_default_axis_supported(s, "axis_map_default_literal_identity")
+    ]
+    items: list[dict] = []
+    for left_surface, right_surface in cross_pairs(surfaces, cross_mode):
+        if generation_filter.include_proposal("axis_map_default_literal_identity"):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_map_default_literal_identity",
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_map_default_literal_identity",
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_map_default_lookup-semantic-mutation",
+                )
+            )
+        for proposal_id in (
+            "axis_map_default_wrong_key_boundary",
+            "axis_map_default_wrong_default_boundary",
+            "axis_map_default_wrong_map_boundary",
+        ):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal-map-default-boundary",
+                )
+            )
+    return items
+
+
 def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surface]]:
     if mode == "none":
         return []
@@ -3991,6 +4177,11 @@ def generate(
     )
     items.extend(
         generate_literal_membership_cross_items(
+            out_dir, capabilities, cross_mode, generation_filter
+        )
+    )
+    items.extend(
+        generate_literal_map_default_cross_items(
             out_dir, capabilities, cross_mode, generation_filter
         )
     )

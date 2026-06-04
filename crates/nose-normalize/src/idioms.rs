@@ -215,6 +215,16 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: vec![args[0], base.unwrap()],
                         }
                     }
+                    "get" | "fetch"
+                        if base.is_some()
+                            && args.len() == 2
+                            && map_like_literal(old, interner, base.unwrap()) =>
+                    {
+                        return CallCanon::Builtin {
+                            op: Builtin::GetOrDefault,
+                            arg_olds: vec![base.unwrap(), args[0], args[1]],
+                        }
+                    }
                     // `functools.reduce(f, xs[, init])` — here the *base* is the module
                     // `functools`, not the collection, so it is an explicit fold over
                     // `xs` (the same `Builtin::Reduce` as a bare `reduce(f, xs, init)`),
@@ -406,4 +416,14 @@ fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> 
         }
     }
     None
+}
+
+fn map_like_literal(old: &Il, interner: &Interner, id: NodeId) -> bool {
+    if old.kind(id) != NodeKind::Seq {
+        return false;
+    }
+    match old.node(id).payload {
+        Payload::Name(s) => matches!(interner.resolve(s), "dictionary" | "hash" | "object"),
+        _ => false,
+    }
 }

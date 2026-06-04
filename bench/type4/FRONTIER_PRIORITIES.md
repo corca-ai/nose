@@ -18,7 +18,7 @@ and whether a frontier is already covered.
 | 1 | `numeric_minmax_abs` | all-language | partially-covered | 64.36 | 7037 | 6750.8 | 93 | 8 | 100.0% | 0 | 0 |
 | 2 | `null_option_presence` | all-language | partially-covered | 51.52 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 | 0 |
 | 3 | `membership_contains` | multi-language | partially-covered | 36.54 | 22979 | 13478.1 | 99 | 7 | 100.0% | 0 | 2798 |
-| 4 | `map_default_lookup` | multi-language | open | 31.23 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 | 0 |
+| 4 | `map_default_lookup` | multi-language | partially-covered | 20.30 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 | 0 |
 | 5 | `collection_empty_check` | all-language | covered-current | 9.04 | 21562 | 18145.0 | 98 | 8 | 100.0% | 0 | 1 |
 | 6 | `string_prefix_suffix` | all-language | covered-current | 7.20 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 | 0 |
 | 7 | `property_type_guard` | language-family | open | 5.01 | 435 | 435.0 | 19 | 2 | 100.0% | 0 | 0 |
@@ -26,12 +26,7 @@ and whether a frontier is already covered.
 
 ## Recommended Order
 
-1. `map_default_lookup`
-   - why: Potentially high value, but absent-key semantics and mutation/effects vary heavily.
-   - evidence: 4319 raw / 3645.3 weighted matches across 73 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
-   - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0
-   - next probe: Start with literal immutable maps and static keys; hard-negative missing-key/default-value changes.
-2. `property_type_guard`
+1. `property_type_guard`
    - why: Very frequent in JS-family repos, but the scope is narrow and should wait behind broader axes.
    - evidence: 435 raw / 435.0 weighted matches across 19 repos and 2 languages (javascript, typescript)
    - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0

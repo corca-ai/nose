@@ -253,6 +253,8 @@ pub enum Builtin {
     EndsWith,
     /// Static literal-collection membership predicate over `(element, collection)`.
     Contains,
+    /// Static literal-map lookup with fallback over `(map, key, default)`.
+    GetOrDefault,
 }
 
 /// Kinds of canonical higher-order operation.

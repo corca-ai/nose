@@ -196,9 +196,9 @@ CANDIDATES = [
         "multi-language",
         4,
         4,
-        "open",
-        "Potentially high value, but absent-key semantics and mutation/effects vary heavily.",
-        "Start with literal immutable maps and static keys; hard-negative missing-key/default-value changes.",
+        "partially-covered",
+        "Literal Python/Ruby map lookup with fallback is covered; typed maps, object/map APIs, absent-key semantics, and mutation/effects remain open.",
+        "Continue with JS/TS object-or-Map defaults, then typed Go/Java/Rust maps only when receiver/key/default coordinates are provable.",
         (
             pat("go_map_lookup_ok", "go", r"\b\w+\s*,\s*\w+\s*:=\s*\w+\s*\[[^\]]+\]", "medium"),
             pat("java_get_or_default", "java", r"\.\s*getOrDefault\s*\(", "high"),
