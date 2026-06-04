@@ -3509,6 +3509,19 @@ impl<'a> Builder<'a> {
                     Payload::Name(s) => self.interner.symbol_hash(s),
                     _ => 0,
                 };
+                if a.len() == 1 {
+                    if let Payload::Name(s) = node.payload {
+                        let receiver = &self.nodes[a[0] as usize];
+                        if matches!(receiver.op, ValOp::Seq(6)) && receiver.args.len() == 1 {
+                            let module = receiver.args[0];
+                            let exported = self.mk(
+                                ValOp::Const(stable_string_const_key(self.interner.resolve(s))),
+                                vec![],
+                            );
+                            return self.mk(ValOp::Seq(5), vec![module, exported]);
+                        }
+                    }
+                }
                 self.mk(ValOp::Field(name), a)
             }
             NodeKind::Index => {

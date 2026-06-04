@@ -67,6 +67,10 @@ AXIS_PROPOSALS = {
         "axis": "import_identity",
         "why": "Namespace imports should prove receiver identity before member calls become exact.",
     },
+    "axis_import_namespace_member_identity": {
+        "axis": "import_identity",
+        "why": "A named import and a namespace member import should prove the same exported helper coordinate.",
+    },
     "axis_import_default_identity": {
         "axis": "import_identity",
         "why": "Default imports are a distinct static import coordinate, not a free-name guess.",
@@ -78,6 +82,10 @@ AXIS_PROPOSALS = {
     "axis_import_multi_specifier_identity": {
         "axis": "import_identity",
         "why": "Multiple static specifiers in one import statement should still prove each local binding separately.",
+    },
+    "axis_import_namespace_member_wrong_boundary": {
+        "axis": "import_identity",
+        "why": "Namespace member identity is a proof over a specific exported member coordinate.",
     },
     "axis_import_reexport_boundary": {
         "axis": "import_identity",
@@ -3815,6 +3823,18 @@ def import_axis_supported(surface: Surface, proposal_id: str) -> bool:
             "python",
             "go",
         }
+    if proposal_id in {
+        "axis_import_namespace_member_identity",
+        "axis_import_namespace_member_wrong_boundary",
+    }:
+        return surface.key in {
+            "javascript",
+            "typescript",
+            "vue",
+            "svelte",
+            "html",
+            "python",
+        }
     if proposal_id == "axis_import_default_identity":
         return surface.key in {"javascript", "typescript", "vue", "svelte", "html"}
     if proposal_id == "axis_import_default_named_boundary":
@@ -3838,7 +3858,14 @@ def import_axis_variant(
     local = "calc" if right else "helper"
     export = (
         "otherHelper"
-        if negative and proposal_id in {"axis_import_named_identity", "axis_import_namespace_identity"}
+        if negative
+        and proposal_id
+        in {
+            "axis_import_named_identity",
+            "axis_import_namespace_identity",
+            "axis_import_namespace_member_identity",
+            "axis_import_namespace_member_wrong_boundary",
+        }
         else "helper"
     )
     module = (
@@ -3924,7 +3951,35 @@ end
         raise ValueError(f"unsupported import unsafe surface: {surface.key}")
 
     if surface.key in JS_LIKE_SURFACES:
-        if proposal_id == "axis_import_namespace_identity":
+        if proposal_id == "axis_import_namespace_member_identity":
+            if right:
+                ns = "mathOps"
+                member = "otherHelper" if negative else "helper"
+                body = f"""import * as {ns} from {module!r};
+function {entry}(value) {{
+  return {ns}.{member}(value + 1);
+}}
+"""
+            else:
+                body = f"""import {{ helper }} from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+        elif proposal_id == "axis_import_namespace_member_wrong_boundary":
+            if right:
+                body = f"""import * as mathOps from {module!r};
+function {entry}(value) {{
+  return mathOps.otherHelper(value + 1);
+}}
+"""
+            else:
+                body = f"""import {{ helper }} from {module!r};
+function {entry}(value) {{
+  return helper(value + 1);
+}}
+"""
+        elif proposal_id == "axis_import_namespace_identity":
             ns = "mathOps" if right else "util"
             member = "otherHelper" if negative else "helper"
             body = f"""import * as {ns} from {module!r};
@@ -3970,7 +4025,35 @@ function {entry}(value) {{
     if surface.key == "python":
         py_entry = "build_case" if right else "axis_case"
         py_module = "other_math" if module == "./other-math" else "shared_math"
-        if proposal_id == "axis_import_namespace_identity":
+        if proposal_id == "axis_import_namespace_member_identity":
+            if right:
+                ns = "math_ops"
+                member = "other_helper" if negative else "helper"
+                src = f"""import {py_module} as {ns}
+
+def {py_entry}(value):
+    return {ns}.{member}(value + 1)
+"""
+            else:
+                src = f"""from {py_module} import helper
+
+def {py_entry}(value):
+    return helper(value + 1)
+"""
+        elif proposal_id == "axis_import_namespace_member_wrong_boundary":
+            if right:
+                src = f"""import {py_module} as math_ops
+
+def {py_entry}(value):
+    return math_ops.other_helper(value + 1)
+"""
+            else:
+                src = f"""from {py_module} import helper
+
+def {py_entry}(value):
+    return helper(value + 1)
+"""
+        elif proposal_id == "axis_import_namespace_identity":
             ns = "math_ops" if right else "util"
             member = "other_helper" if negative else "helper"
             src = f"""import {py_module} as {ns}
@@ -6414,6 +6497,19 @@ def generate_axis_items(
                         "unknown",
                         "heldout",
                         "unproven-import-binding",
+                    )
+                )
+                continue
+            if proposal_id == "axis_import_namespace_member_wrong_boundary":
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "import-member-boundary",
                     )
                 )
                 continue

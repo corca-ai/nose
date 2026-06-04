@@ -1944,6 +1944,66 @@ fn scan_mode_semantic_allows_static_import_identity() {
 }
 
 #[test]
+fn scan_mode_semantic_allows_named_namespace_import_identity() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_import_namespace_member_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("named.js"),
+        "import { helper } from \"./shared-math\";\n\nfunction report(value) {\n  return helper(value + 1);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("namespace.js"),
+        "import * as mathOps from \"./shared-math\";\n\nfunction build(input) {\n  return mathOps.helper(input + 1);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("typed_namespace.ts"),
+        "import * as mathOps from \"./shared-math\";\n\nfunction build(input: number): number {\n  return mathOps.helper(input + 1);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_member.js"),
+        "import * as mathOps from \"./shared-math\";\n\nfunction other(input) {\n  return mathOps.otherHelper(input + 1);\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_text = semantic_json.to_string();
+    for expected in ["named.js", "namespace.js", "typed_namespace.ts"] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include static import member positive {expected}: {semantic}"
+        );
+    }
+    assert!(
+        !semantic_text.contains("wrong_member.js"),
+        "semantic mode must preserve imported member coordinate boundaries: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_allows_static_projection_identity() {
     let dir = std::env::temp_dir().join(format!("nose_projection_identity_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

@@ -1572,6 +1572,30 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
 }
 
 #[test]
+fn import_named_and_namespace_member_coordinates_converge() {
+    let i = Interner::new();
+    let js_named = "import { helper } from \"./shared-math\";\nfunction f(value) { return helper(value + 1); }\n";
+    let js_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.helper(value + 1); }\n";
+    let js_wrong_member = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.otherHelper(value + 1); }\n";
+    let ts_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value: number): number { return mathOps.helper(value + 1); }\n";
+    let py_named =
+        "from shared_math import helper\n\ndef f(value):\n    return helper(value + 1)\n";
+    let py_namespace =
+        "import shared_math as math_ops\n\ndef f(value):\n    return math_ops.helper(value + 1)\n";
+    let py_wrong_member =
+        "import shared_math as math_ops\n\ndef f(value):\n    return math_ops.other_helper(value + 1)\n";
+
+    let fp = value_fp(&i, js_named, Lang::JavaScript);
+    assert_eq!(fp, value_fp(&i, js_namespace, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, ts_namespace, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, js_wrong_member, Lang::JavaScript));
+
+    let py_fp = value_fp(&i, py_named, Lang::Python);
+    assert_eq!(py_fp, value_fp(&i, py_namespace, Lang::Python));
+    assert_ne!(py_fp, value_fp(&i, py_wrong_member, Lang::Python));
+}
+
+#[test]
 fn collection_membership_set_construction_converges_with_boundaries() {
     let i = Interner::new();
     let py_literal = "def f(value, other):\n    return value in [\"red\", \"blue\"]\n";

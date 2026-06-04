@@ -2521,3 +2521,75 @@ special case at the report layer: factory entries become canonical map entries i
 value graph, and exact-safe accepts only the same fully-qualified std factories over
 literal tuple arrays. Mutation remains outside the exact clone family because the
 mutating call contributes a distinct effect/value footprint.
+
+## Named-vs-namespace import coordinates: loops 289-294
+
+This loop deliberately switches away from the tempting but unsound imported-map-default
+shortcut. A static import proves an exported coordinate, but it does not by itself prove
+that an imported object has ordinary `Map` semantics. The strict frontier opened here is
+smaller and sound: a named import and a namespace member import of the same module/export
+coordinate denote the same imported value.
+
+The batch opens three adjacent same-invariant positives through generated surfaces:
+
+- JavaScript named import `helper` versus namespace member `mathOps.helper`;
+- TypeScript named import versus namespace member over the same export coordinate;
+- Python `from shared_math import helper` versus `import shared_math as math_ops` followed
+  by `math_ops.helper`.
+
+The hard boundary is a neighboring namespace member such as `mathOps.otherHelper` or
+`math_ops.other_helper`. Same module is not enough; the exported member coordinate must
+also match.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 289 | frontier selection | select named-vs-namespace import member identity under `axis_import_namespace_member_*` | focused corpus: 6 positives, 12 hard negatives |
+| 290 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/6 positives, 0/12 false merges |
+| 291 | generator adversary | add `axis_import_namespace_member_identity` and `axis_import_namespace_member_wrong_boundary` for JS-like/Python surfaces | wrong member is held out as an import-member boundary |
+| 292 | detector strengthening | canonicalize `namespace.member` over a proven static namespace import to the same `import_binding(module, member)` coordinate used by named imports | candidate focused: 6/6 positives, 0/12 false merges |
+| 293 | strict regression tests | add value-graph and CLI semantic tests for JS/TS/Python named-vs-namespace import coordinates | targeted tests passed |
+| 294 | release focused/core gates | build release and run focused import, import core, and all-cross core gates | focused 6/6, 0/12; import core 9/9, 0/12; all-cross 457/457, 0/866 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=18, positive=0/6, false_merges=0/12
+candidate release: items=18, positive=6/6, false_merges=0/12
+delta:             +6 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_import_namespace_member CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 18
+positive recall: 6/6
+hard-negative false merges: 0/12
+Raw nodes: 0/540
+```
+
+Final release import core gate:
+
+```text
+GATE=core AXIS=import_identity CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 21/112
+positive recall: 9/9
+hard-negative false merges: 0/12
+Raw nodes: 0/646
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1323/5826
+positive recall: 457/457
+hard-negative false merges: 0/866
+Raw nodes: 0/49548
+```
+
+Assessment: this is a smaller change than cross-file value resolution, but it improves
+the proof system in the right place. Namespace imports already prove a module coordinate;
+the member access now contributes the exported member coordinate, making it equivalent to
+the corresponding named import. This helps later import-aware detector work without
+guessing behavior of arbitrary imported objects.
