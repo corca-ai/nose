@@ -629,6 +629,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_findindex.js"),
+        "function arrayFindIndex(value, other) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value) !== -1;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_findindex.ts"),
+        "function arrayFindIndex(value: string, other: string): boolean {\n  return [\"red\", \"blue\"].findIndex((item: string) => item === value) >= 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("not_membership.py"),
         "def not_membership(value, other):\n    return value not in [\"red\", \"blue\"]\n",
     )
@@ -719,6 +729,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_findindex_wrong_element.js"),
+        "function arrayFindIndexWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value + third + other) !== -1;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_findindex_wrong_collection.ts"),
+        "function arrayFindIndexWrongCollection(value: string, other: string): boolean {\n  return [\"cyan\", \"magenta\"].findIndex((item: string) => item === value) >= 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_findindex_value.js"),
+        "function arrayFindIndexValue(value, other) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_every_wrong_element.js"),
         "function arrayEveryWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].every((item) => item !== third);\n}\n",
     )
@@ -804,6 +829,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_some.ts",
         "array_indexof.js",
         "array_indexof.ts",
+        "array_findindex.js",
+        "array_findindex.ts",
         "not_membership.py",
         "not_includes.js",
         "array_every.js",
@@ -829,6 +856,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_indexof_wrong_element.js",
         "array_indexof_wrong_collection.ts",
         "array_indexof_value.js",
+        "array_findindex_wrong_element.js",
+        "array_findindex_wrong_collection.ts",
+        "array_findindex_value.js",
         "array_every_wrong_element.js",
         "array_every_wrong_collection.ts",
         "substring.rs",

@@ -2948,7 +2948,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn eval_static_indexof_membership_comparison(
+    fn eval_static_index_membership_comparison(
         &mut self,
         op: u32,
         kids: &[NodeId],
@@ -2957,24 +2957,24 @@ impl<'a> Builder<'a> {
         if kids.len() != 2 {
             return None;
         }
-        if let Some((element, collection)) = self.static_indexof_call_parts(kids[0]) {
-            if self.is_indexof_membership_threshold(op, false, kids[1]) {
-                let element = self.eval(element, env);
-                let collection = self.eval_membership_collection(collection, env);
+        if self.is_index_membership_threshold(op, false, kids[1]) {
+            if let Some((element, collection)) = self.static_index_membership_parts(kids[0], env) {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
         }
-        if let Some((element, collection)) = self.static_indexof_call_parts(kids[1]) {
-            if self.is_indexof_membership_threshold(op, true, kids[0]) {
-                let element = self.eval(element, env);
-                let collection = self.eval_membership_collection(collection, env);
+        if self.is_index_membership_threshold(op, true, kids[0]) {
+            if let Some((element, collection)) = self.static_index_membership_parts(kids[1], env) {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
         }
         None
     }
 
-    fn static_indexof_call_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
+    fn static_index_membership_parts(
+        &mut self,
+        node: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<(ValueId, ValueId)> {
         if self.il.kind(node) != NodeKind::Call {
             return None;
         }
@@ -2985,28 +2985,39 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        if self.interner.resolve(method) != "indexOf" {
+        let method = self.interner.resolve(method);
+        let receiver = *self.il.children(kids[0]).first()?;
+        if !self.is_static_non_float_collection_expr(receiver) {
             return None;
         }
-        let receiver = *self.il.children(kids[0]).first()?;
-        self.is_static_non_float_collection_expr(receiver)
-            .then_some((kids[1], receiver))
+        if method == "indexOf" {
+            let element = self.eval(kids[1], env);
+            let collection = self.eval_membership_collection(receiver, env);
+            return Some((element, collection));
+        }
+        if method == "findIndex" && self.il.kind(kids[1]) == NodeKind::Lambda {
+            let collection = self.eval(receiver, env);
+            let elem = self.elem(collection);
+            let pred = self.eval_lambda_body(kids[1], &[elem])?;
+            return self.static_literal_membership_predicate(pred);
+        }
+        None
     }
 
-    fn is_indexof_membership_threshold(
+    fn is_index_membership_threshold(
         &self,
         op: u32,
-        indexof_on_right: bool,
+        index_call_on_right: bool,
         threshold: NodeId,
     ) -> bool {
         if self.is_minus_one_literal(threshold) {
             return op == Op::Ne as u32
-                || (!indexof_on_right && op == Op::Gt as u32)
-                || (indexof_on_right && op == Op::Lt as u32);
+                || (!index_call_on_right && op == Op::Gt as u32)
+                || (index_call_on_right && op == Op::Lt as u32);
         }
         if self.is_zero_literal(threshold) {
-            return (!indexof_on_right && op == Op::Ge as u32)
-                || (indexof_on_right && op == Op::Le as u32);
+            return (!index_call_on_right && op == Op::Ge as u32)
+                || (index_call_on_right && op == Op::Le as u32);
         }
         false
     }
@@ -3604,7 +3615,7 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
                     return v;
                 }
-                if let Some(v) = self.eval_static_indexof_membership_comparison(op, &kids, env) {
+                if let Some(v) = self.eval_static_index_membership_comparison(op, &kids, env) {
                     return v;
                 }
                 // Canonicalize subtraction to addition-of-negation: `a - b ≡ a + (-b)`

@@ -425,9 +425,7 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
                     .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
         }
         NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
-        NodeKind::BinOp
-            if strict_exact_static_indexof_membership_safe(il, interner, facts, node) =>
-        {
+        NodeKind::BinOp if strict_exact_static_index_membership_safe(il, interner, facts, node) => {
             true
         }
         NodeKind::Lit => exact_literal_safe(il, node),
@@ -450,7 +448,7 @@ fn exact_literal_safe(il: &Il, node: NodeId) -> bool {
     )
 }
 
-fn strict_exact_static_indexof_membership_safe(
+fn strict_exact_static_index_membership_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -463,14 +461,18 @@ fn strict_exact_static_indexof_membership_safe(
     if kids.len() != 2 {
         return false;
     }
-    if let Some((element, collection)) = strict_exact_static_indexof_parts(il, interner, kids[0]) {
-        if strict_exact_indexof_membership_threshold(il, op, false, kids[1]) {
+    if strict_exact_index_membership_threshold(il, op, false, kids[1]) {
+        if let Some((element, collection)) =
+            strict_exact_static_index_membership_parts(il, interner, facts, kids[0])
+        {
             return strict_exact_safe_tree(il, interner, facts, element)
                 && strict_exact_static_non_float_collection(il, collection);
         }
     }
-    if let Some((element, collection)) = strict_exact_static_indexof_parts(il, interner, kids[1]) {
-        if strict_exact_indexof_membership_threshold(il, op, true, kids[0]) {
+    if strict_exact_index_membership_threshold(il, op, true, kids[0]) {
+        if let Some((element, collection)) =
+            strict_exact_static_index_membership_parts(il, interner, facts, kids[1])
+        {
             return strict_exact_safe_tree(il, interner, facts, element)
                 && strict_exact_static_non_float_collection(il, collection);
         }
@@ -478,9 +480,10 @@ fn strict_exact_static_indexof_membership_safe(
     false
 }
 
-fn strict_exact_static_indexof_parts(
+fn strict_exact_static_index_membership_parts(
     il: &Il,
     interner: &Interner,
+    facts: &StrictFacts,
     node: NodeId,
 ) -> Option<(NodeId, NodeId)> {
     if il.kind(node) != NodeKind::Call {
@@ -493,28 +496,91 @@ fn strict_exact_static_indexof_parts(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return None;
     };
-    if interner.resolve(method) != "indexOf" {
+    let method = interner.resolve(method);
+    let receiver = *il.children(kids[0]).first()?;
+    if !strict_exact_static_non_float_collection(il, receiver) {
         return None;
     }
-    let receiver = *il.children(kids[0]).first()?;
-    strict_exact_static_non_float_collection(il, receiver).then_some((kids[1], receiver))
+    if method == "indexOf" {
+        return Some((kids[1], receiver));
+    }
+    if method == "findIndex" {
+        let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;
+        return Some((element, receiver));
+    }
+    None
 }
 
-fn strict_exact_indexof_membership_threshold(
+fn strict_exact_index_membership_threshold(
     il: &Il,
     op: Op,
-    indexof_on_right: bool,
+    index_call_on_right: bool,
     threshold: NodeId,
 ) -> bool {
     if strict_exact_minus_one_literal(il, threshold) {
         return op == Op::Ne
-            || (!indexof_on_right && op == Op::Gt)
-            || (indexof_on_right && op == Op::Lt);
+            || (!index_call_on_right && op == Op::Gt)
+            || (index_call_on_right && op == Op::Lt);
     }
     if matches!(il.node(threshold).payload, Payload::LitInt(0)) {
-        return (!indexof_on_right && op == Op::Ge) || (indexof_on_right && op == Op::Le);
+        return (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le);
     }
     false
+}
+
+fn strict_exact_lambda_eq_param_element(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    lambda: NodeId,
+) -> Option<NodeId> {
+    if il.kind(lambda) != NodeKind::Lambda {
+        return None;
+    }
+    let kids = il.children(lambda);
+    let param = kids.iter().find_map(|&kid| {
+        if il.kind(kid) != NodeKind::Param {
+            return None;
+        }
+        if let Payload::Cid(cid) = il.node(kid).payload {
+            Some(cid)
+        } else {
+            None
+        }
+    })?;
+    let ret = strict_exact_first_return_expr(il, *kids.last()?)?;
+    if il.kind(ret) != NodeKind::BinOp || !matches!(il.node(ret).payload, Payload::Op(Op::Eq)) {
+        return None;
+    }
+    let ret_kids = il.children(ret);
+    if ret_kids.len() != 2 {
+        return None;
+    }
+    if strict_exact_lambda_param_var(il, ret_kids[0], param) {
+        return strict_exact_safe_tree(il, interner, facts, ret_kids[1]).then_some(ret_kids[1]);
+    }
+    if strict_exact_lambda_param_var(il, ret_kids[1], param) {
+        return strict_exact_safe_tree(il, interner, facts, ret_kids[0]).then_some(ret_kids[0]);
+    }
+    None
+}
+
+fn strict_exact_first_return_expr(il: &Il, node: NodeId) -> Option<NodeId> {
+    if il.kind(node) == NodeKind::Return {
+        return il.children(node).first().copied();
+    }
+    if il.kind(node) == NodeKind::Block {
+        return il
+            .children(node)
+            .iter()
+            .find_map(|&child| strict_exact_first_return_expr(il, child));
+    }
+    None
+}
+
+fn strict_exact_lambda_param_var(il: &Il, node: NodeId, param: u32) -> bool {
+    il.kind(node) == NodeKind::Var
+        && matches!(il.node(node).payload, Payload::Cid(cid) if cid == param)
 }
 
 fn strict_exact_minus_one_literal(il: &Il, node: NodeId) -> bool {

@@ -1615,6 +1615,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         "function f(value, other) { return [\"red\", \"blue\"].indexOf(value) > -1; }";
     let js_array_indexof_reversed =
         "function f(value, other) { return -1 < [\"red\", \"blue\"].indexOf(value); }";
+    let js_array_findindex_ne = "function f(value, other) { return [\"red\", \"blue\"].findIndex((item) => item === value) !== -1; }";
+    let ts_array_findindex_ge = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].findIndex((item: string) => item === value) >= 0; }";
+    let js_array_findindex_gt = "function f(value, other) { return [\"red\", \"blue\"].findIndex((item) => item === value) > -1; }";
+    let js_array_findindex_reversed =
+        "function f(value, other) { return -1 < [\"red\", \"blue\"].findIndex((item) => item === value); }";
     let java_module_list = "import java.util.List;\n\nclass C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }";
     let js_wrong_element =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(other); }";
@@ -1630,9 +1635,15 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         "function f(value, other) { return [\"green\", \"blue\"].indexOf(value) >= 0; }";
     let js_array_indexof_value =
         "function f(value, other) { return [\"red\", \"blue\"].indexOf(value); }";
+    let js_array_findindex_wrong_element = "function f(value, other) { return [\"red\", \"blue\"].findIndex((item) => item === other) !== -1; }";
+    let js_array_findindex_wrong_collection = "function f(value, other) { return [\"green\", \"blue\"].findIndex((item) => item === value) >= 0; }";
+    let js_array_findindex_value =
+        "function f(value, other) { return [\"red\", \"blue\"].findIndex((item) => item === value); }";
     let js_nan_includes = "function f(value, other) { return [NaN].includes(value); }";
     let js_nan_some = "function f(value, other) { return [NaN].some((item) => item === value); }";
     let js_nan_indexof = "function f(value, other) { return [NaN].indexOf(value) !== -1; }";
+    let js_nan_findindex =
+        "function f(value, other) { return [NaN].findIndex((item) => item === value) !== -1; }";
     let py_absence = "def f(value, other):\n    return value not in [\"red\", \"blue\"]\n";
     let js_not_includes =
         "function f(value, other) { return ![\"red\", \"blue\"].includes(value); }";
@@ -1695,6 +1706,22 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         literal_fp,
         value_fp(&i, js_array_indexof_reversed, Lang::JavaScript)
     );
+    assert_eq!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_ne, Lang::JavaScript)
+    );
+    assert_eq!(
+        literal_fp,
+        value_fp(&i, ts_array_findindex_ge, Lang::TypeScript)
+    );
+    assert_eq!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_gt, Lang::JavaScript)
+    );
+    assert_eq!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_reversed, Lang::JavaScript)
+    );
     assert_eq!(literal_fp, value_fp(&i, java_list_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_set_of, Lang::Java));
     assert_eq!(literal_fp, value_fp(&i, java_arrays_aslist, Lang::Java));
@@ -1731,12 +1758,28 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         value_fp(&i, js_array_indexof_value, Lang::JavaScript)
     );
     assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_wrong_element, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_wrong_collection, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_findindex_value, Lang::JavaScript)
+    );
+    assert_ne!(
         value_fp(&i, js_nan_includes, Lang::JavaScript),
         value_fp(&i, js_nan_some, Lang::JavaScript)
     );
     assert_ne!(
         value_fp(&i, js_nan_includes, Lang::JavaScript),
         value_fp(&i, js_nan_indexof, Lang::JavaScript)
+    );
+    assert_ne!(
+        value_fp(&i, js_nan_includes, Lang::JavaScript),
+        value_fp(&i, js_nan_findindex, Lang::JavaScript)
     );
     let absence_fp = value_fp(&i, py_absence, Lang::Python);
     assert_ne!(literal_fp, absence_fp);

@@ -2815,3 +2815,78 @@ canonicalization and exact-safety gating: the return value fingerprint converged
 but semantic mode still correctly rejected the unit until the same proof was reflected in
 the safety walker. That coupling should remain a checklist item for future strict
 frontier loops.
+
+## Static array findIndex membership: loops 313-318
+
+This macro-loop keeps the same index-producing membership frontier, but adds a lambda
+predicate step. A static literal JS-like array comparison such as
+`["red", "blue"].findIndex(item => item === value) !== -1`, `>= 0`, or `> -1` is
+exact-equivalent to `value in ["red", "blue"]` only when the receiver is a direct
+non-float literal sequence and the lambda proves equality between the iterated element
+and the searched coordinate.
+
+The batch opens three adjacent proposal IDs:
+
+- `axis_membership_array_findindex_identity`;
+- `axis_membership_array_findindex_wrong_element_boundary`;
+- `axis_membership_array_findindex_wrong_collection_boundary`.
+
+The proof extends the previous `indexOf` comparison rule, but does not treat arbitrary
+`findIndex` calls as membership. The detector first checks the membership threshold
+comparison, then evaluates the lambda over `Elem(static literal collection)`, and only
+canonicalizes when the predicate is a literal-membership equality. The exact-safety walker
+mirrors this with a structural lambda check: first return must compare the lambda
+parameter to a safe searched element with `Eq`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 313 | batch frontier selection | group static JS-like `.findIndex(...)` membership comparisons plus wrong-element/wrong-collection boundaries under `axis_membership_array_findindex_*` | focused corpus: 18 positives, 54 hard negatives |
+| 314 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/18 positives, 0/54 false merges |
+| 315 | generator adversary | add cross-surface Python/Ruby/JS/TS references against JS/TS/Vue/Svelte/HTML `findIndex` comparison forms | `!== -1`, `>= 0`, and `> -1` spellings represented |
+| 316 | detector strengthening | canonicalize source-gated static `findIndex` lambda membership comparisons to `In(element, collection)` and mark the same proof exact-safe | candidate focused: 18/18 positives, 0/54 false merges |
+| 317 | strict regression tests | extend value-graph and CLI membership tests with spelling, reversed-comparison, raw-index, wrong-coordinate, and `NaN` boundaries | targeted tests passed |
+| 318 | release focused/core gates | build release and run focused findIndex, membership core, and all-cross core gates | focused 18/18, 0/54; membership core 91/91, 0/264; all-cross 473/473, 0/915 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=72, positive=0/18, false_merges=0/54
+candidate release: items=72, positive=18/18, false_merges=0/54
+delta:             +18 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_array_findindex CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 72
+positive recall: 18/18
+hard-negative false merges: 0/54
+Raw nodes: 0/2312
+```
+
+Final release literal-membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 355/854
+positive recall: 91/91
+hard-negative false merges: 0/264
+Raw nodes: 0/10496
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1388/6114
+positive recall: 473/473
+hard-negative false merges: 0/915
+Raw nodes: 0/51477
+```
+
+Assessment: this is a real frontier expansion beyond method-name normalization because
+the proof crosses into a callback. The useful pattern is still narrow: source literal
+receiver, non-float elements, proven equality predicate, and membership-threshold
+comparison. That keeps raw index results, non-membership predicates, dynamic receivers,
+and `NaN`/SameValueZero differences outside strict Type-4.
