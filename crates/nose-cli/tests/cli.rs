@@ -1476,6 +1476,21 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("py_alias_mapping.py"),
+        "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_mutable_mapping.py"),
+        "from collections.abc import MutableMapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_dict.py"),
+        "from typing import Dict as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("py_wrong_key.py"),
         "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n",
     )
@@ -1493,6 +1508,31 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     fs::write(
         dir.join("py_untyped.py"),
         "def f(lookup, other_lookup, key, other_key, fallback, other_default):\n    return lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_wrong_key.py"),
+        "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_wrong_default.py"),
+        "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_wrong_map.py"),
+        "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_unresolved.py"),
+        "def f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("py_alias_shadowed.py"),
+        "from collections.abc import Mapping as MapLike\nMapLike = list\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n",
     )
     .unwrap();
 
@@ -1521,6 +1561,9 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
         "py_dict.py",
         "py_mapping.py",
         "py_mutable_mapping.py",
+        "py_alias_mapping.py",
+        "py_alias_mutable_mapping.py",
+        "py_alias_dict.py",
     ];
     let positive_family = semantic_families
         .iter()
@@ -1549,6 +1592,11 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
         "py_wrong_default.py",
         "py_wrong_map.py",
         "py_untyped.py",
+        "py_alias_wrong_key.py",
+        "py_alias_wrong_default.py",
+        "py_alias_wrong_map.py",
+        "py_alias_unresolved.py",
+        "py_alias_shadowed.py",
     ] {
         assert!(
             !positive_text.contains(unexpected),

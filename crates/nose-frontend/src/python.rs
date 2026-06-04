@@ -123,6 +123,11 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         for part in names.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (exported, local) = py_import_specifier(part);
+            if let Some(semantic) = crate::lower::stdlib_type_semantic(module.trim(), exported) {
+                lo.record_param_semantic_alias(local, semantic);
+            } else {
+                lo.clear_param_semantic_alias(local);
+            }
             assigns.push(crate::lower::import_binding(
                 lo,
                 span,
@@ -134,6 +139,7 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     } else if let Some(rest) = text.strip_prefix("import ") {
         for part in rest.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (module, local) = py_import_specifier(part);
+            lo.clear_param_semantic_alias(local);
             assigns.push(crate::lower::import_namespace(
                 lo,
                 span,
@@ -190,7 +196,7 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
+        if let Some(semantic) = lo.param_semantic_from_text(lo.text(p)) {
             lo.record_param_semantic(span, semantic);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
@@ -212,6 +218,9 @@ fn param_name<'a>(lo: &Lowering<'a>, p: TsNode<'a>) -> Option<&'a str> {
 
 fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
+    if let Some(left) = node.child_by_field_name("left") {
+        clear_assigned_param_alias(lo, left);
+    }
     let lhs = match node.child_by_field_name("left") {
         Some(l) => lower_expr(lo, l),
         None => lo.empty_block(span),
@@ -227,6 +236,9 @@ fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let left = node.child_by_field_name("left");
+    if let Some(l) = left {
+        clear_assigned_param_alias(lo, l);
+    }
     let right = node.child_by_field_name("right");
     let op = node
         .child_by_field_name("operator")
@@ -248,6 +260,13 @@ fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     };
     let binop = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[lhs2, rhs]);
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, binop])
+}
+
+fn clear_assigned_param_alias(lo: &mut Lowering, node: TsNode) {
+    if node.kind() == "identifier" {
+        let name = lo.text(node).to_string();
+        lo.clear_param_semantic_alias(&name);
+    }
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -975,6 +975,18 @@ AXIS_PROPOSALS = {
         "axis": "map_default_lookup",
         "why": "A typed Python `MutableMapping[str, int].get(key, fallback)` call should prove dynamic map-default lookup.",
     },
+    "axis_map_fallback_python_alias_mapping_identity": {
+        "axis": "map_default_lookup",
+        "why": "A Python alias import of `collections.abc.Mapping` used as a parameter annotation should prove dynamic map-default lookup.",
+    },
+    "axis_map_fallback_python_alias_mutable_mapping_identity": {
+        "axis": "map_default_lookup",
+        "why": "A Python alias import of `collections.abc.MutableMapping` used as a parameter annotation should prove dynamic map-default lookup.",
+    },
+    "axis_map_fallback_python_alias_dict_identity": {
+        "axis": "map_default_lookup",
+        "why": "A Python alias import of `typing.Dict` used as a parameter annotation should prove dynamic map-default lookup.",
+    },
     "axis_map_fallback_python_wrong_key_boundary": {
         "axis": "map_default_lookup",
         "why": "Typed Python map-default lookups over different key parameters are different proof coordinates.",
@@ -990,6 +1002,26 @@ AXIS_PROPOSALS = {
     "axis_map_fallback_python_untyped_boundary": {
         "axis": "map_default_lookup",
         "why": "Untyped Python `.get(key, fallback)` cannot prove receiver/key/default semantics.",
+    },
+    "axis_map_fallback_python_alias_wrong_key_boundary": {
+        "axis": "map_default_lookup",
+        "why": "Python alias-proven map-default lookups over different key parameters are different proof coordinates.",
+    },
+    "axis_map_fallback_python_alias_wrong_default_boundary": {
+        "axis": "map_default_lookup",
+        "why": "Python alias-proven map-default lookups with different fallback parameters change absent-key behavior.",
+    },
+    "axis_map_fallback_python_alias_wrong_map_boundary": {
+        "axis": "map_default_lookup",
+        "why": "Python alias-proven map-default lookups over different receiver maps change present-key behavior.",
+    },
+    "axis_map_fallback_python_alias_unresolved_boundary": {
+        "axis": "map_default_lookup",
+        "why": "A Python annotation alias without a proven stdlib map import is not strict map-default evidence.",
+    },
+    "axis_map_fallback_python_alias_shadowed_boundary": {
+        "axis": "map_default_lookup",
+        "why": "A Python stdlib map annotation alias shadowed before use is not strict map-default evidence.",
     },
     "axis_table_access": {
         "axis": "table_access",
@@ -3577,10 +3609,22 @@ def map_default_lookup_axis_parts(
         form = "py_mapping"
     if proposal_id == "axis_map_fallback_python_mutable_mapping_get_identity":
         form = "py_mutable_mapping"
+    if proposal_id == "axis_map_fallback_python_alias_mapping_identity":
+        form = "py_alias_mapping"
+    if proposal_id == "axis_map_fallback_python_alias_mutable_mapping_identity":
+        form = "py_alias_mutable_mapping"
+    if proposal_id == "axis_map_fallback_python_alias_dict_identity":
+        form = "py_alias_dict"
     if proposal_id.startswith("axis_map_fallback_python_wrong_"):
         form = "py_dict"
     if proposal_id == "axis_map_fallback_python_untyped_boundary":
         form = "py_untyped"
+    if proposal_id.startswith("axis_map_fallback_python_alias_wrong_"):
+        form = "py_alias_mapping"
+    if proposal_id == "axis_map_fallback_python_alias_unresolved_boundary":
+        form = "py_alias_unresolved"
+    if proposal_id == "axis_map_fallback_python_alias_shadowed_boundary":
+        form = "py_alias_shadowed"
     if right and proposal_id == "axis_map_fallback_wrong_key_boundary":
         key = "other_key"
     if right and proposal_id == "axis_map_fallback_wrong_default_boundary":
@@ -3599,6 +3643,12 @@ def map_default_lookup_axis_parts(
         default = "other_default"
     if right and proposal_id == "axis_map_fallback_python_wrong_map_boundary":
         receiver = "other_lookup"
+    if right and proposal_id == "axis_map_fallback_python_alias_wrong_key_boundary":
+        key = "other_key"
+    if right and proposal_id == "axis_map_fallback_python_alias_wrong_default_boundary":
+        default = "other_default"
+    if right and proposal_id == "axis_map_fallback_python_alias_wrong_map_boundary":
+        receiver = "other_lookup"
     if right and negative and proposal_id == "axis_map_fallback_identity":
         key = "other_key"
     if right and negative and proposal_id in {
@@ -3608,6 +3658,9 @@ def map_default_lookup_axis_parts(
         "axis_map_fallback_python_dict_get_identity",
         "axis_map_fallback_python_mapping_get_identity",
         "axis_map_fallback_python_mutable_mapping_get_identity",
+        "axis_map_fallback_python_alias_mapping_identity",
+        "axis_map_fallback_python_alias_mutable_mapping_identity",
+        "axis_map_fallback_python_alias_dict_identity",
     }:
         key = "other_key"
     return receiver, key, default, form
@@ -3696,6 +3749,20 @@ pub fn {name}(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, ke
         elif form == "py_mutable_mapping":
             annotation = "MutableMapping[str, int]"
             import_line = "from collections.abc import MutableMapping\n\n"
+        elif form == "py_alias_mapping":
+            annotation = "MapLike[str, int]"
+            import_line = "from collections.abc import Mapping as MapLike\n\n"
+        elif form == "py_alias_mutable_mapping":
+            annotation = "MapLike[str, int]"
+            import_line = "from collections.abc import MutableMapping as MapLike\n\n"
+        elif form == "py_alias_dict":
+            annotation = "MapLike[str, int]"
+            import_line = "from typing import Dict as MapLike\n\n"
+        elif form == "py_alias_unresolved":
+            annotation = "MapLike[str, int]"
+        elif form == "py_alias_shadowed":
+            annotation = "MapLike[str, int]"
+            import_line = "from collections.abc import Mapping as MapLike\nMapLike = list\n\n"
         elif form == "py_untyped":
             annotation = None
         receiver_annotation = f": {annotation}" if annotation else ""
@@ -9387,6 +9454,9 @@ def generate_map_default_lookup_cross_items(
         "axis_map_fallback_python_dict_get_identity",
         "axis_map_fallback_python_mapping_get_identity",
         "axis_map_fallback_python_mutable_mapping_get_identity",
+        "axis_map_fallback_python_alias_mapping_identity",
+        "axis_map_fallback_python_alias_mutable_mapping_identity",
+        "axis_map_fallback_python_alias_dict_identity",
     ):
         if not generation_filter.include_proposal(proposal_id):
             continue
@@ -9419,6 +9489,11 @@ def generate_map_default_lookup_cross_items(
         "axis_map_fallback_python_wrong_default_boundary",
         "axis_map_fallback_python_wrong_map_boundary",
         "axis_map_fallback_python_untyped_boundary",
+        "axis_map_fallback_python_alias_wrong_key_boundary",
+        "axis_map_fallback_python_alias_wrong_default_boundary",
+        "axis_map_fallback_python_alias_wrong_map_boundary",
+        "axis_map_fallback_python_alias_unresolved_boundary",
+        "axis_map_fallback_python_alias_shadowed_boundary",
     ):
         if not generation_filter.include_proposal(proposal_id):
             continue

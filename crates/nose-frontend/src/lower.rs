@@ -15,6 +15,7 @@ pub(crate) struct Lowering<'a> {
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
     pub param_type_facts: Vec<ParamTypeFact>,
+    pub param_semantic_aliases: Vec<(String, ParamSemantic)>,
 }
 
 impl<'a> Lowering<'a> {
@@ -25,6 +26,7 @@ impl<'a> Lowering<'a> {
             interner,
             units: Vec::new(),
             param_type_facts: Vec::new(),
+            param_semantic_aliases: Vec::new(),
         }
     }
 
@@ -60,6 +62,43 @@ impl<'a> Lowering<'a> {
 
     pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
         self.param_type_facts.push(ParamTypeFact { span, semantic });
+    }
+
+    pub(crate) fn record_param_semantic_alias(&mut self, local: &str, semantic: ParamSemantic) {
+        let alias = normalize_type_text(local);
+        if alias.is_empty() {
+            return;
+        }
+        if let Some((_, existing)) = self
+            .param_semantic_aliases
+            .iter_mut()
+            .find(|(known, _)| known == &alias)
+        {
+            *existing = semantic;
+            return;
+        }
+        self.param_semantic_aliases.push((alias, semantic));
+    }
+
+    pub(crate) fn clear_param_semantic_alias(&mut self, local: &str) {
+        let alias = normalize_type_text(local);
+        if alias.is_empty() {
+            return;
+        }
+        self.param_semantic_aliases
+            .retain(|(known, _)| known != &alias);
+    }
+
+    pub(crate) fn param_semantic_from_text(&self, text: &str) -> Option<ParamSemantic> {
+        param_semantic_from_text(text).or_else(|| {
+            let t = normalize_type_text(text);
+            self.param_semantic_aliases
+                .iter()
+                .find_map(|(alias, semantic)| {
+                    (t.contains(&format!(":{alias}[")) || t.contains(&format!(":{alias}<")))
+                        .then_some(*semantic)
+                })
+        })
     }
 
     /// An empty `Block` (used for absent loop init/update slots, empty bodies).
@@ -250,12 +289,15 @@ pub(crate) fn lower_file(
     Ok(il)
 }
 
-pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
-    let t: String = text
-        .chars()
+fn normalize_type_text(text: &str) -> String {
+    text.chars()
         .filter(|c| !c.is_whitespace())
         .flat_map(char::to_lowercase)
-        .collect();
+        .collect()
+}
+
+pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
+    let t = normalize_type_text(text);
     if t.contains("hashmap<")
         || t.contains("btreemap<")
         || t.contains("map<")
@@ -360,6 +402,17 @@ pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
         || t.contains(":f64")
     {
         return Some(ParamSemantic::Number);
+    }
+    None
+}
+
+pub(crate) fn stdlib_type_semantic(module: &str, exported: &str) -> Option<ParamSemantic> {
+    let module = module.trim();
+    let exported = exported.trim();
+    if matches!(module, "typing" | "collections.abc")
+        && matches!(exported, "Dict" | "Mapping" | "MutableMapping")
+    {
+        return Some(ParamSemantic::Map);
     }
     None
 }

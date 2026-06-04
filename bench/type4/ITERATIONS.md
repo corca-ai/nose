@@ -3626,3 +3626,72 @@ new Rust std factory positive, while the candidate proves all six and preserves 
 focused, membership-core, and all-cross hard negatives. The limit is also clear:
 batching should be breadth-first across related surface families, not a license to mix
 unrelated semantics into one opaque detector change.
+
+## Batch-3 Python stdlib map type aliases: loops 372-376
+
+This loop keeps the batch-3 cadence but moves from collection construction to typed
+dynamic map-default lookup. The selected frontier is Python annotation provenance for
+stdlib map aliases:
+
+- `axis_map_fallback_python_alias_mapping_identity`;
+- `axis_map_fallback_python_alias_mutable_mapping_identity`;
+- `axis_map_fallback_python_alias_dict_identity`.
+
+The proof invariant is not the alias spelling itself. It is the static import fact:
+`from typing|collections.abc import Dict|Mapping|MutableMapping as Alias` gives the
+parameter annotation `Alias[...]` the same coarse `ParamSemantic::Map` fact as a direct
+`dict[...]`, `Mapping[...]`, or `MutableMapping[...]` annotation. Unresolved aliases,
+shadowed aliases, wrong keys, wrong defaults, and wrong receivers stay hard boundaries.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 372 | batch frontier selection | group Python `Mapping as Alias`, `MutableMapping as Alias`, and `Dict as Alias` map-default lookups under `axis_map_fallback_python_alias_*` | focused corpus: 9 positives, 24 hard negatives |
+| 373 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/9 positives, 0/24 false merges |
+| 374 | detector strengthening | record stdlib type-import aliases during Python lowering and seed `ParamSemantic::Map` from alias-backed annotations, clearing aliases on shadowing | focused: 9/9 positives, 0/24 false merges |
+| 375 | strict regression tests | add value-graph and CLI semantic positives plus wrong-key, wrong-default, wrong-map, unresolved-alias, and shadowed-alias boundaries | targeted and full CLI/equivalence tests passed |
+| 376 | release focused/core gates | build release and run focused, map-default core, and all-cross core gates | focused 9/9, 0/24; map-default core 32/32, 0/78; all-cross 563/563, 0/1077 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=33, positive=0/9, false_merges=0/24
+candidate release: items=33, positive=9/9, false_merges=0/24
+delta:             +9 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_fallback_python_alias_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 33
+positive recall: 9/9
+hard-negative false merges: 0/24
+Raw nodes: 0/1556
+```
+
+Final release map-default core gate:
+
+```text
+GATE=core AXIS=map_default_lookup CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 110/123
+positive recall: 32/32
+hard-negative false merges: 0/78
+Raw nodes: 0/5212
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1640/6481
+positive recall: 563/563
+hard-negative false merges: 0/1077
+Raw nodes: 0/60313
+```
+
+Assessment: this is a useful coevolution step because the generator found a strict
+frontier the detector genuinely missed, and the detector expansion is proof-bearing
+rather than name-based. The unresolved-alias and shadowed-alias boundaries are important:
+`Alias[...]` alone is still not evidence, and a once-valid alias stops being evidence
+after rebinding. Only an active earlier static stdlib type import makes the alias safe
+enough for exact Type-4 reporting.
