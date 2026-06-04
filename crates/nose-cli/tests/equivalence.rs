@@ -1599,6 +1599,12 @@ fn import_named_and_namespace_member_coordinates_converge() {
 fn collection_membership_set_construction_converges_with_boundaries() {
     let i = Interner::new();
     let py_literal = "def f(value, other):\n    return value in [\"red\", \"blue\"]\n";
+    let py_set_factory =
+        "def f(value, other):\n    return set([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_tuple_factory =
+        "def f(value, other):\n    return tuple([\"red\", \"blue\"]).__contains__(value)\n";
+    let py_frozenset_factory =
+        "def f(value, other):\n    return frozenset([\"red\", \"blue\"]).__contains__(value)\n";
     let js_set_inline =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_set_local = "function f(value, other) { const values = new Set([\"red\", \"blue\"]); return values.has(value); }";
@@ -1693,6 +1699,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let java_shadowed_list = "class C { static boolean f(Object List, String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_local_list_class = "class C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }\nclass List { static Box of(String a, String b) { return new Box(); } }\nclass Box { boolean contains(String value) { return false; } }";
     let java_module_list_shadowed = "class C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }\nclass List<T> { static java.util.List<String> of(String left, String right) { return java.util.List.of(\"green\", right); } }";
+    let py_factory_wrong_element =
+        "def f(value, other):\n    return set([\"red\", \"blue\"]).__contains__(other)\n";
+    let py_factory_wrong_collection =
+        "def f(value, other):\n    return set([\"green\", \"blue\"]).__contains__(value)\n";
+    let py_factory_shadowed = "def f(value, other):\n    def set(_values):\n        class Box:\n            def __contains__(self, _value):\n                return False\n        return Box()\n    return set([\"red\", \"blue\"]).__contains__(value)\n";
     let go_slices_wrong_element = "package p\n\nimport \"slices\"\n\nvar values = []string{\"red\", \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, other) }\n";
     let go_slices_wrong_collection = "package p\n\nimport \"slices\"\n\nvar values = []string{\"green\", \"blue\"}\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
     let go_slices_mutated = "package p\n\nimport \"slices\"\n\nvar values = append([]string{\"red\", \"blue\"}, \"green\")\n\nfunc F(value string, other string) bool { return slices.Contains(values, value) }\n";
@@ -1703,6 +1714,9 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_local_custom_receiver = "struct Values;\nimpl Values { fn contains(&self, _value: &&str) -> bool { false } }\npub fn f(value: &str, other: &str) -> bool {\n    let values = Values;\n    values.contains(&value)\n}\n";
 
     let literal_fp = value_fp(&i, py_literal, Lang::Python);
+    assert_eq!(literal_fp, value_fp(&i, py_set_factory, Lang::Python));
+    assert_eq!(literal_fp, value_fp(&i, py_tuple_factory, Lang::Python));
+    assert_eq!(literal_fp, value_fp(&i, py_frozenset_factory, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
@@ -1920,6 +1934,15 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         literal_fp,
         value_fp(&i, java_module_list_shadowed, Lang::Java)
     );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_factory_wrong_element, Lang::Python)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_factory_wrong_collection, Lang::Python)
+    );
+    assert_ne!(literal_fp, value_fp(&i, py_factory_shadowed, Lang::Python));
     assert_ne!(literal_fp, value_fp(&i, go_slices_wrong_element, Lang::Go));
     assert_ne!(
         literal_fp,

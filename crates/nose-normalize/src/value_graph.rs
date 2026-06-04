@@ -471,6 +471,28 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
     }
 
+    fn proven_python_collection_factory_value(&self, value: ValueId) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::Python {
+            return None;
+        }
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
+            return None;
+        }
+        let args = node.args.clone();
+        let builtin = ["list", "set", "frozenset", "tuple"]
+            .into_iter()
+            .any(|name| self.is_free_name_value(args[0], name) && !self.file_defines_name(name));
+        if !builtin {
+            return None;
+        }
+        let collection = args[1];
+        if !matches!(self.nodes[collection as usize].op, ValOp::Seq(1)) {
+            return None;
+        }
+        Some(collection)
+    }
+
     fn is_free_java_std_name(&self, value: ValueId, name: &str) -> bool {
         self.is_free_name_value(value, name) && !self.java_file_defines_type_name(name)
     }
@@ -508,12 +530,23 @@ impl<'a> Builder<'a> {
         })
     }
 
+    fn file_defines_name(&self, name: &str) -> bool {
+        self.top_level_statements().iter().any(|&stmt| {
+            self.assignment_name(stmt)
+                .is_some_and(|symbol| self.interner.resolve(symbol) == name)
+        }) || self.il.units.iter().any(|unit| {
+            unit.name
+                .is_some_and(|symbol| self.interner.resolve(symbol) == name)
+        })
+    }
+
     fn proven_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
         if matches!(self.nodes[value as usize].op, ValOp::Seq(1)) {
             return Some(value);
         }
         self.proven_set_constructor_collection(value)
             .or_else(|| self.proven_java_collection_factory_value(value))
+            .or_else(|| self.proven_python_collection_factory_value(value))
     }
 
     fn proven_map_constructor_entries(&mut self, value: ValueId) -> Option<ValueId> {
@@ -3455,7 +3488,8 @@ impl<'a> Builder<'a> {
             return self.mk(ValOp::CollectionParam, vec![value]);
         }
         if self.il.kind(collection) != NodeKind::Seq {
-            return self.eval(collection, env);
+            let value = self.eval(collection, env);
+            return self.proven_collection_value(value).unwrap_or(value);
         }
         let kids = self.il.children(collection).to_vec();
         let items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();

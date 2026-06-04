@@ -371,6 +371,30 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A Rust `VecDeque<T>` parameter should prove the same collection-membership predicate as other typed dynamic collections.",
     },
+    "axis_membership_python_set_factory_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python builtin `set([...]).__contains__(value)` factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_tuple_factory_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python builtin `tuple([...]).__contains__(value)` factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_frozenset_factory_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python builtin `frozenset([...]).__contains__(value)` factory over static items should prove the same literal membership predicate.",
+    },
+    "axis_membership_python_factory_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python builtin collection factory membership remains tied to a specific element coordinate.",
+    },
+    "axis_membership_python_factory_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Python builtin collection factory membership over different static items changes the collection coordinate.",
+    },
+    "axis_membership_python_factory_shadowed_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "A shadowed Python collection factory name is not proof of the builtin collection constructor.",
+    },
     "axis_membership_set_inline_identity": {
         "axis": "literal_collection_membership",
         "why": "An inline `new Set([...]).has(value)` over a static literal should prove the same membership predicate as literal collection APIs.",
@@ -2394,6 +2418,8 @@ def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> boo
         return surface.key == "java"
     if proposal_id == "axis_membership_typefact_rust_vecdeque_identity":
         return surface.key == "rust"
+    if proposal_id.startswith("axis_membership_python_"):
+        return surface.key == "python"
     if proposal_id.startswith("axis_membership_set_"):
         return surface.key in {"python", "javascript", "typescript", "go", "rust", "ruby"}
     if proposal_id.startswith("axis_membership_array_some_"):
@@ -2460,6 +2486,19 @@ def membership_axis_parts(
         form = "java_queue_param" if right else "typed_membership"
     if proposal_id == "axis_membership_typefact_rust_vecdeque_identity":
         form = "rust_vecdeque_param" if right else "typed_membership"
+    if proposal_id == "axis_membership_python_set_factory_identity":
+        form = "python_set_factory" if right else "membership"
+    if proposal_id == "axis_membership_python_tuple_factory_identity":
+        form = "python_tuple_factory" if right else "membership"
+    if proposal_id == "axis_membership_python_frozenset_factory_identity":
+        form = "python_frozenset_factory" if right else "membership"
+    if proposal_id in {
+        "axis_membership_python_factory_wrong_element_boundary",
+        "axis_membership_python_factory_wrong_collection_boundary",
+    }:
+        form = "python_set_factory" if right else "membership"
+    if proposal_id == "axis_membership_python_factory_shadowed_boundary":
+        form = "python_set_factory_shadowed" if right else "membership"
     if proposal_id in {
         "axis_membership_set_inline_identity",
         "axis_membership_set_wrong_element_boundary",
@@ -2582,6 +2621,9 @@ def membership_axis_parts(
         "axis_membership_typefact_python_tuple_identity",
         "axis_membership_typefact_java_queue_identity",
         "axis_membership_typefact_rust_vecdeque_identity",
+        "axis_membership_python_set_factory_identity",
+        "axis_membership_python_tuple_factory_identity",
+        "axis_membership_python_frozenset_factory_identity",
     }:
         element = "other"
     if right and proposal_id == "axis_membership_set_wrong_element_boundary":
@@ -2592,7 +2634,7 @@ def membership_axis_parts(
         element = "other"
     if right and proposal_id.endswith("_wrong_collection_boundary"):
         items = ("green", "blue")
-    if right and proposal_id.endswith("_shadowed_boundary"):
+    if right and proposal_id.endswith("_shadowed_boundary") and not form.startswith("python_"):
         form = f"{form}_shadowed"
     return element, items, form
 
@@ -2610,6 +2652,8 @@ def axis_membership_literal_variant(
         form = "typed_membership"
     if form == "rust_vecdeque_param" and surface.key != "rust":
         form = "typed_membership"
+    if form.startswith("python_") and surface.key != "python":
+        form = "membership"
     name = {
         "javascript": "buildCase" if right else "axisCase",
         "typescript": "buildCase" if right else "axisCase",
@@ -2846,6 +2890,30 @@ function {name}(value: string, other: string): boolean {{
         return Variant("axis", src, name)
 
     if surface.key == "python":
+        if form in {
+            "python_set_factory",
+            "python_tuple_factory",
+            "python_frozenset_factory",
+            "python_set_factory_shadowed",
+        }:
+            ctor = {
+                "python_set_factory": "set",
+                "python_tuple_factory": "tuple",
+                "python_frozenset_factory": "frozenset",
+                "python_set_factory_shadowed": "set",
+            }[form]
+            shadow = ""
+            if form == "python_set_factory_shadowed":
+                shadow = """    def set(_values):
+        class Box:
+            def __contains__(self, _value):
+                return False
+        return Box()
+"""
+            src = f"""def {name}(value, other):
+{shadow}    return {ctor}(["{left}", "{right_item}"]).__contains__({element})
+"""
+            return Variant("axis", src, name)
         if form == "python_tuple_param":
             src = f"""def {name}(values: tuple[str, ...], value: str, other: str) -> bool:
     return {element} in values
@@ -6931,6 +6999,9 @@ def generate_axis_items(
                 "axis_membership_unproven_receiver_boundary",
                 "axis_membership_typed_wrong_element_boundary",
                 "axis_membership_typed_string_boundary",
+                "axis_membership_python_factory_wrong_element_boundary",
+                "axis_membership_python_factory_wrong_collection_boundary",
+                "axis_membership_python_factory_shadowed_boundary",
                 "axis_membership_array_some_wrong_element_boundary",
                 "axis_membership_array_some_wrong_collection_boundary",
                 "axis_membership_array_every_wrong_element_boundary",
@@ -7461,6 +7532,51 @@ def generate_literal_membership_cross_items(
                     proposal_id,
                     left_surface,
                     right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
+    python_factory_reference_surfaces = [
+        surface_by_key["python"],
+        surface_by_key["typescript"],
+        surface_by_key["go"],
+        surface_by_key["rust"],
+        surface_by_key["java"],
+    ]
+    if cross_mode == "ring":
+        python_factory_reference_surfaces = [surface_by_key["typescript"]]
+    elif cross_mode == "none":
+        python_factory_reference_surfaces = []
+    python_factory_right = surface_by_key["python"]
+    for proposal_id in (
+        "axis_membership_python_set_factory_identity",
+        "axis_membership_python_tuple_factory_identity",
+        "axis_membership_python_frozenset_factory_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in python_factory_reference_surfaces:
+            if left_surface.key == python_factory_right.key:
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    python_factory_right,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    python_factory_right,
                     "not_equivalent",
                     "heldout",
                     "literal_collection_membership-semantic-mutation",

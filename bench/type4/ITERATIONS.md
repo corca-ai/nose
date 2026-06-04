@@ -3351,3 +3351,69 @@ weakening the oracle: the new proposals share a single proof rule, focused smoke
 the baseline miss, and core smoke proved no boundary regression. The next loop should keep
 the same shape: three adjacent positives opened by one strict invariant, plus focused
 negative mutations in the same prefix.
+
+## Python builtin collection factories: loops 353-356
+
+This loop continues the accelerated batch-3 cadence on `literal_collection_membership`.
+The shared invariant is a Python construction fact: an unshadowed builtin
+`set(...)`, `tuple(...)`, or `frozenset(...)` call over a proven static collection
+denotes the same membership collection coordinate. The batch opens:
+
+- `axis_membership_python_set_factory_identity`;
+- `axis_membership_python_tuple_factory_identity`;
+- `axis_membership_python_frozenset_factory_identity`.
+
+The strict boundary is just as important as the positives. The generator includes
+wrong-element and wrong-collection mutations, plus a local `set = ...` shadowing case.
+The detector only trusts the factory when the callee is a Python free builtin name and
+the same file does not define that name.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 353 | batch frontier selection | group Python `set`, `tuple`, and `frozenset` builtin factories under `axis_membership_python_*` | focused corpus: 15 positives, 18 hard negatives |
+| 354 | baseline measurement | scan the focused batch with the previous release detector before rebuilding | baseline: 0/15 positives, 0/18 false merges |
+| 355 | detector strengthening | normalize unshadowed Python collection factories and mark matching `.__contains__` calls exact-safe | targeted tests passed |
+| 356 | release focused/core gates | build release and run focused, membership core, and all-cross core gates | focused 15/15, 0/18; membership core 128/128, 0/320; all-cross 530/530, 0/1014 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=33, positive=0/15, false_merges=0/18
+candidate release: items=33, positive=15/15, false_merges=0/18
+delta:             +15 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_python_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 33
+positive recall: 15/15
+hard-negative false merges: 0/18
+Raw nodes: 0/946
+```
+
+Final release membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 448/1061
+positive recall: 128/128
+hard-negative false merges: 0/320
+Raw nodes: 0/13298
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1544/6385
+positive recall: 530/530
+hard-negative false merges: 0/1014
+Raw nodes: 0/56752
+```
+
+Assessment: this is the right acceleration pattern. Three related positives moved in
+one implementation batch, but the detector still gained only one narrow proof fact:
+unshadowed Python builtin collection factories over already-proven static collections.
+The batch added coverage without trusting arbitrary dynamic receivers or shadowed names.

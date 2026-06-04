@@ -574,6 +574,21 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("python_set_factory.py"),
+        "def python_set_factory(value, other):\n    return set([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_tuple_factory.py"),
+        "def python_tuple_factory(value, other):\n    return tuple([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("python_frozenset_factory.py"),
+        "def python_frozenset_factory(value, other):\n    return frozenset([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership.js"),
         "function membership(value, other) {\n  return [\"red\", \"blue\"].includes(value);\n}\n",
     )
@@ -819,6 +834,11 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("python_factory_shadowed.py"),
+        "def python_factory_shadowed(value, other):\n    def set(_values):\n        class Box:\n            def __contains__(self, _value):\n                return False\n        return Box()\n    return set([\"red\", \"blue\"]).__contains__(value)\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("go_slices_mutated.go"),
         "package p\n\nimport \"slices\"\n\nvar values = append([]string{\"red\", \"blue\"}, \"green\")\n\nfunc SlicesMutated(value string, other string) bool {\n    return slices.Contains(values, value)\n}\n",
     )
@@ -868,6 +888,9 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "membership.go",
         "membership.rs",
         "membership.rb",
+        "python_set_factory.py",
+        "python_tuple_factory.py",
+        "python_frozenset_factory.py",
         "module_set.js",
         "module_set.ts",
         "array_some.js",
@@ -919,6 +942,7 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "module_set_mutated.js",
         "module_set_shadowed.ts",
         "module_list_shadowed.java",
+        "python_factory_shadowed.py",
         "go_slices_mutated.go",
         "go_slices_unimported.go",
         "rust_local_mutated.rs",
