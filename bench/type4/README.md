@@ -56,26 +56,26 @@ becomes a CI gate.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 1800
-positive recall: 743/743
-hard-negative false merges: 0/1057
+items: 1866
+positive recall: 765/765
+hard-negative false merges: 0/1101
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1382
-positive recall: 534/534
-hard-negative false merges: 0/848
+items: 1448
+positive recall: 556/556
+hard-negative false merges: 0/892
 ```
 
-With `--cross all`, the dense corpus now has 3472 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 3538 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 501/3472
-positive recall: 215/215
-hard-negative false merges: 0/286
+selected items: 523/3538
+positive recall: 226/226
+hard-negative false merges: 0/297
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic
@@ -139,6 +139,20 @@ The ranking is a triage input, not gold evidence. It combines real-code frequenc
 repo/language spread, estimated implementation cost, soundness risk, scope, and whether a
 frontier is already covered. The next loop should prefer high-scoring all-language or
 multi-language axes unless a language-family axis is fixing an urgent soundness bug.
+
+Use the prioritizer as a repeated pattern loop, not as a one-off report:
+
+- quantify broad pattern frequency and extraction gaps across the pinned repos;
+- add one narrow synthetic axis with positive and hard-negative siblings;
+- patch the detector only where the miss is a strict proof gap;
+- compare installed/release and modified detectors on real repos;
+- update the candidate status so the next cost-effective axis rises.
+
+For a new semantic axis, run this loop at least once end to end before adding more
+patterns. Continue for three to five passes while the top candidate still changes or real
+delta audits expose missed strict families. Stop expanding that axis when synthetic
+positives are closed, hard negatives stay clean, and the prioritizer has moved the axis to
+`covered-current`.
 
 ## CI smoke
 

@@ -270,6 +270,147 @@ fn scan_mode_semantic_allows_proved_js_static_builtins() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_collection_empty_checks() {
+    let dir = std::env::temp_dir().join(format!("nose_collection_empty_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("rust_len.rs"),
+        "pub fn empty_len(items: &[i32], other: &[i32]) -> bool {\n    items.len() == 0\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_named.rs"),
+        "pub fn empty_named(values: &[i32], other: &[i32]) -> bool {\n    values.is_empty()\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_threshold_negative.rs"),
+        "pub fn one_item(items: &[i32], other: &[i32]) -> bool {\n    items.len() == 1\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("rust_receiver_negative.rs"),
+        "pub fn other_empty(items: &[i32], other: &[i32]) -> bool {\n    other.is_empty()\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("java_size.java"),
+        "class JavaSize { static boolean emptySize(java.util.List<Integer> items, java.util.List<Integer> other) { return items.size() == 0; } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("java_named.java"),
+        "class JavaNamed { static boolean emptyNamed(java.util.List<Integer> values, java.util.List<Integer> other) { return values.isEmpty(); } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ruby_length.rb"),
+        "def empty_length(items, other)\n  items.length == 0\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ruby_named.rb"),
+        "def empty_named(values, other)\n  values.empty?\nend\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert!(
+        !semantic_families.is_empty(),
+        "semantic mode should report collection emptiness families: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("rust_len.rs")
+            && semantic_text.contains("rust_named.rs")
+            && semantic_text.contains("java_size.java")
+            && semantic_text.contains("java_named.java")
+            && semantic_text.contains("ruby_length.rb")
+            && semantic_text.contains("ruby_named.rb")
+            && !semantic_text.contains("rust_threshold_negative.rs")
+            && !semantic_text.contains("rust_receiver_negative.rs"),
+        "semantic mode must prove collection-empty checks without merging boundaries: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_reports_flattened_guard_span_only() {
+    let dir = std::env::temp_dir().join(format!("nose_guard_span_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    fs::write(
+        dir.join("large_branch.rb"),
+        "def table(rows, errors)\n  if rows.length == 0\n    return nil\n  else\n    title = \"Potential problems\"\n    if errors.length > 0\n      title = title.red\n    else\n      title = title.yellow\n    end\n    return Terminal::Table.new(title: title, rows: rows).to_s\n  end\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("small_guard.rb"),
+        "def payload(data)\n  return nil if data.empty?\n  data\nend\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let families = semantic_json.as_array().expect("semantic JSON array");
+    let text = semantic_json.to_string();
+    assert!(
+        text.contains("large_branch.rb") && text.contains("small_guard.rb"),
+        "semantic mode should still report the strict guard-clause clone: {semantic}"
+    );
+    assert!(
+        families.iter().all(|family| {
+            let Some(locations) = family["locations"].as_array() else {
+                return true;
+            };
+            locations.iter().all(|loc| {
+                let Some(file) = loc["file"].as_str() else {
+                    return true;
+                };
+                !file.ends_with("large_branch.rb")
+                    || (loc["start_line"] == 2 && loc["end_line"] == 3)
+            })
+        }),
+        "semantic mode must not report the flattened guard as the whole if/else span: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_preserves_js_typeof_operator() {
     let dir = std::env::temp_dir().join(format!("nose_typeof_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

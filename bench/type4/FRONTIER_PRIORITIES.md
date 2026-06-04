@@ -14,61 +14,39 @@ and whether a frontier is already covered.
 
 | rank | candidate | scope | status | score | raw | weighted | repos | languages | probe coverage | gaps |
 |---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | `collection_empty_check` | all-language | open | 113.03 | 21562 | 18145.0 | 98 | 8 | <100% | 1 |
-| 2 | `string_prefix_suffix` | all-language | open | 89.94 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 |
-| 3 | `numeric_minmax_abs` | all-language | partially-covered | 64.36 | 7037 | 6750.8 | 93 | 8 | 100.0% | 0 |
-| 4 | `membership_contains` | multi-language | open | 56.85 | 25776 | 15016.5 | 99 | 7 | <100% | 1 |
-| 5 | `null_option_presence` | all-language | partially-covered | 51.52 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 |
-| 6 | `map_default_lookup` | multi-language | open | 31.23 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 |
+| 1 | `string_prefix_suffix` | all-language | open | 89.94 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 |
+| 2 | `numeric_minmax_abs` | all-language | partially-covered | 64.36 | 7037 | 6750.8 | 93 | 8 | 100.0% | 0 |
+| 3 | `membership_contains` | multi-language | open | 56.85 | 25776 | 15016.5 | 99 | 7 | <100% | 1 |
+| 4 | `null_option_presence` | all-language | partially-covered | 51.52 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 |
+| 5 | `map_default_lookup` | multi-language | open | 31.23 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 |
+| 6 | `collection_empty_check` | all-language | covered-current | 9.04 | 21562 | 18145.0 | 98 | 8 | <100% | 1 |
 | 7 | `property_type_guard` | language-family | open | 5.01 | 435 | 435.0 | 19 | 2 | 100.0% | 0 |
 | 8 | `own_property_guard` | language-family | covered-current | 0.60 | 764 | 764.0 | 23 | 2 | 100.0% | 0 |
 
 ## Recommended Order
 
-1. `collection_empty_check`
-   - why: Most languages expose both length comparison and named emptiness predicates.
-   - evidence: 21562 raw / 18145.0 weighted matches across 98 repos and 8 languages (c, go, java, javascript, python, ruby, rust, typescript)
-   - probe coverage: <100%; uncovered probe hits: 1
-   - next probe: Generate `len(x) == 0` / `.is_empty()` / `.isEmpty()` / `.empty?` positives, with nonzero and wrong-collection negatives.
-2. `string_prefix_suffix`
+1. `string_prefix_suffix`
    - why: The API names differ by language but the strict predicate coordinate is simple.
    - evidence: 6174 raw / 6174.0 weighted matches across 97 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
    - probe coverage: 100.0%; uncovered probe hits: 0
    - next probe: Lower case-sensitive starts-with/ends-with calls to prefix/suffix facts; keep regex, contains, and case-folding boundaries.
-3. `membership_contains`
+2. `membership_contains`
    - why: Common but semantically overloaded: substring, list membership, map key membership, and set membership must stay distinct.
    - evidence: 25776 raw / 15016.5 weighted matches across 99 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
    - probe coverage: <100%; uncovered probe hits: 1
    - next probe: Start with static set/list membership only; keep substring, regex, and map-key boundaries separate.
-4. `map_default_lookup`
+3. `map_default_lookup`
    - why: Potentially high value, but absent-key semantics and mutation/effects vary heavily.
    - evidence: 4319 raw / 3645.3 weighted matches across 73 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
    - probe coverage: 100.0%; uncovered probe hits: 0
    - next probe: Start with literal immutable maps and static keys; hard-negative missing-key/default-value changes.
-5. `property_type_guard`
+4. `property_type_guard`
    - why: Very frequent in JS-family repos, but the scope is narrow and should wait behind broader axes.
    - evidence: 435 raw / 435.0 weighted matches across 19 repos and 2 languages (javascript, typescript)
    - probe coverage: 100.0%; uncovered probe hits: 0
    - next probe: Generate `typeof obj.field === <type>` variants with dynamic-key and shadowing boundaries.
 
 ## Pattern Diagnostics
-
-### `collection_empty_check`
-
-| pattern | language | precision | raw | weighted | repos |
-|---|---|---|---:|---:|---:|
-| `java_named_empty` | java | high | 5252 | 5252.0 | 18 |
-| `go_len_zero` | go | high | 5075 | 5075.0 | 16 |
-| `rust_named_empty` | rust | high | 2582 | 2582.0 | 15 |
-| `c_len_zero` | c | medium | 3605 | 1982.8 | 21 |
-| `ts_length_zero` | typescript | high | 1086 | 1086.0 | 14 |
-| `py_len_zero` | python | high | 649 | 649.0 | 22 |
-| `js_length_zero` | javascript | high | 413 | 413.0 | 21 |
-| `py_truthy_collection` | python | low | 1834 | 275.1 | 27 |
-| `ruby_length_zero` | ruby | high | 270 | 270.0 | 7 |
-| `java_size_zero` | java | high | 239 | 239.0 | 12 |
-| `ts_expect_length_zero` | typescript | medium | 422 | 232.1 | 4 |
-| `rust_assert_len_zero` | rust | medium | 77 | 42.4 | 8 |
 
 ### `string_prefix_suffix`
 
@@ -140,6 +118,23 @@ and whether a frontier is already covered.
 | `ts_map_get_default` | typescript | medium | 36 | 19.8 | 6 |
 | `js_map_get_default` | javascript | medium | 2 | 1.1 | 2 |
 
+### `collection_empty_check`
+
+| pattern | language | precision | raw | weighted | repos |
+|---|---|---|---:|---:|---:|
+| `java_named_empty` | java | high | 5252 | 5252.0 | 18 |
+| `go_len_zero` | go | high | 5075 | 5075.0 | 16 |
+| `rust_named_empty` | rust | high | 2582 | 2582.0 | 15 |
+| `c_len_zero` | c | medium | 3605 | 1982.8 | 21 |
+| `ts_length_zero` | typescript | high | 1086 | 1086.0 | 14 |
+| `py_len_zero` | python | high | 649 | 649.0 | 22 |
+| `js_length_zero` | javascript | high | 413 | 413.0 | 21 |
+| `py_truthy_collection` | python | low | 1834 | 275.1 | 27 |
+| `ruby_length_zero` | ruby | high | 270 | 270.0 | 7 |
+| `java_size_zero` | java | high | 239 | 239.0 | 12 |
+| `ts_expect_length_zero` | typescript | medium | 422 | 232.1 | 4 |
+| `rust_assert_len_zero` | rust | medium | 77 | 42.4 | 8 |
+
 ### `property_type_guard`
 
 | pattern | language | precision | raw | weighted | repos |
@@ -157,9 +152,6 @@ and whether a frontier is already covered.
 
 ## Gap Samples
 
-### `collection_empty_check`
-- `sympy/sympy/matrices/tests/test_sparse.py:578` (python, py_collection_emptyish): assert (len(a.todok()) + len(b.todok()) - len((a + b).todok()) > 0)
-
 ### `string_prefix_suffix`
 - no uncovered broad-probe samples
 
@@ -175,6 +167,9 @@ and whether a frontier is already covered.
 ### `map_default_lookup`
 - no uncovered broad-probe samples
 
+### `collection_empty_check`
+- `sympy/sympy/matrices/tests/test_sparse.py:578` (python, py_collection_emptyish): assert (len(a.todok()) + len(b.todok()) - len((a + b).todok()) > 0)
+
 ### `property_type_guard`
 - no uncovered broad-probe samples
 
@@ -183,13 +178,6 @@ and whether a frontier is already covered.
 
 
 ## Extraction Samples
-
-### `collection_empty_check`
-- `alacritty/alacritty/src/window_context.rs:413` (rust, rust_named_empty): if self.event_queue.is_empty() {
-- `alacritty/alacritty/src/message_bar.rs:54` (rust, rust_named_empty): || (lines.is_empty()
-- `alacritty/alacritty/src/message_bar.rs:148` (rust, rust_named_empty): self.messages.is_empty()
-- `alacritty/alacritty/src/message_bar.rs:255` (rust, rust_assert_len_zero): assert_eq!(lines.len(), 0);
-- `alacritty/alacritty/src/event.rs:346` (rust, rust_named_empty): if !window_context.message_buffer.is_empty() {
 
 ### `string_prefix_suffix`
 - `alacritty/alacritty/src/polling/ipc.rs:197` (rust, rust_prefix_suffix): .filter(|file| file.starts_with(&socket_prefix) && file.ends_with(".sock"))
@@ -225,6 +213,13 @@ and whether a frontier is already covered.
 - `antlr4/runtime/Go/antlr/v4/tokenstream_rewriter.go:568` (go, go_map_lookup_ok): if prevop, ok := rewrites[j].(*ReplaceOp); ok {
 - `antlr4/runtime/Go/antlr/v4/tokenstream_rewriter.go:595` (go, go_map_lookup_ok): _, iok := rewrites[i].(*InsertBeforeOp)
 - `antlr4/runtime/Go/antlr/v4/tokenstream_rewriter.go:596` (go, go_map_lookup_ok): _, aok := rewrites[i].(*InsertAfterOp)
+
+### `collection_empty_check`
+- `alacritty/alacritty/src/window_context.rs:413` (rust, rust_named_empty): if self.event_queue.is_empty() {
+- `alacritty/alacritty/src/message_bar.rs:54` (rust, rust_named_empty): || (lines.is_empty()
+- `alacritty/alacritty/src/message_bar.rs:148` (rust, rust_named_empty): self.messages.is_empty()
+- `alacritty/alacritty/src/message_bar.rs:255` (rust, rust_assert_len_zero): assert_eq!(lines.len(), 0);
+- `alacritty/alacritty/src/event.rs:346` (rust, rust_named_empty): if !window_context.message_buffer.is_empty() {
 
 ### `property_type_guard`
 - `axios/tests/smoke/esm/tests/fetch.smoke.test.js:52` (javascript, js_typeof_property): isRequest && typeof input.clone === 'function'

@@ -1,6 +1,7 @@
 {
   "schema_version": "0.1.0",
   "semantic_axes": {
+    "collection_empty_check": "Static collection emptiness and non-emptiness checks can be proven through fixed receiver coordinates and length-zero or named-predicate forms.",
     "immutable_binding": "Local immutable aliases and single-assignment module constants can be used as proof facts.",
     "import_identity": "Static import bindings can prove a callee/value identity by module coordinate and exported symbol.",
     "nullish_default": "Nullish coalescing and explicit null/undefined guards can prove the same defaulting behavior when the fallback condition is fixed.",
@@ -13,6 +14,7 @@
   },
   "surfaces": {
     "c": {
+      "collection_empty_check": "partial",
       "immutable_binding": "partial",
       "import_identity": "unsupported",
       "nullish_default": "unsupported",
@@ -24,6 +26,7 @@
       "unsafe_boundary": "supported"
     },
     "go": {
+      "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
       "nullish_default": "unsupported",
@@ -35,6 +38,7 @@
       "unsafe_boundary": "supported"
     },
     "html": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "supported",
@@ -46,6 +50,7 @@
       "unsafe_boundary": "supported"
     },
     "java": {
+      "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
       "nullish_default": "unsupported",
@@ -57,6 +62,7 @@
       "unsafe_boundary": "supported"
     },
     "javascript": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "supported",
@@ -68,6 +74,7 @@
       "unsafe_boundary": "supported"
     },
     "python": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "unsupported",
@@ -79,6 +86,7 @@
       "unsafe_boundary": "supported"
     },
     "ruby": {
+      "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "unsupported",
       "nullish_default": "unsupported",
@@ -90,6 +98,7 @@
       "unsafe_boundary": "supported"
     },
     "rust": {
+      "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
       "nullish_default": "unsupported",
@@ -101,6 +110,7 @@
       "unsafe_boundary": "supported"
     },
     "svelte": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "supported",
@@ -112,6 +122,7 @@
       "unsafe_boundary": "supported"
     },
     "typescript": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "supported",
@@ -123,6 +134,7 @@
       "unsafe_boundary": "supported"
     },
     "vue": {
+      "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
       "nullish_default": "supported",

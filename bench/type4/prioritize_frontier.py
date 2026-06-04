@@ -101,9 +101,9 @@ CANDIDATES = [
         "all-language",
         2,
         2,
-        "open",
-        "Most languages expose both length comparison and named emptiness predicates.",
-        "Generate `len(x) == 0` / `.is_empty()` / `.isEmpty()` / `.empty?` positives, with nonzero and wrong-collection negatives.",
+        "covered-current",
+        "Covered by the current strict frontier; retained so future reports can track real-corpus yield and uncovered broad-probe gaps.",
+        "No new ordinary loop; monitor real-corpus deltas and keep boundary cases for nonzero thresholds, wrong receivers, and over-broad collection predicates.",
         (
             pat("c_len_zero", "c", r"\b\w*(?:len|length|count|size)\w*\s*(?:==|!=|>|>=)\s*0\b|\b0\s*(?:==|!=|<|<=)\s*\w*(?:len|length|count|size)\w*", "medium"),
             pat("go_len_zero", "go", r"\blen\s*\([^)]{1,80}\)\s*(?:==|!=|>|>=)\s*0\b|\b0\s*(?:==|!=|<|<=)\s*len\s*\([^)]{1,80}\)", "high"),

@@ -214,6 +214,7 @@ impl<'a> Builder<'a> {
                 }
             }
             ValOp::Seq(_) => Ty::List,
+            ValOp::Call(tag) if *tag == Builtin::IsEmpty as u32 + 1 => Ty::Bool,
             _ => Ty::Unknown,
         }
     }
@@ -620,7 +621,7 @@ impl<'a> Builder<'a> {
                 }
                 self.recognize_existence_reduction();
             }
-            _ => {
+            NodeKind::Module | NodeKind::Block => {
                 // Class/other container unit. Two things make its data visible:
                 //  (1) attribute assignments (`name = value`) land in `env` but reach no
                 //      sink — a class's attributes ARE its data, so expose them (two
@@ -640,6 +641,9 @@ impl<'a> Builder<'a> {
                 for v in vals {
                     self.sinks.push((SinkKind::Effect, v));
                 }
+            }
+            _ => {
+                self.process_stmt(root, &mut env);
             }
         }
         self.flush_fields();
@@ -2156,6 +2160,51 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Reduce(Op::Add as u32), vec![init, contrib]))
     }
 
+    fn eval_len_zero_comparison(
+        &mut self,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 2 || !(op == Op::Eq as u32 || op == Op::Ne as u32) {
+            return None;
+        }
+        let coll = if self.is_zero_literal(kids[0]) {
+            self.len_call_arg(kids[1])?
+        } else if self.is_zero_literal(kids[1]) {
+            self.len_call_arg(kids[0])?
+        } else {
+            return None;
+        };
+        let coll_value = self.eval(coll, env);
+        let empty = self.is_empty_value(coll_value);
+        if op == Op::Eq as u32 {
+            Some(empty)
+        } else {
+            Some(self.mk(ValOp::Un(Op::Not as u32), vec![empty]))
+        }
+    }
+
+    fn is_empty_value(&mut self, coll: ValueId) -> ValueId {
+        let len = self.mk(ValOp::Call(Builtin::Len as u32 + 1), vec![coll]);
+        let zero = self.int_const(0);
+        self.mk(ValOp::Bin(Op::Eq as u32), vec![len, zero])
+    }
+
+    fn len_call_arg(&self, node: NodeId) -> Option<NodeId> {
+        if self.il.kind(node) != NodeKind::Call {
+            return None;
+        }
+        if !matches!(self.il.node(node).payload, Payload::Builtin(Builtin::Len)) {
+            return None;
+        }
+        self.il.children(node).first().copied()
+    }
+
+    fn is_zero_literal(&self, node: NodeId) -> bool {
+        matches!(self.il.node(node).payload, Payload::LitInt(0))
+    }
+
     fn filter_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
         if self.il.kind(node) != NodeKind::HoF {
             return None;
@@ -2447,6 +2496,9 @@ impl<'a> Builder<'a> {
             NodeKind::BinOp => {
                 let op = op_code(node.payload);
                 let kids = self.il.children(expr).to_vec();
+                if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
+                    return v;
+                }
                 // Canonicalize subtraction to addition-of-negation: `a - b ≡ a + (-b)`
                 // (sound for the two's-complement Int model: a.wrapping_sub(b) ==
                 // a.wrapping_add(-b)). Routing it through the AC `+` normalization unifies
@@ -2526,6 +2578,12 @@ impl<'a> Builder<'a> {
                     if let Some(&arg) = kids.first() {
                         let v = self.eval(arg, env);
                         return self.mk(ValOp::Un(ABS_CODE), vec![v]);
+                    }
+                }
+                if let Payload::Builtin(Builtin::IsEmpty) = node.payload {
+                    if let Some(&arg) = kids.first() {
+                        let v = self.eval(arg, env);
+                        return self.is_empty_value(v);
                     }
                 }
                 if let Payload::Builtin(b) = node.payload {

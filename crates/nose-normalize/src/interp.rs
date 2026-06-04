@@ -454,6 +454,10 @@ impl<'a> Interp<'a> {
                 Some(Value::Str(_)) => Ok(Value::Int(1)),
                 _ => Ok(Value::Err),
             },
+            Builtin::IsEmpty => match args.first() {
+                Some(Value::List(xs)) => Ok(Value::Bool(xs.is_empty())),
+                _ => Ok(Value::Err),
+            },
             Builtin::Abs => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.abs())),
                 _ => Ok(Value::Err),

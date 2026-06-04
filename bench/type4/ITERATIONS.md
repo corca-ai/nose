@@ -716,3 +716,66 @@ prototype/shadowing boundaries. The next loop should probably target property ty
 only after a broader axis. The newly added prioritizer ranks `collection_empty_check` first:
 49,377 matches across 92 repos and seven languages, with low estimated implementation cost
 and moderate soundness risk. That should be the next ordinary frontier.
+
+## Pattern-guided collection-empty coevolution: loops 104-110
+
+This run used the repo-wide pattern prioritizer instead of choosing a hand-picked language
+feature. The selected all-language axis was `collection_empty_check`: zero-length
+comparisons and named empty/non-empty predicates should converge only when the receiver
+coordinate and threshold are fixed.
+
+| loop | generator / audit move | current-detector result | detector / loop change | result |
+|---|---|---:|---|---:|
+| 104 | use pattern-frequency prioritization across the 105 pinned repos | `collection_empty_check` ranked first: 21,562 raw / 18,145 weighted hits across 98 repos and 8 languages | choose it as the next ordinary frontier and keep the broad-probe gap as diagnostic-only evidence | frontier selected |
+| 105 | add same-surface positives for `len/length/size == 0` vs named empty predicates, plus nonzero-threshold and wrong-receiver hard negatives | release detector hit 16/22 collection positives and 0/44 false merges | misses were Rust `.is_empty()`, Java `.isEmpty()`, and Ruby `.empty?` named forms | failure recorded |
+| 106 | focus named empty/non-empty predicates | named forms did not share the length-zero proof fact | add `Builtin::IsEmpty`, lower Rust/Java/Ruby named predicates, and canonicalize `Len(x) == 0` / `Len(x) != 0` in the value graph | focused collection check 22/22, 0/44 false merges |
+| 107 | full same-surface countercheck | all previous axes needed a regression check after adding a new builtin | no extra detector change | 1,448 items, 556/556 positives, 0/892 false merges |
+| 108 | real-repo delta audit on Rust/Ruby/Java repos | fastlane exposed a misleading long-span family after else-after-return flattening: a large `if/else` was reported as the guard-only value | shrink the flattened guard `if` span to condition+then branch and add `scan_mode_semantic_reports_flattened_guard_span_only` | the candidate became a short guard-clause family, not a whole-branch refactor |
+| 109 | dense compact all-cross validation | old axes and the new collection axis needed a combined smoke | no extra detector change | 523/3,538 selected, 226/226 positives, 0/297 false merges, Raw 0/22,976 |
+| 110 | default ring validation and priority refresh | collection frontier was closed but still ranked first until status changed | mark `collection_empty_check` as `covered-current` in the prioritizer | 1,866 items, 765/765 positives, 0/1,101 false merges; next recommended axis: `string_prefix_suffix` |
+
+Final same-surface manifest check:
+
+```text
+items: 1448
+positive recall: 556/556
+hard-negative false merges: 0/892
+
+by semantic axis:
+  collection_empty_check: positive 22/22, false merges 0/44
+```
+
+Final dense compact smoke:
+
+```text
+scripts/type4-smoke.sh SUITE=core CROSS=all
+selected items: 523/3538
+positive recall: 226/226
+hard-negative false merges: 0/297
+Raw nodes: 0/22976
+```
+
+Final default ring smoke:
+
+```text
+items: 1866
+positive recall: 765/765
+hard-negative false merges: 0/1101
+positive misses: 0/765
+```
+
+Real-repo delta audits:
+
+```text
+bench/repos/alacritty: 14 -> 11 families, added 2, removed 5
+bench/repos/fastlane: 89 -> 90 families, added 10, removed 9
+bench/repos/jsoup: 58 -> 59 families, added 4, removed 3
+```
+
+Assessment: the quantitative pattern loop was useful, but only because it included a
+real-delta audit. Synthetic hard negatives proved the strict collection axis, while the
+real audit found a reporting/span bug that synthetic collection cases alone would not have
+caught. This suggests the right cadence for future axes: run one complete pattern loop
+per semantic axis, then repeat three to five times only while the prioritizer still
+surfaces uncovered high-yield axes or real-delta audits reveal strict families that the
+synthetic generator does not yet model.

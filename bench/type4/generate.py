@@ -159,6 +159,22 @@ AXIS_PROPOSALS = {
         "axis": "record_shape_guard",
         "why": "A typeof-object and non-array guard without a null exclusion still accepts null.",
     },
+    "axis_collection_empty_named_identity": {
+        "axis": "collection_empty_check",
+        "why": "Named emptiness predicates and zero-length comparisons should prove the same collection-empty check when the receiver coordinate is fixed.",
+    },
+    "axis_collection_nonempty_named_identity": {
+        "axis": "collection_empty_check",
+        "why": "Negated named emptiness predicates and nonzero length comparisons should prove the same collection-nonempty check when the receiver coordinate is fixed.",
+    },
+    "axis_collection_threshold_boundary": {
+        "axis": "collection_empty_check",
+        "why": "A zero-length check and a one-length check differ and must not merge as strict collection emptiness.",
+    },
+    "axis_collection_wrong_receiver_boundary": {
+        "axis": "collection_empty_check",
+        "why": "Length or emptiness checks over different collection parameters are different proof coordinates.",
+    },
     "axis_table_access": {
         "axis": "table_access",
         "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
@@ -739,6 +755,210 @@ def axis_record_guard_variant(
         return Variant("axis", typed, name)
 
     raise ValueError(f"unsupported surface for record guard axis: {surface.key}")
+
+
+def collection_empty_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if not proposal_id.startswith("axis_collection_"):
+        return False
+    return surface.key in {
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "rust",
+        "java",
+        "c",
+        "ruby",
+        "vue",
+        "svelte",
+        "html",
+    }
+
+
+def axis_collection_empty_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    empty = proposal_id == "axis_collection_empty_named_identity"
+    nonempty = proposal_id == "axis_collection_nonempty_named_identity"
+    wrong_threshold = proposal_id == "axis_collection_threshold_boundary"
+    wrong_receiver = proposal_id == "axis_collection_wrong_receiver_boundary"
+    semantic_mutation = right and negative and not (wrong_threshold or wrong_receiver)
+
+    if surface.language == "javascript":
+        name = "buildCase" if right else "axisCase"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"{param}.length === 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param}.length === 0"
+        elif nonempty:
+            expr = f"{param}.length !== 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param}.length === 1"
+        elif right and not negative and surface.key in JS_LIKE_SURFACES:
+            expr = f"0 === {param}.length"
+        else:
+            expr = f"{param}.length === 0"
+        body = f"""function {name}(items, other) {{
+  return {expr};
+}}
+"""
+        return js_axis_source(surface, body, name)
+
+    if surface.key == "typescript":
+        name = "buildCase" if right else "axisCase"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"{param}.length === 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param}.length === 0"
+        elif nonempty:
+            expr = f"{param}.length !== 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param}.length === 1"
+        elif right and not negative:
+            expr = f"0 === {param}.length"
+        else:
+            expr = f"{param}.length === 0"
+        src = f"""function {name}(items: number[], other: number[]): boolean {{
+  return {expr};
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "python":
+        name = "build_case" if right else "axis_case"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"len({param}) == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"len({param}) == 0"
+        elif nonempty:
+            expr = f"len({param}) != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"len({param}) == 1"
+        elif right and not negative:
+            expr = f"0 == len({param})"
+        else:
+            expr = f"len({param}) == 0"
+        src = f"""def {name}(items, other):
+    return {expr}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "go":
+        name = "BuildCase" if right else "AxisCase"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"len({param}) == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"len({param}) == 0"
+        elif nonempty:
+            expr = f"len({param}) != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"len({param}) == 1"
+        elif right and not negative:
+            expr = f"0 == len({param})"
+        else:
+            expr = f"len({param}) == 0"
+        src = f"""package p
+
+func {name}(items []int, other []int) bool {{
+    return {expr}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "rust":
+        name = "build_case" if right else "axis_case"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"{param}.len() == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param}.is_empty()"
+        elif nonempty:
+            expr = f"!{param}.is_empty()" if right and not negative else f"{param}.len() != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param}.len() == 1"
+        elif right and not negative:
+            expr = f"{param}.is_empty()"
+        else:
+            expr = f"{param}.len() == 0"
+        src = f"""pub fn {name}(items: &[i32], other: &[i32]) -> bool {{
+    {expr}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "java":
+        name = "buildCase" if right else "axisCase"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"{param}.size() == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param}.isEmpty()"
+        elif nonempty:
+            expr = f"!{param}.isEmpty()" if right and not negative else f"{param}.size() != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param}.size() == 1"
+        elif right and not negative:
+            expr = f"{param}.isEmpty()"
+        else:
+            expr = f"{param}.size() == 0"
+        src = f"""class AxisCase {{
+    static boolean {name}(java.util.List<Integer> items, java.util.List<Integer> other) {{
+        return {expr};
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "c":
+        name = "build_case" if right else "axis_case"
+        param = "m" if right and negative and wrong_receiver else "n"
+        if semantic_mutation and empty:
+            expr = f"{param} == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param} == 0"
+        elif nonempty:
+            expr = f"{param} != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param} == 1"
+        elif right and not negative:
+            expr = f"0 == {param}"
+        else:
+            expr = f"{param} == 0"
+        src = f"""int {name}(int *items, int n, int *other, int m) {{
+    return {expr};
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "ruby":
+        name = "build_case" if right else "axis_case"
+        param = "other" if right and negative and wrong_receiver else "items"
+        if semantic_mutation and empty:
+            expr = f"{param}.length == 1"
+        elif semantic_mutation and nonempty:
+            expr = f"{param}.empty?"
+        elif nonempty:
+            expr = f"!{param}.empty?" if right and not negative else f"{param}.length != 0"
+        elif right and negative and wrong_threshold:
+            expr = f"{param}.length == 1"
+        elif right and not negative:
+            expr = f"{param}.empty?"
+        else:
+            expr = f"{param}.length == 0"
+        src = f"""def {name}(items, other)
+  {expr}
+end
+"""
+        return Variant("axis", src, name)
+
+    raise ValueError(f"unsupported surface for collection-empty axis: {surface.key}")
 
 
 def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -2736,6 +2956,11 @@ def axis_variants(
             axis_record_guard_variant(surface, proposal_id, False, False),
             axis_record_guard_variant(surface, proposal_id, negative, True),
         )
+    if axis == "collection_empty_check":
+        return (
+            axis_collection_empty_variant(surface, proposal_id, False, False),
+            axis_collection_empty_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -2834,6 +3059,7 @@ def make_axis_item(
             "computation": axis,
             "representations": [left.representation, right.representation],
             "data_shape": {
+                "collection_empty_check": "list<int>",
                 "projection_identity": "record<today:int,tomorrow:int>",
                 "table_access": "map<string,int>",
             }.get(axis, "scalar<int>"),
@@ -2894,6 +3120,26 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
             if proposal_id.startswith("axis_record_guard_") and not record_guard_axis_supported(
                 surface, proposal_id
             ):
+                continue
+            if proposal_id.startswith("axis_collection_") and not collection_empty_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id in {
+                "axis_collection_threshold_boundary",
+                "axis_collection_wrong_receiver_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "collection-empty-boundary",
+                    )
+                )
                 continue
             if proposal_id in {
                 "axis_record_guard_array_boundary",

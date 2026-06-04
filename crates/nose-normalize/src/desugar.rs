@@ -138,12 +138,18 @@ impl Rebuilder<'_> {
 
     /// `if c { …; return } else { B }`  →  `if c { …; return }` followed by `B`.
     fn emit_if(&mut self, old_id: NodeId, out: &mut Vec<NodeId>) {
-        let span = self.old.node(old_id).span;
         let kids = self.old.children(old_id).to_vec();
         if kids.len() == 3 && self.then_terminates(kids[1]) {
             let cond = self.go(kids[0]);
             let then = self.go(kids[1]);
-            let if_node = self.b.add(NodeKind::If, Payload::None, span, &[cond, then]);
+            let if_span = self
+                .old
+                .node(kids[0])
+                .span
+                .merge(self.old.node(kids[1]).span);
+            let if_node = self
+                .b
+                .add(NodeKind::If, Payload::None, if_span, &[cond, then]);
             out.push(if_node);
             // splice the else branch's statements into the enclosing block
             self.emit_stmt(kids[2], out);

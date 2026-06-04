@@ -244,6 +244,9 @@ pub enum Builtin {
     /// loop converge with each other WITHOUT colliding with `[(k, v) for x in xs]`
     /// (a list of tuples — a `Seq`), which is behaviorally different.
     DictEntry,
+    /// `x.is_empty()` / `x.isEmpty()` / `x.empty?` — a static collection
+    /// emptiness predicate, converging with `Len(x) == 0`.
+    IsEmpty,
 }
 
 /// Kinds of canonical higher-order operation.

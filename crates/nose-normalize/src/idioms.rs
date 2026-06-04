@@ -155,9 +155,15 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: args.to_vec(),
                         }
                     }
-                    "len" | "length" if base.is_some() && args.is_empty() => {
+                    "len" | "length" | "size" if base.is_some() && args.is_empty() => {
                         return CallCanon::Builtin {
                             op: Builtin::Len,
+                            arg_olds: vec![base.unwrap()],
+                        }
+                    }
+                    "is_empty" | "isEmpty" | "empty?" if base.is_some() && args.is_empty() => {
+                        return CallCanon::Builtin {
+                            op: Builtin::IsEmpty,
                             arg_olds: vec![base.unwrap()],
                         }
                     }
