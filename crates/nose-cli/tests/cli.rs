@@ -1043,6 +1043,21 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("membership_tuple.py"),
+        "def f(values: tuple[str, ...], value: str, other: str) -> bool:\n    return value in values\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_queue.java"),
+        "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values, String value, String other) { return values.contains(value); } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership_vecdeque.rs"),
+        "use std::collections::VecDeque;\n\npub fn f(values: &VecDeque<&str>, value: &str, other: &str) -> bool {\n    values.contains(&value)\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_element.ts"),
         "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(other);\n}\n",
     )
@@ -1076,6 +1091,9 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
         "membership.go",
         "membership.rs",
         "membership.java",
+        "membership_tuple.py",
+        "membership_queue.java",
+        "membership_vecdeque.rs",
     ] {
         assert!(
             semantic_text.contains(expected),

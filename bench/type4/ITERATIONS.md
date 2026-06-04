@@ -3282,3 +3282,72 @@ Assessment: this is a useful general-language expansion because it closes a high
 Python slice without broadening untyped receiver assumptions. The proof is deliberately
 annotation-gated. Ruby `fetch` and JavaScript `Map.get` defaults remain open unless a
 comparable receiver type fact or construction fact is available.
+
+## Batch-3 typed collection type facts: loops 349-352
+
+This loop adopts the faster cadence: add roughly three positive proposals that share one
+proof invariant, then verify the batch together. The invariant is annotation-derived
+dynamic collection membership. If a receiver parameter is proven to be a collection, a
+membership call/operator can be lowered to the same `element in collection` value graph
+coordinate as other typed dynamic collection surfaces. The batch opens:
+
+- `axis_membership_typefact_python_tuple_identity`;
+- `axis_membership_typefact_java_queue_identity`;
+- `axis_membership_typefact_rust_vecdeque_identity`.
+
+The detector change is deliberately small: `param_semantic_from_text` recognizes additional
+collection type tokens (`tuple[...]`, `Container[...]`, Java `Queue`/`Deque`, and Rust
+`VecDeque`) and the existing strict membership lowering consumes the resulting
+`ParamSemantic::Collection` fact. Untyped receivers, substring/string `contains`, map-key
+membership, and wrong-element coordinates remain separate.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 349 | batch frontier selection | group Python tuple, Java Queue, and Rust VecDeque under the new `axis_membership_typefact_*` prefix | focused corpus: 15 positives, 15 hard negatives |
+| 350 | baseline measurement | scan the focused batch with the previous release detector before rebuilding | baseline: 0/15 positives, 0/15 false merges |
+| 351 | detector strengthening | extend annotation-to-collection facts and add value/CLI tests for the three surfaces | targeted tests passed |
+| 352 | release focused/core gates | build release and run focused, membership core, and all-cross core gates | focused 15/15, 0/15; membership core 112/112, 0/302; all-cross 515/515, 0/996 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=30, positive=0/15, false_merges=0/15
+candidate release: items=30, positive=15/15, false_merges=0/15
+delta:             +15 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_typefact_ CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 30
+positive recall: 15/15
+hard-negative false merges: 0/15
+Raw nodes: 0/816
+```
+
+Final release membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 414/1028
+positive recall: 112/112
+hard-negative false merges: 0/302
+Raw nodes: 0/12313
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1511/6352
+positive recall: 515/515
+hard-negative false merges: 0/996
+Raw nodes: 0/55806
+```
+
+Assessment: the batch-3 cadence is a good default. It cut orchestration overhead without
+weakening the oracle: the new proposals share a single proof rule, focused smoke captured
+the baseline miss, and core smoke proved no boundary regression. The next loop should keep
+the same shape: three adjacent positives opened by one strict invariant, plus focused
+negative mutations in the same prefix.

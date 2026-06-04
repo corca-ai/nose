@@ -1943,9 +1943,16 @@ fn collection_membership_set_construction_converges_with_boundaries() {
 
     let ts_array = "function f(values: string[], value: string, other: string): boolean { return values.includes(value); }";
     let ts_set = "function f(values: Set<string>, value: string, other: string): boolean { return values.has(value); }";
+    let py_tuple =
+        "def f(values: tuple[str, ...], value: str, other: str) -> bool:\n    return value in values\n";
+    let java_queue = "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values, String value, String other) { return values.contains(value); } }\n";
+    let rust_vecdeque = "use std::collections::VecDeque;\n\npub fn f(values: &VecDeque<&str>, value: &str, other: &str) -> bool { values.contains(&value) }\n";
     let ts_untyped = "function f(values, value, other) { return values.has(value); }";
     let typed_fp = value_fp(&i, ts_array, Lang::TypeScript);
     assert_eq!(typed_fp, value_fp(&i, ts_set, Lang::TypeScript));
+    assert_eq!(typed_fp, value_fp(&i, py_tuple, Lang::Python));
+    assert_eq!(typed_fp, value_fp(&i, java_queue, Lang::Java));
+    assert_eq!(typed_fp, value_fp(&i, rust_vecdeque, Lang::Rust));
     assert_ne!(typed_fp, value_fp(&i, ts_untyped, Lang::TypeScript));
 }
 

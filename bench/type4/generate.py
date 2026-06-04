@@ -359,6 +359,18 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "A typed TypeScript `Set<T>.has(value)` receiver should prove the same collection-membership predicate as other typed dynamic collections.",
     },
+    "axis_membership_typefact_python_tuple_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Python `tuple[T, ...]` parameter should be treated as a proven dynamic collection receiver for membership.",
+    },
+    "axis_membership_typefact_java_queue_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Java `Queue<T>` parameter should prove the same collection-membership predicate as other typed dynamic collections.",
+    },
+    "axis_membership_typefact_rust_vecdeque_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A Rust `VecDeque<T>` parameter should prove the same collection-membership predicate as other typed dynamic collections.",
+    },
     "axis_membership_set_inline_identity": {
         "axis": "literal_collection_membership",
         "why": "An inline `new Set([...]).has(value)` over a static literal should prove the same membership predicate as literal collection APIs.",
@@ -2376,6 +2388,12 @@ def literal_membership_axis_supported(surface: Surface, proposal_id: str) -> boo
         return surface.key in {"typescript", "rust", "java"}
     if proposal_id == "axis_membership_unproven_receiver_boundary":
         return surface.key in {"java", "rust", "typescript"}
+    if proposal_id == "axis_membership_typefact_python_tuple_identity":
+        return surface.key == "python"
+    if proposal_id == "axis_membership_typefact_java_queue_identity":
+        return surface.key == "java"
+    if proposal_id == "axis_membership_typefact_rust_vecdeque_identity":
+        return surface.key == "rust"
     if proposal_id.startswith("axis_membership_set_"):
         return surface.key in {"python", "javascript", "typescript", "go", "rust", "ruby"}
     if proposal_id.startswith("axis_membership_array_some_"):
@@ -2436,6 +2454,12 @@ def membership_axis_parts(
         items = ("green", "blue")
     if proposal_id == "axis_membership_set_param_identity":
         form = "set_param" if right else "typed_membership"
+    if proposal_id == "axis_membership_typefact_python_tuple_identity":
+        form = "python_tuple_param" if right else "typed_membership"
+    if proposal_id == "axis_membership_typefact_java_queue_identity":
+        form = "java_queue_param" if right else "typed_membership"
+    if proposal_id == "axis_membership_typefact_rust_vecdeque_identity":
+        form = "rust_vecdeque_param" if right else "typed_membership"
     if proposal_id in {
         "axis_membership_set_inline_identity",
         "axis_membership_set_wrong_element_boundary",
@@ -2555,6 +2579,9 @@ def membership_axis_parts(
         "axis_membership_rust_local_array_identity",
         "axis_membership_rust_local_typed_array_identity",
         "axis_membership_rust_local_slice_ref_identity",
+        "axis_membership_typefact_python_tuple_identity",
+        "axis_membership_typefact_java_queue_identity",
+        "axis_membership_typefact_rust_vecdeque_identity",
     }:
         element = "other"
     if right and proposal_id == "axis_membership_set_wrong_element_boundary":
@@ -2577,6 +2604,12 @@ def axis_membership_literal_variant(
     right: bool,
 ) -> Variant:
     element, items, form = membership_axis_parts(proposal_id, negative, right)
+    if form == "python_tuple_param" and surface.key != "python":
+        form = "typed_membership"
+    if form == "java_queue_param" and surface.key != "java":
+        form = "typed_membership"
+    if form == "rust_vecdeque_param" and surface.key != "rust":
+        form = "typed_membership"
     name = {
         "javascript": "buildCase" if right else "axisCase",
         "typescript": "buildCase" if right else "axisCase",
@@ -2813,6 +2846,11 @@ function {name}(value: string, other: string): boolean {{
         return Variant("axis", src, name)
 
     if surface.key == "python":
+        if form == "python_tuple_param":
+            src = f"""def {name}(values: tuple[str, ...], value: str, other: str) -> bool:
+    return {element} in values
+"""
+            return Variant("axis", src, name)
         if form == "typed_membership":
             src = f"""def {name}(values: list[str], value: str, other: str) -> bool:
     return {element} in values
@@ -2929,6 +2967,14 @@ func {name}(value string, other string) bool {{
         return Variant("axis", src, name)
 
     if surface.key == "rust":
+        if form == "rust_vecdeque_param":
+            src = f"""use std::collections::VecDeque;
+
+pub fn {name}(values: &VecDeque<&str>, value: &str, other: &str) -> bool {{
+    values.contains(&{element})
+}}
+"""
+            return Variant("axis", src, name)
         if form == "rust_local_array":
             src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
     let values = ["{left}", "{right_item}"];
@@ -3002,6 +3048,12 @@ pub fn {name}(value: &str, other: &str) -> bool {{
         return Variant("axis", src, name)
 
     if surface.key == "java":
+        if form == "java_queue_param":
+            src = f"""import java.util.Queue;
+
+class C {{ static boolean {name}(Queue<String> values, String value, String other) {{ return values.contains({element}); }} }}
+"""
+            return Variant("axis", src, name)
         if form == "membership":
             src = f"""import java.util.List;
 
@@ -7369,6 +7421,51 @@ def generate_literal_membership_cross_items(
                 )
 
     surface_by_key = {surface.key: surface for surface in SURFACES}
+    typefact_reference_surfaces = [
+        surface_by_key["python"],
+        surface_by_key["typescript"],
+        surface_by_key["go"],
+        surface_by_key["rust"],
+        surface_by_key["java"],
+    ]
+    if cross_mode == "ring":
+        typefact_reference_surfaces = [surface_by_key["typescript"]]
+    elif cross_mode == "none":
+        typefact_reference_surfaces = []
+    typefact_right_surface_by_proposal = {
+        "axis_membership_typefact_python_tuple_identity": surface_by_key["python"],
+        "axis_membership_typefact_java_queue_identity": surface_by_key["java"],
+        "axis_membership_typefact_rust_vecdeque_identity": surface_by_key["rust"],
+    }
+    for proposal_id, right_surface in typefact_right_surface_by_proposal.items():
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in typefact_reference_surfaces:
+            if left_surface.key == right_surface.key:
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "literal_collection_membership-semantic-mutation",
+                )
+            )
     set_reference_surfaces = [
         surface_by_key["python"],
         surface_by_key["javascript"],
