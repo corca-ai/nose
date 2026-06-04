@@ -155,6 +155,18 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: args.to_vec(),
                         }
                     }
+                    "HasPrefix" | "HasSuffix"
+                        if base_name == Some("strings") && args.len() == 2 =>
+                    {
+                        return CallCanon::Builtin {
+                            op: if fname == "HasPrefix" {
+                                Builtin::StartsWith
+                            } else {
+                                Builtin::EndsWith
+                            },
+                            arg_olds: args.to_vec(),
+                        }
+                    }
                     "len" | "length" | "size" if base.is_some() && args.is_empty() => {
                         return CallCanon::Builtin {
                             op: Builtin::Len,
@@ -165,6 +177,22 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                         return CallCanon::Builtin {
                             op: Builtin::IsEmpty,
                             arg_olds: vec![base.unwrap()],
+                        }
+                    }
+                    "startsWith" | "startswith" | "starts_with" | "start_with?"
+                        if base.is_some() && args.len() == 1 =>
+                    {
+                        return CallCanon::Builtin {
+                            op: Builtin::StartsWith,
+                            arg_olds: vec![base.unwrap(), args[0]],
+                        }
+                    }
+                    "endsWith" | "endswith" | "ends_with" | "end_with?"
+                        if base.is_some() && args.len() == 1 =>
+                    {
+                        return CallCanon::Builtin {
+                            op: Builtin::EndsWith,
+                            arg_olds: vec![base.unwrap(), args[0]],
                         }
                     }
                     // `functools.reduce(f, xs[, init])` — here the *base* is the module

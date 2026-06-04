@@ -9,6 +9,7 @@
     "projection_identity": "Static field/property projection can prove a value identity when the receiver and projected coordinate are fixed.",
     "proven_callee_identity": "Opaque calls are strict only when the callee identity is local, immutable, or a safe same-file function binding.",
     "record_shape_guard": "Static JavaScript record guards can prove non-null object and non-array shape checks when all required clauses are present.",
+    "string_prefix_suffix": "Case-sensitive string prefix and suffix predicates can be proven through fixed receiver and literal affix coordinates.",
     "table_access": "Literal table construction and static key/index access retain behavior-defining key identity.",
     "unsafe_boundary": "Unproven free globals, repeated assignment, spread/unpack, dynamic import, and reflection boundaries are excluded from exact semantic reporting."
   },
@@ -22,6 +23,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "unsupported",
       "table_access": "unsupported",
       "unsafe_boundary": "supported"
     },
@@ -34,6 +36,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "supported",
       "table_access": "unsupported",
       "unsafe_boundary": "supported"
     },
@@ -46,6 +49,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "supported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -58,6 +62,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "supported",
       "table_access": "unsupported",
       "unsafe_boundary": "supported"
     },
@@ -70,6 +75,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "supported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -82,6 +88,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -94,6 +101,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -106,6 +114,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "unsupported",
+      "string_prefix_suffix": "supported",
       "table_access": "unsupported",
       "unsafe_boundary": "supported"
     },
@@ -118,6 +127,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "supported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -130,6 +140,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "supported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     },
@@ -142,6 +153,7 @@
       "projection_identity": "supported",
       "proven_callee_identity": "supported",
       "record_shape_guard": "supported",
+      "string_prefix_suffix": "supported",
       "table_access": "supported",
       "unsafe_boundary": "supported"
     }

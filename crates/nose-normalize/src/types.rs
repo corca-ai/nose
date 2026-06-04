@@ -188,10 +188,14 @@ pub(crate) fn result_ty(il: &Il, n: NodeId, ev: &FxHashMap<u32, Ty>) -> Ty {
             }
         }
         NodeKind::Call => match il.node(n).payload {
-            // `len(x)` is numeric; `is_empty(x)` is boolean. Other builtins/calls
-            // are not pinned down here.
+            // `len(x)` is numeric; string/collection predicates are boolean.
+            // Other builtins/calls are not pinned down here.
             Payload::Builtin(nose_il::Builtin::Len) => Ty::Num,
-            Payload::Builtin(nose_il::Builtin::IsEmpty) => Ty::Bool,
+            Payload::Builtin(
+                nose_il::Builtin::IsEmpty
+                | nose_il::Builtin::StartsWith
+                | nose_il::Builtin::EndsWith,
+            ) => Ty::Bool,
             _ => Ty::Unknown,
         },
         _ => Ty::Unknown,

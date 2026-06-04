@@ -458,6 +458,8 @@ impl<'a> Interp<'a> {
                 Some(Value::List(xs)) => Ok(Value::Bool(xs.is_empty())),
                 _ => Ok(Value::Err),
             },
+            Builtin::StartsWith => Ok(string_affix(args.first(), args.get(1), true)),
+            Builtin::EndsWith => Ok(string_affix(args.first(), args.get(1), false)),
             Builtin::Abs => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.abs())),
                 _ => Ok(Value::Err),
@@ -758,6 +760,23 @@ fn fold_opt(v: Option<&Value>, f: impl Fn(i64, i64) -> i64) -> Value {
                 }
             }
             acc.map(Value::Int).unwrap_or(Value::Err)
+        }
+        _ => Value::Err,
+    }
+}
+
+fn string_affix(value: Option<&Value>, affix: Option<&Value>, prefix: bool) -> Value {
+    match (value, affix) {
+        (Some(Value::Str(value)), Some(Value::Str(affix))) => {
+            if affix.len() > value.len() {
+                return Value::Bool(false);
+            }
+            let matches = if prefix {
+                value.starts_with(affix)
+            } else {
+                value.ends_with(affix)
+            };
+            Value::Bool(matches)
         }
         _ => Value::Err,
     }

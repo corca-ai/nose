@@ -6,6 +6,19 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Strict Type-4 proof facts for case-sensitive string prefix/suffix predicates across
+  Go, Java, JavaScript/TypeScript, Python, Ruby, Rust, and embedded script surfaces.
+  The benchmark now includes same-surface and cross-surface positives plus affix,
+  direction, and wrong-receiver hard negatives.
+
+### Changed
+- Type-4 frontier prioritization now separates true uncovered broad-probe gaps from
+  filtered probe overreach, so pattern loops do not promote non-strict examples just
+  to improve apparent coverage.
+- Type-4 manifest evaluation and frontier summaries now index scan locations by file,
+  making full-manifest validation practical after corpus growth.
+
 ## [0.3.0] - 2026-06-04
 
 ### Added

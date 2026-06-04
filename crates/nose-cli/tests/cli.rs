@@ -353,6 +353,112 @@ fn scan_mode_semantic_proves_collection_empty_checks() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_string_prefix_checks() {
+    let dir = std::env::temp_dir().join(format!("nose_string_prefix_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("prefix.py"),
+        "def prefix(value, other):\n    return value.startswith(\"pre\")\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.js"),
+        "function prefix(value, other) {\n  return value.startsWith(\"pre\");\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.ts"),
+        "function prefix(value: string, other: string): boolean {\n  return value.startsWith(\"pre\");\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.go"),
+        "package p\n\nimport \"strings\"\n\nfunc Prefix(value string, other string) bool {\n    return strings.HasPrefix(value, \"pre\")\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.rs"),
+        "pub fn prefix(value: &str, other: &str) -> bool {\n    value.starts_with(\"pre\")\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.java"),
+        "class Prefix { static boolean prefix(String value, String other) { return value.startsWith(\"pre\"); } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("prefix.rb"),
+        "def prefix(value, other)\n  value.start_with?(\"pre\")\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("affix_negative.py"),
+        "def prefix_alt(value, other):\n    return value.startswith(\"alt\")\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("direction_negative.js"),
+        "function suffix(value, other) {\n  return value.endsWith(\"pre\");\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("receiver_negative.rs"),
+        "pub fn prefix_other(value: &str, other: &str) -> bool {\n    other.starts_with(\"pre\")\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert!(
+        !semantic_families.is_empty(),
+        "semantic mode should report string prefix families: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "prefix.py",
+        "prefix.js",
+        "prefix.ts",
+        "prefix.go",
+        "prefix.rs",
+        "prefix.java",
+        "prefix.rb",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include {expected}: {semantic}"
+        );
+    }
+    for unexpected in [
+        "affix_negative.py",
+        "direction_negative.js",
+        "receiver_negative.rs",
+    ] {
+        assert!(
+            !semantic_text.contains(unexpected),
+            "semantic mode must preserve string prefix boundaries: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_reports_flattened_guard_span_only() {
     let dir = std::env::temp_dir().join(format!("nose_guard_span_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

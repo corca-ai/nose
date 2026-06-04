@@ -779,3 +779,73 @@ caught. This suggests the right cadence for future axes: run one complete patter
 per semantic axis, then repeat three to five times only while the prioritizer still
 surfaces uncovered high-yield axes or real-delta audits reveal strict families that the
 synthetic generator does not yet model.
+
+## Pattern-filtered string prefix/suffix coevolution: loops 111-118
+
+This run repeated the quantitative loop, but tightened the interpretation of extraction
+gaps. Broad-probe hits are now split into true uncovered gaps and filtered overreach, so
+the loop does not inflate strict Type-4 coverage by absorbing non-strict patterns.
+
+The selected all-language axis was `string_prefix_suffix`: case-sensitive starts-with and
+ends-with predicates should converge when receiver, direction, and literal affix are fixed,
+and must not merge different affixes, opposite direction, or wrong receivers.
+
+| loop | generator / audit move | current-detector result | detector / loop change | result |
+|---|---|---:|---|---:|
+| 111 | repeat repo-wide pattern prioritization after collection closure | `string_prefix_suffix` ranked first among open axes: 6,174 raw hits across 97 repos and 7 languages | choose it as the next ordinary frontier | frontier selected |
+| 112 | add same-surface and ring cross-surface prefix/suffix positives plus affix, direction, and receiver hard negatives | release detector hit 24/40 focused positives and 0/100 false merges | misses were Go static `strings.HasPrefix/HasSuffix` and cross-language API-name convergence | failure recorded |
+| 113 | focus prefix/suffix proof facts | method names did not share a cross-language proof coordinate | add `Builtin::StartsWith` and `Builtin::EndsWith`, lower Go/Java/JS/Python/Ruby/Rust/TS forms, and preserve builtin identity in the value graph | focused check 40/40 positives, 0/100 false merges |
+| 114 | focused CLI regression | synthetic smoke covered it, but CLI semantic mode needed a small guard | add `scan_mode_semantic_proves_string_prefix_checks` with affix/direction/receiver negatives | CLI test passed |
+| 115 | repeat pattern-gap audit | two apparent gaps were not true strict candidates | filter Python `for ... in ...` iteration from membership probes and compound `len(a)+len(b)-len(c)>0` arithmetic from collection-empty probes | membership raw 25,776→22,979 with 2,798 filtered; collection gap 1→0 with 1 filtered |
+| 116 | full-manifest evaluator cost audit | full ring scan was fast, but manifest matching took more than 4 minutes | index family locations by file before checking left/right overlaps | full ring evaluation became practical without changing detector behavior |
+| 117 | full and dense validation | old axes and the new prefix/suffix axis needed combined smoke | no extra detector change | full ring: 2,006 items, 805/805 positives, 0/1,201 false merges; dense compact all-cross: 578/3,923 selected, 246/246 positives, 0/332 false merges |
+| 118 | real-repo delta audit on Rust/Java/JS repos | visible family set was unchanged | no detector change; this axis mostly adds primitive proof facts rather than immediate refactoring-visible families | alacritty 1→1 / 11→11 low-floor, antlr4 62→62 / 241→241, axios 7→7 / 33→33 |
+
+Final same-surface manifest check:
+
+```text
+items: 1518
+positive recall: 576/576
+hard-negative false merges: 0/942
+
+by semantic axis:
+  string_prefix_suffix: positive 20/20, false merges 0/50
+```
+
+Final default ring smoke:
+
+```text
+items: 2006
+positive recall: 805/805
+hard-negative false merges: 0/1201
+
+by semantic axis:
+  string_prefix_suffix: positive 40/40, false merges 0/100
+```
+
+Final dense compact smoke:
+
+```text
+NOSE=target/debug/nose SUITE=core CROSS=all OUT_DIR=/tmp/nose-type4-prefix-all scripts/type4-smoke.sh
+selected items: 578/3923
+positive recall: 246/246
+hard-negative false merges: 0/332
+Raw nodes: 0/24164
+```
+
+Final prioritizer state:
+
+```text
+numeric_minmax_abs: partially-covered, score 64.36, 7,037 raw hits, 0 gaps
+membership_contains: open, score 56.22, 22,979 raw hits, 0 gaps, 2,798 filtered
+string_prefix_suffix: covered-current, score 7.20, 6,174 raw hits, 0 gaps
+```
+
+Assessment: this loop did expand the strict semantic frontier, but the real-repo audit did
+not yet show new refactoring-visible families. That is acceptable for this axis because
+prefix/suffix checks are usually small proof facts that make larger future equivalences
+possible. The more important process improvement was the filtered-probe accounting: repeat
+the quantitative pattern loop, but only promote gaps that remain strict after overreach
+filtering. The next ordinary open axis should likely be `membership_contains`, with a
+careful first split between substring contains, list/set membership, map-key membership,
+and Python iteration syntax.

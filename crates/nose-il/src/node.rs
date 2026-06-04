@@ -247,6 +247,10 @@ pub enum Builtin {
     /// `x.is_empty()` / `x.isEmpty()` / `x.empty?` — a static collection
     /// emptiness predicate, converging with `Len(x) == 0`.
     IsEmpty,
+    /// Case-sensitive string prefix predicate over `(value, prefix)`.
+    StartsWith,
+    /// Case-sensitive string suffix predicate over `(value, suffix)`.
+    EndsWith,
 }
 
 /// Kinds of canonical higher-order operation.

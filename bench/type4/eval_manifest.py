@@ -15,22 +15,43 @@ def abs_path(base: Path, rel: str) -> str:
     return str((base / rel).resolve())
 
 
-def overlaps(loc: dict, src: dict, manifest_dir: Path) -> bool:
-    if loc.get("kind") == "Block":
-        return False
-    if str(Path(loc["file"]).resolve()) != abs_path(manifest_dir, src["path"]):
-        return False
-    return not (loc["end_line"] < src["start_line"] or src["end_line"] < loc["start_line"])
+def build_family_index(families: list[dict]) -> dict[str, list[tuple[int, int, int]]]:
+    by_file: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+    for family_id, family in enumerate(families):
+        for loc in family.get("locations", []):
+            if loc.get("kind") == "Block":
+                continue
+            by_file[str(Path(loc["file"]).resolve())].append(
+                (loc["start_line"], loc["end_line"], family_id)
+            )
+    return by_file
 
 
-def item_detected(item: dict, families: list[dict], manifest_dir: Path) -> bool:
-    for family in families:
-        locations = family.get("locations", [])
-        has_left = any(overlaps(loc, item["left"], manifest_dir) for loc in locations)
-        has_right = any(overlaps(loc, item["right"], manifest_dir) for loc in locations)
-        if has_left and has_right:
-            return True
-    return False
+def overlapping_families(
+    family_index: dict[str, list[tuple[int, int, int]]],
+    src: dict,
+    manifest_dir: Path,
+) -> set[int]:
+    path = abs_path(manifest_dir, src["path"])
+    start = src["start_line"]
+    end = src["end_line"]
+    return {
+        family_id
+        for loc_start, loc_end, family_id in family_index.get(path, [])
+        if not (loc_end < start or end < loc_start)
+    }
+
+
+def item_detected(
+    item: dict,
+    family_index: dict[str, list[tuple[int, int, int]]],
+    manifest_dir: Path,
+) -> bool:
+    left = overlapping_families(family_index, item["left"], manifest_dir)
+    if not left:
+        return False
+    right = overlapping_families(family_index, item["right"], manifest_dir)
+    return bool(left & right)
 
 
 def run_scan(nose: Path, sources: Path) -> list[dict]:
@@ -81,10 +102,13 @@ def main() -> int:
         families = json.loads(args.scan_json.read_text())
     else:
         families = run_scan(args.nose, manifest_dir / "sources")
+    family_index = build_family_index(families)
 
     positives = [i for i in manifest["items"] if i["expected_exact_detect"]]
     negatives = [i for i in manifest["items"] if not i["expected_exact_detect"]]
-    detected = {i["case_id"]: item_detected(i, families, manifest_dir) for i in manifest["items"]}
+    detected = {
+        i["case_id"]: item_detected(i, family_index, manifest_dir) for i in manifest["items"]
+    }
 
     pos_hits = sum(1 for i in positives if detected[i["case_id"]])
     false_merges = [i for i in negatives if detected[i["case_id"]]]

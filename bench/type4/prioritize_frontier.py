@@ -131,9 +131,9 @@ CANDIDATES = [
         "all-language",
         2,
         2,
-        "open",
-        "The API names differ by language but the strict predicate coordinate is simple.",
-        "Lower case-sensitive starts-with/ends-with calls to prefix/suffix facts; keep regex, contains, and case-folding boundaries.",
+        "covered-current",
+        "Covered by the current strict frontier; retained so real-corpus yield and future boundary gaps stay visible.",
+        "No new ordinary loop; monitor regex, contains, and case-folding boundaries as separate axes.",
         (
             pat("go_strings_prefix_suffix", "go", r"\bstrings\.(?:HasPrefix|HasSuffix)\s*\("),
             pat("java_prefix_suffix", "java", r"\.\s*(?:startsWith|endsWith)\s*\("),
@@ -397,6 +397,34 @@ def is_comment_only_line(text: str, offset: int, lang: str) -> bool:
     return False
 
 
+def has_non_iteration_python_membership(segment: str) -> bool:
+    """Return true when a Python `in` token looks like membership, not iteration."""
+    for match in re.finditer(r"\b(?:not\s+in|in)\b", segment):
+        prefix = segment[: match.start()]
+        if re.search(r"(?:^|[\s(])(?:async\s+)?for\s+[^:\n]{0,80}\s+$", prefix):
+            continue
+        return True
+    return False
+
+
+def is_compound_python_len_arithmetic(segment: str) -> bool:
+    return bool(
+        re.search(r"\blen\s*\([^)]*\)\s*[-+*/%]", segment)
+        or re.search(r"[-+*/%]\s*len\s*\(", segment)
+    )
+
+
+def match_filter_reason(candidate_id: str, lang: str, match: re.Match[str]) -> str | None:
+    segment = match.group(0)
+    if candidate_id == "membership_contains" and lang == "python":
+        if not has_non_iteration_python_membership(segment):
+            return "python-for-in-iteration"
+    if candidate_id == "collection_empty_check" and lang == "python":
+        if is_compound_python_len_arithmetic(segment):
+            return "compound-length-arithmetic"
+    return None
+
+
 def spans_overlap(a: tuple[int, int], b: tuple[int, int]) -> bool:
     return a[0] < b[1] and b[0] < a[1]
 
@@ -471,9 +499,11 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 for spec in candidate.patterns
             },
             "probe_matches": 0,
+            "probe_filtered": 0,
             "probe_uncovered": 0,
             "probe_repos": set(),
             "gap_samples": [],
+            "filter_samples": [],
         }
         for candidate in CANDIDATES
     }
@@ -505,6 +535,8 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                     for match in spec.regex.finditer(text):
                         if is_comment_only_line(text, match.start(), lang):
                             continue
+                        if match_filter_reason(candidate.candidate_id, lang, match):
+                            continue
                         weight = PRECISION_WEIGHT[spec.precision]
                         raw_for_file += 1
                         weighted_for_file += weight
@@ -526,6 +558,15 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 for probe_spec in probes:
                     for match in probe_spec.regex.finditer(text):
                         if is_comment_only_line(text, match.start(), lang):
+                            continue
+                        filter_reason = match_filter_reason(candidate.candidate_id, lang, match)
+                        if filter_reason:
+                            bucket["probe_filtered"] += 1
+                            if len(bucket["filter_samples"]) < sample_limit:
+                                sample = make_sample(repo, rel, lang, text, match.start(), match.end())
+                                sample["probe_id"] = probe_spec.probe_id
+                                sample["filter_reason"] = filter_reason
+                                bucket["filter_samples"].append(sample)
                             continue
                         bucket["probe_matches"] += 1
                         bucket["probe_repos"].add(repo["id"])
@@ -551,6 +592,7 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
         repos_count = len(bucket["repos"])
         languages_count = len(bucket["languages"])
         probe_matches = bucket["probe_matches"]
+        probe_filtered = bucket["probe_filtered"]
         probe_uncovered = bucket["probe_uncovered"]
         probe_coverage = None
         if probe_matches:
@@ -587,6 +629,7 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 "soundness_risk": candidate.soundness_risk,
                 "score": rank_score(bucket["weighted_matches"], repos_count, languages_count, candidate),
                 "probe_matches": probe_matches,
+                "probe_filtered": probe_filtered,
                 "probe_uncovered": probe_uncovered,
                 "probe_coverage": None if probe_coverage is None else round(probe_coverage, 4),
                 "probe_repos": len(bucket["probe_repos"]),
@@ -594,12 +637,13 @@ def analyze(corpus_path: Path, repos_root: Path, max_bytes: int, sample_limit: i
                 "next_probe": candidate.next_probe,
                 "samples": bucket["samples"],
                 "gap_samples": bucket["gap_samples"],
+                "filter_samples": bucket["filter_samples"],
                 "pattern_stats": pattern_stats,
             }
         )
     rows.sort(key=lambda row: row["score"], reverse=True)
     return {
-        "schema_version": "0.2.0",
+        "schema_version": "0.3.0",
         "repos_root": str(repos_root),
         "corpus": str(corpus_path),
         "repo_count": len(repos),
@@ -625,14 +669,15 @@ def markdown_report(result: dict, top: int) -> str:
         "- matches: raw syntactic hits",
         "- weighted: raw hits adjusted by pattern precision (`high=1.0`, `medium=0.55`, `low=0.15`)",
         "- probe coverage: broad-probe hits already covered by extraction patterns; gaps feed the next pattern loop",
+        "- filtered: broad-probe hits rejected as overreach before coverage is scored",
         "",
-        "| rank | candidate | scope | status | score | raw | weighted | repos | languages | probe coverage | gaps |",
-        "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        "| rank | candidate | scope | status | score | raw | weighted | repos | languages | probe coverage | gaps | filtered |",
+        "|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for idx, row in enumerate(result["ranking"][:top], start=1):
         coverage = format_probe_coverage(row)
         lines.append(
-            "| {rank} | `{candidate_id}` | {scope} | {status} | {score:.2f} | {raw_matches} | {weighted_matches:.1f} | {repos} | {language_count} | {coverage} | {probe_uncovered} |".format(
+            "| {rank} | `{candidate_id}` | {scope} | {status} | {score:.2f} | {raw_matches} | {weighted_matches:.1f} | {repos} | {language_count} | {coverage} | {probe_uncovered} | {probe_filtered} |".format(
                 rank=idx,
                 coverage=coverage,
                 **row,
@@ -647,7 +692,7 @@ def markdown_report(result: dict, top: int) -> str:
                 f"{idx}. `{row['candidate_id']}`",
                 f"   - why: {row['why']}",
                 f"   - evidence: {row['raw_matches']} raw / {row['weighted_matches']:.1f} weighted matches across {row['repos']} repos and {row['language_count']} languages ({langs})",
-                f"   - probe coverage: {format_probe_coverage(row)}; uncovered probe hits: {row['probe_uncovered']}",
+                f"   - probe coverage: {format_probe_coverage(row)}; uncovered probe hits: {row['probe_uncovered']}; filtered probe hits: {row['probe_filtered']}",
                 f"   - next probe: {row['next_probe']}",
             ]
         )
@@ -674,6 +719,18 @@ def markdown_report(result: dict, top: int) -> str:
         for sample in row["gap_samples"][:5]:
             lines.append(
                 f"- `{sample['repo']}/{sample['path']}:{sample['line']}` ({sample['language']}, {sample['probe_id']}): {sample['snippet']}"
+            )
+        lines.append("")
+    lines.extend(["", "## Filtered Probe Samples", ""])
+    for row in result["ranking"][:top]:
+        lines.append(f"### `{row['candidate_id']}`")
+        if not row["filter_samples"]:
+            lines.append("- no filtered broad-probe samples")
+            lines.append("")
+            continue
+        for sample in row["filter_samples"][:5]:
+            lines.append(
+                f"- `{sample['repo']}/{sample['path']}:{sample['line']}` ({sample['language']}, {sample['probe_id']}, {sample['filter_reason']}): {sample['snippet']}"
             )
         lines.append("")
     lines.extend(["", "## Extraction Samples", ""])

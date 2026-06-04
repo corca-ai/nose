@@ -36,7 +36,8 @@ By default the generator emits:
 - sign-normalizing `sum(abs(x))` map/reduce cases across every supported surface;
 - semantic-axis cases for immutable bindings, proven callee identity, literal table access,
   static imports, static projections, nullish defaults, own-property guards,
-  record-shape guards, and unsafe/unproven binding boundaries;
+  record-shape guards, string prefix/suffix predicates, and unsafe/unproven binding
+  boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
 
@@ -56,26 +57,26 @@ becomes a CI gate.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 1866
-positive recall: 765/765
-hard-negative false merges: 0/1101
+items: 2006
+positive recall: 805/805
+hard-negative false merges: 0/1201
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1448
-positive recall: 556/556
-hard-negative false merges: 0/892
+items: 1518
+positive recall: 576/576
+hard-negative false merges: 0/942
 ```
 
-With `--cross all`, the dense corpus now has 3538 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 3923 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 523/3538
-positive recall: 226/226
-hard-negative false merges: 0/297
+selected items: 578/3923
+positive recall: 246/246
+hard-negative false merges: 0/332
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic
@@ -143,6 +144,7 @@ multi-language axes unless a language-family axis is fixing an urgent soundness 
 Use the prioritizer as a repeated pattern loop, not as a one-off report:
 
 - quantify broad pattern frequency and extraction gaps across the pinned repos;
+- classify broad-probe overreach separately from true extraction gaps;
 - add one narrow synthetic axis with positive and hard-negative siblings;
 - patch the detector only where the miss is a strict proof gap;
 - compare installed/release and modified detectors on real repos;

@@ -175,6 +175,26 @@ AXIS_PROPOSALS = {
         "axis": "collection_empty_check",
         "why": "Length or emptiness checks over different collection parameters are different proof coordinates.",
     },
+    "axis_string_prefix_identity": {
+        "axis": "string_prefix_suffix",
+        "why": "Case-sensitive starts-with predicates should prove the same string-prefix check when receiver and literal prefix coordinates are fixed.",
+    },
+    "axis_string_suffix_identity": {
+        "axis": "string_prefix_suffix",
+        "why": "Case-sensitive ends-with predicates should prove the same string-suffix check when receiver and literal suffix coordinates are fixed.",
+    },
+    "axis_string_affix_boundary": {
+        "axis": "string_prefix_suffix",
+        "why": "Different literal affixes are different proof coordinates and must not merge.",
+    },
+    "axis_string_direction_boundary": {
+        "axis": "string_prefix_suffix",
+        "why": "A prefix predicate is not equivalent to a suffix predicate even when the literal affix is the same.",
+    },
+    "axis_string_wrong_receiver_boundary": {
+        "axis": "string_prefix_suffix",
+        "why": "Prefix/suffix checks over different string parameters are different proof coordinates.",
+    },
     "axis_table_access": {
         "axis": "table_access",
         "why": "Literal table access must preserve key/index identity and reject neighboring table values.",
@@ -959,6 +979,120 @@ end
         return Variant("axis", src, name)
 
     raise ValueError(f"unsupported surface for collection-empty axis: {surface.key}")
+
+
+def string_prefix_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if not proposal_id.startswith("axis_string_"):
+        return False
+    return surface.key in {
+        "python",
+        "javascript",
+        "typescript",
+        "go",
+        "rust",
+        "java",
+        "ruby",
+        "vue",
+        "svelte",
+        "html",
+    }
+
+
+def string_axis_parts(proposal_id: str, negative: bool, right: bool) -> tuple[str, str, str]:
+    op = "suffix" if proposal_id == "axis_string_suffix_identity" else "prefix"
+    affix = "suf" if op == "suffix" else "pre"
+    receiver = "value"
+
+    if right and proposal_id == "axis_string_direction_boundary":
+        op = "suffix" if op == "prefix" else "prefix"
+    if right and proposal_id == "axis_string_affix_boundary":
+        affix = "alt" if op == "prefix" else "end"
+    if right and proposal_id == "axis_string_wrong_receiver_boundary":
+        receiver = "other"
+    if right and negative and proposal_id in {
+        "axis_string_prefix_identity",
+        "axis_string_suffix_identity",
+    }:
+        affix = "alt" if op == "prefix" else "end"
+    return op, affix, receiver
+
+
+def axis_string_prefix_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    op, affix, receiver = string_axis_parts(proposal_id, negative, right)
+    name = {
+        "javascript": "buildCase" if right else "axisCase",
+        "typescript": "buildCase" if right else "axisCase",
+        "go": "BuildCase" if right else "AxisCase",
+        "java": "buildCase" if right else "axisCase",
+    }.get(surface.language, "build_case" if right else "axis_case")
+
+    if surface.language == "javascript":
+        method = "startsWith" if op == "prefix" else "endsWith"
+        body = f"""function {name}(value, other) {{
+  return {receiver}.{method}("{affix}");
+}}
+"""
+        return js_axis_source(surface, body, name)
+
+    if surface.key == "typescript":
+        method = "startsWith" if op == "prefix" else "endsWith"
+        src = f"""function {name}(value: string, other: string): boolean {{
+  return {receiver}.{method}("{affix}");
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "python":
+        method = "startswith" if op == "prefix" else "endswith"
+        src = f"""def {name}(value, other):
+    return {receiver}.{method}("{affix}")
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "go":
+        method = "HasPrefix" if op == "prefix" else "HasSuffix"
+        src = f"""package p
+
+import "strings"
+
+func {name}(value string, other string) bool {{
+    return strings.{method}({receiver}, "{affix}")
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "rust":
+        method = "starts_with" if op == "prefix" else "ends_with"
+        src = f"""pub fn {name}(value: &str, other: &str) -> bool {{
+    {receiver}.{method}("{affix}")
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "java":
+        method = "startsWith" if op == "prefix" else "endsWith"
+        src = f"""class AxisCase {{
+    static boolean {name}(String value, String other) {{
+        return {receiver}.{method}("{affix}");
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "ruby":
+        method = "start_with?" if op == "prefix" else "end_with?"
+        src = f"""def {name}(value, other)
+  {receiver}.{method}("{affix}")
+end
+"""
+        return Variant("axis", src, name)
+
+    raise ValueError(f"unsupported surface for string prefix/suffix axis: {surface.key}")
 
 
 def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -2961,6 +3095,11 @@ def axis_variants(
             axis_collection_empty_variant(surface, proposal_id, False, False),
             axis_collection_empty_variant(surface, proposal_id, negative, True),
         )
+    if axis == "string_prefix_suffix":
+        return (
+            axis_string_prefix_variant(surface, proposal_id, False, False),
+            axis_string_prefix_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -2989,8 +3128,15 @@ def axis_variants(
     raise ValueError(f"unknown axis: {axis}")
 
 
-def axis_evidence(axis: str, status: str, negative: bool) -> dict:
+def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | None = None) -> dict:
     if status == "equivalent":
+        if axis == "string_prefix_suffix":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": ["prelude", "case-suf", "other"],
+                "outputs": [],
+            }
         return {
             "level": "E1",
             "kind": f"same-spec-{axis}",
@@ -3007,6 +3153,17 @@ def axis_evidence(axis: str, status: str, negative: bool) -> dict:
     if axis == "proven_callee_identity":
         left_output = 3
         right_output = 4
+    elif axis == "string_prefix_suffix":
+        value = "case-suf" if proposal_id == "axis_string_suffix_identity" else "prelude"
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": {
+                "input": {"value": value, "other": "other"},
+                "left": True,
+                "right": False,
+            },
+        }
     else:
         left_output = 8
         right_output = 9
@@ -3061,6 +3218,7 @@ def make_axis_item(
             "data_shape": {
                 "collection_empty_check": "list<int>",
                 "projection_identity": "record<today:int,tomorrow:int>",
+                "string_prefix_suffix": "string",
                 "table_access": "map<string,int>",
             }.get(axis, "scalar<int>"),
             "language_relation": "same-surface",
@@ -3071,7 +3229,7 @@ def make_axis_item(
         },
         "left": source_record(surface, left, left_path),
         "right": source_record(surface, right, right_path),
-        "evidence": axis_evidence(axis, semantic_status, negative),
+        "evidence": axis_evidence(axis, semantic_status, negative, proposal_id),
         "llm_proposal": {
             "why": proposal["why"],
             "complexity_budget": {
@@ -3125,6 +3283,10 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
                 surface, proposal_id
             ):
                 continue
+            if proposal_id.startswith("axis_string_") and not string_prefix_axis_supported(
+                surface, proposal_id
+            ):
+                continue
             if proposal_id in {
                 "axis_collection_threshold_boundary",
                 "axis_collection_wrong_receiver_boundary",
@@ -3138,6 +3300,23 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
                         "not_equivalent",
                         "heldout",
                         "collection-empty-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_string_affix_boundary",
+                "axis_string_direction_boundary",
+                "axis_string_wrong_receiver_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "string-prefix-suffix-boundary",
                     )
                 )
                 continue
@@ -3237,6 +3416,132 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
                     "not_equivalent",
                     "heldout",
                     f"{axis}-semantic-mutation",
+                )
+            )
+    return items
+
+
+def make_axis_cross_item(
+    out_dir: Path,
+    capabilities: dict,
+    proposal_id: str,
+    left_surface: Surface,
+    right_surface: Surface,
+    semantic_status: str,
+    split: str,
+    negative_tag: str | None = None,
+) -> dict:
+    proposal = AXIS_PROPOSALS[proposal_id]
+    axis = proposal["axis"]
+    negative = semantic_status == "not_equivalent"
+    case_id = stable_id(
+        proposal_id,
+        left_surface.key,
+        right_surface.key,
+        semantic_status,
+        split,
+        negative_tag or "positive",
+    )
+    left = axis_variants(left_surface, proposal_id, axis, False)[0]
+    right = axis_variants(right_surface, proposal_id, axis, negative)[1]
+    left_path = rel_source_path(case_id, "left", left_surface)
+    right_path = rel_source_path(case_id, "right", right_surface)
+    write_source(out_dir, left_path, left.source)
+    write_source(out_dir, right_path, right.source)
+    left_capability = surface_capability(capabilities, left_surface, axis)
+    right_capability = surface_capability(capabilities, right_surface, axis)
+    equivalent = semantic_status == "equivalent"
+    expected = (
+        equivalent
+        and capability_exact_supported(capabilities, left_surface, axis)
+        and capability_exact_supported(capabilities, right_surface, axis)
+    )
+    transform_tags = [axis, "semantic-axis"]
+    if negative_tag is not None:
+        transform_tags += ["hard-negative", negative_tag]
+    return {
+        "case_id": case_id,
+        "proposal_id": proposal_id,
+        "split": split,
+        "semantic_status": semantic_status,
+        "expected_exact_detect": expected,
+        "semantic_scope": SEMANTIC_SCOPE,
+        "transform_tags": transform_tags,
+        "matrix": {
+            "computation": axis,
+            "representations": [left.representation, right.representation],
+            "data_shape": "string",
+            "language_relation": "cross-surface",
+            "negative_tag": negative_tag,
+            "semantic_axes": [axis],
+            "capabilities": {
+                f"{axis}:left": left_capability,
+                f"{axis}:right": right_capability,
+            },
+            "template_split": split,
+        },
+        "left": source_record(left_surface, left, left_path),
+        "right": source_record(right_surface, right, right_path),
+        "evidence": axis_evidence(axis, semantic_status, negative, proposal_id),
+        "llm_proposal": {
+            "why": proposal["why"],
+            "complexity_budget": {
+                "max_lines": 12,
+                "max_branch_count": 0,
+                "max_primary_transforms": 1,
+                "max_secondary_transforms": 1,
+            },
+        },
+    }
+
+
+def generate_string_prefix_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    cross_mode: str,
+) -> list[dict]:
+    surfaces = [s for s in SURFACES if string_prefix_axis_supported(s, "axis_string_prefix_identity")]
+    items: list[dict] = []
+    for left_surface, right_surface in cross_pairs(surfaces, cross_mode):
+        for proposal_id in ("axis_string_prefix_identity", "axis_string_suffix_identity"):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "string_prefix_suffix-semantic-mutation",
+                )
+            )
+        for proposal_id in (
+            "axis_string_affix_boundary",
+            "axis_string_direction_boundary",
+            "axis_string_wrong_receiver_boundary",
+        ):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "string-prefix-suffix-boundary",
                 )
             )
     return items
@@ -3357,6 +3662,7 @@ def generate(out_dir: Path, proposal_file: Path, capability_file: Path, cross_mo
                 )
             )
     items.extend(generate_axis_items(out_dir, capabilities))
+    items.extend(generate_string_prefix_cross_items(out_dir, capabilities, cross_mode))
     return {
         "schema_version": "0.1.0",
         "source": {

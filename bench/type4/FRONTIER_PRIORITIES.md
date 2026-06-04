@@ -11,54 +11,38 @@ and whether a frontier is already covered.
 - matches: raw syntactic hits
 - weighted: raw hits adjusted by pattern precision (`high=1.0`, `medium=0.55`, `low=0.15`)
 - probe coverage: broad-probe hits already covered by extraction patterns; gaps feed the next pattern loop
+- filtered: broad-probe hits rejected as overreach before coverage is scored
 
-| rank | candidate | scope | status | score | raw | weighted | repos | languages | probe coverage | gaps |
-|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | `string_prefix_suffix` | all-language | open | 89.94 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 |
-| 2 | `numeric_minmax_abs` | all-language | partially-covered | 64.36 | 7037 | 6750.8 | 93 | 8 | 100.0% | 0 |
-| 3 | `membership_contains` | multi-language | open | 56.85 | 25776 | 15016.5 | 99 | 7 | <100% | 1 |
-| 4 | `null_option_presence` | all-language | partially-covered | 51.52 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 |
-| 5 | `map_default_lookup` | multi-language | open | 31.23 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 |
-| 6 | `collection_empty_check` | all-language | covered-current | 9.04 | 21562 | 18145.0 | 98 | 8 | <100% | 1 |
-| 7 | `property_type_guard` | language-family | open | 5.01 | 435 | 435.0 | 19 | 2 | 100.0% | 0 |
-| 8 | `own_property_guard` | language-family | covered-current | 0.60 | 764 | 764.0 | 23 | 2 | 100.0% | 0 |
+| rank | candidate | scope | status | score | raw | weighted | repos | languages | probe coverage | gaps | filtered |
+|---:|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | `numeric_minmax_abs` | all-language | partially-covered | 64.36 | 7037 | 6750.8 | 93 | 8 | 100.0% | 0 | 0 |
+| 2 | `membership_contains` | multi-language | open | 56.22 | 22979 | 13478.1 | 99 | 7 | 100.0% | 0 | 2798 |
+| 3 | `null_option_presence` | all-language | partially-covered | 51.52 | 126057 | 122957.4 | 94 | 7 | 100.0% | 0 | 0 |
+| 4 | `map_default_lookup` | multi-language | open | 31.23 | 4319 | 3645.3 | 73 | 7 | 100.0% | 0 | 0 |
+| 5 | `collection_empty_check` | all-language | covered-current | 9.04 | 21562 | 18145.0 | 98 | 8 | 100.0% | 0 | 1 |
+| 6 | `string_prefix_suffix` | all-language | covered-current | 7.20 | 6174 | 6174.0 | 97 | 7 | 100.0% | 0 | 0 |
+| 7 | `property_type_guard` | language-family | open | 5.01 | 435 | 435.0 | 19 | 2 | 100.0% | 0 | 0 |
+| 8 | `own_property_guard` | language-family | covered-current | 0.60 | 764 | 764.0 | 23 | 2 | 100.0% | 0 | 0 |
 
 ## Recommended Order
 
-1. `string_prefix_suffix`
-   - why: The API names differ by language but the strict predicate coordinate is simple.
-   - evidence: 6174 raw / 6174.0 weighted matches across 97 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
-   - probe coverage: 100.0%; uncovered probe hits: 0
-   - next probe: Lower case-sensitive starts-with/ends-with calls to prefix/suffix facts; keep regex, contains, and case-folding boundaries.
-2. `membership_contains`
+1. `membership_contains`
    - why: Common but semantically overloaded: substring, list membership, map key membership, and set membership must stay distinct.
-   - evidence: 25776 raw / 15016.5 weighted matches across 99 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
-   - probe coverage: <100%; uncovered probe hits: 1
+   - evidence: 22979 raw / 13478.1 weighted matches across 99 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
+   - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 2798
    - next probe: Start with static set/list membership only; keep substring, regex, and map-key boundaries separate.
-3. `map_default_lookup`
+2. `map_default_lookup`
    - why: Potentially high value, but absent-key semantics and mutation/effects vary heavily.
    - evidence: 4319 raw / 3645.3 weighted matches across 73 repos and 7 languages (go, java, javascript, python, ruby, rust, typescript)
-   - probe coverage: 100.0%; uncovered probe hits: 0
+   - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0
    - next probe: Start with literal immutable maps and static keys; hard-negative missing-key/default-value changes.
-4. `property_type_guard`
+3. `property_type_guard`
    - why: Very frequent in JS-family repos, but the scope is narrow and should wait behind broader axes.
    - evidence: 435 raw / 435.0 weighted matches across 19 repos and 2 languages (javascript, typescript)
-   - probe coverage: 100.0%; uncovered probe hits: 0
+   - probe coverage: 100.0%; uncovered probe hits: 0; filtered probe hits: 0
    - next probe: Generate `typeof obj.field === <type>` variants with dynamic-key and shadowing boundaries.
 
 ## Pattern Diagnostics
-
-### `string_prefix_suffix`
-
-| pattern | language | precision | raw | weighted | repos |
-|---|---|---|---:|---:|---:|
-| `java_prefix_suffix` | java | high | 1579 | 1579.0 | 16 |
-| `go_strings_prefix_suffix` | go | high | 1391 | 1391.0 | 14 |
-| `py_prefix_suffix` | python | high | 952 | 952.0 | 26 |
-| `ts_prefix_suffix` | typescript | high | 715 | 715.0 | 12 |
-| `ruby_prefix_suffix` | ruby | high | 624 | 624.0 | 17 |
-| `rust_prefix_suffix` | rust | high | 559 | 559.0 | 16 |
-| `js_prefix_suffix` | javascript | high | 354 | 354.0 | 18 |
 
 ### `numeric_minmax_abs`
 
@@ -80,7 +64,7 @@ and whether a frontier is already covered.
 
 | pattern | language | precision | raw | weighted | repos |
 |---|---|---|---:|---:|---:|
-| `py_in_predicate` | python | medium | 11502 | 6326.1 | 30 |
+| `py_in_predicate` | python | medium | 8705 | 4787.8 | 29 |
 | `java_contains_ambiguous` | java | medium | 5867 | 3226.8 | 16 |
 | `ruby_membership` | ruby | medium | 2195 | 1207.2 | 16 |
 | `rust_contains_ambiguous` | rust | medium | 2128 | 1170.4 | 15 |
@@ -135,6 +119,18 @@ and whether a frontier is already covered.
 | `ts_expect_length_zero` | typescript | medium | 422 | 232.1 | 4 |
 | `rust_assert_len_zero` | rust | medium | 77 | 42.4 | 8 |
 
+### `string_prefix_suffix`
+
+| pattern | language | precision | raw | weighted | repos |
+|---|---|---|---:|---:|---:|
+| `java_prefix_suffix` | java | high | 1579 | 1579.0 | 16 |
+| `go_strings_prefix_suffix` | go | high | 1391 | 1391.0 | 14 |
+| `py_prefix_suffix` | python | high | 952 | 952.0 | 26 |
+| `ts_prefix_suffix` | typescript | high | 715 | 715.0 | 12 |
+| `ruby_prefix_suffix` | ruby | high | 624 | 624.0 | 17 |
+| `rust_prefix_suffix` | rust | high | 559 | 559.0 | 16 |
+| `js_prefix_suffix` | javascript | high | 354 | 354.0 | 18 |
+
 ### `property_type_guard`
 
 | pattern | language | precision | raw | weighted | repos |
@@ -152,14 +148,11 @@ and whether a frontier is already covered.
 
 ## Gap Samples
 
-### `string_prefix_suffix`
-- no uncovered broad-probe samples
-
 ### `numeric_minmax_abs`
 - no uncovered broad-probe samples
 
 ### `membership_contains`
-- `sympy/sympy/core/function.py:1947` (python, py_membership_broad): if isinstance(expr, array_types) or any(isinstance(i[0], array_types) if isinstance(i, (tuple, list, Tuple)) else isinstance(i, array_types) for i in variables):
+- no uncovered broad-probe samples
 
 ### `null_option_presence`
 - no uncovered broad-probe samples
@@ -168,7 +161,10 @@ and whether a frontier is already covered.
 - no uncovered broad-probe samples
 
 ### `collection_empty_check`
-- `sympy/sympy/matrices/tests/test_sparse.py:578` (python, py_collection_emptyish): assert (len(a.todok()) + len(b.todok()) - len((a + b).todok()) > 0)
+- no uncovered broad-probe samples
+
+### `string_prefix_suffix`
+- no uncovered broad-probe samples
 
 ### `property_type_guard`
 - no uncovered broad-probe samples
@@ -177,14 +173,38 @@ and whether a frontier is already covered.
 - no uncovered broad-probe samples
 
 
-## Extraction Samples
+## Filtered Probe Samples
+
+### `numeric_minmax_abs`
+- no filtered broad-probe samples
+
+### `membership_contains`
+- `antlr4/runtime/Python3/src/antlr4/Parser.py:551` (python, py_membership_broad, python-for-in-iteration): return [ str(dfa) for dfa in self._interp.decisionToDFA]
+- `antlr4/runtime/Python3/src/antlr4/LL1Analyzer.py:145` (python, py_membership_broad, python-for-in-iteration): return for t in s.transitions:
+- `antlr4/runtime/Python3/src/antlr4/IntervalSet.py:96` (python, py_membership_broad, python-for-in-iteration): return sum(len(i) for i in self.intervals)
+- `antlr4/runtime/Python3/src/antlr4/tree/Trees.py:64` (python, py_membership_broad, python-for-in-iteration): return [ t.getChild(i) for i in range(0, t.getChildCount()) ]
+- `antlr4/runtime/Python3/src/antlr4/dfa/DFAState.py:89` (python, py_membership_broad, python-for-in-iteration): return set(cfg.alt for cfg in self.configs) or None
+
+### `null_option_presence`
+- no filtered broad-probe samples
+
+### `map_default_lookup`
+- no filtered broad-probe samples
+
+### `collection_empty_check`
+- `sympy/sympy/matrices/tests/test_sparse.py:578` (python, py_collection_emptyish, compound-length-arithmetic): assert (len(a.todok()) + len(b.todok()) - len((a + b).todok()) > 0)
 
 ### `string_prefix_suffix`
-- `alacritty/alacritty/src/polling/ipc.rs:197` (rust, rust_prefix_suffix): .filter(|file| file.starts_with(&socket_prefix) && file.ends_with(".sock"))
-- `alacritty/alacritty/src/polling/ipc.rs:197` (rust, rust_prefix_suffix): .filter(|file| file.starts_with(&socket_prefix) && file.ends_with(".sock"))
-- `alacritty/alacritty/src/config/mod.rs:215` (rust, rust_prefix_suffix): if contents.starts_with('\u{FEFF}') {
-- `alacritty/alacritty/src/config/bindings.rs:736` (rust, rust_prefix_suffix): _ if keycode.starts_with("Dead") => {
-- `alacritty/alacritty/src/display/color.rs:287` (rust, rust_prefix_suffix): let chars = if s.starts_with("0x") && s.len() == 8 {
+- no filtered broad-probe samples
+
+### `property_type_guard`
+- no filtered broad-probe samples
+
+### `own_property_guard`
+- no filtered broad-probe samples
+
+
+## Extraction Samples
 
 ### `numeric_minmax_abs`
 - `alacritty/alacritty/src/window_context.rs:271` (rust, rust_numeric_method): if (old_config.cursor.thickness() - self.config.cursor.thickness()).abs() > f32::EPSILON {
@@ -220,6 +240,13 @@ and whether a frontier is already covered.
 - `alacritty/alacritty/src/message_bar.rs:148` (rust, rust_named_empty): self.messages.is_empty()
 - `alacritty/alacritty/src/message_bar.rs:255` (rust, rust_assert_len_zero): assert_eq!(lines.len(), 0);
 - `alacritty/alacritty/src/event.rs:346` (rust, rust_named_empty): if !window_context.message_buffer.is_empty() {
+
+### `string_prefix_suffix`
+- `alacritty/alacritty/src/polling/ipc.rs:197` (rust, rust_prefix_suffix): .filter(|file| file.starts_with(&socket_prefix) && file.ends_with(".sock"))
+- `alacritty/alacritty/src/polling/ipc.rs:197` (rust, rust_prefix_suffix): .filter(|file| file.starts_with(&socket_prefix) && file.ends_with(".sock"))
+- `alacritty/alacritty/src/config/mod.rs:215` (rust, rust_prefix_suffix): if contents.starts_with('\u{FEFF}') {
+- `alacritty/alacritty/src/config/bindings.rs:736` (rust, rust_prefix_suffix): _ if keycode.starts_with("Dead") => {
+- `alacritty/alacritty/src/display/color.rs:287` (rust, rust_prefix_suffix): let chars = if s.starts_with("0x") && s.len() == 8 {
 
 ### `property_type_guard`
 - `axios/tests/smoke/esm/tests/fetch.smoke.test.js:52` (javascript, js_typeof_property): isRequest && typeof input.clone === 'function'

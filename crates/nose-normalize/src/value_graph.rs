@@ -214,7 +214,16 @@ impl<'a> Builder<'a> {
                 }
             }
             ValOp::Seq(_) => Ty::List,
-            ValOp::Call(tag) if *tag == Builtin::IsEmpty as u32 + 1 => Ty::Bool,
+            ValOp::Call(tag)
+                if matches!(
+                    *tag,
+                    x if x == Builtin::IsEmpty as u32 + 1
+                        || x == Builtin::StartsWith as u32 + 1
+                        || x == Builtin::EndsWith as u32 + 1
+                ) =>
+            {
+                Ty::Bool
+            }
             _ => Ty::Unknown,
         }
     }

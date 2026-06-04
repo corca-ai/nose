@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 
-from eval_manifest import item_detected, run_scan
+from eval_manifest import build_family_index, item_detected, run_scan
 
 
 def surface_key(item: dict) -> str:
@@ -44,7 +44,10 @@ def counter_dict(counter: Counter[str]) -> dict[str, int]:
 def build_summary(manifest: dict, families: list[dict], manifest_dir: Path) -> dict:
     positives = [i for i in manifest["items"] if i["expected_exact_detect"]]
     negatives = [i for i in manifest["items"] if not i["expected_exact_detect"]]
-    detected = {i["case_id"]: item_detected(i, families, manifest_dir) for i in manifest["items"]}
+    family_index = build_family_index(families)
+    detected = {
+        i["case_id"]: item_detected(i, family_index, manifest_dir) for i in manifest["items"]
+    }
     misses = [i for i in positives if not detected[i["case_id"]]]
     false_merges = [i for i in negatives if detected[i["case_id"]]]
 

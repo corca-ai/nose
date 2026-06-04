@@ -193,7 +193,9 @@ python3 bench/type4/prioritize_frontier.py \
 The report ranks candidate axes by real-code frequency, repo and language spread, estimated
 implementation cost, soundness risk, scope, and current coverage status. It is not label
 evidence. It chooses what to investigate next; the generator/verifier/evaluator loop still
-decides which items become benchmark cases.
+decides which items become benchmark cases. Broad-probe hits that are not true strict
+semantic candidates should be counted as filtered overreach, not absorbed into extraction
+patterns just to make coverage look higher.
 
 ## LLM-assisted workflow
 
