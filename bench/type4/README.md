@@ -68,13 +68,13 @@ positive recall: 407/407
 hard-negative false merges: 0/654
 ```
 
-With `--cross all`, the dense corpus now has 3392 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 3417 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 471/3392
-positive recall: 200/200
-hard-negative false merges: 0/271
+selected items: 481/3417
+positive recall: 205/205
+hard-negative false merges: 0/276
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic

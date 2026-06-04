@@ -545,3 +545,49 @@ validate projection identity as a high-yield real-world source of new refactorin
 candidates. The loop itself did improve: compact smoke missed one Rust shorthand case, so
 full-manifest evaluation should be used as a periodic adversarial countercheck whenever a
 new semantic axis is introduced or substantially widened.
+
+## Adversarial nullish-default coevolution: loops 74-83
+
+This run targeted a soundness-critical JavaScript-family frontier. Before this loop, `??`
+was lowered to the same value-`Or` operator as `||`. That recovered some superficial
+similarity, but it was not strict Type-4: `value ?? fallback` differs from
+`value || fallback` for falsy non-null values such as `0`.
+
+| loop | generator move | current-detector result | detector / loop change | result |
+|---|---|---:|---|---:|
+| 74 | add `nullish_default` capability axis with `??`, explicit `== null` ternary, guard return, and truthy-or boundary | nullish positives 0/5, false merges 3/5 | no detector change yet; this established both under-merge and over-merge failures | failure recorded |
+| 75 | focus `??` vs explicit nullish ternary | coalesce positives missed | lower JS/TS `??` to `If(value == null, fallback, value)` instead of `Or(value, fallback)` | coalesce positives 4/4 in compact smoke |
+| 76 | focus guard-return equivalence | guard positive now converged through existing guarded-return/Phi machinery | no value-graph change needed | guard positive 1/1 |
+| 77 | truthy-or counterattack | previous false merges disappeared after loop 75 | no detector change; `||` remains value-or, distinct from nullish default | truthy boundary 0/3 false merges |
+| 78 | generator audit | an automatic hard-negative for guard identity was accidentally identical to the positive | mutate the guard fallback in negative variants | generator bug fixed |
+| 79 | focused CLI regression | synthetic smoke covered it, but a smaller invariant was needed | add `scan_mode_semantic_distinguishes_nullish_from_truthy_defaults` | CLI test passed |
+| 80 | full same-surface manifest | compact selector was not enough for a new soundness axis | no detector change | 519/519 positives, 0/808 false merges |
+| 81 | dense all-cross validation | aggregate/import/projection frontiers stayed closed | no detector change | 481/3417 selected, 205/205 positives, 0/276 false merges |
+| 82 | real repo audit on `../craken-agents` | strict semantic families 32→32 | no detector change; this repo did not expose new nullish-result families | 0 added, 0 removed |
+| 83 | process assessment | this loop found a real over-merge, not only missed positives | keep truthy-vs-nullish hard negatives as a standing soundness gate | gate retained |
+
+Final full same-surface manifest check:
+
+```text
+items: 1327
+positive recall: 519/519
+hard-negative false merges: 0/808
+
+by semantic axis:
+  nullish_default: positive 10/10, false merges 0/15
+```
+
+Final dense compact smoke:
+
+```text
+scripts/type4-smoke.sh SUITE=core CROSS=all
+selected items: 481/3417
+positive recall: 205/205
+hard-negative false merges: 0/276
+Raw nodes: 0/22082
+```
+
+Real-repo audit (`../craken-agents`) again left the visible strict semantic family set
+unchanged: 32 before, 32 after. Assessment: this was still a worthwhile frontier expansion
+because it closed a strict-mode soundness bug (`??` vs `||`) and added an adversarial
+boundary that should prevent future regressions.

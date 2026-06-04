@@ -87,6 +87,18 @@ AXIS_PROPOSALS = {
         "axis": "import_identity",
         "why": "Wildcard, dynamic, or unresolved import forms must stay outside strict exact reporting.",
     },
+    "axis_nullish_coalesce_identity": {
+        "axis": "nullish_default",
+        "why": "Nullish coalescing should converge with the equivalent explicit null/undefined defaulting condition.",
+    },
+    "axis_nullish_guard_identity": {
+        "axis": "nullish_default",
+        "why": "A guard return for a nullish value should prove the same defaulting behavior as nullish coalescing.",
+    },
+    "axis_nullish_truthy_boundary": {
+        "axis": "nullish_default",
+        "why": "Truthy-or defaulting is not equivalent to nullish defaulting for falsy non-null values.",
+    },
     "axis_projection_temp_identity": {
         "axis": "projection_identity",
         "why": "Projecting the same static field through a temporary binding should preserve exact value identity.",
@@ -522,6 +534,72 @@ end
 """
         return Variant("axis", src, name)
     raise ValueError(f"unsupported surface for table axis: {surface.key}")
+
+
+def nullish_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_nullish_") and surface.key in JS_LIKE_SURFACES
+
+
+def axis_nullish_variant(surface: Surface, proposal_id: str, negative: bool, right: bool) -> Variant:
+    name = "buildCase" if right else "axisCase"
+    fallback = (
+        "fallback + 1"
+        if negative and right and proposal_id != "axis_nullish_truthy_boundary"
+        else "fallback"
+    )
+    if surface.language == "javascript":
+        if proposal_id == "axis_nullish_guard_identity" and right:
+            body = f"""function {name}(value, fallback) {{
+  if (value == null) {{
+    return {fallback};
+  }}
+  return value;
+}}
+"""
+        elif proposal_id == "axis_nullish_truthy_boundary" and right:
+            body = f"""function {name}(value, fallback) {{
+  return value || {fallback};
+}}
+"""
+        elif right:
+            body = f"""function {name}(value, fallback) {{
+  return value == null ? {fallback} : value;
+}}
+"""
+        else:
+            body = f"""function {name}(value, fallback) {{
+  return value ?? fallback;
+}}
+"""
+        return js_axis_source(surface, body, name)
+
+    if surface.key == "typescript":
+        if proposal_id == "axis_nullish_guard_identity" and right:
+            src = f"""function {name}(value: number | null | undefined, fallback: number): number {{
+  if (value == null) {{
+    return {fallback};
+  }}
+  return value;
+}}
+"""
+        elif proposal_id == "axis_nullish_truthy_boundary" and right:
+            src = f"""function {name}(value: number | null | undefined, fallback: number): number {{
+  return value || {fallback};
+}}
+"""
+        elif right:
+            src = f"""function {name}(value: number | null | undefined, fallback: number): number {{
+  return value == null ? {fallback} : value;
+}}
+"""
+        else:
+            src = f"""function {name}(value: number | null | undefined, fallback: number): number {{
+  return value ?? fallback;
+}}
+"""
+        return Variant("axis", src, name)
+
+    raise ValueError(f"unsupported surface for nullish axis: {surface.key}")
 
 
 def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -2504,6 +2582,11 @@ def axis_variants(
             import_axis_variant(surface, proposal_id, False, False),
             import_axis_variant(surface, proposal_id, negative, True),
         )
+    if axis == "nullish_default":
+        return (
+            axis_nullish_variant(surface, proposal_id, False, False),
+            axis_nullish_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -2633,6 +2716,23 @@ def generate_axis_items(out_dir: Path, capabilities: dict) -> list[dict]:
             axis = proposal["axis"]
             capability = surface_capability(capabilities, surface, axis)
             if proposal_id.startswith("axis_import_") and not import_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_nullish_") and not nullish_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id == "axis_nullish_truthy_boundary":
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "truthy-default-boundary",
+                    )
+                )
                 continue
             if proposal_id.startswith("axis_projection_") and not projection_axis_supported(
                 surface, proposal_id

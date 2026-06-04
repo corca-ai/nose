@@ -631,6 +631,73 @@ fn scan_mode_semantic_allows_static_projection_identity() {
 }
 
 #[test]
+fn scan_mode_semantic_distinguishes_nullish_from_truthy_defaults() {
+    let dir = std::env::temp_dir().join(format!("nose_nullish_default_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("nullish_coalesce.js"),
+        "function coalesce(value, fallback) {\n  return value ?? fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("nullish_ternary.js"),
+        "function ternary(value, fallback) {\n  return value == null ? fallback : value;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("nullish_guard.js"),
+        "function guard(value, fallback) {\n  if (value == null) {\n    return fallback;\n  }\n  return value;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("truthy_negative.js"),
+        "function truthy(value, fallback) {\n  return value || fallback;\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report one nullish-default family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    for expected in [
+        "nullish_coalesce.js",
+        "nullish_ternary.js",
+        "nullish_guard.js",
+    ] {
+        assert!(
+            semantic_text.contains(expected),
+            "semantic mode should include {expected}: {semantic}"
+        );
+    }
+    assert!(
+        !semantic_text.contains("truthy_negative.js"),
+        "semantic mode must not merge nullish and truthy defaults: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_converges_cross_language_list_literals() {
     let dir = std::env::temp_dir().join(format!("nose_list_cross_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

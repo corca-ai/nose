@@ -1064,6 +1064,31 @@ fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    if node
+        .child_by_field_name("operator")
+        .is_some_and(|op| lo.text(op) == "??")
+    {
+        let span = lo.span(node);
+        let left = node.child_by_field_name("left");
+        let right = node.child_by_field_name("right");
+        let value_for_cond = left
+            .map(|l| lower_expr(lo, l))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let null_lit = lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]);
+        let cond = lo.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Eq),
+            span,
+            &[value_for_cond, null_lit],
+        );
+        let fallback = right
+            .map(|r| lower_expr(lo, r))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let value = left
+            .map(|l| lower_expr(lo, l))
+            .unwrap_or_else(|| lo.empty_block(span));
+        return lo.add(NodeKind::If, Payload::None, span, &[cond, fallback, value]);
+    }
     crate::lower::binary(lo, node, js_bin_op, lower_expr)
 }
 
@@ -1278,13 +1303,12 @@ fn is_ts_type(k: &str) -> bool {
 }
 
 fn js_bin_op(text: &str) -> Option<Op> {
-    // shared C-family set, plus JS's strict-equality, exponent, nullish, unsigned
+    // shared C-family set, plus JS's strict-equality, exponent, unsigned
     // shift, and the type-test operators (the last two collapse lossily).
     crate::lower::common_bin_op(text).or(match text {
         "**" => Some(Op::Pow),
         "===" => Some(Op::Eq),
         "!==" => Some(Op::Ne),
-        "??" => Some(Op::Or),
         ">>>" => Some(Op::Shr),
         // `x in obj` is a directional membership/key test — its own non-commutative op.
         // `instanceof` is a type-identity check; equality-shaped is an acceptable approx.
