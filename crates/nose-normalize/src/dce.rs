@@ -99,20 +99,13 @@ fn find_dead(
         if kids.len() == 2 && il.kind(kids[0]) == NodeKind::Var {
             if let Payload::Cid(c) = il.node(kids[0]).payload {
                 if !read.contains(&c) && !params.contains(&c) {
-                    drop.insert(node.0, is_pure(il, kids[1]));
+                    drop.insert(node.0, crate::is_pure(il, kids[1]));
                 }
             }
         }
     }
     for &c in il.children(node) {
         find_dead(il, c, false, read, params, drop);
-    }
-}
-
-fn is_pure(il: &Il, node: NodeId) -> bool {
-    match il.kind(node) {
-        NodeKind::Call | NodeKind::HoF | NodeKind::Assign | NodeKind::Throw => false,
-        _ => il.children(node).iter().all(|&c| is_pure(il, c)),
     }
 }
 

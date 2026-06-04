@@ -155,6 +155,12 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: args.to_vec(),
                         }
                     }
+                    "len" | "length" if base.is_some() && args.is_empty() => {
+                        return CallCanon::Builtin {
+                            op: Builtin::Len,
+                            arg_olds: vec![base.unwrap()],
+                        }
+                    }
                     // `functools.reduce(f, xs[, init])` — here the *base* is the module
                     // `functools`, not the collection, so it is an explicit fold over
                     // `xs` (the same `Builtin::Reduce` as a bare `reduce(f, xs, init)`),
@@ -165,6 +171,18 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                         return CallCanon::Builtin {
                             op: Builtin::Reduce,
                             arg_olds: args.to_vec(),
+                        }
+                    }
+                    // Rust/iterator-style `a.iter().zip(b.iter())` is the same aligned
+                    // pair stream as Python `zip(a, b)`. Canonicalize it before outer
+                    // `.fold`/`.map` reasoning so tuple element bindings are shared.
+                    "zip" if base.is_some() && args.len() == 1 => {
+                        return CallCanon::Builtin {
+                            op: Builtin::Zip,
+                            arg_olds: vec![
+                                unwrap_iter(old, interner, base.unwrap()),
+                                unwrap_iter(old, interner, args[0]),
+                            ],
                         }
                     }
                     // Folds across languages → one canonical `Reduce[fn, coll, init]`,
@@ -190,31 +208,34 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                     }
                     // Existential/universal predicate reductions across languages → one
                     // canonical `Any`/`All[coll, λ]`: JS `xs.some/every(p)`, Rust
-                    // `xs.iter().any/all(p)`. The `.iter()` base is unwrapped to the
-                    // collection, so it converges with Python `any(p(x) for x in xs)`.
-                    "some" | "any" if base.is_some() && !args.is_empty() => {
+                    // `xs.iter().any/all(p)`, Java `stream.anyMatch/allMatch(p)`. The
+                    // iteration adapter base is unwrapped to the collection, so it
+                    // converges with Python `any(p(x) for x in xs)`.
+                    "some" | "any" | "any?" | "anyMatch" if base.is_some() && !args.is_empty() => {
                         let coll = unwrap_iter(old, interner, base.unwrap());
                         return CallCanon::Builtin {
                             op: Builtin::Any,
                             arg_olds: vec![coll, args[0]],
                         };
                     }
-                    "every" | "all" if base.is_some() && !args.is_empty() => {
+                    "every" | "all" | "all?" | "allMatch" if base.is_some() && !args.is_empty() => {
                         let coll = unwrap_iter(old, interner, base.unwrap());
                         return CallCanon::Builtin {
                             op: Builtin::All,
                             arg_olds: vec![coll, args[0]],
                         };
                     }
-                    "map" | "filter" if base.is_some() && !args.is_empty() => {
-                        let kind = if fname == "map" {
+                    "map" | "collect" | "filter" | "select"
+                        if base.is_some() && !args.is_empty() =>
+                    {
+                        let kind = if matches!(fname, "map" | "collect") {
                             HoFKind::Map
                         } else {
                             HoFKind::Filter
                         };
                         return CallCanon::HoF {
                             kind,
-                            collection_old: base.unwrap(),
+                            collection_old: unwrap_iter(old, interner, base.unwrap()),
                             fn_old: args[0],
                         };
                     }
@@ -268,7 +289,19 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
         if let Some(&callee) = old.children(node).first() {
             if old.kind(callee) == NodeKind::Field {
                 if let Payload::Name(s) = old.node(callee).payload {
-                    if matches!(interner.resolve(s), "iter" | "into_iter" | "iter_mut") {
+                    let method = interner.resolve(s);
+                    if method == "stream" {
+                        if let Some(&base) = old.children(callee).first() {
+                            if name_of(old, interner, base) == Some("Arrays") {
+                                if let Some(&arg) = old.children(node).get(1) {
+                                    return arg;
+                                }
+                            } else {
+                                return base;
+                            }
+                        }
+                    }
+                    if matches!(method, "iter" | "into_iter" | "iter_mut") {
                         if let Some(&base) = old.children(callee).first() {
                             return base;
                         }

@@ -16,9 +16,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v3: `UnitFeat`
-/// stores a shape-Minhash signature for the `near` scan channel.)
-const SCHEMA: u32 = 3;
+/// cache entries then live under a different directory and are ignored. (v4: `UnitFeat`
+/// stores strict exact-safety for the semantic scan contract.)
+const SCHEMA: u32 = 4;
 
 /// Build detection units **and contiguous-channel streams** for every source file under
 /// `roots`, using the on-disk cache at `dir`. Returns `(units, streams, files_seen)`.

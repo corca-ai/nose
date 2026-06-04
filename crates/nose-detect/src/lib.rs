@@ -29,6 +29,7 @@ use nose_il::{Corpus, Il, Interner};
 use nose_normalize::NormalizeOptions;
 use rayon::prelude::*;
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DetectOptions {
@@ -127,19 +128,23 @@ impl Detector for CopyPasteDetector {
 /// structural similarity.
 pub struct ExactBehaviorDetector;
 
+const EXACT_VALUE_MIN: usize = 4;
+
 impl Detector for ExactBehaviorDetector {
     fn name(&self) -> &str {
         "exact-behavior"
     }
 
     fn score(&self, a: &UnitFeat, b: &UnitFeat) -> f64 {
-        if a.value.len() >= 6 && a.value == b.value {
+        if a.exact_safe && b.exact_safe && a.value.len() >= EXACT_VALUE_MIN && a.value == b.value {
             1.0
         } else {
             0.0
         }
     }
 }
+
+const EXACT_VALUE_BUCKET_ALL_PAIRS_CAP: usize = 48;
 
 /// The v1 default: weighted multiset Jaccard over subtree shapes, blended with an
 /// LCS alignment over the linearized IL. A cheap Jaccard prefilter skips the
@@ -214,7 +219,12 @@ impl Detector for StructuralDetector {
         // Type-4 clone (loop ≡ reduce ≡ comprehension) be detected even though its
         // shapes differ. Guarded by a minimum fingerprint size so trivial units don't
         // collapse. The size gate (min_tokens) already excludes tiny units upstream.
-        if self.exact_behavior && a.value.len() >= 6 && a.value == b.value {
+        if self.exact_behavior
+            && a.exact_safe
+            && b.exact_safe
+            && a.value.len() >= EXACT_VALUE_MIN
+            && a.value == b.value
+        {
             return 1.0;
         }
         // Score = wv·vj + ws·sj + wr·ransac (defaults reproduce the prior
@@ -226,11 +236,7 @@ impl Detector for StructuralDetector {
         // same skeleton but a different operator (a sum-loop vs a product-loop) — now
         // behaviorally distinct in the value graph (`Reduce(Add)` vs `Reduce(Mul)`) —
         // still group as a refactoring family worth a human's review.
-        let (wv, ws, wr) = if self.candidate_mode {
-            candidate_score_weights()
-        } else {
-            score_weights()
-        };
+        let (wv, ws, wr) = score_weights(self.candidate_mode);
         let vj = align::multiset_jaccard(&a.value, &b.value);
         let sj = align::multiset_jaccard(&a.shapes, &b.shapes);
         if 0.6 * vj + 0.4 * sj < 0.15 {
@@ -279,41 +285,41 @@ impl Detector for StructuralDetector {
     }
 }
 
-/// Final-score weights (vj, sj, ransac). Env-overridable for parameter search;
-/// defaults reproduce the historical blend.
-fn score_weights() -> (f64, f64, f64) {
+/// Final-score weights (vj, sj, ransac). Env-overridable for parameter search.
+fn score_weights(candidate_mode: bool) -> (f64, f64, f64) {
     use std::sync::OnceLock;
-    static W: OnceLock<(f64, f64, f64)> = OnceLock::new();
-    *W.get_or_init(|| {
-        let g = |k: &str, d: f64| {
-            std::env::var(k)
-                .ok()
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(d)
-        };
+    static STRICT: OnceLock<(f64, f64, f64)> = OnceLock::new();
+    static CANDIDATE: OnceLock<(f64, f64, f64)> = OnceLock::new();
+
+    if candidate_mode {
+        return cached_score_weights(
+            &CANDIDATE,
+            ("NOSE_CWV", "NOSE_CWS", "NOSE_CWR"),
+            (0.3, 0.5, 0.2),
+        );
+    }
+
+    cached_score_weights(
+        &STRICT,
         // §P5: RANSAC down-weighted 0.5→0.2 (it ignores string values, so it kept
         // "same shape, different data" locale-table FPs high); weight shifted to the
         // value-graph + shape Jaccard. Labeled precision 31.7%→45.2%, recall held.
-        (g("NOSE_WV", 0.5), g("NOSE_WS", 0.3), g("NOSE_WR", 0.2))
-    })
+        ("NOSE_WV", "NOSE_WS", "NOSE_WR"),
+        (0.5, 0.3, 0.2),
+    )
 }
 
-/// Candidate-mode weights (§AH): structure-dominant. The behavioral value graph is
-/// down-weighted relative to syntactic shape so refactoring families that share a
-/// skeleton but differ in a behavior-defining operator/constant (sum↔product,
-/// `<`↔`<=`) still surface for review — the recall-oriented purpose. Strict mode uses
-/// the behavioral weights above. Env-overridable for tuning.
-fn candidate_score_weights() -> (f64, f64, f64) {
-    use std::sync::OnceLock;
-    static W: OnceLock<(f64, f64, f64)> = OnceLock::new();
-    *W.get_or_init(|| {
-        let g = |k: &str, d: f64| {
-            std::env::var(k)
-                .ok()
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(d)
-        };
-        (g("NOSE_CWV", 0.3), g("NOSE_CWS", 0.5), g("NOSE_CWR", 0.2))
+fn cached_score_weights(
+    cache: &'static std::sync::OnceLock<(f64, f64, f64)>,
+    keys: (&'static str, &'static str, &'static str),
+    defaults: (f64, f64, f64),
+) -> (f64, f64, f64) {
+    *cache.get_or_init(|| {
+        (
+            env_or(keys.0, defaults.0),
+            env_or(keys.1, defaults.1),
+            env_or(keys.2, defaults.2),
+        )
     })
 }
 
@@ -324,17 +330,7 @@ fn candidate_score_weights() -> (f64, f64, f64) {
 fn data_heavy_params() -> (f64, usize) {
     use std::sync::OnceLock;
     static P: OnceLock<(f64, usize)> = OnceLock::new();
-    *P.get_or_init(|| {
-        let r = std::env::var("NOSE_DH")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.20);
-        let n = std::env::var("NOSE_DHN")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(25);
-        (r, n)
-    })
+    *P.get_or_init(|| (env_or("NOSE_DH", 0.20), env_or("NOSE_DHN", 25)))
 }
 
 /// Return-signature gate base: a unit pair with totally mismatched return values
@@ -342,12 +338,17 @@ fn data_heavy_params() -> (f64, usize) {
 fn ret_gate_base() -> f64 {
     use std::sync::OnceLock;
     static B: OnceLock<f64> = OnceLock::new();
-    *B.get_or_init(|| {
-        std::env::var("NOSE_RET")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0.80)
-    })
+    *B.get_or_init(|| env_or("NOSE_RET", 0.80))
+}
+
+fn env_or<T>(key: &str, default: T) -> T
+where
+    T: std::str::FromStr + Copy,
+{
+    std::env::var(key)
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(default)
 }
 
 #[derive(Serialize, Clone)]
@@ -583,6 +584,7 @@ pub fn detect_from_units(
                 |i| units[i].minhash.as_slice(),
                 opts.bands,
             ));
+            candidates.extend(exact_value_candidates(&units));
         }
         if opts.shape_candidates {
             candidates.extend(lsh::candidates(
@@ -711,6 +713,45 @@ pub fn detect_from_units(
     };
 
     (report, dump)
+}
+
+fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
+    let mut buckets: HashMap<Vec<u64>, Vec<usize>> = HashMap::new();
+    for (idx, unit) in units.iter().enumerate() {
+        if unit.exact_safe && unit.value.len() >= EXACT_VALUE_MIN {
+            buckets.entry(unit.value.clone()).or_default().push(idx);
+        }
+    }
+    let mut out = Vec::new();
+    for members in buckets.values() {
+        if members.len() < 2 {
+            continue;
+        }
+        if members.len() <= EXACT_VALUE_BUCKET_ALL_PAIRS_CAP {
+            for a in 0..members.len() {
+                for b in (a + 1)..members.len() {
+                    out.push(ordered_pair(members[a], members[b]));
+                }
+            }
+        } else {
+            for w in members.windows(2) {
+                out.push(ordered_pair(w[0], w[1]));
+            }
+            for &m in &members[1..] {
+                out.push(ordered_pair(members[0], m));
+            }
+        }
+    }
+    out
+}
+
+#[inline]
+fn ordered_pair(i: usize, j: usize) -> (usize, usize) {
+    if i < j {
+        (i, j)
+    } else {
+        (j, i)
+    }
 }
 
 fn round3(x: f64) -> f64 {

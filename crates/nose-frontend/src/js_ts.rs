@@ -98,7 +98,7 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
         "expression_statement" => {
             let child = node.named_child(0)?;
             Some(match child.kind() {
-                "assignment_expression" => lower_assignment(lo, child),
+                "assignment_expression" => crate::lower::assignment(lo, child, lower_expr),
                 "augmented_assignment_expression" => lower_aug_assignment(lo, child),
                 "update_expression" => lower_update(lo, child),
                 _ => {
@@ -326,19 +326,6 @@ fn lower_var_decl(lo: &mut Lowering, node: TsNode) -> NodeId {
     }
 }
 
-fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let lhs = node
-        .child_by_field_name("left")
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let rhs = node
-        .child_by_field_name("right")
-        .map(|r| lower_expr(lo, r))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
-}
-
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let left = node.child_by_field_name("left");
@@ -451,7 +438,7 @@ fn lower_for_c(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_for_clause_stmt(lo: &mut Lowering, node: TsNode) -> NodeId {
     match node.kind() {
         "lexical_declaration" | "variable_declaration" => lower_var_decl(lo, node),
-        "assignment_expression" => lower_assignment(lo, node),
+        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
         "augmented_assignment_expression" => lower_aug_assignment(lo, node),
         "update_expression" => lower_update(lo, node),
         "expression_statement" => {
@@ -674,13 +661,13 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "null" | "undefined" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
-        "regex" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Other), span, &[]),
+        "regex" => lo.str_lit(lo.text(node), span),
         "call_expression" => lower_call(lo, node),
         "new_expression" => lower_new(lo, node),
         "binary_expression" => lower_binary(lo, node),
         "unary_expression" => lower_unary(lo, node),
         "update_expression" => lower_update(lo, node),
-        "assignment_expression" => lower_assignment(lo, node),
+        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
         "augmented_assignment_expression" => lower_aug_assignment(lo, node),
         "member_expression" => {
             let obj = node
@@ -715,26 +702,11 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
-            lo.add(NodeKind::Seq, Payload::None, span, &kids)
+            let tag = lo.sym("array");
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
-        "object" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            lo.add(NodeKind::Seq, Payload::None, span, &kids)
-        }
-        "pair" => {
-            let k = node
-                .child_by_field_name("key")
-                .map(|x| lower_expr(lo, x))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let v = node
-                .child_by_field_name("value")
-                .map(|x| lower_expr(lo, x))
-                .unwrap_or_else(|| lo.empty_block(span));
-            lo.add(NodeKind::Seq, Payload::None, span, &[k, v])
-        }
+        "object" => lower_object(lo, node),
+        "pair" => lower_object_pair(lo, node),
         "ternary_expression" => {
             let cond = node
                 .child_by_field_name("condition")
@@ -966,11 +938,67 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.add(NodeKind::UnOp, Payload::Op(op), span, &[arg])
         }
-        // typeof / void / delete: strip to the operand (reduces noise).
-        _ => arg_node
-            .map(|a| lower_expr(lo, a))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "typeof" => {
+            let callee = lo.var("typeof", span);
+            let arg = arg_node
+                .map(|a| lower_expr(lo, a))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.add(NodeKind::Call, Payload::None, span, &[callee, arg])
+        }
+        // `void` and `delete` have JS-specific side-effect/value semantics that strict
+        // exact mode does not prove yet.
+        _ => {
+            let inner: Vec<NodeId> = arg_node.into_iter().map(|a| lower_expr(lo, a)).collect();
+            lo.raw(op_text, span, &inner)
+        }
     }
+}
+
+fn lower_object(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    for child in Lowering::named_children(node) {
+        match child.kind() {
+            "pair" => kids.push(lower_object_pair(lo, child)),
+            "shorthand_property_identifier" => kids.push(lower_object_shorthand(lo, child)),
+            // Spread and methods depend on object/runtime semantics that the strict
+            // value graph does not prove yet. Keep the source shape for near mode and
+            // make the containing unit ineligible for exact semantic reporting.
+            "spread_element" | "method_definition" => {
+                let inner: Vec<NodeId> = Lowering::named_children(child)
+                    .into_iter()
+                    .map(|c| lower_expr(lo, c))
+                    .collect();
+                kids.push(lo.raw(child.kind(), lo.span(child), &inner));
+            }
+            _ => kids.push(lower_expr(lo, child)),
+        }
+    }
+    let tag = lo.sym("object");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+}
+
+fn lower_object_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let key = node
+        .child_by_field_name("key")
+        .map(|x| lo.str_lit(lo.text(x), lo.span(x)))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let value = node
+        .child_by_field_name("value")
+        .map(|x| lower_expr(lo, x))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let tag = lo.sym("pair");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &[key, value])
+}
+
+fn lower_object_shorthand(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let name = lo.text(node);
+    let key = lo.str_lit(name, span);
+    let value = lo.var(name, span);
+    let tag = lo.sym("pair");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &[key, value])
 }
 
 /// Lower a template literal to a string-concat chain: a base `Str` literal

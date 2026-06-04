@@ -5,6 +5,20 @@ designed so that semantically-equivalent code converges toward identical
 structure, then finds and ranks duplication on top of it. The IL is **not** the
 deliverable — it's the substrate. Back to [home](home.md).
 
+## North star
+
+nose's exact Type-4 goal is **not** to guess arbitrary semantic similarity. It is
+to become the strongest detector for the semantic equivalence classes it explicitly
+models: broad cross-language coverage, exact fingerprint equality, and a defensible
+soundness contract for every accepted semantic match.
+
+That means recall work should raise more real equivalences to exact convergence
+rather than lowering thresholds around partial similarity. A new semantic match is
+only a durable win when it can be backed by the independent interpreter oracle,
+counterexamples for rejected rewrites, and, for core canonicalizations, machine-checked
+proofs. False merges are product bugs; fuzziness belongs in candidate generation and
+review-oriented `near` scoring, not in the exact `semantic` channel.
+
 ## The pipeline
 
 ```

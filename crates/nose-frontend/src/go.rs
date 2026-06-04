@@ -6,7 +6,9 @@
 //! `if`/`else if` chain; `true`/`false`/`nil` identifiers become literals.
 
 use crate::lower::Lowering;
-use nose_il::{FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload};
+use nose_il::{
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
@@ -306,17 +308,33 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
             )
         }
         Some(c) if c.kind() == "range_clause" => {
-            // In Go `for k, v := range xs` the *value* is the last binding; bind it
-            // (skipping a blank `_`) so idiomatic value iteration converges with a
-            // `for x in xs` foreach in other languages.
-            let pat = c
-                .child_by_field_name("left")
-                .map(|l| lower_expr(lo, range_value_var(l)))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let iter = c
+            let left = c.child_by_field_name("left");
+            let mut iter = c
                 .child_by_field_name("right")
                 .map(|r| lower_expr(lo, r))
                 .unwrap_or_else(|| lo.empty_block(span));
+            let pat = match left {
+                Some(l)
+                    if range_bindings(l).len() >= 2
+                        && range_bindings(l)
+                            .first()
+                            .is_some_and(|first| lo.text(*first) != "_") =>
+                {
+                    let vars: Vec<NodeId> = range_bindings(l)
+                        .into_iter()
+                        .map(|v| lower_range_binding(lo, v))
+                        .collect();
+                    iter = lo.add(
+                        NodeKind::Call,
+                        Payload::Builtin(Builtin::Enumerate),
+                        span,
+                        &[iter],
+                    );
+                    lo.add(NodeKind::Seq, Payload::None, span, &vars)
+                }
+                Some(l) => lower_expr(lo, range_value_var(l)),
+                None => lo.empty_block(span),
+            };
             lo.add(
                 NodeKind::Loop,
                 Payload::Loop(LoopKind::ForEach),
@@ -352,6 +370,22 @@ fn first_of_list(node: TsNode) -> TsNode {
         node.named_child(0).unwrap_or(node)
     } else {
         node
+    }
+}
+
+fn range_bindings(node: TsNode) -> Vec<TsNode> {
+    expr_list_items(node)
+        .into_iter()
+        .filter(|n| n.kind() == "identifier")
+        .collect()
+}
+
+fn lower_range_binding(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    if lo.text(node) == "_" {
+        lo.empty_block(span)
+    } else {
+        lower_expr(lo, node)
     }
 }
 
@@ -495,7 +529,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     .collect(),
                 None => Vec::new(),
             };
-            lo.add(NodeKind::Seq, Payload::None, span, &kids)
+            let tag = lo.sym("composite_literal");
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
         "literal_element" | "keyed_element" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
@@ -505,7 +540,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             if kids.len() == 1 {
                 kids[0]
             } else {
-                lo.add(NodeKind::Seq, Payload::None, span, &kids)
+                let tag = lo.sym(node.kind());
+                lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
             }
         }
         "parenthesized_expression" => node

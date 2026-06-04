@@ -467,24 +467,32 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             );
             lo.add(NodeKind::Seq, Payload::None, span, &slots)
         }
-        "list" | "tuple" | "set" | "dictionary" | "pattern_list" | "expression_list"
-        | "list_pattern" | "tuple_pattern" => {
+        "list" | "tuple" => {
+            let kids: Vec<NodeId> = Lowering::named_children(node)
+                .into_iter()
+                .map(|c| lower_expr(lo, c))
+                .collect();
+            let tag = lo.sym(node.kind());
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+        }
+        "set" | "pattern_list" | "expression_list" | "list_pattern" | "tuple_pattern" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
             lo.add(NodeKind::Seq, Payload::None, span, &kids)
         }
+        "dictionary" => lower_dictionary(lo, node),
         // splats / unpacking: strip to the inner expression
         "list_splat" | "dictionary_splat" | "list_splat_pattern" | "dictionary_splat_pattern" => {
             node.named_child(0)
                 .map(|c| lower_expr(lo, c))
                 .unwrap_or_else(|| lo.empty_block(span))
         }
-        // A dict `pair` `k: v` is a `Seq` tagged `DictEntry` — distinct from a plain tuple
-        // `Seq` (`(k, v)`), so a dict literal / comprehension never collides with a list of
-        // tuples (different behavior). Carried on a `Seq` (not a `Call`) so normalization's
-        // `canon_call` can't misread the key as a callee (`{len: v}` → wrongly `Len(v)`).
+        // A standalone dict-comprehension `pair` (`{k: v for ...}`) is the loop
+        // contribution `DictEntry(k, v)`. Plain dict literals use
+        // `lower_dictionary_pair` instead so cross-language map literals retain a
+        // language-neutral `pair` sequence tag.
         "pair" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -551,6 +559,39 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_dictionary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    for child in Lowering::named_children(node) {
+        match child.kind() {
+            "pair" => kids.push(lower_dictionary_pair(lo, child)),
+            // Dict unpacking has overwrite-order semantics that the strict value
+            // graph does not prove yet. Preserve it for near mode, but make the
+            // containing function ineligible for exact semantic reporting.
+            "dictionary_splat" => {
+                let inner: Vec<NodeId> = Lowering::named_children(child)
+                    .into_iter()
+                    .map(|c| lower_expr(lo, c))
+                    .collect();
+                kids.push(lo.raw(child.kind(), lo.span(child), &inner));
+            }
+            _ => kids.push(lower_expr(lo, child)),
+        }
+    }
+    let tag = lo.sym("dictionary");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+}
+
+fn lower_dictionary_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|c| lower_expr(lo, c))
+        .collect();
+    let tag = lo.sym("pair");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -8,7 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Symbol, UnitKind,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Symbol,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -90,7 +91,7 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "return" => {
             let mut kids = Vec::new();
             if let Some(v) = node.named_child(0) {
-                kids.push(lower_expr(lo, v));
+                kids.push(lower_return_value(lo, v));
             }
             Some(lo.add(NodeKind::Return, Payload::None, span, &kids))
         }
@@ -152,6 +153,15 @@ fn param_name(lo: &Lowering, p: TsNode) -> Option<Symbol> {
         "identifier" => Some(lo.sym(lo.text(p))),
         _ => p.named_child(0).map(|n| lo.sym(lo.text(n))),
     }
+}
+
+fn lower_return_value(lo: &mut Lowering, node: TsNode) -> NodeId {
+    if node.kind() == "argument_list" && node.named_child_count() == 1 {
+        if let Some(v) = node.named_child(0) {
+            return lower_expr(lo, v);
+        }
+    }
+    lower_expr(lo, node)
 }
 
 fn lower_class(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -283,7 +293,11 @@ fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
         .filter(|c| c.kind() == "interpolation")
         .collect();
     if interps.is_empty() {
-        return lo.str_lit(lo.text(node), span);
+        let text = lo.text(node);
+        if matches!(node.kind(), "symbol" | "simple_symbol" | "hash_key_symbol") {
+            return lo.str_lit(text.trim_start_matches(':').trim_end_matches(':'), span);
+        }
+        return lo.str_lit(text, span);
     }
     let mut acc = lo.add(NodeKind::Lit, Payload::Lit(LitClass::Str), span, &[]);
     for interp in interps {
@@ -350,14 +364,16 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .collect();
             lo.add(NodeKind::Index, Payload::None, span, &kids)
         }
-        // `array`/`hash` → Seq of elements; a hash's `pair` (`k => v` / `k: v`) → Seq[k, v].
-        "array" | "hash" | "pair" => {
+        "array" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
-            lo.add(NodeKind::Seq, Payload::None, span, &kids)
+            let tag = lo.sym("array");
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
+        "hash" => lower_hash(lo, node),
+        "pair" => lower_hash_pair(lo, node),
         "block" | "do_block" => {
             let mut kids = Vec::new();
             if let Some(params) = node.child_by_field_name("parameters") {
@@ -424,6 +440,36 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "super" | "forward_argument" => lo.var(lo.text(node), span),
         _ => raw_kids(lo, node),
     }
+}
+
+fn lower_hash(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    for child in Lowering::named_children(node) {
+        match child.kind() {
+            "pair" => kids.push(lower_hash_pair(lo, child)),
+            "hash_splat_argument" => {
+                let inner: Vec<NodeId> = Lowering::named_children(child)
+                    .into_iter()
+                    .map(|c| lower_expr(lo, c))
+                    .collect();
+                kids.push(lo.raw(child.kind(), lo.span(child), &inner));
+            }
+            _ => kids.push(lower_expr(lo, child)),
+        }
+    }
+    let tag = lo.sym("hash");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+}
+
+fn lower_hash_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|c| lower_expr(lo, c))
+        .collect();
+    let tag = lo.sym("pair");
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
 }
 
 /// `begin … rescue … ensure … else … end` → `Try(body, handler-blocks…)`, converging
@@ -505,19 +551,40 @@ fn try_each_loop(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let b = Lowering::named_children(node)
         .into_iter()
         .find(|c| matches!(c.kind(), "block" | "do_block"))?;
-    if !matches!(
-        m.as_str(),
-        "each" | "each_with_index" | "map" | "select" | "filter" | "reject"
-    ) {
+    if !matches!(m.as_str(), "each" | "each_with_index") {
         return None;
     }
-    let iter = lower_expr(lo, r);
-    let pat = b
+    let mut iter = lower_expr(lo, r);
+    let params = b
         .child_by_field_name("parameters")
-        .and_then(|p| Lowering::named_children(p).into_iter().next())
-        .and_then(|p| param_name(lo, p))
-        .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
-        .unwrap_or_else(|| lo.empty_block(span));
+        .map(Lowering::named_children)
+        .unwrap_or_default();
+    let pat = if m.as_str() == "each_with_index" {
+        let mut params = params;
+        if params.len() >= 2 {
+            // Ruby yields `(element, index)`, while the shared Enumerate lowering
+            // expects pattern order `(index, element)`.
+            params.swap(0, 1);
+        }
+        let vars: Vec<NodeId> = params
+            .into_iter()
+            .map(|p| lower_block_param_var(lo, p, span))
+            .collect();
+        iter = lo.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Enumerate),
+            span,
+            &[iter],
+        );
+        lo.add(NodeKind::Seq, Payload::None, span, &vars)
+    } else {
+        params
+            .into_iter()
+            .next()
+            .and_then(|p| param_name(lo, p))
+            .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
+            .unwrap_or_else(|| lo.empty_block(span))
+    };
     let body = block_body(lo, b);
     Some(lo.add(
         NodeKind::Loop,
@@ -525,6 +592,15 @@ fn try_each_loop(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         span,
         &[pat, iter, body],
     ))
+}
+
+fn lower_block_param_var(lo: &mut Lowering, node: TsNode, span: nose_il::Span) -> NodeId {
+    if lo.text(node) == "_" {
+        return lo.empty_block(span);
+    }
+    param_name(lo, node)
+        .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
+        .unwrap_or_else(|| lo.empty_block(span))
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -141,6 +141,724 @@ fn scan_mode_semantic_keeps_renamed_exact_clone_candidates() {
 }
 
 #[test]
+fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
+    let dir = std::env::temp_dir().join(format!("nose_regex_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("dot-only.ts"),
+        "export function isDotOnlyPathSegment(value: string) {\n    return /^\\.+$/u.test(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("markdown-link.ts"),
+        "export function isWorkspaceMarkdownLink(markdown: string) {\n    return /^\\[\\[[^\\]]+\\]\\]$/u.test(markdown);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("dot-only-copy.ts"),
+        "export function matchesDotOnly(segment: string) {\n    return /^\\.+$/u.test(segment);\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only the same-regex exact family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("dot-only.ts")
+            && semantic_text.contains("dot-only-copy.ts")
+            && !semantic_text.contains("markdown-link.ts"),
+        "semantic mode must distinguish regex pattern semantics: {semantic}"
+    );
+
+    let near = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "near",
+        "--threshold",
+        "0.5",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    assert!(
+        near.contains("dot-only.ts") && near.contains("markdown-link.ts"),
+        "near mode may still surface the review candidate: {near}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_allows_proved_js_static_builtins() {
+    let dir = std::env::temp_dir().join(format!("nose_static_builtin_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("array_a.ts"),
+        "export function isList(value: unknown) {\n    return Array.isArray(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_b.ts"),
+        "export function acceptsArray(input: unknown) {\n    return Array.isArray(input);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("typeof_negative.ts"),
+        "export function acceptsObject(value: unknown) {\n    return typeof value === \"object\";\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only the identical Array.isArray guard: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("array_a.ts")
+            && semantic_text.contains("array_b.ts")
+            && !semantic_text.contains("typeof_negative.ts"),
+        "semantic mode must keep static builtin calls exact: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_preserves_js_typeof_operator() {
+    let dir = std::env::temp_dir().join(format!("nose_typeof_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("typeof_a.ts"),
+        "export function isString(value: unknown) {\n    return typeof value === \"string\";\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("typeof_b.ts"),
+        "export function acceptsString(input: unknown) {\n    return typeof input === \"string\";\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("plain_equality_negative.ts"),
+        "export function equalsString(value: unknown) {\n    return value === \"string\";\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("void_a.ts"),
+        "export function eraseValue(value: unknown) {\n    return void value;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("void_b.ts"),
+        "export function eraseInput(input: unknown) {\n    return void input;\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only the identical typeof guard: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("typeof_a.ts")
+            && semantic_text.contains("typeof_b.ts")
+            && !semantic_text.contains("plain_equality_negative.ts")
+            && !semantic_text.contains("void_a.ts")
+            && !semantic_text.contains("void_b.ts"),
+        "semantic mode must preserve typeof and reject unproved unary JS operators: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_allows_safe_uninterpreted_calls() {
+    let dir = std::env::temp_dir().join(format!("nose_uninterpreted_call_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("call_a.js"),
+        "export function report(value) {\n    return helper({ kind: \"event\", value });\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("call_b.js"),
+        "export function build(input) {\n    return helper({ kind: \"event\", value: input });\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("call_negative.js"),
+        "export function other(value) {\n    return otherHelper({ kind: \"event\", value });\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same helper-call identity: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("call_a.js")
+            && semantic_text.contains("call_b.js")
+            && !semantic_text.contains("call_negative.js"),
+        "semantic mode must preserve uninterpreted callee identity: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_allows_safe_uninterpreted_method_calls() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_uninterpreted_method_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("method_a.js"),
+        "export function assertLine(t, stderr) {\n    t.is(normalize(stderr), \"ok\");\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("method_b.js"),
+        "export function checkLine(assertion, output) {\n    assertion.is(normalize(output), \"ok\");\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("method_negative.js"),
+        "export function assertDeep(t, stderr) {\n    t.deepEqual(normalize(stderr), \"ok\");\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same method-call identity: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("method_a.js")
+            && semantic_text.contains("method_b.js")
+            && !semantic_text.contains("method_negative.js"),
+        "semantic mode must preserve uninterpreted method identity: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_distinguishes_sequence_kinds() {
+    let dir = std::env::temp_dir().join(format!("nose_seq_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("list_a.py"),
+        "def pair(a, b):\n    return [a, b]\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("list_b.py"),
+        "def make_pair(x, y):\n    return [x, y]\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("tuple.py"),
+        "def tuple_pair(a, b):\n    return (a, b)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only the same list-construction family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("list_a.py")
+            && semantic_text.contains("list_b.py")
+            && !semantic_text.contains("tuple.py"),
+        "semantic mode must preserve list-vs-tuple sequence kind: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_converges_cross_language_list_literals() {
+    let dir = std::env::temp_dir().join(format!("nose_list_cross_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("pair.js"),
+        "export function pair(a, b) {\n    return [a, b];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("pair.py"),
+        "def make_pair(x, y):\n    return [x, y]\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("pair.rb"),
+        "def build_pair(first, second)\n  [first, second]\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("tuple_negative.py"),
+        "def tuple_pair(a, b):\n    return (a, b)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report one cross-language list literal family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("pair.js")
+            && semantic_text.contains("pair.py")
+            && semantic_text.contains("pair.rb")
+            && !semantic_text.contains("tuple_negative.py"),
+        "semantic mode must converge list-like literals without merging tuples: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_preserves_js_object_keys() {
+    let dir = std::env::temp_dir().join(format!("nose_object_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("object_a.ts"),
+        "export function example(command: string, description: string) {\n    return { command, description };\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("object_b.ts"),
+        "export function makeExample(cmd: string, desc: string) {\n    return { command: cmd, description: desc };\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("object_key_negative.ts"),
+        "export function makeParam(name: string, description: string) {\n    return { name, description };\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same-key object construction: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("object_a.ts")
+            && semantic_text.contains("object_b.ts")
+            && !semantic_text.contains("object_key_negative.ts"),
+        "semantic mode must preserve object keys: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_converges_cross_language_map_literals() {
+    let dir = std::env::temp_dir().join(format!("nose_map_cross_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("map.ts"),
+        "export function example(command: string, description: string) {\n    return { command, description };\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map.py"),
+        "def make_example(cmd, desc):\n    return {\"command\": cmd, \"description\": desc}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map.rb"),
+        "def build_example(command, description)\n  { command: command, description: description }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_key_negative.ts"),
+        "export function makeParam(name: string, description: string) {\n    return { name, description };\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report one cross-language map literal family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("map.ts")
+            && semantic_text.contains("map.py")
+            && semantic_text.contains("map.rb")
+            && !semantic_text.contains("map_key_negative.ts"),
+        "semantic mode must converge map-like literals without dropping key identity: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_captures_module_literal_bindings() {
+    let dir = std::env::temp_dir().join(format!("nose_module_const_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("locale_a.ts"),
+        "const labels = { today: \"today\", tomorrow: \"tomorrow\" };\nexport function label(token: string) {\n    return labels[token];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("locale_b.ts"),
+        "const labels = { today: \"heute\", tomorrow: \"morgen\" };\nexport function label(token: string) {\n    return labels[token];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("locale_a_copy.ts"),
+        "const labels = { today: \"today\", tomorrow: \"tomorrow\" };\nexport function relativeLabel(key: string) {\n    return labels[key];\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same module-literal binding behavior: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("locale_a.ts")
+            && semantic_text.contains("locale_a_copy.ts")
+            && !semantic_text.contains("locale_b.ts"),
+        "semantic mode must include captured module literal values: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_preserves_python_dict_keys() {
+    let dir = std::env::temp_dir().join(format!("nose_dict_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("dict_a.py"),
+        "def example(command, description):\n    return {\"command\": command, \"description\": description}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("dict_b.py"),
+        "def make_example(cmd, desc):\n    return {\"command\": cmd, \"description\": desc}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("dict_key_negative.py"),
+        "def make_param(name, description):\n    return {\"name\": name, \"description\": description}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("dict_spread_a.py"),
+        "def with_spread(base, command):\n    return {**base, \"command\": command}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("dict_spread_b.py"),
+        "def copy_spread(other, cmd):\n    return {**other, \"command\": cmd}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same-key dict construction: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("dict_a.py")
+            && semantic_text.contains("dict_b.py")
+            && !semantic_text.contains("dict_key_negative.py")
+            && !semantic_text.contains("dict_spread_a.py")
+            && !semantic_text.contains("dict_spread_b.py"),
+        "semantic mode must preserve dict keys and reject unproved unpacking: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_preserves_ruby_hash_keys() {
+    let dir = std::env::temp_dir().join(format!("nose_hash_semantic_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("hash_a.rb"),
+        "def example(command, description)\n  { command: command, description: description }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("hash_b.rb"),
+        "def make_example(cmd, desc)\n  { command: cmd, description: desc }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("hash_key_negative.rb"),
+        "def make_param(name, description)\n  { name: name, description: description }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("hash_splat_a.rb"),
+        "def with_splat(base, command)\n  { **base, command: command }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("hash_splat_b.rb"),
+        "def copy_splat(other, cmd)\n  { **other, command: cmd }\nend\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json: serde_json::Value =
+        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
+    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only same-key hash construction: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("hash_a.rb")
+            && semantic_text.contains("hash_b.rb")
+            && !semantic_text.contains("hash_key_negative.rb")
+            && !semantic_text.contains("hash_splat_a.rb")
+            && !semantic_text.contains("hash_splat_b.rb"),
+        "semantic mode must preserve hash keys and reject unproved splats: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn default_mode_runs_syntax_and_semantic() {
     let dir = make_mode_project("default_modes");
     let p = dir.to_str().unwrap();

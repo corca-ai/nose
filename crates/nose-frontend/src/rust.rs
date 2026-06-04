@@ -127,21 +127,33 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
         match p.kind() {
             "self_parameter" => out.push(lo.add(NodeKind::Param, Payload::None, span, &[])),
             "parameter" => {
-                let name = p
-                    .child_by_field_name("pattern")
-                    .and_then(|pat| ident_of(lo, pat));
-                match name {
-                    Some(sym) => out.push(lo.add(NodeKind::Param, Payload::Name(sym), span, &[])),
-                    None => out.push(lo.add(NodeKind::Param, Payload::None, span, &[])),
+                if let Some(pat) = p.child_by_field_name("pattern") {
+                    push_pattern_params(lo, pat, out);
+                } else {
+                    out.push(lo.add(NodeKind::Param, Payload::None, span, &[]));
                 }
             }
             // Closure params (`|a, v|`) are bare identifiers/patterns, not `parameter`
             // nodes — name them so a closure's body binds them (else a `.fold` closure's
             // accumulator/element are free vars and the fold never converges with a loop).
-            _ => match ident_of(lo, p) {
+            _ => push_pattern_params(lo, p, out),
+        }
+    }
+}
+
+fn push_pattern_params(lo: &mut Lowering, pat: TsNode, out: &mut Vec<NodeId>) {
+    match pat.kind() {
+        "tuple_pattern" | "tuple_expression" => {
+            for child in Lowering::named_children(pat) {
+                push_pattern_params(lo, child, out);
+            }
+        }
+        _ => {
+            let span = lo.span(pat);
+            match ident_of(lo, pat) {
                 Some(sym) => out.push(lo.add(NodeKind::Param, Payload::Name(sym), span, &[])),
                 None => out.push(lo.add(NodeKind::Param, Payload::None, span, &[])),
-            },
+            }
         }
     }
 }
@@ -272,7 +284,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "block" => lower_block(lo, node),
         "binary_expression" => lower_binary(lo, node),
         "unary_expression" => lower_unary(lo, node),
-        "assignment_expression" => lower_assignment(lo, node),
+        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
         "compound_assignment_expr" => lower_compound_assign(lo, node),
         // peel try / await / paren wrappers to their operand
         "try_expression" | "await_expression" | "parenthesized_expression" => node
@@ -351,7 +363,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
                 .collect();
-            lo.add(NodeKind::Seq, Payload::None, span, &kids)
+            let tag = lo.sym(node.kind());
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
         "struct_expression" => lower_struct_expr(lo, node),
         // `foo::<T>` / `Vec::<T>::new` — lower the function/value, drop the turbofish.
@@ -423,19 +436,6 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
         Op::Neg
     };
     lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
-}
-
-fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let lhs = node
-        .child_by_field_name("left")
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let rhs = node
-        .child_by_field_name("right")
-        .map(|r| lower_expr(lo, r))
-        .unwrap_or_else(|| lo.empty_block(span));
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
 /// `x op= y` → `x = x op y`.

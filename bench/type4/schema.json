@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "nose Type-4 benchmark manifest",
+  "description": "Evidence-carrying generated pair data for exact Type-4 benchmark candidates.",
+  "type": "object",
+  "required": ["schema_version", "source", "items"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "source": {
+      "type": "object",
+      "required": ["generator", "proposal_file", "cross_mode"],
+      "properties": {
+        "generator": { "type": "string" },
+        "proposal_file": { "type": "string" },
+        "cross_mode": { "enum": ["none", "ring", "all"] }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "proposal_id",
+          "split",
+          "semantic_status",
+          "expected_exact_detect",
+          "semantic_scope",
+          "transform_tags",
+          "matrix",
+          "left",
+          "right",
+          "evidence"
+        ],
+        "properties": {
+          "case_id": { "type": "string" },
+          "proposal_id": { "type": "string" },
+          "split": { "enum": ["dev", "heldout"] },
+          "semantic_status": { "enum": ["equivalent", "not_equivalent", "unknown"] },
+          "expected_exact_detect": { "type": "boolean" },
+          "semantic_scope": { "type": "string" },
+          "transform_tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "matrix": {
+            "type": "object",
+            "required": ["computation", "representations", "data_shape", "language_relation"],
+            "properties": {
+              "computation": { "type": "string" },
+              "representations": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "data_shape": { "type": "string" },
+              "language_relation": { "type": "string" },
+              "negative_tag": { "type": ["string", "null"] },
+              "template_split": { "enum": ["dev", "heldout"] }
+            }
+          },
+          "left": { "$ref": "#/$defs/source" },
+          "right": { "$ref": "#/$defs/source" },
+          "evidence": {
+            "type": "object",
+            "required": ["level", "kind"],
+            "properties": {
+              "level": { "enum": ["E0", "E1", "E2", "E3"] },
+              "kind": { "type": "string" },
+              "property_inputs": { "type": "array" },
+              "outputs": { "type": "array" },
+              "counterexample": { "type": "object" }
+            }
+          },
+          "llm_proposal": {
+            "type": "object",
+            "properties": {
+              "why": { "type": "string" },
+              "complexity_budget": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["language", "surface", "representation", "path", "entrypoint", "start_line", "end_line"],
+      "properties": {
+        "language": { "type": "string" },
+        "surface": { "type": "string" },
+        "representation": { "type": "string" },
+        "path": { "type": "string" },
+        "entrypoint": { "type": "string" },
+        "start_line": { "type": "integer" },
+        "end_line": { "type": "integer" }
+      }
+    }
+  }
+}
