@@ -123,6 +123,22 @@ AXIS_PROPOSALS = {
         "axis": "null_presence_predicate",
         "why": "Rust option-pattern presence is a proof over a specific option value coordinate.",
     },
+    "axis_scalar_abs_function_identity": {
+        "axis": "numeric_minmax_abs",
+        "why": "Scalar absolute-value builtins should prove the same sign-normalizing expression as the explicit conditional idiom.",
+    },
+    "axis_scalar_abs_sign_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Absolute value and signed identity differ for negative inputs and must not merge.",
+    },
+    "axis_scalar_abs_wrong_value_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Scalar absolute value is a proof over a specific numeric value coordinate.",
+    },
+    "axis_scalar_abs_shadowed_math_boundary": {
+        "axis": "numeric_minmax_abs",
+        "why": "Shadowed JavaScript Math bindings are not the built-in absolute-value proof.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -890,6 +906,148 @@ def axis_null_presence_iflet_variant(
 }}
 """
     return Variant("axis", src, name)
+
+
+def scalar_abs_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id == "axis_scalar_abs_shadowed_math_boundary":
+        return surface.key in JS_LIKE_SURFACES
+    return surface.key in {"python", "javascript", "typescript", "go", "java", "c", "vue", "svelte", "html"}
+
+
+def axis_scalar_abs_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    name = "buildCase" if right else "axisCase"
+    snake_name = "build_case" if right else "axis_case"
+    target = "other" if right and proposal_id == "axis_scalar_abs_wrong_value_boundary" else "value"
+    if right and negative and proposal_id in {
+        "axis_scalar_abs_function_identity",
+        "axis_scalar_abs_sign_boundary",
+    }:
+        mode = "identity"
+    elif right and proposal_id == "axis_scalar_abs_shadowed_math_boundary":
+        mode = "shadowed_math"
+    else:
+        mode = "builtin" if right else "conditional"
+
+    if surface.language == "javascript":
+        if mode == "conditional":
+            expr = f"{target} >= 0 ? {target} : -{target}"
+        elif mode == "identity":
+            expr = target
+        elif mode == "shadowed_math":
+            body = f"""function {name}(value, other) {{
+  const Math = {{ abs: function(_value) {{ return 0; }} }};
+  const magnitude = Math.abs({target});
+  return magnitude + other;
+}}
+"""
+            return js_axis_source(surface, body, name)
+        else:
+            expr = f"Math.abs({target})"
+        body = f"""function {name}(value, other) {{
+  const magnitude = {expr};
+  return magnitude + other;
+}}
+"""
+        return js_axis_source(surface, body, name)
+
+    if surface.key == "typescript":
+        if mode == "conditional":
+            expr = f"{target} >= 0 ? {target} : -{target}"
+        elif mode == "identity":
+            expr = target
+        elif mode == "shadowed_math":
+            src = f"""function {name}(value: number, other: number): number {{
+  const Math = {{ abs: function(_value: number): number {{ return 0; }} }};
+  const magnitude = Math.abs({target});
+  return magnitude + other;
+}}
+"""
+            return Variant("axis", src, name)
+        else:
+            expr = f"Math.abs({target})"
+        src = f"""function {name}(value: number, other: number): number {{
+  const magnitude = {expr};
+  return magnitude + other;
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "python":
+        expr = (
+            f"{target} if {target} >= 0 else -{target}"
+            if mode == "conditional"
+            else target
+            if mode == "identity"
+            else f"abs({target})"
+        )
+        src = f"""def {snake_name}(value, other):
+    magnitude = {expr}
+    return magnitude + other
+"""
+        return Variant("axis", src, snake_name)
+
+    if surface.key == "go":
+        go_name = "BuildCase" if right else "AxisCase"
+        if mode == "conditional":
+            body = f"""magnitude := {target}
+    if {target} < 0 {{
+        magnitude = -{target}
+    }}
+    return magnitude + other"""
+        elif mode == "identity":
+            body = f"""magnitude := {target}
+    return magnitude + other"""
+        else:
+            body = f"""magnitude := math.Abs({target})
+    return magnitude + other"""
+        src = f"""package p
+
+import "math"
+
+func {go_name}(value float64, other float64) float64 {{
+    {body}
+}}
+"""
+        return Variant("axis", src, go_name)
+
+    if surface.key == "java":
+        if mode == "conditional":
+            expr = f"{target} >= 0 ? {target} : -{target}"
+        elif mode == "identity":
+            expr = target
+        else:
+            expr = f"Math.abs({target})"
+        src = f"""class AxisCase {{
+    static int {name}(int value, int other) {{
+        int magnitude = {expr};
+        return magnitude + other;
+    }}
+}}
+"""
+        return Variant("axis", src, name)
+
+    if surface.key == "c":
+        if mode == "conditional":
+            expr = f"{target} >= 0 ? {target} : -{target}"
+        elif mode == "identity":
+            expr = target
+        else:
+            expr = f"abs({target})"
+        src = f"""#include <stdlib.h>
+
+int {snake_name}(int value, int other) {{
+    int magnitude = {expr};
+    return magnitude + other;
+}}
+"""
+        return Variant("axis", src, snake_name)
+
+    raise ValueError(f"unsupported surface for scalar abs axis: {surface.key}")
 
 
 def record_guard_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -3515,6 +3673,11 @@ def axis_variants(
             axis_null_presence_variant(surface, proposal_id, False, False),
             axis_null_presence_variant(surface, proposal_id, negative, True),
         )
+    if axis == "numeric_minmax_abs":
+        return (
+            axis_scalar_abs_variant(surface, proposal_id, False, False),
+            axis_scalar_abs_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -3549,6 +3712,7 @@ def axis_data_shape(axis: str) -> str:
         "literal_collection_membership": "set<string>",
         "literal_map_default_lookup": "map<string,int>+key",
         "null_presence_predicate": "nullable<T>+alternate",
+        "numeric_minmax_abs": "scalar<int>+alternate",
         "projection_identity": "record<today:int,tomorrow:int>",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
@@ -3587,6 +3751,17 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"value": None, "other": 1},
                     {"value": 1, "other": None},
                     {"value": 0, "other": None},
+                ],
+                "outputs": [],
+            }
+        if axis == "numeric_minmax_abs":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"value": -3, "other": 4},
+                    {"value": 0, "other": -2},
+                    {"value": 5, "other": -7},
                 ],
                 "outputs": [],
             }
@@ -3678,6 +3853,30 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "input": {"value": None, "other": 1},
                 "left": True,
                 "right": False,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "numeric_minmax_abs":
+        if proposal_id == "axis_scalar_abs_wrong_value_boundary":
+            counterexample = {
+                "input": {"value": -3, "other": 4},
+                "left": 7,
+                "right": 8,
+            }
+        elif proposal_id == "axis_scalar_abs_shadowed_math_boundary":
+            counterexample = {
+                "input": {"value": -3, "other": 4},
+                "left": 7,
+                "right": 4,
+            }
+        else:
+            counterexample = {
+                "input": {"value": -3, "other": 4},
+                "left": 7,
+                "right": 1,
             }
         return {
             "level": "E2",
@@ -3776,6 +3975,10 @@ def generate_axis_items(
             ):
                 continue
             if proposal_id.startswith("axis_null_presence_") and not null_presence_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id.startswith("axis_scalar_abs_") and not scalar_abs_axis_supported(
                 surface, proposal_id
             ):
                 continue
@@ -3931,6 +4134,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "null-presence-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_scalar_abs_sign_boundary",
+                "axis_scalar_abs_wrong_value_boundary",
+                "axis_scalar_abs_shadowed_math_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "numeric-abs-boundary",
                     )
                 )
                 continue
@@ -4321,6 +4541,66 @@ def generate_null_presence_cross_items(
     return items
 
 
+def generate_scalar_abs_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    cross_mode: str,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
+    if not generation_filter.include_axis("numeric_minmax_abs"):
+        return []
+    surfaces = [
+        s
+        for s in SURFACES
+        if scalar_abs_axis_supported(s, "axis_scalar_abs_function_identity")
+    ]
+    items: list[dict] = []
+    for left_surface, right_surface in cross_pairs(surfaces, cross_mode):
+        if generation_filter.include_proposal("axis_scalar_abs_function_identity"):
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_scalar_abs_function_identity",
+                    left_surface,
+                    right_surface,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_scalar_abs_function_identity",
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "numeric_minmax_abs-semantic-mutation",
+                )
+            )
+        for proposal_id in (
+            "axis_scalar_abs_sign_boundary",
+            "axis_scalar_abs_wrong_value_boundary",
+        ):
+            if not generation_filter.include_proposal(proposal_id):
+                continue
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    right_surface,
+                    "not_equivalent",
+                    "heldout",
+                    "numeric-abs-boundary",
+                )
+            )
+    return items
+
+
 def cross_pairs(surfaces: list[Surface], mode: str) -> list[tuple[Surface, Surface]]:
     if mode == "none":
         return []
@@ -4469,6 +4749,11 @@ def generate(
     )
     items.extend(
         generate_null_presence_cross_items(
+            out_dir, capabilities, cross_mode, generation_filter
+        )
+    )
+    items.extend(
+        generate_scalar_abs_cross_items(
             out_dir, capabilities, cross_mode, generation_filter
         )
     )

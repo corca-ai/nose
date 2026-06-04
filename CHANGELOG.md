@@ -24,6 +24,10 @@ break.
   now converges explicit null comparisons with Ruby `nil?` and Rust `is_none`/`is_some`
   method forms plus Rust `if let Some(_)`/`if let None` pattern predicates, while
   preserving non-null direction and wrong-value boundaries.
+- Strict Type-4 proof facts for scalar absolute-value idioms across C, Go, Java,
+  JavaScript/TypeScript, Python, and embedded script surfaces. The detector now converges
+  explicit sign-normalizing conditionals with safe `abs`/`Math.abs`/`math.Abs` forms while
+  preserving signed-identity, wrong-value, and shadowed-`Math` boundaries.
 - Type-4 focused generation filters (`--axis`, `--proposal-prefix`) and smoke gates
   (`GATE=focused|core|full`) so detector co-evolution loops can run on one frontier
   before periodic compact/full validation.

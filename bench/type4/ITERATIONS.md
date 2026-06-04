@@ -1129,3 +1129,66 @@ The generator found both an under-merge and a strict false-merge bug in the exis
 release, the detector gained a narrow Rust frontend proof fact plus a shared boolean
 select simplification, and the adversarial same-value/opposite-direction/wrong-value
 boundaries now stay clean.
+
+## Scalar absolute-value coevolution: loops 153-160
+
+The next broad frontier used the prioritizer's highest-scoring partially-covered axis:
+`numeric_minmax_abs`. The strict slice was deliberately limited to scalar absolute value,
+not arbitrary min/max yet and not Ruby/Rust dynamic method forms. The target equivalence is
+an explicit sign-normalizing conditional and a proven absolute-value builtin over the same
+numeric coordinate.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 153 | real-corpus priority | choose `numeric_minmax_abs` over the narrow `property_type_guard` because scalar numeric idioms are all-language and high-frequency | prioritizer: 7,037 raw hits across 93 repos and 8 languages |
+| 154 | generator adversary | add `axis_scalar_abs_*` proposals with builtin identity, signed-identity boundary, wrong-value boundary, and shadowed-`Math` boundary | focused manifest generated 77 items: 18 positives, 59 negatives |
+| 155 | baseline measurement | pre-loop release already handled Python/C but missed JS/TS/embedded, Go, Java, and most cross-surface pairs | baseline: 4/18 positives, 0/59 false merges |
+| 156 | detector strengthening | lower JS/TS `Math.abs` with `Math` shadow checks, lower Java `Math.abs` in the Java frontend, and canonicalize Go `math.Abs` in idioms | focused candidate reached 18/18 before shadow hardening |
+| 157 | soundness counterattack | local shadowed `Math` exposed that generic normalize-time `Math.abs` canonicalization was unsound; narrow normalize idiom to Go `math.Abs` and keep Java/JS in frontends | shadowed-`Math` false merges returned to 0 |
+| 158 | focused/core gates | run focused proposal and numeric core gates | focused: 9/9 positives, 0/32 false merges, Raw 0; core selected 39/77, 15/15 and 0/24 |
+| 159 | aggregate validation | run default ring, same-surface, and dense all-cross compact gates | ring 868/868 and 0/1,417; same-surface 608/608 and 0/1,054; dense compact 294/294 and 0/424 |
+| 160 | scope decision | leave Ruby/Rust `.abs` method forms and scalar min/max for later slices until receiver type or builtin identity is provable | strict abs slice closed |
+
+Final focused scalar-abs gate:
+
+```text
+items: 41
+positive recall: 9/9
+hard-negative false merges: 0/32
+Raw nodes: 0/1405
+```
+
+Preflight comparison before rebuilding the release binary:
+
+```text
+baseline: items=77 positive=4/18 misses=14 false_merges=0/59
+candidate: items=77 positive=18/18 misses=0 false_merges=0/59
+preflight passed: candidate improves the frontier with zero false merges
+```
+
+Final default ring smoke:
+
+```text
+items: 2285
+positive recall: 868/868
+hard-negative false merges: 0/1417
+
+by semantic axis:
+  numeric_minmax_abs: positive 18/18, false merges 0/59
+```
+
+Final dense all-cross compact smoke:
+
+```text
+GATE=core CROSS=all OUT_DIR=/tmp/nose-type4-smoke-all-scalar-abs ./scripts/type4-smoke.sh
+selected items: 718/4616
+positive recall: 294/294
+hard-negative false merges: 0/424
+Raw nodes: 0/27842
+```
+
+Assessment: this loop followed the adversarial co-evolution pattern well. The generator
+created a broad strict frontier, the baseline showed real under-merge, the detector gained
+new language-specific proof facts, and the shadow boundary forced a soundness correction
+before promotion. The remaining work on this axis should be scalar min/max and typed
+Ruby/Rust abs only after their receiver/builtin identity can be proven.

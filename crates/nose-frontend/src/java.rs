@@ -8,7 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, UnitKind,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -608,7 +609,20 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// `recv.method(args)` → `Call(Field(method, recv), args...)`.
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
+    let name_node = node.child_by_field_name("name");
+    let object_node = node.child_by_field_name("object");
+    if name_node.is_some_and(|n| lo.text(n) == "abs")
+        && object_node.is_some_and(|o| lo.text(o) == "Math")
+    {
+        if let Some(args) = node.child_by_field_name("arguments") {
+            let args = Lowering::named_children(args);
+            if args.len() == 1 {
+                let arg = lower_expr(lo, args[0]);
+                return lo.add(NodeKind::Call, Payload::Builtin(Builtin::Abs), span, &[arg]);
+            }
+        }
+    }
+    let name = name_node.map(|n| lo.sym(lo.text(n)));
     let callee = match node.child_by_field_name("object") {
         Some(o) => {
             let recv = lower_expr(lo, o);

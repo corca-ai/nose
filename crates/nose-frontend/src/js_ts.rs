@@ -1028,6 +1028,9 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(guard) = lower_own_property_guard_call(lo, node) {
         return guard;
     }
+    if let Some(math_abs) = lower_math_abs_call(lo, node) {
+        return math_abs;
+    }
     let span = lo.span(node);
     let mut kids = Vec::new();
     match node.child_by_field_name("function") {
@@ -1048,6 +1051,30 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn lower_math_abs_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+    let callee = node.child_by_field_name("function")?;
+    if compact_js_expr(lo.text(callee)) != "Math.abs" {
+        return None;
+    }
+    if file_prefix_has_binding_ident(lo, node, "Math")
+        || enclosing_function_prefix_has_binding_ident(lo, node, "Math")
+    {
+        return None;
+    }
+    let args = node.child_by_field_name("arguments")?;
+    let args: Vec<TsNode> = Lowering::named_children(args);
+    if args.len() != 1 || args.iter().any(|arg| arg.kind() == "spread_element") {
+        return None;
+    }
+    let arg = lower_expr(lo, args[0]);
+    Some(lo.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Abs),
+        lo.span(node),
+        &[arg],
+    ))
 }
 
 fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -1104,10 +1131,10 @@ fn enclosing_function_prefix_has_binding_ident(lo: &Lowering, node: TsNode, iden
             if end <= lo.src.len() && start <= end {
                 let prefix = std::str::from_utf8(&lo.src[start..end]).unwrap_or("");
                 let header = prefix.find('{').map(|idx| &prefix[..idx]).unwrap_or(prefix);
-                return contains_js_ident(header, ident)
-                    || contains_js_binding_ident(prefix, ident);
+                if contains_js_ident(header, ident) || contains_js_binding_ident(prefix, ident) {
+                    return true;
+                }
             }
-            return false;
         }
         current = parent;
     }

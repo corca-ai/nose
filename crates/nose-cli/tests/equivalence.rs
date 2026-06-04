@@ -509,6 +509,37 @@ fn abs_idiom_converges() {
 }
 
 #[test]
+fn scalar_abs_axis_converges_with_unused_alternate_param() {
+    let i = Interner::new();
+    let call = "def f(value, other):\n    return abs(value)\n";
+    let tern = "def g(value, other):\n    return value if value >= 0 else -value\n";
+    assert_eq!(
+        value_fp(&i, call, Lang::Python),
+        value_fp(&i, tern, Lang::Python)
+    );
+}
+
+#[test]
+fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
+    let i = Interner::new();
+    let py = "def f(value, other):\n    magnitude = value if value >= 0 else -value\n    return magnitude + other\n";
+    let js =
+        "function f(value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
+    let ts = "function f(value: number, other: number): number { const magnitude = Math.abs(value); return magnitude + other; }";
+    let go = "package p\n\nimport \"math\"\n\nfunc F(value float64, other float64) float64 { magnitude := math.Abs(value); return magnitude + other }\n";
+    let java = "class C { static int f(int value, int other) { int magnitude = Math.abs(value); return magnitude + other; } }\n";
+    let shadowed_js = "function f(Math, value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
+    let local_shadowed_js = "function f(value, other) { const Math = { abs: function(_value) { return 0; } }; const magnitude = Math.abs(value); return magnitude + other; }";
+    let fp = value_fp(&i, py, Lang::Python);
+    assert_eq!(fp, value_fp(&i, js, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, ts, Lang::TypeScript));
+    assert_eq!(fp, value_fp(&i, go, Lang::Go));
+    assert_eq!(fp, value_fp(&i, java, Lang::Java));
+    assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, local_shadowed_js, Lang::JavaScript));
+}
+
+#[test]
 fn conditional_abs_reduction_converges_with_aggregate() {
     // A branch in the per-element contribution is still a single reduction:
     // `total += (x < 0 ? -x : x)` must converge with aggregate `sum(abs(x))`.

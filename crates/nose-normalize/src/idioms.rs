@@ -155,6 +155,12 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: args.to_vec(),
                         }
                     }
+                    "Abs" if base_name == Some("math") && args.len() == 1 => {
+                        return CallCanon::Builtin {
+                            op: Builtin::Abs,
+                            arg_olds: vec![args[0]],
+                        }
+                    }
                     "HasPrefix" | "HasSuffix"
                         if base_name == Some("strings") && args.len() == 2 =>
                     {
