@@ -2957,14 +2957,22 @@ impl<'a> Builder<'a> {
         if kids.len() != 2 {
             return None;
         }
-        if self.is_count_nonempty_threshold(op, false, kids[1]) {
-            if let Some((element, collection)) = self.static_filter_membership_parts(kids[0], env) {
+        if let Some((element, collection)) = self.static_filter_membership_parts(kids[0], env) {
+            if self.is_count_nonempty_threshold(op, false, kids[1]) {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
+            if self.is_count_zero_threshold(op, false, kids[1]) {
+                let membership = self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]);
+                return Some(self.mk(ValOp::Un(Op::Not as u32), vec![membership]));
+            }
         }
-        if self.is_count_nonempty_threshold(op, true, kids[0]) {
-            if let Some((element, collection)) = self.static_filter_membership_parts(kids[1], env) {
+        if let Some((element, collection)) = self.static_filter_membership_parts(kids[1], env) {
+            if self.is_count_nonempty_threshold(op, true, kids[0]) {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            }
+            if self.is_count_zero_threshold(op, true, kids[0]) {
+                let membership = self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]);
+                return Some(self.mk(ValOp::Un(Op::Not as u32), vec![membership]));
             }
         }
         None
@@ -3000,6 +3008,19 @@ impl<'a> Builder<'a> {
         if self.is_one_literal(threshold) {
             return (!count_on_right && op == Op::Ge as u32)
                 || (count_on_right && op == Op::Le as u32);
+        }
+        false
+    }
+
+    fn is_count_zero_threshold(&self, op: u32, count_on_right: bool, threshold: NodeId) -> bool {
+        if self.is_zero_literal(threshold) {
+            return op == Op::Eq as u32
+                || (!count_on_right && op == Op::Le as u32)
+                || (count_on_right && op == Op::Ge as u32);
+        }
+        if self.is_one_literal(threshold) {
+            return (!count_on_right && op == Op::Lt as u32)
+                || (count_on_right && op == Op::Gt as u32);
         }
         false
     }

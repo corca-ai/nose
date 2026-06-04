@@ -669,6 +669,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_filter_length_absence.js"),
+        "function arrayFilterLengthAbsence(value, other) {\n  return [\"red\", \"blue\"].filter((item) => item === value).length === 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_filter_length_absence.ts"),
+        "function arrayFilterLengthAbsence(value: string, other: string): boolean {\n  return [\"red\", \"blue\"].filter((item: string) => item === value).length <= 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("module_list.java"),
         "import java.util.List;\n\nclass ModuleList {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleList(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n",
     )
@@ -769,6 +779,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_filter_length_absence_wrong_element.js"),
+        "function arrayFilterLengthAbsenceWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].filter((item) => item === other + third).length === 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_filter_length_absence_wrong_collection.ts"),
+        "function arrayFilterLengthAbsenceWrongCollection(value: string, other: string): boolean {\n  return [\"black\", \"white\"].filter((item: string) => item === value).length <= 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_every_wrong_element.js"),
         "function arrayEveryWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].every((item) => item !== third);\n}\n",
     )
@@ -862,6 +882,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "not_includes.js",
         "array_every.js",
         "array_every.ts",
+        "array_filter_length_absence.js",
+        "array_filter_length_absence.ts",
         "module_list.java",
         "go_slices_package.go",
         "go_slices_alias.go",
@@ -889,6 +911,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_filter_length_wrong_element.js",
         "array_filter_length_wrong_collection.ts",
         "array_filter_length_value.js",
+        "array_filter_length_absence_wrong_element.js",
+        "array_filter_length_absence_wrong_collection.ts",
         "array_every_wrong_element.js",
         "array_every_wrong_collection.ts",
         "substring.rs",
@@ -912,7 +936,13 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         .unwrap_or_else(|| {
             panic!("semantic mode should include negated membership family: {semantic}")
         });
-    for expected in ["not_includes.js", "array_every.js", "array_every.ts"] {
+    for expected in [
+        "not_includes.js",
+        "array_every.js",
+        "array_every.ts",
+        "array_filter_length_absence.js",
+        "array_filter_length_absence.ts",
+    ] {
         assert!(
             absence_family.contains(expected),
             "semantic mode should include negated membership {expected}: {semantic}"
@@ -921,6 +951,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     for unexpected in [
         "array_every_wrong_element.js",
         "array_every_wrong_collection.ts",
+        "array_filter_length_absence_wrong_element.js",
+        "array_filter_length_absence_wrong_collection.ts",
     ] {
         assert!(
             !absence_family.contains(unexpected),

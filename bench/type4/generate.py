@@ -439,6 +439,18 @@ AXIS_PROPOSALS = {
         "axis": "literal_collection_membership",
         "why": "Array `.filter(...).length` membership over different static items changes the collection coordinate.",
     },
+    "axis_membership_array_filter_length_absence_identity": {
+        "axis": "literal_collection_membership",
+        "why": "A static array `.filter(item => item === value).length` zero check should prove the same negated literal collection-membership coordinate.",
+    },
+    "axis_membership_array_filter_length_absence_wrong_element_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Array `.filter(...).length` absence remains a proof over a specific searched element coordinate.",
+    },
+    "axis_membership_array_filter_length_absence_wrong_collection_boundary": {
+        "axis": "literal_collection_membership",
+        "why": "Array `.filter(...).length` absence over different static items changes the collection coordinate.",
+    },
     "axis_membership_java_list_of_identity": {
         "axis": "literal_collection_membership",
         "why": "Java `List.of(...).contains(value)` over static literal items should prove the same element-in-collection predicate as other literal collection APIs.",
@@ -2392,6 +2404,12 @@ def membership_axis_parts(
         "axis_membership_array_filter_length_wrong_collection_boundary",
     }:
         form = "array_filter_length" if right else "membership"
+    if proposal_id in {
+        "axis_membership_array_filter_length_absence_identity",
+        "axis_membership_array_filter_length_absence_wrong_element_boundary",
+        "axis_membership_array_filter_length_absence_wrong_collection_boundary",
+    }:
+        form = "array_filter_length_absence" if right else "membership_absence"
     if proposal_id.startswith("axis_membership_java_"):
         form = "java_list_of"
         if "_set_of_" in proposal_id:
@@ -2452,6 +2470,7 @@ def membership_axis_parts(
         "axis_membership_array_indexof_identity",
         "axis_membership_array_findindex_identity",
         "axis_membership_array_filter_length_identity",
+        "axis_membership_array_filter_length_absence_identity",
         "axis_membership_java_list_of_identity",
         "axis_membership_java_set_of_identity",
         "axis_membership_java_arrays_aslist_identity",
@@ -2574,6 +2593,13 @@ function {name}(value, other) {{
                 expr = f'0 < ["{left}", "{right_item}"].filter((item) => item === {element}).length'
             else:
                 expr = f'["{left}", "{right_item}"].filter((item) => item === {element}).length !== 0'
+        elif form == "array_filter_length_absence":
+            if surface.key in {"vue", "svelte"}:
+                expr = f'["{left}", "{right_item}"].filter((item) => item === {element}).length < 1'
+            elif surface.key == "html":
+                expr = f'0 === ["{left}", "{right_item}"].filter((item) => item === {element}).length'
+            else:
+                expr = f'["{left}", "{right_item}"].filter((item) => item === {element}).length === 0'
         elif form == "membership_absence":
             expr = f'!["{left}", "{right_item}"].includes({element})'
         elif form == "substring":
@@ -2671,6 +2697,12 @@ function {name}(value: string, other: string): boolean {{
         if form == "array_filter_length":
             src = f"""function {name}(value: string, other: string): boolean {{
   return ["{left}", "{right_item}"].filter((item: string) => item === {element}).length >= 1;
+}}
+"""
+            return Variant("axis", src, name)
+        if form == "array_filter_length_absence":
+            src = f"""function {name}(value: string, other: string): boolean {{
+  return ["{left}", "{right_item}"].filter((item: string) => item === {element}).length <= 0;
 }}
 """
             return Variant("axis", src, name)
@@ -6519,6 +6551,8 @@ def generate_axis_items(
                 "axis_membership_array_findindex_wrong_collection_boundary",
                 "axis_membership_array_filter_length_wrong_element_boundary",
                 "axis_membership_array_filter_length_wrong_collection_boundary",
+                "axis_membership_array_filter_length_absence_wrong_element_boundary",
+                "axis_membership_array_filter_length_absence_wrong_collection_boundary",
             }:
                 items.append(
                     make_axis_item(
@@ -7422,6 +7456,73 @@ def generate_literal_membership_cross_items(
             continue
         for right_surface in array_filter_length_right_surfaces:
             for left_surface in array_filter_length_reference_surfaces:
+                if left_surface.key == right_surface.key:
+                    continue
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal-membership-boundary",
+                    )
+                )
+    array_filter_length_absence_reference_surfaces = [
+        surface_by_key["python"],
+        surface_by_key["ruby"],
+        surface_by_key["javascript"],
+        surface_by_key["typescript"],
+    ]
+    array_filter_length_absence_right_surfaces = [
+        surface_by_key["javascript"],
+        surface_by_key["typescript"],
+        surface_by_key["vue"],
+        surface_by_key["svelte"],
+        surface_by_key["html"],
+    ]
+    if cross_mode == "ring":
+        array_filter_length_absence_reference_surfaces = [surface_by_key["python"]]
+    elif cross_mode == "none":
+        array_filter_length_absence_reference_surfaces = []
+    if generation_filter.include_proposal("axis_membership_array_filter_length_absence_identity"):
+        for right_surface in array_filter_length_absence_right_surfaces:
+            for left_surface in array_filter_length_absence_reference_surfaces:
+                if left_surface.key == right_surface.key:
+                    continue
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        "axis_membership_array_filter_length_absence_identity",
+                        left_surface,
+                        right_surface,
+                        "equivalent",
+                        "heldout",
+                    )
+                )
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        "axis_membership_array_filter_length_absence_identity",
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal_collection_membership-semantic-mutation",
+                    )
+                )
+    for proposal_id in (
+        "axis_membership_array_filter_length_absence_wrong_element_boundary",
+        "axis_membership_array_filter_length_absence_wrong_collection_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in array_filter_length_absence_right_surfaces:
+            for left_surface in array_filter_length_absence_reference_surfaces:
                 if left_surface.key == right_surface.key:
                     continue
                 items.append(

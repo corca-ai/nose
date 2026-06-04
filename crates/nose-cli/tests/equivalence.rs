@@ -1624,6 +1624,10 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let ts_array_filter_length_ge = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].filter((item: string) => item === value).length >= 1; }";
     let js_array_filter_length_gt = "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === value).length > 0; }";
     let js_array_filter_length_reversed = "function f(value, other) { return 0 < [\"red\", \"blue\"].filter((item) => item === value).length; }";
+    let js_array_filter_length_absence_eq = "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === value).length === 0; }";
+    let ts_array_filter_length_absence_le = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].filter((item: string) => item === value).length <= 0; }";
+    let js_array_filter_length_absence_lt = "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === value).length < 1; }";
+    let js_array_filter_length_absence_reversed = "function f(value, other) { return 1 > [\"red\", \"blue\"].filter((item) => item === value).length; }";
     let java_module_list = "import java.util.List;\n\nclass C { static final List<String> VALUES = List.of(\"red\", \"blue\"); static boolean f(String value, String other) { return VALUES.contains(value); } }";
     let js_wrong_element =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(other); }";
@@ -1648,6 +1652,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_array_filter_length_value =
         "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === value).length; }";
     let js_array_filter_length_zero = "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === value).length === 0; }";
+    let js_array_filter_length_absence_wrong_element = "function f(value, other) { return [\"red\", \"blue\"].filter((item) => item === other).length === 0; }";
+    let js_array_filter_length_absence_wrong_collection = "function f(value, other) { return [\"green\", \"blue\"].filter((item) => item === value).length <= 0; }";
     let js_nan_includes = "function f(value, other) { return [NaN].includes(value); }";
     let js_nan_some = "function f(value, other) { return [NaN].some((item) => item === value); }";
     let js_nan_indexof = "function f(value, other) { return [NaN].indexOf(value) !== -1; }";
@@ -1655,6 +1661,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         "function f(value, other) { return [NaN].findIndex((item) => item === value) !== -1; }";
     let js_nan_filter_length =
         "function f(value, other) { return [NaN].filter((item) => item === value).length > 0; }";
+    let js_nan_filter_length_absence =
+        "function f(value, other) { return [NaN].filter((item) => item === value).length === 0; }";
     let py_absence = "def f(value, other):\n    return value not in [\"red\", \"blue\"]\n";
     let js_not_includes =
         "function f(value, other) { return ![\"red\", \"blue\"].includes(value); }";
@@ -1832,6 +1840,10 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         value_fp(&i, js_nan_includes, Lang::JavaScript),
         value_fp(&i, js_nan_filter_length, Lang::JavaScript)
     );
+    assert_ne!(
+        value_fp(&i, js_nan_not_includes, Lang::JavaScript),
+        value_fp(&i, js_nan_filter_length_absence, Lang::JavaScript)
+    );
     let absence_fp = value_fp(&i, py_absence, Lang::Python);
     assert_ne!(literal_fp, absence_fp);
     assert_eq!(absence_fp, value_fp(&i, js_not_includes, Lang::JavaScript));
@@ -1843,6 +1855,26 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         absence_fp,
         value_fp(&i, ts_array_every_absence, Lang::TypeScript)
     );
+    assert_eq!(
+        absence_fp,
+        value_fp(&i, js_array_filter_length_absence_eq, Lang::JavaScript)
+    );
+    assert_eq!(
+        absence_fp,
+        value_fp(&i, ts_array_filter_length_absence_le, Lang::TypeScript)
+    );
+    assert_eq!(
+        absence_fp,
+        value_fp(&i, js_array_filter_length_absence_lt, Lang::JavaScript)
+    );
+    assert_eq!(
+        absence_fp,
+        value_fp(
+            &i,
+            js_array_filter_length_absence_reversed,
+            Lang::JavaScript
+        )
+    );
     assert_ne!(
         absence_fp,
         value_fp(&i, js_array_every_wrong_element, Lang::JavaScript)
@@ -1850,6 +1882,22 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(
         absence_fp,
         value_fp(&i, js_array_every_wrong_collection, Lang::JavaScript)
+    );
+    assert_ne!(
+        absence_fp,
+        value_fp(
+            &i,
+            js_array_filter_length_absence_wrong_element,
+            Lang::JavaScript
+        )
+    );
+    assert_ne!(
+        absence_fp,
+        value_fp(
+            &i,
+            js_array_filter_length_absence_wrong_collection,
+            Lang::JavaScript
+        )
     );
     assert_ne!(
         value_fp(&i, js_nan_not_includes, Lang::JavaScript),

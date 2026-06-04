@@ -2968,3 +2968,80 @@ add identity plus boundary pressure for the whole small family. The detector rul
 is now part of the loop checklist: semantic membership rewrites that depend on
 `Len(Filter(...))` must run before the more general length-zero canonicalizer, or strict
 positive forms like `!== 0` can remain count-shaped and miss the exact clone.
+
+## Static array filter-length absence: loops 325-330
+
+This macro-loop takes the dual of the previous filter-length membership frontier. A
+static literal JS-like array filter count such as
+`["red", "blue"].filter(item => item === value).length === 0`, `.length <= 0`,
+`.length < 1`, or `1 > .length` is exact-equivalent to
+`value not in ["red", "blue"]` only when the receiver is a direct non-float literal
+sequence, the callback proves equality between the iterated element and the searched
+coordinate, and the comparison is a zero-count threshold. The detector keeps this proof
+specific to `Len(Filter(...))`, where the count is known to be non-negative; it does not
+turn arbitrary numeric comparisons into emptiness or absence facts.
+
+The batch opens three adjacent proposal IDs:
+
+- `axis_membership_array_filter_length_absence_identity`;
+- `axis_membership_array_filter_length_absence_wrong_element_boundary`;
+- `axis_membership_array_filter_length_absence_wrong_collection_boundary`.
+
+The detector now canonicalizes `Len(Filter(static literal collection, equality lambda))`
+non-empty comparisons to `In(element, collection)` and zero-count comparisons to
+`Not(In(element, collection))`. Raw filtered lengths, wrong element/collection
+coordinates, non-empty checks, and float-sensitive literal collections stay distinct.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 325 | batch frontier selection | group static JS-like `.filter(...).length` zero-count absence comparisons plus wrong-element/wrong-collection boundaries under `axis_membership_array_filter_length_absence_*` | focused corpus: 18 positives, 54 hard negatives |
+| 326 | baseline measurement | scan the focused batch with the previous release detector | baseline: 0/18 positives, 0/54 false merges |
+| 327 | generator adversary | add cross-surface Python/Ruby/JS/TS absence references against JS/TS/Vue/Svelte/HTML zero-count filter-length forms | `=== 0`, `<= 0`, `< 1`, and reversed threshold spellings represented |
+| 328 | detector strengthening | canonicalize source-gated static filter-length zero-count equality callbacks to `Not(In(element, collection))` | candidate focused: 18/18 positives, 0/54 false merges |
+| 329 | strict regression tests | extend value-graph and CLI membership tests with absence spellings, wrong-coordinate boundaries, and `NaN` SameValueZero boundaries | targeted tests passed |
+| 330 | release focused/core gates | build release and run focused absence, membership core, and all-cross core gates | focused 18/18, 0/54; membership core 99/99, 0/288; all-cross 481/481, 0/939 |
+
+Focused release/candidate comparison:
+
+```text
+previous release:  items=72, positive=0/18, false_merges=0/54
+candidate release: items=72, positive=18/18, false_merges=0/54
+delta:             +18 positive hits, +0 false merges
+```
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_membership_array_filter_length_absence CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+items: 72
+positive recall: 18/18
+hard-negative false merges: 0/54
+Raw nodes: 0/2428
+```
+
+Final release literal-membership core gate:
+
+```text
+GATE=core AXIS=literal_collection_membership CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 387/998
+positive recall: 99/99
+hard-negative false merges: 0/288
+Raw nodes: 0/11560
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
+selected items: 1420/6258
+positive recall: 481/481
+hard-negative false merges: 0/939
+Raw nodes: 0/52541
+```
+
+Assessment: this confirms that the three-variant batch style can widen both sides of a
+predicate family quickly without loosening strict Type-4. The useful implementation
+pattern is a polarity-aware canonicalizer: keep the source/lambda proof shared, but
+separate non-empty thresholds from zero-count thresholds so the value graph emits either
+`In` or `Not(In)` explicitly. The `NaN` boundary remains important because JS
+`includes` and callback equality do not have identical SameValueZero behavior.
