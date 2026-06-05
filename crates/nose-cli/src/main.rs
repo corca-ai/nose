@@ -281,7 +281,7 @@ enum Format {
 enum ReportFormat {
     /// Ranked, human-readable terminal report.
     Human,
-    /// Machine-readable JSON (one object per family).
+    /// Machine-readable JSON report with a versioned top-level schema.
     Json,
     /// Markdown report (for PRs / issues / docs).
     Markdown,
@@ -383,6 +383,14 @@ enum SortKey {
 }
 
 impl SortKey {
+    fn json_name(self) -> &'static str {
+        match self {
+            SortKey::Extractability => "extractability",
+            SortKey::Value => "value",
+            SortKey::Sites => "sites",
+        }
+    }
+
     /// The ranking score for `f` under this key (higher = ranked first).
     fn score(self, f: &nose_detect::RefactorFamily) -> f64 {
         match self {
@@ -411,8 +419,7 @@ fn sort_name(s: SortKey) -> &'static str {
 /// `.gitignore` exists to skip, slow on exactly the big repos where it matters.)
 struct ScanScope {
     files: usize,
-    /// `(language name, file count)`, largest first. Empty on the `--cache-dir` path,
-    /// which tracks only the total count.
+    /// `(language name, file count)`, largest first.
     langs: Vec<(&'static str, usize)>,
 }
 
@@ -445,6 +452,70 @@ impl ScanScope {
             .collect::<Vec<_>>()
             .join(" · ");
         format!("scanned {} {unit} · {langs}", self.files)
+    }
+}
+
+const SCAN_JSON_SCHEMA_VERSION: u32 = 1;
+
+#[derive(serde::Serialize)]
+struct ScanJsonReport<'a> {
+    schema_version: u32,
+    tool_version: &'static str,
+    scope: ScanJsonScope<'a>,
+    ranking: ScanJsonRanking,
+    families: &'a [&'a nose_detect::RefactorFamily],
+}
+
+#[derive(serde::Serialize)]
+struct ScanJsonScope<'a> {
+    files: usize,
+    languages: Vec<ScanJsonLanguage<'a>>,
+}
+
+#[derive(serde::Serialize)]
+struct ScanJsonLanguage<'a> {
+    language: &'a str,
+    files: usize,
+}
+
+#[derive(serde::Serialize)]
+struct ScanJsonRanking {
+    sort: &'static str,
+    total_families: usize,
+    shown_families: usize,
+    limit: Option<usize>,
+}
+
+impl<'a> ScanJsonReport<'a> {
+    fn new(
+        scope: &'a ScanScope,
+        sort: SortKey,
+        top: usize,
+        families: &[nose_detect::RefactorFamily],
+        shown: &'a [&'a nose_detect::RefactorFamily],
+    ) -> Self {
+        ScanJsonReport {
+            schema_version: SCAN_JSON_SCHEMA_VERSION,
+            tool_version: env!("CARGO_PKG_VERSION"),
+            scope: ScanJsonScope {
+                files: scope.files,
+                languages: scope
+                    .langs
+                    .iter()
+                    .map(|(language, files)| ScanJsonLanguage {
+                        language,
+                        files: *files,
+                    })
+                    .collect(),
+            },
+            ranking: ScanJsonRanking {
+                sort: sort.json_name(),
+                total_families: families.len(),
+                shown_families: shown.len(),
+                limit: (top != 0).then_some(top),
+            },
+            families: shown,
+        }
     }
 }
 
@@ -1457,23 +1528,20 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // With --cache-dir, build units per file through the on-disk cache (skips
     // parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
     let (report, scope) = if let Some(dir) = &args.cache_dir {
-        let (units, streams, files) =
-            time_lower(|| cache::build_units_cached(&refs, &exclude, &opts, dir));
+        let cache::CachedUnits {
+            units,
+            streams,
+            files,
+            langs,
+        } = time_lower(|| cache::build_units_cached(&refs, &exclude, &opts, dir));
         if files == 0 {
             warn_no_files(&args.paths);
         }
-        // The cache path knows only the file count, not a per-language breakdown. It
-        // supplies both cached unit features and syntax streams, so every selected scan
-        // channel behaves the same as the non-cached path.
+        // The cache path supplies both cached unit features and syntax streams, so every
+        // selected scan channel behaves the same as the non-cached path.
         let report =
             nose_detect::detect_from_units(units, files, &streams, &opts, detector.as_ref()).0;
-        (
-            report,
-            ScanScope {
-                files,
-                langs: Vec::new(),
-            },
-        )
+        (report, ScanScope { files, langs })
     } else {
         let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(&refs, &exclude));
         warn_if_empty(&corpus, &args.paths);
@@ -1566,7 +1634,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
 
     match args.format {
         ReportFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&shown)?);
+            let json = ScanJsonReport::new(&scope, sort, top, &families, &shown);
+            println!("{}", serde_json::to_string_pretty(&json)?);
         }
         ReportFormat::Markdown => {
             // Scope line first — tells the reader what was actually scanned (so a small
