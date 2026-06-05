@@ -41,6 +41,23 @@ theorem not_lt_eq_ge (a b : Int) : (!lt a b) = ge a b := by
   · rw [decide_eq_true h, decide_eq_false (by omega : ¬ a ≥ b)]; rfl
   · rw [decide_eq_false h, decide_eq_true (by omega : a ≥ b)]; rfl
 
+/-- NEGATED COMPARISON: `!(a > b) ≡ a <= b` — the `negate_cmp` canon for `>`. The value
+    graph emits the operands in source order (no swap), so the canonical residual is `a <= b`
+    directly (`algebra.rs` `rewrite_negated`: `Op::Gt → Le`, operands `[l, r]`). -/
+theorem not_gt_eq_le (a b : Int) : (!gt a b) = le a b := by
+  unfold gt le
+  by_cases h : a > b
+  · rw [decide_eq_true h, decide_eq_false (by omega : ¬ a ≤ b)]; rfl
+  · rw [decide_eq_false h, decide_eq_true (by omega : a ≤ b)]; rfl
+
+/-- NEGATED COMPARISON: `!(a >= b) ≡ a < b` — the `negate_cmp` canon for `>=`
+    (`algebra.rs` `rewrite_negated`: `Op::Ge → Lt`, operands `[l, r]`). -/
+theorem not_ge_eq_lt (a b : Int) : (!ge a b) = lt a b := by
+  unfold ge lt
+  by_cases h : a ≥ b
+  · rw [decide_eq_true h, decide_eq_false (by omega : ¬ a < b)]; rfl
+  · rw [decide_eq_false h, decide_eq_true (by omega : a < b)]; rfl
+
 /-- NEGATED EQUALITY: `!(a == b) ≡ a != b` — the `Eq`/`Ne` complement (`not-eq vs !=`). -/
 theorem not_eq_eq_ne (a b : Int) : (!decide (a = b)) = decide (a ≠ b) := by
   simp

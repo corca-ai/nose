@@ -311,19 +311,27 @@ impl Rewriter<'_> {
                             &[ah, bh],
                         )
                     }
-                    // !(x < y) = y <= x ; !(x <= y) = y < x
-                    Op::Lt | Op::Le => {
-                        let flip = if op == Op::Lt { Op::Le } else { Op::Lt };
-                        let (r, rh) = self.rewrite(kids[1]);
-                        let (l, lh) = self.rewrite(kids[0]);
-                        self.emit(NodeKind::BinOp, Payload::Op(flip), span, &[r, l], &[rh, lh])
-                    }
-                    // !(x > y) = x <= y ; !(x >= y) = x < y
-                    Op::Gt | Op::Ge => {
-                        let flip = if op == Op::Gt { Op::Le } else { Op::Lt };
-                        let (l, lh) = self.rewrite(kids[0]);
-                        let (r, rh) = self.rewrite(kids[1]);
-                        self.emit(NodeKind::BinOp, Payload::Op(flip), span, &[l, r], &[lh, rh])
+                    // Negate an order comparison on a total order, canonicalized to `<`/`<=`:
+                    //   !(x < y)  = y <= x   !(x <= y) = y < x    (operands reflect)
+                    //   !(x > y)  = x <= y   !(x >= y) = x < y     (operands stay)
+                    // The strict/non-strict polarity flips (`<`,`>` → `<=`; `<=`,`>=` → `<`),
+                    // and only the already-reflected `<`/`<=` cases swap operands so the result
+                    // points the canonical way. Lean: `Compare.lean::not_lt_eq_ge`+`ge_eq_le_swap`,
+                    // `not_le_eq_gt`+`gt_eq_lt_swap`, `not_gt_eq_le`, `not_ge_eq_lt`.
+                    Op::Lt | Op::Le | Op::Gt | Op::Ge => {
+                        let flip = if matches!(op, Op::Lt | Op::Gt) {
+                            Op::Le
+                        } else {
+                            Op::Lt
+                        };
+                        let (first, second) = if matches!(op, Op::Lt | Op::Le) {
+                            (kids[1], kids[0])
+                        } else {
+                            (kids[0], kids[1])
+                        };
+                        let (a, ah) = self.rewrite(first);
+                        let (b, bh) = self.rewrite(second);
+                        self.emit(NodeKind::BinOp, Payload::Op(flip), span, &[a, b], &[ah, bh])
                     }
                     _ => self.negate_wrap(old, span),
                 }
