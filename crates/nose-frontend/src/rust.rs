@@ -562,6 +562,12 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
+        // `async { … }` / `async move { … }` is a wrapper around the block; `.await`
+        // is already peeled above.
+        "async_block" => node
+            .named_child(0)
+            .map(|c| lower_expr(lo, c))
+            .unwrap_or_else(|| lo.empty_block(span)),
         // Type-level nodes carry no runtime behavior — erase (don't Raw). These reach
         // expression position via turbofish, casts, and closure/fn param subtrees.
         "type_arguments"
@@ -942,4 +948,45 @@ fn lower_struct_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn rust_bin_op(text: &str) -> Option<Op> {
     // Rust's binary operators are exactly the shared C-family set.
     crate::lower::common_bin_op(text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn async_blocks_lower_to_body_not_raw() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.rs",
+            b"pub async fn f(x: i32) -> i32 { async move { x + 1 }.await }\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            raw.is_empty(),
+            "async block should lower without Raw: {raw:?}"
+        );
+
+        let ops: Vec<_> = il
+            .nodes
+            .iter()
+            .filter_map(|node| match node.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect();
+        assert!(ops.contains(&Op::Add), "async block body was lost: {ops:?}");
+    }
 }
