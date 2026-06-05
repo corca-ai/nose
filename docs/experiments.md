@@ -672,3 +672,31 @@ interpreter oracle as an in-loop *acceptance gate*, then chased the lead it surf
   §BE pointer-length contract (re-measured 800 → 252). The durable lesson: **a soundness-oracle
   improvement is durable only insofar as the IL shape it keys on is durable** — canons keyed on
   stable value-graph structure survived; builtin-keyed modeling did not.
+
+## BG. Hazard ranking — divergent-edit calibration from mined history
+
+A *severity* ranking ([hazard-ranking](hazard-ranking.md)) distinct from extractability:
+rank families by how likely they are to be edited inconsistently and cause a bug. The
+literature ([hazard-benchmark](hazard-benchmark.md)) gave the signals and directions but
+not the weights, so we mined ground truth before implementing.
+
+- **BG-data.** Used nose as a cross-revision linker (`eval/hazard/`): monthly snapshots
+  of 7 repos across 7 languages (django, hugo, tokio, redis, thrift[X], vue-core,
+  express), labeling each family-interval by Kim's Inconsistent-Change predicate from
+  `git diff` over member spans. **241,520 events; 1,699 divergent edits (G1) over 6,986
+  families** — past the benchmark's G1≥1000 floor; below repos≥12 / G2 / audit.
+- **BG-finding — the pre-data formula was mis-specified.** Leave-one-repo-out logistic
+  weights: `mean_lines` **+0.48** (top), `modules` **+0.29**, `invisibility` **+0.20**,
+  `mean_sem` **−0.18 (anti)**, `params` −0.06. The first-draft design led with `mean_sem`
+  as the *primary* multiplier — but semantic-fingerprint size is **anti-predictive** for
+  divergent-edit ranking (typical divergences are in smaller families; the mean is a
+  large-tail artifact). Source-**line** span is the real magnitude signal.
+- **BG-formula.** `hazard = mean_lines × spread(files,modules,languages) × invisibility ×
+  scope_weight × 1/(1+0.5·params)` — cross-repo AUC **0.674 vs 0.619** for the size-led
+  draft (+0.055), vs 0.60 value-baseline, ~0.49 random. `invisibility` (1−tightness) is
+  the **top signal in the cross-language stratum** (AUC 0.67, P@10 0.80) — the Type-4
+  "invisible sibling" hypothesis held exactly where predicted, and only there.
+- **BG-durability.** Labels are git-derived (version-independent); features/families are
+  nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
+  ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,
+  cached clones). Full numbers in `eval/hazard/RESULTS.md`.

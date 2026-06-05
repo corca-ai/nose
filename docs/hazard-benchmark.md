@@ -214,6 +214,43 @@ The dataset is itself validated, not assumed:
   balance, and known-noise estimates; the mining pipeline is reproducible (the
   [type4-benchmark](type4-benchmark.md) "factory" philosophy, applied to history).
 
+## Versioning and refresh (coupling to nose)
+
+The dataset has two layers with **different coupling to nose's version**:
+
+- **Labels (G0/G1/G2) come from git history, not nose** — "which siblings changed
+  inconsistently, and did it cause a bug" is a fact about the repo, independent of the
+  detector. This is the durable, expensive-to-establish asset; it never needs
+  re-deriving.
+- **Features (`mean_lines`, `modules`, `mean_sem`, `params`, …) and the family set come
+  from nose** — so the tuned `hazard()` weights are valid only for the detector version
+  that produced them. Each event is stamped with `nose_ver` for provenance.
+
+Consequence — **not every release forces re-tuning:**
+
+| nose change | regenerate dataset? | re-tune? |
+|---|---|---|
+| detection (family definition, member sets, fingerprints, feature computation) | yes | yes |
+| ranking only (`extractability`, `hazard()` itself) | **no** | no |
+| performance / refactor with identical output | no | no |
+
+The dataset is built from detection output + git, **never from ranking**, so changing
+`hazard()` does not invalidate it. Only a change to detection output does.
+
+**Refresh is a fast, automated re-run, not a rebuild.** Clones are cached; the
+optimized miner re-scans and re-labels in minutes:
+
+```
+run_corpus.sh   # re-run nose across cached snapshots → fresh features + labels
+tune.py all-events.jsonl   # re-fit; compare AUC/weights to the previous nose_ver
+```
+
+The same harness *detects* whether a release needs re-tuning: if AUC and the learned
+weight directions are stable across `nose_ver`, the weights still hold; if they shift,
+re-calibrate. A future optimization caches the nose-independent per-`(file, symbol,
+interval)` change facts so a refresh only re-runs the nose scan + join. A CI guard that
+re-runs `tune.py` on each release and flags weight drift is the intended automation.
+
 ## Threats to validity
 
 Carry these into every claim: SZZ and message-keyword heuristics have false

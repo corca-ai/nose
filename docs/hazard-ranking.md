@@ -103,24 +103,35 @@ mismatch).
 
 ## Score design
 
-The evidence fixes the **signals and their direction**, and tells us **size/churn
-dominate** — it does *not* fix the weights. So ship a principled shape with
-provisional constants and calibrate against the validation pipeline below.
+The formula below is **calibrated against mined ground truth**, not guessed: a
+leave-one-repo-out evaluation over a 7-language corpus (241k family-interval events,
+1,699 divergent edits — see [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and
+[experiments](experiments.md)). The data **overturned the pre-data design**: leading
+with semantic size (`mean_sem`) was *anti-predictive*; source-line span, dispersion,
+and invisibility are the real signals.
 
 **Phase 1 — static hazard, from fields nose already computes.** Add a `hazard()`
 method beside `extractability()` in `crates/nose-detect/src/report.rs` and a
-`SortKey::Hazard`. No new detection logic. Shape:
+`SortKey::Hazard`. No new detection logic. Measured formula (cross-repo AUC 0.674 vs
+0.619 for the size-led design it replaces):
 
 ```
-hazard ≈ size(mean_sem)                 // primary multiplier — size dominates
-       × spread(members, modules)       // siblings to miss × directory dispersion
-       × (1 − tightness)                // invisibility: the Type-4 zone
-       × latent(params)                 // peak at few/small varying spots
-       × scope_weight                   // prod > test (reuse discount machinery)
+hazard = mean_lines                        // magnitude — source-line span (+0.48)
+       × spread(files, modules, languages) // dispersion — cross-directory (+0.29), existing helper
+       × invisibility                      // 0.3 + 0.7·(1 − tightness) (+0.20); dominant in cross-language
+       × scope_weight                      // prod 1.0 / mixed 0.5 / test 0.25
+       × 1/(1 + 0.5·params)                // params is anti-predictive — same penalty extractability uses
 ```
 
-Ship it **opt-in** (non-default sort key) until calibrated, so a provisional score
-never silently reorders the default view.
+Note what the data changed from the first draft: **`mean_sem` is dropped** (its
+learned weight was −0.18 — larger semantic fingerprints diverge *less*); `mean_lines`
+replaces it as the magnitude term; `params` is *dampened*, not peaked. `invisibility`
+survives and is the **top signal in the cross-language stratum** (AUC 0.67, P@10 0.80)
+— the Type-4 hypothesis held exactly where predicted.
+
+Ship it **opt-in** (non-default sort key). The weights are calibrated on divergence
+*propensity* (G1); they will be re-validated against bug-linked divergence (G2) and a
+larger corpus before becoming default.
 
 **Phase 2 — git-history realized divergence (the high-precision payload).** Because
 nose matches Type-4, it can link siblings across revisions where textual tools
