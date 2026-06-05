@@ -460,14 +460,6 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
     }
 }
 
-fn first_of_list(node: TsNode) -> TsNode {
-    if node.kind() == "expression_list" {
-        node.named_child(0).unwrap_or(node)
-    } else {
-        node
-    }
-}
-
 fn range_bindings(node: TsNode) -> Vec<TsNode> {
     expr_list_items(node)
         .into_iter()
@@ -505,11 +497,7 @@ fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
                 let cspan = lo.span(c);
                 let test = c.child_by_field_name("value").map(|v| {
                     let val = value.map(|x| lower_expr(lo, x));
-                    let t = lower_expr(lo, first_of_list(v));
-                    match val {
-                        Some(vv) => lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), cspan, &[vv, t]),
-                        None => t,
-                    }
+                    lower_switch_case_test(lo, cspan, val, v)
                 });
                 let blk = lower_case_body(lo, c);
                 cases.push((test, blk));
@@ -535,6 +523,41 @@ fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     else_node.unwrap_or_else(|| lo.empty_block(span))
+}
+
+fn lower_switch_case_test(
+    lo: &mut Lowering,
+    span: Span,
+    scrutinee: Option<NodeId>,
+    value: TsNode,
+) -> NodeId {
+    let labels = if value.kind() == "expression_list" {
+        let labels = Lowering::named_children(value);
+        if labels.is_empty() {
+            vec![value]
+        } else {
+            labels
+        }
+    } else {
+        vec![value]
+    };
+    let mut conds: Vec<NodeId> = labels
+        .into_iter()
+        .map(|label| {
+            let test = lower_expr(lo, label);
+            match scrutinee {
+                Some(subject) => {
+                    lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[subject, test])
+                }
+                None => test,
+            }
+        })
+        .collect();
+    let mut acc = conds.remove(0);
+    for cond in conds {
+        acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[acc, cond]);
+    }
+    acc
 }
 
 fn lower_case_body(lo: &mut Lowering, case: TsNode) -> NodeId {
@@ -801,6 +824,32 @@ mod tests {
                 _ => None,
             })
             .collect()
+    }
+
+    fn switch_case_rhs_ints(src: &str) -> Vec<i64> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "t.go", src.as_bytes(), &interner).expect("lower");
+        il.nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, node)| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::Eq))
+            .filter_map(|(idx, _)| {
+                let kids = il.children(NodeId(idx as u32));
+                match kids {
+                    [_, rhs] => match il.node(*rhs).payload {
+                        Payload::LitInt(value) => Some(value),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn switch_cases_compare_scrutinee_to_all_case_labels() {
+        let src = "package main\nfunc f(x int) int { switch x { case 1, 2: return 3; default: return 4 } }\n";
+        assert_eq!(switch_case_rhs_ints(src), vec![1, 2]);
     }
 
     #[test]

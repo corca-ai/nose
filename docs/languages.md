@@ -53,7 +53,7 @@ as type metadata instead of surfacing as opaque statements, or Rust `async { ...
 blocks lowering to their body instead of a `Raw` wrapper, or Rust
 literal/wildcard/OR/guarded `match` arms lowering to an if-chain, or Python
 literal/wildcard/OR/guarded `match` cases lowering to an if-chain, or Go channel send
-statements lowering to a tagged effect shape, or C/Java `switch` labels lowering to
-real scrutinee comparisons instead of placeholder branches) is how a language becomes a
-first-class citizen — see the [experiments](experiments.md) log and the convergence-test discipline in
-[`CONTRIBUTING`](../CONTRIBUTING.md).
+statements lowering to a tagged effect shape, or Go multi-label `switch` cases lowering to
+ORed scrutinee comparisons, or C/Java `switch` labels lowering to real scrutinee comparisons
+instead of placeholder branches) is how a language becomes a first-class citizen — see the
+[experiments](experiments.md) log and the convergence-test discipline in [`CONTRIBUTING`](../CONTRIBUTING.md).
