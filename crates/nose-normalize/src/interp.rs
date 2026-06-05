@@ -433,7 +433,13 @@ impl<'a> Interp<'a> {
                     return Err(Unsupported);
                 }
                 let base = self.eval(kids[0], env)?;
+                if matches!(base, Value::Err) {
+                    return Ok(Value::Err);
+                }
                 let idx = self.eval(kids[1], env)?;
+                if matches!(idx, Value::Err) {
+                    return Ok(Value::Err);
+                }
                 match (base, idx) {
                     (Value::List(xs), Value::Int(i)) => {
                         let i = if i < 0 { i + xs.len() as i64 } else { i };
@@ -1573,6 +1579,38 @@ mod tests {
     #[test]
     fn statement_append_checks_error_expr_target_before_items() {
         let behavior = statement_append_on_error_expr_target_with_effect_arg();
+        assert_eq!(behavior.ret, Value::Err);
+        assert!(behavior.effects.is_empty());
+    }
+
+    fn index_on_error_base_with_effect_index() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let base_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[one]);
+        let index = b.add(NodeKind::Index, Payload::None, sp, &[base_err, print]);
+        let index_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[index]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[index_stmt, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn index_checks_error_base_before_index_expr() {
+        let behavior = index_on_error_base_with_effect_index();
         assert_eq!(behavior.ret, Value::Err);
         assert!(behavior.effects.is_empty());
     }
