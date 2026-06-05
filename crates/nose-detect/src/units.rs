@@ -1867,18 +1867,18 @@ fn exact_conditional_exit_fragment_root(il: &Il, node: NodeId) -> bool {
     if !(kids.len() == 2 || kids.len() == 3) {
         return false;
     }
-    let mut has_valued_exit = false;
+    let mut has_exact_exit = false;
     for &branch in kids.iter().skip(1) {
-        let Some(branch_has_valued_exit) = empty_or_single_direct_valued_exit_block(il, branch)
+        let Some(branch_has_exact_exit) = empty_or_single_direct_exact_exit_block(il, branch)
         else {
             return false;
         };
-        has_valued_exit |= branch_has_valued_exit;
+        has_exact_exit |= branch_has_exact_exit;
     }
-    has_valued_exit
+    has_exact_exit
 }
 
-fn empty_or_single_direct_valued_exit_block(il: &Il, node: NodeId) -> Option<bool> {
+fn empty_or_single_direct_exact_exit_block(il: &Il, node: NodeId) -> Option<bool> {
     if il.kind(node) != NodeKind::Block {
         return None;
     }
@@ -1886,10 +1886,14 @@ fn empty_or_single_direct_valued_exit_block(il: &Il, node: NodeId) -> Option<boo
     if kids.is_empty() {
         return Some(false);
     }
-    (kids.len() == 1
-        && matches!(il.kind(kids[0]), NodeKind::Return | NodeKind::Throw)
-        && !il.children(kids[0]).is_empty())
-    .then_some(true)
+    if kids.len() != 1 {
+        return None;
+    }
+    match il.kind(kids[0]) {
+        NodeKind::Return if il.children(kids[0]).len() <= 1 => Some(true),
+        NodeKind::Throw if il.children(kids[0]).len() == 1 => Some(true),
+        _ => None,
+    }
 }
 
 fn top_level_statement_fragment_context_safe(

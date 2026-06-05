@@ -799,6 +799,105 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_conditional_bare_return_fragments_under_opaque_functions() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_bare_return_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "bare_square_a.js",
+            "function bareSquareLeft(xs) {\n  if (xs[0] > 0) {\n    return;\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "bare_square_b.js",
+            "function bareSquareRight(ys) {\n  if (0 < ys[0]) {\n    return;\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "bare_square_neg.js",
+            "function bareSquareWrong(zs) {\n  if (zs[0] > 1) {\n    return;\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "bare_sum_a.js",
+            "function bareSumLeft(xs) {\n  if (xs[0] + xs[1] > 10) {\n    return;\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "bare_sum_b.js",
+            "function bareSumRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    return;\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "bare_sum_mutated.js",
+            "function bareSumMutated(zs) {\n  zs.push(1);\n  if (zs[0] + zs[1] > 10) {\n    return;\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "bare_else_a.js",
+            "function bareElseLeft(xs) {\n  if (xs[0] > 0 && xs[1] > 0) {\n  } else {\n    return;\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "bare_else_b.js",
+            "function bareElseRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n  } else {\n    return;\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "bare_else_neg.js",
+            "function bareElseWrong(zs) {\n  if (zs[0] > 0 && zs[1] > 1) {\n  } else {\n    return;\n  }\n  audit(zs);\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_guard_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let files: Vec<&str> = family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+            })
+            .unwrap_or_else(|| {
+                panic!("missing exact conditional bare-return family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations.iter().all(|loc| loc["kind"] == "Block"),
+            "conditional bare-return fragments should report as Block units: {family:?}"
+        );
+        assert!(
+            locations
+                .iter()
+                .all(|loc| !loc["file"].as_str().unwrap_or("").ends_with(negative)),
+            "hard negative must not merge into {left}/{right}: {family:?}"
+        );
+    };
+
+    assert_guard_family("bare_square_a.js", "bare_square_b.js", "bare_square_neg.js");
+    assert_guard_family("bare_sum_a.js", "bare_sum_b.js", "bare_sum_mutated.js");
+    assert_guard_family("bare_else_a.js", "bare_else_b.js", "bare_else_neg.js");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
     let dir =
         std::env::temp_dir().join(format!("nose_exact_throw_fragments_{}", std::process::id()));

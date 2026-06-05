@@ -4809,6 +4809,45 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Fragment batch 6: exact conditional bare-return guards
+
+This batch keeps the conditional fragment proof invariant and opens only `return;` /
+bare-return exits. The value graph already models a bare return as a guarded void-return
+sink, so this is a unit-extraction expansion rather than a new semantic equivalence rule.
+Direct function-body `if` statements can become exact `Block` fragments when each present
+branch is empty, a single direct `return` with zero or one value, or a single direct
+valued `throw`, and at least one branch exits. Non-empty branches that are not a single
+direct exact exit remain unsupported.
+
+The three positives share one proof invariant: a conditional bare return is an
+effect-bearing control-flow fragment whose path guard is behaviorally significant even
+without a returned value. The batch covers operand-reversed numeric guards, commuted sum
+guards, and empty-then/else-return conjunction guards. Adjacent hard negatives cover a
+wrong guard threshold, preceding receiver mutation, and a wrong conjunct threshold.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-bare-return-1 | candidate extraction | allow direct conditional `return;` branches as exact exits | 3 focused bare-return families reported as `Block` units |
+| fragment-bare-return-2 | soundness boundary | keep `throw` valued-only, require at least one exact exit, and reuse empty-branch plus preceding mutation guards | wrong guard/mutation/conjunct negatives excluded |
+| fragment-bare-return-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-bare-return-4 | real delta | selected real scan surfaced the intended one-line bare-return family `if (!signals) return;` / `if (!server) return;` in axios | semantic families 65 -> 66, low value/ranking tail |
+| fragment-bare-return-5 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 18.5ms, candidates 3.6ms, score 0.5ms; 66 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_conditional_bare_return_fragments_under_opaque_functions
+3 exact conditional bare-return fragment families found; wrong guard/mutation/conjunct negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```
+
 ## Fragment batch 5: explicit empty-branch conditional exits
 
 This batch keeps the conditional fragment proof invariant but treats an explicit empty
