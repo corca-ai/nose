@@ -170,12 +170,16 @@ fn to_site(loc: &Loc) -> Site {
 
 /// Does this member's (repo-relative) base span overlap a changed range of its file?
 fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u32)>>) -> bool {
-    let Some(ranges) = changed.get(&loc.file) else {
-        return false;
-    };
-    ranges
-        .iter()
-        .any(|&(s, e)| loc.start_line <= e && s <= loc.end_line)
+    changed
+        .get(&loc.file)
+        .is_some_and(|ranges| ranges_touch(ranges, loc.start_line, loc.end_line))
+}
+
+/// Does the inclusive span `[start, end]` overlap any changed range? A pure-insertion range
+/// is encoded as `(a+1, a)` (an empty interval *between* base lines a and a+1), which by this
+/// test only matches a span that strictly straddles the gap — not one that merely ends at a.
+fn ranges_touch(ranges: &[(u32, u32)], start: u32, end: u32) -> bool {
+    ranges.iter().any(|&(s, e)| start <= e && s <= end)
 }
 
 // ---- git plumbing ---------------------------------------------------------------
@@ -306,21 +310,45 @@ fn git_changed_ranges(
             String::from_utf8_lossy(&out.stderr).trim()
         );
     }
-    let text = String::from_utf8_lossy(&out.stdout);
+    Ok(parse_old_side_ranges(&String::from_utf8_lossy(&out.stdout)))
+}
+
+/// Parse `git diff --unified=0` text into base-side changed line ranges per repo-relative
+/// path. Pure (no git) so it can be unit-tested against crafted diff output.
+fn parse_old_side_ranges(diff: &str) -> HashMap<String, Vec<(u32, u32)>> {
     let mut map: HashMap<String, Vec<(u32, u32)>> = HashMap::new();
     let mut current: Option<String> = None;
-    for line in text.lines() {
-        if let Some(rest) = line.strip_prefix("--- ") {
+    // `--- a/path` is the base-file header, but a *deleted* line whose content starts with
+    // "-- " also renders as "--- …" in the hunk body. They're disambiguated structurally:
+    // the file header sits in the per-file block before the first `@@`; once hunks begin a
+    // "--- " line is body content. `diff --git` resets the block for the next file.
+    let mut in_hunks = false;
+    for line in diff.lines() {
+        if line.starts_with("diff --git") {
+            in_hunks = false;
+            current = None;
+        } else if !in_hunks && line.starts_with("--- ") {
             // "--- a/path" → base-side path; "--- /dev/null" (added file) → no base member
-            current = rest.strip_prefix("a/").map(|p| p.to_string());
+            current = line
+                .strip_prefix("--- ")
+                .and_then(|r| r.strip_prefix("a/"))
+                .map(|p| p.to_string());
         } else if line.starts_with("@@") {
+            in_hunks = true;
             if let (Some(file), Some((start, count))) = (&current, parse_hunk_old(line)) {
-                let end = if count == 0 { start } else { start + count - 1 };
-                map.entry(file.clone()).or_default().push((start, end));
+                // count == 0 is a pure insertion *after* base line `start` (no base line
+                // changed): encode the gap as `(start+1, start)` so it touches only members
+                // that straddle it, not one that merely ends at `start`.
+                let range = if count == 0 {
+                    (start + 1, start)
+                } else {
+                    (start, start + count - 1)
+                };
+                map.entry(file.clone()).or_default().push(range);
             }
         }
     }
-    Ok(map)
+    map
 }
 
 /// Parse the old-side range from a hunk header `@@ -a,b +c,d @@ ...` → `(a, b)`, where a
@@ -483,4 +511,60 @@ fn review_sarif(flagged: &[Divergence]) -> Result<String> {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "runs": [run],
     }))?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // `git diff --unified=0` for: base "keep1\n-- marker\nkeep2a\nkeep2b\nzzz\n"
+    // → new "KEEP1\nkeep2a\nkeep2b\nZZZ\n". The deleted "-- marker" line shows in the body
+    // as "--- marker", which must NOT be parsed as a "--- a/path" file header.
+    const DIFF_WITH_DASHDASH_CONTENT: &str = "\
+diff --git a/f.txt b/f.txt
+index 1111111..2222222 100644
+--- a/f.txt
++++ b/f.txt
+@@ -1,2 +1 @@
+-keep1
+--- marker
++KEEP1
+@@ -5 +4 @@
+-zzz
++ZZZ
+";
+
+    #[test]
+    fn parse_ignores_deleted_content_lines_that_look_like_headers() {
+        let ranges = parse_old_side_ranges(DIFF_WITH_DASHDASH_CONTENT);
+        let f = ranges.get("f.txt").expect("f.txt has changed ranges");
+        assert!(f.contains(&(1, 2)), "first hunk: {f:?}");
+        assert!(
+            f.contains(&(5, 5)),
+            "second hunk must survive the `--- marker` body line: {f:?}"
+        );
+        assert_eq!(
+            ranges.len(),
+            1,
+            "no phantom file key from a content line: {ranges:?}"
+        );
+    }
+
+    #[test]
+    fn pure_insertion_does_not_touch_a_member_ending_at_the_insertion_point() {
+        // Insert a line after base line 1: `@@ -1,0 +2 @@`. The insertion sits *between*
+        // base lines 1 and 2, so a member occupying only line 1 was not edited.
+        let diff =
+            "diff --git a/g.txt b/g.txt\n--- a/g.txt\n+++ b/g.txt\n@@ -1,0 +2 @@\n+inserted\n";
+        let r = parse_old_side_ranges(diff);
+        let ranges = r.get("g.txt").expect("g.txt range");
+        assert!(
+            !ranges_touch(ranges, 1, 1),
+            "a member ending at the insertion point is not touched: {ranges:?}"
+        );
+        assert!(
+            ranges_touch(ranges, 1, 3),
+            "a member straddling the insertion gap IS touched: {ranges:?}"
+        );
+    }
 }
