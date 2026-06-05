@@ -1,7 +1,7 @@
 # Type-4 Coevolution Handoff
 
 Date: 2026-06-05
-Updated: 2026-06-05, continued through early size-gate and signed-formula pass
+Updated: 2026-06-05, continued through exact-semantic shape-feature skip
 
 This records where the adversarial Type-4 coevolution work stopped and how to resume it.
 The work was intentionally paused after a real-repository evaluation pass. Do not start
@@ -10,25 +10,21 @@ another autonomous frontier loop unless the user explicitly resumes it.
 ## Current State
 
 - Branch: `main`.
-- Last handoff/documentation commit: `d237b21 docs(type4): sharpen coevolution resume notes`.
+- This handoff is current through code commit
+  `cc812fc perf(type4): skip shape features for exact semantic scans`.
 - Last committed semantic frontier change: `0b63ad9 feat(type4): prove python module membership`.
 - The strict frontier loop itself is still paused after the Python module membership batch.
   No new semantic frontier axis has been accepted after loop 406.
 - Separate performance-enabling passes were started after that pause and committed as
   `93475b4 perf(type4): speed semantic value extraction` and
   `58ff3ed perf(type4): cap broad semantic block units`, then continued in
-  `095bd62 perf(type4): compact semantic extraction hotspots`.
-- A current follow-up performance pass is uncommitted. It changes:
-  - `crates/nose-normalize/src/value_graph.rs`;
-  - `crates/nose-cli/tests/cli.rs`;
-  - `crates/nose-cli/tests/equivalence.rs`;
-  - `crates/nose-detect/src/units.rs`;
-  - this handoff file.
+  `095bd62 perf(type4): compact semantic extraction hotspots`,
+  `fe143db perf(type4): skip gated units before value extraction`, and
+  `cc812fc perf(type4): skip shape features for exact semantic scans`.
 - Installed baseline used for real-repo comparison: `/opt/homebrew/bin/nose`, version `0.2.0`.
 - Current candidate used for comparison: `target/release/nose`, version `0.4.0`.
-- Worktree at this pause: dirty with early size-gate extraction, signed large-formula
-  compaction, focused regressions, and this handoff update, plus the pre-existing
-  untracked `.claude/` directory.
+- Worktree at this pause: no uncommitted tracked code changes before this handoff update;
+  the pre-existing untracked `.claude/` directory remains intentionally untouched.
 
 The exact stop line is:
 
@@ -48,15 +44,19 @@ into keyed Formula atoms -> representative timing and output checks rerun -> com
 095bd62 -> raylib/sympy/sqlite/vim/zod reprofiled -> file-level unit summary added for
 distributed unit costs -> non-dense block/class size gate moved before strict/value
 extraction -> signed +/- generated formulas compacted into keyed Formula atoms ->
-representative timing and output checks rerun -> full tests and smoke passed -> pause before
-commit
+representative timing and output checks rerun -> full tests and smoke passed ->
+committed as fe143db -> 105-repo semantic sweep rerun -> raylib identified as the
+remaining largest normalize/extract target -> exact semantic scan stopped building
+syntactic shape/linear features unless near mode needs them -> representative timing and
+output checks rerun -> full tests and smoke passed -> committed as cc812fc -> pause to
+record the handoff
 ```
 
-There is no half-implemented semantic frontier to finish. There is, however, an
-uncommitted performance patch that supports the coevolution workflow by making real-repo
-semantic audits cheaper.
+There is no half-implemented semantic frontier or uncommitted performance patch to finish.
+The work paused at a clean performance checkpoint that supports the coevolution workflow
+by making real-repo semantic audits cheaper.
 
-Current follow-up code state:
+Committed code state:
 
 - `cargo fmt` and `cargo build --release -p nose-cli` passed after the latest code edits.
 - `cargo test -p nose-normalize`, `cargo test -p nose-detect`, `cargo test -p nose-cli`,
@@ -67,21 +67,26 @@ Current follow-up code state:
   SQLite keeps the same 74 family count with only metadata-level change in one family;
   Raylib drops several broad vendored C header block families and adds one narrower
   replacement, going 223 -> 219 families.
-- The current class-container cap preserves representative outputs:
+- The committed class-container cap preserves representative outputs:
   Sympy is byte-identical to the pre-class-cap run; Zod is byte-identical to the
   post-block-cap/class-cap run; SQLite, Raylib, and Vim keep the same families and are
   identical after dropping only `sem`/`mean_sem` metadata.
-- The current coupled-recurrence and generated-formula compactions intentionally reduce
+- The committed coupled-recurrence and generated-formula compactions intentionally reduce
   `sem` metadata in some families because large raw value DAGs no longer expose every
   intermediate atom. The family locations and counts are preserved in the representative
   set.
-- The current early size-gate pass is output-preserving by construction: non-function
+- The committed early size-gate pass is output-preserving by construction: non-function
   units that fail the existing syntactic gate were already discarded, and the dense
   semantic escape remains function/method-only. The representative real-repo outputs are
   byte-identical.
-- The current signed-formula compaction extends the generated-formula path to mixed
+- The committed signed-formula compaction extends the generated-formula path to mixed
   `+`/`-` arithmetic chains. It preserves the existing subtraction-as-addition-of-negation
   semantics for large generated formulas and keeps changed signs distinct.
+- Exact semantic `scan` no longer builds syntactic shape features (`shapes`,
+  `shape_minhash`, `linear`) unless `near` mode needs them. The exact semantic detector
+  uses the value graph for candidate generation and scoring, so the representative outputs
+  remain byte-identical while extraction does less work. Cache signatures include this
+  option so semantic-only cache entries cannot be reused for near-capable scans.
 - The briefly added `flatten_cache` in `value_graph.rs` was removed because SQLite
   improved from the iterative flatten rewrite itself, while the extra cache did not
   materially improve the measured scan.
@@ -107,8 +112,7 @@ Baseline release timings before the performance changes:
 | `bench/repos/sqlalchemy` | 57.693s | 57345ms | 447 |
 | `bench/repos/clap` | >120s timeout | not completed | not completed |
 
-Fifteen performance/design changes are present across the committed passes and current
-follow-up:
+Sixteen performance/design changes are present across the committed passes:
 
 1. Numeric-method recognition now checks the method shape before recursively evaluating
    the receiver. This fixed a pathological fluent-chain case in `clap_builder`:
@@ -210,6 +214,13 @@ follow-up:
     many smaller expressions. A focused Python equivalence regression verifies signed
     operand canonicalization, sign-change separation, and compact fingerprints.
 
+16. Exact semantic scans now skip structural shape feature construction unless `near`
+    scoring is enabled. `scan --mode semantic` and the default exact semantic channel do
+    not need `shapes`, `shape_minhash`, or `linear`; exact semantic candidates and scores
+    are value-graph based. Hidden detector/default library options still build shape
+    features, and CLI cache signatures include the new option so semantic-only caches do
+    not contaminate near-capable scans.
+
 Representative measured state after the first three core fixes:
 
 | repo | baseline `normalize+extract` | final measured `normalize+extract` | output check |
@@ -307,6 +318,19 @@ formula compaction reduced the `polyquinticconst.py` method aggregate from about
 appeared over the 10ms unit log threshold. `eqs_165x165` remained compact at `167` value
 atoms.
 
+Follow-up rerun after exact semantic scans stopped building shape features:
+
+| repo | before `normalize+extract` | after `normalize+extract` | after wall time | output effect |
+|---|---:|---:|---:|---|
+| `bench/repos/raylib` | 676.9ms | 593.4ms | 1.06s | byte-identical to `fe143db`; 219 families |
+| `bench/repos/sympy` | 209.8ms | 178.7ms | 0.69s | byte-identical to `fe143db`; 502 families |
+| `bench/repos/sqlite` | 129.2ms | 109.4ms | 0.35s | byte-identical to `fe143db`; 74 families |
+| `bench/repos/vim` | 129.9ms | 121.9ms | 0.41s | byte-identical to `fe143db`; 19 families |
+| `bench/repos/zod` | 29.4ms | 21.7ms | 0.08s | byte-identical to `fe143db`; 9 families |
+
+This optimization is intentionally exact-semantic-only. `near` mode still builds the
+structural features it needs for fuzzy scoring.
+
 The original `sqlalchemy` output mismatch is resolved. The cause was semantic drift in the
 new file-level mutation summary: it recursively collected symbols from `Append` and
 mutating-field receivers, while the old proof checked only direct receiver symbols for
@@ -317,10 +341,10 @@ The broader 105-repo sweep after the core fixes wrote temporary artifacts under
 
 | repo | wall time | semantic families | status |
 |---|---:|---:|---|
-| `raylib` | 83.88s | 223 | reduced to about 1.10s wall / 663ms normalize; broad vendored block families reduced to 219 families |
-| `sympy` | 6.57s | 502 | reduced to 0.72s wall / 204ms normalize after signed generated-formula compaction |
-| `sqlite` | 4.59s | 74 | reduced to about 0.40s wall / 144ms normalize after recurrence and size-gate compaction |
-| `vim` | 2.28s | 19 | reduced to about 0.41s wall / 135ms normalize after block/size-gate follow-ups |
+| `raylib` | 83.88s | 223 | reduced to about 1.06s wall / 593ms normalize; broad vendored block families reduced to 219 families |
+| `sympy` | 6.57s | 502 | reduced to 0.69s wall / 179ms normalize after signed generated-formula and shape-skip passes |
+| `sqlite` | 4.59s | 74 | reduced to about 0.35s wall / 109ms normalize after recurrence, size-gate, and shape-skip compaction |
+| `vim` | 2.28s | 19 | reduced to about 0.41s wall / 122ms normalize after block/size-gate and shape-skip follow-ups |
 | `nats-server` | 1.91s | 48 | reduced to about 0.47s wall / 226ms normalize |
 | `netty` | 1.76s | 182 | reduced to 0.81s with large AC fast path |
 | `sqlalchemy` | 0.91s | 447 | reduced to 0.44s; acceptable after fixes |
@@ -446,47 +470,44 @@ many small units.
 
 ## Resume The Performance Pass
 
-If the next session continues performance work, resume here before starting any new
-Type-4 frontier:
+If the next session continues performance work, resume from the committed
+`cc812fc` baseline before starting any new Type-4 frontier:
 
-1. Inspect the dirty worktree:
+1. Confirm the worktree state:
 
    ```text
    git status --short
-   git diff -- crates/nose-normalize/src/value_graph.rs crates/nose-cli/tests/cli.rs crates/nose-cli/tests/equivalence.rs crates/nose-detect/src/units.rs bench/type4/HANDOFF.md
    ```
 
-2. The current follow-up patch has good measured wins and has passed the core validation
-   set. Before committing, inspect the final diff for accidental breadth. It combines:
-   file-level unit timing summaries, early non-function size gating, signed generated
-   formula compaction, and focused CLI/equivalence regressions.
+   At this pause, the only expected untracked item is `.claude/`. There is no open
+   performance patch to finish.
 
-3. If profiling further, start from a fresh release build:
+2. Rebuild current:
 
    ```text
    cargo fmt
    cargo build --release -p nose-cli
    ```
 
-4. Treat raylib as the next performance target if continuing immediately. Sympy, SQLite,
-   Vim, Zod, Netty, SQLAlchemy, Prettier, Zstd, Clap, Regex, and Nats are no longer the
-   best first targets unless they regress. For raylib, prefer aggregate profiling first
-   because the remaining cost is still distributed.
+3. Do not assume the next hotspot is still value extraction. After `cc812fc`, representative
+   timings show `normalize+extract` is much smaller and `parse+lower` is becoming visible
+   on some repos. Choose the next target from current measurements rather than from the
+   pre-performance memory.
 
-5. If validating before commit, rerun the small representative set:
+4. Rerun the small representative set:
 
    ```text
-   NOSE_TIME=1 target/release/nose scan bench/repos/raylib --mode semantic --format json --top 0 > /tmp/nose-perf-next4/raylib.final.json
-   NOSE_TIME=1 target/release/nose scan bench/repos/sympy --mode semantic --format json --top 0 > /tmp/nose-perf-next4/sympy.final.json
-   NOSE_TIME=1 target/release/nose scan bench/repos/sqlite --mode semantic --format json --top 0 > /tmp/nose-perf-next4/sqlite.final.json
-   NOSE_TIME=1 target/release/nose scan bench/repos/vim --mode semantic --format json --top 0 > /tmp/nose-perf-next4/vim.final.json
-   NOSE_TIME=1 target/release/nose scan bench/repos/zod --mode semantic --format json --top 0 > /tmp/nose-perf-next4/zod.final.json
+   NOSE_TIME=1 target/release/nose scan bench/repos/raylib --mode semantic --format json --top 0 > /tmp/nose-perf-next/raylib.json
+   NOSE_TIME=1 target/release/nose scan bench/repos/sympy --mode semantic --format json --top 0 > /tmp/nose-perf-next/sympy.json
+   NOSE_TIME=1 target/release/nose scan bench/repos/sqlite --mode semantic --format json --top 0 > /tmp/nose-perf-next/sqlite.json
+   NOSE_TIME=1 target/release/nose scan bench/repos/vim --mode semantic --format json --top 0 > /tmp/nose-perf-next/vim.json
+   NOSE_TIME=1 target/release/nose scan bench/repos/zod --mode semantic --format json --top 0 > /tmp/nose-perf-next/zod.json
    ```
 
-   The current follow-up's final representative outputs are byte-identical to the
-   pre-follow-up outputs for raylib, sympy, sqlite, vim, and zod.
+   The `cc812fc` representative outputs were byte-identical to the `fe143db` outputs for
+   raylib, sympy, sqlite, vim, and zod.
 
-6. Re-run the core validation set:
+5. Re-run the core validation set after any new code change:
 
    ```text
    cargo test -p nose-normalize
@@ -495,10 +516,11 @@ Type-4 frontier:
    GATE=core CROSS=all NOSE=target/release/nose ./scripts/type4-smoke.sh
    ```
 
-7. Re-run a small top-outlier sweep after validation. The next likely targets are:
+6. Re-run a small top-outlier sweep before picking another optimization. The next likely
+   candidates are:
 
    - `bench/repos/raylib`, still the largest representative normalize/extract target at
-     about 663ms normalize / 1.10s wall;
+     about 593ms normalize / 1.06s wall;
    - a broader 105-repo sweep, because the former top outliers have shifted enough that
      the next best target should be selected from current data rather than memory.
 
@@ -511,7 +533,7 @@ Type-4 frontier:
    `zstd`, `clap`, `regex`, `zod`, `netty`, `nats-server`, `prettier`, and `sqlalchemy`
    are no longer the best profiling targets unless they regress.
 
-8. Use modern hardware deliberately in the next pass. File-level rayon parallelism works
+7. Use modern hardware deliberately in the next pass. File-level rayon parallelism works
    well after the per-file fixed costs are gone, but single huge units can still cause
    load imbalance. Do not add coarse parallelism blindly; first identify whether the next
    outlier is a many-file fixed-cost problem, a single-unit DAG problem, or candidate
@@ -550,8 +572,9 @@ cmp /tmp/nose-perf-after-subtree/sqlite.json /tmp/nose-perf-final/sqlite.after-g
 ```
 
 Latest validation passed after the final large-AC, flatten, cache-removal, Prettier
-guard, and block-cap changes. The block-cap rerun used
-`/tmp/nose-perf-continue/*.after-block-gate.*`.
+guard, block-cap, early size-gate, signed-formula, and exact-semantic shape-skip
+changes. The block-cap rerun used `/tmp/nose-perf-continue/*.after-block-gate.*`;
+the final shape-skip rerun used `/tmp/nose-perf-after-shape-skip-seq/*`.
 
 ## Last Completed Coevolution Loop
 
@@ -644,7 +667,7 @@ Final sampled repos:
 | TypeScript | `zod`, `trpc` |
 
 The initially selected Rust repo `clap` timed out on the then-current binary after 90s and
-was replaced by `alacritty`. The uncommitted performance pass later addressed that
+was replaced by `alacritty`. The subsequent committed performance pass addressed that
 specific `clap` bottleneck; keep `clap` as a regression target, not the next profiling
 priority.
 
@@ -726,9 +749,9 @@ Examples with low refactoring value:
 5. Treat performance as a first-class loop constraint.
 
    The coevolution loop only works if generated gates and real-repo audits are cheap
-   enough to run repeatedly. Finish the open performance pass before adding more frontier
-   rules. After that, keep a small top-outlier timing set in the loop gate so broadening
-   the strict frontier does not silently make audits unusable.
+   enough to run repeatedly. The open performance pass has been committed through
+   `cc812fc`; keep a small top-outlier timing set in the loop gate so broadening the
+   strict frontier does not silently make audits unusable.
 
 6. Persist important real-repo audit outputs outside `/tmp`.
 
@@ -771,11 +794,11 @@ Examples with low refactoring value:
 
 ## Suggested Resume Sequence
 
-1. Finish the open performance pass first.
+1. Start from the committed `cc812fc` performance baseline.
 
-   Rerun the core validation set, representative output comparisons, and a small
-   top-outlier timing check after the `flatten_cache` removal. Only then decide whether to
-   commit the performance patch.
+   There is no open performance patch to finish. First confirm the clean tracked
+   worktree, rebuild, and rerun a small timing set so the next optimization is chosen from
+   current data.
 
 2. Rebuild current binary:
 
