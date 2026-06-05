@@ -426,10 +426,14 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .child_by_field_name("argument")
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
-            let op = if lo.text(node).starts_with('!') {
-                Op::Not
-            } else {
-                Op::Neg
+            // Map by the operator token, not the whole node's text: `+` is `Pos`,
+            // `-` is `Neg`, `!` is `Not`, `~` is `BitNot`. Reading only the leading
+            // byte once collapsed `+x` and `~x` onto `Neg`.
+            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+                Some("+") => Op::Pos,
+                Some("!") => Op::Not,
+                Some("~") => Op::BitNot,
+                _ => Op::Neg,
             };
             lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
         }
@@ -581,4 +585,53 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
     crate::lower::binary(lo, node, common_bin_op, lower_expr)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Collect every `Op` carried by a `UnOp` node in the lowered IL.
+    fn unary_ops(src: &str) -> Vec<Op> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "t.c", src.as_bytes(), &interner).expect("lower");
+        il.nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::UnOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn unary_operators_lower_to_distinct_ops() {
+        // Each C unary operator must lower to its own `Op`; in particular unary
+        // plus is `Pos`, not `Neg` (the two were once indistinguishable).
+        let ops = unary_ops("int f(int x){ int a=+x; int b=-x; int c=!x; int d=~x; return 0; }");
+        assert!(
+            ops.contains(&Op::Pos),
+            "unary + should lower to Op::Pos, got {ops:?}"
+        );
+        assert!(
+            ops.contains(&Op::Neg),
+            "unary - should lower to Op::Neg, got {ops:?}"
+        );
+        assert!(
+            ops.contains(&Op::Not),
+            "unary ! should lower to Op::Not, got {ops:?}"
+        );
+        assert!(
+            ops.contains(&Op::BitNot),
+            "unary ~ should lower to Op::BitNot, got {ops:?}"
+        );
+    }
+
+    #[test]
+    fn unary_plus_and_minus_are_not_aliased() {
+        // `+x` and `-x` must not collapse to the same operator.
+        assert_eq!(unary_ops("int f(int x){ return +x; }"), vec![Op::Pos]);
+        assert_eq!(unary_ops("int f(int x){ return -x; }"), vec![Op::Neg]);
+    }
 }
