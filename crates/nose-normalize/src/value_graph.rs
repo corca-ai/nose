@@ -25,8 +25,8 @@ use crate::module_facts::{
 };
 use crate::types::Ty;
 use nose_il::{
-    Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    Symbol, UnitKind,
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
+    ParamSemantic, Payload, Symbol, UnitKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -6238,15 +6238,6 @@ fn op_tag(op: &ValOp) -> u64 {
         ValOp::Opaque(c) => (13, *c),
     };
     combine(k.wrapping_mul(0xF00D), p)
-}
-
-fn stable_symbol_hash(name: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in name.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    h
 }
 
 fn stable_string_const_key(value: &str) -> u32 {

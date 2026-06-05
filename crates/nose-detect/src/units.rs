@@ -4,8 +4,8 @@
 //! tags for alignment, and a **MinHash** signature for candidate generation.
 
 use nose_il::{
-    Builtin, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload, Symbol,
-    UnitKind,
+    stable_symbol_hash, Builtin, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic,
+    Payload, Symbol, UnitKind,
 };
 use nose_normalize::{module_facts::collect_module_mutations, node_tag};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -1721,15 +1721,6 @@ fn strict_exact_callee_name(il: &Il, interner: &Interner, callee: NodeId, expect
         return false;
     };
     interner.resolve(name) == expected
-}
-
-fn stable_symbol_hash(name: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in name.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    h
 }
 
 fn strict_exact_callee_identity(il: &Il, facts: &StrictFacts, callee: NodeId) -> bool {

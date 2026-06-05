@@ -47,11 +47,21 @@ impl Interner {
     /// the interner-assigned id — so it is safe to use in reproducible
     /// fingerprints even though lowering interns in parallel.
     pub fn symbol_hash(&self, sym: Symbol) -> u64 {
-        let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-        for b in self.resolve(sym).bytes() {
-            h ^= b as u64;
-            h = h.wrapping_mul(0x0000_0100_0000_01b3);
-        }
-        h
+        stable_symbol_hash(self.resolve(sym))
     }
+}
+
+/// FNV-1a 64-bit content hash of a string — the canonical "stable symbol hash" used
+/// wherever a string's identity must survive across runs and across crates: the lowering's
+/// string-literal hash ([`Il`](crate::Il) `LitStr`/`Seq` tags) and every detector that
+/// compares a literal hash against a known name (`"asList"`, `"go_literal_zero_map"`, …).
+/// All those comparisons rely on this being one definition, so it lives here in `nose-il`
+/// rather than being re-derived per crate.
+pub fn stable_symbol_hash(name: &str) -> u64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in name.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    h
 }

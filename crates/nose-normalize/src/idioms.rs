@@ -3,7 +3,7 @@
 //! JS `xs.length`, and Go `len(xs)` all converge. Detection on `xs.length` (a
 //! field access) is handled by the caller; this module only inspects `Call`s.
 
-use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
@@ -621,13 +621,4 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
         (Payload::Name(a), Payload::Name(b)) => a == b,
         _ => false,
     }
-}
-
-fn stable_symbol_hash(name: &str) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in name.bytes() {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    h
 }
