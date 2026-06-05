@@ -1792,8 +1792,8 @@ fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<UnitRoot>) {
     }
 }
 
-/// Collect single-statement expression fragments that can become exact semantic
-/// units even when their enclosing function is unsafe because of unrelated siblings.
+/// Collect single-statement fragments that can become exact semantic units even when
+/// their enclosing function is unsafe because of unrelated siblings.
 fn collect_exact_statement_fragment_units(
     il: &Il,
     node: NodeId,
@@ -1805,15 +1805,23 @@ fn collect_exact_statement_fragment_units(
         return;
     }
     if exact_statement_fragment_root(il, node, parents, interner) {
+        push_or_upgrade_exact_fragment_root(out, node);
+    }
+    for &c in il.children(node) {
+        collect_exact_statement_fragment_units(il, c, parents, interner, out);
+    }
+}
+
+fn push_or_upgrade_exact_fragment_root(out: &mut Vec<UnitRoot>, root: NodeId) {
+    if let Some(existing) = out.iter_mut().find(|candidate| candidate.root == root) {
+        existing.exact_fragment = true;
+    } else {
         out.push(UnitRoot {
-            root: node,
+            root,
             kind: UnitKind::Block,
             name: None,
             exact_fragment: true,
         });
-    }
-    for &c in il.children(node) {
-        collect_exact_statement_fragment_units(il, c, parents, interner, out);
     }
 }
 
@@ -1823,29 +1831,50 @@ fn exact_statement_fragment_root(
     parents: &[Option<NodeId>],
     interner: &Interner,
 ) -> bool {
-    let kids = il.children(node);
-    if kids.len() != 1 {
-        return false;
-    }
     if !subtree_spans_within(il, node, il.node(node).span) {
         return false;
     }
     if !top_level_statement_fragment_context_safe(il, node, parents, interner) {
         return false;
     }
+    let kids = il.children(node);
     match il.kind(node) {
-        NodeKind::Return => !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit),
-        NodeKind::ExprStmt => !matches!(
-            il.kind(kids[0]),
-            NodeKind::Return
-                | NodeKind::Throw
-                | NodeKind::Break
-                | NodeKind::Continue
-                | NodeKind::Var
-                | NodeKind::Lit
-        ),
+        NodeKind::Return => {
+            kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
+        }
+        NodeKind::ExprStmt => {
+            kids.len() == 1
+                && !matches!(
+                    il.kind(kids[0]),
+                    NodeKind::Return
+                        | NodeKind::Throw
+                        | NodeKind::Break
+                        | NodeKind::Continue
+                        | NodeKind::Var
+                        | NodeKind::Lit
+                )
+        }
+        NodeKind::If => exact_conditional_return_fragment_root(il, node),
         _ => false,
     }
+}
+
+fn exact_conditional_return_fragment_root(il: &Il, node: NodeId) -> bool {
+    let kids = il.children(node);
+    if !(kids.len() == 2 || kids.len() == 3) {
+        return false;
+    }
+    kids.iter()
+        .skip(1)
+        .all(|&branch| single_direct_return_block(il, branch))
+}
+
+fn single_direct_return_block(il: &Il, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Block {
+        return false;
+    }
+    let kids = il.children(node);
+    kids.len() == 1 && il.kind(kids[0]) == NodeKind::Return && !il.children(kids[0]).is_empty()
 }
 
 fn top_level_statement_fragment_context_safe(

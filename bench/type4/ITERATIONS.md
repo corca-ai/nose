@@ -4808,3 +4808,32 @@ GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
 positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
+
+## Fragment batch 2: exact conditional-return guard fragments
+
+This batch keeps the same exact semantic contract and expands only the statement-fragment
+boundary. Direct function-body `if` statements can now become exact `Block` fragments when
+each present branch body is a single direct `return`. The existing guard still applies:
+the subtree span must be self-contained, the fragment must be a direct function-body
+statement, preceding siblings must not assign/alias/mutate/unknown-call any cid used by the
+fragment, and `semantic` still requires `exact_safe` plus value fingerprint equality.
+
+The three positives share one proof invariant: a conditional early-return statement is an
+effect-bearing fragment with explicit path guards, so the value graph can compare the
+condition and returned value without accepting the surrounding function. The batch covers
+operand-reversed numeric guards, commuted sum guards, and commuted conjunction guards.
+Adjacent hard negatives cover a wrong guard threshold, a wrong returned expression, and a
+preceding mutation of the guarded receiver.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-guard-1 | candidate extraction | upgrade eligible direct `if` roots from ordinary control-flow blocks to exact fragments | 3 focused conditional-return families reported as `Block` units |
+| fragment-guard-2 | soundness boundary | require all present branch bodies to be single direct `return` statements and reuse the preceding mutation/alias/unknown-call guard | mutated receiver hard negative excluded |
+| fragment-guard-3 | regression | rerun return-fragment, dense-gate, and literal-membership hard-negative tests | all targeted tests passed |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_functions
+3 exact conditional-return fragment families found; wrong guard/result/mutation negatives excluded.
+```
