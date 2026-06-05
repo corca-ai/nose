@@ -719,7 +719,13 @@
         "`hash.fetch(key, default) { block }`, where Ruby uses the block and warns about the ignored default argument"
       ],
       "batch": "2026-06-06-ruby-fetch-block-map-default",
-      "notes": "Selected after the user raised Java-skew concerns. This is a non-Java soundness/completeness micro-batch, but the real custom-receiver frontier remains unsupported until receiver provenance facts exist."
+      "reverify": {
+        "date": "2026-06-06",
+        "boundaries_verified": "Reproduced with minimal scans. A proven literal Hash `{...}.fetch(key) { 0 }` converges with `{...}.fetch(key, 0)` (one family). All five hard-negative classes stay distinct: a different fallback `{ 9 }`, a block parameter `{ |missing| ... }`, a `{ raise KeyError }` effect, and the custom receivers `Rails.cache.fetch(key) { 0 }` and `cookies.fetch(key) { 0 }` each remain unmerged. No false merges.",
+        "deferred_sound_lead": "A function-local immutable Hash binding receiver (`h = {literal}; h.fetch(key) { 0 }`) is currently NOT proven (0 families) even though the inline-literal form is. This is a genuine receiver-provenance fact that DOES exist (single-writer immutable local binding), unlike the custom method receivers, so it is a sound next candidate. Closing it requires a value-graph-level receiver resolution for the GetOrDefault canon (mirroring proven_local_collection_binding_value on the membership axis), not just the idiom-layer literal check. Hard negatives: a mutated/reassigned binding and a custom receiver must stay unmerged. Not implemented here: it is synthetic-shaped, has no counterpart among these four real spans, and belongs in its own small batch.",
+        "conclusion": "The literal-Hash batch is sound and intact. The custom-receiver real frontier stays unsupported (no receiver provenance for cookies/static_register/req.headers/Rails.cache)."
+      },
+      "notes": "Selected after the user raised Java-skew concerns. This is a non-Java soundness/completeness micro-batch, but the real custom-receiver frontier remains unsupported until receiver provenance facts exist. Re-verified 2026-06-06: literal-Hash convergence holds and all five hard-negative classes stay distinct; a function-local immutable Hash binding receiver is recorded as a sound deferred lead (see reverify.deferred_sound_lead)."
     }
   ]
 }
