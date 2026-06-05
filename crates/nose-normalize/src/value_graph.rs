@@ -1714,6 +1714,9 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
+                if let Some(v) = self.low_bit_toggle_pattern(args[0], args[1], args[2]) {
+                    return v;
+                }
                 if let Some(v) = self.map_default_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
@@ -3970,6 +3973,109 @@ impl<'a> Builder<'a> {
         } else {
             None
         }
+    }
+
+    /// Java integer low-bit toggle: `x % 2 == 0 ? x + 1 : x - 1` (and the
+    /// equivalent `!= 0` branch order) is exactly `x ^ 1`. The branch split avoids
+    /// overflow at both signed extremes: max values take the `-1` branch and min
+    /// values take the `+1` branch. Keep this Java-only for now because the real
+    /// frontier evidence is Java and other surfaces may expose overload/coercion
+    /// semantics for these operators.
+    fn low_bit_toggle_pattern(
+        &mut self,
+        cond: ValueId,
+        then: ValueId,
+        els: ValueId,
+    ) -> Option<ValueId> {
+        if !self.has_java_primitive_integer_ops() {
+            return None;
+        }
+        let (base, even_when_true) = self.parity_zero_condition(cond)?;
+        let then_delta = self.additive_one_delta(then, base)?;
+        let else_delta = self.additive_one_delta(els, base)?;
+        let is_toggle = (even_when_true && then_delta == 1 && else_delta == -1)
+            || (!even_when_true && then_delta == -1 && else_delta == 1);
+        if !is_toggle {
+            return None;
+        }
+        let one = self.int_const(1);
+        Some(self.mk(ValOp::Bin(Op::BitXor as u32), vec![base, one]))
+    }
+
+    fn has_java_primitive_integer_ops(&self) -> bool {
+        self.il.meta.lang == Lang::Java
+    }
+
+    fn parity_zero_condition(&self, cond: ValueId) -> Option<(ValueId, bool)> {
+        let node = &self.nodes[cond as usize];
+        let even_when_true = match node.op {
+            ValOp::Bin(o) if o == Op::Eq as u32 => true,
+            ValOp::Bin(o) if o == Op::Ne as u32 => false,
+            _ => return None,
+        };
+        if node.args.len() != 2 {
+            return None;
+        }
+        for (candidate, zero) in [(node.args[0], node.args[1]), (node.args[1], node.args[0])] {
+            if self.int_const_eq(zero, 0) {
+                if let Some(base) = self.mod_by_two_base(candidate) {
+                    return Some((base, even_when_true));
+                }
+            }
+        }
+        None
+    }
+
+    fn mod_by_two_base(&self, value: ValueId) -> Option<ValueId> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Bin(o) if o == Op::Mod as u32) || node.args.len() != 2 {
+            return None;
+        }
+        if self.int_const_eq(node.args[1], 2) {
+            Some(node.args[0])
+        } else {
+            None
+        }
+    }
+
+    fn additive_one_delta(&mut self, value: ValueId, base: ValueId) -> Option<i8> {
+        if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == Op::Add as u32) {
+            return None;
+        }
+        let mut leaves = Vec::new();
+        self.flatten_into(value, Op::Add as u32, &mut leaves);
+        if leaves.len() != 2 {
+            return None;
+        }
+        if leaves[0] == base {
+            self.signed_one_const(leaves[1])
+        } else if leaves[1] == base {
+            self.signed_one_const(leaves[0])
+        } else {
+            None
+        }
+    }
+
+    fn signed_one_const(&self, value: ValueId) -> Option<i8> {
+        if self.int_const_eq(value, 1) {
+            return Some(1);
+        }
+        if self.int_const_eq(value, -1) {
+            return Some(-1);
+        }
+        let node = &self.nodes[value as usize];
+        if matches!(node.op, ValOp::Un(o) if o == Op::Neg as u32)
+            && node.args.len() == 1
+            && self.int_const_eq(node.args[0], 1)
+        {
+            return Some(-1);
+        }
+        None
+    }
+
+    fn int_const_eq(&self, value: ValueId, expected: i64) -> bool {
+        let expected_key = 0x1000_0000u32.wrapping_add(expected as u32);
+        matches!(self.nodes[value as usize].op, ValOp::Const(key) if key == expected_key)
     }
 
     /// An integer-literal value, keyed identically to `eval`'s `LitInt` path so a

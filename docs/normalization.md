@@ -29,8 +29,9 @@
 > facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`),
 > statically-false loop entry guards (a proven-true local boolean makes a left
 > short-circuit `!local && ...` guard unreachable), and primitive total-order comparator
-> guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons). Also
-> landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
+> guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
+> plus Java primitive-integer low-bit toggle selection (`x%2==0 ? x+1 : x-1` ≡ `x^1`).
+> Also landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
 > structural (linear) recursion → an accumulator fold, so a recursive function converges with
 > the loop a programmer would have written and with other same-shape recursions
 > (cross-language included). Structural recursion is gated to a `+`/`·` numeric monoid
@@ -114,6 +115,12 @@ downstream value-graph.
   (fingerprint subgraphs) and the natural home for the downstream graph/vectorize
   experiments. Hard parts: φ-handling across control flow, effect ordering,
   canonical graph hashing.
+
+  A narrow Java-only selection idiom lives here: `x % 2 == 0 ? x + 1 : x - 1`
+  and the equivalent `x % 2 != 0 ? x - 1 : x + 1` canonicalize to `x ^ 1`.
+  The proof relies on Java primitive integer operators: even values take `+1`, odd
+  values take `-1`, and the branch split avoids overflow at both signed extremes.
+  It deliberately does not apply to overloadable or coercive operator surfaces.
 
 ## Track 2 — Algebraic expression canonicalization (E-graph)
 

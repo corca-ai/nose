@@ -3052,6 +3052,34 @@ fn statically_false_loop_guard_skips_dead_body() {
 }
 
 #[test]
+fn java_low_bit_toggle_parity_converges_with_xor() {
+    let i = Interner::new();
+    let even_branch = "class C { static int f(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1; } }";
+    let xor = "class C { static int g(int edgeKey) { return edgeKey ^ 1; } }";
+    let odd_branch = "class C { static int h(int edgeId) { return edgeId % 2 != 0 ? edgeId - 1 : edgeId + 1; } }";
+    let reversed = "class C { static int r(int edgeId) { return edgeId % 2 == 0 ? edgeId - 1 : edgeId + 1; } }";
+    let xor_two = "class C { static int x(int edgeId) { return edgeId ^ 2; } }";
+    let positive_one = "class C { static int p(int edgeId) { return edgeId % 2 == 1 ? edgeId - 1 : edgeId + 1; } }";
+    let wrong_delta = "class C { static int w(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 2; } }";
+
+    let fp = value_fp(&i, even_branch, Lang::Java);
+    assert_eq!(
+        fp,
+        value_fp(&i, xor, Lang::Java),
+        "Java even/odd +/-1 reverse-edge idiom should converge with low-bit xor"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, odd_branch, Lang::Java),
+        "the equivalent != 0 branch order should also converge"
+    );
+    assert_ne!(fp, value_fp(&i, reversed, Lang::Java));
+    assert_ne!(fp, value_fp(&i, xor_two, Lang::Java));
+    assert_ne!(fp, value_fp(&i, positive_one, Lang::Java));
+    assert_ne!(fp, value_fp(&i, wrong_delta, Lang::Java));
+}
+
+#[test]
 fn value_graph_cross_language_reorder() {
     // Same computation, different statement order, different language.
     let i = Interner::new();

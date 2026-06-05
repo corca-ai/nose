@@ -514,6 +514,43 @@
       ],
       "batch": "2026-06-05-java-dead-loop-guard",
       "notes": "Small completeness batch: the real audit over libgdx, git, and h2database plus exact pinned search found one evidence-backed same-invariant real family, so this batch intentionally closes one real candidate rather than padding to three unrelated candidates."
+    },
+    {
+      "case_id": "java-low-bit-toggle-graphhopper-reverse-edge",
+      "status": "closed",
+      "candidate_axis": "java_integer_low_bit_toggle",
+      "repo": "graphhopper",
+      "language": "java",
+      "locations": [
+        {
+          "path": "core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java",
+          "span": "199-202",
+          "snippet": "static int getPosOfReverseEdge(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1; }"
+        },
+        {
+          "path": "core/src/main/java/com/graphhopper/util/GHUtility.java",
+          "span": "370-372",
+          "snippet": "public static int reverseEdgeKey(int edgeKey) { return edgeKey ^ 1; }"
+        }
+      ],
+      "semantic_claim": "Both helpers toggle the low bit of a Java primitive int edge key: even values return x + 1 and odd values return x - 1, which is exactly x ^ 1.",
+      "evidence": "Previous release selected verify over QueryGraph.java and GHUtility.java reported SOUND with completeness 0/1 and under-merged lead QueryGraph.java:199 to GHUtility.java:370. Candidate selected verify reports SOUND with completeness 1/1 and 0 under-merged groups. Whole-Graphhopper semantic scan reports a new family containing both methods.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-goal-baseline-target/release/nose verify bench/repos/graphhopper/core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java bench/repos/graphhopper/core/src/main/java/com/graphhopper/util/GHUtility.java --max-violations 0 --leads /tmp/nose-graphhopper-bit-toggle-baseline-check-leads.json",
+        "baseline_result": "SOUND; completeness 0/1; under-merged lead QueryGraph.java:199 to GHUtility.java:370 with vj=0.12. Whole-Graphhopper scan reported 28 semantic families.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 1/1, and 0 under-merged groups. Whole-Graphhopper scan reports 29 semantic families including QueryGraph.java:199 and GHUtility.java:370."
+      },
+      "proof_invariant": "For Java primitive integer operators, x % 2 == 0 partitions even values from odd values; x + 1 is used only for even values and x - 1 only for odd values, avoiding signed overflow at both int extremes and matching the low-bit toggle x ^ 1. The proof is not applied to overloadable or coercive surfaces.",
+      "hard_negative_siblings": [
+        "reversed branches: x % 2 == 0 ? x - 1 : x + 1",
+        "wrong bit: x ^ 2",
+        "positive-one parity check: x % 2 == 1 ? x - 1 : x + 1, which fails for negative odd Java ints",
+        "wrong branch delta such as x % 2 == 0 ? x + 1 : x - 2",
+        "non-Java or overloadable/coercive operator surfaces without a primitive integer proof"
+      ],
+      "batch": "2026-06-05-java-low-bit-toggle",
+      "notes": "The audit covered Guava, SQLAlchemy, Rubocop, SymPy, Poetry, Scrapy, Commons Lang, Marshmallow, HTTPie, JUnit5, Jedis, RxJava, chi, and Graphhopper. Most leads were unsupported or hard negatives; exact pinned-corpus search found only this same-invariant real miss, so the batch is intentionally small."
     }
   ]
 }

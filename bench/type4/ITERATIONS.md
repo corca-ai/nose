@@ -4561,3 +4561,91 @@ pair. The open frontier remains broad Java
 array provenance for `Arrays.asList(array).contains(value)` and other dynamic/type-sensitive
 leads. The next completeness batch should continue real-corpus audit for another repeated
 proof invariant rather than widening this rule beyond local boolean short-circuit facts.
+
+## Real-corpus Java low-bit toggle: batch 2026-06-05
+
+This batch continued from the refreshed real-corpus priority sweep. Broad high-scoring axes
+such as membership and map-default lookup were mostly already covered, unsupported without
+new type facts, or adjacent hard negatives. The audit checked Guava, SQLAlchemy, Rubocop,
+SymPy, Poetry, Scrapy, Commons Lang, Marshmallow, HTTPie, JUnit5, Jedis, RxJava, chi, and
+Graphhopper. The first evidence-backed low-cost miss was Graphhopper's reverse-edge key
+idiom.
+
+Closed selected real candidate:
+
+- `graphhopper/core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java:199`
+  `getPosOfReverseEdge(int edgeId)` to
+  `graphhopper/core/src/main/java/com/graphhopper/util/GHUtility.java:370`
+  `reverseEdgeKey(int edgeKey)`.
+
+An exact pinned-corpus search for the same `% 2 == 0 ? x + 1 : x - 1` idiom found only this
+Graphhopper family, so this is another intentionally small batch rather than three unrelated
+misses. The shared proof invariant is Java primitive-integer low-bit toggling: even values
+take `+1`, odd values take `-1`, and that is exactly `x ^ 1`. The branch split avoids
+overflow at both signed extremes because `Integer.MAX_VALUE` is odd and takes `-1`, while
+`Integer.MIN_VALUE` is even and takes `+1`. The detector keeps the rule Java-only; overloadable
+or coercive operator surfaces are not included.
+
+Synthetic coverage added `axis_java_low_bit_toggle_*`: two positives (`== 0` branch form
+versus `^ 1`, and the equivalent `!= 0` branch order) plus six hard negatives covering
+automatic semantic mutations, reversed branches, `^ 2`, `% 2 == 1` on negative Java odds, and
+wrong branch deltas.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-low-bit-1 | real frontier selection | choose Graphhopper after rejecting unsupported or hard-negative leads in the audited repos | previous release selected verify: SOUND, completeness 0/1, 1 under-merged group |
+| real-java-low-bit-2 | detector strengthening | recognize only Java `Phi(x % 2 == 0, x + 1, x - 1)` and equivalent `!= 0` branch order as `x ^ 1` | targeted Java convergence and hard-negative tests passed |
+| real-java-low-bit-3 | focused synthetic gate | add low-bit toggle positives and adjacent hard negatives | focused 2/2 positives, 0/6 false merges |
+| real-java-low-bit-4 | real corpus delta | verify selected Graphhopper files and scan whole Graphhopper | selected verify after: 1/1 completeness, 0 under-merged; whole repo families 28 -> 29 |
+| real-java-low-bit-5 | performance | compare whole-Graphhopper scan timings with previous release using three alternating redirected runs | median normalize+extract 70.1ms -> 61.5ms; median candidate path 12.2ms -> 12.2ms |
+| real-java-low-bit-6 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 2/2, 0/6; axis core 2/2, 0/6; all-cross core 623/623, 0/1226; cargo test passed |
+
+Focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_java_low_bit_toggle_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 8
+positive recall: 2/2
+hard-negative false merges: 0/6
+Raw nodes: 0
+```
+
+Final Java low-bit toggle axis core gate:
+
+```text
+GATE=core AXIS=java_integer_low_bit_toggle CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 8/8
+positive recall: 2/2
+hard-negative false merges: 0/6
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1849/6718
+positive recall: 623/623
+hard-negative false merges: 0/1226
+Raw nodes: 0/68141
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Whole-Graphhopper performance scan, median of three alternating redirected runs:
+
+```text
+previous release: discover 10.3ms, parse+lower 77.2ms, normalize+extract 70.1ms, candidates 12.2ms, candidate path 12.2ms, semantic families 28
+candidate release: discover 9.9ms, parse+lower 73.0ms, normalize+extract 61.5ms, candidates 12.2ms, candidate path 12.2ms, semantic families 29
+```
+
+No candidate-path regression showed up; the one extra family is the expected Graphhopper
+reverse-edge pair. Remaining open frontier remains mostly broad membership/map/default and
+dynamic receiver/API-chain proof work. The next completeness batch should keep auditing for
+another evidence-backed repeated invariant rather than broadening this Java integer rule to
+surfaces with overload or coercion semantics.

@@ -279,6 +279,30 @@ AXIS_PROPOSALS = {
         "axis": "java_statically_false_loop",
         "why": "A reassigned guard variable is not a proof that the loop entry guard is false.",
     },
+    "axis_java_low_bit_toggle_even_identity": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "For Java primitive integers, the even/odd +/-1 reverse-edge idiom toggles the low bit exactly like `x ^ 1`.",
+    },
+    "axis_java_low_bit_toggle_odd_identity": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "The `% 2 != 0` branch order is the same Java primitive-integer low-bit toggle proof.",
+    },
+    "axis_java_low_bit_toggle_reversed_branch_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "Reversing the +/-1 branches changes the low-bit toggle direction and must not merge.",
+    },
+    "axis_java_low_bit_toggle_xor_two_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "Toggling bit 1 with `x ^ 2` is not the same as toggling the low bit.",
+    },
+    "axis_java_low_bit_toggle_positive_one_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "In Java, `x % 2 == 1` is not an oddness proof for negative odd integers.",
+    },
+    "axis_java_low_bit_toggle_wrong_delta_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "The low-bit toggle proof fixes both branch deltas to exactly +1 and -1.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -2379,6 +2403,10 @@ def java_dead_loop_axis_supported(surface: Surface, proposal_id: str) -> bool:
     return proposal_id.startswith("axis_java_dead_loop_") and surface.key == "java"
 
 
+def java_low_bit_toggle_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_java_low_bit_toggle_") and surface.key == "java"
+
+
 def axis_java_dead_loop_variant(
     surface: Surface,
     proposal_id: str,
@@ -2431,6 +2459,45 @@ def axis_java_dead_loop_variant(
             if (found) return {return_expr};
         }}
         return -1;
+    }}
+}}
+"""
+    return Variant("axis", src, name)
+
+
+def axis_java_low_bit_toggle_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "java":
+        raise ValueError(f"unsupported surface for Java low-bit toggle axis: {surface.key}")
+    name = "reverseEdgeKey" if right else "getPosOfReverseEdge"
+    expr = "edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1"
+    param = "edgeId"
+    if right:
+        param = "edgeKey"
+        if proposal_id == "axis_java_low_bit_toggle_even_identity" and not negative:
+            expr = "edgeKey ^ 1"
+        elif proposal_id == "axis_java_low_bit_toggle_odd_identity" and not negative:
+            expr = "edgeKey % 2 != 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_even_identity" and negative:
+            expr = "edgeKey ^ 2"
+        elif proposal_id == "axis_java_low_bit_toggle_odd_identity" and negative:
+            expr = "edgeKey % 2 == 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_reversed_branch_boundary":
+            expr = "edgeKey % 2 == 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_xor_two_boundary":
+            expr = "edgeKey ^ 2"
+        elif proposal_id == "axis_java_low_bit_toggle_positive_one_boundary":
+            expr = "edgeKey % 2 == 1 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_wrong_delta_boundary":
+            expr = "edgeKey % 2 == 0 ? edgeKey + 1 : edgeKey - 2"
+
+    src = f"""class C {{
+    static int {name}(int {param}) {{
+        return {expr};
     }}
 }}
 """
@@ -7312,6 +7379,11 @@ def axis_variants(
             axis_java_dead_loop_variant(surface, proposal_id, False, False),
             axis_java_dead_loop_variant(surface, proposal_id, negative, True),
         )
+    if axis == "java_integer_low_bit_toggle":
+        return (
+            axis_java_low_bit_toggle_variant(surface, proposal_id, False, False),
+            axis_java_low_bit_toggle_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -7361,6 +7433,7 @@ def axis_data_shape(axis: str) -> str:
         "table_access": "map<string,int>",
         "total_order_compare": "ordered-scalar-pair",
         "java_statically_false_loop": "java-array-scan",
+        "java_integer_low_bit_toggle": "java-int-edge-key",
     }.get(axis, "scalar<int>")
 
 
@@ -7613,6 +7686,18 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"numVertices": 1, "strideInBytes": 4},
                 ],
                 "claim": "`found=true` makes `!found && ...` false on loop entry, so the loop body and update are unreachable.",
+                "outputs": [],
+            }
+        if axis == "java_integer_low_bit_toggle":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"edgeKey": -3},
+                    {"edgeKey": 0},
+                    {"edgeKey": 7},
+                ],
+                "claim": "For Java primitive integers, even values take `+1` and odd values take `-1`, exactly toggling bit 0.",
                 "outputs": [],
             }
         return {
@@ -8059,6 +8144,23 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "right": right,
             },
         }
+    elif axis == "java_integer_low_bit_toggle":
+        if proposal_id == "axis_java_low_bit_toggle_positive_one_boundary":
+            counterexample = {"input": {"edgeKey": -1}, "left": -2, "right": 0}
+        elif proposal_id in {
+            "axis_java_low_bit_toggle_xor_two_boundary",
+            "axis_java_low_bit_toggle_even_identity",
+        }:
+            counterexample = {"input": {"edgeKey": 0}, "left": 1, "right": 2}
+        elif proposal_id == "axis_java_low_bit_toggle_wrong_delta_boundary":
+            counterexample = {"input": {"edgeKey": 3}, "left": 2, "right": 1}
+        else:
+            counterexample = {"input": {"edgeKey": 0}, "left": 1, "right": -1}
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
     else:
         left_output = 8
         right_output = 9
@@ -8169,6 +8271,10 @@ def generate_axis_items(
             if proposal_id.startswith("axis_java_dead_loop_") and not java_dead_loop_axis_supported(
                 surface, proposal_id
             ):
+                continue
+            if proposal_id.startswith(
+                "axis_java_low_bit_toggle_"
+            ) and not java_low_bit_toggle_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_own_property_") and not own_property_axis_supported(
                 surface, proposal_id
@@ -8307,6 +8413,24 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "java-dead-loop-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_java_low_bit_toggle_reversed_branch_boundary",
+                "axis_java_low_bit_toggle_xor_two_boundary",
+                "axis_java_low_bit_toggle_positive_one_boundary",
+                "axis_java_low_bit_toggle_wrong_delta_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "java-low-bit-toggle-boundary",
                     )
                 )
                 continue
