@@ -172,7 +172,9 @@ impl<'a> Interp<'a> {
                 if matches!(rhs, Value::Err) {
                     return Ok(Flow::Err);
                 }
-                self.bind(kids[0], rhs, env)?;
+                if self.bind(kids[0], rhs, env)? {
+                    return Ok(Flow::Err);
+                }
                 Ok(Flow::Normal)
             }
             NodeKind::ExprStmt => {
@@ -264,7 +266,9 @@ impl<'a> Interp<'a> {
                 };
                 for item in seq {
                     self.tick()?;
-                    self.bind(kids[0], item, env)?;
+                    if self.bind(kids[0], item, env)? {
+                        return Ok(Flow::Err);
+                    }
                     match self.exec(kids[2], env)? {
                         Flow::Normal | Flow::Continue => {}
                         Flow::Break => break,
@@ -316,12 +320,13 @@ impl<'a> Interp<'a> {
     }
 
     /// Bind a target (Var / tuple `Seq` / `Index` store) to a value.
-    fn bind(&mut self, target: NodeId, val: Value, env: &mut FxHashMap<u32, Value>) -> R<()> {
+    /// Returns true when evaluating the target itself raised a runtime `Err`.
+    fn bind(&mut self, target: NodeId, val: Value, env: &mut FxHashMap<u32, Value>) -> R<bool> {
         match self.il.kind(target) {
             NodeKind::Var => {
                 if let Payload::Cid(c) = self.il.node(target).payload {
                     env.insert(c, val);
-                    Ok(())
+                    Ok(false)
                 } else {
                     Err(Unsupported)
                 }
@@ -334,9 +339,11 @@ impl<'a> Interp<'a> {
                     _ => return Err(Unsupported),
                 };
                 for (t, v) in names.into_iter().zip(vals) {
-                    self.bind(t, v, env)?;
+                    if self.bind(t, v, env)? {
+                        return Ok(true);
+                    }
                 }
-                Ok(())
+                Ok(false)
             }
             // A store into a field/index is an effect; record *what* is written to as
             // well as the value, so `self.a = x` and `self.b = x` (or `xs[i]=` vs
@@ -351,7 +358,7 @@ impl<'a> Interp<'a> {
             NodeKind::Field => {
                 if let Payload::Name(sym) = self.il.node(target).payload {
                     self.fields.insert(nose_il::symbol_index(sym) as i64, val);
-                    Ok(())
+                    Ok(false)
                 } else {
                     Err(Unsupported)
                 }
@@ -359,10 +366,13 @@ impl<'a> Interp<'a> {
             NodeKind::Index => {
                 if let Some(&ix) = self.il.children(target).to_vec().get(1) {
                     let iv = self.eval(ix, env)?;
+                    if matches!(iv, Value::Err) {
+                        return Ok(true);
+                    }
                     self.effects.push(iv);
                 }
                 self.effects.push(val);
-                Ok(())
+                Ok(false)
             }
             _ => Err(Unsupported),
         }
@@ -1845,6 +1855,44 @@ mod tests {
         let behavior = print_with_error_arg_before_effect_arg();
         assert_eq!(behavior.ret, Value::Err);
         assert!(behavior.effects.is_empty());
+    }
+
+    fn index_assignment_with_error_index_after_rhs_effect() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let target_base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let index_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let target = b.add(
+            NodeKind::Index,
+            Payload::None,
+            sp,
+            &[target_base, index_err],
+        );
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[one]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[target, print]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[Value::List(Vec::new())]).expect("run_unit")
+    }
+
+    #[test]
+    fn index_assignment_error_index_stops_after_rhs_effect() {
+        let behavior = index_assignment_with_error_index_after_rhs_effect();
+        assert_eq!(behavior.ret, Value::Err);
+        assert_eq!(behavior.effects, vec![Value::Int(1)]);
     }
 
     fn self_call_with_error_arg_ignored_by_callee() -> Value {
