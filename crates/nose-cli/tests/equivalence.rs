@@ -1555,6 +1555,41 @@ fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec
 }
 
 #[test]
+fn python_docstrings_are_function_semantic_noops() {
+    let i = Interner::new();
+    let plain = "def f(i, j):\n    if i == j:\n        return 1\n    return 0\n";
+    let docstring = "def g(i, j):\n    \"\"\"Return one when the indexes match.\"\"\"\n    if i == j:\n        return 1\n    else:\n        return 0\n";
+    let other_docstring = "def h(i, j):\n    \"\"\"Different documentation text.\"\"\"\n    if i == j:\n        return 1\n    return 0\n";
+
+    assert_eq!(
+        value_fp(&i, plain, Lang::Python),
+        value_fp(&i, docstring, Lang::Python),
+        "a Python function docstring must not change call behavior"
+    );
+    assert_eq!(
+        value_fp(&i, plain, Lang::Python),
+        value_fp(&i, other_docstring, Lang::Python),
+        "docstring text is metadata, not function return behavior"
+    );
+
+    let returned_red = "def f():\n    return \"red\"\n";
+    let returned_blue = "def g():\n    return \"blue\"\n";
+    assert_ne!(
+        value_fp(&i, returned_red, Lang::Python),
+        value_fp(&i, returned_blue, Lang::Python),
+        "returned strings are behavior-defining values"
+    );
+
+    let f_string = "def f(x):\n    f\"{x}\"\n    return 1\n";
+    let no_effect = "def g(x):\n    return 1\n";
+    assert_ne!(
+        value_fp(&i, f_string, Lang::Python),
+        value_fp(&i, no_effect, Lang::Python),
+        "a leading f-string expression is not a static docstring proof"
+    );
+}
+
+#[test]
 fn value_graph_ignores_statement_order() {
     // x and y are each used twice → NOT inlined; only the value graph (not the
     // AST) makes the two statement orders converge.

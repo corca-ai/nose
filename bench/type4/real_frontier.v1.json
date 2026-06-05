@@ -117,6 +117,251 @@
       ],
       "batch": null,
       "notes": "Not suitable for a soundness-preserving Type-4 detector batch without shared proof facts for Java reflection/JUnit APIs."
+    },
+    {
+      "case_id": "python-docstring-sympy-dirac-delta",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "1362-1365",
+          "snippet": "def dirac(i, j): if i == j: return 1; return 0"
+        },
+        {
+          "path": "sympy/physics/paulialgebra.py",
+          "span": "24-42",
+          "snippet": "def delta(i, j): \"\"\"...\"\"\"; if i == j: return 1; else: return 0"
+        }
+      ],
+      "semantic_claim": "Both functions return 1 exactly when i == j and 0 otherwise; delta differs by a leading static docstring and equivalent else form.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.85 common.py:1362 ↮ paulialgebra.py:24. After the batch the selected verify run reports 70/70 completeness and 0 under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Missed by previous release; semantic scan only exposed a smaller block family at common.py:1363 and paulialgebra.py:39.",
+        "candidate_result": "target/debug/nose scan selected SymPy files reports function family a3aee3c67319983d with paulialgebra.py:24 and common.py:1362."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "returning different string literals",
+        "assigning and returning different string literals",
+        "calling observe(f\"{value}\") before returning"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-symmetric-residue-gf-int",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/ntheory/modular.py",
+          "span": "11-22",
+          "snippet": "def symmetric_residue(a, m): \"\"\"...\"\"\"; if a <= m // 2: return a; return a - m"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "154-172",
+          "snippet": "def gf_int(a, p): \"\"\"...\"\"\"; if a <= p // 2: return a; else: return a - p"
+        }
+      ],
+      "semantic_claim": "Both functions map a residue into the symmetric half-modulus interval, differing only in parameter names, docstrings, and equivalent fallthrough/else return shape.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.76 modular.py:11 ↮ galoistools.py:154. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "Previous release had only a smaller block family at modular.py:20 and galoistools.py:169.",
+        "candidate_result": "Candidate scan reports function family 666a9056967fa013 with galoistools.py:154 and modular.py:11."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "wrong returned arithmetic expression",
+        "returned string literal differences",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-degree-gf-degree",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "285-302",
+          "snippet": "def dup_degree(f): \"\"\"...\"\"\"; return len(f) - 1"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "175-190",
+          "snippet": "def gf_degree(f): \"\"\"...\"\"\"; return len(f) - 1"
+        }
+      ],
+      "semantic_claim": "Both functions return len(f) - 1; type annotations and docstring text do not change runtime return behavior for this detector proof.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.60 densebasic.py:285 ↮ galoistools.py:175. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Missed by previous release as a function-level family.",
+        "candidate_result": "Candidate scan reports function family 823edb6d7e558128 with densebasic.py:285 and galoistools.py:175."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return len(f) instead of len(f) - 1",
+        "returned string literal differences",
+        "assigned string values used in return"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-strip-gf-strip",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "415-440",
+          "snippet": "def dup_strip(...): \"\"\"...\"\"\"; if not f or f[0]: return f; ...; return f[i:]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "233-257",
+          "snippet": "def gf_strip(...): \"\"\"...\"\"\"; if not f or f[0]: return f; ...; return f[k:]"
+        }
+      ],
+      "semantic_claim": "Both functions strip leading zero coefficients using alpha-equivalent loop state; docstrings and local variable names differ.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.84 densebasic.py:415 ↮ galoistools.py:233. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Previous release exposed only a smaller block family at densebasic.py:434 and galoistools.py:252.",
+        "candidate_result": "Candidate scan reports function family 087fb7c9a965310c with densebasic.py:415 and galoistools.py:233."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "wrong slice index",
+        "wrong loop break condition",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-lc-gf-lc",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "121-138",
+          "snippet": "def dup_LC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[0]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "193-210",
+          "snippet": "def gf_LC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[0]"
+        }
+      ],
+      "semantic_claim": "Both functions return the first coefficient or K.zero for an empty polynomial; docstrings differ only as metadata.",
+      "evidence": "Candidate scan added function family 81a0c70aa0e3d978; previous release had no function-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release function family for densebasic.py:121 and galoistools.py:193.",
+        "candidate_result": "Candidate scan reports function family 81a0c70aa0e3d978."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return f[-1] instead of f[0]",
+        "wrong empty fallback",
+        "assigned string values used in return"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-tc-gf-tc",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "141-158",
+          "snippet": "def dup_TC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[-1]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "213-230",
+          "snippet": "def gf_TC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[-1]"
+        }
+      ],
+      "semantic_claim": "Both functions return the trailing coefficient or K.zero for an empty polynomial; docstrings differ only as metadata.",
+      "evidence": "Candidate scan added function family 490a609cb8f7e2b8; previous release had no function-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release function family for densebasic.py:141 and galoistools.py:213.",
+        "candidate_result": "Candidate scan reports function family 490a609cb8f7e2b8."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return f[0] instead of f[-1]",
+        "wrong empty fallback",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "python-docstring-sympy-shape-property",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "693-708",
+          "snippet": "@property def shape(self): \"\"\"...\"\"\"; return (self.rows, self.cols)"
+        },
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "3142-3143",
+          "snippet": "@property def shape(self): return (self.rows, self.cols)"
+        }
+      ],
+      "semantic_claim": "Both shape properties return the same (rows, cols) tuple; the public property docstring is metadata.",
+      "evidence": "Candidate scan added method family 8cfcba8974d82c2d; previous release had no method-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release method family for common.py:693 and common.py:3142.",
+        "candidate_result": "Candidate scan reports method family 8cfcba8974d82c2d."
+      },
+      "proof_invariant": "A Python method leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "returning (cols, rows)",
+        "returning a string literal",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
     }
   ]
 }

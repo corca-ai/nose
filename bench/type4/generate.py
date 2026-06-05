@@ -271,6 +271,30 @@ AXIS_PROPOSALS = {
         "axis": "projection_identity",
         "why": "Dynamic property keys do not prove a fixed projected coordinate for strict exact reporting.",
     },
+    "axis_python_docstring_guard_identity": {
+        "axis": "python_docstring_noop",
+        "why": "A leading static Python function docstring is metadata and must not affect equivalent guard-return behavior.",
+    },
+    "axis_python_docstring_return_identity": {
+        "axis": "python_docstring_noop",
+        "why": "A leading static Python function docstring is metadata and must not affect a returned expression.",
+    },
+    "axis_python_docstring_different_text_identity": {
+        "axis": "python_docstring_noop",
+        "why": "Different Python docstring text is documentation metadata, not callable behavior.",
+    },
+    "axis_python_docstring_returned_string_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "Returned string literals are behavior-defining values and must not be treated as docstrings.",
+    },
+    "axis_python_docstring_assigned_string_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "String literals assigned and returned through locals are behavior-defining values.",
+    },
+    "axis_python_docstring_fstring_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "A leading f-string expression can evaluate dynamic formatting and is not a static docstring proof.",
+    },
     "axis_record_guard_order_identity": {
         "axis": "record_shape_guard",
         "why": "A complete record-shape guard should be order-insensitive across its static clauses.",
@@ -4796,6 +4820,80 @@ def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
     return False
 
 
+def python_docstring_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_python_docstring_") and surface.key == "python"
+
+
+def axis_python_docstring_variant(
+    surface: Surface, proposal_id: str, negative: bool, right: bool
+) -> Variant:
+    if surface.key != "python":
+        raise ValueError(f"unsupported surface for Python docstring axis: {surface.key}")
+
+    name = "axis_case"
+    if proposal_id == "axis_python_docstring_guard_identity":
+        miss_value = 2 if right and negative else 0
+        if right:
+            src = f'''def {name}(i, j):
+    """Return one when the indexes match."""
+    if i == j:
+        return 1
+    else:
+        return {miss_value}
+'''
+            return Variant("function-docstring-ifelse", src, name)
+        src = f"""def {name}(i, j):
+    if i == j:
+        return 1
+    return 0
+"""
+        return Variant("guard-return", src, name)
+
+    if proposal_id == "axis_python_docstring_return_identity":
+        doc = '    """Return the final valid index."""\n' if right else ""
+        offset = "" if not (right and negative) else " + 1"
+        src = f"""def {name}(values):
+{doc}    return len(values) - 1{offset}
+"""
+        return Variant("function-docstring-return" if right else "direct-return", src, name)
+
+    if proposal_id == "axis_python_docstring_different_text_identity":
+        doc = (
+            '    """First documentation text."""\n'
+            if not right
+            else '    """Second documentation text with different words."""\n'
+        )
+        addend = 2 if right and negative else 1
+        src = f"""def {name}(value):
+{doc}    return value * value + {addend}
+"""
+        return Variant("different-docstring-text", src, name)
+
+    if proposal_id == "axis_python_docstring_returned_string_boundary":
+        value = "blue" if right and negative else "red"
+        src = f"""def {name}():
+    return "{value}"
+"""
+        return Variant("returned-string", src, name)
+
+    if proposal_id == "axis_python_docstring_assigned_string_boundary":
+        value = "blue" if right and negative else "red"
+        src = f"""def {name}():
+    label = "{value}"
+    return label
+"""
+        return Variant("assigned-string", src, name)
+
+    if proposal_id == "axis_python_docstring_fstring_boundary":
+        effect = '    observe(f"{value}")\n' if right and negative else ""
+        src = f"""def {name}(value):
+{effect}    return 1
+"""
+        return Variant("dynamic-fstring-effect" if effect else "no-effect", src, name)
+
+    raise ValueError(f"unknown Python docstring proposal: {proposal_id}")
+
+
 def axis_projection_variant(surface: Surface, proposal_id: str, negative: bool, right: bool) -> Variant:
     field = (
         "tomorrow"
@@ -6920,6 +7018,11 @@ def axis_variants(
             axis_projection_variant(surface, proposal_id, False, False),
             axis_projection_variant(surface, proposal_id, negative, True),
         )
+    if axis == "python_docstring_noop":
+        return (
+            axis_python_docstring_variant(surface, proposal_id, False, False),
+            axis_python_docstring_variant(surface, proposal_id, negative, True),
+        )
     if axis == "unsafe_boundary":
         return (
             axis_unsafe_boundary_variant(surface, False),
@@ -6939,6 +7042,7 @@ def axis_data_shape(axis: str) -> str:
         "nullish_default": "nullable<int>+fallback",
         "numeric_minmax_abs": "scalar<int>+alternate",
         "projection_identity": "record<today:int,tomorrow:int>",
+        "python_docstring_noop": "python-callable",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
     }.get(axis, "scalar<int>")
@@ -7162,6 +7266,16 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "property_inputs": ["prelude", "case-suf", "other"],
                 "outputs": [],
             }
+        if axis == "python_docstring_noop":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"i": 1, "j": 1, "values": [1, 2, 3], "value": 2},
+                    {"i": 1, "j": 2, "values": [1], "value": -3},
+                ],
+                "outputs": [],
+            }
         return {
             "level": "E1",
             "kind": f"same-spec-{axis}",
@@ -7218,6 +7332,22 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "left": True,
                 "right": False,
             }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "python_docstring_noop":
+        if proposal_id == "axis_python_docstring_fstring_boundary":
+            counterexample = {
+                "input": {"value": "red", "observer": "records calls"},
+                "left": {"return": 1, "effects": []},
+                "right": {"return": 1, "effects": ["observe(red)"]},
+            }
+        elif proposal_id == "axis_python_docstring_assigned_string_boundary":
+            counterexample = {"input": {}, "left": "red", "right": "blue"}
+        else:
+            counterexample = {"input": {}, "left": "red", "right": "blue"}
         return {
             "level": "E2",
             "kind": f"counterexample-{axis}",
@@ -7964,6 +8094,10 @@ def generate_axis_items(
                 surface, proposal_id
             ):
                 continue
+            if proposal_id.startswith(
+                "axis_python_docstring_"
+            ) and not python_docstring_axis_supported(surface, proposal_id):
+                continue
             if proposal_id in {
                 "axis_projection_default_boundary",
                 "axis_projection_dynamic_key_boundary",
@@ -7977,6 +8111,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "unproven-projection-binding",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_python_docstring_returned_string_boundary",
+                "axis_python_docstring_assigned_string_boundary",
+                "axis_python_docstring_fstring_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "python-docstring-boundary",
                     )
                 )
                 continue

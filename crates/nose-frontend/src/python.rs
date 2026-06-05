@@ -171,9 +171,46 @@ fn lower_block(lo: &mut Lowering, node: TsNode, in_class: bool) -> NodeId {
     })
 }
 
+fn lower_docstring_block(lo: &mut Lowering, node: TsNode, in_class: bool) -> NodeId {
+    let span = lo.span(node);
+    let mut stmts = Vec::new();
+    for (idx, child) in Lowering::named_children(node).into_iter().enumerate() {
+        if idx == 0 && is_docstring_stmt(child) {
+            continue;
+        }
+        if let Some(stmt) = lower_stmt(lo, child, in_class) {
+            stmts.push(stmt);
+        }
+    }
+    lo.add(NodeKind::Block, Payload::None, span, &stmts)
+}
+
+fn is_docstring_stmt(node: TsNode) -> bool {
+    node.kind() == "expression_statement"
+        && node.named_child(0).is_some_and(is_static_string_doc_expr)
+}
+
+fn is_static_string_doc_expr(node: TsNode) -> bool {
+    match node.kind() {
+        "string" | "concatenated_string" => !contains_interpolation(node),
+        "parenthesized_expression" => {
+            let children = Lowering::named_children(node);
+            children.len() == 1 && is_static_string_doc_expr(children[0])
+        }
+        _ => false,
+    }
+}
+
+fn contains_interpolation(node: TsNode) -> bool {
+    node.kind() == "interpolation"
+        || Lowering::named_children(node)
+            .into_iter()
+            .any(contains_interpolation)
+}
+
 fn lower_func(lo: &mut Lowering, node: TsNode, method: bool) -> NodeId {
     crate::lower::function_unit(lo, node, method, lower_params, |lo, b| {
-        lower_block(lo, b, false)
+        lower_docstring_block(lo, b, false)
     })
 }
 
@@ -181,7 +218,7 @@ fn lower_class(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
     let body_block = match node.child_by_field_name("body") {
-        Some(b) => lower_block(lo, b, true),
+        Some(b) => lower_docstring_block(lo, b, true),
         None => lo.empty_block(span),
     };
     lo.push_unit(body_block, UnitKind::Class, name);

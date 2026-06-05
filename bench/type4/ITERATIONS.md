@@ -4155,3 +4155,69 @@ the full fuzzy space:
 Assessment: this is an exactness-first widening. The useful new merges are deliberately
 small and high-confidence, and every slice has an adjacent hard negative in the CLI gate:
 missing not-array proof, wrong early-exit predicate, wrong literal set, and ordered prepend.
+
+## Real-corpus Python docstring no-op: batch 2026-06-05
+
+This batch switches the loop from synthetic pair-weighted completeness to the real pinned
+corpus frontier. The selected evidence came from SymPy verify leads on real corpus files:
+the previous release split behavior-equal Python functions when one side had a leading
+static docstring. This is a narrow Python proof invariant: a function or method's first
+static string literal statement is documentation metadata and does not affect callable
+return behavior. The batch does not ignore returned strings, assigned strings, or dynamic
+f-string/call effects.
+
+Closed selected real misses:
+
+- `sympy/matrices/common.py:1362` `dirac` ↔ `sympy/physics/paulialgebra.py:24` `delta`;
+- `sympy/ntheory/modular.py:11` `symmetric_residue` ↔ `sympy/polys/galoistools.py:154` `gf_int`;
+- `sympy/polys/densebasic.py:285` `dup_degree` ↔ `sympy/polys/galoistools.py:175` `gf_degree`;
+- `sympy/polys/densebasic.py:415` `dup_strip` ↔ `sympy/polys/galoistools.py:233` `gf_strip`.
+
+The selected real scan also surfaced three additional same-invariant families:
+`dup_LC`/`gf_LC`, `dup_TC`/`gf_TC`, and the `shape` property pair in
+`sympy/matrices/common.py`.
+
+Synthetic coverage added `axis_python_docstring_*`: three positives for guard-return,
+direct-return, and different-docstring text; hard negatives cover returned string values,
+assigned string values, semantic mutations, and a dynamic `observe(f"{value}")` effect.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-docstring-1 | real frontier selection | choose SymPy docstring/no-docstring verify leads sharing one invariant | selected verify before: 66/70 completeness, 4 under-merged groups, SOUND |
+| real-docstring-2 | detector strengthening | drop only leading static Python docstring statements from function/class body lowering | targeted equivalence test passed |
+| real-docstring-3 | focused synthetic gate | add Python-only docstring no-op positives and hard negatives | previous release 0/3 positives, 0/6 false merges; candidate 3/3, 0/6 |
+| real-docstring-4 | real corpus delta | rescan selected SymPy files | selected verify after: 70/70 completeness, 0 under-merged; semantic scan adds 7 evidence-backed function/method families |
+| real-docstring-5 | release gates | run required focused, axis-core, all-cross core gates | focused 3/3, 0/6; axis core 3/3, 0/6; all-cross 616/616, 0/1207 |
+| real-docstring-6 | performance | compare selected SymPy scan timings with previous release | normalize+extract 9.9ms -> 10.1ms; candidate/cluster path 1.4ms -> 1.3ms |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_python_docstring_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 9
+positive recall: 3/3
+hard-negative false merges: 0/6
+SOUND: no false merges
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1823/6684
+positive recall: 616/616
+hard-negative false merges: 0/1207
+Raw nodes: 0/66307
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 66/70, under-merged groups 4, SOUND
+candidate release: completeness 70/70, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: the earlier real audit still leaves Java `Arrays.asList(array)`
+membership unsupported until array type/provenance facts exist, and the next efficient
+batch should be selected by rerunning `prioritize_frontier.py` rather than widening
+docstring handling beyond static leading Python docstrings.
