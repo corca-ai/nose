@@ -87,8 +87,15 @@
         "Arrays.asList(object).contains(value)",
         "mutated or reassigned field provenance for skipTargets"
       ],
-      "batch": null,
-      "notes": "Do not treat generic Arrays.asList(x) as collection-param membership without an array proof."
+      "batch": "2026-06-06-aslist-single-arg-soundness",
+      "soundness_fix": {
+        "date": "2026-06-06",
+        "found": "Auditing this lead exposed a real hard-negative false merge: a single-argument varargs factory `Arrays.asList(x).contains(value)` was canonicalized to a one-element literal collection `{x}` for any unproven receiver. An array-typed field and a list-typed field sharing the same name (e.g. `items`) therefore merged, even though array membership (value in the elements) and `Arrays.asList(list)` membership (value.equals(list)) differ.",
+        "change": "value_graph proven_java_collection_factory_value: a single-argument List.of/Set.of/Arrays.asList is now canonicalized only when the receiver is a proven array (Arrays.asList over a ParamSemantic::Array value); otherwise it refuses. Multi-argument factories (the proven literal case the synthetic axis exercises) are unchanged.",
+        "regression_test": "crates/nose-cli/tests/cli.rs::scan_mode_semantic_keeps_aslist_single_unproven_receiver_distinct",
+        "gates": "literal_collection_membership focused smoke: positive misses 0/20, hard-negative false merges 0/70. equivalence + cli suites green."
+      },
+      "notes": "Do not treat generic Arrays.asList(x) as collection-param membership without an array proof. The array-FIELD recall lead stays unsupported (a single corpus span, no clone pair; closing it needs array-typed field provenance with mutation/alias proof). The adjacent single-argument hard-negative false merge was confirmed real and fixed (see soundness_fix)."
     },
     {
       "case_id": "java-class-literal-equals-junit5-supports-parameter",
