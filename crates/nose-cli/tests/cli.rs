@@ -503,8 +503,7 @@ fn scan_mode_semantic_proves_extreme_type4_idioms() {
             })
             .unwrap_or_else(|| {
                 panic!(
-                    "semantic mode should report {:?} without {:?}: {semantic}",
-                    positives, negatives
+                    "semantic mode should report {positives:?} without {negatives:?}: {semantic}"
                 )
             })
     };
