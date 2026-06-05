@@ -1816,6 +1816,18 @@ fn value_graph_distinguishes_conditional_early_return() {
 }
 
 #[test]
+fn value_graph_distinguishes_throw_from_expression_effect() {
+    let i = Interner::new();
+    let thrown = "function f() { throw \"x\"; }";
+    let expr = "function f() { \"x\"; }";
+    assert_ne!(
+        value_fp(&i, thrown, Lang::JavaScript),
+        value_fp(&i, expr, Lang::JavaScript),
+        "throw is terminal error behavior, not a plain expression effect"
+    );
+}
+
+#[test]
 fn value_graph_distinguishes_membership_and_negation() {
     // `in` is directional membership, not equality: `a in b` ≠ `b in a` ≠ `a == b`.
     // And `not in` / `is not` must keep their negation (`x is not None` ≢ `x is None`).

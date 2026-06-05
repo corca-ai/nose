@@ -188,8 +188,9 @@ behavioral difference (when the recursion terminates on the input battery — a 
 code `nose verify` stays sound (0 false merges). Its concrete model covers
 `range(stop)` and `range(start, stop[, step])`, including zero-step error behavior, so
 range-index loops are checked under the same bounded input semantics. Bare `throw`/`raise`
-statements execute as observable `Err` behavior, while exception handlers remain outside
-the interpreter rather than guessed.
+statements execute as observable `Err` behavior and value-graph `Throw` sinks, not plain
+expression effects, while exception handlers remain outside the interpreter rather than
+guessed.
 
 Out of scope (sound but not yet convergent, or genuinely hard): tree & mutual recursion
 (multiple / non-tail self-calls); list-tail catamorphisms `head ⊕ f(xs[1:])`, whose slice is

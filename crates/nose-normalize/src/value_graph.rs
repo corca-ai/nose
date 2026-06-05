@@ -13,7 +13,7 @@
 //! variables written in the body become opaque loop values (no fixpoint — bounded
 //! and deterministic). Calls/stores are treated as values too (fuzzy: identical
 //! calls CSE). The per-unit **fingerprint** is the multiset of value-node hashes
-//! reachable from the unit's sinks (returns, branch conditions, effects).
+//! reachable from the unit's sinks (returns, throws, branch conditions, effects).
 //!
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
@@ -234,6 +234,7 @@ enum SinkKind {
     Cond = 1,
     Effect = 2,
     Break = 3,
+    Throw = 4,
 }
 
 struct Builder<'a> {
@@ -1466,6 +1467,11 @@ impl<'a> Builder<'a> {
     fn push_effect(&mut self, v: ValueId) {
         let g = self.guarded(v);
         self.sinks.push((SinkKind::Effect, g));
+    }
+
+    fn emit_throw(&mut self, v: ValueId) {
+        let g = self.guarded(v);
+        self.sinks.push((SinkKind::Throw, g));
     }
 
     /// Tag a value with the current path condition: under branch conditions, the
@@ -2949,10 +2955,11 @@ impl<'a> Builder<'a> {
                 self.emit_return(v);
             }
             NodeKind::Throw => {
-                if let Some(&e) = self.il.children(stmt).first() {
-                    let v = self.eval(e, env);
-                    self.push_effect(v);
-                }
+                let v = match self.il.children(stmt).first() {
+                    Some(&e) => self.eval(e, env),
+                    None => self.mk(ValOp::Const(0xE22E_0000), vec![]),
+                };
+                self.emit_throw(v);
             }
             NodeKind::ExprStmt => {
                 if let Some(&e) = self.il.children(stmt).first() {
