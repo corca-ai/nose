@@ -82,8 +82,9 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   given pair of semantically-equal fragments.
 - Sub-function semantic coverage is intentionally bounded: nose extracts control-flow
   blocks and exact-safe single-statement fragments (return/throw expressions and simple
-  conditional return/throw/effect guards, including bare returns and explicit empty no-op
-  branches), not arbitrary statement windows with unmodeled free-variable, live-out, or
+  conditional return/throw/effect guards, including bare returns, explicit empty no-op
+  branches, and nested branches whose only non-empty statement is another exact
+  conditional), not arbitrary statement windows with unmodeled free-variable, live-out, or
   effect boundaries.
 
 ## Scan modes, and cross-language

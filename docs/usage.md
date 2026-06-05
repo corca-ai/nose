@@ -133,10 +133,11 @@ handled.
 `semantic` is still unit-bounded rather than an arbitrary-fragment equivalence search.
 By default, sub-function units include bounded control-flow blocks and exact-safe
 single-statement fragments such as return/throw expressions and simple
-conditional return/throw/effect guards, including bare returns and explicit empty no-op
-branches. Those fragments are reported only when the whole value subtree stays inside the
-displayed source span, the fragment is `exact_safe`, and the value fingerprint is large
-enough for the exact semantic gate.
+conditional return/throw/effect guards, including bare returns, explicit empty no-op
+branches, and nested branches whose only non-empty statement is another exact conditional.
+Those fragments are reported only when the whole value subtree stays inside the displayed
+source span, the fragment is `exact_safe`, and the value fingerprint is large enough for
+the exact semantic gate.
 
 ## Integrating with nose
 

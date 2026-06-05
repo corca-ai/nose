@@ -4809,6 +4809,44 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Fragment batch 8: exact nested conditional branches
+
+This batch keeps fragment expansion on the same proof axis: a branch block may contain
+exactly one nested `if` when that nested conditional itself satisfies the exact fragment
+predicate. Every leaf is still empty, a single exact return, a single valued throw, a
+single exact expression statement, or another exact conditional. This does not open
+arbitrary statement windows, assignments, loop-local exits, live-out slices, or mixed
+statement sequences. The same self-contained span, direct function-body,
+preceding mutation/alias/unknown-call, `exact_safe`, and value-size gates still apply.
+
+The focused positives use JS `push` effects because they exercise the new nested branch
+shape while keeping the observable effect explicit in the value graph. Adjacent hard
+negatives cover a preceding receiver mutation, a wrong pushed expression, and a wrong
+guard/value expression.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-nested-effect-1 | candidate extraction | allow a branch body to be a single nested exact conditional | 3 focused nested conditional effect families reported as full-span `Block` units |
+| fragment-nested-effect-2 | soundness boundary | keep recursion inside the existing exact branch predicate and reuse span plus preceding mutation guards | wrong guard/expression/mutation negatives excluded |
+| fragment-nested-effect-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-nested-effect-4 | real delta | selected real scan produced no additional suspicious family relative to batch 7 | semantic families stayed at 66 |
+| fragment-nested-effect-5 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 15.1ms, candidates 2.6ms, score 0.2ms; 66 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_opaque_functions
+3 exact nested conditional effect fragment families found; wrong guard/expression/mutation negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```
+
 ## Fragment batch 7: exact conditional expression-effect fragments
 
 This batch reuses the existing exact single-statement `ExprStmt` predicate inside

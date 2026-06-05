@@ -997,6 +997,124 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_opaque_functions() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_nested_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "nested_push_a.js",
+            "function nestedPushLeft(xs, out) {\n  if (xs[0] > 0 && xs[1] > 0) {\n    out.push(xs[0] + xs[1]);\n  } else {\n    if (xs[2] > 0) {\n      out.push(xs[2] * xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "nested_push_b.js",
+            "function nestedPushRight(ys, dst) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    dst.push(ys[1] + ys[0]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "nested_push_mutated.js",
+            "function nestedPushMutated(zs, out) {\n  out.push(0);\n  if (zs[0] > 0 && zs[1] > 0) {\n    out.push(zs[0] + zs[1]);\n  } else {\n    if (zs[2] > 0) {\n      out.push(zs[2] * zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "nested_push_sum_a.js",
+            "function nestedPushSumLeft(xs, out) {\n  if (xs[0] + xs[1] > 10) {\n    out.push(xs[0] + xs[1]);\n  } else {\n    if (xs[2] > 0) {\n      out.push(xs[2] * xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "nested_push_sum_b.js",
+            "function nestedPushSumRight(ys, dst) {\n  if (10 < ys[1] + ys[0]) {\n    dst.push(ys[1] + ys[0]);\n  } else {\n    if (0 < ys[2]) {\n      dst.push(ys[2] * ys[2]);\n    }\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "nested_push_sum_neg.js",
+            "function nestedPushSumWrong(zs, out) {\n  if (zs[0] + zs[1] > 10) {\n    out.push(zs[0] - zs[1]);\n  } else {\n    if (zs[2] > 0) {\n      out.push(zs[2] * zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "nested_push_product_a.js",
+            "function nestedPushProductLeft(xs, out) {\n  if ((xs[0] + 1) > 10) {\n    out.push((xs[0] + 1) * 2);\n  } else {\n    if (xs[1] + xs[2] > 0) {\n      out.push(xs[1] + xs[2]);\n    }\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "nested_push_product_b.js",
+            "function nestedPushProductRight(ys, dst) {\n  if (10 < (1 + ys[0])) {\n    dst.push(2 * (1 + ys[0]));\n  } else {\n    if (ys[2] + ys[1] > 0) {\n      dst.push(ys[2] + ys[1]);\n    }\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "nested_push_product_neg.js",
+            "function nestedPushProductWrong(zs, out) {\n  if ((zs[0] + 2) > 10) {\n    out.push((zs[0] + 2) * 2);\n  } else {\n    if (zs[1] + zs[2] > 0) {\n      out.push(zs[1] + zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "100",
+        "--min-tokens",
+        "100",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_guard_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let locations = family["locations"].as_array().expect("locations");
+                let full_nested_files: Vec<&str> = locations
+                    .iter()
+                    .filter(|loc| loc["start_line"] == 2 && loc["end_line"] == 8)
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                full_nested_files.iter().any(|file| file.ends_with(left))
+                    && full_nested_files.iter().any(|file| file.ends_with(right))
+                    && locations.iter().all(|loc| loc["kind"] == "Block")
+                    && locations
+                        .iter()
+                        .filter_map(|loc| loc["file"].as_str())
+                        .all(|file| !file.ends_with(negative))
+            })
+            .unwrap_or_else(|| {
+                panic!("missing exact nested conditional effect family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations
+                .iter()
+                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
+                    || loc["file"].as_str().unwrap_or("").ends_with(right))
+                .all(|loc| loc["start_line"] == 2 && loc["end_line"] == 8),
+            "nested conditional effect fragments should report the full nested if: {family:?}"
+        );
+    };
+
+    assert_guard_family(
+        "nested_push_a.js",
+        "nested_push_b.js",
+        "nested_push_mutated.js",
+    );
+    assert_guard_family(
+        "nested_push_sum_a.js",
+        "nested_push_sum_b.js",
+        "nested_push_sum_neg.js",
+    );
+    assert_guard_family(
+        "nested_push_product_a.js",
+        "nested_push_product_b.js",
+        "nested_push_product_neg.js",
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
     let dir =
         std::env::temp_dir().join(format!("nose_exact_throw_fragments_{}", std::process::id()));
