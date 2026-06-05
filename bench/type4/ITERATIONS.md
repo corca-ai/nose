@@ -4809,6 +4809,43 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Fragment batch 5: explicit empty-branch conditional exits
+
+This batch keeps the conditional fragment proof invariant but treats an explicit empty
+branch as a no-op. A direct function-body `if` can become an exact `Block` fragment when
+each present branch is either empty or exactly one valued `return`/`throw`, and at least
+one branch has that valued exit. Non-empty branches that are not a single valued exit
+remain unsupported. The same self-contained span, direct function-body, preceding
+mutation/alias/unknown-call, `exact_safe`, and value-size gates still apply.
+
+The three positives share one proof invariant: an empty branch contributes no sink while
+the valued exit branch still contributes a guarded return/effect sink. The batch covers
+empty-else return guards, empty-else throw guards, and empty-then throw guards. Adjacent
+hard negatives cover a wrong guard threshold, a wrong thrown expression, and preceding
+receiver mutation.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-empty-branch-1 | candidate extraction | allow explicit empty branches in otherwise exact conditional exit fragments | 3 focused empty-branch families reported as `Block` units |
+| fragment-empty-branch-2 | soundness boundary | require at least one valued exit and reject every non-empty non-exit branch | wrong guard/value/mutation negatives excluded |
+| fragment-empty-branch-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-empty-branch-4 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 14.6ms, candidates 2.7ms, score 0.4ms; 65 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_under_opaque_functions
+3 exact empty-branch fragment families found; wrong guard/value/mutation negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```
+
 ## Fragment batch 2: exact conditional-return guard fragments
 
 This batch keeps the same exact semantic contract and expands only the statement-fragment

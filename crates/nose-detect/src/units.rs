@@ -1867,19 +1867,29 @@ fn exact_conditional_exit_fragment_root(il: &Il, node: NodeId) -> bool {
     if !(kids.len() == 2 || kids.len() == 3) {
         return false;
     }
-    kids.iter()
-        .skip(1)
-        .all(|&branch| single_direct_valued_exit_block(il, branch))
+    let mut has_valued_exit = false;
+    for &branch in kids.iter().skip(1) {
+        let Some(branch_has_valued_exit) = empty_or_single_direct_valued_exit_block(il, branch)
+        else {
+            return false;
+        };
+        has_valued_exit |= branch_has_valued_exit;
+    }
+    has_valued_exit
 }
 
-fn single_direct_valued_exit_block(il: &Il, node: NodeId) -> bool {
+fn empty_or_single_direct_valued_exit_block(il: &Il, node: NodeId) -> Option<bool> {
     if il.kind(node) != NodeKind::Block {
-        return false;
+        return None;
     }
     let kids = il.children(node);
-    kids.len() == 1
+    if kids.is_empty() {
+        return Some(false);
+    }
+    (kids.len() == 1
         && matches!(il.kind(kids[0]), NodeKind::Return | NodeKind::Throw)
-        && !il.children(kids[0]).is_empty()
+        && !il.children(kids[0]).is_empty())
+    .then_some(true)
 }
 
 fn top_level_statement_fragment_context_safe(
