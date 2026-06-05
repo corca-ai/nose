@@ -7,13 +7,13 @@
 //! trace), so a checker can assert: **fingerprint-equal ⟹ behavior-equal on every
 //! sampled input** (soundness — no false merges, the cardinal sin of a clone
 //! detector). It is intentionally partial: any construct it cannot model (opaque
-//! calls, field access, exceptions, …) makes the whole unit *uninterpretable*, and
-//! the checker excludes it rather than guess. Determinism + a step budget guarantee
-//! termination; the exact arithmetic need not match any real language, only be
-//! self-consistent — a genuinely-equivalent pair agrees under *any* consistent
-//! semantics, so a fingerprint merge the interpreter contradicts is a real bug. A
-//! bare `throw`/`raise` is modeled as observable `Err` behavior; exception handlers
-//! remain unsupported.
+//! calls, unwritten field access, exception handlers, …) makes the whole unit
+//! *uninterpretable*, and the checker excludes it rather than guess. Determinism + a
+//! step budget guarantee termination; the exact arithmetic need not match any real
+//! language, only be self-consistent — a genuinely-equivalent pair agrees under *any*
+//! consistent semantics, so a fingerprint merge the interpreter contradicts is a real
+//! bug. A bare `throw`/`raise` is modeled as observable `Err` behavior; exception
+//! handlers remain unsupported.
 
 use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -424,6 +424,14 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
+            NodeKind::Field => match n.payload {
+                Payload::Name(sym) => self
+                    .fields
+                    .get(&(nose_il::symbol_index(sym) as i64))
+                    .cloned()
+                    .ok_or(Unsupported),
+                _ => Err(Unsupported),
+            },
             NodeKind::If => {
                 // ternary expression
                 let kids = self.il.children(node).to_vec();
@@ -996,7 +1004,7 @@ fn un(op: Op, a: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, Span};
+    use nose_il::{FileId, FileMeta, IlBuilder, Interner, Lang, LitClass, Span};
 
     /// Build `fn() { return len(<str literal>) }` and run it.
     fn run_len_of_string() -> Value {
@@ -1085,6 +1093,39 @@ mod tests {
     #[test]
     fn throw_is_err_behavior_and_stops_execution() {
         assert_eq!(run_throw_then_return(), Value::Err);
+    }
+
+    fn run_field_write_read() -> (Behavior, i64) {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let base = b.add(NodeKind::Lit, Payload::Lit(LitClass::Null), sp, &[]);
+        let field_name = interner.intern("x");
+        let field_key = nose_il::symbol_index(field_name) as i64;
+        let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
+        let read_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (run_unit(&il, func, &[]).expect("run_unit"), field_key)
+    }
+
+    #[test]
+    fn field_write_can_be_read_back() {
+        let (behavior, field_key) = run_field_write_read();
+        assert_eq!(behavior.ret, Value::Int(7));
+        assert_eq!(behavior.fields, vec![(field_key, Value::Int(7))]);
     }
 
     /// Build `fn() { return base ** exp }` over integer literals and run it.
