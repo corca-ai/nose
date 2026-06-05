@@ -10,7 +10,7 @@
 use crate::lower::Lowering;
 use nose_il::{
     Builtin, FileId, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
-    Payload, UnitKind,
+    Payload, Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -427,11 +427,44 @@ fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
             acc = body;
             continue;
         }
-        let pat = lower_expr(lo, pattern_children[0]);
-        let cond = lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), cspan, &[subject, pat]);
+        let cond = lower_match_pattern_condition(lo, subject, pattern_children[0], cspan);
+        let Some(cond) = cond else {
+            acc = body;
+            continue;
+        };
         acc = lo.add(NodeKind::If, Payload::None, cspan, &[cond, body, acc]);
     }
     acc
+}
+
+fn lower_match_pattern_condition(
+    lo: &mut Lowering,
+    subject: NodeId,
+    pattern: TsNode,
+    span: Span,
+) -> Option<NodeId> {
+    if pattern.kind() == "identifier" && lo.text(pattern) == "_" {
+        return None;
+    }
+    if pattern.kind() == "union_pattern" {
+        let mut conditions = Vec::new();
+        for child in Lowering::named_children(pattern) {
+            let cond = lower_match_pattern_condition(lo, subject, child, span)?;
+            conditions.push(cond);
+        }
+        return fold_or(lo, span, conditions);
+    }
+    let pat = lower_expr(lo, pattern);
+    Some(lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[subject, pat]))
+}
+
+fn fold_or(lo: &mut Lowering, span: Span, conditions: Vec<NodeId>) -> Option<NodeId> {
+    let mut it = conditions.into_iter();
+    let mut acc = it.next()?;
+    for cond in it {
+        acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[acc, cond]);
+    }
+    Some(acc)
 }
 
 fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1028,6 +1061,38 @@ mod tests {
         assert!(
             il.nodes.iter().any(|node| node.kind == NodeKind::If),
             "match should lower to an if-chain"
+        );
+    }
+
+    #[test]
+    fn literal_or_match_lowers_to_or_condition_without_raw() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    match x:\n        case 0 | 1:\n            return 1\n        case _:\n            return x\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            raw.is_empty(),
+            "or-pattern match should lower without Raw: {raw:?}"
+        );
+        assert!(
+            il.nodes
+                .iter()
+                .any(|node| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::Or)),
+            "or-pattern match should lower to an OR condition"
         );
     }
 }
