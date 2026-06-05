@@ -1583,6 +1583,211 @@ fn value_graph_cross_language_reorder() {
     );
 }
 
+/// Exploratory probe (research): candidate SOUND algebraic/boolean equivalences that
+/// stress phase-ordering — does a single bottom-up `mk` pass reach the canonical form,
+/// or would a fixpoint/saturation be needed? Not an assertion; a frontier map.
+/// Run: cargo test convergence_probe5 -- --nocapture
+#[test]
+fn convergence_probe5() {
+    let i = Interner::new();
+    let pairs: &[(&str, &str, Lang, &str, Lang)] = &[
+        // Distribution in the EXPANSION direction (current code only FACTORS).
+        (
+            "distribute-expand",
+            "def f(a,b,c):\n    return c*(a+b)\n",
+            Lang::Python,
+            "def g(a,b,c):\n    return c*a+c*b\n",
+            Lang::Python,
+        ),
+        // Factor where the shared multiplicand is on the LEFT of one product.
+        (
+            "factor-left-shared",
+            "def f(a,b,c):\n    return c*a+b*c\n",
+            Lang::Python,
+            "def g(a,b,c):\n    return (a+b)*c\n",
+            Lang::Python,
+        ),
+        // De Morgan composed with comparison-direction: needs algebra THEN compare-canon.
+        (
+            "demorgan+cmp",
+            "def f(a,b):\n    return not (a>b or a==b)\n",
+            Lang::Python,
+            "def g(a,b):\n    return a<b\n",
+            Lang::Python,
+        ),
+        // Nested distribution requiring re-canonicalization of a synthesized node.
+        (
+            "distribute-3term",
+            "def f(a,b,d,c):\n    return a*c+b*c+d*c\n",
+            Lang::Python,
+            "def g(a,b,d,c):\n    return (a+b+d)*c\n",
+            Lang::Python,
+        ),
+        // Distribution feeding AC sort: (a+b)*c + e  vs  c*b + c*a + e
+        (
+            "distribute-then-ac",
+            "def f(a,b,c,e):\n    return c*b+c*a+e\n",
+            Lang::Python,
+            "def g(a,b,c,e):\n    return (a+b)*c+e\n",
+            Lang::Python,
+        ),
+        // Double negation pushed through a comparison then re-canon.
+        (
+            "not-not-cmp",
+            "def f(a,b):\n    return not (not (a>b))\n",
+            Lang::Python,
+            "def g(a,b):\n    return b<a\n",
+            Lang::Python,
+        ),
+        // Negation distributed then factored back.
+        (
+            "neg-distribute-factor",
+            "def f(a,b,c):\n    return -(a*c+b*c)\n",
+            Lang::Python,
+            "def g(a,b,c):\n    return -((a+b)*c)\n",
+            Lang::Python,
+        ),
+        // Decompose the demorgan+cmp gap:
+        // (a) lattice fact alone: (a<=b) ∧ (a!=b) ≡ a<b
+        (
+            "lattice-le-ne",
+            "def f(a,b):\n    return a<=b and a!=b\n",
+            Lang::Python,
+            "def g(a,b):\n    return a<b\n",
+            Lang::Python,
+        ),
+        // (b) De Morgan over OR alone in the value graph
+        (
+            "demorgan-or",
+            "def f(a,b,c):\n    return not (a<b or c<b)\n",
+            Lang::Python,
+            "def g(a,b,c):\n    return a>=b and c>=b\n",
+            Lang::Python,
+        ),
+        // (c) De Morgan over AND alone
+        (
+            "demorgan-and",
+            "def f(a,b,c):\n    return not (a<b and c<b)\n",
+            Lang::Python,
+            "def g(a,b,c):\n    return a>=b or c>=b\n",
+            Lang::Python,
+        ),
+    ];
+    let mut gaps = 0;
+    for (name, a, la, b, lb) in pairs {
+        let eq = value_fp(&i, a, *la) == value_fp(&i, b, *lb);
+        if !eq {
+            gaps += 1;
+        }
+        eprintln!("  [{}] {}", if eq { "CONVERGE" } else { "  GAP   " }, name);
+    }
+    eprintln!("probe5: {}/{} converge", pairs.len() - gaps, pairs.len());
+}
+
+#[test]
+fn pointer_length_contract_is_exposed() {
+    // A C function `f(int *xs, int n)` whose loop bound is `n` records the pointer-length
+    // contract (array_pos=0, length_pos=1) so the behavioral oracle interprets it under
+    // `n = len(xs)` — the same convention the value graph used to drop `n` and merge it with
+    // the `len`-based form. A function that does NOT use a length param records none.
+    let i = Interner::new();
+    let c = "int sum_small(int *xs, int n) {\n int t=0;\n for (int i=0;i<n;i++){ if (xs[i]<3){ t+=xs[i]; } }\n return t;\n}\n";
+    let lowered = nose_frontend::lower_source(FileId(0), "a.c", c.as_bytes(), Lang::C, &i).unwrap();
+    let n = normalize(&lowered, &i, &NormalizeOptions::default());
+    let contracts = nose_normalize::value_fingerprint_contracts(&n, n.units[0].root, &i);
+    assert_eq!(
+        contracts,
+        vec![(0, 1)],
+        "C (xs, n) must record contract (0,1)"
+    );
+
+    // The aligned two-array form `f(a, b, n)` shares `n` as the length of both.
+    let dot = "int dot(int *a, int *b, int n) {\n int t=0;\n for (int i=0;i<n;i++){ t+=a[i]*b[i]; }\n return t;\n}\n";
+    let ld = nose_frontend::lower_source(FileId(0), "d.c", dot.as_bytes(), Lang::C, &i).unwrap();
+    let nd = normalize(&ld, &i, &NormalizeOptions::default());
+    let dc = nose_normalize::value_fingerprint_contracts(&nd, nd.units[0].root, &i);
+    assert!(
+        dc.contains(&(0, 2)) || dc.contains(&(1, 2)),
+        "aligned (a, b, n) must record a shared length contract at pos 2, got {dc:?}"
+    );
+
+    // A `len`-based form (no length param) records no contract.
+    let py = "def sum_small(xs):\n    t=0\n    for x in xs:\n        if x<3:\n            t+=x\n    return t\n";
+    let lp =
+        nose_frontend::lower_source(FileId(0), "a.py", py.as_bytes(), Lang::Python, &i).unwrap();
+    let np = normalize(&lp, &i, &NormalizeOptions::default());
+    assert!(
+        nose_normalize::value_fingerprint_contracts(&np, np.units[0].root, &i).is_empty(),
+        "a len-based form uses no pointer-length contract"
+    );
+}
+
+#[test]
+fn lattice_strict_comparison_converges_and_separates() {
+    // SOUND lattice canon on a total order: `(x ≤ y) ∧ (x ≠ y) ≡ x < y` and the dual
+    // `(x < y) ∨ (x = y) ≡ x ≤ y`. Declaring the one `∧` rule composes through the
+    // recursive `mk` fixpoint (De Morgan + comparison-direction canon) to also close
+    // `not (a > b or a == b) ≡ a < b`, cross-language.
+    let i = Interner::new();
+    let lt = value_fp(&i, "def f(a,b):\n    return a<b\n", Lang::Python);
+    assert_eq!(
+        lt,
+        value_fp(&i, "def g(a,b):\n    return a<=b and a!=b\n", Lang::Python),
+        "(a<=b) and (a!=b) must converge with a<b"
+    );
+    assert_eq!(
+        lt,
+        value_fp(&i, "def g(a,b):\n    return a!=b and a<=b\n", Lang::Python),
+        "operand order of the conjunction must not matter"
+    );
+    assert_eq!(
+        lt,
+        value_fp(
+            &i,
+            "def g(a,b):\n    return not (a>b or a==b)\n",
+            Lang::Python
+        ),
+        "De Morgan + comparison-direction must compose into the lattice canon"
+    );
+    // Cross-language: a JS strict-less written as the conjunction.
+    assert_eq!(
+        lt,
+        value_fp(
+            &i,
+            "function g(a,b){ return a<=b && a!=b; }",
+            Lang::JavaScript
+        ),
+        "the lattice canon is language-agnostic"
+    );
+    let le = value_fp(&i, "def f(a,b):\n    return a<=b\n", Lang::Python);
+    assert_eq!(
+        le,
+        value_fp(&i, "def g(a,b):\n    return a<b or a==b\n", Lang::Python),
+        "(a<b) or (a==b) must converge with a<=b"
+    );
+
+    // HARD NEGATIVES — the rule must not over-fire (these are different computations):
+    assert_ne!(
+        lt,
+        value_fp(&i, "def g(a,b):\n    return a<=b\n", Lang::Python),
+        "a<b must NOT merge with a<=b"
+    );
+    assert_ne!(
+        lt,
+        value_fp(
+            &i,
+            "def g(a,b,c):\n    return a<=b and a!=c\n",
+            Lang::Python
+        ),
+        "the inequality must be over the SAME operands, not a third variable"
+    );
+    assert_ne!(
+        lt,
+        value_fp(&i, "def g(a,b):\n    return a<=b or a!=b\n", Lang::Python),
+        "the connective matters: (a<=b) OR (a!=b) is not a<b"
+    );
+}
+
 #[test]
 fn detection_smoke_groups_clones_excludes_decoy() {
     // Two clones (a sum loop in Python and TS) plus an unrelated decoy.

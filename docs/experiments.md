@@ -2441,3 +2441,213 @@ gains do not move the *judgment-deep* refactoring-precision number, while costin
 The win is squarely on the exact-Type-4 axis these changes targeted, with the Lean core extended.
 Remaining open gaps are the two cross-language-*unsound* ones (`x*2≡x+x` doubling, `s[-1]` neg-
 index), documented above — not representation gaps but genuine language-semantic divergences.
+
+## BB. Empirical confluence audit + lattice comparison canon (one sound rule, fixpoint-composed)
+
+A probe of the "leap 1" thesis (replace the ordered passes with an e-graph / equality
+saturation for confluence). Before building an engine, **measured whether the existing
+recursive `mk` already behaves as a fixpoint**: a new `convergence_probe5` of seven
+deliberately phase-ordering-stressing SOUND equivalences (distribute-expand,
+factor-left-shared, 3-term distribute, distribute-then-AC-sort, not-not-cmp,
+neg-distribute-factor, demorgan+cmp). Result: **6/7 already converge** — including the
+multi-step `a*c+b*c+d*c → (a+b+d)*c` and `-(a*c+b*c) ≡ -((a+b)*c)` compositions. The
+recursive `mk` (each rewrite re-enters `mk`, §BA's manual AC push) is *already* an
+effective bottom-up saturator for the algebra in scope. This independently reproduces the
+§C/§AW verdict by construction: **the lever is new sound rules, not a better
+rule-application engine** — an e-graph would still need each rule declared, and the
+fixpoint it would buy is largely already present.
+
+The single `probe5` gap, `not (a>b or a==b) ≡ a<b`, decomposed cleanly: De Morgan and
+comparison-direction canon already converge (`demorgan-or`/`demorgan-and`/`not-not-cmp`
+all pass); the only missing fact was the **lattice identity** `(x ≤ y) ∧ (x ≠ y) ≡ x < y`.
+
+**ADOPTED — lattice comparison canon** (`value_graph.rs` `lattice_le_ne_to_lt` +
+dual `lattice_lt_eq_to_le`): in the boolean-`and`/`or` arm of `mk`, recognize
+`(x≤y) ∧ (x≠y) → x<y` and `(x<y) ∨ (x=y) → x≤y` (the `≤`/`<` are ordered so they fix
+`(x,y)`; the `≠`/`=` are commutative so they match the operand set either way). Declaring
+just the one `∧` rule **composes through the recursive `mk` fixpoint** to also close the
+full `not (a>b or a==b)` cross-language — the exact "declare a rule, the engine combines
+it" property leap 1 was meant to deliver, obtained without rebuilding the substrate.
+Sound on any total order (Lean `Compare.lean::le_and_ne_eq_lt`, `lt_or_eq_eq_le`; checked
+clean). `probe5` 6/7 → **7/7**; probes 1–4, xlang unchanged; hard-negative test added
+(`a<b` ≠ `a<=b`, third-variable `a!=c`, wrong connective).
+
+**Soundness held, measured both ways.** On the deterministic 10,002-file Type-4 synthetic
+corpus (`bench/type4/generate.py --cross all`, 5001 pairs) the labeled gate is **identical
+with and without the rule: positive recall 1982/1982, hard-negative false merges 0/3019**
+— the canon merges no sibling negative. `nose verify` violation counts are also identical
+to baseline (a pre-existing synthetic-corpus artifact, not introduced here). 211 cargo
+tests green; output deterministic (the rule compares value ids, no map iteration).
+
+## BC. Behavioral-equivalence acceptance gate (leaps 2+3) — measured, not adopted
+
+Tested the B-axis thesis: stop relying only on exact value-fingerprint equality and ADD a
+pairwise acceptance path that runs both units of a candidate pair on a shared input battery
+and accepts iff their behavior agrees on every input (leap 2 = the existing interpreter
+oracle as an in-loop gate; leap 3 = the same gate over a much WIDER structured input domain,
+a bounded equivalence checker short of full SMT). Built as `nose behavioral-gate <sources>
+--manifest m.json [--battery standard|wide]`, measured on the deterministic 10,002-file
+Type-4 synthetic corpus against its labeled positive/negative pairs (interpretable slice).
+
+| battery | rows | positive recall (interp. slice) | recovered beyond fingerprint | hard-neg false merges |
+|---|---|---|---|---|
+| exact value-fingerprint (today) | — | **519/519 = 100%** | — | **0/1221 = 0%** |
+| behavioral, standard (leap 2) | 156 | 337/519 = 64.9% | **0** | 97/1221 = 7.9% |
+| behavioral, wide (leap 3) | 358 | 337/519 = 64.9% | **0** | 67/1221 = 5.5% |
+
+**Three findings, all decisive and all reproducing §AK/§AY by fresh measurement:**
+
+1. **Leap 2 has ZERO recovery headroom on this corpus.** Exact value-fingerprint already
+   merges 100% of the interpretable-slice positives, so a behavioral gate recovers *nothing*
+   beyond it (`recovered = 0`, heldout 0/348) — and only adds false merges. The value graph
+   is not the bottleneck here; behavioral acceptance is not the lever.
+2. **The value-graph fingerprint has OUTGROWN the interpreter oracle.** Behavioral recall is
+   *lower* (64.9%) than fingerprint (100%): ~182 interpretable positives are map/option/
+   string/membership predicates whose real semantics fall outside the interpreter's faithful
+   Int/Bool/Str/List domain, so they collapse to constant/all-Err behavior (trivial,
+   unmergeable) — while the proof-fact strict engine (`IsEmpty`/`Contains`/`GetOrDefault`/
+   `IsNull`/…) models them and the fingerprint merges them correctly. A gate built on
+   today's interpreter is strictly *weaker* than the current fingerprint on this corpus.
+   (This is the same root as the synthetic-corpus `nose verify` "violations": the interpreter
+   does not model maps/options/strings or the C pointer-length contract.)
+3. **Leap 3 confirms the direction but proves the limit.** Widening the battery (156→358
+   rows, larger structured domain) cut false merges 97→67 (7.9%→5.5%) — more checking → fewer
+   false merges, exactly the leap-2→leap-3 progression — but did **not** reach zero. A finite
+   battery can never *prove* equivalence (the §AK cliff: only exact equality is 100% sound),
+   so finite-battery acceptance violates the soundness contract by construction. The only
+   sound terminus is a real proof (full symbolic/SMT), which is a heavy external dependency
+   deliberately out of scope for the self-contained binary.
+
+**Verdict: measured, not adopted.** On the modeled Type-4 surface the fingerprint dominates
+behavioral acceptance on every axis (recall, recovery, soundness). The genuine future value
+of leaps 2/3 is narrow and conditional: units the value-graph cannot converge AND the
+interpreter CAN faithfully model — a slice that is empty here because the fingerprint is
+already at 100% on the interpretable positives. The actionable lead this surfaced is the
+inverse of the original hypothesis: **the interpreter oracle, not the fingerprint, is now
+the weaker model** (no maps/options/strings), so the higher-value soundness investment is
+*widening the interpreter to match the proof-fact engine* — which would also shrink the
+synthetic-corpus `verify` artifact. The gate ships as a research subcommand (deterministic),
+not a detection channel.
+
+## BD. Widening the interpreter oracle — the lead was mis-aimed (quantified) + a core-IL wall
+
+§BC's actionable lead was "the interpreter, not the fingerprint, is the weaker model — widen
+it (maps/options/strings)." Pursued it; two findings, both negative-with-evidence, both
+redirecting the effort.
+
+**1. The synthetic-corpus `verify` artifact is the C pointer-length contract, NOT maps
+(quantified).** Classified all **1056** `nose verify` "violations" on the 10k-file Type-4
+corpus by the computed function of each pair:
+
+```
+dotproduct 186 · min 140 · count 114 · max 72 · sumpositive 62 · abs 50 · anypositive 26
+· allnonzero 17 · lookup(map) 17 · …
+```
+
+≈98% are numeric reductions over arrays in their **C / aligned-array form** `f(int *xs, int
+n)` / `f(int *a, int *b, int n)`: the detector merges them with the Python/JS forms by the
+DECLARED contract "`n` is the exact logical length", but the oracle feeds a FREE `n`
+(independent of `len(xs)`), so they differ on `n ≠ len` and are flagged. Maps (`lookup`) are
+**17/1056 (<2%)**. So "model maps" would address <2% of the artifact; the real target is
+making the oracle honor the same pointer-length contract the detector declares. (The intended
+hard negatives — skipped-first, stride-two — still differ under `n = len`, so the contract
+binding would not mask them; but doing it soundly needs the value-graph to EXPOSE per-unit
+whether it used the contract, and validation on the pinned real-code corpus — deferred as a
+risky change to the soundness oracle that cannot be validated from the synthetic corpus alone.)
+
+**2. Modeling the canonical `GetOrDefault` builtin is INERT — the oracle interprets the
+*core* IL.** Implemented `GetOrDefault(m,k,d)` as a self-consistent association-list lookup
+(sound by construction: equal fingerprint ⇒ identical structure ⇒ identical compute, so no
+false merge possible). Effect: `verify` violations **1056 → 1056** (unchanged), interpretable
+units **4617 → 4617**, behavioral-gate recall **337 → 340/519** (+3). Near-inert, and the
+reason is structural: `nose verify` interprets the **pre-canonicalization core IL** (§AX, so a
+behavior-changing canon can't mask itself), where a map-default is still the raw `if k in m:
+v=m[k] else: v=d` over map **indexing/membership** — `GetOrDefault` is a value-graph CANON that
+never appears in the interpreted IL. Reverted (the project does not ship near-inert code).
+
+**Conclusion / redirected lead.** Genuinely widening the oracle for maps requires modeling the
+RAW operations (a `Value::Map`, `m[k]` indexing, `k in m` membership) **plus** map-valued
+battery inputs — not the canonical builtin — for a <2% slice. The high-value sound target is
+instead the **pointer-length contract in the oracle** (the dominant ≈98% artifact), which is a
+delicate soundness-oracle change best done with the pinned corpus available for validation. Net
+this round: the "widen the interpreter" lead is real but was mis-aimed at maps; the evidence
+re-points it at the C-contract and raises the bar (core-IL modeling + pinned-corpus validation),
+so no interpreter change shipped — only the measurement and the corrected direction.
+
+## BE. Pointer-length contract in the behavioral oracle — the §BD lead, executed
+
+§BD quantified that ≈98% of the synthetic-corpus `nose verify` "violations" are the **C
+pointer-length contract**, not maps: the detector merges `f(int *xs, int n)` with the
+`len`-based `f(xs)` by the DECLARED convention "`n` is the exact logical length", but the
+oracle fed a FREE `n` (independent of `len(xs)`), so the two diverged on `n ≠ len` and were
+flagged. The fix makes the oracle interpret each unit under the SAME contract the value graph
+used to merge it.
+
+**Implementation (oracle-side only; the value graph / detection are unchanged).**
+1. **Expose the contract.** Where `full_pointer_length_contract` fires (the loop bound `n` is
+   dropped as "length of the array"), record `(array_param_pos, length_param_pos)`;
+   `value_fingerprint_contracts` returns the deduped, sorted set per unit.
+2. **Bind `n = len(array)` at interpretation.** The verify + behavioral-gate harness rewrites
+   each battery row: every contracted length slot becomes the length of its array slot —
+   `min` of the lengths for an aligned `f(a, b, n)` (the shared logical length, matching the
+   `zip` form), and `Null` when an array slot is a non-list (`len` is undefined → `i < n`
+   Errs → the unit Errs exactly as the `len(non-list)` form does, instead of running an empty
+   loop). Gated on the contract actually firing, so a NON-contract false merge is still
+   exposed by the free battery (it cannot mask a real value-graph bug).
+
+**Result — synthetic violations 1056 → 508 (−52%), strictly monotone.** The remaining 508 are
+a strict SUBSET of the baseline 1056 (`comm`: **0 newly introduced, 548 removed**), so the
+change only retires spurious contract artifacts. dotproduct 186→26 (the aligned-min case),
+sum/count/anypositive/sumsmall largely cleared; the residual is dominated by non-contract,
+arity-1 coincidental collisions (e.g. a `productPositive` Java/Rust pair — untouched by the
+binding, pre-existing).
+
+**Soundness validated.** Real-code `verify` stays SOUND with the binding: `cmark` (28 interp.)
+and `black` (441 interp., 99 fingerprint groups) both 0 false merges, canon PRESERVED; 117
+equivalence tests green (incl. a new `pointer_length_contract_is_exposed` lock); deterministic
+(508 both runs). The behavioral-gate negative-merge count rises 97→105, but that gate is the
+finite-battery instrument from §BC (NOT a shipped detection channel and NOT the verify oracle,
+which is fingerprint-keyed) — more interpretable units simply give the finite battery more
+coincidental agreements, reconfirming §BC's "not adopted" verdict for behavioral acceptance.
+
+**Net.** The §BD lead is executed: the soundness oracle now honors the detector's declared
+pointer-length contract, halving the synthetic-corpus false-violation noise with zero new
+violations and no real-code regression — making `nose verify` materially more usable as a
+Type-4 soundness gate. Residual non-contract artifacts (the arity-1 coincidental collisions,
+and the <2% map slice from §BD) remain, smaller and clearly characterized.
+
+## BF. Rebased onto a refactored main — what survived, what the refactor obsoleted
+
+This work was developed on an intermediate `main` and then rebased onto a much-refactored
+`main` that **removed a family of interpreter builtins** (`IsEmpty`/`Contains`/`GetOrDefault`/
+`ValueOrDefault`/`StartsWith`/…) from the core IL and re-expressed those proof facts through a
+different mechanism, and changed some frontend lowerings (e.g. Java `Math.min(a, b)` now lowers
+to an opaque method call, not `Builtin::Min`). The rebase cleanly separated the
+substrate-independent work from the work that depended on the removed pieces.
+
+**Shipped (substrate-independent, re-validated on the new main):**
+- **Lattice comparison canon (§BB).** `(x≤y)∧(x≠y) → x<y` and the dual, in the value graph's
+  boolean-`and`/`or` arm, Lean-proven (`Compare.lean`). Composes through the recursive `mk`
+  fixpoint. `convergence_probe5` 10/10 on the new main.
+- **Pointer-length contract in the oracle (§BE).** The behavioral oracle interprets a
+  contract-shaped `f(int *xs, int n)` under `n = len(xs)` — the convention the value graph used
+  to merge it — gated on the contract firing. Re-measured on a freshly generated Type-4 corpus
+  on the new main: verify violations **800 → 252 (−548)**, a pure removal of spurious
+  C-contract false-violations (the value graph's `full_pointer_length_contract` survived the
+  refactor).
+- **Verify tooling (§BC/A1/D1).** `nose verify --max-violations N` (CI soundness gate, wired
+  into `scripts/type4-smoke.sh`), `--leads` (export under-merged groups as detection candidates),
+  and the `nose behavioral-gate` research subcommand.
+
+**Obsoleted by the refactor (investigated, recorded, NOT shipped):**
+- **Map-read modeling** (a `Value::Map` + `m[k]`/`k in m`/get-or-default) and **`ValueOrDefault`
+  (nullish/option) modeling** — both depended on interpreter builtins the new main deleted, so
+  they no longer reach the interpreted form. Dropped.
+- **Two-argument scalar `min`/`max`** — was a real oracle gap when `Math.min(a, b)` lowered to
+  `Builtin::Min`; on the new main that lowers to an opaque call, so the fix is inert. Dropped.
+- **Counterexample-input probes (C1)** — rejected earlier on evidence (perf cost, no soundness
+  gain); not revisited.
+
+The honest lesson: a soundness-oracle improvement is durable only insofar as the IL shape it
+keys on is durable. The canon (§BB) and the contract binding (§BE) key on stable value-graph
+structure and survived; the builtin-keyed modeling did not.

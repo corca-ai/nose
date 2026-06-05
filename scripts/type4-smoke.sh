@@ -18,6 +18,22 @@ if [[ "$SUITE" != "full" ]]; then
 fi
 
 python3 bench/type4/eval_manifest.py "$MANIFEST" --nose "$NOSE" --fail-on-false-merge
+
+# Independent soundness gate: the interpreter oracle checks EVERY fingerprint-equal pair on
+# an input battery (eval_manifest only checks the generator's labeled pairs), so it catches a
+# coincidental cross-case false merge the manifest cannot. The residual on the synthetic corpus
+# is oracle-fidelity artifacts (e.g. C `1`/`0` ≡ bool; see experiments §A2), so the gate is a
+# BUDGET, not zero: set VERIFY_MAX to the characterized baseline and a new real false merge from
+# a future canon pushes the count over it. Unset ⇒ informational (reports, never fails).
+verify_args=("$EVAL_DIR/sources" --leads "$EVAL_DIR/leads.json")
+if [[ -n "${VERIFY_MAX:-}" ]]; then
+  verify_args+=(--max-violations "$VERIFY_MAX")
+fi
+# The oracle also EXPORTS its under-merged groups (behavior-equal, fingerprint-split) to
+# leads.json — oracle-discovered missed-convergence candidates that feed the next generator
+# round (the third actor closing the loop; vj ≥ 0.7 leads are the strongest).
+"$NOSE" verify "${verify_args[@]}"
+
 "$NOSE" stats "$EVAL_DIR/sources"
 
 frontier_args=(

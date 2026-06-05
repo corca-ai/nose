@@ -282,7 +282,43 @@ enum Cmd {
         /// soundness/completeness report. Used by the value-add evaluator.
         #[arg(long)]
         json: bool,
+        /// CI soundness gate: exit non-zero if the false-merge count EXCEEDS this budget.
+        /// Use `--max-violations 0` on real code (the SOUND invariant); on the synthetic
+        /// Type-4 corpus use the characterized baseline (its residual is oracle-fidelity
+        /// artifacts — see experiments §A2), so a new real false merge from a future canon
+        /// pushes the count over budget and fails the gate.
+        #[arg(long)]
+        max_violations: Option<usize>,
+        /// Write the oracle's UNDER-MERGED groups (behavior-equal on the battery but
+        /// fingerprint-split — candidate MISSED clones) to a JSON file, sorted by structural
+        /// nearness. Feeds the detection campaign with oracle-discovered convergence leads
+        /// (vj ≥ 0.7 are the strongest: structurally near AND behavior-equal).
+        #[arg(long)]
+        leads: Option<PathBuf>,
     },
+    /// EXPERIMENT (leaps 2+3): measure a behavioral-equivalence ACCEPTANCE gate — group
+    /// interpretable units by their behavior on an input battery (two units are
+    /// "accepted" iff identical on every input) and, against a Type-4 manifest, report
+    /// the recall it recovers BEYOND exact-fingerprint matching and the hard-negative
+    /// false merges it would introduce. `--battery wide` is the leap-3 bounded checker
+    /// (a much larger structured input domain — does more checking kill the false merges?).
+    BehavioralGate {
+        /// Path to the generated Type-4 corpus `sources/` directory.
+        #[arg(required = true)]
+        paths: Vec<PathBuf>,
+        /// The Type-4 manifest.json with labeled positive/negative pairs.
+        #[arg(long)]
+        manifest: PathBuf,
+        /// Input battery: `standard` (leap 2) or `wide` (leap 3, larger domain).
+        #[arg(long, default_value = "standard")]
+        battery: BatteryKind,
+    },
+}
+
+#[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
+enum BatteryKind {
+    Standard,
+    Wide,
 }
 
 #[derive(Clone, Copy, clap::ValueEnum)]
@@ -956,7 +992,14 @@ fn run() -> Result<()> {
             paths,
             no_cfg_norm,
             json,
-        } => cmd_verify(paths, no_cfg_norm, json),
+            max_violations,
+            leads,
+        } => cmd_verify(paths, no_cfg_norm, json, max_violations, leads),
+        Cmd::BehavioralGate {
+            paths,
+            manifest,
+            battery,
+        } => cmd_behavioral_gate(paths, manifest, battery),
     }
 }
 
@@ -1046,7 +1089,353 @@ fn verify_probes(corpus: &Corpus) -> Vec<nose_normalize::Value> {
     probes
 }
 
-fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> {
+/// Leap-3 "wide" battery: a much larger structured input domain than [`verify_battery`].
+/// Bounded equivalence checking is "interpret on enough inputs that two functions which
+/// differ anywhere differ HERE": more scalars (large, negative, boundary), more lists
+/// (sorted/reversed/duplicate/negative/singleton/empty), a wider arity slot, and more
+/// combinatorial rows. The leap-3 hypothesis: a finite battery merges some non-equivalent
+/// pairs (the §AK risk); a wider domain should drive those false merges toward zero while
+/// keeping the true positives. (Still not a proof — that is the SMT extension — but a much
+/// stronger bounded checker.)
+fn wide_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::Value>> {
+    use nose_normalize::Value;
+    let l = |xs: &[i64]| Value::List(xs.iter().copied().map(Value::Int).collect());
+    let pool = [
+        l(&[1, 2, 3, 4]),
+        Value::Int(3),
+        Value::Int(0),
+        Value::Int(-1),
+        l(&[5, 1, 4, 2, 8]),
+        Value::Int(7),
+        l(&[]),
+        Value::Int(2),
+        // wide additions: boundary/large/negative scalars and adversarial lists
+        Value::Int(-7),
+        Value::Int(100),
+        Value::Int(1),
+        l(&[2, 2, 2]),        // all-equal (separates min/max/dedup-sensitive)
+        l(&[0]),              // singleton zero (separates *-fold from +-fold, presence)
+        l(&[-3, -1, -2]),     // all-negative (separates abs/sign, min/max direction)
+        l(&[4, 3, 2, 1]),     // reversed (separates order-sensitive from order-free)
+        l(&[10, -10, 5, -5]), // mixed sign, zero-sum (separates sum from sum-abs)
+    ];
+    let n = pool.len();
+    const WIDTH: usize = 5;
+    const COUNT: usize = 243; // 3^5 — dense mixed-radix coverage over a low-entropy slice
+    let mut battery: Vec<Vec<Value>> = (0..COUNT)
+        .map(|e| {
+            (0..WIDTH)
+                .map(|j| {
+                    let radix = n.saturating_pow(j as u32).max(1);
+                    pool[(e / radix) % n].clone()
+                })
+                .collect()
+        })
+        .collect();
+    let fill = pool[0].clone();
+    for v in probes {
+        for p in 0..WIDTH {
+            let mut row = vec![fill.clone(); WIDTH];
+            row[p] = v.clone();
+            battery.push(row);
+        }
+    }
+    battery
+}
+
+/// Trailing `sources/<id>/<file>` key shared by the corpus path and the manifest path,
+/// so an interpreted unit can be matched to its manifest entry regardless of the prefix
+/// the corpus was scanned under.
+fn manifest_key(path: &str) -> String {
+    match path.rfind("sources/") {
+        Some(i) => path[i..].to_string(),
+        None => path.to_string(),
+    }
+}
+
+fn cmd_behavioral_gate(
+    paths: Vec<PathBuf>,
+    manifest: PathBuf,
+    battery_kind: BatteryKind,
+) -> Result<()> {
+    use nose_normalize::{run_unit, Behavior, NormalizeOptions, Value};
+    use std::collections::hash_map::DefaultHasher;
+    use std::collections::{HashMap, HashSet};
+    use std::hash::{Hash, Hasher};
+
+    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let corpus = nose_frontend::lower_corpus_many(&refs);
+    warn_if_empty(&corpus, &paths);
+    let opts = NormalizeOptions::default();
+    let oracle_opts = NormalizeOptions {
+        oracle: true,
+        ..opts
+    };
+    let battery = match battery_kind {
+        BatteryKind::Standard => verify_battery(&verify_probes(&corpus)),
+        BatteryKind::Wide => wide_battery(&verify_probes(&corpus)),
+    };
+
+    // One interpretable record per generated source file (each holds exactly one function).
+    struct U {
+        fp: Vec<u64>,
+        beh_hash: u64,
+        trivial: bool,
+    }
+    let mut units: HashMap<String, U> = HashMap::new();
+
+    for il in &corpus.files {
+        let n = nose_normalize::normalize(il, &corpus.interner, &opts);
+        let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
+        let mut core_func: HashMap<(u32, u32), nose_il::NodeId> = HashMap::new();
+        let mut stk = vec![core.root];
+        while let Some(x) = stk.pop() {
+            if core.kind(x) == nose_il::NodeKind::Func {
+                let s = core.node(x).span;
+                core_func.entry((s.start_byte, s.end_byte)).or_insert(x);
+            }
+            stk.extend(core.children(x).iter().copied());
+        }
+        for u in &n.units {
+            let root = u.root;
+            if n.kind(root) != nose_il::NodeKind::Func {
+                continue;
+            }
+            let span0 = n.node(root).span;
+            let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
+                continue;
+            };
+            // Fingerprint + pointer-length contracts (n = len(array)) from one build.
+            let (fp, contracts) =
+                nose_normalize::value_fingerprint_and_contracts(&n, root, &corpus.interner);
+            if fp.is_empty() {
+                continue;
+            }
+            let mut beh: Vec<Behavior> = Vec::with_capacity(battery.len());
+            let mut ok = true;
+            for inputs in &battery {
+                let row = apply_contracts(inputs, &contracts);
+                match run_unit(&core, core_root, &row) {
+                    Some(b) => beh.push(b),
+                    None => {
+                        ok = false;
+                        break;
+                    }
+                }
+            }
+            if !ok {
+                continue;
+            }
+            // Trivial behavior (constant / all-Err) is coincidental, never evidence of a
+            // clone — exclude it from behavioral merging (matches the verify completeness gate).
+            let distinct: HashSet<&Value> = beh.iter().map(|b| &b.ret).collect();
+            let trivial = distinct.len() < 2
+                || beh
+                    .iter()
+                    .all(|b| matches!(b.ret, Value::Null | Value::Err));
+            let mut h = DefaultHasher::new();
+            beh.hash(&mut h);
+            units.insert(
+                manifest_key(&il.meta.path),
+                U {
+                    fp,
+                    beh_hash: h.finish(),
+                    trivial,
+                },
+            );
+        }
+    }
+
+    // Cross-reference the manifest's labeled pairs.
+    #[derive(serde::Deserialize)]
+    struct Side {
+        path: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct Item {
+        left: Side,
+        right: Side,
+        semantic_status: String,
+        split: String,
+    }
+    #[derive(serde::Deserialize)]
+    struct Manifest {
+        items: Vec<Item>,
+    }
+    let m: Manifest = serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+
+    // Tally, restricted to pairs where BOTH units are interpretable (the slice this gate
+    // can speak to). For each: did exact-fingerprint merge them? did the behavioral gate?
+    struct Tally {
+        pairs: usize,
+        fp_merge: usize,
+        beh_merge: usize,
+        beh_only: usize, // behavioral merge that fingerprint missed (the leap value / cost)
+    }
+    impl Tally {
+        fn new() -> Self {
+            Tally {
+                pairs: 0,
+                fp_merge: 0,
+                beh_merge: 0,
+                beh_only: 0,
+            }
+        }
+    }
+    let mut pos = Tally::new();
+    let mut neg = Tally::new();
+    let mut pos_heldout = 0usize;
+    let mut pos_heldout_beh_only = 0usize;
+    let mut uninterp_pairs = 0usize;
+
+    for it in &m.items {
+        let (lk, rk) = (manifest_key(&it.left.path), manifest_key(&it.right.path));
+        let (Some(lu), Some(ru)) = (units.get(&lk), units.get(&rk)) else {
+            uninterp_pairs += 1;
+            continue;
+        };
+        let positive = it.semantic_status == "equivalent";
+        let t = if positive { &mut pos } else { &mut neg };
+        t.pairs += 1;
+        let fp_merge = lu.fp == ru.fp;
+        // A behavioral merge requires identical behavior on EVERY battery input and a
+        // non-trivial behavior (constant/all-Err units never merge on behavior).
+        let beh_merge = !lu.trivial && !ru.trivial && lu.beh_hash == ru.beh_hash;
+        if fp_merge {
+            t.fp_merge += 1;
+        }
+        if beh_merge {
+            t.beh_merge += 1;
+        }
+        if beh_merge && !fp_merge {
+            t.beh_only += 1;
+            if positive && it.split == "heldout" {
+                pos_heldout_beh_only += 1;
+            }
+        }
+        if positive && it.split == "heldout" {
+            pos_heldout += 1;
+        }
+    }
+
+    let kind = match battery_kind {
+        BatteryKind::Standard => "standard (leap 2)",
+        BatteryKind::Wide => "wide (leap 3)",
+    };
+    println!("=== behavioral-equivalence acceptance gate — battery: {kind} ===");
+    println!("battery rows: {}", battery.len());
+    println!(
+        "manifest pairs: {} interpretable-both / {} excluded (a unit not interpretable)",
+        pos.pairs + neg.pairs,
+        uninterp_pairs
+    );
+    println!();
+    println!(
+        "POSITIVES (should merge), interpretable slice = {}",
+        pos.pairs
+    );
+    println!(
+        "  exact-fingerprint recall : {}/{} ({:.1}%)",
+        pos.fp_merge,
+        pos.pairs,
+        pct(pos.fp_merge, pos.pairs)
+    );
+    println!(
+        "  behavioral-gate recall   : {}/{} ({:.1}%)",
+        pos.beh_merge,
+        pos.pairs,
+        pct(pos.beh_merge, pos.pairs)
+    );
+    println!(
+        "  → RECOVERED beyond fingerprint (leap value): {} (heldout: {}/{})",
+        pos.beh_only, pos_heldout_beh_only, pos_heldout
+    );
+    println!();
+    println!(
+        "HARD NEGATIVES (must NOT merge), interpretable slice = {}",
+        neg.pairs
+    );
+    println!(
+        "  exact-fingerprint false merges: {}/{} ({:.1}%)",
+        neg.fp_merge,
+        neg.pairs,
+        pct(neg.fp_merge, neg.pairs)
+    );
+    println!(
+        "  behavioral-gate false merges  : {}/{} ({:.1}%)  ← the soundness cost",
+        neg.beh_merge,
+        neg.pairs,
+        pct(neg.beh_merge, neg.pairs)
+    );
+    println!("  → INTRODUCED beyond fingerprint: {}", neg.beh_only);
+    Ok(())
+}
+
+fn pct(a: usize, b: usize) -> f64 {
+    if b == 0 {
+        0.0
+    } else {
+        100.0 * a as f64 / b as f64
+    }
+}
+
+/// Rewrite a battery row to honor a unit's pointer-length contracts: set each length-param
+/// slot to the length of its array-param slot, so the oracle interprets `f(xs, n)` under
+/// `n = len(xs)` — the same convention the value graph used to merge it. Only applies when
+/// the array slot is actually a list (else the unit Errs identically regardless). Returns
+/// the row unchanged when there are no contracts (zero cost for the common case).
+fn apply_contracts(
+    row: &[nose_normalize::Value],
+    contracts: &[(u32, u32)],
+) -> Vec<nose_normalize::Value> {
+    use nose_normalize::Value;
+    let mut out = row.to_vec();
+    // A length param shared by several arrays (aligned `f(a, b, n)`) is the SHARED logical
+    // length: bind it to the MIN of those arrays' lengths, matching the `zip`-based form
+    // (`sum(x*y for x,y in zip(a,b))` stops at the shorter). For a single array this is just
+    // its length. Group contracts by length-position so the shared case is a min, not a
+    // last-write race.
+    let mut by_len: std::collections::BTreeMap<usize, Vec<usize>> =
+        std::collections::BTreeMap::new();
+    for &(arr_pos, len_pos) in contracts {
+        by_len
+            .entry(len_pos as usize)
+            .or_default()
+            .push(arr_pos as usize);
+    }
+    for (len_pos, arrs) in by_len {
+        if len_pos >= out.len() {
+            continue;
+        }
+        // If EVERY contracted array slot is a list, bind `n` to the MIN of their lengths (the
+        // shared logical length). If any slot is NOT a list, `len` is undefined — bind `n =
+        // Null` so `i < n` Errs and the unit Errs exactly as the `len(non-list)` form does,
+        // instead of running an empty loop and returning the init value.
+        let mut shared: Option<i64> = Some(i64::MAX);
+        for arr_pos in arrs {
+            match out.get(arr_pos) {
+                Some(Value::List(xs)) => {
+                    let l = xs.len() as i64;
+                    shared = shared.map(|s| s.min(l));
+                }
+                _ => shared = None,
+            }
+        }
+        out[len_pos] = match shared {
+            Some(l) if l != i64::MAX => Value::Int(l),
+            _ => Value::Null,
+        };
+    }
+    out
+}
+
+fn cmd_verify(
+    paths: Vec<PathBuf>,
+    no_cfg_norm: bool,
+    json: bool,
+    max_violations: Option<usize>,
+    leads: Option<PathBuf>,
+) -> Result<()> {
     use nose_normalize::{run_unit, Behavior, NormalizeOptions, Value};
     use std::collections::HashMap;
     use std::hash::{Hash, Hasher};
@@ -1119,7 +1508,13 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
             // structure there, never on an empty value multiset — so distinct empty-fp
             // bodies "colliding" is not a product false merge. Exclude empty fingerprints
             // (only those — small non-empty ones stay, so completeness is unaffected).
-            let fp = nose_normalize::value_fingerprint(&n, root, &corpus.interner);
+            // Fingerprint AND pointer-length contracts from ONE value-graph build (the
+            // oracle needs both; building twice doubled the per-unit cost). The contract
+            // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
+            // convention the value graph used to merge it; gated on the contract actually
+            // firing, so a non-contract false merge is still exposed by the free battery.
+            let (fp, contracts) =
+                nose_normalize::value_fingerprint_and_contracts(&n, root, &corpus.interner);
             if fp.is_empty() {
                 continue;
             }
@@ -1127,7 +1522,8 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
             let mut beh = Vec::new();
             let mut ok = true;
             for inputs in &battery {
-                match run_unit(&core, core_root, inputs) {
+                let row = apply_contracts(inputs, &contracts);
+                match run_unit(&core, core_root, &row) {
                     Some(b) => beh.push(b),
                     None => {
                         ok = false;
@@ -1145,7 +1541,8 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
                 let mut full_beh = Vec::with_capacity(battery.len());
                 let mut full_ok = true;
                 for inputs in &battery {
-                    match run_unit(&n, root, inputs) {
+                    let row = apply_contracts(inputs, &contracts);
+                    match run_unit(&n, root, &row) {
                         Some(b) => full_beh.push(b),
                         None => {
                             full_ok = false;
@@ -1260,10 +1657,11 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
     }
     println!("\nSOUNDNESS — fingerprint-equal ⟹ behavior-equal:");
     println!("  fingerprint groups (≥2): {fp_groups}");
+    let n_violations = violations.len();
     if violations.is_empty() {
         println!("  SOUND: no false merges ✓");
     } else {
-        println!("  [!] {} VIOLATION(S) (false merges):", violations.len());
+        println!("  [!] {n_violations} VIOLATION(S) (false merges):");
         for (a, b, d) in violations.iter().take(20) {
             println!("    {a}  ≡?  {b}   ({d} differing inputs)");
         }
@@ -1369,6 +1767,31 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
     for (a, b, vj) in misses.iter().take(30) {
         println!("    vj={vj:.2}  {a}  ↮  {b}");
     }
+    // D1: export the under-merged pairs as detection leads — oracle-discovered candidates the
+    // detection campaign can turn into convergence proposals. Sorted by vj (already), so the
+    // strongest (structurally-near AND behavior-equal) come first.
+    if let Some(path) = &leads {
+        let items: Vec<_> = misses
+            .iter()
+            .map(|(a, b, vj)| {
+                serde_json::json!({ "a": a, "b": b, "vj": vj, "structurally_near": *vj >= 0.7 })
+            })
+            .collect();
+        let near = misses.iter().filter(|(_, _, vj)| *vj >= 0.7).count();
+        std::fs::write(
+            path,
+            serde_json::to_string_pretty(&serde_json::json!({
+                "under_merged_pairs": items.len(),
+                "structurally_near": near,
+                "leads": items,
+            }))?,
+        )?;
+        println!(
+            "\nLEADS: wrote {} under-merged pairs ({near} structurally-near) to {}",
+            misses.len(),
+            path.display()
+        );
+    }
 
     // --- Calibration: P(behavior-equal | value-Jaccard bin). The detector currently
     // trusts only an *exact* fingerprint match (vj = 1.0). This measures how safe it
@@ -1413,6 +1836,15 @@ fn cmd_verify(paths: Vec<PathBuf>, no_cfg_norm: bool, json: bool) -> Result<()> 
                 100.0 * eq[i] as f64 / tot[i] as f64
             );
         }
+    }
+    // CI soundness gate: fail if false merges exceed the budget. The independent oracle thus
+    // becomes a permanent regression gate on the detection campaign — a new canon that
+    // introduces a real false merge pushes the count over budget here.
+    if let Some(budget) = max_violations {
+        if n_violations > budget {
+            anyhow::bail!("verify gate: {n_violations} false merges exceed the budget of {budget}");
+        }
+        println!("\nGATE: {n_violations} ≤ {budget} false merges — OK ✓");
     }
     Ok(())
 }
