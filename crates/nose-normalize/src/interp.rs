@@ -292,7 +292,10 @@ impl<'a> Interp<'a> {
                         Flow::Break => break,
                         other => return Ok(other), // Ret / Err propagate
                     }
-                    self.exec(kids[2], env)?;
+                    match self.exec(kids[2], env)? {
+                        Flow::Normal => {}
+                        other => return Ok(other), // Ret / Break / Continue / Err propagate
+                    }
                 }
                 Ok(Flow::Normal)
             }
@@ -1175,6 +1178,46 @@ mod tests {
     #[test]
     fn range_zero_step_is_err_behavior() {
         assert_eq!(run_range(&[1, 5, 0]), Value::Err);
+    }
+
+    fn run_cstyle_loop_with_update_err() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let i = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let init = b.add(NodeKind::Assign, Payload::None, sp, &[i, zero]);
+        let cond = b.add(NodeKind::BinOp, Payload::Op(Op::Lt), sp, &[i, one]);
+        let div = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let j = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let update = b.add(NodeKind::Assign, Payload::None, sp, &[j, div]);
+        let set_done = b.add(NodeKind::Assign, Payload::None, sp, &[i, one]);
+        let body = b.add(NodeKind::Block, Payload::None, sp, &[set_done]);
+        let loop_node = b.add(
+            NodeKind::Loop,
+            Payload::Loop(LoopKind::CStyle),
+            sp,
+            &[init, cond, update, body],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[loop_node, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::C,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn cstyle_loop_update_err_stops_execution() {
+        assert_eq!(run_cstyle_loop_with_update_err(), Value::Err);
     }
 
     fn run_throw_then_return() -> Value {
