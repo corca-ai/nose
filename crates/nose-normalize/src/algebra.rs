@@ -155,24 +155,17 @@ impl Rewriter<'_> {
             return self.generic(old_id, span);
         }
         match op {
-            // canonicalize comparison direction
-            Op::Gt => {
+            // Canonicalize comparison direction by reflecting the order: `a > b` → `b < a`
+            // (Lean `Compare.lean::gt_eq_lt_swap`), `a >= b` → `b <= a` (`ge_eq_le_swap`).
+            // Both arms swap the operands and emit the mirror operator; only the target
+            // opcode differs.
+            Op::Gt | Op::Ge => {
+                let flipped = if op == Op::Gt { Op::Lt } else { Op::Le };
                 let (r, rh) = self.rewrite(kids[1]);
                 let (l, lh) = self.rewrite(kids[0]);
                 self.emit(
                     NodeKind::BinOp,
-                    Payload::Op(Op::Lt),
-                    span,
-                    &[r, l],
-                    &[rh, lh],
-                )
-            }
-            Op::Ge => {
-                let (r, rh) = self.rewrite(kids[1]);
-                let (l, lh) = self.rewrite(kids[0]);
-                self.emit(
-                    NodeKind::BinOp,
-                    Payload::Op(Op::Le),
+                    Payload::Op(flipped),
                     span,
                     &[r, l],
                     &[rh, lh],
