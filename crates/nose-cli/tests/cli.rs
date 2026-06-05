@@ -4225,7 +4225,7 @@ fn fail_flag_sets_exit_code_as_ci_gate() {
     let p = dir.to_str().unwrap();
     // A family exists → --fail must exit non-zero.
     let found = Command::new(bin())
-        .args(["scan", p, "--min-tokens", "12", "--fail"])
+        .args(["scan", p, "--min-tokens", "12", "--fail-on", "any"])
         .output()
         .expect("run");
     assert!(
@@ -4241,7 +4241,8 @@ fn fail_flag_sets_exit_code_as_ci_gate() {
             "12",
             "--min-value",
             "1e9",
-            "--fail",
+            "--fail-on",
+            "any",
         ])
         .output()
         .expect("run");
@@ -4352,7 +4353,6 @@ fn new_only_json_marks_new_families_against_baseline() {
         "12",
         "--baseline",
         bls,
-        "--new-only",
         "--format",
         "json",
         "--top",
@@ -4413,7 +4413,8 @@ fn fail_on_new_fails_for_changed_family_and_passes_when_clean() {
             "12",
             "--baseline",
             bls,
-            "--fail-on-new",
+            "--fail-on",
+            "new",
         ])
         .output()
         .expect("clean run");
@@ -4431,7 +4432,8 @@ fn fail_on_new_fails_for_changed_family_and_passes_when_clean() {
             "12",
             "--baseline",
             bls,
-            "--fail-on-new",
+            "--fail-on",
+            "new",
             "--format",
             "json",
             "--top",
@@ -4451,7 +4453,7 @@ fn fail_on_new_fails_for_changed_family_and_passes_when_clean() {
     assert_eq!(json["baseline"]["resolved_families"], 0);
     assert_eq!(scan_families(&json)[0]["baseline_status"], "changed");
     assert!(
-        stderr.contains("--fail-on-new"),
+        stderr.contains("--fail-on new"),
         "stderr should name the explicit gate: {stderr}"
     );
 

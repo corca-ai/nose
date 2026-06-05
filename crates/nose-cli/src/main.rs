@@ -148,12 +148,11 @@ enum Cmd {
         /// — much faster on repeated invocations (CI, pre-commit, iterating).
         #[arg(long, value_name = "DIR")]
         cache_dir: Option<PathBuf>,
-        /// Exit with a non-zero status if any family is reported after filters.
-        /// Turns `scan` into a CI gate, e.g.
-        /// `nose scan src --mode syntax --fail` or
-        /// `nose scan src --min-value 300 --min-members 3 --fail`.
-        #[arg(long)]
-        fail: bool,
+        /// CI gate — exit non-zero when families are reported: `any` (any reported
+        /// family fails) or `new` (only families new/changed vs `--baseline` fail;
+        /// requires `--baseline`). e.g. `nose scan src --mode syntax --fail-on any`.
+        #[arg(long, value_name = "WHAT")]
+        fail_on: Option<FailOn>,
         /// Baseline file of already-accepted families. Families recorded here are
         /// hidden from the report and don't trip `--fail`, so a run flags only *new*
         /// duplication — the way to adopt on a codebase that already has clones.
@@ -163,15 +162,6 @@ enum Cmd {
         /// to `nose.ignore.json` when that file exists.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
-        /// Explicitly report only families that are new or changed compared with
-        /// `--baseline`. This is the default behavior when `--baseline` is present;
-        /// the flag makes CI intent readable in scripts.
-        #[arg(long, requires = "baseline", conflicts_with = "write_baseline")]
-        new_only: bool,
-        /// Exit non-zero only when the baseline comparison finds new or changed
-        /// families. Requires `--baseline` and implies new-only reporting.
-        #[arg(long, requires = "baseline", conflicts_with = "write_baseline")]
-        fail_on_new: bool,
         /// Write the current families to the `--baseline` file (accept today's state)
         /// and exit, instead of reporting.
         #[arg(long, requires = "baseline")]
@@ -465,6 +455,16 @@ fn sort_name(s: SortKey) -> &'static str {
         SortKey::Sites => "number of copies",
         SortKey::Hazard => "divergent-edit hazard (most likely to be edited inconsistently)",
     }
+}
+
+/// CI fail-gate policy, selected with `--fail-on`.
+#[derive(Clone, Copy, PartialEq, Eq, clap::ValueEnum, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum FailOn {
+    /// Any reported family (after filters) fails the run.
+    Any,
+    /// Only families new or changed vs `--baseline` fail. Requires `--baseline`.
+    New,
 }
 
 /// Extra per-report views (human/markdown), selected with `--show`.
@@ -1097,11 +1097,9 @@ fn run() -> Result<()> {
             mode,
             show,
             cache_dir,
-            fail,
+            fail_on,
             baseline,
             ignore_file,
-            new_only: _,
-            fail_on_new,
             write_baseline,
             threshold,
             format,
@@ -1118,10 +1116,9 @@ fn run() -> Result<()> {
             mode,
             show,
             cache_dir,
-            fail,
+            fail_on,
             baseline,
             ignore_file,
-            fail_on_new,
             write_baseline,
             threshold,
             format,
@@ -2191,10 +2188,9 @@ struct ScanArgs {
     mode: Vec<ScanMode>,
     show: Vec<ShowView>,
     cache_dir: Option<PathBuf>,
-    fail: bool,
+    fail_on: Option<FailOn>,
     baseline: Option<PathBuf>,
     ignore_file: Option<PathBuf>,
-    fail_on_new: bool,
     write_baseline: bool,
     threshold: Option<f64>,
     format: ReportFormat,
@@ -2502,7 +2498,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // CI gate: report is already printed; a non-empty (filtered) family set is a
     // failure when --fail is set.
     if let (true, Some(comparison)) = (
-        args.fail_on_new && !families.is_empty(),
+        matches!(args.fail_on, Some(FailOn::New)) && !families.is_empty(),
         baseline_comparison.as_ref(),
     ) {
         let mut new_families = 0usize;
@@ -2516,14 +2512,14 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         }
         let reportable_families = new_families + changed_families;
         eprintln!(
-            "\nnose: {} new and {} changed {} found (--fail-on-new)",
+            "\nnose: {} new and {} changed {} found (--fail-on new)",
             new_families,
             changed_families,
             channels.report_label(reportable_families)
         );
         std::process::exit(1);
     }
-    if args.fail && !families.is_empty() {
+    if matches!(args.fail_on, Some(FailOn::Any)) && !families.is_empty() {
         eprintln!(
             "\nnose: {} {} found (--fail)",
             families.len(),
