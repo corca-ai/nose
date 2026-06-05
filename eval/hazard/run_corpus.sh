@@ -44,6 +44,7 @@ mine_one() {
   git -C "$dir" checkout -q "$branch" 2>/dev/null
   python3 "$MINE" --repo "$dir" --nose "$NOSE" --branch "$branch" --subdir "$subdir" \
     --max-months "$MONTHS" --out "$WORK/$name-events.jsonl" \
+    --g1-evidence "$WORK/$name-g1ev.jsonl" \
     > "$WORK/$name.mine.log" 2>&1
   python3 - "$WORK/$name-events.jsonl" "$stratum" <<'PY'
 import json,sys,os

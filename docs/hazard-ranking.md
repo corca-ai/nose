@@ -1,11 +1,14 @@
 # Hazard ranking (divergent-edit risk)
 
-> Status: **shipped as the default sort** (`--sort hazard`, the default; `--sort
-> extractability` for the former one). The formula is calibrated against mined
-> divergent-edit history ([eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md),
-> [experiments §BG](experiments.md)); the git-history Phase 2 and a human-audited gold
-> subset remain. The parked cognitive-complexity sub-idea lives in
-> [issue #23](https://github.com/corca-ai/nose/issues/23).
+> Status: **experimental, opt-in `--sort hazard` (NOT the default).** The formula
+> predicts divergent-edit *propensity* well (which clones get edited inconsistently —
+> leave-one-repo-out AUC 0.64 on the G1 label) but, on an LLM-built **gold harm label**,
+> it ranks actual *harm* no better than chance (AUC ~0.51). So it is **not yet a
+> validated harm ranker**; the default stays `extractability`. The honest evaluation
+> trail (G1 → retracted G2 → gold) is in [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md)
+> and [experiments §BG](experiments.md). Building a real harm ranker (git-history Phase 2,
+> a larger gold, better clone precision) is the active work. Parked
+> cognitive-complexity sub-idea: [issue #23](https://github.com/corca-ai/nose/issues/23).
 
 nose's default ranking, [extractability](usage.md#ranking), answers *"how cleanly
 does this duplication fold into one helper?"* — a **fixability** axis. This page

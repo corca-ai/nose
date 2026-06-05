@@ -37,7 +37,7 @@ nose scan path/to/project
 ```
 $ nose scan bench/repos/radash
 scanned 23 files · typescript 19 · javascript 4
-148 clone families, ranked by divergent-edit hazard (most likely to be edited inconsistently)  ·  ~5826 duplicated lines  (showing 30)
+148 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~5826 duplicated lines  (showing 30)
 
 #1  3 copies · same logic in 2 languages (javascript, typescript) · ~134 lines removable
     → consolidate `series` — 3 copies (cross-language)

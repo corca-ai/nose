@@ -426,7 +426,7 @@ enum SortKey {
     /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
     /// by the number of parameters the helper would need. Surfaces the duplication you
     /// can actually fold into one helper, not the biggest block that merely *looks*
-    /// similar (a *fixability* axis).
+    /// similar (a *fixability* axis). The default.
     Extractability,
     /// Raw duplicated volume: removable lines × similarity × spread. The most
     /// *code* you'd delete, even if the copies diverge a lot (more manual work).
@@ -437,7 +437,9 @@ enum SortKey {
     /// (one copy fixed, the siblings missed) and cause a bug. A severity axis, not a
     /// fixability one — surfaces copies that share little text yet are behaviorally the
     /// same (the invisible siblings a developer won't update). Calibrated against mined
-    /// history; see `docs/hazard-ranking.md`. The default.
+    /// history as a *divergence-propensity* signal — it is NOT yet a validated *harm*
+    /// ranker (an LLM-gold audit found ~chance harm discrimination); see
+    /// `docs/hazard-ranking.md`. Opt-in via `--sort hazard`.
     Hazard,
 }
 
@@ -615,7 +617,7 @@ impl CapabilitiesReport {
                 modes: vec!["syntax", "semantic", "near"],
                 default_modes: vec!["syntax", "semantic"],
                 output_formats: vec!["human", "json", "markdown", "sarif"],
-                sort_keys: vec!["hazard", "extractability", "value", "sites"],
+                sort_keys: vec!["extractability", "value", "sites", "hazard"],
                 config_keys: vec![
                     "exclude",
                     "ignore-file",
@@ -2291,7 +2293,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let top = args.top.or(cfg.top).unwrap_or(30);
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
-    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Hazard);
+    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
     let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
     if !channels.uses_threshold() && (args.threshold.is_some() || cfg.threshold.is_some()) {
         anyhow::bail!("--threshold is only valid when --mode includes near");

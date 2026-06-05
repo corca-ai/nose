@@ -121,7 +121,38 @@ def span_changed(ranges, file, start, end):
     return False
 
 
+def code_at(repo, sha, file, s, e, pad=0):
+    r = sh(["git", "-C", repo, "show", f"{sha}:{file}"])
+    if r.returncode != 0:
+        return ""
+    lines = r.stdout.split("\n")
+    return "\n".join(lines[max(s - 1 - pad, 0):e + pad])
+
+
+def member_diff(repo, a, b, file, s, e, pad=8):
+    """Unified diff of `file` (a..b) restricted to hunks near the member span [s,e]."""
+    r = sh(["git", "-C", repo, "diff", f"-U2", "--no-color", a, b, "--", file])
+    out, keep = [], False
+    for line in r.stdout.splitlines():
+        m = HUNK.match(line)
+        if m:
+            lo = int(m.group(1))
+            n = int(m.group(2)) if m.group(2) is not None else 1
+            hi = lo + max(n - 1, 0)
+            keep = not (hi < s - pad or lo > e + pad)
+        if keep:
+            out.append(line)
+    return "\n".join(out)
+
+
 BUGFIX = re.compile(r"\b(fix(e[sd])?|bug(fix)?|defect|hotfix|patch|resolve[sd]?)\b", re.I)
+
+
+def member_commits(repo, a, b, file, name, n=6):
+    """Subjects of commits that touched the function `name` in `file` during (a, b]."""
+    r = sh(["git", "-C", repo, "log", "-L", f":{re.escape(name)}:{file}",
+            "--no-patch", "--pretty=format:%s", f"{a}..{b}"])
+    return [l for l in r.stdout.splitlines() if l.strip()][:n]
 
 
 def member_bugfixed(repo, sha_a, sha_b, file, name):
@@ -146,6 +177,8 @@ def main():
     ap.add_argument("--threshold", type=float, default=0.7)
     ap.add_argument("--max-months", type=int, default=60)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--g1-evidence", default="",
+                    help="if set, dump rich evidence (member code + diff + messages) per G1")
     a = ap.parse_args()
 
     r = sh(["git", "-C", a.repo, "rev-parse", "--abbrev-ref", a.branch])
@@ -164,6 +197,7 @@ def main():
           f"{commits[0][1][:7]}..{commits[-1][1][:7]}", file=sys.stderr)
 
     counts = {"G1": 0, "G0c": 0, "G0s": 0, "G2": 0}
+    ev = open(a.g1_evidence, "w") if a.g1_evidence else None
     with open(a.out, "w") as fout:
         prev = None
         for sha, iso in commits:
@@ -200,7 +234,29 @@ def main():
                         "label": label, "g2": g2, "k_changed": k, "n_members": nmem,
                         "feats": fam["feats"],
                     }) + "\n")
+                    if ev is not None and label == "G1":
+                        members = fam["members"]
+                        changed = [m for m, fl in zip(members, flags) if fl]
+                        lagging = [m for m, fl in zip(members, flags) if not fl]
+                        cf, cn, cs, ce = changed[0]
+                        lf, ln, ls, le = lagging[0]
+                        ev.write(json.dumps({
+                            "repo": repo_name, "fam_key": fam["key"],
+                            "from": psha, "to": sha, "g2": g2,
+                            "n_members": nmem, "n_changed": k,
+                            "changed_member": {
+                                "file": cf, "name": cn,
+                                "code": code_at(a.repo, psha, cf, cs, ce)[:1800],
+                                "diff": member_diff(a.repo, psha, sha, cf, cs, ce)[:1800]},
+                            "lagging_member": {
+                                "file": lf, "name": ln,
+                                "code": code_at(a.repo, psha, lf, ls, le)[:1800]},
+                            "commit_subjects": member_commits(a.repo, psha, sha, cf, cn),
+                            "feats": fam["feats"],
+                        }) + "\n")
             prev = (sha, fams)
+    if ev is not None:
+        ev.close()
     print(f"[mine] DONE {repo_name}: G1={counts['G1']} (G2={counts['G2']}) "
           f"G0c={counts['G0c']} G0s={counts['G0s']} -> {a.out}", file=sys.stderr)
 

@@ -101,8 +101,44 @@ hazard = mean_lines
 
 Validated on the clean **G1** label (0.644 vs 0.609 for the size-led design, 0.611
 value-baseline, ~0.49 random). All terms reuse existing `RefactorFamily` fields;
-**`mean_sem` is dropped** (anti-predictive), **`params` is not used** (noise). Shipped as
-`nose`'s **default sort** (`crates/nose-detect/src/report.rs::hazard`, `SortKey::Hazard`).
+**`mean_sem` is dropped** (anti-predictive *for G1*), **`params` is not used** (noise).
+Implemented as opt-in `--sort hazard` (`crates/nose-detect/src/report.rs::hazard`,
+`SortKey::Hazard`) — **NOT the default**, because of the gold-harm result below.
+
+## Gold harm validation — the formula predicts propensity, NOT harm
+
+The 0.644 above is on **G1 = "did this family get edited inconsistently?"** A separate,
+trustworthy **gold harm label** was then built (Phase B/C): an LLM judged 1,390 G1
+candidates blind, *with the actual diff*, into harm / should-propagate / benign, and an
+adversarial pass refuted weak positives (`build_candidates.py` → `gold-label-divergence`
+workflow → `gold_eval.py`). Only **22 (strict) / 53 (lenient)** of 1,390 realized
+divergences are genuine should-propagate harms (~1.6–3.8% — independently reproducing the
+literature's 1–3% harmful rate, now semantically validated). On this gold:
+
+| scorer | AUC: harmful-vs-benign divergence (the task that matters) |
+|---|---|
+| `mean_sem` only | **0.61–0.64** (best — the *dropped* feature) |
+| `extractability` | 0.59–0.64 |
+| **`hazard` (the formula)** | **0.51 — chance** |
+| `value` | 0.42–0.47 |
+| random | ~0.3 |
+
+**The G1 result does not transfer to harm.** Predicting *which* clones get edited
+inconsistently (propensity) is not the same as predicting *which inconsistencies are
+harmful*, and the formula does the former, not the latter. Worse, `mean_sem` — dropped
+because it was anti-predictive *for G1* — is the best (still weak) *harm* signal, so the
+G1 proxy actively misled the design. Even the best static feature caps at ~0.6: **static
+structural features have a low harm ceiling**, because harm depends on whether a specific
+change *applies to the sibling* — a semantic question. (Caveat: 22–53 positives → wide
+CIs; the robust claim is the *transfer failure*, not the exact numbers.)
+
+Also surfaced: **698 of 1,390 candidates (50%) are not genuine clones** per the LLM — a
+`near@0.70` precision problem that adds noise to everything downstream.
+
+**Consequences:** (1) the default stays `extractability`; `hazard` is experimental
+opt-in. (2) A real harm ranker needs signal static features lack — **git-history
+(realized prior divergence)**, a **larger gold** (label ~5–10k for ~150 positives), and
+**better clone precision** than near@0.70. That is the active work.
 
 ## Gold-label audit (LLM-judge)
 

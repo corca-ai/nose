@@ -11,7 +11,7 @@
     ]
   },
   "ranking": {
-    "sort": "hazard",
+    "sort": "extractability",
     "total_families": 1,
     "shown_families": 1,
     "limit": 30

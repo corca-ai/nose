@@ -11,7 +11,7 @@ back to the built-in default. Back to [home](home.md).
 [scan]
 exclude     = ["tests/**", "**/*.generated.ts", "vendor/**"]
 mode        = ["syntax", "semantic"]
-sort        = "hazard"
+sort        = "extractability"
 min-value   = 200
 min-members = 3
 min-tokens  = 30
@@ -31,7 +31,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
 | `mode` | list of `syntax`\|`semantic`\|`near` | `["syntax", "semantic"]` | `--mode` |
-| `sort` | `hazard`\|`extractability`\|`value`\|`sites` | `hazard` | `--sort` |
+| `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `--sort` |
 | `min-value` | float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
 | `threshold` | float | `0.70` when `near` is enabled | `--threshold` |

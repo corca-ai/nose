@@ -715,6 +715,18 @@ not the weights, so we mined ground truth before implementing.
   (near@0.70 grouped trivial stubs). The lesson: `rate-match ≠ precision`, and a real gold
   label needs the LLM judge *as the labeler*, not the keyword heuristic. The 20 confirmed
   positives seed a real (small) gold set.
+- **BG-gold — the formula predicts propensity, not harm.** Built that real gold: an LLM
+  labeled 1,390 G1 candidates blind *with the diff* into harm/should-propagate/benign,
+  adversarial pass refuting weak positives (`build_candidates.py` → `gold-label-divergence`
+  → `gold_eval.py`). Only 22 (strict) / 53 (lenient) are genuine should-propagate harms
+  (~1.6–3.8%, reproducing the literature's 1–3%). On this gold, AUC for harmful-vs-benign
+  divergence: `mean_sem` 0.61–0.64 (the *dropped* feature, best), `extractability`
+  0.59–0.64, **`hazard` 0.51 (chance)**, value 0.42. **The G1 0.64 does not transfer to
+  harm** — propensity ≠ harm, and static features cap ~0.6 (harm depends on whether a
+  change *applies to the sibling*, a semantic question). Also: 50% of candidates are not
+  real clones (near@0.70 precision). → `hazard` reverted to opt-in (default stays
+  `extractability`); a real harm ranker needs git-history + a larger gold + better clone
+  precision.
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,
