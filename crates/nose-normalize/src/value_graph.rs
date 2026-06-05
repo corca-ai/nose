@@ -2913,12 +2913,15 @@ impl<'a> Builder<'a> {
 
     fn expr_is_static_runtime_err(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
         if self.il.kind(expr) == NodeKind::Seq {
-            return self
-                .il
-                .children(expr)
-                .to_vec()
-                .into_iter()
-                .any(|child| self.expr_is_static_runtime_err(child, env));
+            for child in self.il.children(expr).to_vec() {
+                if self.expr_is_static_runtime_err(child, env) {
+                    return crate::is_pure(self.il, child);
+                }
+                if !crate::is_pure(self.il, child) {
+                    return false;
+                }
+            }
+            return false;
         }
         if self.il.kind(expr) == NodeKind::HoF
             && matches!(
