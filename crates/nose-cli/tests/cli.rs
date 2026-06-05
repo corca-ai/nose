@@ -5206,6 +5206,11 @@ fn top_zero_shows_all_families() {
 fn git_in(dir: &Path, args: &[&str]) {
     let out = Command::new("git")
         .current_dir(dir)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_COMMON_DIR")
         .args(args)
         .output()
         .expect("run git");
@@ -5230,6 +5235,11 @@ fn nose_review(dir: &Path, extra: &[&str]) -> std::process::Output {
     args.extend_from_slice(extra);
     Command::new(bin())
         .current_dir(dir)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_COMMON_DIR")
         .args(&args)
         .output()
         .expect("run nose review")
@@ -5308,6 +5318,11 @@ fn review_needs_a_git_repository() {
     let dir = make_project("review_nogit");
     let out = Command::new(bin())
         .current_dir(&dir)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_COMMON_DIR")
         .args(["review", "."])
         .output()
         .expect("run nose review");

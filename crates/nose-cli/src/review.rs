@@ -180,8 +180,10 @@ fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u32)>>) -> bo
 
 // ---- git plumbing ---------------------------------------------------------------
 
+/// A git command rooted at `root`, with inherited git env vars cleared so it always
+/// operates on `root`'s repo — not on a `GIT_DIR`/`GIT_WORK_TREE` set by an outer hook.
 fn git(root: &Path, args: &[&str]) -> Result<std::process::Output> {
-    Command::new("git")
+    git_cmd()
         .arg("-C")
         .arg(root)
         .args(args)
@@ -189,8 +191,18 @@ fn git(root: &Path, args: &[&str]) -> Result<std::process::Output> {
         .context("failed to run git (is it installed and on PATH?)")
 }
 
+fn git_cmd() -> Command {
+    let mut cmd = Command::new("git");
+    cmd.env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_OBJECT_DIRECTORY")
+        .env_remove("GIT_COMMON_DIR");
+    cmd
+}
+
 fn git_repo_root() -> Result<PathBuf> {
-    let out = Command::new("git")
+    let out = git_cmd()
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .context("failed to run git (is it installed and on PATH?)")?;
