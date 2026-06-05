@@ -10,5 +10,8 @@ __pycache__/
 # synthetic/bench scratch
 /tmp/
 
+# Claude-created Git worktrees; keep other .claude files visible.
+/.claude/worktrees/
+
 # vendored benchmark repos (large; reconstruct via bench/setup_repos.sh)
 /bench/repos/

@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-05
+
 ### Added
 - Strict Type-4 proof facts for case-sensitive string prefix/suffix predicates across
   Go, Java, JavaScript/TypeScript, Python, Ruby, Rust, and embedded script surfaces.

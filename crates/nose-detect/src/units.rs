@@ -98,24 +98,19 @@ impl UnitTimer {
         start.map(|t| t.elapsed().as_secs_f64() * 1e3)
     }
 
-    fn report_skip(
-        &mut self,
-        start: Option<Instant>,
-        kind: &UnitKind,
-        path: &str,
-        start_line: u32,
-        end_line: u32,
-        tokens: usize,
-        pre_ms: Option<f64>,
-        safe_ms: Option<f64>,
-        value_ms: Option<f64>,
-    ) {
-        let Some(start) = start else {
+    fn report_skip(&mut self, sample: UnitTimingSkipSample<'_>) {
+        let Some(start) = sample.start else {
             return;
         };
         let total_ms = start.elapsed().as_secs_f64() * 1e3;
-        self.summary
-            .record_skip(kind, tokens, total_ms, pre_ms, safe_ms, value_ms);
+        self.summary.record_skip(
+            sample.kind,
+            sample.tokens,
+            total_ms,
+            sample.pre_ms,
+            sample.safe_ms,
+            sample.value_ms,
+        );
         if self.sample_enabled && total_ms >= 10.0 {
             let ms = |value: Option<f64>| {
                 value
@@ -123,10 +118,16 @@ impl UnitTimer {
                     .unwrap_or_else(|| "-".to_string())
             };
             eprintln!(
-                "  [unit] skip {kind:?} {path}:{start_line}-{end_line} tokens={tokens} pre={} safe={} value={} total={total_ms:.1}ms",
-                ms(pre_ms),
-                ms(safe_ms),
-                ms(value_ms),
+                "  [unit] skip {:?} {}:{}-{} tokens={} pre={} safe={} value={} total={:.1}ms",
+                sample.kind,
+                sample.path,
+                sample.start_line,
+                sample.end_line,
+                sample.tokens,
+                ms(sample.pre_ms),
+                ms(sample.safe_ms),
+                ms(sample.value_ms),
+                total_ms,
             );
         }
     }
@@ -298,6 +299,18 @@ struct UnitTimingSample<'a> {
     value_ms: Option<f64>,
 }
 
+struct UnitTimingSkipSample<'a> {
+    start: Option<Instant>,
+    kind: &'a UnitKind,
+    path: &'a str,
+    start_line: u32,
+    end_line: u32,
+    tokens: usize,
+    pre_ms: Option<f64>,
+    safe_ms: Option<f64>,
+    value_ms: Option<f64>,
+}
+
 #[inline]
 fn combine(a: u64, b: u64) -> u64 {
     (a.rotate_left(7) ^ b).wrapping_mul(SEED)
@@ -343,34 +356,34 @@ pub(crate) fn extract(
         // this cap before strict/value extraction so discarded containers never pay
         // the dominant semantic fingerprint cost.
         if semantic_container_token_cap(kind).is_some_and(|cap| pre.len() > cap) {
-            unit_timer.report_skip(
-                unit_start,
-                &kind,
-                &il.meta.path,
-                span.start_line,
-                span.end_line,
-                pre.len(),
+            unit_timer.report_skip(UnitTimingSkipSample {
+                start: unit_start,
+                kind: &kind,
+                path: &il.meta.path,
+                start_line: span.start_line,
+                end_line: span.end_line,
+                tokens: pre.len(),
                 pre_ms,
-                None,
-                None,
-            );
+                safe_ms: None,
+                value_ms: None,
+            });
             continue;
         }
 
         let syntactically_small = lines < min_lines || pre.len() < min_tokens;
         let can_use_dense_gate = matches!(kind, UnitKind::Function | UnitKind::Method);
         if syntactically_small && !can_use_dense_gate {
-            unit_timer.report_skip(
-                unit_start,
-                &kind,
-                &il.meta.path,
-                span.start_line,
-                span.end_line,
-                pre.len(),
+            unit_timer.report_skip(UnitTimingSkipSample {
+                start: unit_start,
+                kind: &kind,
+                path: &il.meta.path,
+                start_line: span.start_line,
+                end_line: span.end_line,
+                tokens: pre.len(),
                 pre_ms,
-                None,
-                None,
-            );
+                safe_ms: None,
+                value_ms: None,
+            });
             continue;
         }
 
@@ -405,17 +418,17 @@ pub(crate) fn extract(
         let dense_fn =
             matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN;
         if syntactically_small && !dense_fn {
-            unit_timer.report_skip(
-                unit_start,
-                &kind,
-                &il.meta.path,
-                span.start_line,
-                span.end_line,
-                pre.len(),
+            unit_timer.report_skip(UnitTimingSkipSample {
+                start: unit_start,
+                kind: &kind,
+                path: &il.meta.path,
+                start_line: span.start_line,
+                end_line: span.end_line,
+                tokens: pre.len(),
                 pre_ms,
                 safe_ms,
                 value_ms,
-            );
+            });
             continue;
         }
         let feature_start = unit_timer.start();
@@ -1351,7 +1364,7 @@ fn top_level_assignment_count(il: &Il, symbol: Symbol) -> usize {
 
 fn top_level_assignment_rhs(il: &Il, symbol: Symbol) -> Option<NodeId> {
     top_level_statements(il).into_iter().find_map(|stmt| {
-        if !assignment_name(il, stmt).is_some_and(|name| name == symbol) {
+        if assignment_name(il, stmt).is_none_or(|name| name != symbol) {
             return None;
         }
         let kids = il.children(stmt);
@@ -1524,11 +1537,10 @@ fn strict_exact_java_collection_factory_safe(
     };
     let method = interner.resolve(method);
     let receiver_name = interner.resolve(receiver_name);
-    let standard_factory = match (receiver_name, method) {
-        ("List" | "Set", "of") => true,
-        ("Arrays", "asList") => true,
-        _ => false,
-    };
+    let standard_factory = matches!(
+        (receiver_name, method),
+        ("List" | "Set", "of") | ("Arrays", "asList")
+    );
     standard_factory
         && !java_file_defines_type_name(il, interner, receiver_name)
         && kids

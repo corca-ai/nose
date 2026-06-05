@@ -57,7 +57,7 @@ pub fn value_fingerprint_lits(
 /// literal-sensitive subtree hash for the whole IL, and opaque raw/lambda values need a
 /// structural subtree hash for the same file. Doing either once per unit turns a
 /// file-level proof into the dominant cost. This context keeps the reusable proof result
-/// and lazily shares structural subtree hashes. Each per-unit [`Builder`] still interns
+/// and lazily shares structural subtree hashes. Each per-unit builder still interns
 /// the corresponding lambda values into its own value arena, so value ids never cross
 /// builder boundaries.
 pub struct ValueFingerprintContext {
@@ -2459,12 +2459,8 @@ impl<'a> Builder<'a> {
     ) -> Option<ValueId> {
         let (cond_a, ret_a) = self.guarded_return_parts(first)?;
         let (cond_b, ret_b) = self.guarded_return_parts(second)?;
-        let Some((value_a, present_a)) = self.null_condition(cond_a) else {
-            return None;
-        };
-        let Some((value_b, present_b)) = self.null_condition(cond_b) else {
-            return None;
-        };
+        let (value_a, present_a) = self.null_condition(cond_a)?;
+        let (value_b, present_b) = self.null_condition(cond_b)?;
         if value_a != value_b || present_a == present_b {
             return None;
         }
@@ -3707,8 +3703,8 @@ impl<'a> Builder<'a> {
 
     fn bool_const(&self, id: ValueId) -> Option<bool> {
         match self.nodes[id as usize].op {
-            ValOp::Const(c) if c == 0x3000_0001 => Some(false),
-            ValOp::Const(c) if c == 0x3000_0002 => Some(true),
+            ValOp::Const(0x3000_0001) => Some(false),
+            ValOp::Const(0x3000_0002) => Some(true),
             _ => None,
         }
     }

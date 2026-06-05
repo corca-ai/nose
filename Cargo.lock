@@ -456,7 +456,7 @@ checksum = "6b947ae49db0d222b1dbc6b113ce7248a3fc3a6ca21b696717bfc000ba4484d8"
 
 [[package]]
 name = "nose-cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -474,7 +474,7 @@ dependencies = [
 
 [[package]]
 name = "nose-detect"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "criterion",
  "nose-frontend",
@@ -487,7 +487,7 @@ dependencies = [
 
 [[package]]
 name = "nose-eval"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "rustc-hash",
@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "nose-frontend"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "ignore",
@@ -518,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "nose-il"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "lasso",
  "serde",
@@ -526,7 +526,7 @@ dependencies = [
 
 [[package]]
 name = "nose-normalize"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "nose-il",
  "rustc-hash",
