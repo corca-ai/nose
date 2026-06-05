@@ -419,6 +419,9 @@ impl<'a> Interp<'a> {
                         self.eval(kids[1], env)?
                     });
                 }
+                if matches!(a, Value::Err) {
+                    return Ok(Value::Err);
+                }
                 let b = self.eval(kids[1], env)?;
                 Ok(bin(op, &a, &b))
             }
@@ -1611,6 +1614,43 @@ mod tests {
     #[test]
     fn index_checks_error_base_before_index_expr() {
         let behavior = index_on_error_base_with_effect_index();
+        assert_eq!(behavior.ret, Value::Err);
+        assert!(behavior.effects.is_empty());
+    }
+
+    fn binop_on_error_left_with_effect_right() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let left_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[one]);
+        let add = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Add),
+            sp,
+            &[left_err, print],
+        );
+        let add_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[add]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[add_stmt, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn binop_checks_error_left_before_right_expr() {
+        let behavior = binop_on_error_left_with_effect_right();
         assert_eq!(behavior.ret, Value::Err);
         assert!(behavior.effects.is_empty());
     }

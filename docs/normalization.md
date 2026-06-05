@@ -88,9 +88,9 @@ Guiding constraints for every pass:
   membership such as `List.of(values).contains(x)` or `Arrays.asList(listParam).contains(x)`.
   The oracle also propagates `Err` through append receivers (including computed
   receivers) and arguments, so list-building effects do not silently absorb failed
-  target or item computations; index bases fail before subscript expressions run; and
-  C-style loop updates plus for-each iterable evaluation propagate runtime errors just
-  like the loop condition and body.
+  target or item computations; binary left operands and index bases fail before later
+  operands/subscript expressions run; and C-style loop updates plus for-each iterable
+  evaluation propagate runtime errors just like the loop condition and body.
   Eager builtin arguments, direct
   self-recursion call-by-value arguments, list/tuple literal items, reduce initial values,
   higher-order map/filter/reduce, and `any`/`all` predicate errors also stay
