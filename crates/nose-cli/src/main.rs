@@ -2434,6 +2434,15 @@ fn warn_no_files(paths: &[PathBuf]) {
 }
 
 fn cmd_scan(args: ScanArgs) -> Result<()> {
+    // `--fail-on new` gates on families that are new/changed vs a baseline, so without
+    // `--baseline` the gate could never fire — reject the combination instead of silently
+    // passing (a CI gate that always succeeds is the worst failure mode).
+    if matches!(args.fail_on, Some(FailOn::New)) && args.baseline.is_none() {
+        anyhow::bail!(
+            "--fail-on new requires --baseline (it gates on families new vs the baseline)"
+        );
+    }
+
     let refs: Vec<&std::path::Path> = args.paths.iter().map(|p| p.as_path()).collect();
 
     // Resolve each setting: CLI flag wins, else config file, else built-in default.
