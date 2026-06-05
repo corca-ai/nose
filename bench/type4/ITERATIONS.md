@@ -5659,6 +5659,90 @@ multi-language real frontier evidence; if none is found, keep fragment work tied
 shared proof invariant and avoid opening dynamic property or arbitrary statement-window
 semantics.
 
+## Fragment batch 27: exact ordered conditional mixed-effect branch fragments
+
+This batch fills the next narrow combination on the same non-Java branch-fragment axis:
+a direct conditional branch may now contain exactly one conditional direct-effect item and
+exactly one direct exact effect item. The conditional item must have only empty branches
+or one direct append/index effect in a branch. The direct effect item must be an append or
+a non-overloadable C/Go/Java index assignment. This does not open arbitrary statement
+windows, temp chains, return/throw conditionals, loop/conditional pairs, or three-effect
+branches.
+
+The proof invariant is compositional and prefiltered. The parent branch body must have
+exactly two children, exactly one child `If`, and exactly one direct `ExprStmt`/`Assign`
+effect. The `If` reuses the existing conditional-direct-effect helper, and the direct
+item reuses the append/index proof. Guard exactness is still enforced by strict exact-safe
+normalization. Swapping the conditional/direct order, changing a guard, changing a
+receiver, mutating the receiver before the parent branch, changing a Go index expression,
+or adding a third effect remains a hard negative.
+
+The focused positives share one invariant and intentionally avoid Java:
+
+- JavaScript conditional append effect followed by a direct append effect;
+- Python direct append effect followed by a conditional append effect;
+- Go conditional index-assignment effect followed by a direct index assignment.
+
+Baseline evidence:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_fragments -- --nocapture
+baseline result before detector change: failed with 0 semantic families in the focused corpus.
+```
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-cond-mixed-1 | candidate extraction | allow exact branch bodies with exactly one conditional direct-effect item plus one direct effect item | 3 focused JS/Python/Go branch families reported as `Block` units |
+| fragment-cond-mixed-2 | hard negatives | preserve conditional/direct order, guard value, receiver identity, receiver mutation boundaries, Go index/value identity, and the two-effect cap | swapped-order, wrong-guard, wrong-receiver, mutation, wrong-index, and third-effect negatives excluded |
+| fragment-cond-mixed-3 | performance guard | require exactly one `If` and one direct effect statement before running exact item proofs | selected/full families and locations unchanged; full candidate median 290.6ms -> 311.5ms |
+| fragment-cond-mixed-4 | regression | rerun conditional-only, loop/direct mixed, and ordered append focused tests | all focused regressions pass |
+| fragment-cond-mixed-5 | release gates | run full Rust suite, clippy, release build, compact all-cross core smoke | `cargo test` pass; clippy clean; core smoke 634/634 positives and 0/1246 hard-negative false merges |
+
+Focused regressions:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_fragments -- --nocapture
+JS, Python, and Go ordered conditional mixed-effect branch positives reported; swapped-order,
+wrong-guard, wrong-receiver, mutation, wrong-index, and third-effect negatives excluded.
+
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments -- --nocapture
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments -- --nocapture
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments -- --nocapture
+Existing conditional-only, loop/direct mixed, and ordered append fragment boundaries still pass.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 634/634
+hard-negative false merges: 0/1246
+```
+
+Real corpus and performance:
+
+```text
+NOSE_TIME=1 <baseline> scan prettier jest radash sympy black gorm nats-server --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan prettier jest radash sympy black gorm nats-server --mode semantic --format json --top 0
+selected files: 10338
+families: 1199 before, 1199 after
+locations: 4389 before, 4389 after
+median normalize+extract over three alternating runs: 562.6ms before, 580.2ms after
+median candidates over three alternating runs: 31.0ms before, 33.1ms after
+
+NOSE_TIME=1 <baseline> scan bench/repos --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan bench/repos --mode semantic --format json --top 0
+full files: 60748
+families: 7403 before, 7403 after
+locations: 32965 before, 32965 after
+median normalize+extract over three alternating runs: 3803.2ms before, 3763.5ms after
+median candidates over three alternating runs: 290.6ms before, 311.5ms after
+```
+
+The full-corpus candidate median moved up by about 20.9ms while family/location counts
+stayed unchanged and normalize+extract moved down slightly. Treat candidate-path growth
+as the next watchpoint before adding another combinatorial branch item shape.
+
 ## Fragment batch 26: exact ordered conditional-effect branch fragments
 
 This batch extends the same non-Java branch-fragment direction to a narrow conditional

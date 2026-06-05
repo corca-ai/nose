@@ -1922,6 +1922,9 @@ fn empty_or_single_direct_exact_statement_block(
     if exact_ordered_conditional_effect_sequence_block(il, node) {
         return Some(true);
     }
+    if exact_ordered_conditional_mixed_effect_sequence_block(il, node) {
+        return Some(true);
+    }
     if kids.len() == 3 && exact_temp_chain_consumed_by_statement(il, kids[0], kids[1], kids[2]) {
         return Some(true);
     }
@@ -1979,8 +1982,7 @@ fn exact_ordered_mixed_effect_sequence_block(il: &Il, interner: &Interner, node:
 fn exact_ordered_mixed_effect_sequence_item(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match il.kind(node) {
         NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, node),
-        NodeKind::ExprStmt => exact_append_effect_statement_root(il, node),
-        NodeKind::Assign => exact_index_assignment_fragment_root(il, node),
+        NodeKind::ExprStmt | NodeKind::Assign => exact_direct_effect_statement_root(il, node),
         _ => false,
     }
 }
@@ -2012,6 +2014,32 @@ fn exact_conditional_direct_effect_fragment_root(il: &Il, node: NodeId) -> bool 
     has_effect
 }
 
+fn exact_ordered_conditional_mixed_effect_sequence_block(il: &Il, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Block {
+        return false;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 {
+        return false;
+    }
+    let conditional_count = kids
+        .iter()
+        .filter(|&&kid| il.kind(kid) == NodeKind::If)
+        .count();
+    let direct_effect_count = kids
+        .iter()
+        .filter(|&&kid| matches!(il.kind(kid), NodeKind::ExprStmt | NodeKind::Assign))
+        .count();
+    if conditional_count != 1 || direct_effect_count != 1 {
+        return false;
+    }
+    kids.iter().all(|&kid| match il.kind(kid) {
+        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, kid),
+        NodeKind::ExprStmt | NodeKind::Assign => exact_direct_effect_statement_root(il, kid),
+        _ => false,
+    })
+}
+
 fn empty_or_single_direct_exact_effect_block(il: &Il, node: NodeId) -> Option<bool> {
     if il.kind(node) != NodeKind::Block {
         return None;
@@ -2023,10 +2051,14 @@ fn empty_or_single_direct_exact_effect_block(il: &Il, node: NodeId) -> Option<bo
     if kids.len() != 1 {
         return None;
     }
-    match il.kind(kids[0]) {
-        NodeKind::ExprStmt if exact_append_effect_statement_root(il, kids[0]) => Some(true),
-        NodeKind::Assign if exact_index_assignment_fragment_root(il, kids[0]) => Some(true),
-        _ => None,
+    exact_direct_effect_statement_root(il, kids[0]).then_some(true)
+}
+
+fn exact_direct_effect_statement_root(il: &Il, node: NodeId) -> bool {
+    match il.kind(node) {
+        NodeKind::ExprStmt => exact_append_effect_statement_root(il, node),
+        NodeKind::Assign => exact_index_assignment_fragment_root(il, node),
+        _ => false,
     }
 }
 

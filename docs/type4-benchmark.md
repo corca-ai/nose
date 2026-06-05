@@ -74,7 +74,7 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, literal map-default fallback including Ruby zero-arg `fetch` blocks, ordered append-effect branch, ordered foreach-effect branch, ordered mixed-effect branch, ordered conditional-effect branch, ordered index-assignment branch, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, C u16/u32 byte-pack, Java low-bit toggle, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, literal map-default fallback including Ruby zero-arg `fetch` blocks, ordered append-effect branch, ordered foreach-effect branch, ordered mixed-effect branch, ordered conditional-effect branch, ordered conditional-mixed branch, ordered index-assignment branch, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, C u16/u32 byte-pack, Java low-bit toggle, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
@@ -161,6 +161,7 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | branch ordered foreach effect loops | swapped loop order, wrong receiver, preceding receiver mutation, wrong temp RHS, wrong index/value, third loop |
 | branch ordered mixed effects | swapped effect order, wrong receiver, preceding receiver mutation, wrong temp RHS, wrong index/value, third effect |
 | branch ordered conditional effects | swapped conditional order, wrong guard, wrong receiver, preceding receiver mutation, wrong index/value, third conditional |
+| branch ordered conditional mixed effects | swapped conditional/direct order, wrong guard, wrong receiver, preceding receiver mutation, wrong index/value, third effect |
 | foreach index assignment | wrong receiver, wrong index expression, wrong assigned value, unused iteration binding |
 | branch temp-consumed index assignment | wrong temp RHS, wrong index/value, temp consumed through the receiver, temp chain skips first temp, final assignment also reads prior temp |
 | branch ordered index assignment | swapped write order, wrong receiver, preceding receiver mutation, wrong temp RHS, wrong key/value, fourth write, dynamic property assignment |
