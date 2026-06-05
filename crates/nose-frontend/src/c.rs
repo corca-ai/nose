@@ -398,7 +398,16 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         "number_literal" => {
             let t = lo.text(node);
-            if t.contains('.') || t.contains('e') || t.contains('E') {
+            let lower = t.to_ascii_lowercase();
+            // In a hex literal (`0x…`) the digits e/E are hex digits, not a float exponent;
+            // a hex float instead uses a `.` or a binary `p`/`P` exponent. A decimal literal
+            // is a float if it has a `.` or an `e`/`E` exponent.
+            let is_float = if lower.starts_with("0x") {
+                lower.contains('.') || lower.contains('p')
+            } else {
+                lower.contains('.') || lower.contains('e')
+            };
+            if is_float {
                 lo.float_lit(t, span)
             } else {
                 lo.int_lit(t.trim_end_matches(['u', 'U', 'l', 'L']), span)

@@ -4513,11 +4513,11 @@ fn fail_on_new_fails_for_changed_family_and_passes_when_clean() {
 #[test]
 fn config_file_supplies_defaults() {
     // A nose.toml in the working dir provides defaults (here: an exclude glob and
-    // min-tokens); a CLI flag still overrides.
+    // min-size); a CLI flag still overrides.
     let dir = make_project("cfg");
     fs::write(
         dir.join("nose.toml"),
-        "[scan]\nexclude = [\"a/**\"]\nmin-tokens = 12\n",
+        "[scan]\nexclude = [\"a/**\"]\nmin-size = 12\n",
     )
     .unwrap();
     let out = Command::new(bin())
@@ -5436,5 +5436,66 @@ fn review_respects_structured_ignores() {
         "a fully-suppressed review must not trip --fail"
     );
 
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn fail_on_new_requires_a_baseline() {
+    let dir = make_project("fail_on_new_nobaseline");
+    let p = dir.to_str().unwrap();
+    // `--fail-on new` compares against a baseline; with no --baseline the gate can never
+    // fire, so it must error rather than silently pass (a CI gate that always passes).
+    let out = Command::new(bin())
+        .args(["scan", p, "--min-size", "12", "--fail-on", "new"])
+        .output()
+        .expect("run scan");
+    assert!(
+        !out.status.success(),
+        "`--fail-on new` without --baseline must error, not silently pass: stdout={} stderr={}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr),
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn c_u16_byte_pack_recognized_in_either_operand_order() {
+    // The byte-pack idiom must be recognized whichever way its commutative operands sort by
+    // value-hash. With the base at param 1 the shifted lane sorts second; a `+` form and a
+    // `|` form then cluster into one Type-4 family only if both normalize to the byte-pack op.
+    let dir = std::env::temp_dir().join(format!("nose_bytepack_order_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("add2.c"),
+        "unsigned int add2(int d, const unsigned char *a) {\n  return (a[0] << 8) + a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("or2.c"),
+        "unsigned int or2(int d, unsigned char *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+    assert_eq!(
+        families.len(),
+        1,
+        "byte-pack must be recognized in either operand order (+ and | should cluster): {out}"
+    );
     let _ = fs::remove_dir_all(&dir);
 }

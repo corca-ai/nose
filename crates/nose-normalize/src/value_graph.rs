@@ -4059,8 +4059,14 @@ impl<'a> Builder<'a> {
             return None;
         }
         for (shifted, low) in [(left, right), (right, left)] {
-            let (base, high_index) = self.shifted_byte_lane(shifted)?;
-            let (low_base, low_index) = self.byte_lane(low)?;
+            // `else continue`, not `?`: the operands may sort either way by value-hash, so a
+            // miss on the first ordering must fall through to the second, not abort the fn.
+            let Some((base, high_index)) = self.shifted_byte_lane(shifted) else {
+                continue;
+            };
+            let Some((low_base, low_index)) = self.byte_lane(low) else {
+                continue;
+            };
             if base == low_base
                 && high_index == 0
                 && low_index == 1

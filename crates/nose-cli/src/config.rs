@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 /// The `[scan]` table. Every field is optional — absent means "no opinion,
 /// use the CLI value or the built-in default".
 #[derive(Deserialize, Default)]
-#[serde(rename_all = "kebab-case", default)]
+#[serde(rename_all = "kebab-case", default, deny_unknown_fields)]
 pub(crate) struct ScanConfig {
     pub exclude: Vec<String>,
     pub mode: Vec<crate::ScanMode>,
@@ -35,7 +35,7 @@ pub(crate) struct ScanConfig {
 }
 
 #[derive(Deserialize, Default)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 struct File {
     scan: ScanConfig,
 }
@@ -64,4 +64,44 @@ fn discover() -> Option<PathBuf> {
         .iter()
         .map(PathBuf::from)
         .find(|p| p.is_file())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write_cfg(tag: &str, body: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("nose_cfg_{tag}_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let p = dir.join("nose.toml");
+        std::fs::write(&p, body).unwrap();
+        p
+    }
+
+    #[test]
+    fn unknown_scan_key_is_a_hard_error() {
+        // `min-valeu` is a typo for `min-value`; silently dropping it would hide the setting.
+        let p = write_cfg("badkey", "[scan]\nmin-valeu = 200\n");
+        assert!(
+            load_scan(Some(&p)).is_err(),
+            "a typo'd key must be a hard error, not silently dropped"
+        );
+    }
+
+    #[test]
+    fn unknown_table_is_a_hard_error() {
+        let p = write_cfg("badtable", "[scna]\nmin-value = 200\n");
+        assert!(
+            load_scan(Some(&p)).is_err(),
+            "a typo'd table must be a hard error"
+        );
+    }
+
+    #[test]
+    fn valid_config_still_loads() {
+        let p = write_cfg("ok", "[scan]\nmin-value = 200\nmin-size = 30\n");
+        let cfg = load_scan(Some(&p)).expect("valid config must load");
+        assert_eq!(cfg.min_value, Some(200.0));
+        assert_eq!(cfg.min_size, Some(30));
+    }
 }
