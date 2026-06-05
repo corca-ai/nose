@@ -18,7 +18,7 @@
 //! normal form without the cost/ambiguity of equality saturation.
 
 use crate::combine;
-use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span, Unit};
+use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
@@ -32,24 +32,7 @@ pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
         interner,
     };
     let (new_root, _) = rw.rewrite(old.root);
-    let units: Vec<Unit> = old
-        .units
-        .iter()
-        .filter_map(|u| {
-            rw.remap.get(&u.root.0).map(|&r| Unit {
-                root: r,
-                kind: u.kind,
-                name: u.name,
-            })
-        })
-        .collect();
-    let meta = FileMeta {
-        path: old.meta.path.clone(),
-        lang: old.meta.lang,
-    };
-    let mut out = rw.b.finish(new_root, meta, units, old.cid_names.clone());
-    out.param_type_facts = old.param_type_facts.clone();
-    out
+    crate::finalize_rebuild(old, &rw.remap, rw.b, new_root, old.cid_names.clone())
 }
 
 fn is_assoc_comm(op: Op) -> bool {

@@ -33,8 +33,8 @@ pub use value_graph::{
     value_fingerprint_lits, value_fingerprint_lits_with_context, ValueFingerprintContext,
 };
 
-use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Payload};
-use rustc_hash::FxHashSet;
+use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Mixing constant for [`combine`] (the golden-ratio odd constant, as in fxhash).
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -119,6 +119,38 @@ pub(crate) fn is_pure(il: &Il, node: NodeId) -> bool {
         NodeKind::Call | NodeKind::HoF | NodeKind::Assign | NodeKind::Throw => false,
         _ => il.children(node).iter().all(|&c| is_pure(il, c)),
     }
+}
+
+/// Assemble the rewritten `Il` shared by every rebuild pass: carry each old unit forward to
+/// its remapped root (dropping units the pass deleted), copy the file metadata and parameter
+/// type facts, and finish the builder with the given canonical-id names. Passes differ only
+/// in the `cid_names` they preserve (most clone `old.cid_names`; desugar resets to empty
+/// because it rewrites canonical ids), so that stays a caller-supplied argument.
+pub(crate) fn finalize_rebuild(
+    old: &Il,
+    remap: &FxHashMap<u32, NodeId>,
+    builder: IlBuilder,
+    new_root: NodeId,
+    cid_names: Vec<Symbol>,
+) -> Il {
+    let units: Vec<Unit> = old
+        .units
+        .iter()
+        .filter_map(|u| {
+            remap.get(&u.root.0).map(|&root| Unit {
+                root,
+                kind: u.kind,
+                name: u.name,
+            })
+        })
+        .collect();
+    let meta = FileMeta {
+        path: old.meta.path.clone(),
+        lang: old.meta.lang,
+    };
+    let mut out = builder.finish(new_root, meta, units, cid_names);
+    out.param_type_facts = old.param_type_facts.clone();
+    out
 }
 
 /// A control-flow terminator: a statement that unconditionally diverts control out of the

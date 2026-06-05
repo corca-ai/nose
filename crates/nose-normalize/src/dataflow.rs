@@ -16,7 +16,7 @@
 //! alpha-renaming) and keyed by *node id* (globally unique), so results from
 //! different scopes merge safely. The rewrite is a deterministic rebuild.
 
-use nose_il::{FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Unit};
+use nose_il::{Il, IlBuilder, NodeId, NodeKind, Payload};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il) -> Il {
@@ -34,24 +34,7 @@ pub(crate) fn run(old: &Il) -> Il {
     };
     let new_root = rb.go(old.root);
 
-    let units: Vec<Unit> = old
-        .units
-        .iter()
-        .filter_map(|u| {
-            rb.remap.get(&u.root.0).map(|&r| Unit {
-                root: r,
-                kind: u.kind,
-                name: u.name,
-            })
-        })
-        .collect();
-    let meta = FileMeta {
-        path: old.meta.path.clone(),
-        lang: old.meta.lang,
-    };
-    let mut out = rb.b.finish(new_root, meta, units, old.cid_names.clone());
-    out.param_type_facts = old.param_type_facts.clone();
-    out
+    crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
 }
 
 #[derive(Default)]

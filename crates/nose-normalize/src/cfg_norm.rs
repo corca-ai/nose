@@ -10,7 +10,7 @@
 //!   condition. `if a < b { X } else { Y }` ≡ `if a >= b { Y } else { X }`.
 
 use crate::commutative::subtree_hashes;
-use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Unit};
+use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload};
 use rustc_hash::FxHashMap;
 
 // ----------------------------------------------------------------------------
@@ -26,24 +26,7 @@ pub(crate) fn structure(old: &Il) -> Il {
         unit_root_set,
     };
     let new_root = rb.go(old.root);
-    let units: Vec<Unit> = old
-        .units
-        .iter()
-        .filter_map(|u| {
-            rb.remap.get(&u.root.0).map(|&r| Unit {
-                root: r,
-                kind: u.kind,
-                name: u.name,
-            })
-        })
-        .collect();
-    let meta = FileMeta {
-        path: old.meta.path.clone(),
-        lang: old.meta.lang,
-    };
-    let mut out = rb.b.finish(new_root, meta, units, old.cid_names.clone());
-    out.param_type_facts = old.param_type_facts.clone();
-    out
+    crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
 }
 
 struct SRebuilder<'a> {
