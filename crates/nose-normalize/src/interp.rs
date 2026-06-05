@@ -370,7 +370,14 @@ impl<'a> Interp<'a> {
                 }
             }
             NodeKind::Index => {
-                if let Some(&ix) = self.il.children(target).to_vec().get(1) {
+                let kids = self.il.children(target).to_vec();
+                if let Some(&base) = kids.first() {
+                    let base_value = self.eval(base, env)?;
+                    if matches!(base_value, Value::Err) {
+                        return Ok(true);
+                    }
+                }
+                if let Some(&ix) = kids.get(1) {
                     let iv = self.eval(ix, env)?;
                     if matches!(iv, Value::Err) {
                         return Ok(true);
@@ -2001,6 +2008,7 @@ mod tests {
     fn index_assignment_with_error_index_after_rhs_effect() -> Behavior {
         let sp = Span::synthetic(FileId(0));
         let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
         let target_base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
         let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
         let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
@@ -2016,7 +2024,7 @@ mod tests {
         let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
         let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
         let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
         let il = b.finish(
             func,
             FileMeta {
@@ -2034,6 +2042,39 @@ mod tests {
         let behavior = index_assignment_with_error_index_after_rhs_effect();
         assert_eq!(behavior.ret, Value::Err);
         assert_eq!(behavior.effects, vec![Value::Int(1)]);
+    }
+
+    fn index_assignment_with_error_base_before_index_effect() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let base_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[one]);
+        let target = b.add(NodeKind::Index, Payload::None, sp, &[base_err, print]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[target, seven]);
+        let later = b.add(NodeKind::Lit, Payload::LitInt(9), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[later]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn index_assignment_checks_error_base_before_index_expr() {
+        let behavior = index_assignment_with_error_base_before_index_effect();
+        assert_eq!(behavior.ret, Value::Err);
+        assert!(behavior.effects.is_empty());
     }
 
     fn self_call_with_error_arg_ignored_by_callee() -> Value {

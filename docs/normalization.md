@@ -89,8 +89,8 @@ Guiding constraints for every pass:
   The oracle also propagates `Err` through append receivers (including computed and
   field receivers) and arguments, so list-building effects do not silently absorb failed
   target or item computations; binary left operands and index bases fail before later
-  operands/subscript expressions run; index assignment target errors stop before recording
-  a store effect; and C-style loop updates plus for-each iterable evaluation propagate
+  operands/subscript expressions run; index assignment target base/subscript errors stop
+  before recording a store effect; and C-style loop updates plus for-each iterable evaluation propagate
   runtime errors just like the loop condition and body.
   Eager builtin arguments (left-to-right), direct
   self-recursion call-by-value arguments, list/tuple literal items, reduce initial values,
