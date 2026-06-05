@@ -96,6 +96,9 @@ are attached to every [release](https://github.com/corca-ai/nose/releases).
 
 ## Quick start
 
+New to nose? [docs/getting-started.md](docs/getting-started.md) walks through a first
+scan and how to read the report.
+
 ```sh
 # Build from source (requires the Rust toolchain):
 cargo build --release
@@ -190,7 +193,7 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
     `--write-baseline`, `--new-only`, `--fail-on-new`, `--fail` (CI gate),
     `--cache-dir <dir>` (fast re-runs).
   - inline `// nose-ignore` marks a clone as intentionally kept.
-- `nose il <file> [--normalized] [--format sexpr|json]` — inspect the IL.
+- `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — inspect the IL.
 - `nose stats <paths…>` — IL lowering coverage per language.
 
 A `detect` command (raw clone pairs/groups) and `eval`/`ceiling` (benchmark
@@ -199,13 +202,20 @@ hidden from `--help` because `scan` is the command for everyday use.
 
 ## Documentation
 
-Full guides live in the [`docs/`](docs/home.md) wiki — **for users**:
-[Usage](docs/usage.md), [Configuration](docs/configuration.md),
-[Continuous-Integration](docs/continuous-integration.md),
-[Languages](docs/languages.md); **for contributors**:
-[Architecture](docs/architecture.md), [Normalization](docs/normalization.md),
-[Experiments](docs/experiments.md), [Benchmark](docs/benchmark.md),
-[Field-Evaluation](docs/field-evaluation.md), [Dogfooding](docs/dogfooding.md).
+New to nose? **[Getting started](docs/getting-started.md)** walks through your first
+scan and how to read the report. The full [`docs/`](docs/home.md) wiki is grouped by
+what you're here to do:
+
+- **Using nose** — [Usage](docs/usage.md), [Configuration](docs/configuration.md),
+  [Continuous-Integration](docs/continuous-integration.md),
+  [Structured-Ignores](docs/structured-ignores.md),
+  [Clone-Types](docs/clone-types.md), [Languages](docs/languages.md).
+- **Integrating nose** — [Capabilities](docs/capabilities.md),
+  [Scan-JSON](docs/scan-json.md).
+- **Contributing** — [Architecture](docs/architecture.md),
+  [Normalization](docs/normalization.md), [Experiments](docs/experiments.md),
+  [Benchmark](docs/benchmark.md), [Field-Evaluation](docs/field-evaluation.md),
+  [Dogfooding](docs/dogfooding.md).
 
 ## Crates
 

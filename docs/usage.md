@@ -1,87 +1,47 @@
 # Usage
 
-How to install nose and run it on a codebase. For settings you'd commit to a
-repo see [configuration](configuration.md); for CI use see [continuous-integration](continuous-integration.md). Back to
-[home](home.md).
+The complete command and flag reference for `nose`. New here? Start with
+[getting-started](getting-started.md) — it walks through a first scan and how to
+read the report. For settings you'd commit to a repo see
+[configuration](configuration.md); for CI use see
+[continuous-integration](continuous-integration.md). Back to [home](home.md).
 
 ## Install
 
-nose is a single self-contained binary — no runtime, services, or network; point
-it at source files.
-
-```sh
-# Homebrew (macOS / Linux):
-brew install corca-ai/tap/nose
-
-# Or the install script (downloads a prebuilt binary):
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/corca-ai/nose/releases/latest/download/nose-cli-installer.sh | sh
-```
-
-Prebuilt binaries for macOS (Apple Silicon + Intel) and Linux (x86_64 + arm64) are
-attached to every [release](https://github.com/corca-ai/nose/releases). Both
-methods above put `nose` on your `PATH`; the examples below use `./target/release/nose`
-for a from-source build, but `nose` works the same once installed.
-
-### From source
+The quickest install (Homebrew or the install script) is in
+[getting-started](getting-started.md#install). Prebuilt binaries for macOS (Apple
+Silicon + Intel) and Linux (x86_64 + arm64) are attached to every
+[release](https://github.com/corca-ai/nose/releases). To build from source:
 
 ```sh
 cargo build --release
 # binary at ./target/release/nose
 ```
 
-## The one command you need: `scan`
+nose is a single self-contained binary — no runtime, services, or network; point
+it at source files. The examples below write `nose`, which works the same as a
+from-source `./target/release/nose`.
 
-`nose scan <paths…>` scans one or more files/directories (recursively,
-respecting `.gitignore`), groups duplicated code into **families**, and ranks
-them by **extractability** — how cleanly each family folds into one shared helper —
-so the duplication you can actually act on surfaces first. With no `--mode`, it
-runs `syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
-(See [Ranking](#ranking) below to sort by raw volume, copy count, or spread instead.)
+## `nose scan`
+
+`nose scan <paths…>` scans one or more files/directories (recursively, respecting
+`.gitignore`), groups duplicated code into **families**, and ranks them by
+**extractability** — how cleanly each family folds into one shared helper — so the
+duplication you can actually act on surfaces first. With no `--mode`, it runs
+`syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
 
 ```sh
-./target/release/nose scan path/to/project
+nose scan path/to/project
 ```
 
-```
-$ nose scan bench/repos/radash
-scanned 23 files · typescript 19 · javascript 4
-148 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~5826 duplicated lines  (showing 30)
-
-#1  3 copies · same logic in 2 languages (javascript, typescript) · ~134 lines removable
-    → consolidate `series` — 3 copies (cross-language)
-    bench/repos/radash/src/series.ts:7-97        series
-    bench/repos/radash/cdn/radash.esm.js:823-877 series
-    bench/repos/radash/cdn/radash.js:826-880     series
-```
-
-The first line — `scanned N files · <language breakdown>` — reports what was actually
-analyzed. A repo where `.gitignore` or `--exclude` pruned vendored deps, build output,
-or generated code scans far fewer files than sit on disk; the count makes that scope
-explicit instead of a silent gap (compare it to what you expected). The *ignored*
-count is intentionally not shown: tallying it means walking into the very trees
-`.gitignore` exists to skip — slow on exactly the large repos where it matters.)
-
-Each **family** is one refactoring decision (extract a shared helper / base class
-/ data table), described in plain language: how many copies, how much is actually
-shared vs varies, and how many lines you could remove. For same-language families the
-description reads `N of M lines identical, K spots differ` — the *honest* overlap, so a
-structurally-identical pair that actually shares few lines is obvious (cross-language
-families have no shared *source* lines, so they read `same logic in N languages`).
-**Every site is listed** — you can't act on a clone you can't see. The `→` line is a
-**hint** grounded in the facts (a shared symbol name, cross-language spread, how many
-modules it touches), never a guess about semantics. Add `--proposal` for the extracted
-helper, `--diff` for exactly what varies.
-
-**Scope tags.** Families are tagged by where the duplication lives — `· test`
-(all sites in test code) or `· test↔prod` (the same logic in a test *and* in
-production). Duplication in tests is a real smell too, so these are ranked by
-value like any other family; the tag is **context** (where to refactor), not a
-penalty. The classification is a conservative path/name heuristic; everything
-else is `prod`.
+How to read the resulting report — the `scanned …` scope line, the per-family
+breakdown, scope tags, and the `→` hint — is covered in
+[getting-started → How to read the report](getting-started.md#how-to-read-the-report).
 
 ### Flags
 
-Grouped by what they do. Anything here can also be set in [configuration](configuration.md).
+Grouped by what they do. Anything here can also be set in
+[configuration](configuration.md).
 
 **Filter & shape the report**
 
@@ -135,11 +95,12 @@ compatibility rule are documented in [scan-json](scan-json.md).
 [continuous-integration](continuous-integration.md) and [configuration](configuration.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
-### Scan Modes
+### Scan modes
 
 `nose scan` has three orthogonal channels. Omitting `--mode` runs `syntax,semantic`.
 When `--mode` is present, nose runs exactly the channels you list; it does not add
-them to the default.
+them to the default. See [clone-types](clone-types.md) for what each finds against
+the standard Type-1–4 taxonomy.
 
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
@@ -182,18 +143,18 @@ structured ignores. Do not scrape `nose --help`; help text is for humans and may
 change to improve readability. The stable contract is documented in
 [capabilities](capabilities.md).
 
-## Inspecting & measuring
+## Other commands
 
-- `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — dump the IL for one
-  file. `--normalized` shows the canonical form after the [normalization](normalization.md)
-  passes; `--no-cfg-norm` disables control-flow normalization (an ablation toggle).
-  Invaluable when debugging why two snippets do (or don't) converge.
 - `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`
   for machine output). Use it to spot a language/construct that isn't lowering well; see
   [languages](languages.md).
+- `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — dump the IL
+  for one file (`--normalized` shows the canonical form after the
+  [normalization](normalization.md) passes). A debugging tool for understanding why two
+  snippets do or don't converge; see [architecture](architecture.md).
 
 A `detect` command (raw clone pairs/groups) and `eval` / `ceiling` (scoring
-predictions against a gold set) also exist as the strict/research surface. They
-are hidden from `--help` because `scan` is the command for everyday use; the
+predictions against a gold set) also exist as the strict/research surface. They are
+hidden from `--help` because `scan` is the command for everyday use; the
 [benchmark](benchmark.md) page documents them.
