@@ -444,7 +444,11 @@ impl<'a> Interp<'a> {
             NodeKind::Seq => {
                 let mut out = Vec::new();
                 for c in self.il.children(node).to_vec() {
-                    out.push(self.eval(c, env)?);
+                    let value = self.eval(c, env)?;
+                    if matches!(value, Value::Err) {
+                        return Ok(Value::Err);
+                    }
+                    out.push(value);
                 }
                 Ok(Value::List(out))
             }
@@ -1485,6 +1489,32 @@ mod tests {
             Vec::new(),
         );
         assert_eq!(run_unit(&il, func, &[]).expect("run_unit").ret, Value::Err);
+    }
+
+    fn seq_with_error_item_value() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let div = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let seq = b.add(NodeKind::Seq, Payload::None, sp, &[div]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seq]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn seq_expression_propagates_error_items() {
+        assert_eq!(seq_with_error_item_value(), Value::Err);
     }
 
     fn run_any_all_with_error_predicate(all: bool) -> Value {
