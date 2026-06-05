@@ -4513,11 +4513,11 @@ fn fail_on_new_fails_for_changed_family_and_passes_when_clean() {
 #[test]
 fn config_file_supplies_defaults() {
     // A nose.toml in the working dir provides defaults (here: an exclude glob and
-    // min-tokens); a CLI flag still overrides.
+    // min-size); a CLI flag still overrides.
     let dir = make_project("cfg");
     fs::write(
         dir.join("nose.toml"),
-        "[scan]\nexclude = [\"a/**\"]\nmin-tokens = 12\n",
+        "[scan]\nexclude = [\"a/**\"]\nmin-size = 12\n",
     )
     .unwrap();
     let out = Command::new(bin())
