@@ -739,11 +739,16 @@ impl<'a> Interp<'a> {
         }
         if target_cid.is_none() {
             if let Some(&target) = kids.first() {
-                if self.il.kind(target) != NodeKind::Field {
-                    let target_value = self.eval(target, env)?;
-                    if matches!(target_value, Value::Err) {
-                        return Ok(Some(Flow::Err));
+                let target_value = if self.il.kind(target) == NodeKind::Field {
+                    match self.il.children(target).first() {
+                        Some(&receiver) => self.eval(receiver, env)?,
+                        None => Value::Null,
                     }
+                } else {
+                    self.eval(target, env)?
+                };
+                if matches!(target_value, Value::Err) {
+                    return Ok(Some(Flow::Err));
                 }
             }
         }
@@ -1639,6 +1644,51 @@ mod tests {
     #[test]
     fn statement_append_checks_error_expr_target_before_items() {
         let behavior = statement_append_on_error_expr_target_with_effect_arg();
+        assert_eq!(behavior.ret, Value::Err);
+        assert!(behavior.effects.is_empty());
+    }
+
+    fn statement_append_on_error_field_receiver_with_effect_arg() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let field_name = interner.intern("x");
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let receiver_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp,
+            &[receiver_err],
+        );
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[one]);
+        let append = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp,
+            &[target, print],
+        );
+        let append_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[append]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[append_stmt, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn statement_append_checks_error_field_receiver_before_items() {
+        let behavior = statement_append_on_error_field_receiver_with_effect_arg();
         assert_eq!(behavior.ret, Value::Err);
         assert!(behavior.effects.is_empty());
     }

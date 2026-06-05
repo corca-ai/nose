@@ -86,8 +86,8 @@ Guiding constraints for every pass:
   Java `Arrays.asList(values).contains(x)` also carries the array domain when `values` is
   a proven array parameter, keeping element membership distinct from singleton-list
   membership such as `List.of(values).contains(x)` or `Arrays.asList(listParam).contains(x)`.
-  The oracle also propagates `Err` through append receivers (including computed
-  receivers) and arguments, so list-building effects do not silently absorb failed
+  The oracle also propagates `Err` through append receivers (including computed and
+  field receivers) and arguments, so list-building effects do not silently absorb failed
   target or item computations; binary left operands and index bases fail before later
   operands/subscript expressions run; index assignment target errors stop before recording
   a store effect; and C-style loop updates plus for-each iterable evaluation propagate
