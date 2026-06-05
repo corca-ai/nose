@@ -567,6 +567,10 @@ fn lower_string(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
+        "case_pattern" => node
+            .named_child(0)
+            .map(|c| lower_expr(lo, c))
+            .unwrap_or_else(|| lo.empty_block(span)),
         "identifier" => lo.var(lo.text(node), span),
         "dotted_name" => lower_dotted_name(lo, node),
         "integer" => {
@@ -1192,6 +1196,32 @@ mod tests {
         assert!(
             !raw.contains(&"dotted_name"),
             "qualified match pattern should lower without Raw dotted_name: {raw:?}"
+        );
+    }
+
+    #[test]
+    fn sequence_match_pattern_lowers_without_raw_case_pattern() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    match x:\n        case [1, 2]:\n            return 1\n        case _:\n            return 0\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            !raw.contains(&"case_pattern"),
+            "sequence match pattern should lower without Raw case_pattern: {raw:?}"
         );
     }
 
