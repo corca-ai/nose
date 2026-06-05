@@ -128,12 +128,20 @@ for the file format and selector semantics.
 findings as inline PR annotations:
 
 ```sh
-nose scan src --format sarif > nose.sarif
+nose scan src --format sarif --top 0 > nose.sarif
 # then upload nose.sarif via github/codeql-action/upload-sarif
 ```
 
+**Pass `--top 0` for a complete upload.** `--top` (default 30) truncates *every*
+output format, SARIF included — without `--top 0` a repo with more than 30 families
+uploads only the first 30. The SARIF run records the full count in
+`runs[].properties` (`total_families` / `shown_families`) and, when families were
+hidden, adds a `note` notification under `runs[].invocations[]`, so a truncated upload
+is at least detectable; `--top 0` avoids the cap entirely.
+
 `--format json` is the general machine-readable form for any other tooling. Its
-versioned contract is documented in [scan-json](scan-json.md).
+versioned contract is documented in [scan-json](scan-json.md); it is truncated by
+`--top` in the same way.
 
 ## Fast re-runs: `--cache-dir`
 

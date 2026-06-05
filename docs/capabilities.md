@@ -26,7 +26,7 @@ nose capabilities
   "schema_version": 1,
   "tool": {
     "name": "nose",
-    "version": "0.4.0"
+    "version": "<version>"
   },
   "platform": {
     "os": "linux",
@@ -68,7 +68,9 @@ nose capabilities
 ```
 
 The real `config_keys` and `scan.capabilities` objects may contain more entries
-than this shortened example.
+than this shortened example. `tool.version` is shown as the `<version>` placeholder
+because the field always reports the installed binary's own version (`nose --version`);
+the example deliberately does not pin a release so it can't drift.
 
 ## Version 1 fields
 

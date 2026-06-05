@@ -2476,7 +2476,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             }
             print_refactor_human(&families, &shown, sort, channels, args.diff, args.proposal)
         }
-        ReportFormat::Sarif => println!("{}", refactor_sarif(&shown)?),
+        ReportFormat::Sarif => println!("{}", refactor_sarif(&shown, families.len())?),
     }
     if args.hotspots && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown) {
         print_hotspots(&families);
@@ -2577,7 +2577,12 @@ fn total_dup_lines(fs: &[nose_detect::RefactorFamily]) -> u32 {
 /// Build a SARIF 2.1.0 document — one result per family, every member site a
 /// location so GitHub code-scanning annotates each. The first location is primary;
 /// the rest are `relatedLocations`.
-fn refactor_sarif(families: &[&nose_detect::RefactorFamily]) -> Result<String> {
+/// `shown` is the (possibly `--top`-truncated) slice that gets emitted; `total` is the
+/// full active-family count before truncation. A SARIF consumer (GitHub code scanning)
+/// otherwise can't tell a truncated upload from a complete one, so the run carries both
+/// counts in `properties` and — when families were hidden — a `note` notification telling
+/// the reader to pass `--top 0` for the full set.
+fn refactor_sarif(shown: &[&nose_detect::RefactorFamily], total: usize) -> Result<String> {
     use serde_json::json;
     let phys = |l: &nose_detect::Loc| {
         json!({
@@ -2587,7 +2592,7 @@ fn refactor_sarif(families: &[&nose_detect::RefactorFamily]) -> Result<String> {
             }
         })
     };
-    let results: Vec<_> = families
+    let results: Vec<_> = shown
         .iter()
         .map(|f| {
             let msg = format!(
@@ -2608,22 +2613,37 @@ fn refactor_sarif(families: &[&nose_detect::RefactorFamily]) -> Result<String> {
             })
         })
         .collect();
+    let mut run = json!({
+        "tool": { "driver": {
+            "name": "nose",
+            "informationUri": "https://github.com/",
+            "version": env!("CARGO_PKG_VERSION"),
+            "rules": [{
+                "id": "duplicate-family",
+                "name": "DuplicateFamily",
+                "shortDescription": { "text": "Duplicated code worth refactoring" }
+            }]
+        }},
+        "results": results,
+        "properties": { "total_families": total, "shown_families": shown.len() },
+    });
+    if shown.len() < total {
+        run["invocations"] = json!([{
+            "executionSuccessful": true,
+            "toolExecutionNotifications": [{
+                "level": "note",
+                "message": { "text": format!(
+                    "Showing {} of {total} clone families (the --top limit). \
+                     Pass --top 0 to emit every family.",
+                    shown.len()
+                ) }
+            }]
+        }]);
+    }
     let doc = json!({
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
-        "runs": [{
-            "tool": { "driver": {
-                "name": "nose",
-                "informationUri": "https://github.com/",
-                "version": env!("CARGO_PKG_VERSION"),
-                "rules": [{
-                    "id": "duplicate-family",
-                    "name": "DuplicateFamily",
-                    "shortDescription": { "text": "Duplicated code worth refactoring" }
-                }]
-            }},
-            "results": results,
-        }]
+        "runs": [run],
     });
     Ok(serde_json::to_string_pretty(&doc)?)
 }

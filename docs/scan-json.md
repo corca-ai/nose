@@ -14,7 +14,7 @@ The top-level value is always an object:
 ```json
 {
   "schema_version": 1,
-  "tool_version": "0.4.0",
+  "tool_version": "<version>",
   "scope": {
     "files": 4,
     "languages": [
@@ -40,7 +40,15 @@ The top-level value is always an object:
 
 A checked-in example lives at
 [`crates/nose-cli/tests/fixtures/scan-json-v1.json`](../crates/nose-cli/tests/fixtures/scan-json-v1.json)
-and is read by the CLI test suite.
+and is read by the CLI test suite. `tool_version` is shown above as the `<version>`
+placeholder: it always reports the installed binary's own version, so the example does not
+pin a release.
+
+> **`--top` truncates machine output too.** `families` contains only the top `--top`
+> families (default 30), exactly like the human report — it is *not* the full set by
+> default. `ranking.total_families` vs `ranking.shown_families` (and `ranking.limit`) make
+> any truncation explicit; pass **`--top 0`** to emit every family. `ranking.total_families`
+> is always the complete post-filter count regardless of `--top`.
 
 ## Top-level fields
 

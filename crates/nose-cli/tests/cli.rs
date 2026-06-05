@@ -4707,6 +4707,101 @@ fn sarif_output_is_well_formed() {
         !v["runs"][0]["results"].as_array().unwrap().is_empty(),
         "should have at least one result: {out}"
     );
+    // The run records the full family count, so a consumer can tell a complete upload
+    // from a truncated one. This single-family project is not truncated (default --top 30),
+    // so total == shown and there is no truncation notification.
+    let props = &v["runs"][0]["properties"];
+    let total = props["total_families"].as_u64().expect("total_families");
+    let shown = props["shown_families"].as_u64().expect("shown_families");
+    assert_eq!(shown, total, "untruncated run: shown == total ({out})");
+    assert_eq!(
+        shown as usize,
+        v["runs"][0]["results"].as_array().unwrap().len()
+    );
+    assert!(
+        v["runs"][0].get("invocations").is_none(),
+        "no truncation note when nothing is hidden: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// A project with several behaviorally-distinct duplicated functions, so `nose scan`
+/// reports multiple clone families. `--top N` can then truncate the report.
+fn make_multi_family_project(tag: &str) -> PathBuf {
+    let dir = std::env::temp_dir().join(format!("nose_cli_{tag}_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    // Four distinct computations (distinct value fingerprints, so they don't merge into
+    // one family), each duplicated across two directories → four families.
+    let logics = [
+        ("sq", "def f(items):\n    a = 0\n    for x in items:\n        if x > 0:\n            a = a + x * x\n    return a\n"),
+        ("prod", "def f(items):\n    a = 1\n    for x in items:\n        a = a * x\n    return a\n"),
+        ("cnt", "def f(items):\n    a = 0\n    for x in items:\n        if x < 0:\n            a = a + 1\n    return a\n"),
+        ("join", "def f(items):\n    a = ''\n    for x in items:\n        a = a + x + ','\n    return a\n"),
+    ];
+    for sub in ["x", "y"] {
+        for (name, src) in logics {
+            let d = dir.join(sub);
+            fs::create_dir_all(&d).unwrap();
+            fs::write(d.join(format!("{name}.py")), src).unwrap();
+        }
+    }
+    dir
+}
+
+#[test]
+fn sarif_records_and_notes_top_truncation() {
+    let dir = make_multi_family_project("sarif_trunc");
+
+    // --top 1: only one family is emitted, but the run must record the true total and
+    // carry an explicit truncation note pointing at --top 0.
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-tokens",
+        "12",
+        "--format",
+        "sarif",
+        "--top",
+        "1",
+    ]);
+    let v: serde_json::Value = serde_json::from_str(&out).expect("SARIF must be valid JSON");
+    let props = &v["runs"][0]["properties"];
+    let total = props["total_families"].as_u64().expect("total_families");
+    let shown = props["shown_families"].as_u64().expect("shown_families");
+    assert!(total >= 2, "fixture should yield multiple families: {out}");
+    assert_eq!(shown, 1, "--top 1 shows exactly one family: {out}");
+    assert_eq!(v["runs"][0]["results"].as_array().unwrap().len(), 1);
+    let note = v["runs"][0]["invocations"][0]["toolExecutionNotifications"][0].clone();
+    assert_eq!(note["level"], "note", "truncation note present: {out}");
+    assert!(
+        note["message"]["text"]
+            .as_str()
+            .unwrap()
+            .contains("--top 0"),
+        "note points the reader at --top 0: {out}"
+    );
+
+    // --top 0: the whole set is emitted, so there is no truncation note.
+    let full = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-tokens",
+        "12",
+        "--format",
+        "sarif",
+        "--top",
+        "0",
+    ]);
+    let fv: serde_json::Value = serde_json::from_str(&full).expect("SARIF must be valid JSON");
+    let fp = &fv["runs"][0]["properties"];
+    assert_eq!(
+        fp["shown_families"], fp["total_families"],
+        "--top 0 emits every family: {full}"
+    );
+    assert!(
+        fv["runs"][0].get("invocations").is_none(),
+        "no truncation note with --top 0: {full}"
+    );
     let _ = fs::remove_dir_all(&dir);
 }
 
