@@ -28,9 +28,11 @@
 > equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard
 > facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`),
 > statically-false loop entry guards (a proven-true local boolean makes a left
-> short-circuit `!local && ...` guard unreachable), and primitive total-order comparator
+> short-circuit `!local && ...` guard unreachable), primitive total-order comparator
 > guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
-> plus Java primitive-integer low-bit toggle selection (`x%2==0 ? x+1 : x-1` ≡ `x^1`).
+> C byte-buffer `u16` big-endian packing (`(a[0]<<8)+a[1]` ≡ `(a[0]<<8)|a[1]` only
+> under a byte-array parameter proof), plus Java primitive-integer low-bit toggle selection
+> (`x%2==0 ? x+1 : x-1` ≡ `x^1`).
 > Also landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
 > structural (linear) recursion → an accumulator fold, so a recursive function converges with
 > the loop a programmer would have written and with other same-shape recursions

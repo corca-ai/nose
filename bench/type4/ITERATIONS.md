@@ -4649,3 +4649,96 @@ reverse-edge pair. Remaining open frontier remains mostly broad membership/map/d
 dynamic receiver/API-chain proof work. The next completeness batch should keep auditing for
 another evidence-backed repeated invariant rather than broadening this Java integer rule to
 surfaces with overload or coercion semantics.
+
+## Real-corpus C u16 byte-pack: batch 2026-06-05
+
+This batch targeted a compact real SQLite miss where the detector split equivalent
+big-endian 16-bit byte decoders by representation. The selected files were
+`sqlite/ext/misc/btreeinfo.c`, `sqlite/ext/recover/dbdata.c`,
+`sqlite/ext/fts5/fts5_index.c`, `sqlite/ext/recover/sqlite3recover.c`, and
+`sqlite/ext/rtree/rtree.c`. They were chosen because the previous selected verify run was
+SOUND but exposed byte-decoder under-merge: addition-form `u16` helpers and bitwise-or-form
+`u16` helpers did not converge, while adjacent `u32` helpers and unresolved include typedefs
+made the soundness boundary concrete.
+
+Closed selected real candidate:
+
+- SQLite `get_uint16` / `recoverGetU16` / `readInt16` big-endian byte decoders:
+  `btreeinfo.c:269`, `dbdata.c:344`, `sqlite3recover.c:2078`, and `rtree.c:525`.
+
+The batch's three synthetic positives were same-invariant micro-frontiers, not three
+unrelated real duplicate families: `unsigned char *`, `uint8_t *`, and same-file
+`typedef unsigned char u8` byte buffers. The shared proof invariant is intentionally
+narrow: in C, the receiver must be a proven byte buffer, the high lane must be index 0
+shifted left exactly 8, the low lane must be index 1 from the same base pointer, and the
+combining operator may be `+` or `|`. This is sound for 16-bit packing because the shifted
+byte remains representable in `int`; the batch does not generalize to 32-bit uncasted
+packing such as `a[0] << 24`.
+
+Synthetic coverage added `axis_c_u16_be_byte_pack_*`: three positives
+(`unsigned char`, `uint8_t`, and same-file `u8` typedef) plus seven hard negatives covering
+wrong byte order, overlapping shifts, wrong low-byte coordinate, unproven alias spelling,
+and semantic mutations.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-c-u16-1 | real frontier selection | choose SQLite byte decoders after verifying that `u32` packing and include-header `u8` aliases are unsupported proof gaps | previous release selected verify: SOUND, completeness 5/16, 2 under-merged groups |
+| real-c-u16-2 | frontend proof fact | add `ParamSemantic::ByteArray` for C `unsigned char *`, `uint8_t *`, and same-file `typedef unsigned char u8` pointer parameters | targeted IL/equivalence tests passed |
+| real-c-u16-3 | value-graph canon | converge `a[0] << 8 + a[1]` and `a[0] << 8 | a[1]` only under the byte-buffer lane proof, with lane constants retained so exact scan buckets stay reachable | CLI semantic scan regression reports only the proven byte-buffer family |
+| real-c-u16-4 | focused synthetic gate | add C u16 positives and adjacent hard negatives | focused 3/3 positives, 0/7 false merges |
+| real-c-u16-5 | real corpus delta | scan and verify selected SQLite files | selected verify after: SOUND, completeness 7/16; selected scan reports a 4-copy u16 family |
+| real-c-u16-6 | release gates | run required focused, axis-core, and all-cross core gates | focused 3/3, 0/7; axis core 3/3, 0/7; all-cross core 626/626, 0/1233 |
+| real-c-u16-7 | performance | measure selected SQLite scan with `NOSE_TIME=1` | discover 19.3ms, parse+lower 21.6ms, lower 40.9ms, normalize+extract 26.9ms, candidates 1.2ms, total candidate path 1.4ms |
+
+Focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_c_u16_be_byte_pack_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 10
+positive recall: 3/3
+hard-negative false merges: 0/7
+Raw nodes: 0
+```
+
+Final C u16 byte-pack axis core gate:
+
+```text
+GATE=core AXIS=c_u16_be_byte_pack CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 10/10
+positive recall: 3/3
+hard-negative false merges: 0/7
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1859/6728
+positive recall: 626/626
+hard-negative false merges: 0/1233
+Raw nodes: 0/68421
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 5/16, under-merged groups 2, SOUND
+candidate release: completeness 7/16, under-merged groups 2, SOUND
+```
+
+Selected SQLite scan with timing:
+
+```text
+NOSE_TIME=1 target/release/nose scan <selected sqlite files> --mode semantic --top 0
+semantic families: 3
+expected new u16 family: btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, rtree.c:525
+candidate path: 1.4ms
+```
+
+Remaining open frontier is explicit. `fts5_index.c:712` still uses `u8`, but the typedef is
+provided by an included header and current C lowering does not perform include resolution, so
+it remains unsupported rather than guessed. The `u32` helpers remain open because uncasted C
+left shifts such as `a[0] << 24` can overflow or be undefined without a stronger unsigned
+cast/proven-range invariant. The next C byte-decoder batch should add include-aware typedef
+proofs or unsigned-cast/range facts before attempting those cases.

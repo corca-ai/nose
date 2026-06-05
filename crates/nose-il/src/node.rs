@@ -129,6 +129,7 @@ pub enum Payload {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum ParamSemantic {
     Array,
+    ByteArray,
     Collection,
     Map,
     Number,

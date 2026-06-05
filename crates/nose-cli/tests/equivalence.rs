@@ -3080,6 +3080,77 @@ fn java_low_bit_toggle_parity_converges_with_xor() {
 }
 
 #[test]
+fn c_u16_big_endian_byte_pack_converges_with_boundaries() {
+    let i = Interner::new();
+    let add_casted = r#"
+typedef unsigned char u8;
+unsigned int f(const u8 *a) {
+    return (((unsigned int)a[0]) << 8) + ((unsigned int)a[1]);
+}
+"#;
+    let add_uncasted = r#"
+typedef unsigned char u8;
+int g(u8 *p) {
+    return (p[0] << 8) + p[1];
+}
+"#;
+    let bit_or = r#"
+unsigned int h(unsigned char *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let uint8_or = r#"
+unsigned int j(const uint8_t *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let wrong_order = r#"
+typedef unsigned char u8;
+unsigned int r(const u8 *a) {
+    return (a[1] << 8) | a[0];
+}
+"#;
+    let overlapping_lane = r#"
+typedef unsigned char u8;
+unsigned int o(const u8 *a) {
+    return (a[0] << 4) | a[1];
+}
+"#;
+    let wrong_second_byte = r#"
+typedef unsigned char u8;
+unsigned int w(const u8 *a) {
+    return (a[0] << 8) | a[2];
+}
+"#;
+    let unproven_alias = r#"
+typedef unsigned short u8;
+unsigned int u(const u8 *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let int_pointer = r#"
+unsigned int q(const int *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+
+    let fp = value_fp(&i, add_casted, Lang::C);
+    assert!(
+        fp.len() >= 4,
+        "C u16 byte-pack fingerprint must stay large enough for exact scan buckets: {} atoms",
+        fp.len()
+    );
+    assert_eq!(fp, value_fp(&i, add_uncasted, Lang::C));
+    assert_eq!(fp, value_fp(&i, bit_or, Lang::C));
+    assert_eq!(fp, value_fp(&i, uint8_or, Lang::C));
+    assert_ne!(fp, value_fp(&i, wrong_order, Lang::C));
+    assert_ne!(fp, value_fp(&i, overlapping_lane, Lang::C));
+    assert_ne!(fp, value_fp(&i, wrong_second_byte, Lang::C));
+    assert_ne!(fp, value_fp(&i, unproven_alias, Lang::C));
+    assert_ne!(fp, value_fp(&i, int_pointer, Lang::C));
+}
+
+#[test]
 fn value_graph_cross_language_reorder() {
     // Same computation, different statement order, different language.
     let i = Interner::new();
