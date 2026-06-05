@@ -14,7 +14,7 @@ mode        = ["syntax", "semantic"]
 sort        = "extractability"
 min-value   = 200
 min-members = 3
-min-tokens  = 30
+min-size    = 30
 top         = 50
 ignore-file = "nose.ignore.json"
 ```
@@ -34,8 +34,8 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `--sort` |
 | `min-value` | float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
-| `min-tokens` | int | `24` | `--min-tokens` |
-| `min-lines` | int | `5` | `--min-lines` |
+| `min-size` | int (IL tokens) | `24` | `--min-size` |
+| `min-lines` | int (advanced) | `5` | `--min-lines` |
 | `top` | int | `30` | `--top` |
 | `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
 
@@ -48,8 +48,8 @@ mode = ["syntax"]                  # jscpd-style gate
 # mode = ["syntax", "semantic", "near"]
 ```
 
-`min-tokens` and `min-lines` apply to both structural units and the syntax copy-paste
-floor. For `--mode syntax`, those two settings are the jscpd-style size gate.
+`min-size` (and the advanced `min-lines`) apply to both structural units and the syntax
+copy-paste floor. For `--mode syntax`, they are the jscpd-style size gate.
 
 The `near` channel's acceptance threshold rides on the `mode` value itself —
 `mode = ["syntax", "semantic", "near:0.8"]` (or `--mode near:0.8`), default `0.70`.

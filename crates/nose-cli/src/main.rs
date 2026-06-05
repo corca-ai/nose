@@ -176,13 +176,13 @@ enum Cmd {
         /// (.gitignore is already respected automatically.)
         #[arg(long)]
         exclude: Vec<String>,
-        /// Ignore units or syntax copy-paste runs smaller than this IL-token size.
-        /// [default: 24]
+        /// Ignore units or syntax copy-paste runs smaller than this size, measured in
+        /// IL tokens (the unit's node count). [default: 24]
         #[arg(long)]
-        min_tokens: Option<usize>,
-        /// Ignore units or syntax copy-paste runs spanning fewer source lines.
-        /// [default: 5]
-        #[arg(long)]
+        min_size: Option<usize>,
+        /// Advanced: also require this many source lines (most users only need
+        /// --min-size). [default: 5]
+        #[arg(long, hide = true)]
         min_lines: Option<u32>,
     },
     /// Recall-ceiling diagnostic: split gold recall across unit-extraction /
@@ -669,11 +669,10 @@ impl CapabilitiesReport {
                     "ignore-file",
                     "min-lines",
                     "min-members",
-                    "min-tokens",
+                    "min-size",
                     "min-value",
                     "mode",
                     "sort",
-                    "threshold",
                     "top",
                 ],
                 capabilities: scan_capability_flags(),
@@ -1145,7 +1144,7 @@ fn run() -> Result<()> {
             write_baseline,
             format,
             exclude,
-            min_tokens,
+            min_size,
             min_lines,
         } => cmd_scan(ScanArgs {
             paths,
@@ -1163,7 +1162,7 @@ fn run() -> Result<()> {
             write_baseline,
             format,
             exclude,
-            min_tokens,
+            min_size,
             min_lines,
         }),
         Cmd::Ceiling {
@@ -2234,7 +2233,7 @@ struct ScanArgs {
     write_baseline: bool,
     format: ReportFormat,
     exclude: Vec<String>,
-    min_tokens: Option<usize>,
+    min_size: Option<usize>,
     min_lines: Option<u32>,
 }
 
@@ -2334,7 +2333,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         1.0
     };
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
-    let min_tokens = args.min_tokens.or(cfg.min_tokens).unwrap_or(24);
+    let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let ignore_file = args.ignore_file.or(cfg.ignore_file);
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;

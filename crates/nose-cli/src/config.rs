@@ -5,13 +5,11 @@
 //! ```toml
 //! [scan]
 //! exclude = ["tests/**", "**/*.generated.ts", "vendor/**"]
-//! mode = ["syntax", "semantic"]
+//! mode = ["syntax", "semantic", "near:0.8"] # near's threshold rides on the mode
 //! min-value = 200
 //! sort = "extractability"
 //! min-members = 3
-//! # threshold = 0.70 # only valid when mode includes "near"
-//! min-lines = 8
-//! min-tokens = 30
+//! min-size = 30                             # minimum unit size in IL tokens
 //! ignore-file = "nose.ignore.json"
 //! ```
 
@@ -28,9 +26,10 @@ pub(crate) struct ScanConfig {
     pub min_value: Option<f64>,
     pub sort: Option<crate::SortKey>,
     pub min_members: Option<usize>,
-    pub threshold: Option<f64>,
+    /// Advanced: minimum source-line span (most users only set `min-size`).
     pub min_lines: Option<u32>,
-    pub min_tokens: Option<usize>,
+    /// Minimum unit size in IL tokens.
+    pub min_size: Option<usize>,
     pub top: Option<usize>,
     pub ignore_file: Option<PathBuf>,
 }

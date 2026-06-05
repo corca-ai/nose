@@ -125,19 +125,23 @@ cargo build --release
 ### Example
 
 ```
-$ nose scan examples --min-tokens 8
+$ nose scan examples --min-size 8
 scanned 3 files · go 1 · python 1 · typescript 1
-2 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~26 duplicated lines  (showing 2)
+1 clone family, ranked by extractability (cleanest to fold into one helper)  ·  ~30 duplicated lines  (showing 1)
 
-#1  3 copies · same logic in 3 languages (go, python, typescript) · ~14 lines removable
+#1  id b658f483dcc2b097 · 6 copies · same logic in 3 languages (go, python, typescript) · ~30 lines removable
     → local duplication — extract a helper (cross-language)
-    examples/sum.go:3-9  SumFor
-    examples/sum.py:1-7  sum_while
-    examples/sum.ts:1-7  sumFor
+    examples/sum.go:3-9    SumFor
+    examples/sum.go:11-17  SumRange
+    examples/sum.py:1-7    sum_while
+    examples/sum.py:10-14  sum_for
+    examples/sum.ts:1-7    sumFor
+    examples/sum.ts:9-15   sumOf
 ```
 
-(Runs on the repo's own `examples/`, which differ in language and loop form yet are one
-family. `--min-tokens 8` because the demo functions are tiny; the default minimum is 24.)
+(Runs on the repo's own `examples/` — six tiny sum routines across three languages and
+several loop forms, all one family. `--min-size 8` because the demo functions are tiny;
+the default minimum is 24 IL tokens.)
 
 Each family is described in plain language — how many copies, how much is actually
 shared vs varies, how many lines you could remove — and **every site is listed** so you
@@ -182,7 +186,7 @@ runs three selectable channels feeding one ranking:
 - `nose scan <paths…>` — ranked clone families.
   - rank/filter/shape: `--sort extractability|value|sites|hazard` (default
     `extractability`), `--top N`, `--min-members N`, `--min-value V`,
-    `--min-tokens N`, `--min-lines N`,
+    `--min-size N`,
     `--mode syntax|semantic|near` (comma-list/repeatable; omitted = `syntax,semantic`),
     `--exclude <glob>` (gitignore-syntax; `.gitignore` is respected automatically,
     even outside a git repo).
