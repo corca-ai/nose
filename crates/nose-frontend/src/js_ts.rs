@@ -1546,21 +1546,38 @@ fn lower_object_shorthand(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::Seq, Payload::Name(tag), span, &[key, value])
 }
 
-/// Lower a template literal to a string-concat chain: a base `Str` literal
-/// followed by `Add` of each `${…}` substitution. `` `a${x}b` `` thus converges
-/// with `"a" + x + "b"`.
+/// Lower a template literal to a string-concat chain. Static fragments keep their
+/// string content, and a leading substitution keeps the previous empty-string
+/// coercion shape. `` `a${x}b` `` thus converges with `"a" + x + "b"`.
 fn lower_template(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let mut acc = lo.add(NodeKind::Lit, Payload::Lit(LitClass::Str), span, &[]);
+    let mut acc = None;
     for c in Lowering::named_children(node) {
-        if c.kind() == "template_substitution" {
-            if let Some(e) = c.named_child(0) {
-                let sub = lower_expr(lo, e);
-                acc = lo.add(NodeKind::BinOp, Payload::Op(Op::Add), span, &[acc, sub]);
+        match c.kind() {
+            "string_fragment" | "escape_sequence" => {
+                let lit = lo.str_lit(lo.text(c), lo.span(c));
+                append_template_part(lo, &mut acc, span, lit);
             }
+            "template_substitution" => {
+                if let Some(e) = c.named_child(0) {
+                    if acc.is_none() {
+                        acc = Some(lo.str_lit("", span));
+                    }
+                    let sub = lower_expr(lo, e);
+                    append_template_part(lo, &mut acc, span, sub);
+                }
+            }
+            _ => {}
         }
     }
-    acc
+    acc.unwrap_or_else(|| lo.str_lit("", span))
+}
+
+fn append_template_part(lo: &mut Lowering, acc: &mut Option<NodeId>, span: Span, part: NodeId) {
+    *acc = Some(match *acc {
+        Some(left) => lo.add(NodeKind::BinOp, Payload::Op(Op::Add), span, &[left, part]),
+        None => part,
+    });
 }
 
 /// Lower JSX to `Call(tag, attrs…, children…)` — structurally close to the

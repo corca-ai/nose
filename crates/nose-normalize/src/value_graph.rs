@@ -2148,22 +2148,21 @@ impl<'a> Builder<'a> {
 
     fn module_binding_mutated(&self, name: Symbol) -> bool {
         let top_level = self.top_level_statements();
-        self.il
-            .nodes
-            .iter()
-            .enumerate()
-            .any(|(idx, node)| match node.kind {
-                NodeKind::Call => self
-                    .call_mutates_binding(NodeId(idx as u32), name)
-                    .unwrap_or(false),
-                NodeKind::Field => self
-                    .field_mutates_binding(NodeId(idx as u32), name)
-                    .unwrap_or(false),
-                NodeKind::Assign if !top_level.contains(&NodeId(idx as u32)) => self
-                    .assignment_mutates_binding(NodeId(idx as u32), name)
+        let shadowed = shadowed_js_like_module_binding_nodes_for_symbol(self.il, name);
+        self.il.nodes.iter().enumerate().any(|(idx, node)| {
+            let node_id = NodeId(idx as u32);
+            if shadowed.contains(&node_id) {
+                return false;
+            }
+            match node.kind {
+                NodeKind::Call => self.call_mutates_binding(node_id, name).unwrap_or(false),
+                NodeKind::Field => self.field_mutates_binding(node_id, name).unwrap_or(false),
+                NodeKind::Assign if !top_level.contains(&node_id) => self
+                    .assignment_mutates_binding(node_id, name)
                     .unwrap_or(false),
                 _ => false,
-            })
+            }
+        })
     }
 
     fn assignment_mutates_binding(&self, assign: NodeId, name: Symbol) -> Option<bool> {
@@ -5537,22 +5536,6 @@ fn node_symbol_in(il: &Il, node: NodeId) -> Option<Symbol> {
     }
 }
 
-fn collect_node_symbols(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol) {
-            out.insert(symbol);
-        }
-    }
-    for &child in il.children(node) {
-        collect_node_symbols(il, child, candidates, out);
-    }
-}
-
 fn collect_all_node_symbols(il: &Il, node: NodeId, out: &mut FxHashSet<Symbol>) {
     if let Some(symbol) = node_symbol_in(il, node) {
         out.insert(symbol);
@@ -5566,10 +5549,15 @@ fn mark_direct_symbol(
     il: &Il,
     node: NodeId,
     candidates: &FxHashSet<Symbol>,
+    shadowed: &FxHashMap<NodeId, FxHashSet<Symbol>>,
     out: &mut FxHashSet<Symbol>,
 ) {
     if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol) {
+        if candidates.contains(&symbol)
+            && !shadowed
+                .get(&node)
+                .is_some_and(|symbols| symbols.contains(&symbol))
+        {
             out.insert(symbol);
         }
     }
@@ -5585,11 +5573,13 @@ fn collect_module_mutations(
     if candidates.is_empty() {
         return mutated;
     }
+    let shadowed = shadowed_js_like_module_binding_nodes(il, candidates);
     for (idx, node) in il.nodes.iter().enumerate() {
+        let node_id = NodeId(idx as u32);
         match node.kind {
             NodeKind::Call if matches!(node.payload, Payload::Builtin(Builtin::Append)) => {
-                if let Some(receiver) = il.children(NodeId(idx as u32)).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
+                if let Some(receiver) = il.children(node_id).first().copied() {
+                    mark_direct_symbol(il, receiver, candidates, &shadowed, &mut mutated);
                 }
             }
             NodeKind::Field => {
@@ -5599,19 +5589,102 @@ fn collect_module_mutations(
                 if !Builder::mutating_method_name(interner.resolve(method)) {
                     continue;
                 }
-                if let Some(receiver) = il.children(NodeId(idx as u32)).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
+                if let Some(receiver) = il.children(node_id).first().copied() {
+                    mark_direct_symbol(il, receiver, candidates, &shadowed, &mut mutated);
                 }
             }
             NodeKind::Assign if !is_top_level.get(idx).copied().unwrap_or(false) => {
-                if let Some(lhs) = il.children(NodeId(idx as u32)).first().copied() {
-                    collect_node_symbols(il, lhs, candidates, &mut mutated);
+                if let Some(lhs) = il.children(node_id).first().copied() {
+                    collect_unshadowed_node_symbols(il, lhs, candidates, &shadowed, &mut mutated);
                 }
             }
             _ => {}
         }
     }
     mutated
+}
+
+fn collect_unshadowed_node_symbols(
+    il: &Il,
+    node: NodeId,
+    candidates: &FxHashSet<Symbol>,
+    shadowed: &FxHashMap<NodeId, FxHashSet<Symbol>>,
+    out: &mut FxHashSet<Symbol>,
+) {
+    if let Some(symbol) = node_symbol_in(il, node) {
+        if candidates.contains(&symbol)
+            && !shadowed
+                .get(&node)
+                .is_some_and(|symbols| symbols.contains(&symbol))
+        {
+            out.insert(symbol);
+        }
+    }
+    for &child in il.children(node) {
+        collect_unshadowed_node_symbols(il, child, candidates, shadowed, out);
+    }
+}
+
+fn shadowed_js_like_module_binding_nodes_for_symbol(il: &Il, name: Symbol) -> FxHashSet<NodeId> {
+    let mut candidates = FxHashSet::default();
+    candidates.insert(name);
+    shadowed_js_like_module_binding_nodes(il, &candidates)
+        .into_iter()
+        .filter_map(|(node, symbols)| symbols.contains(&name).then_some(node))
+        .collect()
+}
+
+fn shadowed_js_like_module_binding_nodes(
+    il: &Il,
+    candidates: &FxHashSet<Symbol>,
+) -> FxHashMap<NodeId, FxHashSet<Symbol>> {
+    let mut out = FxHashMap::default();
+    if candidates.is_empty() || !js_like_lang(il.meta.lang) {
+        return out;
+    }
+    collect_shadowed_js_like_module_binding_nodes(
+        il,
+        il.root,
+        candidates,
+        &FxHashSet::default(),
+        &mut out,
+    );
+    out
+}
+
+fn collect_shadowed_js_like_module_binding_nodes(
+    il: &Il,
+    node: NodeId,
+    candidates: &FxHashSet<Symbol>,
+    inherited: &FxHashSet<Symbol>,
+    out: &mut FxHashMap<NodeId, FxHashSet<Symbol>>,
+) {
+    let mut shadowed = inherited.clone();
+    if matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
+        for &child in il.children(node) {
+            if il.kind(child) != NodeKind::Param {
+                continue;
+            }
+            if let Some(symbol) = node_symbol_in(il, child) {
+                if candidates.contains(&symbol) {
+                    shadowed.insert(symbol);
+                }
+            }
+        }
+    }
+    if !shadowed.is_empty() {
+        out.insert(node, shadowed.clone());
+    }
+    for &child in il.children(node) {
+        collect_shadowed_js_like_module_binding_nodes(il, child, candidates, &shadowed, out);
+    }
+}
+
+fn js_like_lang(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
 }
 
 fn collect_assigned(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {

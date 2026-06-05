@@ -362,6 +362,41 @@
       ],
       "batch": "2026-06-05-python-docstring-noop",
       "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "typescript-import-namespace-shadow-jest-replace-root-dir",
+      "status": "closed",
+      "candidate_axis": "import_identity",
+      "repo": "jest",
+      "language": "typescript",
+      "locations": [
+        {
+          "path": "packages/jest-config/src/utils.ts",
+          "span": "57-69",
+          "snippet": "export const replaceRootDirInPath = (rootDir, filePath) => { ... return path.resolve(rootDir, path.normalize(`./${filePath.slice('<rootDir>'.length)}`)); }"
+        },
+        {
+          "path": "packages/jest-resolve/src/utils.ts",
+          "span": "21-30",
+          "snippet": "const replaceRootDirInPath = (rootDir, filePath) => { ... return path.resolve(rootDir, path.normalize(`./${filePath.slice('<rootDir>'.length)}`)); }"
+        }
+      ],
+      "semantic_claim": "Both helpers return filePath unchanged unless it starts with <rootDir>, otherwise they resolve rootDir plus the normalized suffix after the <rootDir> marker.",
+      "evidence": "Previous release verify over jest-config/src and jest-resolve/src reported one under-merged behavior group at utils.ts:57 ↮ utils.ts:21 with SOUND. Candidate verify reports completeness 1/1, 0 under-merged groups, and semantic scan reports family 5dc1326d43c86973 containing the two replaceRootDirInPath functions.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-shadow scan jest-config/src jest-resolve/src --mode semantic --top 0",
+        "baseline_result": "0 semantic families; features showed both functions exact_safe=false and the jest-config value fingerprint lacked the node:path namespace literals because a different function parameter named path was treated as a module-binding mutation.",
+        "candidate_result": "target/release/nose scan reports one semantic family with packages/jest-config/src/utils.ts:57-69 and packages/jest-resolve/src/utils.ts:21-30; both feature records are exact_safe=true with identical value fingerprints."
+      },
+      "proof_invariant": "For JS/TS-family files, a function or lambda parameter that shadows a module-level binding name must not count as mutation of that module binding; unshadowed mutation-like receiver calls still block the proof. Static template literal fragments are behavior-defining string literals and must be preserved in the value graph.",
+      "hard_negative_siblings": [
+        "path.replaceAll(...) on the unshadowed namespace local still taints the module binding proof",
+        "a same-named local object with resolve/normalize is not a proven node:path namespace import",
+        "a different template literal fragment such as ../ changes the resolved path"
+      ],
+      "batch": "2026-06-05-js-namespace-shadow-template",
+      "notes": "Selected from Jest real verify lead after broader membership/map audits found no sound higher-yield real misses."
     }
   ]
 }

@@ -4221,3 +4221,81 @@ Remaining open frontier: the earlier real audit still leaves Java `Arrays.asList
 membership unsupported until array type/provenance facts exist, and the next efficient
 batch should be selected by rerunning `prioritize_frontier.py` rather than widening
 docstring handling beyond static leading Python docstrings.
+
+## Real-corpus JS/TS namespace import shadowing: batch 2026-06-05
+
+This batch selected a Jest real miss after the post-docstring frontier audit found that
+the high-scoring membership and map-default leads were either unsupported or unsafe
+without new receiver/type facts. The evidence-backed miss was the duplicated
+`replaceRootDirInPath` helper in `jest-config` and `jest-resolve`. The previous release
+split the pair because `jest-config/src/utils.ts` also has an unrelated
+`escapeGlobCharacters(path)` parameter whose `path.replaceAll(...)` call was treated as
+a mutation of the file's `import * as path from "node:path"` namespace binding.
+
+Closed selected real miss:
+
+- `jest/packages/jest-config/src/utils.ts:57` `replaceRootDirInPath` ↔
+  `jest/packages/jest-resolve/src/utils.ts:21` `replaceRootDirInPath`.
+
+The shared proof invariant is narrow: in JS/TS-family IL, a function or lambda parameter
+that shadows a module binding name does not mutate the module binding; an unshadowed
+mutation-like receiver call still blocks the proof. The same real helper also required
+preserving static template literal fragments as behavior-defining string literals, so
+`` `./${x}` `` can be exact-safe and converge with `"./" + x` while `` `../${x}` ``
+stays distinct.
+
+Synthetic coverage added `axis_import_namespace_shadowed_param_*`: positives for
+namespace import under parameter shadowing and template literal versus concat; hard
+negatives cover unshadowed mutation-like receiver calls, fake same-named receivers, and
+wrong template fragments.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-js-import-1 | real frontier selection | choose the Jest `replaceRootDirInPath` verify lead after rejecting unsupported membership/map leads | previous release verify: 0/1 completeness, 1 under-merged group, SOUND |
+| real-js-import-2 | detector strengthening | make JS/TS module mutation collection scope-aware for parameter shadowing; preserve JS/TS template static fragments as `LitStr` | targeted equivalence tests passed |
+| real-js-import-3 | focused synthetic gate | add namespace-shadow/template positives and adjacent hard negatives | previous release 0/4 positives, 0/8 false merges; candidate 4/4, 0/8 |
+| real-js-import-4 | real corpus delta | rescan selected Jest dirs | semantic scan goes from 0 families to family `5dc1326d43c86973` for the two helpers |
+| real-js-import-5 | release gates | run required focused, import-axis core, all-cross core gates | focused 4/4, 0/8; import core 9/9, 0/16; all-cross 618/618, 0/1210 |
+| real-js-import-6 | performance | compare selected Jest scan timings with previous release | normalize+extract 6.4ms -> 6.3ms on final run; candidate/cluster path 1.2ms -> 1.0ms |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_import_namespace_shadowed_param_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 12
+positive recall: 4/4
+hard-negative false merges: 0/8
+Raw nodes: 0/880
+```
+
+Final release import-axis core gate:
+
+```text
+GATE=core AXIS=import_identity CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 25/124
+positive recall: 9/9
+hard-negative false merges: 0/16
+Raw nodes: 0/1026
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1828/6696
+positive recall: 618/618
+hard-negative false merges: 0/1210
+Raw nodes: 0/66721
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: Java `Arrays.asList(array)` membership still requires array
+provenance facts; Python `**kwargs.get` and omitted-`None` map defaults had no repeated
+real miss groups in the audited repos; remaining JS/TS leads in Zod/date-fns/RxJS were
+oracle artifacts or non-equivalent.

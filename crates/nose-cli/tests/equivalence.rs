@@ -960,14 +960,21 @@ fn embedded_scripts_converge_with_plain_js_ts() {
 }
 
 #[test]
-fn fstring_multi_interpolation_chains() {
-    // Two interpolations fold into two Adds — same shape as the JS template.
+fn template_multi_interpolation_preserves_static_fragments() {
+    // Static template fragments are behavior-defining. A multi-interpolation
+    // template should match explicit concatenation and stay distinct when the
+    // middle fragment changes or disappears.
     let i = Interner::new();
-    let py = "def f(a, b):\n    return f\"{a} and {b}\"\n";
-    let js = "function g(a, b){\n  return `${a} and ${b}`;\n}\n";
+    let template = "function f(a, b){\n  return `${a} and ${b}`;\n}\n";
+    let concat = "function g(a, b){\n  return \"\" + a + \" and \" + b;\n}\n";
+    let missing_fragment = "function h(a, b){\n  return `${a}${b}`;\n}\n";
     assert_eq!(
-        unit_hash(&i, py, Lang::Python),
-        unit_hash(&i, js, Lang::JavaScript),
+        value_fp(&i, template, Lang::JavaScript),
+        value_fp(&i, concat, Lang::JavaScript),
+    );
+    assert_ne!(
+        value_fp(&i, template, Lang::JavaScript),
+        value_fp(&i, missing_fragment, Lang::JavaScript),
     );
 }
 
@@ -1803,6 +1810,103 @@ fn import_named_and_namespace_member_coordinates_converge() {
     let py_fp = value_fp(&i, py_named, Lang::Python);
     assert_eq!(py_fp, value_fp(&i, py_namespace, Lang::Python));
     assert_ne!(py_fp, value_fp(&i, py_wrong_member, Lang::Python));
+}
+
+#[test]
+fn js_namespace_imports_ignore_parameter_shadow_mutations_only() {
+    let i = Interner::new();
+    let plain = r#"
+import * as path from "node:path";
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let shadowed_param = r#"
+import * as path from "node:path";
+
+export const escapeGlobCharacters = (path: string): string =>
+  path.replaceAll(/([!()*?[\\\]{}])/g, "\\$1");
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let unshadowed_mutation = r#"
+import * as path from "node:path";
+
+export const touchPath = (): void => {
+  path.replaceAll("x", "y");
+};
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let fake_receiver = r#"
+const path = {
+  normalize(value: string): string {
+    return value;
+  },
+  resolve(rootDir: string, value: string): string {
+    return value;
+  },
+};
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+
+    let fp = value_fp_named(&i, plain, Lang::TypeScript, "replaceRootDirInPath");
+    assert_eq!(
+        fp,
+        value_fp_named(&i, shadowed_param, Lang::TypeScript, "replaceRootDirInPath"),
+        "a parameter named like the namespace import must not taint the module binding"
+    );
+    assert_ne!(
+        fp,
+        value_fp_named(
+            &i,
+            unshadowed_mutation,
+            Lang::TypeScript,
+            "replaceRootDirInPath"
+        ),
+        "an unshadowed mutation-like receiver call must still block the import proof"
+    );
+    assert_ne!(
+        fp,
+        value_fp_named(&i, fake_receiver, Lang::TypeScript, "replaceRootDirInPath"),
+        "a same-named local object is not a proven import namespace"
+    );
 }
 
 #[test]
