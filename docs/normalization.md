@@ -26,9 +26,10 @@
 > (`d={}; for x: d[k]=v` ≡ `{k:v for x}` via a `DictEntry`-distinct rep that cannot collide
 > with a list of tuples), ternary-return decomposition, negated-comparison canon,
 > equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard
-> facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`), and
-> primitive total-order comparator guard absorption (`x<y ∧ x≤y` keeps `x<y` for
-> non-overloadable ordered comparisons). Also
+> facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`),
+> statically-false loop entry guards (a proven-true local boolean makes a left
+> short-circuit `!local && ...` guard unreachable), and primitive total-order comparator
+> guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons). Also
 > landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
 > structural (linear) recursion → an accumulator fold, so a recursive function converges with
 > the loop a programmer would have written and with other same-shape recursions
@@ -137,6 +138,13 @@ structured CFG and canonicalize equivalent shapes — flag-variable loop ↔ `br
 nested guards ↔ flattened guards, `continue`-skip ↔ wrapped body, redundant-jump
 elimination. Hard parts: structuring
 arbitrary control flow, proving shape-equivalence, determinism.
+
+A narrow value-graph CFG fact is accepted for statically-false loop entry guards: if a local
+boolean is already proven `true`, `while (!local && rhs) { ... }` has an unreachable body and
+update by short-circuit semantics. This deliberately does not fold the right-hand guard and
+does not apply after reassignment or to unproven receiver/dynamic facts. Loop-carried
+placeholders are keyed by traversal/carry slot, not source variable id, so unused parameters
+do not keep equivalent loop recurrences apart.
 
 ## Track 4 — Recursion → iteration
 

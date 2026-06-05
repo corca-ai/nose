@@ -478,6 +478,42 @@
       ],
       "batch": "2026-06-05-java-empty-domain-soundness",
       "notes": "Soundness blocker batch. It intentionally reduces an over-broad merge rather than closing a completeness miss; follow-up completeness work should continue from the remaining real under-merged Netty leads only after preserving this boundary."
+    },
+    {
+      "case_id": "java-dead-loop-libgdx-bufferutils-find-floats",
+      "status": "closed",
+      "candidate_axis": "java_statically_false_loop",
+      "repo": "libgdx",
+      "language": "java",
+      "locations": [
+        {
+          "path": "backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java",
+          "span": "433-449",
+          "snippet": "public static long findFloats(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { ... boolean found = true; for (int j = 0; !found && j < size; j++) ... }"
+        },
+        {
+          "path": "backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java",
+          "span": "458-474",
+          "snippet": "public static long findFloats(float[] vertex, int strideInBytes, float[] vertices, int numVertices, float epsilon) { ... boolean found = true; for (int j = 0; !found && j < size; j++) ... }"
+        }
+      ],
+      "semantic_claim": "Both overloads return the first vertex index whenever numVertices is positive, otherwise -1, because the inner comparison loop is unreachable after found is initialized true and the guard starts with !found.",
+      "evidence": "Previous release selected verify over BufferUtils.java reported SOUND with completeness 0/1 and under-merged lead BufferUtils.java:433 to BufferUtils.java:458. Candidate selected verify reports SOUND with completeness 1/1 and 0 under-merged groups. An exact pinned-corpus search for the same boolean-true plus !guard pattern found only these two libgdx spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-java-dead-loop verify bench/repos/libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java --max-violations 0 --leads /tmp/nose-libgdx-gwt-bufferutils-before-rerun-leads.json",
+        "baseline_result": "SOUND; completeness 0/1; under-merged lead BufferUtils.java:433 to BufferUtils.java:458 with vj=0.43.",
+        "candidate_result": "target/release/nose verify bench/repos/libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java --max-violations 0 --leads /tmp/nose-libgdx-gwt-bufferutils-after-rerun-leads.json reports SOUND; completeness 1/1; under-merged groups 0. Whole-libgdx semantic scan reports family 3aaacf7da1b4536d containing both methods."
+      },
+      "proof_invariant": "For a local boolean proven true before a while-loop entry guard, a left short-circuit atom !local in an && guard is proven false, so the loop body and update are unreachable. The merge also requires loop-carried recurrence placeholders to be keyed by traversal/carry slot rather than source cid so unused parameters do not change the value identity.",
+      "hard_negative_siblings": [
+        "boolean found = false before !found && ..., where the body can execute",
+        "found && ... with found initialized true, where the body can execute",
+        "found reassigned before the guard, removing the constant proof",
+        "same-template mutation changing a reachable returned index even when the loop body is dead"
+      ],
+      "batch": "2026-06-05-java-dead-loop-guard",
+      "notes": "Small completeness batch: the real audit over libgdx, git, and h2database plus exact pinned search found one evidence-backed same-invariant real family, so this batch intentionally closes one real candidate rather than padding to three unrelated candidates."
     }
   ]
 }

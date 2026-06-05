@@ -263,6 +263,22 @@ AXIS_PROPOSALS = {
         "axis": "total_order_compare",
         "why": "A three-way comparator proof fixes the returned sign values -1, 0, and 1.",
     },
+    "axis_java_dead_loop_guard_identity": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop whose entry guard starts with a proven false short-circuit operand has an unreachable body.",
+    },
+    "axis_java_dead_loop_false_init_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop guarded by `!found && ...` can execute when `found` is initialized false.",
+    },
+    "axis_java_dead_loop_positive_guard_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop guarded by `found && ...` can execute when `found` is initialized true.",
+    },
+    "axis_java_dead_loop_reassigned_guard_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A reassigned guard variable is not a proof that the loop entry guard is false.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -2357,6 +2373,68 @@ def axis_total_order_compare_variant(
 }}
 """
     return Variant("axis", src, snake_name)
+
+
+def java_dead_loop_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_java_dead_loop_") and surface.key == "java"
+
+
+def axis_java_dead_loop_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "java":
+        raise ValueError(f"unsupported surface for Java dead-loop axis: {surface.key}")
+    name = "buildCase" if right else "axisCase"
+    mode = "exact_dead"
+    if right and proposal_id == "axis_java_dead_loop_guard_identity" and not negative:
+        mode = "epsilon_dead"
+    elif right and proposal_id == "axis_java_dead_loop_guard_identity" and negative:
+        mode = "wrong_return"
+    elif right and proposal_id == "axis_java_dead_loop_false_init_boundary":
+        mode = "false_init"
+    elif right and proposal_id == "axis_java_dead_loop_positive_guard_boundary":
+        mode = "positive_guard"
+    elif right and proposal_id == "axis_java_dead_loop_reassigned_guard_boundary":
+        mode = "reassigned_guard"
+
+    params = "float[] vertex, int strideInBytes, float[] vertices, int numVertices"
+    body = "if (vertices[offset + j] != vertex[j]) found = false;"
+    found_setup = "boolean found = true;"
+    guard = "!found && j < size"
+    return_expr = "(long)i"
+    if mode == "epsilon_dead":
+        params += ", float epsilon"
+        body = """if ((vertices[offset + j] > vertex[j]
+                    ? vertices[offset + j] - vertex[j]
+                    : vertex[j] - vertices[offset + j]) > epsilon) found = false;"""
+    elif mode == "wrong_return":
+        return_expr = "(long)i + 1"
+    elif mode == "false_init":
+        found_setup = "boolean found = false;"
+        body = "if (vertices[offset + j] == vertex[j]) found = true;"
+    elif mode == "positive_guard":
+        guard = "found && j < size"
+    elif mode == "reassigned_guard":
+        found_setup = "boolean found = true;\n            found = vertices == vertex;"
+
+    src = f"""class C {{
+    static long {name}({params}) {{
+        final int size = strideInBytes / 4;
+        for (int i = 0; i < numVertices; i++) {{
+            final int offset = i * size;
+            {found_setup}
+            for (int j = 0; {guard}; j++)
+                {body}
+            if (found) return {return_expr};
+        }}
+        return -1;
+    }}
+}}
+"""
+    return Variant("axis", src, name)
 
 
 def record_guard_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -7229,6 +7307,11 @@ def axis_variants(
             axis_total_order_compare_variant(surface, proposal_id, False, False),
             axis_total_order_compare_variant(surface, proposal_id, negative, True),
         )
+    if axis == "java_statically_false_loop":
+        return (
+            axis_java_dead_loop_variant(surface, proposal_id, False, False),
+            axis_java_dead_loop_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -7277,6 +7360,7 @@ def axis_data_shape(axis: str) -> str:
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
         "total_order_compare": "ordered-scalar-pair",
+        "java_statically_false_loop": "java-array-scan",
     }.get(axis, "scalar<int>")
 
 
@@ -7518,6 +7602,17 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"left": 7, "right": 3},
                 ],
                 "claim": "Ascending three-way total-order comparator returns -1, 0, or 1 from the same ordered pair.",
+                "outputs": [],
+            }
+        if axis == "java_statically_false_loop":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"numVertices": 0, "strideInBytes": 4},
+                    {"numVertices": 1, "strideInBytes": 4},
+                ],
+                "claim": "`found=true` makes `!found && ...` false on loop entry, so the loop body and update are unreachable.",
                 "outputs": [],
             }
         return {
@@ -7946,6 +8041,24 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "kind": f"counterexample-{axis}",
             "counterexample": counterexample,
         }
+    elif axis == "java_statically_false_loop":
+        if proposal_id == "axis_java_dead_loop_false_init_boundary":
+            right = "body can execute because found starts false"
+        elif proposal_id == "axis_java_dead_loop_positive_guard_boundary":
+            right = "body can execute because found starts true and the guard is positive"
+        elif proposal_id == "axis_java_dead_loop_guard_identity":
+            right = "wrong reachable return value"
+        else:
+            right = "body can execute after the guard variable is reassigned"
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": {
+                "input": {"numVertices": 1, "strideInBytes": 4},
+                "left": "first index is returned before comparing elements",
+                "right": right,
+            },
+        }
     else:
         left_output = 8
         right_output = 9
@@ -8052,6 +8165,10 @@ def generate_axis_items(
             if proposal_id.startswith(
                 "axis_total_order_compare_"
             ) and not total_order_compare_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_java_dead_loop_") and not java_dead_loop_axis_supported(
+                surface, proposal_id
+            ):
                 continue
             if proposal_id.startswith("axis_own_property_") and not own_property_axis_supported(
                 surface, proposal_id
@@ -8173,6 +8290,23 @@ def generate_axis_items(
                         "typed-empty-domain-boundary"
                         if proposal_id.startswith("axis_collection_typed_domain_")
                         else "collection-empty-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_java_dead_loop_false_init_boundary",
+                "axis_java_dead_loop_positive_guard_boundary",
+                "axis_java_dead_loop_reassigned_guard_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "java-dead-loop-boundary",
                     )
                 )
                 continue

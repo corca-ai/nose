@@ -4470,3 +4470,94 @@ until string and collection receiver semantics are intentionally connected. The 
 completeness batch should return to evidence-backed real misses such as the libgdx dead-loop
 `findFloats` pair or another repeated invariant from the real sweep, with this typed-domain
 boundary kept as a hard negative.
+
+## Real-corpus Java statically-false loop guard: batch 2026-06-05
+
+This batch returns to completeness after the Netty soundness blocker. The real-corpus audit
+checked the current verify leads in libgdx, git, and h2database. Most high-scoring leads were
+unsupported without new dynamic/type facts: float floor/ceil identities, pointer/index cast
+boundaries, comparator receivers with dynamic comparator objects, and null/collection/string
+domain boundaries. The first evidence-backed low-cost miss was libgdx's two `BufferUtils`
+`findFloats` overloads.
+
+Closed selected real candidate:
+
+- `libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java:433`
+  `findFloats(...)` to `BufferUtils.java:458` `findFloats(..., float epsilon)`.
+
+The intended batch size is about three evidence-backed miss candidates sharing one proof
+invariant, not three snippets. An exact pinned-corpus search for `boolean <local> = true`
+followed by a `!<local> && ...` loop guard found only this libgdx family for the current
+invariant, so the batch stays small instead of adding unrelated proof work.
+
+The shared proof invariant is local and short-circuit based: when a local boolean is proven
+`true` before a loop entry condition, a left-hand `!local` atom in an `&&` guard is proven
+false, so the loop body and update are unreachable. The implementation intentionally does
+not evaluate or fold the right-hand guard. While closing the real pair, the value graph also
+had to make loop-carried placeholders alpha-stable by traversal/carry slot rather than source
+cid; otherwise the extra unused `epsilon` parameter shifted local ids and kept equivalent
+dead loops apart.
+
+Synthetic coverage added `axis_java_dead_loop_*`: one focused positive for the exact-vs-
+epsilon dead-loop pair and four adjacent hard negatives covering wrong reachable return,
+false initialization, positive guard, and reassigned guard.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-dead-loop-1 | real frontier selection | choose the libgdx `BufferUtils.findFloats` verify lead after rejecting unsupported libgdx/git/h2database leads | previous release selected verify: SOUND, completeness 0/1, 1 under-merged group |
+| real-java-dead-loop-2 | detector strengthening | skip only while-loop bodies whose entry guard is statically false by a local boolean short-circuit proof; stabilize loop placeholder keys against unused-parameter cid shifts | targeted Java convergence and hard-negative tests passed |
+| real-java-dead-loop-3 | focused synthetic gate | add Java dead-loop positive and adjacent hard negatives | previous release 0/1 positives, 0/4 false merges; candidate 1/1, 0/4 |
+| real-java-dead-loop-4 | real corpus delta | verify selected BufferUtils.java and scan whole libgdx | selected verify after: 1/1 completeness, 0 under-merged; whole libgdx semantic families 141 -> 142 |
+| real-java-dead-loop-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 1/1, 0/4; axis core 1/1, 0/4; all-cross core 621/621, 0/1220; cargo test passed |
+| real-java-dead-loop-6 | performance | compare whole-libgdx scan timings with previous release using three alternating redirected runs | median normalize+extract 76.6ms -> 77.9ms; median candidate path 13.9ms -> 13.9ms; scanned files unchanged at 2100 |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_java_dead_loop_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 5
+positive recall: 1/1
+hard-negative false merges: 0/4
+Raw nodes: 0
+```
+
+Final Java statically-false loop axis core gate:
+
+```text
+GATE=core AXIS=java_statically_false_loop CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 5/5
+positive recall: 1/1
+hard-negative false merges: 0/4
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1841/6710
+positive recall: 621/621
+hard-negative false merges: 0/1220
+Raw nodes: 0/67880
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Whole-libgdx performance scan, median of three alternating redirected runs:
+
+```text
+previous release: discover 8.2ms, parse+lower 116.3ms, normalize+extract 76.6ms, candidates 12.6ms, candidate path 13.9ms, semantic families 141
+candidate release: discover 9.3ms, parse+lower 123.4ms, normalize+extract 77.9ms, candidates 12.4ms, candidate path 13.9ms, semantic families 142
+```
+
+No candidate-path regression showed up; normalize/extract moved by 1.3ms median within the
+observed run-to-run noise, and the one extra family is the expected BufferUtils dead-loop
+pair. The open frontier remains broad Java
+array provenance for `Arrays.asList(array).contains(value)` and other dynamic/type-sensitive
+leads. The next completeness batch should continue real-corpus audit for another repeated
+proof invariant rather than widening this rule beyond local boolean short-circuit facts.

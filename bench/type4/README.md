@@ -40,7 +40,8 @@ By default the generator emits:
   literal map-default lookup, map key-membership predicates,
   null/none/nil/option presence predicates including Rust
   option-pattern predicates, scalar absolute-value and min/max idioms, and
-  C total-order three-way comparator guard/ternary forms, plus
+  C total-order three-way comparator guard/ternary forms and Java
+  statically-false loop-entry guard forms, plus
   unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
@@ -89,13 +90,13 @@ positive recall: 682/682
 hard-negative false merges: 0/1258
 ```
 
-With `--cross all`, the dense corpus now has 6703 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 6710 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 1835/6703
-positive recall: 620/620
-hard-negative false merges: 0/1215
+selected items: 1841/6710
+positive recall: 621/621
+hard-negative false merges: 0/1220
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic

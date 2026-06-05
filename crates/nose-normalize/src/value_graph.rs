@@ -292,6 +292,7 @@ struct Builder<'a> {
     /// compact coupled recurrences such as `s1 += f(s2); s2 += g(s1)`, which otherwise
     /// expand into a large raw expression DAG even though they are not clean reductions.
     loop_recurrence: Option<LoopRecurrenceScope>,
+    next_loop_key_base: u32,
     /// Pointer-length contracts the unit RELIED ON to converge: `(array_param_pos,
     /// length_param_pos)` pairs recorded wherever `full_pointer_length_contract` fired (the
     /// loop bound `n` was treated as `len(array)`, not data, and dropped from the
@@ -306,6 +307,8 @@ struct Builder<'a> {
 #[derive(Clone)]
 struct LoopRecurrenceScope {
     loop_values: FxHashMap<u32, ValueId>,
+    loop_keys: FxHashMap<u32, u32>,
+    loop_key_set: FxHashSet<u32>,
 }
 
 #[derive(Clone, Copy)]
@@ -341,6 +344,7 @@ impl<'a> Builder<'a> {
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
             loop_recurrence: None,
+            next_loop_key_base: 0,
             contracts: Vec::new(),
         }
     }
@@ -2860,7 +2864,13 @@ impl<'a> Builder<'a> {
             return value;
         }
 
-        let h = combine(combine(0xC0AD_D1EC, cid as u64), self.vhash[value as usize]);
+        let key = self
+            .loop_recurrence
+            .as_ref()
+            .and_then(|scope| scope.loop_keys.get(&cid))
+            .copied()
+            .unwrap_or(cid);
+        let h = combine(combine(0xC0AD_D1EC, key as u64), self.vhash[value as usize]);
         self.mk(ValOp::Recurrence(h), vec![])
     }
 
@@ -2870,6 +2880,7 @@ impl<'a> Builder<'a> {
         self_cid: u32,
         scope: &LoopRecurrenceScope,
     ) -> bool {
+        let self_key = scope.loop_keys.get(&self_cid).copied();
         let mut stack = vec![value];
         let mut seen = FxHashSet::default();
         while let Some(v) = stack.pop() {
@@ -2877,7 +2888,7 @@ impl<'a> Builder<'a> {
                 continue;
             }
             match &self.nodes[v as usize].op {
-                ValOp::Loop(cid) if *cid != self_cid && scope.loop_values.contains_key(cid) => {
+                ValOp::Loop(key) if Some(*key) != self_key && scope.loop_key_set.contains(key) => {
                     return true;
                 }
                 ValOp::Recurrence(_) => return true,
@@ -3052,6 +3063,12 @@ impl<'a> Builder<'a> {
             Some(&b) => b,
             None => return,
         };
+        if kind == LoopKind::While
+            && kids.len() == 2
+            && self.loop_entry_condition_is_proven_false(kids[0], env)
+        {
+            return;
+        }
 
         // Discover the loop's *element source* so per-element computations converge
         // across loop shapes (the §AH representation axis):
@@ -3215,8 +3232,18 @@ impl<'a> Builder<'a> {
         // so the body expresses its update as a *recurrence* over `Loop(cid)`.
         let mut body_env = env.clone();
         let mut loop_vals: FxHashMap<u32, ValueId> = FxHashMap::default();
-        for &cid in &carried {
-            let lv = self.mk(ValOp::Loop(cid), vec![]);
+        let loop_key_base = self.next_loop_key_base;
+        let loop_key_count = u32::try_from(carried.len()).unwrap_or(u32::MAX);
+        self.next_loop_key_base = self
+            .next_loop_key_base
+            .wrapping_add(loop_key_count.saturating_add(1));
+        let mut loop_keys: FxHashMap<u32, u32> = FxHashMap::default();
+        let mut loop_key_set: FxHashSet<u32> = FxHashSet::default();
+        for (slot, &cid) in carried.iter().enumerate() {
+            let key = loop_key_base.wrapping_add(slot as u32);
+            loop_keys.insert(cid, key);
+            loop_key_set.insert(key);
+            let lv = self.mk(ValOp::Loop(key), vec![]);
             loop_vals.insert(cid, lv);
             body_env.insert(cid, lv);
         }
@@ -3240,6 +3267,8 @@ impl<'a> Builder<'a> {
         let sink_start = self.sinks.len();
         let outer_recurrence = self.loop_recurrence.replace(LoopRecurrenceScope {
             loop_values: loop_vals.clone(),
+            loop_keys,
+            loop_key_set,
         });
         let pre_body_env = body_env.clone();
         self.process_stmt(body, &mut body_env);
@@ -3481,6 +3510,48 @@ impl<'a> Builder<'a> {
             (self.il.kind(node), self.il.node(node).payload),
             (NodeKind::Var, Payload::Cid(c)) if c == cid
         )
+    }
+
+    fn loop_entry_condition_is_proven_false(
+        &self,
+        cond: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
+        if self.condition_atom_is_proven_false(cond, env) {
+            return true;
+        }
+        if self.il.kind(cond) != NodeKind::BinOp
+            || op_code(self.il.node(cond).payload) != Op::And as u32
+        {
+            return false;
+        }
+        let kids = self.il.children(cond);
+        kids.len() == 2 && self.condition_atom_is_proven_false(kids[0], env)
+    }
+
+    fn condition_atom_is_proven_false(&self, atom: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
+        match self.il.node(atom).payload {
+            Payload::LitBool(false) if self.il.kind(atom) == NodeKind::Lit => true,
+            Payload::Cid(cid) if self.il.kind(atom) == NodeKind::Var => env
+                .get(&cid)
+                .and_then(|&v| self.bool_const(v))
+                .is_some_and(|value| !value),
+            Payload::Op(Op::Not) if self.il.kind(atom) == NodeKind::UnOp => {
+                let kids = self.il.children(atom);
+                if kids.len() != 1 {
+                    return false;
+                }
+                match self.il.node(kids[0]).payload {
+                    Payload::LitBool(true) if self.il.kind(kids[0]) == NodeKind::Lit => true,
+                    Payload::Cid(cid) if self.il.kind(kids[0]) == NodeKind::Var => env
+                        .get(&cid)
+                        .and_then(|&v| self.bool_const(v))
+                        .is_some_and(|value| value),
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
     }
 
     /// The iterable of a `while i < len(xs)`-style loop: from a comparison whose

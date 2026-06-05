@@ -74,7 +74,7 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, total-order comparator, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
@@ -159,6 +159,7 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | indexed loop | skipped first or last element, wrong collection indexed |
 | C pointer-length contract | skipped first element, stride greater than one, non-contract bound |
 | total-order comparator | descending sign, equality-boundary sign, wrong returned sign value, overloadable receiver comparison |
+| statically-false loop guard | wrong reachable return, false initial value, positive guard, reassigned guard |
 | own-property guard | prototype-including `in`, shadowable method call, shadowed `Object`, different static key |
 | record-shape guard | missing null exclusion, missing array exclusion, unrelated property predicate |
 
