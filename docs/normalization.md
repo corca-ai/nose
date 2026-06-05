@@ -181,7 +181,9 @@ anything else is left untouched. **Soundness** is checked, not assumed: the inte
 `nose verify` interprets the original recursion *and* the rewritten loop and flags any
 behavioral difference (when the recursion terminates on the input battery — a guard like
 `n == 0` that loops forever on negatives is excluded on both sides, identically). On real
-code `nose verify` stays sound (0 false merges).
+code `nose verify` stays sound (0 false merges). Its concrete model covers
+`range(stop)` and `range(start, stop[, step])`, including zero-step error behavior, so
+range-index loops are checked under the same bounded input semantics.
 
 Out of scope (sound but not yet convergent, or genuinely hard): tree & mutual recursion
 (multiple / non-tail self-calls); list-tail catamorphisms `head ⊕ f(xs[1:])`, whose slice is

@@ -500,10 +500,7 @@ impl<'a> Interp<'a> {
             Builtin::Sum => Ok(fold_ints(args.first(), 0, |a, x| a + x)),
             Builtin::Min => Ok(fold_opt(args.first(), |a, x| a.min(x))),
             Builtin::Max => Ok(fold_opt(args.first(), |a, x| a.max(x))),
-            Builtin::Range => match args.first() {
-                Some(Value::Int(n)) => Ok(Value::List((0..*n).map(Value::Int).collect())),
-                _ => Ok(Value::Err),
-            },
+            Builtin::Range => range_values(&args),
             Builtin::Zip => match (args.first(), args.get(1)) {
                 (Some(Value::List(a)), Some(Value::List(b))) => Ok(Value::List(
                     a.iter()
@@ -876,6 +873,32 @@ fn join_strings(separator: Option<&Value>, collection: Option<&Value>) -> Value 
     Value::Str(out)
 }
 
+fn range_values(args: &[Value]) -> R<Value> {
+    let (start, stop, step) = match args {
+        [Value::Int(stop)] => (0, *stop, 1),
+        [Value::Int(start), Value::Int(stop)] => (*start, *stop, 1),
+        [Value::Int(start), Value::Int(stop), Value::Int(step)] => (*start, *stop, *step),
+        _ => return Ok(Value::Err),
+    };
+    if step == 0 {
+        return Ok(Value::Err);
+    }
+
+    let mut out = Vec::new();
+    let mut cur = start;
+    while if step > 0 { cur < stop } else { cur > stop } {
+        if out.len() as u64 > STEP_BUDGET {
+            return Err(Unsupported);
+        }
+        out.push(Value::Int(cur));
+        let Some(next) = cur.checked_add(step) else {
+            return Err(Unsupported);
+        };
+        cur = next;
+    }
+    Ok(Value::List(out))
+}
+
 fn bin(op: Op, a: &Value, b: &Value) -> Value {
     use Value::{Bool, Int};
     match (a, b) {
@@ -993,6 +1016,41 @@ mod tests {
         // unknown, so `len(str)` must be `Err` (matching the documented contract and the
         // sibling `IsEmpty`), not a hardcoded `Int(1)`.
         assert_eq!(run_len_of_string(), Value::Err);
+    }
+
+    fn run_range(args: &[i64]) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let args: Vec<NodeId> = args
+            .iter()
+            .map(|arg| b.add(NodeKind::Lit, Payload::LitInt(*arg), sp, &[]))
+            .collect();
+        let call = b.add(NodeKind::Call, Payload::Builtin(Builtin::Range), sp, &args);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn range_interprets_start_stop_and_step() {
+        assert_eq!(
+            run_range(&[1, 5, 2]),
+            Value::List(vec![Value::Int(1), Value::Int(3)])
+        );
+    }
+
+    #[test]
+    fn range_zero_step_is_err_behavior() {
+        assert_eq!(run_range(&[1, 5, 0]), Value::Err);
     }
 
     /// Build `fn() { return base ** exp }` over integer literals and run it.
