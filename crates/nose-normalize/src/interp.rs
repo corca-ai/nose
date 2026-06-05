@@ -773,8 +773,14 @@ impl<'a> Interp<'a> {
                 None => return Ok(Value::Err),
             },
         };
+        if matches!(acc, Value::Err) {
+            return Ok(Value::Err);
+        }
         for x in it {
             acc = self.apply(lambda, &[acc, x], env)?;
+            if matches!(acc, Value::Err) {
+                return Ok(Value::Err);
+            }
         }
         Ok(acc)
     }
@@ -1694,6 +1700,49 @@ mod tests {
     fn any_all_predicate_err_propagates() {
         assert_eq!(run_any_all_with_error_predicate(false), Value::Err);
         assert_eq!(run_any_all_with_error_predicate(true), Value::Err);
+    }
+
+    fn reduce_with_error_init_ignored_by_lambda() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let acc_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let item_param = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(
+            NodeKind::Lambda,
+            Payload::None,
+            sp,
+            &[acc_param, item_param, lambda_body],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let init_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let reduce = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Reduce),
+            sp,
+            &[lambda, coll, init_err],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[reduce]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn reduce_init_err_propagates() {
+        assert_eq!(reduce_with_error_init_ignored_by_lambda(), Value::Err);
     }
 
     /// Build `fn() { return base ** exp }` over integer literals and run it.
