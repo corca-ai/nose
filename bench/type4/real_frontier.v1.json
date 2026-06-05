@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "source": {
+    "corpus": "bench/goldens/corpus.json",
+    "repos_root": "bench/repos",
+    "purpose": "Evidence-backed real-corpus Type-4 frontier items used to raise practical semantic completeness."
+  },
+  "entry_contract": {
+    "case_id": "Stable id for this real-corpus frontier item.",
+    "status": "already-covered | real-miss | hard-negative | unsupported | closed",
+    "candidate_axis": "Prioritizer candidate or semantic axis, such as membership_contains.",
+    "repo": "Pinned corpus repository id.",
+    "language": "Primary source language for the audited span.",
+    "locations": "One or more repo-relative source spans participating in the claim.",
+    "semantic_claim": "Concrete equivalence or non-equivalence claim being audited.",
+    "evidence": "Same-spec/property evidence for positives, or counterexample/non-equivalence witness for negatives.",
+    "detector": "Baseline and candidate detection status for the audited spans.",
+    "proof_invariant": "The narrow proof fact required before the detector may merge the item.",
+    "hard_negative_siblings": "Adjacent boundary cases that must remain unmerged.",
+    "batch": "Batch id once the item is selected for implementation.",
+    "notes": "Short audit notes, including why unsupported items are not detector work."
+  },
+  "items": [
+    {
+      "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
+      "status": "unsupported",
+      "candidate_axis": "membership_contains / literal_collection_membership",
+      "repo": "junit5",
+      "language": "java",
+      "locations": [
+        {
+          "path": "documentation/src/test/java/example/ParameterizedTestDemo.java",
+          "span": "149",
+          "snippet": "assertTrue(EnumSet.of(ChronoUnit.DAYS, ChronoUnit.HOURS).contains(unit));"
+        },
+        {
+          "path": "documentation/src/test/java/example/ParameterizedTestDemo.java",
+          "span": "181-182",
+          "snippet": "assertTrue(EnumSet.of(ChronoUnit.HOURS, ChronoUnit.DAYS).contains(unit)); assertFalse(EnumSet.of(ChronoUnit.HALF_DAYS).contains(unit));"
+        }
+      ],
+      "semantic_claim": "The two EnumSet membership predicates share the same item set and searched element when item order is ignored.",
+      "evidence": "IL confirms both predicates lower to EnumSet.of(...).contains(unit), but the second enclosing method has an additional HALF_DAYS exclusion assertion, so the method-level units are not an evidence-backed Type-4 clone pair.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose scan ParameterizedTestDemo.java --mode semantic --format json --top 0 --min-tokens 1 --min-lines 1",
+        "baseline_result": "No family contains testWithEnumSourceInclude and testWithEnumSourceRangeExclude; selected before/after EnumSet whitelist experiment also produced no new real family."
+      },
+      "proof_invariant": "Would require only unshadowed java.util.EnumSet.of with strict-safe arguments and order-insensitive membership collection canon, but this is not sufficient to close a real method-level miss here.",
+      "hard_negative_siblings": [
+        "EnumSet.of(ChronoUnit.HOURS, ChronoUnit.HALF_DAYS, ChronoUnit.DAYS).contains(unit)",
+        "assertFalse(EnumSet.of(ChronoUnit.ERAS, ChronoUnit.FOREVER).contains(unit))",
+        "same-file class EnumSet shadowing java.util.EnumSet"
+      ],
+      "batch": null,
+      "notes": "Do not implement as a completeness batch unless another real corpus counterpart is found."
+    },
+    {
+      "case_id": "membership-java-arrays-aslist-array-param-antlr4-skip-targets",
+      "status": "unsupported",
+      "candidate_axis": "membership_contains / literal_collection_membership",
+      "repo": "antlr4",
+      "language": "java",
+      "locations": [
+        {
+          "path": "runtime-testsuite/test/org/antlr/v4/test/runtime/RuntimeTestDescriptor.java",
+          "span": "91-92",
+          "snippet": "return Arrays.asList(skipTargets).contains(targetName);"
+        }
+      ],
+      "semantic_claim": "For a proven Java array receiver, Arrays.asList(array).contains(value) is membership in the array elements.",
+      "evidence": "The source declares skipTargets as String[], but current IL only preserves a var/field use and not an array type fact at the contains call.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose il RuntimeTestDescriptor.java",
+        "baseline_result": "IL shows Arrays.asList(skipTargets).contains(targetName) without a retained array proof fact."
+      },
+      "proof_invariant": "Requires a frontend proof fact that the single Arrays.asList argument is a Java array, plus mutation/alias boundaries for field or parameter provenance.",
+      "hard_negative_siblings": [
+        "Arrays.asList(list).contains(value), which tests whether value equals the list object",
+        "Arrays.asList(object).contains(value)",
+        "mutated or reassigned field provenance for skipTargets"
+      ],
+      "batch": null,
+      "notes": "Do not treat generic Arrays.asList(x) as collection-param membership without an array proof."
+    },
+    {
+      "case_id": "java-class-literal-equals-junit5-supports-parameter",
+      "status": "unsupported",
+      "candidate_axis": "class_literal_equality",
+      "repo": "junit5",
+      "language": "java",
+      "locations": [
+        {
+          "path": "documentation/src/test/java/example/extensions/HttpServerExtension.java",
+          "span": "26-29",
+          "snippet": "return HttpServer.class.equals(parameterContext.getParameter().getType());"
+        },
+        {
+          "path": "documentation/src/test/java/example/session/HttpTests.java",
+          "span": "47-50",
+          "snippet": "return HttpServer.class.equals(parameterContext.getParameter().getType());"
+        }
+      ],
+      "semantic_claim": "The two supportsParameter implementations are syntactically and behaviorally identical for the documented ParameterResolver shape.",
+      "evidence": "near/syntax scan reports a real duplicate block, but semantic scan alone reports no family because the expression depends on a dynamic JUnit API call chain.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose scan HttpServerExtension.java HttpTests.java --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "0 semantic families; syntax,semantic reports a block family."
+      },
+      "proof_invariant": "Would require proving Class literal equality and the purity/identity of parameterContext.getParameter().getType(), which is a library-specific receiver chain not currently modeled.",
+      "hard_negative_siblings": [
+        "custom receiver equals overloads",
+        "different getParameter/getType receiver chains",
+        "calls with side effects or mutation before getType"
+      ],
+      "batch": null,
+      "notes": "Not suitable for a soundness-preserving Type-4 detector batch without shared proof facts for Java reflection/JUnit APIs."
+    }
+  ]
+}

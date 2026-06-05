@@ -27,6 +27,17 @@ def build_family_index(families: list[dict]) -> dict[str, list[tuple[int, int, i
     return by_file
 
 
+def scan_families(scan_json: object) -> list[dict]:
+    """Return clone families from either legacy or versioned scan JSON."""
+    if isinstance(scan_json, list):
+        return scan_json
+    if isinstance(scan_json, dict):
+        families = scan_json.get("families")
+        if isinstance(families, list):
+            return families
+    raise ValueError("scan JSON must be a family list or an object with a families array")
+
+
 def overlapping_families(
     family_index: dict[str, list[tuple[int, int, int]]],
     src: dict,
@@ -71,7 +82,7 @@ def run_scan(nose: Path, sources: Path) -> list[dict]:
         "1",
     ]
     proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    return json.loads(proc.stdout or "[]")
+    return scan_families(json.loads(proc.stdout or "[]"))
 
 
 def count_row() -> dict[str, int]:
@@ -99,7 +110,7 @@ def main() -> int:
     manifest_dir = manifest_path.parent
     manifest = json.loads(manifest_path.read_text())
     if args.scan_json:
-        families = json.loads(args.scan_json.read_text())
+        families = scan_families(json.loads(args.scan_json.read_text()))
     else:
         families = run_scan(args.nose, manifest_dir / "sources")
     family_index = build_family_index(families)

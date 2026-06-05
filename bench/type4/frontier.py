@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 import json
 from pathlib import Path
 
-from eval_manifest import build_family_index, item_detected, run_scan
+from eval_manifest import build_family_index, item_detected, run_scan, scan_families
 
 
 def surface_key(item: dict) -> str:
@@ -207,7 +207,7 @@ def main() -> int:
     manifest_dir = manifest_path.parent
     manifest = json.loads(manifest_path.read_text())
     if args.scan_json:
-        families = json.loads(args.scan_json.read_text())
+        families = scan_families(json.loads(args.scan_json.read_text()))
     else:
         families = run_scan(args.nose, manifest_dir / "sources")
 
