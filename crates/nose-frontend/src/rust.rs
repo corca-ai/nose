@@ -529,6 +529,14 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             let tag = lo.sym("tuple_expression");
             lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
+        "slice_pattern" => {
+            let kids: Vec<NodeId> = Lowering::named_children(node)
+                .into_iter()
+                .map(|c| lower_expr(lo, c))
+                .collect();
+            let tag = lo.sym("array_expression");
+            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+        }
         "array_expression" | "tuple_expression" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -1183,6 +1191,18 @@ mod tests {
         assert!(
             !raw.iter().any(|name| name == "tuple_pattern"),
             "tuple match pattern should lower without Raw tuple_pattern: {raw:?}"
+        );
+    }
+
+    #[test]
+    fn match_slice_pattern_lowers_without_raw() {
+        let src = "fn f(x: [i32; 2]) -> i32 { match x { [1, 2] => 7, _ => 0 } }";
+        let (interner, il) = lower_rust(src);
+
+        let raw = raw_names(&il, &interner);
+        assert!(
+            !raw.iter().any(|name| name == "slice_pattern"),
+            "slice match pattern should lower without Raw slice_pattern: {raw:?}"
         );
     }
 
