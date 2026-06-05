@@ -129,7 +129,13 @@
         "calls with side effects or mutation before getType"
       ],
       "batch": null,
-      "notes": "Not suitable for a soundness-preserving Type-4 detector batch without shared proof facts for Java reflection/JUnit APIs."
+      "reverify": {
+        "date": "2026-06-06",
+        "finding": "Reproduced with minimal Ext/Tests files: --mode semantic reports 0 families (correct under-merge); --mode syntax,semantic reports a block family that includes the real Ext/Tests duplicate. The two spans are byte-identical, so this is a Type-1/Type-2 duplicate already covered by syntax/near mode, not a Type-4 semantic miss.",
+        "why_unsound_to_force": "The value is parameterContext.getParameter().getType() over a Class literal equals -- an opaque JUnit reflection chain that is not exact_safe. Admitting it to a semantic family would mean merging on syntactic identity of an opaque chain, not on a proven value, which is exactly the boundary the exact_safe gate protects and would risk merging distinct reflection chains that happen to look alike.",
+        "conclusion": "Correctly covered by syntax/near mode; semantic abstention is sound. Stays unsupported as a Type-4 lead."
+      },
+      "notes": "Not suitable for a soundness-preserving Type-4 detector batch without shared proof facts for Java reflection/JUnit APIs. Re-verified 2026-06-06: the real duplicate is a syntactic Type-1/Type-2 clone that syntax/near mode already reports; semantic mode correctly abstains on the opaque getType() chain."
     },
     {
       "case_id": "python-docstring-sympy-dirac-delta",
