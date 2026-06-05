@@ -5659,6 +5659,83 @@ multi-language real frontier evidence; if none is found, keep fragment work tied
 shared proof invariant and avoid opening dynamic property or arbitrary statement-window
 semantics.
 
+## Fragment batch 23: exact three-index branch fragments
+
+This batch avoids adding another Java-only proof and extends the shared non-overloadable
+index-assignment branch boundary with Go evidence. A direct conditional branch may now
+contain exactly two or three ordered C/Go/Java index-assignment effects. Each assignment
+may be direct, may immediately consume one branch-local temporary, or may immediately
+consume the final temporary in a two-temporary linear chain. Four or more index writes
+remain outside this exact fragment set.
+
+The proof invariant is the same ordered, target-sensitive effect sink used by the
+two-write batch. C/Go/Java index assignment is non-overloadable in this fragment set, the
+target coordinate stays in the value fingerprint, and branch-local temps may not flow into
+the receiver or read a prior chain temp in the final write. The helper remains capped to
+2-5 statements and rejects any non-`Assign` statement before temp-chain parsing.
+
+The three focused positives share one proof invariant and intentionally use Go:
+
+- direct/direct/direct index sequence: `out[0] = xs[0] + 1; out[1] = xs[0] + 2; out[2] = xs[0] + 3`;
+- temp/direct/direct index sequence: `value := xs[0] + 1; out[0] = value * value; out[1] = xs[1] + 2; out[2] = xs[0] + 3`;
+- temp-chain/direct/direct index sequence: `base := xs[0] + 1; slot := base * base; out[slot] = xs[1] + 3; out[1] = xs[0] + 2; out[2] = xs[2] + 4`.
+
+Adjacent hard negatives cover swapped write order, wrong receiver, preceding receiver
+mutation, wrong temp RHS, wrong chain RHS, final write reading a prior chain temp, a
+fourth write boundary, and a JS dynamic-property boundary.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-three-index-1 | candidate extraction | allow exactly three ordered non-overloadable index-assignment effects in a direct conditional branch | 3 focused Go three-index branch families reported as `Block` units |
+| fragment-three-index-2 | hard negatives | preserve write order, receiver identity, temp-local consumption, prior-temp exclusion, C/Go/Java-only assignment, and the four-write cap | wrong order/receiver/mutation/temp/prior-temp/fourth-write/JS negatives excluded |
+| fragment-three-index-3 | performance guard | keep the branch body capped at 2-5 `Assign` statements and require exactly 2 or 3 index-assignment roots before temp-chain parsing | selected/full families and locations unchanged; full median normalize+extract 3908.5ms -> 3887.4ms |
+| fragment-three-index-4 | regression | rerun the existing two-index focused test to prove the earlier batch still reports | existing two-index focused test pass |
+| fragment-three-index-5 | release gates | run full Rust suite, clippy, release build, compact all-cross core smoke | `cargo test` pass; clippy clean; core smoke 634/634 positives and 0/1246 hard-negative false merges |
+
+Focused regressions:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_three_index_assignment_branch_fragments_for_go -- --nocapture
+3 three-index branch positives reported; wrong-order, wrong-receiver,
+preceding-mutation, wrong-temp, prior-temp-read, fourth-write, and JS negatives excluded.
+
+cargo test -p nose-cli semantic_scan_reports_exact_safe_ordered_index_assignment_branch_fragments_for_go -- --nocapture
+Existing two-index branch positives still reported with the same hard-negative boundaries.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 634/634
+hard-negative false merges: 0/1246
+```
+
+Real corpus and performance:
+
+```text
+NOSE_TIME=1 <baseline> scan gorm sqlite nats-server gin --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan gorm sqlite nats-server gin --mode semantic --format json --top 0
+selected files: 992
+families: 242 before, 242 after
+locations: 1323 before, 1323 after
+median normalize+extract over three alternating runs: 211.0ms before, 201.0ms after
+median candidates over three alternating runs: 15.2ms before, 16.1ms after
+
+NOSE_TIME=1 <baseline> scan . --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan . --mode semantic --format json --top 0
+full files: 60748
+families: 7403 before, 7403 after
+locations: 32965 before, 32965 after
+median normalize+extract over three alternating runs: 3908.5ms before, 3887.4ms after
+median candidates over three alternating runs: 303.6ms before, 329.3ms after
+```
+
+This is a focused unit-fragment coverage expansion, not a real-corpus evidence-backed
+closure. The full-corpus candidate stage moved up by about 25.7ms despite unchanged
+family/location counts, so the next loop should treat candidate-path growth as the first
+performance watchpoint before adding another 5-statement branch shape.
+
 ## Fragment batch 22: exact three-append branch fragments
 
 This batch stays on the non-Java ordered-effect axis and extends the append branch

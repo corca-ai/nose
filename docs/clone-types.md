@@ -98,8 +98,8 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   chain whose first RHS depends on the iteration binding and whose final value is
   immediately consumed by that effect, plus exact conditional branches containing two or
   three ordered single-item append effects where each item is direct or immediately
-  consumes a branch-local temp/temp-chain, plus exact conditional branches containing two ordered
-  non-overloadable C/Go/Java index-assignment effects where each assignment is direct or
+  consumes a branch-local temp/temp-chain, plus exact conditional branches containing two or
+  three ordered non-overloadable C/Go/Java index-assignment effects where each assignment is direct or
   immediately consumes a branch-local temp/temp-chain, plus Java
   `this.field = value` self-field assignments and all-self-field Java function-body blocks
   with the receiver fixed to `this`, optionally ending in `return this`), not arbitrary

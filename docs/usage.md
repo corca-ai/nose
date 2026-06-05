@@ -143,9 +143,9 @@ temporary.
 They may contain exactly two or three ordered single-item append effects when each
 appended item is direct or is immediately produced by a branch-local temporary or linear
 temp chain.
-They may also contain exactly two ordered non-overloadable C/Go/Java index-assignment
-effects when each assignment is direct or immediately consumes a branch-local temporary or
-linear temp chain.
+They may also contain exactly two or three ordered non-overloadable C/Go/Java
+index-assignment effects when each assignment is direct or immediately consumes a
+branch-local temporary or linear temp chain.
 They also include ForEach append-effect loops whose only loop-body effects append values
 that depend on the iteration binding, plus C/Go/Java index-assignment effects where index
 assignment is not receiver-overloadable, and Java `this.field = value` self-field

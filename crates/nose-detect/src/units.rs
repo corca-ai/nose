@@ -2072,12 +2072,21 @@ fn exact_ordered_index_assignment_effect_sequence_block(il: &Il, node: NodeId) -
         return false;
     }
     let kids = il.children(node);
-    if !(2..=4).contains(&kids.len()) {
+    if !(2..=5).contains(&kids.len()) {
         return false;
     }
     if !kids.iter().all(|&kid| il.kind(kid) == NodeKind::Assign) {
         return false;
     }
+    let expected_effects = match kids
+        .iter()
+        .filter(|&&kid| exact_index_assignment_fragment_root(il, kid))
+        .count()
+    {
+        2 if kids.len() <= 4 => 2,
+        3 => 3,
+        _ => return false,
+    };
     let mut idx = 0;
     let mut effects = 0;
     while idx < kids.len() {
@@ -2111,7 +2120,7 @@ fn exact_ordered_index_assignment_effect_sequence_block(il: &Il, node: NodeId) -
         }
         return false;
     }
-    effects == 2
+    effects == expected_effects
 }
 
 fn exact_temp_assignment_consumed_by_index_assignment_effect(
