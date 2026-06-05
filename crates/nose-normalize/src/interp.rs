@@ -494,6 +494,9 @@ impl<'a> Interp<'a> {
         if matches!(b, Builtin::Append) {
             return self.eval_append(&kids, env);
         }
+        if matches!(b, Builtin::ValueOrDefault) {
+            return self.eval_value_or_default_call(&kids, env);
+        }
         for &k in &kids {
             args.push(self.eval(k, env)?);
         }
@@ -573,9 +576,27 @@ impl<'a> Interp<'a> {
             // merge. Their convergence rests on the DistinctEntry-vs-tuple representation.
             Builtin::DictEntry => Ok(Value::Err),
             Builtin::GetOrDefault => Ok(Value::Err),
-            Builtin::ValueOrDefault => Ok(Value::Err),
+            Builtin::ValueOrDefault => unreachable!("handled before eager arg eval"),
             Builtin::Reduce | Builtin::Any | Builtin::All => unreachable!(),
         }
+    }
+
+    fn eval_value_or_default_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let value = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
+        if matches!(value, Value::Err) {
+            return Ok(Value::Err);
+        }
+        if matches!(value, Value::Null) {
+            return match kids.get(1) {
+                Some(&default) => self.eval(default, env),
+                None => Ok(Value::Null),
+            };
+        }
+        Ok(value)
     }
 
     /// A non-builtin `callee(args…)`. Modeled ONLY when `callee` names the function being
@@ -1050,6 +1071,61 @@ mod tests {
         // unknown, so `len(str)` must be `Err` (matching the documented contract and the
         // sibling `IsEmpty`), not a hardcoded `Int(1)`.
         assert_eq!(run_len_of_string(), Value::Err);
+    }
+
+    fn run_value_or_default(value: NodeId, default: NodeId, mut b: IlBuilder, sp: Span) -> Value {
+        let call = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::ValueOrDefault),
+            sp,
+            &[value, default],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn value_or_default_uses_default_for_null() {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let value = b.add(NodeKind::Lit, Payload::Lit(LitClass::Null), sp, &[]);
+        let default = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        assert_eq!(run_value_or_default(value, default, b, sp), Value::Int(7));
+    }
+
+    #[test]
+    fn value_or_default_short_circuits_present_value() {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let value = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let default_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        assert_eq!(
+            run_value_or_default(value, default_err, b, sp),
+            Value::Int(7)
+        );
+    }
+
+    #[test]
+    fn value_or_default_keeps_error_value() {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let value_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let default = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        assert_eq!(run_value_or_default(value_err, default, b, sp), Value::Err);
     }
 
     fn run_range(args: &[i64]) -> Value {
