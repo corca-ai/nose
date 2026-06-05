@@ -4960,6 +4960,100 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Real-corpus C u16 include typedef: batch 2026-06-06
+
+This batch was selected to correct the recent Java skew and close a non-Java real frontier
+that was already evidence-backed. The previous C u16 byte-pack batch intentionally left
+`sqlite/ext/fts5/fts5_index.c:712` open because its `u8` proof lives in the local included
+header `fts5Int.h`, not in the source file itself. The new proof does not implement a C
+preprocessor: C lowering reads only same-directory quote includes for byte-pack-shaped
+sources and records single-line `typedef unsigned char <alias>;` facts from small headers.
+
+Closed selected real candidate:
+
+- SQLite `fts5GetU16` now joins the existing big-endian u16 byte-decoder family:
+  `fts5_index.c:712`, `btreeinfo.c:269`, `dbdata.c:344`, `sqlite3recover.c:2078`,
+  and `rtree.c:525`.
+
+The shared proof invariant stays the C u16 byte-pack invariant: the receiver must be a
+proven byte buffer (`unsigned char *`, `uint8_t *`, same-file `typedef unsigned char u8`,
+or a direct same-directory quote include proving that alias), the high lane must be index
+0 shifted left exactly 8, the low lane must be index 1 from the same base pointer, and the
+combiner may be `+` or `|`. Missing include files, included `typedef unsigned short u8`,
+wrong byte order, wrong byte coordinate, non-byte receivers, and uncasted 32-bit packing
+remain outside the proof.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-c-u16-include-1 | frontier selection | choose the remaining SQLite `fts5GetU16` miss because it is C, evidence-backed, and shares the existing byte-pack proof axis | baseline selected verify: SOUND, completeness 7/16, fts5 under-merged |
+| real-c-u16-include-2 | frontend proof fact | seed C `ParamSemantic::ByteArray` aliases from small same-directory quote-included headers only for byte-pack-shaped `u8` sources | CLI regression passed; missing/wrong include negatives excluded from the positive family |
+| real-c-u16-include-3 | real corpus delta | scan and verify the selected SQLite files | selected verify after: SOUND, completeness 11/16; selected scan reports a 5-copy SQLite u16 family |
+| real-c-u16-include-4 | full corpus delta | compare baseline and candidate semantic scan over `bench/repos` | family count unchanged at 7430; one existing C byte-pack family grew from 7 to 8 members by adding `sqlite/ext/fts5/fts5_index.c:712` |
+| real-c-u16-include-5 | release gates | run full tests plus focused, axis-core, and all-cross core gates | `cargo test` pass; focused 3/3, 0/7; axis core 3/3, 0/7; all-cross core 626/626, 0/1233 |
+| real-c-u16-include-6 | performance | measure selected SQLite and warm full-corpus scans with `NOSE_TIME=1` | selected candidate path 2.2ms; full warm candidate path 367.5ms vs baseline 387.2ms |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven
+proven same-file, unsigned-char, and include-header byte-buffer positives converge; missing
+include, non-byte include, wrong order, and int-pointer negatives stay out of that family.
+```
+
+Focused and axis gates:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_c_u16_be_byte_pack_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 3/3
+hard-negative false merges: 0/7
+
+GATE=core AXIS=c_u16_be_byte_pack CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 3/3
+hard-negative false merges: 0/7
+```
+
+Compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+baseline comparison: same 626/626, 0/1233, and same 109 known oracle violations in the
+synthetic all-cross suite; this batch did not introduce a soundness regression there.
+```
+
+Real selected verification:
+
+```text
+baseline release: completeness 7/16, under-merged groups 2, SOUND
+candidate release: completeness 11/16, under-merged groups 1, SOUND
+remaining lead: btreeinfo.c:272 ↮ sqlite3recover.c:2086, the unsupported u32 helper axis
+```
+
+Selected SQLite scan with timing:
+
+```text
+NOSE_TIME=1 target/release/nose scan <selected sqlite files> --mode semantic --top 0
+expected 5-copy SQLite u16 family: fts5_index.c:712, btreeinfo.c:269, dbdata.c:344,
+sqlite3recover.c:2078, rtree.c:525
+candidate path: 2.2ms
+```
+
+Full pinned corpus scan:
+
+```text
+baseline warm: discover 245.1ms, parse+lower 3318.2ms, lower 3564.3ms,
+normalize+extract 3679.7ms, candidates 316.5ms, candidate path 387.2ms
+candidate warm: discover 260.7ms, parse+lower 2957.7ms, lower 3219.0ms,
+normalize+extract 3442.2ms, candidates 307.9ms, candidate path 367.5ms
+families: 7430 before, 7430 after
+delta: existing C byte-pack family gains sqlite/ext/fts5/fts5_index.c:712
+```
+
+Remaining open C frontier is still the u32 decoder family. It needs a separate unsigned
+cast or proven-range invariant before accepting `a[0] << 24`, because uncasted C signed
+left shifts can overflow or become undefined behavior.
+
 ## Fragment batch 1: exact top-level statement fragments
 
 This batch expands semantic recall at the unit boundary, not by weakening semantic

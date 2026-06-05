@@ -570,6 +570,11 @@
           "snippet": "static unsigned int get_uint16(unsigned char *a) { return (a[0]<<8) + a[1]; }"
         },
         {
+          "path": "ext/fts5/fts5_index.c",
+          "span": "712-714",
+          "snippet": "static u16 fts5GetU16(const u8 *aIn) { return ((u16)aIn[0] << 8) + aIn[1]; }"
+        },
+        {
           "path": "ext/recover/sqlite3recover.c",
           "span": "2078-2080",
           "snippet": "static u16 recoverGetU16(const u8 *aBuf) { return (aBuf[0] << 8) | aBuf[1]; }"
@@ -580,25 +585,26 @@
           "snippet": "static int readInt16(u8 *p) { return (p[0]<<8) + p[1]; }"
         }
       ],
-      "semantic_claim": "All four helpers decode the same big-endian unsigned 16-bit value from two disjoint byte lanes: high byte a[0] shifted by 8 plus low byte a[1]. Addition and bitwise-or are equivalent under this byte-lane proof.",
-      "evidence": "Previous release selected SQLite verify was SOUND but completeness was 5/16, with an under-merged u16 lead fts5_index.c:712 to btreeinfo.c:269 and split add-vs-or families. Candidate verify over the five selected SQLite files is SOUND with completeness 7/16; semantic scan reports family 56852dae75c4d7f4 containing btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, and rtree.c:525.",
+      "semantic_claim": "All five helpers decode the same big-endian unsigned 16-bit value from two disjoint byte lanes: high byte a[0] shifted by 8 plus low byte a[1]. Addition and bitwise-or are equivalent under this byte-lane proof.",
+      "evidence": "The previous C u16 baseline selected SQLite verify was SOUND with completeness 7/16 and one under-merged u16 lead fts5_index.c:712 to btreeinfo.c:269 because fts5_index.c gets u8 from an included header. Candidate verify over the five selected SQLite files is SOUND with completeness 11/16; semantic scan reports family acf37a59f5e99973 containing fts5_index.c:712, btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, and rtree.c:525.",
       "detector": {
         "current_detector_miss": false,
-        "baseline_command": "previous release: nose verify ext/misc/btreeinfo.c ext/recover/dbdata.c ext/fts5/fts5_index.c ext/recover/sqlite3recover.c ext/rtree/rtree.c",
-        "baseline_result": "SOUND; completeness 5/16; add-form u16 helpers and or-form u16 helpers were split, and fts5_index.c remained under-merged.",
-        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 7/16, and 2 remaining under-merged groups. NOSE_TIME=1 target/release/nose scan over the selected files reports 3 semantic families, including the expected 4-copy u16 family."
+        "baseline_command": "/tmp/nose-fragment-baseline-target/release/nose verify ext/misc/btreeinfo.c ext/recover/dbdata.c ext/fts5/fts5_index.c ext/recover/sqlite3recover.c ext/rtree/rtree.c --max-violations 0 --leads /tmp/nose-sqlite-u16-before-leads.json",
+        "baseline_result": "SOUND; completeness 7/16; fts5_index.c:712 remained under-merged from the 4-copy u16 byte-pack family.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 11/16, and 1 remaining under-merged group outside this invariant. NOSE_TIME=1 target/release/nose scan over the selected files reports family acf37a59f5e99973 containing the expected 5-copy u16 family."
       },
-      "proof_invariant": "In C only, the parameter must be proven to be a byte buffer: unsigned char *, uint8_t *, or a same-file typedef alias such as typedef unsigned char u8. The expression must use the same base pointer, high lane index 0 shifted left exactly 8, low lane index 1, and either + or |. The proof is limited to 16-bit packing, where the shifted byte stays representable in int.",
+      "proof_invariant": "In C only, the parameter must be proven to be a byte buffer: unsigned char *, uint8_t *, a same-file typedef alias such as typedef unsigned char u8, or a same-directory direct quote include whose small header contains that typedef. The expression must use the same base pointer, high lane index 0 shifted left exactly 8, low lane index 1, and either + or |. The proof is limited to 16-bit packing, where the shifted byte stays representable in int.",
       "hard_negative_siblings": [
         "swapped byte order: (a[1] << 8) | a[0]",
         "overlapping lanes such as (a[0] << 4) | a[1]",
         "wrong low byte coordinate such as a[2]",
-        "u8 spelling without same-file proof that it aliases unsigned char",
+        "u8 spelling with a missing include or without a local typedef proof that it aliases unsigned char",
+        "included typedef unsigned short u8 or any other non-byte alias",
         "int * or other non-byte-buffer receiver",
         "32-bit packing such as a[0] << 24, which is not accepted without an unsigned-overflow proof"
       ],
-      "batch": "2026-06-05-c-u16-byte-pack",
-      "notes": "fts5_index.c remains open because its u8 typedef is in an included header that the current C lowering does not resolve. The 32-bit get_uint32/recoverGetU32 pair remains unsupported because uncasted signed left shifts can overflow or enter undefined behavior."
+      "batch": "2026-06-06-c-u16-include-typedef",
+      "notes": "The include-header u8 miss is closed without a general preprocessor: C lowering only reads same-directory quote includes for byte-pack-shaped sources and records single-line typedef unsigned char aliases from small headers. The 32-bit get_uint32/recoverGetU32 pair remains unsupported because uncasted signed left shifts can overflow or enter undefined behavior."
     }
   ]
 }

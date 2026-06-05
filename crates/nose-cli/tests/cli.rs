@@ -285,6 +285,12 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
         "unsigned int or_pack(unsigned char *a) {\n  return (a[0] << 8) | a[1];\n}\n",
     )
     .unwrap();
+    fs::write(dir.join("bytes.h"), "typedef unsigned char u8;\n").unwrap();
+    fs::write(
+        dir.join("include_add.c"),
+        "#include \"bytes.h\"\nunsigned int include_add_pack(const u8 *a) {\n  return (a[0] << 8) + a[1];\n}\n",
+    )
+    .unwrap();
     fs::write(
         dir.join("wrong_order.c"),
         "typedef unsigned char u8;\nunsigned int wrong_order(const u8 *a) {\n  return (a[1] << 8) | a[0];\n}\n",
@@ -293,6 +299,17 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
     fs::write(
         dir.join("int_pointer.c"),
         "unsigned int int_pointer(const int *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("missing_include.c"),
+        "#include \"missing.h\"\nunsigned int missing_include_pack(const u8 *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(dir.join("not_bytes.h"), "typedef unsigned short u8;\n").unwrap();
+    fs::write(
+        dir.join("wrong_include.c"),
+        "#include \"not_bytes.h\"\nunsigned int wrong_include_pack(const u8 *a) {\n  return (a[0] << 8) | a[1];\n}\n",
     )
     .unwrap();
 
@@ -312,18 +329,32 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
     ]);
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
-    assert_eq!(
-        semantic_families.len(),
-        1,
-        "semantic mode should report only the proven byte-buffer u16 pack family: {semantic}"
-    );
-    let semantic_text = semantic_json.to_string();
+    let family_files = |family: &serde_json::Value| -> Vec<String> {
+        family["locations"]
+            .as_array()
+            .expect("locations")
+            .iter()
+            .filter_map(|loc| loc["file"].as_str())
+            .map(str::to_string)
+            .collect()
+    };
+    let positive_family = semantic_families
+        .iter()
+        .find(|family| {
+            let files = family_files(family);
+            files.iter().any(|file| file.ends_with("add.c"))
+                && files.iter().any(|file| file.ends_with("or.c"))
+                && files.iter().any(|file| file.ends_with("include_add.c"))
+        })
+        .unwrap_or_else(|| panic!("missing proven byte-buffer u16 pack family: {semantic}"));
+    let positive_text = positive_family.to_string();
     assert!(
-        semantic_text.contains("add.c")
-            && semantic_text.contains("or.c")
-            && !semantic_text.contains("wrong_order.c")
-            && !semantic_text.contains("int_pointer.c"),
+        !positive_text.contains("wrong_order.c") && !positive_text.contains("int_pointer.c"),
         "semantic mode must preserve byte order and require a byte-buffer proof: {semantic}"
+    );
+    assert!(
+        !positive_text.contains("missing_include.c") && !positive_text.contains("wrong_include.c"),
+        "semantic mode must not guess missing or non-byte include aliases: {semantic}"
     );
 
     let _ = fs::remove_dir_all(&dir);

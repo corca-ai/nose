@@ -214,10 +214,11 @@ or effectful receiver comparisons remain hard negatives.
 
 The current C byte-pack contract is narrower still: generated `u16` big-endian decoders may
 converge only when the receiver is proven to be a byte buffer (`unsigned char *`, `uint8_t *`,
-or a same-file `typedef unsigned char u8`) and the expression combines lane 0 shifted by
-exactly 8 with lane 1 from the same base via `+` or `|`. Swapped lanes, overlapping shifts,
-wrong byte coordinates, unproven aliases, non-byte receivers, and 32-bit uncasted shifts are
-hard negatives until stronger proof facts exist.
+or a local `typedef unsigned char u8` from the same file or a same-directory direct quote
+include) and the expression combines lane 0 shifted by exactly 8 with lane 1 from the same
+base via `+` or `|`. Swapped lanes, overlapping shifts, wrong byte coordinates, missing or
+non-byte aliases, non-byte receivers, and 32-bit uncasted shifts are hard negatives until
+stronger proof facts exist.
 
 ## Promotion rules
 

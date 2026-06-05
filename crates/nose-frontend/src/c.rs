@@ -10,7 +10,10 @@ use nose_il::{
     FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
     UnitKind,
 };
+use std::{fs, path::Path};
 use tree_sitter::Node as TsNode;
+
+const C_INCLUDE_ALIAS_READ_LIMIT: u64 = 256 * 1024;
 
 pub(crate) fn lower(
     file: FileId,
@@ -18,7 +21,7 @@ pub(crate) fn lower(
     src: &[u8],
     interner: &Interner,
 ) -> anyhow::Result<Il> {
-    crate::lower::lower_file(
+    crate::lower::lower_file_with_setup(
         file,
         path,
         src,
@@ -26,8 +29,73 @@ pub(crate) fn lower(
         crate::lower::grammar::C,
         || tree_sitter_c::LANGUAGE.into(),
         Lang::C,
+        |lo| record_c_direct_include_type_aliases(path, src, lo),
         lower_items,
     )
+}
+
+fn record_c_direct_include_type_aliases(path: &str, src: &[u8], lo: &mut Lowering) {
+    let Ok(source) = std::str::from_utf8(src) else {
+        return;
+    };
+    if !contains_c_identifier(source, "u8") || !c_source_may_contain_u16_byte_pack(source) {
+        return;
+    }
+    let Some(dir) = Path::new(path).parent() else {
+        return;
+    };
+    for line in source.lines() {
+        let Some(include) = c_direct_quote_include_name(line) else {
+            continue;
+        };
+        if include.is_empty() || include.contains('/') || include.contains('\\') {
+            continue;
+        }
+        let header = dir.join(include);
+        let Ok(meta) = fs::metadata(&header) else {
+            continue;
+        };
+        if !meta.is_file() || meta.len() > C_INCLUDE_ALIAS_READ_LIMIT {
+            continue;
+        }
+        let Ok(header_text) = fs::read_to_string(&header) else {
+            continue;
+        };
+        for header_line in header_text.lines() {
+            if let Some(alias) = c_unsigned_char_typedef_alias(header_line) {
+                if contains_c_identifier(source, &alias) {
+                    lo.record_param_semantic_alias(&alias, ParamSemantic::ByteArray);
+                }
+            }
+        }
+    }
+}
+
+fn c_direct_quote_include_name(line: &str) -> Option<&str> {
+    let line = line.trim_start();
+    let rest = line.strip_prefix('#')?.trim_start();
+    let rest = rest.strip_prefix("include")?.trim_start();
+    let rest = rest.strip_prefix('"')?;
+    let end = rest.find('"')?;
+    Some(&rest[..end])
+}
+
+fn contains_c_identifier(text: &str, ident: &str) -> bool {
+    text.match_indices(ident).any(|(start, _)| {
+        let before = text[..start].chars().next_back();
+        let after = text[start + ident.len()..].chars().next();
+        !before.is_some_and(is_c_identifier_char) && !after.is_some_and(is_c_identifier_char)
+    })
+}
+
+fn is_c_identifier_char(ch: char) -> bool {
+    ch == '_' || ch.is_ascii_alphanumeric()
+}
+
+fn c_source_may_contain_u16_byte_pack(source: &str) -> bool {
+    source.contains("[0]")
+        && source.contains("[1]")
+        && (source.contains("<<8") || source.contains("<< 8"))
 }
 
 fn lower_items(lo: &mut Lowering, node: TsNode) -> NodeId {

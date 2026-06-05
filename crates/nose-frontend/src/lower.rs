@@ -289,8 +289,37 @@ pub(crate) fn lower_file(
     lang: Lang,
     lower_root: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
 ) -> anyhow::Result<Il> {
+    lower_file_with_setup(
+        file,
+        path,
+        src,
+        interner,
+        key,
+        lang_fn,
+        lang,
+        |_| {},
+        lower_root,
+    )
+}
+
+/// Like [`lower_file`], but lets a frontend seed file-local proof facts after
+/// parsing and before walking the root. This keeps language-specific facts in the
+/// frontend while preserving the shared IL construction path.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn lower_file_with_setup(
+    file: FileId,
+    path: &str,
+    src: &[u8],
+    interner: &Interner,
+    key: u16,
+    lang_fn: impl FnOnce() -> tree_sitter::Language,
+    lang: Lang,
+    setup: impl FnOnce(&mut Lowering),
+    lower_root: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+) -> anyhow::Result<Il> {
     let tree = parse(key, lang_fn, src)?;
     let mut lo = Lowering::new(file, src, interner);
+    setup(&mut lo);
     let module = lower_root(&mut lo, tree.root_node());
     let meta = FileMeta {
         path: path.to_string(),
