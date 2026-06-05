@@ -106,37 +106,43 @@ mismatch).
 
 The formula below is **calibrated against mined ground truth**, not guessed: a
 leave-one-repo-out evaluation over a 12-repo / 8-language corpus (462k family-interval
-events, 4,639 divergent edits G1, 181 bug-linked G2 at ~1.1% prevalence — see
-[eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and [experiments](experiments.md)).
-The data **overturned the pre-data design**: leading with semantic size (`mean_sem`)
-was *anti-predictive*; source-line span, dispersion, and invisibility are the real
-signals.
+events, 4,639 divergent edits G1 — see [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md)
+and [experiments](experiments.md)). The data **overturned the pre-data design**: leading
+with semantic size (`mean_sem`) was *anti-predictive*; source-line span, dispersion, and
+invisibility are the real signals. (A bug-linked "G2" label was also mined, but an
+LLM-judge audit found it only ~11% precise — so the validation rests on the clean **G1**
+label, not G2.)
 
 **Phase 1 — static hazard, from fields nose already computes** — `hazard()` beside
 `extractability()` in `crates/nose-detect/src/report.rs`, plus `SortKey::Hazard` (now
 the default). No new detection logic. Measured formula (leave-one-repo-out AUC:
-G1 0.644, gold-G2 0.704; vs 0.609 / 0.668 for the size-led design it replaces):
+G1 0.644 vs 0.609 for the size-led design it replaces, 0.611 value-baseline, ~0.49 random):
 
 ```
 hazard = mean_lines                        // magnitude — source-line span (+0.43)
        × spread(files, modules, languages) // dispersion — cross-directory (+0.28), existing helper
-       × invisibility                      // 0.3 + 0.7·(1 − tightness) (+0.14); dominant in cross-language
+       × invisibility                      // 0.3 + 0.7·(1 − tightness) (+0.14); general signal
        × scope_weight                      // prod 1.0 / mixed 0.5 / test 0.25
 ```
 
 Note what the data changed from the first draft: **`mean_sem` is dropped** (its learned
 weight is −0.27 — larger semantic fingerprints diverge *less*); `mean_lines` replaces it
 as the magnitude term; **`params` is not used** (its weight is sign-unstable across
-corpus sizes — noise). `invisibility` survives and is the **top signal in the
-cross-language stratum** (AUC 0.67, P@10 0.80) — the Type-4 hypothesis held exactly
-where predicted.
+corpus sizes — noise). `invisibility` survives with a modest, stable +0.14 weight: copies
+that share less literal text — even within one language (renamed / restructured Type-3
+near-misses) — are harder to recognize as siblings, so are edited inconsistently more
+often. (An earlier draft pinned this as a *cross-language* effect; that was a repo-level
+mislabel — true cross-language clones are structurally rare, 37 of 15,199 families, so
+the signal is general, not cross-language-specific. See
+[eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md).)
 
 This is **the default sort**. The weights are calibrated on divergence *propensity*
-(G1, leave-one-repo-out AUC 0.644) and validated against bug-linked divergence (G2,
-function-level attribution, ~1.1% prevalence matching the literature, AUC 0.704) over
-the 12-repo corpus — it beats the former size-led/extractability default on both
-labels. `--sort extractability` remains for the fixability axis. Still open before the
-weights are considered final: a human-audited gold subset and the git-history Phase 2.
+(the clean **G1** label, leave-one-repo-out AUC 0.644 over the 12-repo corpus — beating
+the former size-led/extractability default at 0.609, the value baseline at 0.611, and
+random at ~0.49). `--sort extractability` remains for the fixability axis. Still open
+before the weights are considered final: a *real* bug-linked gold set — the automatic
+"G2" label proved only ~11% precise under audit, so a true harm-validated set must be
+LLM/human-labeled — and the git-history Phase 2.
 
 **Phase 2 — git-history realized divergence (the high-precision payload).** Because
 nose matches Type-4, it can link siblings across revisions where textual tools

@@ -685,10 +685,11 @@ not the weights, so we mined ground truth before implementing.
   ripgrep, redis, vue-core, express; thrift[X], grpc[X]), labeling each family-interval by
   Kim's Inconsistent-Change from `git diff` over member spans; **G2** = a G1 whose changed
   sibling's *function* was modified by a bug-fix commit that did not propagate (git
-  `-L:funcname`). **462,569 events; 4,639 divergent edits (G1), 181 bug-linked (G2, ~1.1%
-  of families) over 15,199 families** — function-level attribution lands G2 in the
-  literature's 1–3% release-level range (a file-level proxy gave a loose 13–46%). Meets
-  repos≥12 / G1≥1000 / G2≥80; X-stratum gold-G2 (14) and a human audit remain.
+  `-L:funcname`). **462,569 events; 4,639 divergent edits (G1), 181 "G2" over 15,199
+  families.** Function-level attribution landed the G2 *rate* in the literature's 1–3%
+  range — **but an LLM-judge audit of all 181 found the G2 label only ~11% precise**
+  (48 message false-matches, 47 intentional divergences, 41 not-clones). So **G2 is
+  retracted as a gold label**; validation rests on the clean, directly-observed **G1**.
 - **BG-finding — the pre-data formula was mis-specified.** Leave-one-repo-out logistic
   weights (stable): `mean_lines` **+0.43** (top), `modules` **+0.28**, `mean_sem`
   **−0.27 (anti)**, `invisibility` **+0.14**, `members` +0.13, `params` +0.04 (noise — sign
@@ -697,13 +698,23 @@ not the weights, so we mined ground truth before implementing.
   divergent-edit ranking (typical divergences are in smaller families; the mean is a
   large-tail artifact). Source-**line** span is the real magnitude signal.
 - **BG-formula.** `hazard = mean_lines × spread(files,modules,languages) × invisibility ×
-  scope_weight` — leave-one-repo-out AUC **G1 0.644, gold-G2 0.704** vs **0.609 / 0.668**
-  for the size-led draft, vs ~0.49 random. **Shipped as nose's default sort**
-  (`SortKey::Hazard`); `--sort extractability` keeps the fixability axis. The
-  param-dampening term tested earlier was dropped (sign-unstable weight).
-  `invisibility` (1−tightness) is the **top signal in the cross-language stratum** (AUC
-  0.67, P@10 0.80) — the Type-4 "invisible sibling" hypothesis held exactly where
-  predicted, and only there.
+  scope_weight` — leave-one-repo-out AUC **G1 0.644** vs **0.609** size-led draft, 0.611
+  value-baseline, ~0.49 random. **Shipped as nose's default sort** (`SortKey::Hazard`);
+  `--sort extractability` keeps the fixability axis. The param-dampening term tested
+  earlier was dropped (sign-unstable weight).
+  `invisibility` (1−tightness) is a modest, stable general signal (+0.14). **Correction:**
+  a first draft claimed it was "the top signal in the cross-language stratum (0.67)" —
+  but that was a repo-level mislabel (thrift+grpc tagged X). True cross-language families
+  are structurally rare (37 of 15,199; arrow 0 of 928), so the cross-language-specific
+  claim is retracted; invisibility holds as a general predictor.
+- **BG-audit — the gold label was mostly noise.** An LLM judge reviewed all 181 G2 events
+  blind (`audit_sample.py` rebuilds the two members' code + the bug-fix commit): **strict
+  precision 11% (20/180)**. False sources: 48 message false-matches (the bug-fix keyword
+  caught version drops, features, typo/docs/config changes), 47 intentional divergences
+  (async/sync, virtual/stored, test variants that legitimately differ), 41 not-clones
+  (near@0.70 grouped trivial stubs). The lesson: `rate-match ≠ precision`, and a real gold
+  label needs the LLM judge *as the labeler*, not the keyword heuristic. The 20 confirmed
+  positives seed a real (small) gold set.
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,

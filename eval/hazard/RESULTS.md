@@ -29,12 +29,16 @@ file-level/interval proxy — see limits).
 | express | JavaScript | S | 5 | 0 |
 | **total** | **8 langs** | | **4,639** | **181** |
 
-462,569 family-interval events; 15,199 distinct families (24.8% ever G1, **1.1% ever G2**).
-G2 uses **function-level** bug-fix attribution (git `-L:funcname`), which lands the
-G2-among-G1 rate at ~3.9% (event) / 1.1% (family) — squarely in the literature's 1–3%
-release-level harmful range (vs ~13–46% for a file-level proxy). **Meets the benchmark
-floors:** repos ≥ 12 (=12), G1 ≥ 1000 (4,639), G2 ≥ 80 (181). Still missing: a tighter
-X-stratum G2 count (thrift 12 + grpc 2 = 14 < 40) and a human-audited gold subset.
+462,569 family-interval events; 15,199 distinct families (24.8% ever G1, 1.1% ever G2).
+G2 uses function-level bug-fix attribution (git `-L:funcname`), landing the G2-among-G1
+rate at ~1.1% (family) — matching the literature's 1–3% release-level rate.
+
+> **⚠️ But an LLM-judge audit of all 181 G2 events found the automatic G2 label is only
+> ~11% precise** (see [Gold-label audit](#gold-label-audit-llm-judge)). The rate matched
+> the literature, but the precision did not — `rate-match ≠ precision`. **So G2 is NOT a
+> usable gold label, and any "validated against bug-linked harm" claim is retracted.**
+> The clean, directly-observed **G1** label (some siblings changed, others not — no
+> fragile bug-fix attribution) remains the real validation below.
 
 ## Headline finding — the literature-derived formula was mis-specified
 
@@ -53,25 +57,38 @@ Leave-one-repo-out logistic weights (stable, low variance across 12 held-out rep
 The pre-data design led with `mean_sem` as the **primary multiplier** — but semantic
 size is *anti-predictive* for divergent-edit ranking (typical divergences are in
 smaller-fingerprint families; the mean is a large-tail artifact). Source **line** span
-is the real magnitude signal. `invisibility` is robustly positive and is the **top
-signal in the cross-language stratum** (per-family AUC 0.67, P@10 0.80) — the Type-4
-"invisible sibling" hypothesis held exactly where predicted.
+is the real magnitude signal. `invisibility` is robustly positive (+0.14 across all 12
+held-out repos) — copies that share less literal text, even within one language
+(renamed / restructured Type-3 near-misses), are harder to recognize as siblings and so
+get edited inconsistently more often (consistent with Saha's Type-3 finding).
+
+> **Correction (honest):** an earlier draft claimed invisibility was "the top signal in
+> the cross-language stratum (AUC 0.67)." That number came from a **repo-level** tag
+> (thrift + grpc, treated as "X") — but only **33 of those 1,606 families are actually
+> cross-language**. Corpus-wide, **true cross-language families (languages > 1) are just
+> 37 of 15,199** (2 ever-G2), and a polyglot repo like apache/arrow yields **0 of 928**
+> families cross-language: the same logic in C++ vs Python rarely converges to one
+> value-fingerprint. So cross-language Type-4 is a real but **structurally rare**
+> capability, too sparse to validate a cross-language-specific signal. invisibility
+> stands as a *general* predictor, not a cross-language one.
 
 ## Candidate formulas (leave-one-repo-out test AUC)
 
-G2 = function-level bug-fix attribution (git `-L:funcname`, ~1.1% prevalence).
+**The validation is the G1 column.** The G2 column ranks against a label the audit found
+is only ~11% precise, so its absolute values are not meaningful — shown only because the
+formula ordering is stable across both.
 
-| formula | vs G1 | vs G2 (gold) |
+| formula | vs G1 (clean) | vs G2 (~11% precise — informational) |
 |---|---|---|
-| **v5 = mean_lines × spread(files,modules,langs) × invisibility × scope** | 0.644 | **0.704** |
+| **v5 = mean_lines × spread(files,modules,langs) × invisibility × scope** | **0.644** | 0.704 |
 | v7 = v5 × 1/(1+0.5·params) | 0.659 | 0.669 |
 | v1 = the original size-led design | 0.609 | 0.668 |
 | value (raw-volume baseline) | 0.611 | 0.671 |
 | random | ~0.49 | ~0.49 |
 
-v5 is best on the **tighter** gold label (0.704), and the param-dampening term (v7) rests
-on a sign-unstable weight — **dropped**. v5 is the simplest and the winner on both axes
-that matter.
+On the clean G1 label v5 beats the size-led design (0.644 vs 0.609), the value baseline
+(0.611), and random — the param-dampening term (v7) rests on a sign-unstable weight and
+is **dropped**.
 
 ## Decision: the implemented formula
 
@@ -82,19 +99,45 @@ hazard = mean_lines
        × scope_weight                        // prod 1.0 / mixed 0.5 / test 0.25
 ```
 
-Beats the pre-data size-led design on both labels (G1 0.644 vs 0.609; gold-G2 0.704 vs
-0.668). All terms reuse existing `RefactorFamily` fields; **`mean_sem` is dropped** as a
-magnitude term, **`params` is not used** (noise). Shipped as `nose`'s **default sort**
-(`crates/nose-detect/src/report.rs::hazard`, `SortKey::Hazard`).
+Validated on the clean **G1** label (0.644 vs 0.609 for the size-led design, 0.611
+value-baseline, ~0.49 random). All terms reuse existing `RefactorFamily` fields;
+**`mean_sem` is dropped** (anti-predictive), **`params` is not used** (noise). Shipped as
+`nose`'s **default sort** (`crates/nose-detect/src/report.rs::hazard`, `SortKey::Hazard`).
+
+## Gold-label audit (LLM-judge)
+
+An LLM judge (standing in for the human auditor) reviewed **all 181 G2 events** blind
+(`audit_sample.py` reconstructs the two clone members' code + the bug-fix commit; verdict
+schema in `g2-audit-result.json`). Result:
+
+- **Strict precision 11.1% (20 / 180 genuine).** False breakdown: `message_false_match`
+  48 (the bug-fix keyword caught version drops, feature additions, typo/docs/readme/config
+  changes), `intentional_divergence` 47 (async/sync pairs, virtual/stored variants, test
+  fixtures that *legitimately* differ), `not_clones` 41 (the near channel grouped unrelated
+  trivial stubs — e.g. two functions that only both `raise NotImplementedError`),
+  `fix_not_applicable` 22 (real clone + real fix the sibling didn't need).
+- Genuine examples it confirmed: django MD5 vs SHA1 hashers (a FIPS fix applies to both);
+  Hugo template helpers; pandas reverse-FK `create`/`get_or_create`.
+- The X-tagged repos contributed **0** genuine G2 (thrift 0/12, grpc 0/2).
+
+**Lessons:** (1) `rate-match ≠ precision` — matching the literature's 1–3% rate said
+nothing about correctness. (2) A real gold label needs all three of: a much better
+bug-fix classifier (exclude non-behavioral commits), a same-vs-intentional-divergence
+judgment, and tighter clone precision than near@0.70 — i.e. **the LLM judge *is* the
+labeler**, not just an auditor. The 20 confirmed positives are the seed of a real
+(small) gold set; the path forward is to LLM-label more G1 candidates rather than trust
+the automatic G2.
 
 ## Honest limits
 
-- AUC ≈ 0.64–0.70 is a useful *ranking* signal, not a precise predictor — divergent-edit
+- AUC ≈ 0.64 (G1) is a useful *ranking* signal, not a precise predictor — divergent-edit
   propensity is inherently noisy from static features.
-- **G2 is still a proxy** (function-level bug-fix attribution, not full SZZ): tighter than
-  the earlier file-level version (now ~1.1%, matching the literature) but a human-audited
-  gold subset remains the benchmark's intended check.
-- **X stratum is thin** — 2 repos (thrift, grpc) and only 14 gold-G2, below the
-  per-stratum floor; needs more cross-language repos.
+- **The automatic G2 label is ~11% precise** (audit above) — not usable as a gold yard
+  stick; the formula stands on G1 alone.
+- **Cross-language stratum is structurally unfillable, not just thin.** True
+  cross-language families (languages > 1) are 37 corpus-wide (2 ever-G2); arrow yields
+  0 of 928. Adding polyglot repos does *not* help — nose rarely detects cross-language
+  Type-4 clones in real code. The benchmark's S/X balance goal is therefore not
+  achievable for X; report it as a measured limit, not a TODO.
 - Re-run on a new nose version: `run_corpus.sh` then `tune.py all-events.jsonl`
   (see [hazard-release-checklist](../../docs/hazard-release-checklist.md)).

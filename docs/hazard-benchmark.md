@@ -135,6 +135,16 @@ rather than excluded.
 For **stratum X**, maintain a targeted sub-list of polyglot repos with mirrored logic
 across languages, held to the same rubric.
 
+> **Measured caveat (v1):** the X-stratum floor turned out to be **structurally
+> unachievable**, not just hard. nose detects almost no *true* cross-language clones in
+> real code — 37 of 15,199 families corpus-wide (2 ever-G2), and apache/arrow, a heavily
+> polyglot repo, yields **0 cross-language families of 928**. The same logic in C++ vs
+> Python rarely converges to one value-fingerprint. So the S/X balance goal is reported
+> as a **measured limit**: tag a repo X only after confirming it yields cross-language
+> families (`languages > 1`) — and expect very few. Define the stratum **per family**
+> (`languages > 1`), never per repo (a polyglot repo is ~98% same-language clones). See
+> [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md).
+
 ### How much is enough — quantitative sufficiency
 
 Worked back from the sparsest label (G2): release-level harmful divergence is ~1–3%
