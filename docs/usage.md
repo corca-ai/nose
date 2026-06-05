@@ -130,6 +130,12 @@ start or end in the middle of a function. The normalized unit channels (`semanti
 `near`) are where renamed identifiers, cross-language convergence, and Type-3 edits are
 handled.
 
+`semantic` is still unit-bounded rather than an arbitrary-fragment equivalence search.
+By default, sub-function units include bounded control-flow blocks and exact-safe
+single-statement fragments such as return expressions. Those fragments are reported only
+when the whole value subtree stays inside the displayed source span, the fragment is
+`exact_safe`, and the value fingerprint is large enough for the exact semantic gate.
+
 ## Integrating with nose
 
 Use `nose capabilities` when another tool needs to decide what this installed

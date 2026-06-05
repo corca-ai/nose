@@ -330,7 +330,8 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
 }
 
 #[test]
-fn feature_extraction_keeps_dense_small_functions_but_not_small_blocks() {
+fn feature_extraction_keeps_dense_small_functions_and_exact_fragments_but_not_small_control_blocks()
+{
     let dir = std::env::temp_dir().join(format!("nose_dense_gate_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
@@ -357,10 +358,115 @@ def blocky(xs):\n    total = 0\n    if xs:\n        total = total + xs[0]\n    r
             .any(|unit| unit["kind"] == "Function" && unit["name"] == "dense"),
         "behaviorally dense functions keep the semantic size-gate escape: {out}"
     );
+    let block_units: Vec<&serde_json::Value> = units
+        .iter()
+        .filter(|unit| unit["kind"] == "Block")
+        .collect();
     assert!(
-        units.iter().all(|unit| unit["kind"] != "Block"),
-        "small block units should stay behind the syntactic gate: {out}"
+        block_units
+            .iter()
+            .all(|unit| unit["start_line"] == 2 && unit["end_line"] == 2),
+        "small control-flow blocks should stay behind the syntactic gate; exact return fragments may pass: {out}"
     );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn semantic_scan_reports_exact_safe_return_fragments_under_opaque_functions() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_return_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "arith_a.py",
+            "def arith_left(xs):\n    return (xs[0] + 1) * 2\n    audit(xs)\n",
+        ),
+        (
+            "arith_b.py",
+            "def arith_right(ys):\n    return 2 * (ys[0] + 1)\n    trace(ys)\n",
+        ),
+        (
+            "arith_neg.py",
+            "def arith_wrong(zs):\n    return (zs[0] + 2) * 2\n    audit(zs)\n",
+        ),
+        (
+            "squares_a.py",
+            "def squares_left(xs):\n    return xs[0] * xs[0] + xs[1] * xs[1]\n    audit(xs)\n",
+        ),
+        (
+            "squares_b.py",
+            "def squares_right(ys):\n    return ys[1] * ys[1] + ys[0] * ys[0]\n    trace(ys)\n",
+        ),
+        (
+            "squares_neg.py",
+            "def squares_wrong(zs):\n    return zs[0] * zs[0] - zs[1] * zs[1]\n    audit(zs)\n",
+        ),
+        (
+            "product_a.py",
+            "def product_left(xs):\n    return (xs[0] + xs[1]) * (xs[2] + 4)\n    audit(xs)\n",
+        ),
+        (
+            "product_b.py",
+            "def product_right(ys):\n    return (4 + ys[2]) * (ys[1] + ys[0])\n    trace(ys)\n",
+        ),
+        (
+            "product_neg.py",
+            "def product_wrong(zs):\n    return (zs[0] + zs[1]) * (zs[2] + 5)\n    audit(zs)\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_fragment_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let files: Vec<&str> = family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+            })
+            .unwrap_or_else(|| {
+                panic!("missing exact return fragment family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations.iter().all(|loc| loc["kind"] == "Block"),
+            "return fragments should report as Block units: {family:?}"
+        );
+        assert!(
+            locations
+                .iter()
+                .all(|loc| !loc["file"].as_str().unwrap_or("").ends_with(negative)),
+            "hard negative must not merge into {left}/{right}: {family:?}"
+        );
+    };
+
+    assert_fragment_family("arith_a.py", "arith_b.py", "arith_neg.py");
+    assert_fragment_family("squares_a.py", "squares_b.py", "squares_neg.py");
+    assert_fragment_family("product_a.py", "product_b.py", "product_neg.py");
     let _ = fs::remove_dir_all(&dir);
 }
 

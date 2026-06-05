@@ -83,9 +83,10 @@ enum Cmd {
         /// Enable dead-code / dead-assignment elimination (experimental).
         #[arg(long)]
         dce: bool,
-        /// Disable sub-function block units (loops/ifs/try). Blocks are ON by
-        /// default — they lift recall and pool-precision by catching fragment-level
-        /// clones; `--no-blocks` reverts to function/method/class units only.
+        /// Disable sub-function block units (loops/ifs/try plus exact statement
+        /// fragments). Blocks are ON by default — they lift recall and pool-precision
+        /// by catching fragment-level clones; `--no-blocks` reverts to
+        /// function/method/class units only.
         #[arg(long)]
         no_blocks: bool,
         /// Write the report JSON here instead of stdout.
@@ -293,7 +294,7 @@ enum Cmd {
         /// Disable control-flow normalization (ablation).
         #[arg(long)]
         no_cfg_norm: bool,
-        /// Disable sub-function block units (loops/ifs/try).
+        /// Disable sub-function block units (loops/ifs/try plus exact statement fragments).
         #[arg(long)]
         no_blocks: bool,
     },

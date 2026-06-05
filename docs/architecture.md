@@ -40,10 +40,12 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    **value graph** (GVN) that captures *what the code computes*, invariant to temporaries,
    statement order, and common subexpressions. See [normalization](normalization.md) for the
    exact pass order.
-3. **Extract units & features**: each unit becomes a multiset of subtree-shape
-   hashes, a value-graph fingerprint, a pre-order linearization for alignment, a
-   MinHash signature, plus literal- and return-value multisets used by the strict
-   precision gates.
+3. **Extract units & features**: frontend units are augmented with bounded
+   sub-function units: control-flow blocks (`loop` / statement `if` / `try`) and
+   exact-safe statement fragments whose whole value subtree stays inside the reported
+   source span. Each unit becomes a multiset of subtree-shape hashes, a value-graph
+   fingerprint, a pre-order linearization for alignment, a MinHash signature, plus
+   literal- and return-value multisets used by the strict precision gates.
 4. **Candidate generation**: the selected scan channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures, `near` uses shape MinHash
    signatures, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.

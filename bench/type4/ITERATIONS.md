@@ -4760,3 +4760,51 @@ regular `Seq` over the varargs elements.
 Targeted coverage added
 `java_arrays_aslist_single_argument_respects_array_provenance`, plus the existing literal
 collection membership and typed-empty-domain regressions stayed green.
+
+## Fragment batch 1: exact top-level statement fragments
+
+This batch expands semantic recall at the unit boundary, not by weakening semantic
+acceptance. `semantic` still accepts only `exact_safe` units with value fingerprint equality
+and `value.len() >= 4`. The new unit candidates are narrow `Block` fragments for top-level
+function-body `return` / expression statements whose entire value subtree stays inside the
+reported source span.
+
+The shared proof invariant is conservative:
+
+- the fragment is a direct statement in a function body, not nested under `if`/`loop`/`try`
+  or synthetic lambda lowering;
+- every descendant span is inside the fragment's displayed source span, so dataflow-propagated
+  earlier statements are not reported as a one-line fragment;
+- candidate-preceding siblings must not assign, alias, call an unknown callee with, or call a
+  known mutating method on any cid used by the fragment;
+- the existing `exact_safe` and value-size gates still decide whether the fragment can
+  participate in exact semantic matching.
+
+The three positives in the batch cover the same semantic axis: exact-safe return expression
+fragments under enclosing functions that are unsafe because of unrelated opaque siblings.
+They are arithmetic/product variants that converge through the existing value graph while
+their whole functions do not have to be accepted as exact-safe units. Adjacent hard negatives
+cover wrong literal, wrong operator, and wrong product constant; an existing literal
+membership mutation test also caught and now guards the important mutation boundary.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-1 | candidate extraction | collect exact statement fragment roots in addition to control-flow blocks | 3 focused positive families reported as `Block` units |
+| fragment-2 | soundness boundary | reject fragments with non-self-contained spans, nested lambda bodies, or preceding assignment/alias/mutation/unknown-call contact with used cids | literal membership mutation hard negatives stay out of positive families |
+| fragment-3 | validation | run full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-4 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 16.8ms, candidates 2.6ms, score 0.3ms; 63 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_return_fragments_under_opaque_functions
+3 exact return-fragment families found; wrong literal/operator/constant negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```

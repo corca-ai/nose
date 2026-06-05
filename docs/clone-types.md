@@ -80,6 +80,9 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   carry no per-pair behavioral proof.
 - Type-4 coverage is a **growing set of modeled equivalences**, not a guarantee about any
   given pair of semantically-equal fragments.
+- Sub-function semantic coverage is intentionally bounded: nose extracts control-flow
+  blocks and exact-safe single-statement fragments, not arbitrary statement windows with
+  unmodeled free-variable, live-out, or effect boundaries.
 
 ## Scan modes, and cross-language
 

@@ -7,7 +7,10 @@ use nose_il::{
     stable_symbol_hash, Builtin, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic,
     Payload, Symbol, UnitKind,
 };
-use nose_normalize::{module_facts::collect_module_mutations, node_tag};
+use nose_normalize::{
+    module_facts::{collect_module_mutations, mutating_method_name},
+    node_tag,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
 
@@ -316,6 +319,14 @@ fn combine(a: u64, b: u64) -> u64 {
     (a.rotate_left(7) ^ b).wrapping_mul(SEED)
 }
 
+#[derive(Clone, Copy)]
+struct UnitRoot {
+    root: NodeId,
+    kind: UnitKind,
+    name: Option<Symbol>,
+    exact_fragment: bool,
+}
+
 /// Extract all units of `il` passing the size gates, with features computed.
 pub(crate) fn extract(
     il: &Il,
@@ -327,14 +338,26 @@ pub(crate) fn extract(
     shape_features: bool,
 ) -> Vec<UnitFeat> {
     // Frontend-tagged functions/methods/classes, and (when enabled) substantial
-    // sub-function blocks (loops / ifs / try). The ceiling funnel showed ~56% of
-    // gold pairs have a region that is a sub-function block, undetectable unless
-    // extracted as its own unit — but block units only pay off once candidate
-    // generation can surface them, so they are opt-in.
-    let mut roots: Vec<(NodeId, UnitKind, Option<Symbol>)> =
-        il.units.iter().map(|u| (u.root, u.kind, u.name)).collect();
+    // sub-function blocks (loops / ifs / try) plus exact-safe statement fragments.
+    // The ceiling funnel showed ~56% of gold pairs have a region that is a
+    // sub-function block, undetectable unless extracted as its own unit. Statement
+    // fragments stay stricter: they must satisfy the exact semantic gate before they
+    // are kept, so opaque surrounding code can no longer hide a provable return/effect
+    // expression without expanding the fuzzy surface.
+    let mut roots: Vec<UnitRoot> = il
+        .units
+        .iter()
+        .map(|u| UnitRoot {
+            root: u.root,
+            kind: u.kind,
+            name: u.name,
+            exact_fragment: false,
+        })
+        .collect();
     if block_units {
         collect_block_units(il, il.root, &mut roots);
+        let parents = build_parent_index(il);
+        collect_exact_statement_fragment_units(il, il.root, &parents, interner, &mut roots);
     }
 
     let facts = StrictFacts::collect(il, interner);
@@ -342,7 +365,13 @@ pub(crate) fn extract(
         (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner));
     let mut unit_timer = UnitTimer::new();
     let mut out = Vec::new();
-    for (root, kind, uname) in roots {
+    for UnitRoot {
+        root,
+        kind,
+        name: uname,
+        exact_fragment,
+    } in roots
+    {
         let unit_start = unit_timer.start();
         let span = il.node(root).span;
         let lines = span.line_count();
@@ -371,7 +400,8 @@ pub(crate) fn extract(
         }
 
         let syntactically_small = lines < min_lines || pre.len() < min_tokens;
-        let can_use_dense_gate = matches!(kind, UnitKind::Function | UnitKind::Method);
+        let can_use_dense_gate =
+            matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
         if syntactically_small && !can_use_dense_gate {
             unit_timer.report_skip(UnitTimingSkipSample {
                 start: unit_start,
@@ -410,14 +440,18 @@ pub(crate) fn extract(
         // path (`value.len() >= 4`, the same floor that path uses) — this recovers the
         // compressed functional Type-4 forms without lowering the gate for trivial units
         // (`return x` has 1–2 atoms) or for blocks (kept strict; they are the noisy ones).
-        // Blocks keep the same syntactic min-lines/min-tokens gate as functions:
-        // measurement showed the real sub-function clones are small (24–40 tokens), so
-        // a stricter block gate drops signal (pool-precision 0.106→0.074, AUC 0.42→0.17)
-        // faster than noise. The dense semantic escape remains function/method-only,
-        // so syntactically small blocks can be skipped before value extraction above.
-        let dense_fn =
-            matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN;
-        if syntactically_small && !dense_fn {
+        // Control-flow blocks keep the same syntactic min-lines/min-tokens gate as
+        // functions: measurement showed the real sub-function clones are small (24–40
+        // tokens), so a stricter block gate drops signal (pool-precision 0.106→0.074,
+        // AUC 0.42→0.17) faster than noise. Exact statement fragments are the narrow
+        // exception: they may pass the dense gate only after `exact_safe` and the value
+        // fingerprint floor prove that the fragment itself is a usable semantic unit.
+        let dense_exact_unit = if exact_fragment {
+            exact_safe && value.len() >= EXACT_VALUE_MIN
+        } else {
+            matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN
+        };
+        if (syntactically_small || exact_fragment) && !dense_exact_unit {
             unit_timer.report_skip(UnitTimingSkipSample {
                 start: unit_start,
                 kind: &kind,
@@ -1738,7 +1772,7 @@ fn strict_exact_callee_identity(il: &Il, facts: &StrictFacts, callee: NodeId) ->
 }
 
 /// Collect sub-function block roots (loops / ifs / try) as extra unit candidates.
-fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<(NodeId, UnitKind, Option<Symbol>)>) {
+fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<UnitRoot>) {
     let is_statement_if = il.kind(node) == NodeKind::If
         && il
             .children(node)
@@ -1746,11 +1780,251 @@ fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<(NodeId, UnitKind, O
             .skip(1)
             .any(|&child| il.kind(child) == NodeKind::Block);
     if matches!(il.kind(node), NodeKind::Loop | NodeKind::Try) || is_statement_if {
-        out.push((node, UnitKind::Block, None));
+        out.push(UnitRoot {
+            root: node,
+            kind: UnitKind::Block,
+            name: None,
+            exact_fragment: false,
+        });
     }
     for &c in il.children(node) {
         collect_block_units(il, c, out);
     }
+}
+
+/// Collect single-statement expression fragments that can become exact semantic
+/// units even when their enclosing function is unsafe because of unrelated siblings.
+fn collect_exact_statement_fragment_units(
+    il: &Il,
+    node: NodeId,
+    parents: &[Option<NodeId>],
+    interner: &Interner,
+    out: &mut Vec<UnitRoot>,
+) {
+    if il.kind(node) == NodeKind::Lambda {
+        return;
+    }
+    if exact_statement_fragment_root(il, node, parents, interner) {
+        out.push(UnitRoot {
+            root: node,
+            kind: UnitKind::Block,
+            name: None,
+            exact_fragment: true,
+        });
+    }
+    for &c in il.children(node) {
+        collect_exact_statement_fragment_units(il, c, parents, interner, out);
+    }
+}
+
+fn exact_statement_fragment_root(
+    il: &Il,
+    node: NodeId,
+    parents: &[Option<NodeId>],
+    interner: &Interner,
+) -> bool {
+    let kids = il.children(node);
+    if kids.len() != 1 {
+        return false;
+    }
+    if !subtree_spans_within(il, node, il.node(node).span) {
+        return false;
+    }
+    if !top_level_statement_fragment_context_safe(il, node, parents, interner) {
+        return false;
+    }
+    match il.kind(node) {
+        NodeKind::Return => !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit),
+        NodeKind::ExprStmt => !matches!(
+            il.kind(kids[0]),
+            NodeKind::Return
+                | NodeKind::Throw
+                | NodeKind::Break
+                | NodeKind::Continue
+                | NodeKind::Var
+                | NodeKind::Lit
+        ),
+        _ => false,
+    }
+}
+
+fn top_level_statement_fragment_context_safe(
+    il: &Il,
+    node: NodeId,
+    parents: &[Option<NodeId>],
+    interner: &Interner,
+) -> bool {
+    let Some(body) = parent_of(parents, node) else {
+        return false;
+    };
+    if il.kind(body) != NodeKind::Block {
+        return false;
+    }
+    let Some(func) = parent_of(parents, body) else {
+        return false;
+    };
+    if il.kind(func) != NodeKind::Func {
+        return false;
+    }
+
+    let mut used = FxHashSet::default();
+    collect_cids(il, node, &mut used);
+    if used.is_empty() {
+        return true;
+    }
+
+    let mut blocked = used;
+    for &stmt in il.children(body) {
+        if stmt == node {
+            return true;
+        }
+        if previous_statement_invalidates_fragment_inputs(il, interner, stmt, &mut blocked) {
+            return false;
+        }
+    }
+    false
+}
+
+fn previous_statement_invalidates_fragment_inputs(
+    il: &Il,
+    interner: &Interner,
+    stmt: NodeId,
+    blocked: &mut FxHashSet<u32>,
+) -> bool {
+    if assignment_aliases_or_mutates_blocked_cid(il, stmt, blocked) {
+        return true;
+    }
+    if call_may_mutate_blocked_cid(il, interner, stmt, blocked) {
+        return true;
+    }
+    for &child in il.children(stmt) {
+        if previous_statement_invalidates_fragment_inputs(il, interner, child, blocked) {
+            return true;
+        }
+    }
+    false
+}
+
+fn assignment_aliases_or_mutates_blocked_cid(
+    il: &Il,
+    node: NodeId,
+    blocked: &mut FxHashSet<u32>,
+) -> bool {
+    if il.kind(node) != NodeKind::Assign {
+        return false;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 {
+        return false;
+    }
+    if node_mentions_any_cid(il, kids[0], blocked) {
+        return true;
+    }
+    if !node_mentions_any_cid(il, kids[1], blocked) {
+        return false;
+    }
+    if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(kids[0]), il.node(kids[0]).payload) {
+        blocked.insert(cid);
+    }
+    false
+}
+
+fn call_may_mutate_blocked_cid(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    blocked: &FxHashSet<u32>,
+) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    match il.node(node).payload {
+        Payload::Builtin(Builtin::Append) => kids
+            .first()
+            .is_some_and(|&receiver| node_mentions_any_cid(il, receiver, blocked)),
+        Payload::Builtin(_) => false,
+        _ => {
+            if let Some(&callee) = kids.first() {
+                if mutating_callee_touches_blocked_cid(il, interner, callee, blocked) {
+                    return true;
+                }
+            }
+            kids.iter()
+                .skip(1)
+                .any(|&arg| node_mentions_any_cid(il, arg, blocked))
+        }
+    }
+}
+
+fn mutating_callee_touches_blocked_cid(
+    il: &Il,
+    interner: &Interner,
+    callee: NodeId,
+    blocked: &FxHashSet<u32>,
+) -> bool {
+    if il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    mutating_method_name(interner.resolve(method))
+        && il
+            .children(callee)
+            .first()
+            .is_some_and(|&receiver| node_mentions_any_cid(il, receiver, blocked))
+}
+
+fn node_mentions_any_cid(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
+    match il.node(node).payload {
+        Payload::Cid(cid) if il.kind(node) == NodeKind::Var && cids.contains(&cid) => return true,
+        _ => {}
+    }
+    il.children(node)
+        .iter()
+        .any(|&child| node_mentions_any_cid(il, child, cids))
+}
+
+fn collect_cids(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
+    if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
+        out.insert(cid);
+    }
+    for &child in il.children(node) {
+        collect_cids(il, child, out);
+    }
+}
+
+fn parent_of(parents: &[Option<NodeId>], node: NodeId) -> Option<NodeId> {
+    parents.get(node.0 as usize).copied().flatten()
+}
+
+fn build_parent_index(il: &Il) -> Vec<Option<NodeId>> {
+    let mut parents = vec![None; il.nodes.len()];
+    for idx in 0..il.nodes.len() {
+        let parent = NodeId(idx as u32);
+        for &child in il.children(parent) {
+            if let Some(slot) = parents.get_mut(child.0 as usize) {
+                *slot = Some(parent);
+            }
+        }
+    }
+    parents
+}
+
+fn subtree_spans_within(il: &Il, node: NodeId, span: nose_il::Span) -> bool {
+    let node_span = il.node(node).span;
+    if node_span.file != span.file
+        || node_span.start_line < span.start_line
+        || node_span.end_line > span.end_line
+        || node_span.start_byte < span.start_byte
+        || node_span.end_byte > span.end_byte
+    {
+        return false;
+    }
+    il.children(node)
+        .iter()
+        .all(|&child| subtree_spans_within(il, child, span))
 }
 
 /// Pre-order DFS collecting all descendant node ids of `root` (inclusive).

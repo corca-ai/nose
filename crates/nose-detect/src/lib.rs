@@ -43,11 +43,12 @@ pub struct DetectOptions {
     pub dce: bool,
     /// Weight of the Jaccard term vs the LCS-alignment term in the final score.
     pub jaccard_weight: f64,
-    /// Extract sub-function block units (loops/ifs/try) in addition to
-    /// functions/methods/classes. ON by default: measurement on the validated
-    /// target showed gold clones are often sub-function fragments, and blocks lift
-    /// recall (0.610→0.621), pool-precision (0.064→0.106) and AUC-PR (0.34→0.42)
-    /// with HN-FP flat. Disable with `--no-blocks`.
+    /// Extract sub-function block units (loops/ifs/try plus exact statement
+    /// fragments) in addition to functions/methods/classes. ON by default:
+    /// measurement on the validated target showed gold clones are often
+    /// sub-function fragments, and blocks lift recall (0.610→0.621),
+    /// pool-precision (0.064→0.106) and AUC-PR (0.34→0.42) with HN-FP flat.
+    /// Disable with `--no-blocks`.
     pub block_units: bool,
     /// Minimum duplicated run size for the contiguous copy-paste channel, in IL
     /// tokens. This is separate from structural unit size internally, but the CLI's
