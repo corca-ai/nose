@@ -206,6 +206,8 @@ enum ValOp {
     Hof(u32),        // higher-order op kind
     Seq(u64),        // aggregate literal, keyed by lowered sequence kind
     CollectionParam, // proven collection parameter, distinct from map-like key membership
+    ArrayParam,      // proven array parameter, distinct from receiver-provided collections
+    StringParam,     // proven string parameter, distinct from collection emptiness
     Phi,             // branch merge: args = [cond, then, else]
     Lambda(u64),     // opaque, keyed by a structural hash of the lambda body
     Loop(u32),       // loop-carried opaque value, keyed by canonical id
@@ -408,7 +410,8 @@ impl<'a> Builder<'a> {
                     Ty::Unknown
                 }
             }
-            ValOp::Seq(_) | ValOp::CollectionParam => Ty::List,
+            ValOp::Seq(_) | ValOp::CollectionParam | ValOp::ArrayParam => Ty::List,
+            ValOp::StringParam => Ty::Str,
             ValOp::Call(tag)
                 if matches!(
                     *tag,
@@ -599,6 +602,18 @@ impl<'a> Builder<'a> {
             return false;
         };
         matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Map))
+    }
+
+    fn param_domain_value(&mut self, value: ValueId) -> ValueId {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return value;
+        };
+        match self.param_semantic.get(&cid).copied() {
+            Some(ParamSemantic::Array) => self.mk(ValOp::ArrayParam, vec![value]),
+            Some(ParamSemantic::Collection) => self.mk(ValOp::CollectionParam, vec![value]),
+            Some(ParamSemantic::String) => self.mk(ValOp::StringParam, vec![value]),
+            _ => value,
+        }
     }
 
     fn is_js_like_lang(&self) -> bool {
@@ -4476,6 +4491,7 @@ impl<'a> Builder<'a> {
     }
 
     fn is_empty_value(&mut self, coll: ValueId) -> ValueId {
+        let coll = self.param_domain_value(coll);
         let len = self.mk(ValOp::Call(Builtin::Len as u32 + 1), vec![coll]);
         let zero = self.int_const(0);
         self.mk(ValOp::Bin(Op::Eq as u32), vec![len, zero])
@@ -5998,6 +6014,8 @@ fn op_tag(op: &ValOp) -> u64 {
         ValOp::Hof(h) => (8, *h as u64),
         ValOp::Seq(t) => (9, *t),
         ValOp::CollectionParam => (17, 0),
+        ValOp::ArrayParam => (18, 0),
+        ValOp::StringParam => (19, 0),
         ValOp::Phi => (10, 0),
         ValOp::Lambda(h) => (11, *h),
         ValOp::Loop(c) => (12, *c as u64),

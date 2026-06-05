@@ -74,6 +74,10 @@ Guiding constraints for every pass:
   value-returning short-circuit `Phi`). Identity elimination `x+0`/`x*1`→`x` is dropped
   entirely — it is unsound for non-Num (`"a"+0` Errs), and type inference is optimistic
   (it would infer `Num` from the `*1` itself), so even a Num gate can't make it safe.
+  Typed emptiness checks carry the proven receiver domain in the value graph: collection
+  receivers, arrays, and strings do not share the same strict fingerprint merely because
+  each surface exposes an “empty” idiom. A real Netty audit caught this boundary when Java
+  `Object[]` length, `Queue.isEmpty()`, and `String.isEmpty()` had collapsed.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its

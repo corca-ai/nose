@@ -2525,6 +2525,30 @@ fn collection_membership_set_construction_converges_with_boundaries() {
 }
 
 #[test]
+fn typed_empty_checks_keep_array_collection_and_string_domains_distinct() {
+    let i = Interner::new();
+    let java_list_size =
+        "class C { static boolean f(java.util.List<Integer> values) { return values == null || values.size() == 0; } }\n";
+    let java_list_named =
+        "class C { static boolean f(java.util.List<Integer> values) { return values == null || values.isEmpty(); } }\n";
+    let java_queue_named = "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values) { return values == null || values.isEmpty(); } }\n";
+    let java_array_length =
+        "class C { static boolean f(Object[] values) { return values == null || values.length == 0; } }\n";
+    let java_string_named =
+        "class C { static boolean f(String value) { return value == null || value.isEmpty(); } }\n";
+
+    let list_fp = value_fp(&i, java_list_size, Lang::Java);
+    assert_eq!(list_fp, value_fp(&i, java_list_named, Lang::Java));
+    assert_eq!(list_fp, value_fp(&i, java_queue_named, Lang::Java));
+    assert_ne!(list_fp, value_fp(&i, java_array_length, Lang::Java));
+    assert_ne!(list_fp, value_fp(&i, java_string_named, Lang::Java));
+    assert_ne!(
+        value_fp(&i, java_array_length, Lang::Java),
+        value_fp(&i, java_string_named, Lang::Java)
+    );
+}
+
+#[test]
 fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
     let i = Interner::new();
     let py_literal = "def f(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n";

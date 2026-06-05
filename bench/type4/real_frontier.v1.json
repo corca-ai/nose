@@ -438,6 +438,46 @@
       ],
       "batch": "2026-06-05-c-total-order-compare",
       "notes": "Selected from the real audit after broad membership/map-default priority leads were already covered, unsupported, or hard negatives."
+    },
+    {
+      "case_id": "java-empty-domain-netty-array-queue-string",
+      "status": "closed",
+      "candidate_axis": "collection_empty_check / typed_empty_domain_soundness",
+      "repo": "netty",
+      "language": "java",
+      "locations": [
+        {
+          "path": "codec-classes-quic/src/main/java/io/netty/handler/codec/quic/QuicheQuicSslEngine.java",
+          "span": "305-307",
+          "snippet": "private boolean isEmpty(Object @Nullable [] arr) { return arr == null || arr.length == 0; }"
+        },
+        {
+          "path": "common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
+          "span": "147-149",
+          "snippet": "private static boolean isNullOrEmpty(Queue<ScheduledFutureTask<?>> queue) { return queue == null || queue.isEmpty(); }"
+        },
+        {
+          "path": "common/src/main/java/io/netty/util/internal/StringUtil.java",
+          "span": "593-595",
+          "snippet": "public static boolean isNullOrEmpty(String s) { return s == null || s.isEmpty(); }"
+        }
+      ],
+      "semantic_claim": "These null-or-empty helpers have the same surface shape but are not proven equivalent across Java array, Queue/collection, and String receiver domains under the independent verifier.",
+      "evidence": "Previous release whole-Netty verify reported two false merges from QuicheQuicSslEngine.java:305 to AbstractScheduledEventExecutor.java:147 and StringUtil.java:593, each with 72 differing inputs. Candidate whole-Netty verify with --max-violations 0 is SOUND.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-empty-target2/release/nose verify bench/repos/netty --max-violations 10",
+        "baseline_result": "2 false merges: Object[] null-or-length-empty collapsed with Queue.isEmpty and String.isEmpty.",
+        "candidate_result": "target/release/nose verify bench/repos/netty --max-violations 0 reports SOUND; feature dump shows the three value fingerprints are distinct."
+      },
+      "proof_invariant": "A strict empty-check merge may share coordinates only when the receiver domain is proven compatible. Java array length, receiver-provided collection emptiness, and string emptiness are distinct domains unless a stronger proof connects them.",
+      "hard_negative_siblings": [
+        "Queue<String> value == null || value.isEmpty() vs Object[] value == null || value.length == 0",
+        "Queue<String> value == null || value.isEmpty() vs String value == null || value.isEmpty()",
+        "untyped or shadowed receiver emptiness without a domain proof"
+      ],
+      "batch": "2026-06-05-java-empty-domain-soundness",
+      "notes": "Soundness blocker batch. It intentionally reduces an over-broad merge rather than closing a completeness miss; follow-up completeness work should continue from the remaining real under-merged Netty leads only after preserving this boundary."
     }
   ]
 }

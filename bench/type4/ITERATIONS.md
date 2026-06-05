@@ -4386,3 +4386,87 @@ not be widened from untyped receivers. The next efficient batch should rerun the
 prioritizer and continue the medium-repo audit, looking for another repeated real miss
 with a shared proof invariant rather than expanding comparator handling into overloadable
 language semantics.
+
+## Real-corpus Java empty-domain soundness: batch 2026-06-05
+
+This batch came from the large real-corpus sweep after the comparator batch. It is a
+soundness blocker rather than a completeness expansion: whole-Netty `verify` exposed two
+false merges in the exact value fingerprint. The detector collapsed Java null-or-empty
+helpers across three receiver domains:
+
+- `netty/codec-classes-quic/.../QuicheQuicSslEngine.java:305`:
+  `Object[]` null-or-`length == 0`;
+- `netty/common/.../AbstractScheduledEventExecutor.java:147`:
+  `Queue.isEmpty()`;
+- `netty/common/.../StringUtil.java:593`:
+  `String.isEmpty()`.
+
+Selected reason: this was the only audited real-corpus lead that violated the non-negotiable
+soundness rule. Broad completeness work was paused until the hard-negative merge was removed.
+
+Closed candidates: 0 completeness candidates; 2 real false-merge edges removed.
+
+The proof invariant is receiver-domain preservation for strict emptiness. A collection
+receiver, Java array parameter, and Java string parameter must not share the same exact value
+fingerprint merely because each has an empty idiom. The implementation records Java array
+parameters as `ParamSemantic::Array` and salts empty-check values as `CollectionParam`,
+`ArrayParam`, or `StringParam` only at the empty-check proof point. It does not widen untyped
+receivers or generic method calls.
+
+Synthetic coverage added two focused hard negatives:
+
+- `axis_collection_typed_domain_array_boundary`: `Queue.isEmpty()` vs `Object[].length == 0`;
+- `axis_collection_typed_domain_string_boundary`: `Queue.isEmpty()` vs `String.isEmpty()`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-empty-domain-1 | real soundness audit | whole-Netty verifier found `Object[]` empty merged with `Queue` and `String` empty helpers | previous release: 2 false merges |
+| real-java-empty-domain-2 | detector narrowing | preserve typed empty receiver domains in the shared value graph; Java arrays get an explicit param semantic fact | targeted regression test passed |
+| real-java-empty-domain-3 | focused synthetic gate | add Java typed empty-domain hard negatives | focused: 0/0 positives, 0/2 false merges |
+| real-java-empty-domain-4 | real corpus delta | rerun whole-Netty verifier | candidate: SOUND, 0 false merges; completeness shifts 1528/2790 -> 1525/2790 because false merges were split |
+| real-java-empty-domain-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | collection core 11/11, 0/12; all-cross core 620/620, 0/1216; cargo test passed |
+| real-java-empty-domain-6 | performance | compare whole-Netty scan timings with previous release | normalize+extract 99.5ms -> 92.5ms; candidate path 20.6ms -> 25.7ms; families unchanged at 182 |
+
+Final focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_collection_typed_domain_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 2
+positive recall: 0/0
+hard-negative false merges: 0/2
+SOUND: no false merges
+```
+
+Final collection-empty axis core gate:
+
+```text
+GATE=core AXIS=collection_empty_check CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 23/68
+positive recall: 11/11
+hard-negative false merges: 0/12
+Raw nodes: 0/510
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1836/6705
+positive recall: 620/620
+hard-negative false merges: 0/1216
+Raw nodes: 0/67132
+```
+
+Real selected verification:
+
+```text
+previous release: 2 false merges in whole-Netty verify
+candidate release: SOUND with --max-violations 0
+```
+
+Remaining open frontier: the Netty verifier now surfaces the prior null-or-empty pair as a
+low-VJ under-merge (`Queue.isEmpty()` ↮ `String.isEmpty()`), which should stay unsupported
+until string and collection receiver semantics are intentionally connected. The next
+completeness batch should return to evidence-backed real misses such as the libgdx dead-loop
+`findFloats` pair or another repeated invariant from the real sweep, with this typed-domain
+boundary kept as a hard negative.

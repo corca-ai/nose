@@ -8,8 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    UnitKind,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
+    Payload, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -95,7 +95,7 @@ fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
         for p in Lowering::named_children(params) {
             let pspan = lo.span(p);
             let sym = p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
-            if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
+            if let Some(semantic) = java_param_semantic_from_text(lo.text(p)) {
                 lo.record_param_semantic(pspan, semantic);
             }
             kids.push(lo.add(
@@ -114,6 +114,14 @@ fn lower_method(lo: &mut Lowering, node: TsNode) -> NodeId {
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
     lo.push_unit(func, UnitKind::Method, name);
     func
+}
+
+fn java_param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
+    if text.contains("[]") || text.contains("...") {
+        Some(ParamSemantic::Array)
+    } else {
+        crate::lower::param_semantic_from_text(text)
+    }
 }
 
 fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {

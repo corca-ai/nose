@@ -363,6 +363,14 @@ AXIS_PROPOSALS = {
         "axis": "collection_empty_check",
         "why": "Length or emptiness checks over different collection parameters are different proof coordinates.",
     },
+    "axis_collection_typed_domain_array_boundary": {
+        "axis": "collection_empty_check",
+        "why": "A typed Java receiver collection empty check is not equivalent to a Java array length-empty check without an array receiver proof.",
+    },
+    "axis_collection_typed_domain_string_boundary": {
+        "axis": "collection_empty_check",
+        "why": "A typed Java receiver collection empty check is not equivalent to a Java string empty check without a string receiver proof.",
+    },
     "axis_string_prefix_identity": {
         "axis": "string_prefix_suffix",
         "why": "Case-sensitive starts-with predicates should prove the same string-prefix check when receiver and literal prefix coordinates are fixed.",
@@ -2461,6 +2469,8 @@ def axis_record_guard_variant(
 def collection_empty_axis_supported(surface: Surface, proposal_id: str) -> bool:
     if not proposal_id.startswith("axis_collection_"):
         return False
+    if proposal_id.startswith("axis_collection_typed_domain_"):
+        return surface.key == "java"
     return surface.key in {
         "python",
         "javascript",
@@ -2486,7 +2496,39 @@ def axis_collection_empty_variant(
     nonempty = proposal_id == "axis_collection_nonempty_named_identity"
     wrong_threshold = proposal_id == "axis_collection_threshold_boundary"
     wrong_receiver = proposal_id == "axis_collection_wrong_receiver_boundary"
+    typed_domain_array = proposal_id == "axis_collection_typed_domain_array_boundary"
+    typed_domain_string = proposal_id == "axis_collection_typed_domain_string_boundary"
     semantic_mutation = right and negative and not (wrong_threshold or wrong_receiver)
+
+    if typed_domain_array or typed_domain_string:
+        if surface.key != "java":
+            raise ValueError(f"unsupported typed-domain empty boundary surface: {surface.key}")
+        name = "buildCase" if right else "axisCase"
+        if not right:
+            src = f"""import java.util.Queue;
+
+class AxisCase {{
+    static boolean {name}(Queue<String> values) {{
+        return values == null || values.isEmpty();
+    }}
+}}
+"""
+            return Variant("java_queue_null_empty", src, name)
+        if typed_domain_array:
+            src = f"""class AxisCase {{
+    static boolean {name}(Object[] values) {{
+        return values == null || values.length == 0;
+    }}
+}}
+"""
+            return Variant("java_array_null_empty", src, name)
+        src = f"""class AxisCase {{
+    static boolean {name}(String value) {{
+        return value == null || value.isEmpty();
+    }}
+}}
+"""
+        return Variant("java_string_null_empty", src, name)
 
     if surface.language == "javascript":
         name = "buildCase" if right else "axisCase"
@@ -8117,6 +8159,8 @@ def generate_axis_items(
             if proposal_id in {
                 "axis_collection_threshold_boundary",
                 "axis_collection_wrong_receiver_boundary",
+                "axis_collection_typed_domain_array_boundary",
+                "axis_collection_typed_domain_string_boundary",
             }:
                 items.append(
                     make_axis_item(
@@ -8126,7 +8170,9 @@ def generate_axis_items(
                         surface,
                         "not_equivalent",
                         "heldout",
-                        "collection-empty-boundary",
+                        "typed-empty-domain-boundary"
+                        if proposal_id.startswith("axis_collection_typed_domain_")
+                        else "collection-empty-boundary",
                     )
                 )
                 continue
