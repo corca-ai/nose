@@ -74,7 +74,7 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, Java low-bit toggle, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, C u16 byte-pack, Java low-bit toggle, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
@@ -158,6 +158,7 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | field write | target field changed, overwrite order changed |
 | indexed loop | skipped first or last element, wrong collection indexed |
 | C pointer-length contract | skipped first element, stride greater than one, non-contract bound |
+| C u16 byte-pack | swapped byte order, overlapping shift, wrong byte coordinate, unproven byte alias, non-byte receiver, unproved 32-bit shift |
 | total-order comparator | descending sign, equality-boundary sign, wrong returned sign value, overloadable receiver comparison |
 | statically-false loop guard | wrong reachable return, false initial value, positive guard, reassigned guard |
 | Java low-bit toggle | reversed +/- branches, `^ 2`, `% 2 == 1` with negative odds, wrong branch delta |
@@ -210,6 +211,13 @@ callbacks dereference two scalar coordinates and return `-1`, `1`, or `0` for as
 less, greater, and equal cases. Guard-return order and nested ternary sign forms may
 converge only when the comparison operators are primitive ordered comparisons; overloadable
 or effectful receiver comparisons remain hard negatives.
+
+The current C byte-pack contract is narrower still: generated `u16` big-endian decoders may
+converge only when the receiver is proven to be a byte buffer (`unsigned char *`, `uint8_t *`,
+or a same-file `typedef unsigned char u8`) and the expression combines lane 0 shifted by
+exactly 8 with lane 1 from the same base via `+` or `|`. Swapped lanes, overlapping shifts,
+wrong byte coordinates, unproven aliases, non-byte receivers, and 32-bit uncasted shifts are
+hard negatives until stronger proof facts exist.
 
 ## Promotion rules
 

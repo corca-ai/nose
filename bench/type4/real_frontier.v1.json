@@ -551,6 +551,54 @@
       ],
       "batch": "2026-06-05-java-low-bit-toggle",
       "notes": "The audit covered Guava, SQLAlchemy, Rubocop, SymPy, Poetry, Scrapy, Commons Lang, Marshmallow, HTTPie, JUnit5, Jedis, RxJava, chi, and Graphhopper. Most leads were unsupported or hard negatives; exact pinned-corpus search found only this same-invariant real miss, so the batch is intentionally small."
+    },
+    {
+      "case_id": "c-u16-byte-pack-sqlite-big-endian-decode",
+      "status": "closed",
+      "candidate_axis": "c_u16_be_byte_pack",
+      "repo": "sqlite",
+      "language": "c",
+      "locations": [
+        {
+          "path": "ext/misc/btreeinfo.c",
+          "span": "269-271",
+          "snippet": "static unsigned int get_uint16(unsigned char *a) { return (a[0]<<8) + a[1]; }"
+        },
+        {
+          "path": "ext/recover/dbdata.c",
+          "span": "344-346",
+          "snippet": "static unsigned int get_uint16(unsigned char *a) { return (a[0]<<8) + a[1]; }"
+        },
+        {
+          "path": "ext/recover/sqlite3recover.c",
+          "span": "2078-2080",
+          "snippet": "static u16 recoverGetU16(const u8 *aBuf) { return (aBuf[0] << 8) | aBuf[1]; }"
+        },
+        {
+          "path": "ext/rtree/rtree.c",
+          "span": "525-527",
+          "snippet": "static int readInt16(u8 *p) { return (p[0]<<8) + p[1]; }"
+        }
+      ],
+      "semantic_claim": "All four helpers decode the same big-endian unsigned 16-bit value from two disjoint byte lanes: high byte a[0] shifted by 8 plus low byte a[1]. Addition and bitwise-or are equivalent under this byte-lane proof.",
+      "evidence": "Previous release selected SQLite verify was SOUND but completeness was 5/16, with an under-merged u16 lead fts5_index.c:712 to btreeinfo.c:269 and split add-vs-or families. Candidate verify over the five selected SQLite files is SOUND with completeness 7/16; semantic scan reports family 56852dae75c4d7f4 containing btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, and rtree.c:525.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "previous release: nose verify ext/misc/btreeinfo.c ext/recover/dbdata.c ext/fts5/fts5_index.c ext/recover/sqlite3recover.c ext/rtree/rtree.c",
+        "baseline_result": "SOUND; completeness 5/16; add-form u16 helpers and or-form u16 helpers were split, and fts5_index.c remained under-merged.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 7/16, and 2 remaining under-merged groups. NOSE_TIME=1 target/release/nose scan over the selected files reports 3 semantic families, including the expected 4-copy u16 family."
+      },
+      "proof_invariant": "In C only, the parameter must be proven to be a byte buffer: unsigned char *, uint8_t *, or a same-file typedef alias such as typedef unsigned char u8. The expression must use the same base pointer, high lane index 0 shifted left exactly 8, low lane index 1, and either + or |. The proof is limited to 16-bit packing, where the shifted byte stays representable in int.",
+      "hard_negative_siblings": [
+        "swapped byte order: (a[1] << 8) | a[0]",
+        "overlapping lanes such as (a[0] << 4) | a[1]",
+        "wrong low byte coordinate such as a[2]",
+        "u8 spelling without same-file proof that it aliases unsigned char",
+        "int * or other non-byte-buffer receiver",
+        "32-bit packing such as a[0] << 24, which is not accepted without an unsigned-overflow proof"
+      ],
+      "batch": "2026-06-05-c-u16-byte-pack",
+      "notes": "fts5_index.c remains open because its u8 typedef is in an included header that the current C lowering does not resolve. The 32-bit get_uint32/recoverGetU32 pair remains unsupported because uncasted signed left shifts can overflow or enter undefined behavior."
     }
   ]
 }

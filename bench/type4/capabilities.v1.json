@@ -1,6 +1,7 @@
 {
   "schema_version": "0.1.0",
   "semantic_axes": {
+    "c_u16_be_byte_pack": "C 16-bit big-endian decoders over proven byte-buffer parameters can canonicalize disjoint byte-lane addition and bitwise-or forms.",
     "collection_empty_check": "Static collection emptiness and non-emptiness checks can be proven through fixed receiver coordinates and length-zero or named-predicate forms.",
     "immutable_binding": "Local immutable aliases and single-assignment module constants can be used as proof facts.",
     "import_identity": "Static import bindings can prove a callee/value identity by module coordinate and exported symbol.",
@@ -25,6 +26,7 @@
   },
   "surfaces": {
     "c": {
+      "c_u16_be_byte_pack": "supported",
       "collection_empty_check": "partial",
       "immutable_binding": "partial",
       "import_identity": "unsupported",
@@ -46,6 +48,7 @@
       "unsafe_boundary": "supported"
     },
     "go": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
@@ -67,6 +70,7 @@
       "unsafe_boundary": "supported"
     },
     "html": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
@@ -88,6 +92,7 @@
       "unsafe_boundary": "supported"
     },
     "java": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
@@ -111,6 +116,7 @@
       "unsafe_boundary": "supported"
     },
     "javascript": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
@@ -132,6 +138,7 @@
       "unsafe_boundary": "supported"
     },
     "python": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
@@ -153,6 +160,7 @@
       "unsafe_boundary": "supported"
     },
     "ruby": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "unsupported",
@@ -174,6 +182,7 @@
       "unsafe_boundary": "supported"
     },
     "rust": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "partial",
       "import_identity": "partial",
@@ -195,6 +204,7 @@
       "unsafe_boundary": "supported"
     },
     "svelte": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
@@ -216,6 +226,7 @@
       "unsafe_boundary": "supported"
     },
     "typescript": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",
@@ -237,6 +248,7 @@
       "unsafe_boundary": "supported"
     },
     "vue": {
+      "c_u16_be_byte_pack": "unsupported",
       "collection_empty_check": "supported",
       "immutable_binding": "supported",
       "import_identity": "supported",

@@ -19,6 +19,10 @@
 //! the detector can use instead of (or alongside) subtree shapes.
 
 use crate::combine;
+use crate::module_facts::{
+    assignment_name_in, collect_all_node_symbols, collect_module_mutations, mutating_method_name,
+    shadowed_js_like_module_binding_nodes_for_symbol, top_level_statements_for,
+};
 use crate::types::Ty;
 use nose_il::{
     Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
@@ -991,41 +995,11 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(field).payload else {
             return Some(false);
         };
-        if !Self::mutating_method_name(self.interner.resolve(method)) {
+        if !mutating_method_name(self.interner.resolve(method)) {
             return Some(false);
         }
         let receiver = self.il.children(field).first().copied()?;
         Some(self.node_refers_to_cid(receiver, cid))
-    }
-
-    fn mutating_method_name(method: &str) -> bool {
-        matches!(
-            method,
-            "add"
-                | "addAll"
-                | "append"
-                | "delete"
-                | "clear"
-                | "compute"
-                | "computeIfAbsent"
-                | "computeIfPresent"
-                | "merge"
-                | "pop"
-                | "push"
-                | "put"
-                | "putAll"
-                | "remove"
-                | "removeAll"
-                | "removeIf"
-                | "replace"
-                | "replaceAll"
-                | "retainAll"
-                | "shift"
-                | "sort"
-                | "splice"
-                | "unshift"
-                | "set"
-        )
     }
 
     fn proven_map_constructor_entries(&mut self, value: ValueId) -> Option<ValueId> {
@@ -1562,6 +1536,13 @@ impl<'a> Builder<'a> {
                     && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
                 {
                     args.swap(0, 1);
+                }
+            }
+        }
+        if let ValOp::Bin(o) = op {
+            if args.len() == 2 && (o == Op::Add as u32 || o == Op::BitOr as u32) {
+                if let Some(v) = self.c_u16_be_byte_pack_pattern(args[0], args[1]) {
+                    return v;
                 }
             }
         }
@@ -2234,7 +2215,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(field).payload else {
             return Some(false);
         };
-        if !Self::mutating_method_name(self.interner.resolve(method)) {
+        if !mutating_method_name(self.interner.resolve(method)) {
             return Some(false);
         }
         let receiver = self.il.children(field).first().copied()?;
@@ -4073,6 +4054,61 @@ impl<'a> Builder<'a> {
         None
     }
 
+    fn c_u16_be_byte_pack_pattern(&mut self, left: ValueId, right: ValueId) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::C {
+            return None;
+        }
+        for (shifted, low) in [(left, right), (right, left)] {
+            let (base, high_index) = self.shifted_byte_lane(shifted)?;
+            let (low_base, low_index) = self.byte_lane(low)?;
+            if base == low_base
+                && high_index == 0
+                && low_index == 1
+                && self.is_byte_array_param_value(base)
+            {
+                let zero = self.int_const(0);
+                let one = self.int_const(1);
+                return Some(self.mk(ValOp::Call(C_U16_BE_BYTE_PACK_CODE), vec![base, zero, one]));
+            }
+        }
+        None
+    }
+
+    fn shifted_byte_lane(&self, value: ValueId) -> Option<(ValueId, u8)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Bin(o) if o == Op::Shl as u32) || node.args.len() != 2 {
+            return None;
+        }
+        if !self.int_const_eq(node.args[1], 8) {
+            return None;
+        }
+        self.byte_lane(node.args[0])
+    }
+
+    fn byte_lane(&self, value: ValueId) -> Option<(ValueId, u8)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Index) || node.args.len() != 2 {
+            return None;
+        }
+        if self.int_const_eq(node.args[1], 0) {
+            Some((node.args[0], 0))
+        } else if self.int_const_eq(node.args[1], 1) {
+            Some((node.args[0], 1))
+        } else {
+            None
+        }
+    }
+
+    fn is_byte_array_param_value(&self, value: ValueId) -> bool {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return false;
+        };
+        matches!(
+            self.param_semantic.get(&cid),
+            Some(ParamSemantic::ByteArray)
+        )
+    }
+
     fn int_const_eq(&self, value: ValueId, expected: i64) -> bool {
         let expected_key = 0x1000_0000u32.wrapping_add(expected as u32);
         matches!(self.nodes[value as usize].op, ValOp::Const(key) if key == expected_key)
@@ -5722,191 +5758,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-fn top_level_statements_for(il: &Il) -> Vec<NodeId> {
-    let mut out = Vec::new();
-    for &stmt in il.children(il.root) {
-        if il.kind(stmt) == NodeKind::Block {
-            out.extend(il.children(stmt).iter().copied());
-        } else {
-            out.push(stmt);
-        }
-    }
-    out
-}
-
-fn assignment_name_in(il: &Il, stmt: NodeId) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    il.cid_names.get(cid as usize).copied()
-}
-
-fn node_symbol_in(il: &Il, node: NodeId) -> Option<Symbol> {
-    match il.node(node).payload {
-        Payload::Name(symbol) => Some(symbol),
-        Payload::Cid(cid) => il.cid_names.get(cid as usize).copied(),
-        _ => None,
-    }
-}
-
-fn collect_all_node_symbols(il: &Il, node: NodeId, out: &mut FxHashSet<Symbol>) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        out.insert(symbol);
-    }
-    for &child in il.children(node) {
-        collect_all_node_symbols(il, child, out);
-    }
-}
-
-fn mark_direct_symbol(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    shadowed: &FxHashMap<NodeId, FxHashSet<Symbol>>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol)
-            && !shadowed
-                .get(&node)
-                .is_some_and(|symbols| symbols.contains(&symbol))
-        {
-            out.insert(symbol);
-        }
-    }
-}
-
-fn collect_module_mutations(
-    il: &Il,
-    interner: &Interner,
-    candidates: &FxHashSet<Symbol>,
-    is_top_level: &[bool],
-) -> FxHashSet<Symbol> {
-    let mut mutated = FxHashSet::default();
-    if candidates.is_empty() {
-        return mutated;
-    }
-    let shadowed = shadowed_js_like_module_binding_nodes(il, candidates);
-    for (idx, node) in il.nodes.iter().enumerate() {
-        let node_id = NodeId(idx as u32);
-        match node.kind {
-            NodeKind::Call if matches!(node.payload, Payload::Builtin(Builtin::Append)) => {
-                if let Some(receiver) = il.children(node_id).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &shadowed, &mut mutated);
-                }
-            }
-            NodeKind::Field => {
-                let Payload::Name(method) = node.payload else {
-                    continue;
-                };
-                if !Builder::mutating_method_name(interner.resolve(method)) {
-                    continue;
-                }
-                if let Some(receiver) = il.children(node_id).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &shadowed, &mut mutated);
-                }
-            }
-            NodeKind::Assign if !is_top_level.get(idx).copied().unwrap_or(false) => {
-                if let Some(lhs) = il.children(node_id).first().copied() {
-                    collect_unshadowed_node_symbols(il, lhs, candidates, &shadowed, &mut mutated);
-                }
-            }
-            _ => {}
-        }
-    }
-    mutated
-}
-
-fn collect_unshadowed_node_symbols(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    shadowed: &FxHashMap<NodeId, FxHashSet<Symbol>>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol)
-            && !shadowed
-                .get(&node)
-                .is_some_and(|symbols| symbols.contains(&symbol))
-        {
-            out.insert(symbol);
-        }
-    }
-    for &child in il.children(node) {
-        collect_unshadowed_node_symbols(il, child, candidates, shadowed, out);
-    }
-}
-
-fn shadowed_js_like_module_binding_nodes_for_symbol(il: &Il, name: Symbol) -> FxHashSet<NodeId> {
-    let mut candidates = FxHashSet::default();
-    candidates.insert(name);
-    shadowed_js_like_module_binding_nodes(il, &candidates)
-        .into_iter()
-        .filter_map(|(node, symbols)| symbols.contains(&name).then_some(node))
-        .collect()
-}
-
-fn shadowed_js_like_module_binding_nodes(
-    il: &Il,
-    candidates: &FxHashSet<Symbol>,
-) -> FxHashMap<NodeId, FxHashSet<Symbol>> {
-    let mut out = FxHashMap::default();
-    if candidates.is_empty() || !js_like_lang(il.meta.lang) {
-        return out;
-    }
-    collect_shadowed_js_like_module_binding_nodes(
-        il,
-        il.root,
-        candidates,
-        &FxHashSet::default(),
-        &mut out,
-    );
-    out
-}
-
-fn collect_shadowed_js_like_module_binding_nodes(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    inherited: &FxHashSet<Symbol>,
-    out: &mut FxHashMap<NodeId, FxHashSet<Symbol>>,
-) {
-    let mut shadowed = inherited.clone();
-    if matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
-        for &child in il.children(node) {
-            if il.kind(child) != NodeKind::Param {
-                continue;
-            }
-            if let Some(symbol) = node_symbol_in(il, child) {
-                if candidates.contains(&symbol) {
-                    shadowed.insert(symbol);
-                }
-            }
-        }
-    }
-    if !shadowed.is_empty() {
-        out.insert(node, shadowed.clone());
-    }
-    for &child in il.children(node) {
-        collect_shadowed_js_like_module_binding_nodes(il, child, candidates, &shadowed, out);
-    }
-}
-
-fn js_like_lang(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    )
-}
-
 fn collect_assigned(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
     if il.kind(node) == NodeKind::Assign {
         if let Some(&lhs) = il.children(node).first() {
@@ -6156,6 +6007,7 @@ const ABS_CODE: u32 = 0xAB5;
 const MIN_CODE: u32 = 0x319;
 const MAX_CODE: u32 = 0x32A;
 const JS_PROTOTYPE_IN_CODE: u32 = 0x4A53_494E;
+const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 const OWN_PROPERTY_GUARD_SEQ_TAG: u64 = 8;
 
 /// A selection reduction (min/max) keeps no additive/multiplicative identity, so its
