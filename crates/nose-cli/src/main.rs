@@ -2852,7 +2852,7 @@ fn anti_unify(a: &[&str], b: &[&str]) -> (Vec<String>, u32, u32) {
 /// The shared set is intersected over a *majority* of members (up to `MEMBER_CAP`), not
 /// just the closest pair — so a diverging copy shrinks the count honestly rather than
 /// the flattering pair count overstating `N of M shared`. Parameters come from the first
-/// pair (a lower bound on the varying spots). `None` if the first two spans can't read.
+/// pair that reads (a lower bound on the varying spots). `None` if no pair reads.
 fn shared_lines_of(
     locs: &[nose_detect::Loc],
     cache: &mut FileLineCache,
@@ -2889,11 +2889,14 @@ fn shared_lines_of(
     let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut n_others = 0usize;
     let mut params = 0u32;
-    for (i, b) in locs.iter().skip(1).take(MEMBER_CAP - 1).enumerate() {
+    for b in locs.iter().skip(1).take(MEMBER_CAP - 1) {
         let Some((s, p)) = pair(&locs[0], b, cache) else {
             continue;
         };
-        if i == 0 {
+        // Parameters come from the first pair that actually reads — keyed on
+        // `n_others`, not the loop index, so an unreadable representative pair
+        // doesn't silently drop the count to zero.
+        if n_others == 0 {
             params = p;
         }
         n_others += 1;
@@ -3409,6 +3412,54 @@ mod tests {
             scope: "prod",
             discount: 1.0,
         }
+    }
+
+    #[test]
+    fn shared_lines_params_come_from_first_successful_pair() {
+        use std::io::Write;
+        // The representative pair can be unreadable while a *later* pair reads fine
+        // (e.g. a deleted/edited file among the family members). The parameter count
+        // must then come from the first pair that actually reads — not be dropped
+        // just because the readable pair wasn't iteration 0.
+        let dir = std::env::temp_dir().join(format!("nose_slo_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let write = |name: &str, body: &str| {
+            let p = dir.join(name);
+            std::fs::File::create(&p)
+                .unwrap()
+                .write_all(body.as_bytes())
+                .unwrap();
+            p.to_string_lossy().to_string()
+        };
+        let f0 = write("a.rs", "AAA\nshared1\nshared2\n");
+        let f2 = write("c.rs", "BBB\nshared1\nshared2\n");
+        let missing = dir.join("missing.rs").to_string_lossy().to_string();
+
+        let mk = |file: String| Loc {
+            file,
+            start_line: 1,
+            end_line: 3,
+            lang: "rust".into(),
+            kind: nose_il::UnitKind::Function,
+            name: None,
+            sem: 50,
+        };
+        // locs[1] (the first compared pair) is unreadable; locs[2] reads and differs
+        // from the representative by one parameter line.
+        let locs = vec![mk(f0), mk(missing), mk(f2)];
+        let mut cache = FileLineCache(std::collections::HashMap::new());
+        let (shared, params) = shared_lines_of(&locs, &mut cache).expect("a later pair reads");
+
+        assert!(
+            shared.contains(&"shared1".to_string()),
+            "shared lines extracted: {shared:?}"
+        );
+        assert_eq!(
+            params, 1,
+            "params must come from the first successful pair, not iteration 0"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
