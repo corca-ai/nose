@@ -62,7 +62,16 @@ touched, not that the change definitely belongs there. Review each flagged sibli
 | `--base <ref>` | compare the working tree against this git ref (default `HEAD` = uncommitted changes; `origin/main` for a PR branch) |
 | `--format human\|json\|sarif` | output format (default `human`) |
 | `--fail` | exit non-zero if any family changed inconsistently (CI gate) |
+| `--ignore-file <file>` | suppress accepted divergences (auto-reads `nose.ignore.json`) |
 | `--top N` | show at most N findings (`0` = all; default 30) |
+
+## Suppressing intentional divergences
+
+Some clones are *meant* to diverge (a fast path vs a clear path, a sync vs async variant).
+So a true fork doesn't re-fail every PR, `review` honors the same
+[structured ignores](structured-ignores.md) as `scan`: copy a finding's `family_id` (from
+`--format json`) into `nose.ignore.json`, with a reason. nose auto-reads that file, and the
+suppressed family no longer trips `--fail`.
 
 ## In CI
 

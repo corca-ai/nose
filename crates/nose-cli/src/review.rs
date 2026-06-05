@@ -19,7 +19,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::{ReportFormat, ScanMode};
-use nose_detect::Loc;
+use nose_detect::{Loc, RefactorFamily};
 
 pub(crate) struct ReviewArgs {
     pub paths: Vec<PathBuf>,
@@ -29,6 +29,7 @@ pub(crate) struct ReviewArgs {
     pub min_lines: Option<u32>,
     pub exclude: Vec<String>,
     pub config: Option<PathBuf>,
+    pub ignore_file: Option<PathBuf>,
     pub format: ReportFormat,
     pub top: Option<usize>,
     pub fail: bool,
@@ -83,37 +84,41 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
         min_lines,
     )?;
 
-    // Flag families with *some but not all* members changed by the diff.
+    // Structured ignores suppress reviewed-and-accepted divergences (same nose.ignore.json
+    // as `scan`), so an intentional fork doesn't re-fail every PR.
+    let ignore_set = crate::ignores::load_for_scan(args.ignore_file.as_deref())?;
+    if let Some(set) = &ignore_set {
+        set.warn_expired();
+    }
+
+    // Flag families with *some but not all* members changed by the diff. Member paths are
+    // normalized to repo-relative first, so the family_id is stable across runs (the base
+    // worktree lives at a per-run temp path) and matches what `scan` and the ignore file use.
     let prefix = canonical(&base_tree.path);
     let mut flagged: Vec<Divergence> = Vec::new();
     for fam in &families {
-        let mut changed_sites = Vec::new();
-        let mut untouched = Vec::new();
-        for loc in &fam.locations {
-            let site = to_site(loc, &prefix);
-            if site_touched(&site, &changed) {
-                changed_sites.push(site);
-            } else {
-                untouched.push(site);
-            }
+        let fam = repo_relative(fam, &prefix);
+        if ignore_set
+            .as_ref()
+            .is_some_and(|set| set.match_family(&fam).is_some())
+        {
+            continue;
         }
-        if !changed_sites.is_empty() && !untouched.is_empty() {
+        let (changed_members, untouched): (Vec<&Loc>, Vec<&Loc>) = fam
+            .locations
+            .iter()
+            .partition(|loc| site_touched_loc(loc, &changed));
+        if !changed_members.is_empty() && !untouched.is_empty() {
             flagged.push(Divergence {
-                family_id: crate::baseline::family_id(fam),
+                family_id: crate::baseline::family_id(&fam),
                 similarity: fam.mean_score,
                 // Heaviest changed member's value-graph size — a cheap complexity proxy. A
                 // small edit inside a computation-rich clone is the Krinke "critical change"
                 // profile (the most likely un-propagated fix); an edit in a trivial clone is
                 // likely benign.
-                complexity: fam
-                    .locations
-                    .iter()
-                    .filter(|l| site_touched(&to_site(l, &prefix), &changed))
-                    .map(|l| l.sem)
-                    .max()
-                    .unwrap_or(0),
-                changed: changed_sites,
-                not_updated: untouched,
+                complexity: changed_members.iter().map(|l| l.sem).max().unwrap_or(0),
+                changed: changed_members.iter().map(|l| to_site(l)).collect(),
+                not_updated: untouched.iter().map(|l| to_site(l)).collect(),
             });
         }
     }
@@ -140,13 +145,22 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
     Ok(())
 }
 
-fn to_site(loc: &Loc, base_prefix: &Path) -> Site {
-    let file = canonical(Path::new(&loc.file))
-        .strip_prefix(base_prefix)
-        .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|_| loc.file.clone());
+/// Clone the family with every member path made repo-relative (stripping the base-worktree
+/// prefix), so the family_id is stable across runs and the paths read naturally in reports.
+fn repo_relative(fam: &RefactorFamily, base_prefix: &Path) -> RefactorFamily {
+    let mut fam = fam.clone();
+    for loc in &mut fam.locations {
+        loc.file = canonical(Path::new(&loc.file))
+            .strip_prefix(base_prefix)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| loc.file.clone());
+    }
+    fam
+}
+
+fn to_site(loc: &Loc) -> Site {
     Site {
-        file,
+        file: loc.file.clone(),
         name: loc.name.clone(),
         start_line: loc.start_line,
         end_line: loc.end_line,
@@ -154,14 +168,14 @@ fn to_site(loc: &Loc, base_prefix: &Path) -> Site {
     }
 }
 
-/// Does this member's base span overlap a changed range of its file?
-fn site_touched(site: &Site, changed: &HashMap<String, Vec<(u32, u32)>>) -> bool {
-    let Some(ranges) = changed.get(&site.file) else {
+/// Does this member's (repo-relative) base span overlap a changed range of its file?
+fn site_touched_loc(loc: &Loc, changed: &HashMap<String, Vec<(u32, u32)>>) -> bool {
+    let Some(ranges) = changed.get(&loc.file) else {
         return false;
     };
     ranges
         .iter()
-        .any(|&(s, e)| site.start_line <= e && s <= site.end_line)
+        .any(|&(s, e)| loc.start_line <= e && s <= loc.end_line)
 }
 
 // ---- git plumbing ---------------------------------------------------------------
@@ -336,10 +350,14 @@ fn print_review_human(flagged: &[Divergence], base: &str, changed_files: usize, 
         println!("\n✓ no clone families were changed inconsistently.");
         return;
     }
+    let families = if flagged.len() == 1 {
+        "family"
+    } else {
+        "families"
+    };
     println!(
-        "\n⚠ {} clone {} changed inconsistently — a copy was edited but its sibling(s) were not:\n",
+        "\n⚠ {} clone {families} changed inconsistently — a copy was edited but its sibling(s) were not:\n",
         flagged.len(),
-        plural(flagged.len(), "family")
     );
     for (i, d) in flagged.iter().enumerate() {
         if top != 0 && i >= top {

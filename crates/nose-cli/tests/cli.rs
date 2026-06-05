@@ -5319,3 +5319,48 @@ fn review_needs_a_git_repository() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn review_respects_structured_ignores() {
+    let dir = make_project("review_ignore");
+    init_git_repo(&dir);
+
+    // Edit one copy so a family is flagged.
+    let a = dir.join("a/f.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    // Grab the stable family_id from JSON, then suppress it.
+    let json_out = nose_review(&dir, &["--format", "json"]);
+    let json: serde_json::Value = serde_json::from_slice(&json_out.stdout).expect("review JSON");
+    let findings = json["findings"].as_array().expect("findings");
+    assert!(!findings.is_empty(), "expected a flagged family first");
+    let fid = findings[0]["family_id"].as_str().unwrap();
+
+    let ignore = dir.join("nose.ignore.json");
+    fs::write(
+        &ignore,
+        format!(r#"{{"ignores":[{{"family_id":"{fid}","reason":"intentional"}}]}}"#),
+    )
+    .unwrap();
+
+    let out = nose_review(&dir, &["--fail"]);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        !stdout.contains("not updated"),
+        "the ignored family must be suppressed: {stdout}"
+    );
+    assert!(
+        out.status.success(),
+        "a fully-suppressed review must not trip --fail"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}

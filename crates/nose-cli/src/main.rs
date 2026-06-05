@@ -219,6 +219,10 @@ enum Cmd {
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
+        /// Structured ignore file for accepted divergences (same format as `scan`).
+        /// Defaults to `nose.ignore.json` when it exists.
+        #[arg(long, value_name = "FILE")]
+        ignore_file: Option<PathBuf>,
         /// Output format.
         #[arg(long, default_value = "human")]
         format: ReportFormat,
@@ -1217,6 +1221,7 @@ fn run() -> Result<()> {
             min_lines,
             exclude,
             config,
+            ignore_file,
             format,
             top,
             fail,
@@ -1234,6 +1239,7 @@ fn run() -> Result<()> {
                 min_lines,
                 exclude,
                 config,
+                ignore_file,
                 format,
                 top,
                 fail,
