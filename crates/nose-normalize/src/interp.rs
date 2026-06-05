@@ -790,14 +790,22 @@ impl<'a> Interp<'a> {
             HoFKind::Map => {
                 let mut out = Vec::new();
                 for x in coll {
-                    out.push(self.apply(f, &[x], env)?);
+                    let value = self.apply(f, &[x], env)?;
+                    if matches!(value, Value::Err) {
+                        return Ok(Value::Err);
+                    }
+                    out.push(value);
                 }
                 Ok(Value::List(out))
             }
             HoFKind::Filter => {
                 let mut out = Vec::new();
                 for x in coll {
-                    if truthy(&self.apply(f, std::slice::from_ref(&x), env)?) {
+                    let keep = self.apply(f, std::slice::from_ref(&x), env)?;
+                    if matches!(keep, Value::Err) {
+                        return Ok(Value::Err);
+                    }
+                    if truthy(&keep) {
                         out.push(x);
                     }
                 }
@@ -811,6 +819,9 @@ impl<'a> Interp<'a> {
                 };
                 for x in it {
                     acc = self.apply(f, &[acc, x], env)?;
+                    if matches!(acc, Value::Err) {
+                        return Ok(Value::Err);
+                    }
                 }
                 Ok(acc)
             }
@@ -1515,6 +1526,42 @@ mod tests {
     #[test]
     fn seq_expression_propagates_error_items() {
         assert_eq!(seq_with_error_item_value(), Value::Err);
+    }
+
+    fn hof_with_error_lambda(kind: HoFKind) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let div = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[div]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one]);
+        let hof = b.add(NodeKind::HoF, Payload::HoF(kind), sp, &[coll, lambda]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_map_propagates_lambda_errors() {
+        assert_eq!(hof_with_error_lambda(HoFKind::Map), Value::Err);
+    }
+
+    #[test]
+    fn hof_filter_propagates_lambda_errors() {
+        assert_eq!(hof_with_error_lambda(HoFKind::Filter), Value::Err);
     }
 
     fn run_any_all_with_error_predicate(all: bool) -> Value {
