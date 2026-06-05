@@ -654,6 +654,53 @@
       ],
       "batch": "2026-06-06-c-u32-unsigned-cast-byte-pack",
       "notes": "Selected to correct Java skew with a non-Java real-corpus batch. The change also tightens soundness by keeping uncasted C high-lane shifts out of strict semantic proof."
+    },
+    {
+      "case_id": "ruby-fetch-block-custom-receiver-map-default-audit",
+      "status": "unsupported",
+      "candidate_axis": "map_default_lookup / literal_map_default_lookup",
+      "repo": "sinatra / liquid / rack / rubocop",
+      "language": "ruby",
+      "locations": [
+        {
+          "path": "sinatra-contrib/spec/cookies_spec.rb",
+          "span": "513",
+          "snippet": "expect(cookies.fetch('foo') { 'bar' }).to eq('bar')"
+        },
+        {
+          "path": "liquid/test/unit/registers_unit_test.rb",
+          "span": "56-59",
+          "snippet": "result = static_register.fetch(:d) { \"default\" }; result = static_register.fetch(:d, \"default 1\") { \"default 2\" }"
+        },
+        {
+          "path": "rack/test/spec_request.rb",
+          "span": "1334",
+          "snippet": "req.headers.fetch('bar-foo'){'1'}.must_equal '1'"
+        },
+        {
+          "path": "rubocop/spec/rubocop/cop/style/redundant_fetch_block_spec.rb",
+          "span": "132",
+          "snippet": "Rails.cache.fetch(:key) { :value }"
+        }
+      ],
+      "semantic_claim": "Ruby `fetch(key) { fallback }` has map-default behavior only when the receiver is a proven Hash-like map and the block is a pure fallback value. These real spans use custom receivers (`cookies`, `static_register`, `req.headers`, `Rails.cache`) whose `fetch` semantics are not proven by the current detector.",
+      "evidence": "Corpus grep found many Ruby block-fetch idioms, but the actionable strict slice is not these custom receiver calls. A focused synthetic baseline also exposed a false merge between literal `{...}.fetch(key) { 0 }` and `{...}.fetch(key) { 9 }`; the batch fixes that literal-Hash soundness gap and accepts only zero-arg pure fallback blocks over literal Hash receivers.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "rg \"\\.fetch\\([^\\n]*\\)\\s*\\{\\s*(0|1|true|false|nil|:[A-Za-z_][A-Za-z0-9_]*|'[^']*'|\\\"[^\\\"]*\\\")\\s*\\}\" bench/repos -g '*.rb'",
+        "baseline_result": "Real hits are dominated by custom receivers rather than literal or otherwise proven Hash receivers.",
+        "candidate_result": "Literal Hash `fetch(key) { fallback }` is now canonicalized only when the fallback block is zero-arg and value-like; custom receivers remain unmerged."
+      },
+      "proof_invariant": "Do not merge arbitrary Ruby `fetch` calls. A strict map-default proof requires a literal/proven Hash receiver, the same key coordinate, and a zero-arg fallback block whose implicit result is an exact-safe value. Blocks with parameters, `raise`, `yield`, mutation, or unproven receivers remain outside the proof.",
+      "hard_negative_siblings": [
+        "`hash.fetch(key) { |missing| missing.to_s }`, where the fallback depends on the missing key",
+        "`hash.fetch(key) { raise KeyError }`, where missing-key behavior is an exception effect",
+        "`Rails.cache.fetch(key) { value }`, where receiver semantics are cache-specific",
+        "`ENV.fetch(key) { value }`, where receiver and environment behavior are not literal Hash proof",
+        "`hash.fetch(key, default) { block }`, where Ruby uses the block and warns about the ignored default argument"
+      ],
+      "batch": "2026-06-06-ruby-fetch-block-map-default",
+      "notes": "Selected after the user raised Java-skew concerns. This is a non-Java soundness/completeness micro-batch, but the real custom-receiver frontier remains unsupported until receiver provenance facts exist."
     }
   ]
 }

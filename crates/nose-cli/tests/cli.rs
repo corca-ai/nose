@@ -4804,6 +4804,11 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_block.rb"),
+        "def lookup(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key) { 0 }\nend\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("map_default_inline.js"),
         "function lookup(key, other) {\n  return new Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
     )
@@ -4894,6 +4899,11 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_string_block.rb"),
+        "def lookup(key, other)\n  {\"red\" => \"apple\", \"blue\" => \"berry\"}.fetch(key) { \"\" }\nend\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("map_default_go_string_inline.go"),
         "package p\n\nfunc Lookup(key string, other string) string {\n    return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key]\n}\n",
     )
@@ -4911,6 +4921,11 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     fs::write(
         dir.join("map_default_bool.rb"),
         "def lookup(key, other)\n  {\"red\" => true, \"blue\" => false}.fetch(key, false)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("map_default_bool_block.rb"),
+        "def lookup(key, other)\n  {\"red\" => true, \"blue\" => false}.fetch(key) { false }\nend\n",
     )
     .unwrap();
     fs::write(
@@ -4949,6 +4964,11 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_nil_block.rb"),
+        "def lookup(key, other)\n  {\"red\" => nil, \"blue\" => nil}.fetch(key) { nil }\nend\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("map_default_go_nil_inline.go"),
         "package p\n\ntype Item struct{}\n\nfunc Lookup(key string, other string) *Item {\n    return map[string]*Item{\"red\": nil, \"blue\": nil}[key]\n}\n",
     )
@@ -4979,8 +4999,23 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("wrong_default_block.rb"),
+        "def wrong_default(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key) { 9 }\nend\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("wrong_map.py"),
         "def wrong_map(key, other):\n    return {\"red\": 9, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ruby_fetch_block_param.rb"),
+        "def wrong(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key) { |missing| missing.to_s }\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("ruby_fetch_raise_block.rb"),
+        "def wrong(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key) { raise KeyError }\nend\n",
     )
     .unwrap();
     fs::write(
@@ -5168,6 +5203,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let expected = [
         "map_default.py",
         "map_default.rb",
+        "map_default_block.rb",
         "map_default_inline.js",
         "map_default_local.js",
         "map_default_has_get.js",
@@ -5209,6 +5245,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let string_expected = [
         "map_default_string.py",
         "map_default_string.rb",
+        "map_default_string_block.rb",
         "map_default_go_string_inline.go",
         "map_default_go_string_local.go",
     ];
@@ -5234,6 +5271,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let bool_expected = [
         "map_default_bool.py",
         "map_default_bool.rb",
+        "map_default_bool_block.rb",
         "map_default_go_bool_inline.go",
     ];
     let bool_family = semantic_families
@@ -5283,6 +5321,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let nil_expected = [
         "map_default_nil.py",
         "map_default_nil.rb",
+        "map_default_nil_block.rb",
         "map_default_go_nil_inline.go",
     ];
     let nil_family = semantic_families
@@ -5307,7 +5346,10 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let boundary_files = [
         "wrong_key.py",
         "wrong_default.rb",
+        "wrong_default_block.rb",
         "wrong_map.py",
+        "ruby_fetch_block_param.rb",
+        "ruby_fetch_raise_block.rb",
         "wrong_js_key.js",
         "wrong_js_default.js",
         "wrong_js_map.js",

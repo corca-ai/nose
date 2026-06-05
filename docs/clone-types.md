@@ -56,6 +56,9 @@ graph, and canonicalizations actually model:
 - loop ↔ `reduce`/`sum` ↔ comprehension ↔ `.append`/`.map` builder loop; an `any`/`all` loop
   ↔ the functional form; a `reduce`-lambda min/max ↔ `max`/`min`; `len([… if p]) ↔ Σ(p?1:0)`;
   a dict-building loop `d={}; for x: d[k]=v` ↔ the dict comprehension `{k: v for x in xs}`;
+- literal map-default lookup through proven map/key/fallback coordinates, including
+  Python `dict.get(key, fallback)` and Ruby literal `Hash#fetch(key, fallback)` or
+  zero-arg pure fallback blocks such as `Hash#fetch(key) { fallback }`;
 - `filter q (filter p) ↔ filter (p∧q)` (and the filtered comprehension / `.filter().filter()`
   chain / filtered builder loop);
 - guard-clause ↔ nested-if, ternary ↔ early-return, min/max idioms, commutativity +

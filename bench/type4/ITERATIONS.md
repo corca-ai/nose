@@ -4991,6 +4991,60 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Ruby batch 1: literal Hash fetch block defaults
+
+This batch was selected after the Java-skew review. The real-corpus Ruby audit found many
+`fetch(key) { fallback }` idioms, but the actionable real hits were dominated by custom
+receivers such as `cookies`, `static_register`, `req.headers`, and `Rails.cache`. Those
+remain unsupported because the detector has no receiver-provenance fact that proves
+ordinary `Hash` missing-key semantics for them. The frontier entry
+`ruby-fetch-block-custom-receiver-map-default-audit` records that open work.
+
+The implemented slice is narrower: Ruby literal `Hash#fetch(key) { fallback }` is accepted
+only when the receiver is a literal/proven map, the key coordinate matches, and the block
+is a zero-arg value-like fallback. Blocks with parameters, `raise`, mutation, custom
+receivers, or other effects stay outside the proof. A focused baseline repro showed a
+false merge between `{...}.fetch(key) { 0 }` and `{...}.fetch(key) { 9 }`; the fix extracts
+the implicit zero-arg block value before building the map-default fingerprint, so wrong
+fallback values no longer collapse.
+
+The three focused candidates share one proof invariant and cover integer, string, and
+boolean fallback coordinates. The CLI regression also covers `nil`. Adjacent hard
+negatives cover wrong fallback value, block parameter dependency, and an exception-bearing
+fallback block.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| ruby-fetch-block-1 | frontier audit | record real Ruby custom-receiver fetch-block examples as unsupported | no unproven custom receiver is merged |
+| ruby-fetch-block-2 | soundness boundary | extract only zero-arg implicit block values for literal/proven map `fetch` fallback proof | `{...}.fetch(key) { 9 }`, block-param, and `raise` negatives excluded |
+| ruby-fetch-block-3 | focused coverage | add Ruby int/string/bool focused proposals plus CLI `nil` coverage | focused smoke 6/6 positives, 0/6 hard-negative false merges |
+| ruby-fetch-block-4 | regression | full Rust tests, literal-map axis gate, global compact core gate, clippy, docs lint | `cargo test` pass; axis core 56/56 positives and 0/128 hard negatives; global core 634/634 positives and 0/1246 hard negatives |
+| ruby-fetch-block-5 | performance | scan `rubocop sinatra liquid rack faraday puma` from `bench/repos` with `NOSE_TIME=1` | 2357 files; families 136; locations 478; median normalize+extract baseline 52.2ms vs candidate 51.0ms; median candidates baseline 6.3ms vs candidate 6.0ms |
+
+Focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_map_default_ruby_fetch_block CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 6/6
+hard-negative false merges: 0/6
+```
+
+Axis core gate:
+
+```text
+GATE=core AXIS=literal_map_default_lookup CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 56/56
+hard-negative false merges: 0/128
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 634/634
+hard-negative false merges: 0/1246
+```
+
 ## Real-corpus C u16 include typedef: batch 2026-06-06
 
 This batch was selected to correct the recent Java skew and close a non-Java real frontier

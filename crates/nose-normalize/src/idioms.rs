@@ -231,10 +231,19 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             && args.len() == 2
                             && map_like_literal(old, interner, base.unwrap()) =>
                     {
+                        let fallback = if fname == "fetch" && old.kind(args[1]) == NodeKind::Lambda
+                        {
+                            let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
+                                return CallCanon::None;
+                            };
+                            fallback
+                        } else {
+                            args[1]
+                        };
                         return CallCanon::Builtin {
                             op: Builtin::GetOrDefault,
-                            arg_olds: vec![base.unwrap(), args[0], args[1]],
-                        }
+                            arg_olds: vec![base.unwrap(), args[0], fallback],
+                        };
                     }
                     "getOrDefault" if base.is_some() && args.len() == 2 => {
                         return CallCanon::Builtin {
@@ -604,6 +613,31 @@ fn zero_arg_lambda_body(old: &Il, lambda: NodeId) -> Option<NodeId> {
         Some(kids[0])
     } else {
         None
+    }
+}
+
+fn zero_arg_lambda_body_value(old: &Il, lambda: NodeId) -> Option<NodeId> {
+    let body = zero_arg_lambda_body(old, lambda)?;
+    implicit_block_value(old, body).or(Some(body))
+}
+
+fn implicit_block_value(old: &Il, block: NodeId) -> Option<NodeId> {
+    if old.kind(block) != NodeKind::Block {
+        return None;
+    }
+    let kids = old.children(block);
+    let &[stmt] = kids else {
+        return None;
+    };
+    match old.kind(stmt) {
+        NodeKind::ExprStmt | NodeKind::Return => {
+            let stmt_kids = old.children(stmt);
+            let &[expr] = stmt_kids else {
+                return None;
+            };
+            Some(expr)
+        }
+        _ => None,
     }
 }
 

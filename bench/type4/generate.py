@@ -1003,6 +1003,18 @@ AXIS_PROPOSALS = {
         "axis": "literal_map_default_lookup",
         "why": "Different literal map values change present-key behavior and must not merge.",
     },
+    "axis_map_default_ruby_fetch_block_int_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "Ruby `Hash#fetch(key) { fallback }` with a pure zero-arg block should prove the same missing-key fallback as `fetch(key, fallback)`.",
+    },
+    "axis_map_default_ruby_fetch_block_string_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "Ruby `Hash#fetch(key) { fallback }` should preserve string fallback coordinates.",
+    },
+    "axis_map_default_ruby_fetch_block_bool_identity": {
+        "axis": "literal_map_default_lookup",
+        "why": "Ruby `Hash#fetch(key) { fallback }` should preserve boolean fallback coordinates.",
+    },
     "axis_map_default_js_map_inline_identity": {
         "axis": "literal_map_default_lookup",
         "why": "An inline JavaScript/TypeScript `new Map([...]).get(key) ?? fallback` over static entries should prove the same literal-map default lookup.",
@@ -4417,6 +4429,8 @@ end
 def literal_map_default_axis_supported(surface: Surface, proposal_id: str) -> bool:
     if not proposal_id.startswith("axis_map_default_"):
         return False
+    if proposal_id.startswith("axis_map_default_ruby_fetch_block_"):
+        return surface.key == "ruby"
     if proposal_id.startswith(("axis_map_default_js_map_", "axis_map_default_js_object_")):
         return surface.key in {"python", "ruby", "javascript", "typescript"}
     if proposal_id.startswith("axis_map_default_java_map_"):
@@ -4741,6 +4755,18 @@ def map_default_axis_parts(
         entries = (("red", 9), ("blue", 2))
     if right and negative and proposal_id == "axis_map_default_literal_identity":
         default = 9
+    if proposal_id in {
+        "axis_map_default_ruby_fetch_block_int_identity",
+        "axis_map_default_ruby_fetch_block_string_identity",
+        "axis_map_default_ruby_fetch_block_bool_identity",
+    }:
+        form = "ruby_fetch_block" if right else "literal_api"
+    if proposal_id == "axis_map_default_ruby_fetch_block_string_identity":
+        entries = (("red", "apple"), ("blue", "berry"))
+        default = ""
+    if proposal_id == "axis_map_default_ruby_fetch_block_bool_identity":
+        entries = (("red", True), ("blue", False))
+        default = False
     if proposal_id == "axis_map_default_js_map_inline_identity":
         form = "js_map_inline" if right else "literal_api"
     if proposal_id == "axis_map_default_js_map_local_identity":
@@ -4919,6 +4945,9 @@ def map_default_axis_parts(
         "axis_map_default_module_js_map_identity",
         "axis_map_default_module_ts_map_identity",
         "axis_map_default_module_java_map_identity",
+        "axis_map_default_ruby_fetch_block_int_identity",
+        "axis_map_default_ruby_fetch_block_string_identity",
+        "axis_map_default_ruby_fetch_block_bool_identity",
     }:
         if proposal_id.startswith(("axis_map_default_go_map_", "axis_map_default_go_zero_")):
             key = "other"
@@ -4968,6 +4997,12 @@ def axis_map_default_variant(
         return Variant("axis", src, name)
 
     if surface.key == "ruby":
+        if form == "ruby_fetch_block":
+            src = f"""def {name}(key, other)
+  {{"{k1}" => {map_default_ruby_literal(v1)}, "{k2}" => {map_default_ruby_literal(v2)}}}.fetch({key}) {{ {map_default_ruby_literal(default)} }}
+end
+"""
+            return Variant("axis", src, name)
         src = f"""def {name}(key, other)
   {{"{k1}" => {map_default_ruby_literal(v1)}, "{k2}" => {map_default_ruby_literal(v2)}}}.fetch({key}, {map_default_ruby_literal(default)})
 end
@@ -7975,10 +8010,23 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "axis_map_default_module_ts_map_identity",
             "axis_map_default_module_java_map_identity",
             "axis_map_default_module_wrong_default_boundary",
+            "axis_map_default_ruby_fetch_block_int_identity",
         }:
             counterexample = {
                 "input": {"key": "green", "other": "red"},
                 "left": 0,
+                "right": 9,
+            }
+        elif proposal_id == "axis_map_default_ruby_fetch_block_string_identity":
+            counterexample = {
+                "input": {"key": "green", "other": "red"},
+                "left": "",
+                "right": 9,
+            }
+        elif proposal_id == "axis_map_default_ruby_fetch_block_bool_identity":
+            counterexample = {
+                "input": {"key": "green", "other": "red"},
+                "left": False,
                 "right": 9,
             }
         elif proposal_id in {
@@ -10496,6 +10544,40 @@ def generate_literal_map_default_cross_items(
         reference_surfaces = [surface_by_key["python"]]
     elif cross_mode == "none":
         reference_surfaces = []
+    ruby_block_reference_surfaces = [surface_by_key["ruby"]]
+    ruby_block_right_surfaces = [surface_by_key["ruby"]]
+    for proposal_id in (
+        "axis_map_default_ruby_fetch_block_int_identity",
+        "axis_map_default_ruby_fetch_block_string_identity",
+        "axis_map_default_ruby_fetch_block_bool_identity",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for right_surface in ruby_block_right_surfaces:
+            for left_surface in ruby_block_reference_surfaces:
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "equivalent",
+                        "heldout",
+                    )
+                )
+                items.append(
+                    make_axis_cross_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        left_surface,
+                        right_surface,
+                        "not_equivalent",
+                        "heldout",
+                        "literal_map_default_lookup-semantic-mutation",
+                    )
+                )
     for proposal_id in (
         "axis_map_default_js_map_inline_identity",
         "axis_map_default_js_map_local_identity",
