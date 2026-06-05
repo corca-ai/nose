@@ -184,9 +184,10 @@ change to improve readability. The stable contract is documented in
 
 ## Inspecting & measuring
 
-- `nose il <file> [--normalized] [--format sexpr|json]` — dump the IL for one
+- `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — dump the IL for one
   file. `--normalized` shows the canonical form after the [normalization](normalization.md)
-  passes; invaluable when debugging why two snippets do (or don't) converge.
+  passes; `--no-cfg-norm` disables control-flow normalization (an ablation toggle).
+  Invaluable when debugging why two snippets do (or don't) converge.
 - `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`
   for machine output). Use it to spot a language/construct that isn't lowering well; see

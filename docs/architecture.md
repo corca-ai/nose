@@ -34,11 +34,12 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    node copies its source span, so every match traces back to exact lines.
    Frontends also tag syntactic unit boundaries (function/method/class/block),
    which gives detection accurate boundaries for free.
-2. **Normalize** ([normalization](normalization.md)): ordered passes canonicalize the IL —
-   desugaring, alpha-renaming, idiom/operator canonicalization, control-flow
-   normalization, dataflow, algebra, and a hash-consed **value graph** (GVN) that
-   captures *what the code computes*, invariant to temporaries, statement order,
-   and common subexpressions.
+2. **Normalize** ([normalization](normalization.md)): a fixed sequence of passes canonicalizes
+   the IL — desugaring (with idiom canonicalization), alpha-renaming, dataflow propagation,
+   control-flow normalization, algebraic and operator canonicalization, and a hash-consed
+   **value graph** (GVN) that captures *what the code computes*, invariant to temporaries,
+   statement order, and common subexpressions. See [normalization](normalization.md) for the
+   exact pass order.
 3. **Extract units & features**: each unit becomes a multiset of subtree-shape
    hashes, a value-graph fingerprint, a pre-order linearization for alignment, a
    MinHash signature, plus literal- and return-value multisets used by the strict
