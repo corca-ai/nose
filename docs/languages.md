@@ -51,8 +51,8 @@ meaningful IL shape, so clones involving it won't converge. Closing those gaps
 Go from 0.40% to 0.03%, or Java local record/annotation declarations being erased
 as type metadata instead of surfacing as opaque statements, or Rust `async { ... }`
 blocks lowering to their body instead of a `Raw` wrapper, or Rust
-literal/negative-literal/wildcard/range/tuple/slice/reference/OR/guarded `match` arms
-lowering to an if-chain, or Python
+literal/negative-literal/typed-integer/wildcard/range/tuple/slice/reference/OR/guarded
+`match` arms lowering to an if-chain, or Python
 literal/wildcard/capture/qualified/sequence/OR/guarded `match` cases lowering to an if-chain, or Go
 channel send statements lowering to a tagged effect shape, or Go multi-label `switch` cases lowering to
 ORed scrutinee comparisons, or JS/TS stacked `switch` case labels sharing the following

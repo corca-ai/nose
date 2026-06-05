@@ -454,7 +454,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "self" => lo.var("self", span),
         "integer_literal" => {
             let t = lo.text(node);
-            lo.int_lit(t.trim_end_matches(|c: char| c.is_alphabetic()), span)
+            lo.int_lit(strip_rust_decimal_int_suffix(t), span)
         }
         "float_literal" => lo.float_lit(lo.text(node), span),
         "negative_literal" => lower_negative_literal(lo, node),
@@ -793,7 +793,7 @@ fn lower_negative_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
     match child.kind() {
         "integer_literal" => {
             let text = lo.text(child);
-            let magnitude = text.trim_end_matches(|c: char| c.is_alphabetic());
+            let magnitude = strip_rust_decimal_int_suffix(text);
             let signed = format!("-{magnitude}");
             lo.int_lit(&signed, span)
         }
@@ -803,6 +803,22 @@ fn lower_negative_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         _ => lo.raw(node.kind(), span, &[]),
     }
+}
+
+fn strip_rust_decimal_int_suffix(text: &str) -> &str {
+    let trimmed = text.trim();
+    if matches!(
+        trimmed.get(..2),
+        Some("0x" | "0X" | "0b" | "0B" | "0o" | "0O")
+    ) {
+        return trimmed;
+    }
+    let end = trimmed
+        .char_indices()
+        .find(|&(_, ch)| ch.is_ascii_alphabetic())
+        .map(|(idx, _)| idx)
+        .unwrap_or(trimmed.len());
+    trimmed[..end].trim_end_matches('_')
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1254,6 +1270,15 @@ mod tests {
             "negative literal match pattern should lower without Raw negative_literal: {raw:?}"
         );
         assert!(match_case_rhs_ints(src).contains(&-1));
+    }
+
+    #[test]
+    fn match_typed_integer_literal_pattern_retains_value() {
+        let src = "fn f(x: i32) -> i32 { match x { 1i32 => 7, _ => 0 } }";
+        assert!(
+            match_case_rhs_ints(src).contains(&1),
+            "typed integer match patterns should retain their numeric value"
+        );
     }
 
     #[test]
