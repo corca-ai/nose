@@ -98,7 +98,7 @@ nose scan src --show proposal   # show the extracted helper skeleton, varying sp
 | Only the biggest, cleanest wins | `nose scan src --min-value 300 --min-members 3` |
 | A copy-paste gate for CI (jscpd-style) | `nose scan src --mode syntax --fail-on any` |
 | High-confidence "same logic" clones only | `nose scan src --mode semantic` |
-| Fuzzy near-duplicates for review | `nose scan src --mode near --threshold 0.70` |
+| Fuzzy near-duplicates for review | `nose scan src --mode near:0.70` |
 | Machine-readable output | `nose scan src --format json` |
 | Faster repeated runs | `nose scan src --cache-dir .nose-cache` |
 

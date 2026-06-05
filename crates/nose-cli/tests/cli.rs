@@ -359,9 +359,7 @@ fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
         "scan",
         dir.to_str().unwrap(),
         "--mode",
-        "near",
-        "--threshold",
-        "0.5",
+        "near:0.5",
         "--min-lines",
         "1",
         "--min-tokens",
@@ -3959,16 +3957,10 @@ fn default_mode_runs_syntax_and_semantic() {
 #[test]
 fn non_near_scan_modes_reject_similarity_thresholds() {
     let dir = make_mode_project("exact_threshold");
-    for mode in ["syntax", "semantic", "syntax,semantic"] {
+    // Only `near` carries an inline threshold; `syntax:0.5` / `semantic:0.5` are invalid.
+    for mode in ["syntax:0.5", "semantic:0.5"] {
         let out = Command::new(bin())
-            .args([
-                "scan",
-                dir.to_str().unwrap(),
-                "--mode",
-                mode,
-                "--threshold",
-                "0.5",
-            ])
+            .args(["scan", dir.to_str().unwrap(), "--mode", mode])
             .output()
             .expect("run nose");
         assert!(
@@ -3977,7 +3969,7 @@ fn non_near_scan_modes_reject_similarity_thresholds() {
         );
         let stderr = String::from_utf8(out.stderr).unwrap();
         assert!(
-            stderr.contains("--threshold is only valid when --mode includes near"),
+            stderr.contains("unknown mode"),
             "specific error explains the invalid threshold for {mode}: {stderr}"
         );
     }
@@ -3992,9 +3984,7 @@ fn near_scan_mode_accepts_similarity_threshold() {
             "scan",
             dir.to_str().unwrap(),
             "--mode",
-            "near",
-            "--threshold",
-            "0.5",
+            "near:0.5",
             "--min-tokens",
             "12",
             "--format",
@@ -4833,9 +4823,7 @@ fn diff_shows_the_differing_line() {
         "scan",
         dir.to_str().unwrap(),
         "--mode",
-        "near",
-        "--threshold",
-        "0.5",
+        "near:0.5",
         "--min-tokens",
         "10",
         "--show",
@@ -4947,9 +4935,7 @@ fn broken_pipe_exits_cleanly() {
             "scan",
             dir.to_str().unwrap(),
             "--mode",
-            "near",
-            "--threshold",
-            "0.5",
+            "near:0.5",
             "--show",
             "diff",
             "--top",
@@ -5009,9 +4995,7 @@ fn proposal_shows_shared_skeleton_and_parameters() {
         "scan",
         dir.to_str().unwrap(),
         "--mode",
-        "near",
-        "--threshold",
-        "0.5",
+        "near:0.5",
         "--show",
         "proposal",
         "--min-tokens",
@@ -5129,9 +5113,7 @@ fn output_is_byte_identical_across_thread_counts_on_a_rich_project() {
                 "scan",
                 p,
                 "--mode",
-                "near",
-                "--threshold",
-                "0.5",
+                "near:0.5",
                 "--min-tokens",
                 "12",
                 "--format",

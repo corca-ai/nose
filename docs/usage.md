@@ -54,7 +54,6 @@ Grouped by what they do. Anything here can also be set in
 | `--min-tokens N` | ignore units or syntax copy-paste runs smaller than this IL-token size (default 24) |
 | `--min-lines N` | ignore units or syntax copy-paste runs spanning fewer source lines (default 5) |
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near`; comma-list or repeatable; when present, replaces the default |
-| `--threshold T` | acceptance similarity in `[0,1]` for the `near` channel; invalid unless `--mode` includes `near` |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |
 
@@ -119,13 +118,13 @@ Examples:
 nose scan src                                  # syntax + semantic
 nose scan src --mode syntax --fail-on any             # jscpd-style gate
 nose scan src --mode semantic                  # exact Type-4 only
-nose scan src --mode near --threshold 0.70     # Type-3 only
+nose scan src --mode near:0.70                 # Type-3 only
 nose scan src --mode syntax,semantic,near      # all channels
 nose scan src --mode syntax --mode semantic    # same as --mode syntax,semantic
 ```
 
-Only `near` uses `--threshold` (default `0.70`). `syntax` and `semantic` are exact
-channels, so `--threshold` is rejected unless `near` is also enabled.
+The `near` channel takes its acceptance threshold inline — `--mode near:0.8` (default
+`0.70`). `syntax` and `semantic` are exact channels and take no threshold.
 
 The `syntax` channel is the CPD floor: it finds duplicated token runs even when they
 start or end in the middle of a function. The normalized unit channels (`semantic` and

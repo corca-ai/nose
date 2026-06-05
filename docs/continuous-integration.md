@@ -27,7 +27,7 @@ threshold. This is usually better as a report or ratchet with `--min-value` than
 bare "any finding fails" gate:
 
 ```sh
-nose scan src --mode syntax,semantic,near --threshold 0.70 --min-value 300 --min-members 3 --fail-on any
+nose scan src --mode syntax,semantic,near:0.70 --min-value 300 --min-members 3 --fail-on any
 ```
 
 For an exact semantic-only gate, use `--mode semantic`. It does not use a

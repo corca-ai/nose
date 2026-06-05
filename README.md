@@ -118,8 +118,8 @@ cargo build --release
 # Exact semantic-only audit:
 ./target/release/nose scan src --mode semantic
 
-# Include Type-3 near-duplicates (the only channel that uses --threshold):
-./target/release/nose scan src --mode syntax,semantic,near --threshold 0.70
+# Include Type-3 near-duplicates (near takes an inline acceptance threshold):
+./target/release/nose scan src --mode syntax,semantic,near:0.70
 ```
 
 ### Example
@@ -184,7 +184,6 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
     `extractability`), `--top N`, `--min-members N`, `--min-value V`,
     `--min-tokens N`, `--min-lines N`,
     `--mode syntax|semantic|near` (comma-list/repeatable; omitted = `syntax,semantic`),
-    `--threshold T` (only when `near` is enabled),
     `--exclude <glob>` (gitignore-syntax; `.gitignore` is respected automatically,
     even outside a git repo).
   - review: `--show diff|proposal|hotspots` (repeatable/comma-list) — `diff` shows each

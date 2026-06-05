@@ -129,12 +129,14 @@ enum Cmd {
         config: Option<PathBuf>,
         /// Detection channels to run. Omit for `syntax,semantic`. If present, this
         /// replaces the default; pass a comma-list or repeat it, e.g.
-        /// `--mode syntax,near` or `--mode syntax --mode semantic`.
+        /// `--mode syntax,near` or `--mode syntax --mode semantic`. The `near` channel
+        /// takes an optional acceptance threshold inline: `--mode near:0.8` (default 0.70).
         #[arg(
             long,
             value_delimiter = ',',
             num_args = 1,
             action = clap::ArgAction::Append,
+            value_parser = parse_scan_mode,
             value_name = "MODE"
         )]
         mode: Vec<ScanMode>,
@@ -166,10 +168,6 @@ enum Cmd {
         /// and exit, instead of reporting.
         #[arg(long, requires = "baseline")]
         write_baseline: bool,
-        /// Acceptance threshold in `[0,1]` for the `near` channel. Rejected unless
-        /// --mode includes `near`; default with `near` is 0.70.
-        #[arg(long)]
-        threshold: Option<f64>,
         /// Output format.
         #[arg(long, default_value = "human")]
         format: ReportFormat,
@@ -324,15 +322,55 @@ enum ReportFormat {
     Sarif,
 }
 
-#[derive(Clone, Copy, PartialEq, clap::ValueEnum, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
+/// One `--mode` channel. `near` carries its own acceptance threshold (`near:0.8`),
+/// so there is no separate `--threshold` flag to mis-combine.
+#[derive(Clone, Copy, PartialEq, serde::Deserialize)]
+#[serde(try_from = "String")]
 enum ScanMode {
     /// CPD-style syntax copy-paste runs (the Type-1/2 floor).
     Syntax,
     /// Exact value-fingerprint Type-4 semantic clones.
     Semantic,
-    /// Fuzzy Type-3 near-duplicate candidates.
-    Near,
+    /// Fuzzy Type-3 near-duplicate candidates, with an optional acceptance threshold.
+    Near(Option<f64>),
+}
+
+impl std::str::FromStr for ScanMode {
+    type Err = String;
+    fn from_str(s: &str) -> std::result::Result<Self, String> {
+        let s = s.trim();
+        match s {
+            "syntax" => Ok(ScanMode::Syntax),
+            "semantic" => Ok(ScanMode::Semantic),
+            "near" => Ok(ScanMode::Near(None)),
+            _ => {
+                if let Some(t) = s.strip_prefix("near:") {
+                    let v: f64 = t
+                        .parse()
+                        .map_err(|_| format!("invalid near threshold in `{s}`"))?;
+                    if !(0.0..=1.0).contains(&v) {
+                        return Err(format!("near threshold must be in [0,1], got {v}"));
+                    }
+                    Ok(ScanMode::Near(Some(v)))
+                } else {
+                    Err(format!(
+                        "unknown mode `{s}` (expected syntax, semantic, near, or near:T)"
+                    ))
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<String> for ScanMode {
+    type Error = String;
+    fn try_from(s: String) -> std::result::Result<Self, String> {
+        s.parse()
+    }
+}
+
+fn parse_scan_mode(s: &str) -> std::result::Result<ScanMode, String> {
+    s.parse()
 }
 
 #[derive(Clone, Copy)]
@@ -340,6 +378,8 @@ struct ScanChannels {
     syntax: bool,
     semantic: bool,
     near: bool,
+    /// The `near:T` threshold, if one was given in the mode spec.
+    threshold: Option<f64>,
 }
 
 impl ScanChannels {
@@ -355,12 +395,18 @@ impl ScanChannels {
             syntax: false,
             semantic: false,
             near: false,
+            threshold: None,
         };
         for mode in selected {
             match mode {
                 ScanMode::Syntax => channels.syntax = true,
                 ScanMode::Semantic => channels.semantic = true,
-                ScanMode::Near => channels.near = true,
+                ScanMode::Near(t) => {
+                    channels.near = true;
+                    if t.is_some() {
+                        channels.threshold = t;
+                    }
+                }
             }
         }
         if !channels.syntax && !channels.semantic && !channels.near {
@@ -371,10 +417,6 @@ impl ScanChannels {
 
     fn structural(self) -> bool {
         self.semantic || self.near
-    }
-
-    fn uses_threshold(self) -> bool {
-        self.near
     }
 
     fn report_label(self, count: usize) -> &'static str {
@@ -1101,7 +1143,6 @@ fn run() -> Result<()> {
             baseline,
             ignore_file,
             write_baseline,
-            threshold,
             format,
             exclude,
             min_tokens,
@@ -1120,7 +1161,6 @@ fn run() -> Result<()> {
             baseline,
             ignore_file,
             write_baseline,
-            threshold,
             format,
             exclude,
             min_tokens,
@@ -2192,7 +2232,6 @@ struct ScanArgs {
     baseline: Option<PathBuf>,
     ignore_file: Option<PathBuf>,
     write_baseline: bool,
-    threshold: Option<f64>,
     format: ReportFormat,
     exclude: Vec<String>,
     min_tokens: Option<usize>,
@@ -2289,11 +2328,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
     let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
-    if !channels.uses_threshold() && (args.threshold.is_some() || cfg.threshold.is_some()) {
-        anyhow::bail!("--threshold is only valid when --mode includes near");
-    }
-    let threshold = if channels.uses_threshold() {
-        args.threshold.or(cfg.threshold).unwrap_or(0.70)
+    let threshold = if channels.near {
+        channels.threshold.unwrap_or(0.70)
     } else {
         1.0
     };
