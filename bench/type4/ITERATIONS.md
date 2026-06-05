@@ -4809,6 +4809,46 @@ positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
 
+## Fragment batch 9: exact non-overloadable index-assignment effects
+
+This batch opens a narrow assignment-effect fragment without introducing arbitrary
+live-out slices. A direct function-body statement, or a single statement inside an exact
+conditional branch, can become an exact `Block` fragment when it is
+`Assign(Index(receiver, key), value)` in C, Go, or Java. Those languages do not have
+receiver-overloaded index assignment at this syntax point, so the effect target and value
+are explicit in the existing value graph. JS/TS, Python, Ruby, and Rust index assignment
+remain outside exact fragments because proxies, `__setitem__`, `[]=`, or `IndexMut` can
+hide dynamic behavior behind the same surface shape.
+
+The three focused positives share one proof invariant: receiver, key, value, and any
+branch guard must all converge in the exact value fingerprint. Adjacent hard negatives
+cover a wrong assigned value, wrong index/key, wrong scalar factor, and overloadable
+receiver languages that must not enter the family.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-index-assign-1 | candidate extraction | allow exact C/Go/Java `Assign(Index(...), value)` fragments | 3 focused index-assignment families reported as `Block` units |
+| fragment-index-assign-2 | soundness boundary | exclude overloadable JS/TS/Python/Ruby/Rust index assignment and keep the existing span/mutation/value gates | wrong value/index/factor and overloadable-language negatives excluded |
+| fragment-index-assign-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-index-assign-4 | real delta | selected JS/Python/TS scan unchanged; selected C/Go/Java scan sampled no obvious new index-assignment broad family | JS/Python/TS stayed at 66 families; C/Go/Java scan returned 940 families |
+| fragment-index-assign-5 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 18.2ms, candidates 2.5ms, score 0.2ms; 66 semantic families |
+| fragment-index-assign-6 | performance | scan `bench/repos/curl bench/repos/gin bench/repos/guava` with `NOSE_TIME=1` | 4357 files; normalize+extract 163.8ms, candidates 35.2ms, score 0.7ms; 940 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloaded_languages
+3 exact C/Go/Java index-assignment fragment families found; wrong value/index/factor and overloadable-language negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```
+
 ## Fragment batch 8: exact nested conditional branches
 
 This batch keeps fragment expansion on the same proof axis: a branch block may contain

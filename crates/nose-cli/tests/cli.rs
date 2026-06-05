@@ -1115,6 +1115,149 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloaded_languages() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_index_assign_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "index_square_a.c",
+            "void write_square_left(int *xs, int i, int v) {\n  xs[i] = (v + 1) * (v + 1);\n  audit(xs);\n}\n",
+        ),
+        (
+            "index_square_b.c",
+            "void write_square_right(int *ys, int j, int w) {\n  ys[j] = (1 + w) * (1 + w);\n  trace(ys);\n}\n",
+        ),
+        (
+            "index_square_neg.c",
+            "void write_square_wrong(int *zs, int k, int x) {\n  zs[k] = (x + 2) * (x + 2);\n  audit(zs);\n}\n",
+        ),
+        (
+            "index_sum_a.go",
+            "package p\nfunc writeSumLeft(xs []int, i int, a int, b int) {\n  if i >= 0 {\n    xs[i] = a + b\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "index_sum_b.go",
+            "package p\nfunc writeSumRight(ys []int, j int, c int, d int) {\n  if 0 <= j {\n    ys[j] = d + c\n  }\n  trace(ys)\n}\n",
+        ),
+        (
+            "index_sum_neg.go",
+            "package p\nfunc writeSumWrong(zs []int, k int, c int, d int) {\n  if 0 <= k {\n    zs[k + 1] = d + c\n  }\n  audit(zs)\n}\n",
+        ),
+        (
+            "IndexProductA.java",
+            "class IndexProductA {\n  void f(int[] xs, int i, int a, int b) {\n    if (i >= 0) {\n      xs[i] = (a + b) * 2;\n    }\n    audit(xs);\n  }\n}\n",
+        ),
+        (
+            "IndexProductB.java",
+            "class IndexProductB {\n  void f(int[] ys, int j, int c, int d) {\n    if (0 <= j) {\n      ys[j] = 2 * (d + c);\n    }\n    trace(ys);\n  }\n}\n",
+        ),
+        (
+            "IndexProductNeg.java",
+            "class IndexProductNeg {\n  void f(int[] zs, int k, int c, int d) {\n    if (0 <= k) {\n      zs[k] = 3 * (d + c);\n    }\n    audit(zs);\n  }\n}\n",
+        ),
+        (
+            "js_index_assign_a.js",
+            "function jsIndexLeft(xs, i, v) {\n  xs[i] = v + 1;\n  audit(xs);\n}\n",
+        ),
+        (
+            "js_index_assign_b.js",
+            "function jsIndexRight(ys, j, w) {\n  ys[j] = w + 1;\n  trace(ys);\n}\n",
+        ),
+        (
+            "py_index_assign_a.py",
+            "def py_index_left(xs, i, v):\n    xs[i] = v + 1\n    audit(xs)\n",
+        ),
+        (
+            "py_index_assign_b.py",
+            "def py_index_right(ys, j, w):\n    ys[j] = w + 1\n    trace(ys)\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "100",
+        "--min-tokens",
+        "100",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_assignment_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let locations = family["locations"].as_array().expect("locations");
+                let files: Vec<&str> = locations
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+                    && locations.iter().all(|loc| loc["kind"] == "Block")
+                    && files.iter().all(|file| !file.ends_with(negative))
+            })
+            .unwrap_or_else(|| {
+                panic!("missing exact index-assignment fragment family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations
+                .iter()
+                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
+                    || loc["file"].as_str().unwrap_or("").ends_with(right))
+                .all(|loc| loc["start_line"] == loc["end_line"]
+                    || loc["end_line"].as_u64().unwrap_or(0)
+                        <= loc["start_line"].as_u64().unwrap_or(0) + 3),
+            "index-assignment fragments should stay tightly scoped: {family:?}"
+        );
+    };
+
+    let assert_no_pair = |left: &str, right: &str| {
+        let has_pair = families.iter().any(|family| {
+            let files: Vec<&str> = family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .filter_map(|loc| loc["file"].as_str())
+                .collect();
+            files.iter().any(|file| file.ends_with(left))
+                && files.iter().any(|file| file.ends_with(right))
+        });
+        assert!(
+            !has_pair,
+            "overloadable index-assignment pair must stay outside exact fragments: {left}/{right}: {out}"
+        );
+    };
+
+    assert_assignment_family("index_square_a.c", "index_square_b.c", "index_square_neg.c");
+    assert_assignment_family("index_sum_a.go", "index_sum_b.go", "index_sum_neg.go");
+    assert_assignment_family(
+        "IndexProductA.java",
+        "IndexProductB.java",
+        "IndexProductNeg.java",
+    );
+    assert_no_pair("js_index_assign_a.js", "js_index_assign_b.js");
+    assert_no_pair("py_index_assign_a.py", "py_index_assign_b.py");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
     let dir =
         std::env::temp_dir().join(format!("nose_exact_throw_fragments_{}", std::process::id()));

@@ -135,9 +135,10 @@ By default, sub-function units include bounded control-flow blocks and exact-saf
 single-statement fragments such as return/throw expressions and simple
 conditional return/throw/effect guards, including bare returns, explicit empty no-op
 branches, and nested branches whose only non-empty statement is another exact conditional.
-Those fragments are reported only when the whole value subtree stays inside the displayed
-source span, the fragment is `exact_safe`, and the value fingerprint is large enough for
-the exact semantic gate.
+They also include C/Go/Java index-assignment effects where index assignment is not
+receiver-overloadable. Those fragments are reported only when the whole value subtree
+stays inside the displayed source span, the fragment is `exact_safe`, and the value
+fingerprint is large enough for the exact semantic gate.
 
 ## Integrating with nose
 

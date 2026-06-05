@@ -1845,6 +1845,7 @@ fn exact_statement_fragment_root(
         NodeKind::Throw => {
             kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
         }
+        NodeKind::Assign => exact_index_assignment_fragment_root(il, node),
         NodeKind::ExprStmt => exact_expr_statement_fragment_root(il, node),
         NodeKind::If => exact_conditional_fragment_root(il, node),
         _ => false,
@@ -1896,10 +1897,19 @@ fn empty_or_single_direct_exact_statement_block(il: &Il, node: NodeId) -> Option
     match il.kind(kids[0]) {
         NodeKind::Return if il.children(kids[0]).len() <= 1 => Some(true),
         NodeKind::Throw if il.children(kids[0]).len() == 1 => Some(true),
+        NodeKind::Assign if exact_index_assignment_fragment_root(il, kids[0]) => Some(true),
         NodeKind::ExprStmt if exact_expr_statement_fragment_root(il, kids[0]) => Some(true),
         NodeKind::If if exact_conditional_fragment_root(il, kids[0]) => Some(true),
         _ => None,
     }
+}
+
+fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
+    if !matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) {
+        return false;
+    }
+    let kids = il.children(node);
+    kids.len() == 2 && il.kind(kids[0]) == NodeKind::Index
 }
 
 fn top_level_statement_fragment_context_safe(

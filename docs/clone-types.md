@@ -84,8 +84,9 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   blocks and exact-safe single-statement fragments (return/throw expressions and simple
   conditional return/throw/effect guards, including bare returns, explicit empty no-op
   branches, and nested branches whose only non-empty statement is another exact
-  conditional), not arbitrary statement windows with unmodeled free-variable, live-out, or
-  effect boundaries.
+  conditional, plus non-overloadable C/Go/Java index-assignment effects), not arbitrary
+  statement windows with unmodeled free-variable, live-out, receiver-overload, or effect
+  boundaries.
 
 ## Scan modes, and cross-language
 
