@@ -213,7 +213,9 @@ fn node_lit_ty(il: &Il, n: NodeId) -> Option<Ty> {
         return None;
     }
     match il.node(n).payload {
-        Payload::LitInt(_) => Some(Ty::Num),
+        // A retained float (`LitFloat`) is as numeric as a `LitInt`; omitting it left
+        // `x + 3.14` unable to type `x`.
+        Payload::LitInt(_) | Payload::LitFloat(_) => Some(Ty::Num),
         Payload::LitStr(_) => Some(Ty::Str),
         Payload::LitBool(_) => Some(Ty::Bool),
         Payload::Lit(nose_il::LitClass::Int) | Payload::Lit(nose_il::LitClass::Float) => {
@@ -222,5 +224,45 @@ fn node_lit_ty(il: &Il, n: NodeId) -> Option<Ty> {
         Payload::Lit(nose_il::LitClass::Str) => Some(Ty::Str),
         Payload::Lit(nose_il::LitClass::Bool) => Some(Ty::Bool),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, Span};
+
+    /// Infer the parameter types of `fn(x) { return x + <lit> }`.
+    fn infer_with_added_literal(lit: Payload) -> Vec<Ty> {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let varx = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let lit = b.add(NodeKind::Lit, lit, sp, &[]);
+        let add = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp, &[varx, lit]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[add]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        infer_param_types(&il, func)
+    }
+
+    #[test]
+    fn float_literal_sibling_of_add_types_param_as_num() {
+        // `x + 3.14` (a retained-float `LitFloat`) must type `x` as `Num`, exactly like
+        // `x + 3` (`LitInt`). `node_lit_ty` previously omitted `LitFloat`, leaving the
+        // sibling `Unknown`.
+        assert_eq!(infer_with_added_literal(Payload::LitInt(3)), vec![Ty::Num]);
+        assert_eq!(
+            infer_with_added_literal(Payload::LitFloat(0xBEEF)),
+            vec![Ty::Num]
+        );
     }
 }

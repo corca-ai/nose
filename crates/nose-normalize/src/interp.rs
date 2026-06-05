@@ -897,7 +897,11 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
                     Int(x.wrapping_rem(*y))
                 }
             }
-            Op::Pow => Int(x.wrapping_pow((*y).max(0) as u32)),
+            // A negative exponent has no i64 value (it is fractional), so it errs like
+            // Div/Mod by zero rather than being clamped to `0` — clamping made `b ** -n`
+            // collapse onto `b ** 0 == 1` and could license a false merge.
+            Op::Pow if *y < 0 => Value::Err,
+            Op::Pow => Int(x.wrapping_pow(*y as u32)),
             Op::Eq => Bool(x == y),
             Op::Ne => Bool(x != y),
             Op::Lt => Bool(x < y),
@@ -986,5 +990,36 @@ mod tests {
         // unknown, so `len(str)` must be `Err` (matching the documented contract and the
         // sibling `IsEmpty`), not a hardcoded `Int(1)`.
         assert_eq!(run_len_of_string(), Value::Err);
+    }
+
+    /// Build `fn() { return base ** exp }` over integer literals and run it.
+    fn run_pow(base: i64, exp: i64) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let x = b.add(NodeKind::Lit, Payload::LitInt(base), sp, &[]);
+        let y = b.add(NodeKind::Lit, Payload::LitInt(exp), sp, &[]);
+        let pow = b.add(NodeKind::BinOp, Payload::Op(Op::Pow), sp, &[x, y]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[pow]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn pow_negative_exponent_is_err_not_clamped_to_zero() {
+        // The oracle models only i64; a negative exponent has no integer value, so it must
+        // `Err` (like Div/Mod by zero) — NOT be silently clamped to `0`, which made
+        // `2 ** -1` indistinguishable from `2 ** 0` and could license a false merge.
+        assert_eq!(run_pow(2, 3), Value::Int(8));
+        assert_eq!(run_pow(2, 0), Value::Int(1));
+        assert_eq!(run_pow(2, -1), Value::Err);
     }
 }
