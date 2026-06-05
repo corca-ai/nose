@@ -734,11 +734,19 @@ impl<'a> Builder<'a> {
         if !is_standard_factory {
             return None;
         }
-        if method == stable_symbol_hash("asList")
-            && args.len() == 2
-            && self.is_array_param_value(args[1])
-        {
-            return Some(self.mk(ValOp::ArrayParam, vec![args[1]]));
+        // A single argument to a varargs collection factory (`Arrays.asList(x)`,
+        // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it is spread
+        // into the element list, but when `x` is a single object it is the sole
+        // element. The two readings have different membership semantics
+        // (`value` in the array elements vs `value.equals(x)`), so a single argument
+        // can only be canonicalized when the receiver is a proven array. Otherwise we
+        // must refuse, or an array-typed field and a list-typed field of the same name
+        // would false-merge. Multi-argument factories are always a literal element list.
+        if args.len() == 2 {
+            if method == stable_symbol_hash("asList") && self.is_array_param_value(args[1]) {
+                return Some(self.mk(ValOp::ArrayParam, vec![args[1]]));
+            }
+            return None;
         }
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
     }

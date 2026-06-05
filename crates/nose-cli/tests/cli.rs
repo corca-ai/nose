@@ -6415,6 +6415,54 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
 }
 
 #[test]
+fn scan_mode_semantic_keeps_aslist_single_unproven_receiver_distinct() {
+    // `Arrays.asList(x).contains(value)` with a single argument is ambiguous: when `x`
+    // is an array it is spread into the element list (membership in the elements), but
+    // when `x` is a single object it is the sole element (`value.equals(x)`). Without an
+    // array proof these two readings must not converge, otherwise an array-typed field
+    // and a list-typed field of the same name would false-merge.
+    let dir = std::env::temp_dir().join(format!("nose_aslist_unproven_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("array_field.java"),
+        "import java.util.Arrays;\n\nclass ArrayField { String[] items; boolean f(String value) { return Arrays.asList(items).contains(value); } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("list_field.java"),
+        "import java.util.Arrays;\nimport java.util.List;\n\nclass ListField { List<String> items; boolean f(String value) { return Arrays.asList(items).contains(value); } }\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
+    for family in semantic_families {
+        let family_text = family.to_string();
+        assert!(
+            !(family_text.contains("array_field.java") && family_text.contains("list_field.java")),
+            "single-argument asList over an unproven receiver must not merge array and list provenance: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_handles_shadowed_callback_collection_name() {
     let dir = std::env::temp_dir().join(format!(
         "nose_shadowed_callback_collection_{}",

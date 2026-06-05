@@ -6641,3 +6641,87 @@ GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
 positive recall: 626/626
 hard-negative false merges: 0/1233
 ```
+
+## Real-corpus Type-4 frontier audit: the four unsupported leads, batch 2026-06-06
+
+This batch worked the four `unsupported` items in `real_frontier.v1.json` to closure or to
+a re-verified, evidence-backed `unsupported` record (issue #32). Each lead was first scoped
+with minimal reproductions of its recorded snippets plus its documented hard-negative
+siblings, then confirmed against the actual pinned `bench/repos` spans (the corpus is
+gitignored and so absent from a fresh worktree, but present in the main checkout; the
+worktree binary was pointed at it). The guiding rule was the operating rule: soundness wins
+over recall, and unsupported real leads are recorded as unsupported rather than forced into
+the detector.
+
+The decisive outcome was on the second lead: auditing it surfaced a real hard-negative
+false merge, so it became a soundness fix rather than a recall add.
+
+Real-corpus confirmation of each lead:
+
+- **antlr4** `Arrays.asList(skipTargets).contains(targetName)` and the three other real
+  single-argument `Arrays.asList(<ident>).contains` sites (`h2database` `types`, `jedis`
+  `validElements`, `netty` `packageNames`) all have distinct receiver names, so the latent
+  array-vs-list false merge does not currently fire across them. A full-corpus semantic scan
+  is byte-identical before and after the fix (7403 families, zero family-set difference), so
+  the change is a soundness hardening with no behavior change on this corpus.
+- **junit5** `ParameterizedTestDemo.java` semantic scan reports four unrelated test-shape
+  families; the two EnumSet predicate methods are not among them (no false merge).
+- **junit5** `HttpServerExtension.java` + `HttpTests.java`: `--mode semantic` 0 families,
+  `--mode syntax,semantic` 1 family (the real duplicate), matching the reproduction exactly.
+- **sinatra/liquid/rack** custom-receiver `fetch` spans do not merge across files; the only
+  family in `cookies_spec.rb` is at unrelated lines, not the `cookies.fetch('foo') { 'bar' }`
+  span.
+
+- **EnumSet.of membership (junit5)** — stays unsupported. An order-insensitive
+  `EnumSet.of(...)` proven-collection canon (alongside `Set.of`/`List.of`) is sound but
+  inert: its elements are always enum constants lowered as `Field(CONST, Var(Type))`, which
+  are not `exact_safe`, so even `Set.of(ChronoUnit.DAYS, ...).contains(unit)` reports zero
+  semantic families. Making `Type.CONST` field chains `exact_safe` is unsound without
+  import/type resolution (same-named distinct enums would false-merge). The real junit5
+  method pair also diverges on a `HALF_DAYS` exclusion and is not a true clone.
+- **Arrays.asList array-param membership (antlr4)** — soundness fix. A single-argument
+  varargs factory `Arrays.asList(x)`/`List.of(x)`/`Set.of(x)` was canonicalized to a
+  one-element literal collection `{x}` for any unproven receiver, so an array-typed field
+  and a list-typed field of the same name false-merged even though `value in array elements`
+  and `value.equals(list)` differ. `proven_java_collection_factory_value` now canonicalizes
+  a single argument only when the receiver is a proven array; multi-argument factories (the
+  proven literal case) are unchanged. The array-FIELD recall lead itself stays unsupported
+  (one corpus span, no clone pair).
+- **Java class-literal equals (junit5)** — stays unsupported. The two `supportsParameter`
+  spans are byte-identical, so the duplicate is a Type-1/Type-2 clone already reported by
+  `--mode syntax,semantic`; semantic mode correctly abstains on the opaque
+  `parameterContext.getParameter().getType()` reflection chain (not `exact_safe`). Admitting
+  it would merge on syntactic identity of an opaque chain, which the gate prevents by design.
+- **Ruby fetch-block custom receiver (sinatra/liquid/rack/rubocop)** — stays unsupported.
+  The literal-Hash batch is sound and intact (`{...}.fetch(key) { 0 }` converges with
+  `{...}.fetch(key, 0)`), and all five hard-negative classes stay distinct (different
+  fallback, block parameter, `raise`, and the custom receivers `Rails.cache`/`cookies`). A
+  function-local immutable Hash binding receiver is recorded as a sound deferred lead.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| frontier-audit-1 | EnumSet.of lead | reproduce membership; test an EnumSet.of canon and the enum-constant `exact_safe` boundary | EnumSet.of canon inert; `Set.of(enumConst, ...)` yields 0 families; stays unsupported, record strengthened |
+| frontier-audit-2 | asList lead | reproduce array-field vs list-field membership and probe for a false merge | confirmed false merge: `asList(items)` over an array field and a list field of the same name merged |
+| frontier-audit-3 | asList soundness fix | refuse single-argument `asList`/`of` over an unproven receiver; add CLI regression test | false merge removed; array-param pair and multi-literal factories still converge |
+| frontier-audit-4 | class-literal lead | reproduce `supportsParameter`; compare semantic vs syntax,semantic | semantic 0 families (sound abstention); syntax,semantic reports the real duplicate; stays unsupported |
+| frontier-audit-5 | ruby fetch lead | reproduce literal-Hash convergence and all five hard-negative classes | literal converges; `{ 9 }`, `{ \|m\| }`, `{ raise }`, `Rails.cache`, `cookies` all distinct; stays unsupported |
+| frontier-audit-6 | real-corpus delta | full-corpus semantic scan before vs after the asList fix; confirm each lead on its real span | 7403 vs 7403 families, identical family sets; all four leads confirmed on real spans |
+| frontier-audit-7 | release gates | run full suites, focused/axis/all-cross core gates, clippy, and NOSE_TIME | all green (see below) |
+
+Gates:
+
+```text
+cargo test -p nose-cli (cli 107, incl. scan_mode_semantic_keeps_aslist_single_unproven_receiver_distinct) pass
+cargo test -p nose-cli --test equivalence: 183 pass
+cargo clippy --release --all-targets: clean
+literal_collection_membership focused: positive misses 0/20, hard-negative false merges 0/70
+literal_map_default_lookup focused:    positive misses 0/8,  hard-negative false merges 0/14
+all-cross core: positive recall 634/634, hard-negative false merges 0/1246, Raw nodes 0 (0.000%)
+real-corpus delta (bench/repos, --mode semantic): baseline 7403 families, candidate 7403 families,
+  family-set difference 0 (no real family lost or gained by the asList fix)
+NOSE_TIME (13.5k-file generated corpus): lower 179ms, normalize+extract 28.9ms, candidates 15.8ms
+```
+
+After this batch `real_frontier.v1.json` records 18 items: 14 closed, 1 soundness-fix batch
+(Arrays.asList single-argument), and 3 re-verified unsupported leads with strengthened
+evidence and one recorded deferred lead. Hard-negative false merges stay at 0.
