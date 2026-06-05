@@ -306,6 +306,15 @@ fn refactor_discount(all_class: bool, mean_sem: f64, all_generated: bool) -> f64
     q
 }
 
+/// The distinct keys of `locs` under `key`, sorted. Collect-then-`sort_unstable`+`dedup` is
+/// the family-stat idiom for counting distinct files / modules / languages.
+fn distinct_by<'a>(locs: &'a [Loc], key: impl Fn(&'a Loc) -> &'a str) -> Vec<&'a str> {
+    let mut v: Vec<&'a str> = locs.iter().map(key).collect();
+    v.sort_unstable();
+    v.dedup();
+    v
+}
+
 fn family_of(group: &Group) -> RefactorFamily {
     // Collapse co-located units to one refactoring site. Block extraction yields a
     // function unit *and* inner blocks that overlap it, and near-identical spans can
@@ -339,15 +348,9 @@ fn family_of(group: &Group) -> RefactorFamily {
     };
     let dup_lines = mean_lines * (members.saturating_sub(1) as u32);
 
-    let mut files: Vec<&str> = locs.iter().map(|l| l.file.as_str()).collect();
-    files.sort_unstable();
-    files.dedup();
-    let mut modules: Vec<&str> = locs.iter().map(|l| module_of(&l.file)).collect();
-    modules.sort_unstable();
-    modules.dedup();
-    let mut langs: Vec<&str> = locs.iter().map(|l| l.lang.as_str()).collect();
-    langs.sort_unstable();
-    langs.dedup();
+    let files = distinct_by(&locs, |l| l.file.as_str());
+    let modules = distinct_by(&locs, |l| module_of(&l.file));
+    let langs = distinct_by(&locs, |l| l.lang.as_str());
 
     let mean_sem = if members > 0 {
         locs.iter().map(|l| l.sem as f64).sum::<f64>() / members as f64
