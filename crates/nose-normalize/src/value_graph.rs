@@ -2925,7 +2925,29 @@ impl<'a> Builder<'a> {
         let rhs = self.eval(kids[1], env);
         match op {
             Op::Div | Op::Mod => self.int_const_eq(rhs, 0),
+            Op::Pow => self
+                .static_int_expr(kids[1])
+                .is_some_and(|exp| !(0..=u32::MAX as i64).contains(&exp)),
             _ => false,
+        }
+    }
+
+    fn static_int_expr(&self, expr: NodeId) -> Option<i64> {
+        let node = self.il.node(expr);
+        match (node.kind, node.payload) {
+            (NodeKind::Lit, Payload::LitInt(value)) => Some(value),
+            (NodeKind::UnOp, Payload::Op(Op::Pos)) => self
+                .il
+                .children(expr)
+                .first()
+                .and_then(|&child| self.static_int_expr(child)),
+            (NodeKind::UnOp, Payload::Op(Op::Neg)) => self
+                .il
+                .children(expr)
+                .first()
+                .and_then(|&child| self.static_int_expr(child))
+                .and_then(i64::checked_neg),
+            _ => None,
         }
     }
 
