@@ -417,6 +417,13 @@ impl TryFrom<String> for ScanMode {
     }
 }
 
+/// Borrow a slice of owned `PathBuf`s as `&Path` references — the form the detection entry
+/// points take. Used by every scan/refactor subcommand that holds its input paths as a
+/// `Vec<PathBuf>`.
+fn paths_as_refs(paths: &[PathBuf]) -> Vec<&std::path::Path> {
+    paths.iter().map(|p| p.as_path()).collect()
+}
+
 fn parse_scan_mode(s: &str) -> std::result::Result<ScanMode, String> {
     s.parse()
 }
@@ -1433,7 +1440,7 @@ fn cmd_behavioral_gate(
     use std::collections::{HashMap, HashSet};
     use std::hash::{Hash, Hasher};
 
-    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
     let opts = NormalizeOptions::default();
@@ -1710,7 +1717,7 @@ fn cmd_verify(
     use std::collections::HashMap;
     use std::hash::{Hash, Hasher};
 
-    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
     let opts = NormalizeOptions {
@@ -2150,7 +2157,7 @@ fn cmd_features(
     no_cfg_norm: bool,
     no_blocks: bool,
 ) -> Result<()> {
-    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
     let opts = nose_detect::DetectOptions {
@@ -2251,7 +2258,7 @@ fn cmd_eval(
 }
 
 fn cmd_stats(paths: Vec<PathBuf>, top: usize, json: bool) -> Result<()> {
-    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
     let report = nose_frontend::coverage(&corpus, top);
@@ -2345,7 +2352,7 @@ pub(crate) fn detect_families(
     min_tokens: usize,
     min_lines: u32,
 ) -> Result<Vec<nose_detect::RefactorFamily>> {
-    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(paths);
     let channels = ScanChannels::resolve(mode, cfg_mode)?;
     let threshold = if channels.near {
         channels.threshold.unwrap_or(0.70)
@@ -2443,7 +2450,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         );
     }
 
-    let refs: Vec<&std::path::Path> = args.paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&args.paths);
 
     // Resolve each setting: CLI flag wins, else config file, else built-in default.
     let cfg = config::load_scan(args.config.as_deref())?;
@@ -3323,7 +3330,7 @@ struct DetectArgs {
 }
 
 fn cmd_detect(args: DetectArgs) -> Result<()> {
-    let refs: Vec<&std::path::Path> = args.paths.iter().map(|p| p.as_path()).collect();
+    let refs = paths_as_refs(&args.paths);
     let corpus = time_lower(|| nose_frontend::lower_corpus_many(&refs));
     warn_if_empty(&corpus, &args.paths);
 
