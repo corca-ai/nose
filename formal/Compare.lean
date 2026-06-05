@@ -45,4 +45,30 @@ theorem not_lt_eq_ge (a b : Int) : (!lt a b) = ge a b := by
 theorem not_eq_eq_ne (a b : Int) : (!decide (a = b)) = decide (a ≠ b) := by
   simp
 
+/-- The Bool-valued (in)equality, mirroring `interp.rs`. -/
+def eq (a b : Int) : Bool := decide (a = b)
+def ne (a b : Int) : Bool := decide (a ≠ b)
+
+/-- LATTICE CANON: `(a ≤ b) ∧ (a ≠ b) ≡ a < b` on a total order — the
+    `lattice_le_ne_to_lt` value-graph rule. Sound for any total order; here on `Int`. -/
+theorem le_and_ne_eq_lt (a b : Int) : (le a b && ne a b) = lt a b := by
+  unfold le ne lt
+  by_cases h : a < b
+  · rw [decide_eq_true (by omega : a ≤ b), decide_eq_true (by omega : a ≠ b),
+        decide_eq_true h]; rfl
+  · rw [decide_eq_false h]
+    by_cases h2 : a ≤ b
+    · rw [decide_eq_true h2, decide_eq_false (by omega : ¬ a ≠ b)]; rfl
+    · rw [decide_eq_false h2]; rfl
+
+/-- LATTICE CANON (dual): `(a < b) ∨ (a = b) ≡ a ≤ b` — the `lattice_lt_eq_to_le` rule. -/
+theorem lt_or_eq_eq_le (a b : Int) : (lt a b || eq a b) = le a b := by
+  unfold lt eq le
+  by_cases h : a ≤ b
+  · by_cases h2 : a < b
+    · rw [decide_eq_true h2, decide_eq_true h]; rfl
+    · rw [decide_eq_false h2, decide_eq_true (by omega : a = b), decide_eq_true h]; rfl
+  · rw [decide_eq_false (by omega : ¬ a < b), decide_eq_false (by omega : ¬ a = b),
+        decide_eq_false h]; rfl
+
 end NoseCompare
