@@ -2963,6 +2963,17 @@ impl<'a> Builder<'a> {
                 .first()
                 .is_some_and(|&operand| self.expr_is_static_runtime_err(operand, env));
         }
+        if self.il.kind(expr) == NodeKind::Index {
+            let kids = self.il.children(expr).to_vec();
+            if kids.len() != 2 {
+                return false;
+            }
+            if self.expr_is_static_runtime_err(kids[0], env) {
+                return true;
+            }
+            return crate::is_pure(self.il, kids[0])
+                && self.expr_is_static_runtime_err(kids[1], env);
+        }
         if self.il.kind(expr) != NodeKind::BinOp {
             return false;
         }

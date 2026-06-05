@@ -1966,6 +1966,32 @@ fn value_graph_runs_try_handler_after_static_unary_operand_err() {
 }
 
 #[test]
+fn value_graph_runs_try_handler_after_static_index_base_err() {
+    let i = Interner::new();
+    let try_err =
+        "def f():\n    try:\n        return (1 / 0)[print(1)]\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, try_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a statically visible index base error should run the simple catch handler"
+    );
+}
+
+#[test]
+fn value_graph_keeps_try_index_base_effects_before_static_index_err() {
+    let i = Interner::new();
+    let effect_then_err =
+        "def f():\n    try:\n        return print(1)[1 / 0]\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_ne!(
+        value_fp(&i, effect_then_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "observable base effects before an index error must not be discarded"
+    );
+}
+
+#[test]
 fn value_graph_runs_try_handler_after_static_seq_item_err() {
     let i = Interner::new();
     let try_err =
