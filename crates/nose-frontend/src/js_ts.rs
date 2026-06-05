@@ -548,10 +548,8 @@ fn lower_stmt_as_block(lo: &mut Lowering, node: TsNode) -> NodeId {
         lower_block(lo, node)
     } else {
         let span = lo.span(node);
-        match lower_stmt(lo, node, false) {
-            Some(s) => lo.add(NodeKind::Block, Payload::None, span, &[s]),
-            None => lo.empty_block(span),
-        }
+        let s = lower_stmt(lo, node, false);
+        lo.block_of_stmt(span, s)
     }
 }
 

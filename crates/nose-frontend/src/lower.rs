@@ -106,6 +106,17 @@ impl<'a> Lowering<'a> {
         self.b.add(NodeKind::Block, Payload::None, span, &[])
     }
 
+    /// Wrap a single lowered statement in a one-child `Block`, or yield an empty block when
+    /// the statement lowered to nothing. This is the shared tail of every frontend's
+    /// `stmt_as_block` helper (which differ only in their language's block-node kind and
+    /// `lower_stmt`); centralizing it keeps the absent-statement fallback uniform.
+    pub(crate) fn block_of_stmt(&mut self, span: Span, stmt: Option<NodeId>) -> NodeId {
+        match stmt {
+            Some(s) => self.b.add(NodeKind::Block, Payload::None, span, &[s]),
+            None => self.empty_block(span),
+        }
+    }
+
     /// A `Var` carrying the raw identifier name (canonicalized later).
     pub(crate) fn var(&mut self, name: &str, span: Span) -> NodeId {
         let sym = self.sym(name);
