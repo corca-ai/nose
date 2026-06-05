@@ -2976,6 +2976,12 @@ impl<'a> Builder<'a> {
                     || kids
                         .get(2)
                         .is_some_and(|&init| self.expr_is_static_runtime_err(init, env))
+                    || (kids
+                        .get(1)
+                        .is_some_and(|&coll| self.expr_is_static_non_empty_seq(coll))
+                        && kids.first().is_some_and(|&lambda| {
+                            self.lambda_body_is_static_runtime_err(lambda, env)
+                        }))
             }
             Payload::Builtin(_) => self.call_args_have_static_runtime_err(kids, env),
             _ => self.call_args_have_static_runtime_err(kids.into_iter().skip(1), env),

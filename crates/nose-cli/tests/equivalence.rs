@@ -1965,6 +1965,32 @@ fn value_graph_skips_try_handler_for_empty_static_hof_lambda_err() {
 }
 
 #[test]
+fn value_graph_runs_try_handler_after_static_reduce_lambda_err() {
+    let i = Interner::new();
+    let try_err =
+        "def f():\n    try:\n        return reduce(lambda a, x: 1 / 0, [1], 0)\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, try_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a statically visible reduce lambda error should run the simple catch handler"
+    );
+}
+
+#[test]
+fn value_graph_skips_try_handler_for_empty_static_reduce_lambda_err() {
+    let i = Interner::new();
+    let empty_reduce =
+        "def f():\n    try:\n        return reduce(lambda a, x: 1 / 0, [], 0)\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_ne!(
+        value_fp(&i, empty_reduce, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a static reduce lambda error is not observable when a known-empty collection skips it"
+    );
+}
+
+#[test]
 fn value_graph_runs_try_handler_after_static_builtin_arg_err() {
     let i = Interner::new();
     let try_err =
