@@ -198,6 +198,10 @@ runs three selectable channels feeding one ranking:
     `--write-baseline`, `--fail-on any|new` (CI gate),
     `--cache-dir <dir>` (fast re-runs).
   - inline `// nose-ignore` marks a clone as intentionally kept.
+- `nose review [paths…] --base <ref>` — flag clones **changed inconsistently** in a diff
+  (a copy edited, its siblings missed — a likely un-propagated change). Needs a git repo;
+  shares `scan`'s detection flags, adds `--fail` as a CI gate. See
+  [docs/review.md](docs/review.md).
 - `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — inspect the IL.
 - `nose stats <paths…>` — IL lowering coverage per language.
 

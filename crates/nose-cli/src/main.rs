@@ -4,6 +4,7 @@ mod baseline;
 mod cache;
 mod config;
 mod ignores;
+mod review;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -185,6 +186,49 @@ enum Cmd {
         #[arg(long, hide = true)]
         min_lines: Option<u32>,
     },
+    /// Flag clone families changed inconsistently in a diff: a copy was edited but its
+    /// sibling clones were not — a likely un-propagated change. Needs a git repository.
+    /// e.g. `nose review --base origin/main` in CI, or `nose review` for local changes.
+    Review {
+        /// Paths to scan (recursively). Defaults to the current directory.
+        paths: Vec<PathBuf>,
+        /// Compare the working tree against this git ref (`origin/main` for a PR branch;
+        /// the default `HEAD` reviews uncommitted local changes).
+        #[arg(long, default_value = "HEAD")]
+        base: String,
+        /// Detection channels, like `scan`: `syntax`, `semantic`, `near[:T]` (comma-list
+        /// or repeatable). Omit for `syntax,semantic`.
+        #[arg(
+            long,
+            value_delimiter = ',',
+            num_args = 1,
+            action = clap::ArgAction::Append,
+            value_parser = parse_scan_mode,
+            value_name = "MODE"
+        )]
+        mode: Vec<ScanMode>,
+        /// Ignore units smaller than this size, in IL tokens. [default: 24]
+        #[arg(long)]
+        min_size: Option<usize>,
+        /// Advanced: also require this many source lines. [default: 5]
+        #[arg(long, hide = true)]
+        min_lines: Option<u32>,
+        /// Skip paths matching a gitignore-style glob (repeatable).
+        #[arg(long)]
+        exclude: Vec<String>,
+        /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
+        #[arg(long, value_name = "FILE")]
+        config: Option<PathBuf>,
+        /// Output format.
+        #[arg(long, default_value = "human")]
+        format: ReportFormat,
+        /// Show at most N findings (0 = all). [default: 30]
+        #[arg(long)]
+        top: Option<usize>,
+        /// Exit non-zero if any family changed inconsistently (CI gate).
+        #[arg(long)]
+        fail: bool,
+    },
     /// Recall-ceiling diagnostic: split gold recall across unit-extraction /
     /// candidate-generation stages. (Hidden — benchmark/research tooling.)
     #[command(hide = true)]
@@ -311,7 +355,7 @@ enum Format {
 }
 
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
-enum ReportFormat {
+pub(crate) enum ReportFormat {
     /// Ranked, human-readable terminal report.
     Human,
     /// Machine-readable JSON report with a versioned top-level schema.
@@ -653,7 +697,7 @@ impl CapabilitiesReport {
                 doctor_json: false,
             },
             commands: CapabilitiesCommands {
-                stable: vec!["capabilities", "il", "scan", "stats"],
+                stable: vec!["capabilities", "il", "review", "scan", "stats"],
             },
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
@@ -1165,6 +1209,36 @@ fn run() -> Result<()> {
             min_size,
             min_lines,
         }),
+        Cmd::Review {
+            paths,
+            base,
+            mode,
+            min_size,
+            min_lines,
+            exclude,
+            config,
+            format,
+            top,
+            fail,
+        } => {
+            let paths = if paths.is_empty() {
+                vec![PathBuf::from(".")]
+            } else {
+                paths
+            };
+            review::cmd_review(review::ReviewArgs {
+                paths,
+                base,
+                mode,
+                min_size,
+                min_lines,
+                exclude,
+                config,
+                format,
+                top,
+                fail,
+            })
+        }
         Cmd::Ceiling {
             gold,
             units,
@@ -2253,6 +2327,42 @@ impl nose_detect::Detector for ChannelDetector {
             .map(|d| d.score(a, b))
             .fold(0.0, f64::max)
     }
+}
+
+/// Lower + detect + rank clone families for a set of paths — the shared core of `scan`
+/// and `review` (no cache, baseline, or presentation post-processing).
+pub(crate) fn detect_families(
+    paths: &[PathBuf],
+    exclude: &[String],
+    mode: Vec<ScanMode>,
+    cfg_mode: Vec<ScanMode>,
+    min_tokens: usize,
+    min_lines: u32,
+) -> Result<Vec<nose_detect::RefactorFamily>> {
+    let refs: Vec<&std::path::Path> = paths.iter().map(|p| p.as_path()).collect();
+    let channels = ScanChannels::resolve(mode, cfg_mode)?;
+    let threshold = if channels.near {
+        channels.threshold.unwrap_or(0.70)
+    } else {
+        1.0
+    };
+    let opts = nose_detect::DetectOptions {
+        threshold,
+        min_lines,
+        min_tokens,
+        contiguous_min_tokens: min_tokens,
+        contiguous_min_lines: min_lines,
+        structural: channels.structural(),
+        contiguous: channels.syntax,
+        value_candidates: channels.semantic,
+        shape_candidates: channels.near,
+        shape_features: channels.near,
+        ..Default::default()
+    };
+    let detector = scan_detector(channels, &opts);
+    let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
+    let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
+    Ok(nose_detect::rank_families(&report))
 }
 
 fn scan_detector(

@@ -20,6 +20,7 @@ what you're here to do.
 You want to *run* nose on a codebase and act on what it finds.
 
 - [usage](usage.md) — the complete command and flag reference (`scan`, `stats`, `il`), the ranking keys, and the scan modes.
+- [review](review.md) — `nose review`: flag clones changed inconsistently in a diff (a copy fixed, its siblings missed) — a PR/CI check on top of git.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, thresholds, baselines, caching, inline `// nose-ignore`.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
 - [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.

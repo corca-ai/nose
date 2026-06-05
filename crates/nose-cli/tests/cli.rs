@@ -4870,7 +4870,7 @@ fn capabilities_command_emits_machine_readable_contract() {
 
     assert_eq!(
         json_array_strings(&json["commands"], "stable"),
-        vec!["capabilities", "il", "scan", "stats"]
+        vec!["capabilities", "il", "review", "scan", "stats"]
     );
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);
@@ -5198,6 +5198,124 @@ fn top_zero_shows_all_families() {
     assert!(
         all >= 6,
         "--top 0 should include every distinct family (expected >=6, got {all})"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Helper: run git in a fixture dir, asserting success.
+fn git_in(dir: &Path, args: &[&str]) {
+    let out = Command::new("git")
+        .current_dir(dir)
+        .args(args)
+        .output()
+        .expect("run git");
+    assert!(
+        out.status.success(),
+        "git {args:?} failed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
+
+/// Turn a fixture dir into a committed git repo.
+fn init_git_repo(dir: &Path) {
+    git_in(dir, &["init", "-q", "-b", "main"]);
+    git_in(dir, &["config", "user.email", "t@example.com"]);
+    git_in(dir, &["config", "user.name", "Test"]);
+    git_in(dir, &["add", "-A"]);
+    git_in(dir, &["commit", "-q", "-m", "init"]);
+}
+
+fn nose_review(dir: &Path, extra: &[&str]) -> std::process::Output {
+    let mut args = vec!["review", ".", "--min-size", "8"];
+    args.extend_from_slice(extra);
+    Command::new(bin())
+        .current_dir(dir)
+        .args(&args)
+        .output()
+        .expect("run nose review")
+}
+
+#[test]
+fn review_flags_a_clone_changed_in_one_copy_only() {
+    let dir = make_project("review_flag");
+    init_git_repo(&dir);
+
+    // Edit ONE copy of the clone family (a/f.py) — a fix not propagated to b/f.py.
+    let a = dir.join("a/f.py");
+    let src = fs::read_to_string(&a).unwrap();
+    fs::write(
+        &a,
+        src.replace(
+            "    return total",
+            "    total = total + 1\n    return total",
+        ),
+    )
+    .unwrap();
+
+    let out = nose_review(&dir, &[]);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        stdout.contains("changed inconsistently"),
+        "should flag the inconsistently-changed clone: {stdout}"
+    );
+    assert!(
+        stdout.contains("a/f.py"),
+        "names the changed copy: {stdout}"
+    );
+    assert!(
+        stdout.contains("b/f.py"),
+        "lists the un-updated sibling: {stdout}"
+    );
+
+    // --fail turns it into a non-zero CI gate.
+    let gated = nose_review(&dir, &["--fail"]);
+    assert!(
+        !gated.status.success(),
+        "--fail should exit non-zero when flagged"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn review_is_quiet_when_a_clone_changes_consistently() {
+    let dir = make_project("review_consistent");
+    init_git_repo(&dir);
+
+    // Apply the *same* edit to every copy — a consistent change, nothing to flag.
+    for sub in ["a", "b", "tests"] {
+        let f = dir.join(sub).join("f.py");
+        let src = fs::read_to_string(&f).unwrap();
+        fs::write(&f, src.replace("    return", "    pass\n    return")).unwrap();
+    }
+
+    let out = nose_review(&dir, &[]);
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    assert!(
+        !stdout.contains("not updated"),
+        "a consistent change must not be flagged: {stdout}"
+    );
+    assert!(
+        out.status.success(),
+        "no --fail trip on a consistent change"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn review_needs_a_git_repository() {
+    let dir = make_project("review_nogit");
+    let out = Command::new(bin())
+        .current_dir(&dir)
+        .args(["review", "."])
+        .output()
+        .expect("run nose review");
+    assert!(!out.status.success(), "review must fail outside a git repo");
+    assert!(
+        String::from_utf8_lossy(&out.stderr).contains("git repository"),
+        "explains the git requirement: {}",
+        String::from_utf8_lossy(&out.stderr)
     );
     let _ = fs::remove_dir_all(&dir);
 }

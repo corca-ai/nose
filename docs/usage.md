@@ -148,6 +148,9 @@ change to improve readability. The stable contract is documented in
 
 ## Other commands
 
+- `nose review [paths…] --base <ref>` — flag clones changed inconsistently in a diff (a
+  copy edited, its siblings missed). The git-aware companion to `scan`; full guide in
+  [review](review.md).
 - `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`
   for machine output). Use it to spot a language/construct that isn't lowering well; see
