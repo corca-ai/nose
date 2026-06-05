@@ -3076,9 +3076,19 @@ impl<'a> Builder<'a> {
                             self.lambda_body_is_static_runtime_err(lambda, env)
                         }))
             }
+            Payload::Builtin(Builtin::Range) => {
+                self.call_args_have_static_runtime_err(kids.iter().copied(), env)
+                    || self.range_has_static_zero_step(&kids)
+            }
             Payload::Builtin(_) => self.call_args_have_static_runtime_err(kids, env),
             _ => self.call_args_have_static_runtime_err(kids.into_iter().skip(1), env),
         }
+    }
+
+    fn range_has_static_zero_step(&self, kids: &[NodeId]) -> bool {
+        kids.len() == 3
+            && kids.iter().all(|&arg| crate::is_pure(self.il, arg))
+            && self.static_int_expr(kids[2]) == Some(0)
     }
 
     fn call_args_have_static_runtime_err<I>(

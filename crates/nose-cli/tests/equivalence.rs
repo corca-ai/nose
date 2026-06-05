@@ -2160,6 +2160,19 @@ fn value_graph_runs_try_handler_after_static_builtin_arg_err() {
 }
 
 #[test]
+fn value_graph_runs_try_handler_after_static_range_step_err() {
+    let i = Interner::new();
+    let try_err =
+        "def f():\n    try:\n        return range(1, 5, 0)\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, try_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a statically visible range zero-step error should run the simple catch handler"
+    );
+}
+
+#[test]
 fn value_graph_runs_try_handler_after_static_opaque_call_arg_err() {
     let i = Interner::new();
     let try_err =
