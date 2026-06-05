@@ -277,6 +277,8 @@ pub enum Builtin {
     IsNull,
     /// Non-null/some presence predicate over `(value)`.
     IsNotNull,
+    /// Ordered string join over `(separator, collection)`.
+    Join,
 }
 
 /// Kinds of canonical higher-order operation.

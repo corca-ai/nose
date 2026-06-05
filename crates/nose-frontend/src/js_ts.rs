@@ -1289,6 +1289,11 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     if !(has_typeof_object && has_non_null_or_truthy && has_not_array) {
         return None;
     }
+    if file_prefix_has_binding_ident(lo, node, "Array")
+        || enclosing_function_prefix_has_binding_ident(lo, node, "Array")
+    {
+        return None;
+    }
     let span = lo.span(node);
     let value = lo.var(&ident?, span);
     let object = lo.str_lit("object", span);
@@ -1364,10 +1369,30 @@ fn parse_truthy_clause(clause: &str) -> Option<String> {
 }
 
 fn parse_not_array_clause(clause: &str) -> Option<String> {
-    clause
+    if let Some(name) = clause
         .strip_prefix("!Array.isArray(")
         .and_then(|inner| inner.strip_suffix(')'))
-        .map(str::to_string)
+    {
+        return Some(name.to_string());
+    }
+    for op in ["===", "=="] {
+        if let Some(call) = clause.strip_suffix(&format!("{op}false")) {
+            if let Some(name) = call
+                .strip_prefix("Array.isArray(")
+                .and_then(|inner| inner.strip_suffix(')'))
+            {
+                return Some(name.to_string());
+            }
+        }
+        let prefix = format!("false{op}Array.isArray(");
+        if let Some(name) = clause
+            .strip_prefix(&prefix)
+            .and_then(|inner| inner.strip_suffix(')'))
+        {
+            return Some(name.to_string());
+        }
+    }
+    None
 }
 
 fn is_object_literal(value: &str) -> bool {
