@@ -213,7 +213,7 @@ exponent outside the integer oracle's domain, including the same errors inside e
 arguments, opaque/user call-by-value arguments, zero-step `range` calls, a `Seq` literal
 with left-to-right effect guards, unary/binary operands, field receivers,
 index bases/subscripts, or a map/filter/reduce lambda over a statically non-empty `Seq`,
-plus index assignment targets, ternary conditions, and statically selected branches) with
+plus field/index assignment targets, ternary conditions, and statically selected branches) with
 its handler. Richer exception control flow remains outside the oracle.
 Field writes and reads evaluate their receiver before consulting or updating same-unit
 field state, so receiver errors propagate instead of falling through to a cached field

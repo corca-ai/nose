@@ -2934,15 +2934,21 @@ impl<'a> Builder<'a> {
         target: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> bool {
-        if self.il.kind(target) != NodeKind::Index {
-            return false;
+        match self.il.kind(target) {
+            NodeKind::Field => self
+                .il
+                .children(target)
+                .first()
+                .is_some_and(|&receiver| self.expr_is_static_runtime_err(receiver, env)),
+            NodeKind::Index => self
+                .il
+                .children(target)
+                .to_vec()
+                .get(1)
+                .copied()
+                .is_some_and(|index| self.expr_is_static_runtime_err(index, env)),
+            _ => false,
         }
-        self.il
-            .children(target)
-            .to_vec()
-            .get(1)
-            .copied()
-            .is_some_and(|index| self.expr_is_static_runtime_err(index, env))
     }
 
     fn expr_is_static_runtime_err(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
