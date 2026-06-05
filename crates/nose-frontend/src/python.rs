@@ -458,6 +458,12 @@ fn lower_match_pattern_condition(
         }
         return fold_or(lo, span, conditions);
     }
+    if pattern.kind() == "as_pattern" {
+        return Lowering::named_children(pattern)
+            .into_iter()
+            .find(|child| child.kind() != "as_pattern_target")
+            .and_then(|child| lower_match_pattern_condition(lo, subject, child, span));
+    }
     let pat = lower_expr(lo, pattern);
     Some(lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[subject, pat]))
 }
@@ -1222,6 +1228,38 @@ mod tests {
         assert!(
             !raw.contains(&"case_pattern"),
             "sequence match pattern should lower without Raw case_pattern: {raw:?}"
+        );
+    }
+
+    #[test]
+    fn as_match_pattern_lowers_inner_value_without_raw() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    match x:\n        case 1 as y:\n            return y\n        case _:\n            return 0\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            !raw.contains(&"as_pattern"),
+            "as-pattern match should lower without Raw as_pattern: {raw:?}"
+        );
+        assert!(
+            il.nodes
+                .iter()
+                .any(|node| node.payload == Payload::LitInt(1)),
+            "as-pattern should preserve its inner value pattern"
         );
     }
 
