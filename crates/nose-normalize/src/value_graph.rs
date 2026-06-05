@@ -2977,13 +2977,25 @@ impl<'a> Builder<'a> {
         if self.il.kind(expr) != NodeKind::BinOp {
             return false;
         }
-        let kids = self.il.children(expr);
+        let kids = self.il.children(expr).to_vec();
         if kids.len() != 2 {
             return false;
         }
         let Payload::Op(op) = self.il.node(expr).payload else {
             return false;
         };
+        if self.expr_is_static_runtime_err(kids[0], env) {
+            return true;
+        }
+        if !crate::is_pure(self.il, kids[0]) {
+            return false;
+        }
+        if self.expr_is_static_runtime_err(kids[1], env) {
+            return true;
+        }
+        if !crate::is_pure(self.il, kids[1]) {
+            return false;
+        }
         let rhs = self.eval(kids[1], env);
         match op {
             Op::Div | Op::Mod => self.int_const_eq(rhs, 0),
