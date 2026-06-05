@@ -441,7 +441,13 @@ fn lower_match_pattern_condition(
     pattern: TsNode,
     span: Span,
 ) -> Option<NodeId> {
-    if pattern.kind() == "identifier" && lo.text(pattern) == "_" {
+    // In Python structural pattern matching, a bare identifier is a capture pattern
+    // (including `_`, the wildcard) rather than a value comparison. tree-sitter wraps
+    // bare captures as either `identifier` or a one-segment `dotted_name`; qualified
+    // dotted names like `Color.RED` remain value patterns.
+    if pattern.kind() == "identifier"
+        || (pattern.kind() == "dotted_name" && !lo.text(pattern).contains('.'))
+    {
         return None;
     }
     if pattern.kind() == "union_pattern" {
@@ -1128,6 +1134,23 @@ mod tests {
                 .iter()
                 .any(|node| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::And)),
             "match guard should combine with the pattern condition"
+        );
+    }
+
+    #[test]
+    fn capture_match_pattern_is_unconditional() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    match x:\n        case y:\n            return 1\n        case _:\n            return 0\n",
+            &interner,
+        )
+        .expect("lower");
+
+        assert!(
+            !il.nodes.iter().any(|node| node.kind == NodeKind::If),
+            "a capture pattern should not lower to a scrutinee comparison"
         );
     }
 
