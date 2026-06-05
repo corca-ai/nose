@@ -12,11 +12,7 @@ use std::path::Path;
 
 /// Stable cross-run identity of a family.
 pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
-    let mut members: Vec<(&str, &str)> = f
-        .locations
-        .iter()
-        .map(|l| (l.file.as_str(), l.name.as_deref().unwrap_or("")))
-        .collect();
+    let mut members = member_keys(f);
     members.sort_unstable();
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
     let mut mix = |bytes: &[u8]| {
@@ -25,11 +21,37 @@ pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
         }
         h = (h ^ 0xff).wrapping_mul(0x0000_0100_0000_01b3); // field separator
     };
-    for (file, name) in members {
+    for MemberKey { file, name } in members {
         mix(file.as_bytes());
         mix(name.as_bytes());
     }
     h
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct MemberKey {
+    pub file: String,
+    pub name: String,
+}
+
+pub(crate) fn member_keys(f: &RefactorFamily) -> Vec<MemberKey> {
+    f.locations
+        .iter()
+        .map(|l| MemberKey {
+            file: l.file.clone(),
+            name: l.name.clone().unwrap_or_default(),
+        })
+        .collect()
+}
+
+pub(crate) struct Baseline {
+    pub keys: HashSet<u64>,
+    pub entries: Vec<BaselineEntry>,
+}
+
+pub(crate) struct BaselineEntry {
+    pub key: u64,
+    pub members: Vec<MemberKey>,
 }
 
 /// One recorded family: the matching `key` plus a human note (so the baseline file
@@ -38,18 +60,43 @@ pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
 struct Entry {
     key: String,
     note: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    members: Vec<MemberEntry>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct MemberEntry {
+    file: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
 }
 
 /// Load the set of accepted family keys (empty if the file is absent/unreadable).
-pub(crate) fn load(path: &Path) -> HashSet<u64> {
+pub(crate) fn load(path: &Path) -> Baseline {
     let Ok(bytes) = std::fs::read(path) else {
-        return HashSet::new();
+        return Baseline {
+            keys: HashSet::new(),
+            entries: Vec::new(),
+        };
     };
     let entries: Vec<Entry> = serde_json::from_slice(&bytes).unwrap_or_default();
-    entries
+    let entries: Vec<BaselineEntry> = entries
         .iter()
-        .filter_map(|e| u64::from_str_radix(&e.key, 16).ok())
-        .collect()
+        .filter_map(|e| {
+            let key = u64::from_str_radix(&e.key, 16).ok()?;
+            let members = e
+                .members
+                .iter()
+                .map(|m| MemberKey {
+                    file: m.file.clone(),
+                    name: m.name.clone().unwrap_or_default(),
+                })
+                .collect();
+            Some(BaselineEntry { key, members })
+        })
+        .collect();
+    let keys = entries.iter().map(|e| e.key).collect();
+    Baseline { keys, entries }
 }
 
 /// Write `families` as the accepted baseline, sorted by key for stable git diffs.
@@ -63,6 +110,13 @@ pub(crate) fn write(
         .map(|f| Entry {
             key: format!("{:016x}", family_key(f)),
             note: note_of(f),
+            members: member_keys(f)
+                .into_iter()
+                .map(|m| MemberEntry {
+                    file: m.file,
+                    name: (!m.name.is_empty()).then_some(m.name),
+                })
+                .collect(),
         })
         .collect();
     entries.sort_by(|a, b| a.key.cmp(&b.key));

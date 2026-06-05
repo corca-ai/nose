@@ -154,6 +154,15 @@ enum Cmd {
         /// duplication — the way to adopt on a codebase that already has clones.
         #[arg(long, value_name = "FILE")]
         baseline: Option<PathBuf>,
+        /// Explicitly report only families that are new or changed compared with
+        /// `--baseline`. This is the default behavior when `--baseline` is present;
+        /// the flag makes CI intent readable in scripts.
+        #[arg(long, requires = "baseline", conflicts_with = "write_baseline")]
+        new_only: bool,
+        /// Exit non-zero only when the baseline comparison finds new or changed
+        /// families. Requires `--baseline` and implies new-only reporting.
+        #[arg(long, requires = "baseline", conflicts_with = "write_baseline")]
+        fail_on_new: bool,
         /// Write the current families to the `--baseline` file (accept today's state)
         /// and exit, instead of reporting.
         #[arg(long, requires = "baseline")]
@@ -463,7 +472,9 @@ struct ScanJsonReport<'a> {
     tool_version: &'static str,
     scope: ScanJsonScope<'a>,
     ranking: ScanJsonRanking,
-    families: &'a [&'a nose_detect::RefactorFamily],
+    #[serde(skip_serializing_if = "Option::is_none")]
+    baseline: Option<&'a BaselineSummary>,
+    families: Vec<ScanJsonFamily<'a>>,
 }
 
 #[derive(serde::Serialize)]
@@ -486,6 +497,14 @@ struct ScanJsonRanking {
     limit: Option<usize>,
 }
 
+#[derive(serde::Serialize)]
+struct ScanJsonFamily<'a> {
+    #[serde(flatten)]
+    family: &'a nose_detect::RefactorFamily,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    baseline_status: Option<&'static str>,
+}
+
 impl<'a> ScanJsonReport<'a> {
     fn new(
         scope: &'a ScanScope,
@@ -493,7 +512,9 @@ impl<'a> ScanJsonReport<'a> {
         top: usize,
         families: &[nose_detect::RefactorFamily],
         shown: &'a [&'a nose_detect::RefactorFamily],
+        baseline: Option<&'a BaselineComparison>,
     ) -> Self {
+        let statuses = baseline.map(|b| &b.statuses);
         ScanJsonReport {
             schema_version: SCAN_JSON_SCHEMA_VERSION,
             tool_version: env!("CARGO_PKG_VERSION"),
@@ -514,7 +535,142 @@ impl<'a> ScanJsonReport<'a> {
                 shown_families: shown.len(),
                 limit: (top != 0).then_some(top),
             },
-            families: shown,
+            baseline: baseline.map(|b| &b.summary),
+            families: shown
+                .iter()
+                .map(|family| ScanJsonFamily {
+                    family,
+                    baseline_status: statuses
+                        .and_then(|s| s.get(&baseline::family_key(family)))
+                        .map(BaselineStatus::as_str),
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct BaselineSummary {
+    path: String,
+    mode: &'static str,
+    baseline_families: usize,
+    new_families: usize,
+    changed_families: usize,
+    unchanged_families: usize,
+    resolved_families: usize,
+}
+
+impl BaselineSummary {
+    fn line(&self) -> String {
+        format!(
+            "baseline: {} new · {} changed · {} unchanged · {} resolved",
+            self.new_families,
+            self.changed_families,
+            self.unchanged_families,
+            self.resolved_families
+        )
+    }
+
+    fn reportable_families(&self) -> usize {
+        self.new_families + self.changed_families
+    }
+}
+
+#[derive(Clone, Copy)]
+enum BaselineStatus {
+    New,
+    Changed,
+}
+
+impl BaselineStatus {
+    fn as_str(&self) -> &'static str {
+        match self {
+            BaselineStatus::New => "new",
+            BaselineStatus::Changed => "changed",
+        }
+    }
+}
+
+struct BaselineComparison {
+    summary: BaselineSummary,
+    statuses: std::collections::HashMap<u64, BaselineStatus>,
+}
+
+impl BaselineComparison {
+    fn new(
+        path: &std::path::Path,
+        baseline: &baseline::Baseline,
+        families: &[nose_detect::RefactorFamily],
+    ) -> Self {
+        let current_keys: std::collections::HashSet<u64> =
+            families.iter().map(baseline::family_key).collect();
+        let unchanged_families = baseline.keys.intersection(&current_keys).count();
+
+        let mut changed_current = std::collections::HashSet::new();
+        let mut changed_baseline = std::collections::HashSet::new();
+        for family in families {
+            let key = baseline::family_key(family);
+            if baseline.keys.contains(&key) {
+                continue;
+            }
+            let current_members: std::collections::HashSet<_> =
+                baseline::member_keys(family).into_iter().collect();
+            if baseline
+                .entries
+                .iter()
+                .filter(|entry| !current_keys.contains(&entry.key))
+                .any(|entry| {
+                    !entry.members.is_empty()
+                        && entry.members.iter().any(|m| current_members.contains(m))
+                })
+            {
+                changed_current.insert(key);
+                for entry in baseline
+                    .entries
+                    .iter()
+                    .filter(|entry| !current_keys.contains(&entry.key))
+                {
+                    if !entry.members.is_empty()
+                        && entry.members.iter().any(|m| current_members.contains(m))
+                    {
+                        changed_baseline.insert(entry.key);
+                    }
+                }
+            }
+        }
+
+        let mut statuses = std::collections::HashMap::new();
+        for family in families {
+            let key = baseline::family_key(family);
+            if baseline.keys.contains(&key) {
+                continue;
+            }
+            let status = if changed_current.contains(&key) {
+                BaselineStatus::Changed
+            } else {
+                BaselineStatus::New
+            };
+            statuses.insert(key, status);
+        }
+
+        let resolved_families = baseline
+            .keys
+            .iter()
+            .filter(|key| !current_keys.contains(key) && !changed_baseline.contains(key))
+            .count();
+        let changed_families = changed_current.len();
+        let new_families = statuses.len().saturating_sub(changed_families);
+        BaselineComparison {
+            summary: BaselineSummary {
+                path: path.display().to_string(),
+                mode: "new-only",
+                baseline_families: baseline.keys.len(),
+                new_families,
+                changed_families,
+                unchanged_families,
+                resolved_families,
+            },
+            statuses,
         }
     }
 }
@@ -706,6 +862,8 @@ fn run() -> Result<()> {
             cache_dir,
             fail,
             baseline,
+            new_only: _,
+            fail_on_new,
             write_baseline,
             threshold,
             format,
@@ -726,6 +884,7 @@ fn run() -> Result<()> {
             cache_dir,
             fail,
             baseline,
+            fail_on_new,
             write_baseline,
             threshold,
             format,
@@ -1397,6 +1556,7 @@ struct ScanArgs {
     cache_dir: Option<PathBuf>,
     fail: bool,
     baseline: Option<PathBuf>,
+    fail_on_new: bool,
     write_baseline: bool,
     threshold: Option<f64>,
     format: ReportFormat,
@@ -1608,7 +1768,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             .then_with(|| family_anchor(a).cmp(&family_anchor(b)))
     });
     // Baseline: write the current state, or hide already-accepted families so only
-    // new duplication is reported and gated.
+    // new/changed duplication is reported and gated.
     if args.write_baseline {
         let path = args
             .baseline
@@ -1623,10 +1783,12 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         );
         return Ok(());
     }
-    if let Some(path) = &args.baseline {
-        let known = baseline::load(path);
-        families.retain(|f| !known.contains(&baseline::family_key(f)));
-    }
+    let baseline_comparison = args.baseline.as_ref().map(|path| {
+        let accepted = baseline::load(path);
+        let comparison = BaselineComparison::new(path, &accepted, &families);
+        families.retain(|f| !accepted.keys.contains(&baseline::family_key(f)));
+        comparison
+    });
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
     let limit = if top == 0 { usize::MAX } else { top };
@@ -1634,17 +1796,27 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
 
     match args.format {
         ReportFormat::Json => {
-            let json = ScanJsonReport::new(&scope, sort, top, &families, &shown);
+            let json = ScanJsonReport::new(
+                &scope,
+                sort,
+                top,
+                &families,
+                &shown,
+                baseline_comparison.as_ref(),
+            );
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
         ReportFormat::Markdown => {
             // Scope line first — tells the reader what was actually scanned (so a small
             // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
             println!("{}\n", scope.summary());
-            print_refactor_markdown(&families, &shown, channels);
+            print_refactor_markdown(&families, &shown, channels, baseline_comparison.as_ref());
         }
         ReportFormat::Human => {
             println!("{}", scope.summary());
+            if let Some(comparison) = &baseline_comparison {
+                println!("{}", comparison.summary.line());
+            }
             print_refactor_human(&families, &shown, sort, channels, args.diff, args.proposal)
         }
         ReportFormat::Sarif => println!("{}", refactor_sarif(&shown)?),
@@ -1654,6 +1826,22 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
     // failure when --fail is set.
+    if args.fail_on_new
+        && baseline_comparison
+            .as_ref()
+            .is_some_and(|comparison| comparison.summary.reportable_families() > 0)
+    {
+        let comparison = baseline_comparison
+            .as_ref()
+            .expect("--fail-on-new requires --baseline");
+        eprintln!(
+            "\nnose: {} new and {} changed {} found (--fail-on-new)",
+            comparison.summary.new_families,
+            comparison.summary.changed_families,
+            channels.report_label(comparison.summary.reportable_families())
+        );
+        std::process::exit(1);
+    }
     if args.fail && !families.is_empty() {
         eprintln!(
             "\nnose: {} {} found (--fail)",
@@ -2204,6 +2392,7 @@ fn print_refactor_markdown(
     all: &[nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
     mode: ScanChannels,
+    baseline: Option<&BaselineComparison>,
 ) {
     println!("# {}\n", mode.markdown_title());
     println!(
@@ -2212,6 +2401,9 @@ fn print_refactor_markdown(
         total_dup_lines(all),
         shown.len()
     );
+    if let Some(comparison) = baseline {
+        println!("{}\n", comparison.summary.line());
+    }
     for (i, f) in shown.iter().enumerate() {
         let xlang = match family_langs(f) {
             s if s.is_empty() => String::new(),

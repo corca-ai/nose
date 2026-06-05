@@ -39,21 +39,36 @@ With committed settings in `nose.toml`, the CI command can be just `nose scan sr
 
 An existing codebase already has dozens of clone families, so a bare `--fail`
 gate is unusable on day one. A **baseline** records the currently-accepted
-families; subsequent runs hide them and don't trip `--fail`, so the gate flags
-only duplication introduced *after* adoption.
+families; subsequent runs compare the current report to that accepted state, so
+the gate can flag only duplication introduced *after* adoption.
 
 ```sh
 # 1. Accept today's state (writes the baseline file and exits):
 nose scan src --baseline .nose-baseline.json --write-baseline
 
-# 2. From now on, report/fail only on NEW families:
-nose scan src --baseline .nose-baseline.json --fail
+# 2. From now on, show only NEW or CHANGED families:
+nose scan src --baseline .nose-baseline.json --new-only
+
+# 3. Make CI fail only when NEW or CHANGED families exist:
+nose scan src --baseline .nose-baseline.json --fail-on-new
 ```
 
+`--baseline` by itself keeps the historical behavior and reports only families not
+accepted by the baseline; `--new-only` makes that intent explicit in scripts. Use
+`--fail-on-new` when you want a CI ratchet that ignores accepted debt but exits
+non-zero for new or changed clone families. Plain `--fail` still means "fail if
+anything is reported after the active filters."
+
 Commit `.nose-baseline.json`. Families are keyed by their members' (file, name),
-so the baseline is stable as long as the duplicated code doesn't move. Regenerate
-it deliberately (re-run `--write-baseline`) when you've paid down duplication and
-want the lower bar locked in — it's a ratchet.
+so the baseline is stable across line moves. New baselines also record the member
+list next to the reviewable note, which lets later scans classify exact matches as
+`unchanged`, overlapping but re-keyed families as `changed`, missing accepted
+families as `resolved`, and unmatched current families as `new`. Regenerate the
+baseline deliberately (re-run `--write-baseline`) when you've paid down duplication
+and want the lower bar locked in — it's a ratchet.
+
+With `--format json`, the top-level `baseline` object carries those counts and each
+reported family gets `baseline_status: "new"` or `"changed"`.
 
 ## SARIF for code scanning
 

@@ -45,7 +45,27 @@ and is read by the CLI test suite.
 | `ranking.total_families` | integer | Families remaining after filters and baseline suppression, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
+| `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
 | `families` | array | Ranked clone families in display order. Empty means no family survived the filters. |
+
+When `--baseline` is active, `families` contains only reportable current families:
+new families and changed families. Exact baseline matches are counted in
+`baseline.unchanged_families`; accepted families no longer present are counted in
+`baseline.resolved_families`.
+
+## Baseline fields
+
+The optional `baseline` object has:
+
+| field | type | meaning |
+|---|---|---|
+| `path` | string | Baseline file path used for the comparison. |
+| `mode` | string | Baseline report mode; currently `new-only`. |
+| `baseline_families` | integer | Accepted family keys read from the baseline. |
+| `new_families` | integer | Current families with no baseline key or member overlap. |
+| `changed_families` | integer | Current families whose key changed but overlap a recorded baseline member. |
+| `unchanged_families` | integer | Current families whose key exactly matches the baseline. |
+| `resolved_families` | integer | Baseline families that are no longer present in the current scan. |
 
 ## Family fields
 
@@ -69,6 +89,7 @@ schema version 1:
 | `mean_sem` | number | Mean value-graph size across members. |
 | `scope` | string | `prod`, `test`, or `mixed` test/production classification. |
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
+| `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 
 Each `locations[]` item has:
 

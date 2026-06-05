@@ -129,8 +129,9 @@ have nothing to extract and sink to the bottom, even at `sim 1.00`.
 scan scope, ranking metadata, and a `families` array. The stable contract and
 compatibility rule are documented in [scan-json](scan-json.md).
 
-**Workflow** (`--baseline`, `--write-baseline`, `--fail`, `--cache-dir`, `--config`)
-are covered in [continuous-integration](continuous-integration.md) and [configuration](configuration.md).
+**Workflow** (`--baseline`, `--write-baseline`, `--new-only`, `--fail-on-new`,
+`--fail`, `--cache-dir`, `--config`) is covered in
+[continuous-integration](continuous-integration.md) and [configuration](configuration.md).
 
 ### Scan Modes
 
