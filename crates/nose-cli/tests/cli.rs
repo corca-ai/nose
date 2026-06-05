@@ -5457,3 +5457,45 @@ fn fail_on_new_requires_a_baseline() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn c_u16_byte_pack_recognized_in_either_operand_order() {
+    // The byte-pack idiom must be recognized whichever way its commutative operands sort by
+    // value-hash. With the base at param 1 the shifted lane sorts second; a `+` form and a
+    // `|` form then cluster into one Type-4 family only if both normalize to the byte-pack op.
+    let dir = std::env::temp_dir().join(format!("nose_bytepack_order_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("add2.c"),
+        "unsigned int add2(int d, const unsigned char *a) {\n  return (a[0] << 8) + a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("or2.c"),
+        "unsigned int or2(int d, unsigned char *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+    assert_eq!(
+        families.len(),
+        1,
+        "byte-pack must be recognized in either operand order (+ and | should cluster): {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
