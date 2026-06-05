@@ -460,6 +460,7 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "clap",
+ "ignore",
  "nose-detect",
  "nose-eval",
  "nose-frontend",

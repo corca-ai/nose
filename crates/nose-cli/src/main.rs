@@ -3,6 +3,7 @@
 mod baseline;
 mod cache;
 mod config;
+mod ignores;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -154,6 +155,10 @@ enum Cmd {
         /// duplication — the way to adopt on a codebase that already has clones.
         #[arg(long, value_name = "FILE")]
         baseline: Option<PathBuf>,
+        /// Structured ignore file for intentionally suppressed families. Defaults
+        /// to `nose.ignore.json` when that file exists.
+        #[arg(long, value_name = "FILE")]
+        ignore_file: Option<PathBuf>,
         /// Explicitly report only families that are new or changed compared with
         /// `--baseline`. This is the default behavior when `--baseline` is present;
         /// the flag makes CI intent readable in scripts.
@@ -474,7 +479,11 @@ struct ScanJsonReport<'a> {
     ranking: ScanJsonRanking,
     #[serde(skip_serializing_if = "Option::is_none")]
     baseline: Option<&'a BaselineSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ignore: Option<ignores::IgnoreSummary<'a>>,
     families: Vec<ScanJsonFamily<'a>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    ignored_families: Vec<ScanJsonIgnoredFamily<'a>>,
 }
 
 #[derive(serde::Serialize)]
@@ -499,28 +508,44 @@ struct ScanJsonRanking {
 
 #[derive(serde::Serialize)]
 struct ScanJsonFamily<'a> {
+    family_id: String,
     #[serde(flatten)]
     family: &'a nose_detect::RefactorFamily,
     #[serde(skip_serializing_if = "Option::is_none")]
     baseline_status: Option<&'static str>,
 }
 
+#[derive(serde::Serialize)]
+struct ScanJsonIgnoredFamily<'a> {
+    family_id: String,
+    #[serde(flatten)]
+    family: &'a nose_detect::RefactorFamily,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    baseline_status: Option<&'static str>,
+    ignore: &'a ignores::IgnoreMatch,
+}
+
+struct ScanJsonInput<'a> {
+    scope: &'a ScanScope,
+    sort: SortKey,
+    top: usize,
+    families: &'a [nose_detect::RefactorFamily],
+    shown: &'a [&'a nose_detect::RefactorFamily],
+    baseline: Option<&'a BaselineComparison>,
+    ignore_set: Option<&'a ignores::IgnoreSet>,
+    ignored_families: &'a [IgnoredFamily],
+}
+
 impl<'a> ScanJsonReport<'a> {
-    fn new(
-        scope: &'a ScanScope,
-        sort: SortKey,
-        top: usize,
-        families: &[nose_detect::RefactorFamily],
-        shown: &'a [&'a nose_detect::RefactorFamily],
-        baseline: Option<&'a BaselineComparison>,
-    ) -> Self {
-        let statuses = baseline.map(|b| &b.statuses);
+    fn new(input: ScanJsonInput<'a>) -> Self {
+        let statuses = input.baseline.map(|b| &b.statuses);
         ScanJsonReport {
             schema_version: SCAN_JSON_SCHEMA_VERSION,
             tool_version: env!("CARGO_PKG_VERSION"),
             scope: ScanJsonScope {
-                files: scope.files,
-                languages: scope
+                files: input.scope.files,
+                languages: input
+                    .scope
                     .langs
                     .iter()
                     .map(|(language, files)| ScanJsonLanguage {
@@ -530,23 +555,45 @@ impl<'a> ScanJsonReport<'a> {
                     .collect(),
             },
             ranking: ScanJsonRanking {
-                sort: sort.json_name(),
-                total_families: families.len(),
-                shown_families: shown.len(),
-                limit: (top != 0).then_some(top),
+                sort: input.sort.json_name(),
+                total_families: input.families.len(),
+                shown_families: input.shown.len(),
+                limit: (input.top != 0).then_some(input.top),
             },
-            baseline: baseline.map(|b| &b.summary),
-            families: shown
+            baseline: input.baseline.map(|b| &b.summary),
+            ignore: input
+                .ignore_set
+                .map(|set| set.summary(input.ignored_families.len())),
+            families: input
+                .shown
                 .iter()
                 .map(|family| ScanJsonFamily {
+                    family_id: baseline::family_id(family),
                     family,
                     baseline_status: statuses
                         .and_then(|s| s.get(&baseline::family_key(family)))
                         .map(BaselineStatus::as_str),
                 })
                 .collect(),
+            ignored_families: input
+                .ignored_families
+                .iter()
+                .map(|ignored| ScanJsonIgnoredFamily {
+                    family_id: baseline::family_id(&ignored.family),
+                    family: &ignored.family,
+                    baseline_status: statuses
+                        .and_then(|s| s.get(&baseline::family_key(&ignored.family)))
+                        .map(BaselineStatus::as_str),
+                    ignore: &ignored.ignore,
+                })
+                .collect(),
         }
     }
+}
+
+struct IgnoredFamily {
+    family: nose_detect::RefactorFamily,
+    ignore: ignores::IgnoreMatch,
 }
 
 #[derive(serde::Serialize)]
@@ -569,10 +616,6 @@ impl BaselineSummary {
             self.unchanged_families,
             self.resolved_families
         )
-    }
-
-    fn reportable_families(&self) -> usize {
-        self.new_families + self.changed_families
     }
 }
 
@@ -862,6 +905,7 @@ fn run() -> Result<()> {
             cache_dir,
             fail,
             baseline,
+            ignore_file,
             new_only: _,
             fail_on_new,
             write_baseline,
@@ -884,6 +928,7 @@ fn run() -> Result<()> {
             cache_dir,
             fail,
             baseline,
+            ignore_file,
             fail_on_new,
             write_baseline,
             threshold,
@@ -1556,6 +1601,7 @@ struct ScanArgs {
     cache_dir: Option<PathBuf>,
     fail: bool,
     baseline: Option<PathBuf>,
+    ignore_file: Option<PathBuf>,
     fail_on_new: bool,
     write_baseline: bool,
     threshold: Option<f64>,
@@ -1667,9 +1713,14 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     };
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_tokens.or(cfg.min_tokens).unwrap_or(24);
+    let ignore_file = args.ignore_file.or(cfg.ignore_file);
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;
     exclude.extend(args.exclude.iter().cloned());
+    let ignore_set = ignores::load_for_scan(ignore_file.as_deref())?;
+    if let Some(ignore_set) = &ignore_set {
+        ignore_set.warn_expired();
+    }
 
     let opts = nose_detect::DetectOptions {
         threshold,
@@ -1789,6 +1840,18 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         families.retain(|f| !accepted.keys.contains(&baseline::family_key(f)));
         comparison
     });
+    let mut ignored_families = Vec::new();
+    if let Some(ignore_set) = &ignore_set {
+        let mut active = Vec::with_capacity(families.len());
+        for family in families {
+            if let Some(ignore) = ignore_set.match_family(&family) {
+                ignored_families.push(IgnoredFamily { family, ignore });
+            } else {
+                active.push(family);
+            }
+        }
+        families = active;
+    }
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
     let limit = if top == 0 { usize::MAX } else { top };
@@ -1796,26 +1859,38 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
 
     match args.format {
         ReportFormat::Json => {
-            let json = ScanJsonReport::new(
-                &scope,
+            let json = ScanJsonReport::new(ScanJsonInput {
+                scope: &scope,
                 sort,
                 top,
-                &families,
-                &shown,
-                baseline_comparison.as_ref(),
-            );
+                families: &families,
+                shown: &shown,
+                baseline: baseline_comparison.as_ref(),
+                ignore_set: ignore_set.as_ref(),
+                ignored_families: &ignored_families,
+            });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
         ReportFormat::Markdown => {
             // Scope line first — tells the reader what was actually scanned (so a small
             // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
             println!("{}\n", scope.summary());
-            print_refactor_markdown(&families, &shown, channels, baseline_comparison.as_ref());
+            print_refactor_markdown(
+                &families,
+                &shown,
+                channels,
+                baseline_comparison.as_ref(),
+                ignore_set.as_ref(),
+                ignored_families.len(),
+            );
         }
         ReportFormat::Human => {
             println!("{}", scope.summary());
             if let Some(comparison) = &baseline_comparison {
                 println!("{}", comparison.summary.line());
+            }
+            if let Some(ignore_set) = &ignore_set {
+                println!("{}", ignore_set.summary(ignored_families.len()).line());
             }
             print_refactor_human(&families, &shown, sort, channels, args.diff, args.proposal)
         }
@@ -1826,19 +1901,25 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
     // failure when --fail is set.
-    if args.fail_on_new
-        && baseline_comparison
-            .as_ref()
-            .is_some_and(|comparison| comparison.summary.reportable_families() > 0)
-    {
-        let comparison = baseline_comparison
-            .as_ref()
-            .expect("--fail-on-new requires --baseline");
+    if let (true, Some(comparison)) = (
+        args.fail_on_new && !families.is_empty(),
+        baseline_comparison.as_ref(),
+    ) {
+        let mut new_families = 0usize;
+        let mut changed_families = 0usize;
+        for family in &families {
+            match comparison.statuses.get(&baseline::family_key(family)) {
+                Some(BaselineStatus::Changed) => changed_families += 1,
+                Some(BaselineStatus::New) => new_families += 1,
+                None => {}
+            }
+        }
+        let reportable_families = new_families + changed_families;
         eprintln!(
             "\nnose: {} new and {} changed {} found (--fail-on-new)",
-            comparison.summary.new_families,
-            comparison.summary.changed_families,
-            channels.report_label(comparison.summary.reportable_families())
+            new_families,
+            changed_families,
+            channels.report_label(reportable_families)
         );
         std::process::exit(1);
     }
@@ -1941,6 +2022,7 @@ fn refactor_sarif(families: &[&nose_detect::RefactorFamily]) -> Result<String> {
                 "message": { "text": msg },
                 "locations": f.locations.first().map(phys).into_iter().collect::<Vec<_>>(),
                 "relatedLocations": f.locations.iter().skip(1).map(phys).collect::<Vec<_>>(),
+                "properties": { "family_id": baseline::family_id(f) },
             })
         })
         .collect();
@@ -2044,7 +2126,12 @@ fn print_refactor_human(
     // fanout is capped, with a pointer to the full machine-readable list.
     const SITE_CAP: usize = 30;
     for (i, f) in shown.iter().enumerate() {
-        println!("\n#{}  {}", i + 1, family_summary(f));
+        println!(
+            "\n#{}  id {} · {}",
+            i + 1,
+            baseline::family_id(f),
+            family_summary(f)
+        );
         println!("    → {}", family_hint(f));
         for l in f.locations.iter().take(SITE_CAP) {
             let name = l
@@ -2393,6 +2480,8 @@ fn print_refactor_markdown(
     shown: &[&nose_detect::RefactorFamily],
     mode: ScanChannels,
     baseline: Option<&BaselineComparison>,
+    ignore_set: Option<&ignores::IgnoreSet>,
+    ignored_families: usize,
 ) {
     println!("# {}\n", mode.markdown_title());
     println!(
@@ -2404,14 +2493,18 @@ fn print_refactor_markdown(
     if let Some(comparison) = baseline {
         println!("{}\n", comparison.summary.line());
     }
+    if let Some(ignore_set) = ignore_set {
+        println!("{}\n", ignore_set.summary(ignored_families).line());
+    }
     for (i, f) in shown.iter().enumerate() {
         let xlang = match family_langs(f) {
             s if s.is_empty() => String::new(),
             s => format!(" · cross-language: {s}"),
         };
         println!(
-            "## {}. {} sites, {} files, {} modules — ~{} dup lines ({}){}",
+            "## {}. `{}` — {} sites, {} files, {} modules — ~{} dup lines ({}){}",
             i + 1,
+            baseline::family_id(f),
             f.members,
             f.files,
             f.modules,

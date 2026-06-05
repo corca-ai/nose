@@ -16,6 +16,7 @@ min-value   = 200
 min-members = 3
 min-tokens  = 30
 top         = 50
+ignore-file = "nose.ignore.json"
 ```
 
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
@@ -37,6 +38,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | `min-tokens` | int | `24` | `--min-tokens` |
 | `min-lines` | int | `5` | `--min-lines` |
 | `top` | int | `30` | `--top` |
+| `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
 
 `mode` is a TOML array, even for one channel:
 
@@ -72,6 +74,24 @@ excluded directory is pruned, not just filtered out afterward.
 `.gitignore` is always respected automatically, so vendored dependencies, build
 output, and the like are skipped without any configuration.
 
+## Structured ignores
+
+`ignore-file` points to a structured suppression file for reviewed findings:
+
+```toml
+[scan]
+ignore-file = "nose.ignore.json"
+```
+
+When unset, nose automatically reads `nose.ignore.json` in the current working
+directory if it exists. Pass `--ignore-file <file>` to override the config for one
+run. Ignored families are hidden from the active report and from `--fail` /
+`--fail-on-new`, while `--format json` still includes them with their reason,
+owner, note, and expiry metadata.
+
+The file format, selector semantics, and expiry behavior are documented in
+[structured-ignores](structured-ignores.md).
+
 ## Inline suppression
 
 To mark one specific clone as intentionally kept, put `// nose-ignore` on or
@@ -79,6 +99,7 @@ just above the unit (function/class/block). nose drops that unit from
 detection, so it never shows up as a family. Use this for a duplicate you've
 consciously decided to live with, rather than excluding the whole file.
 
-For accepting *all* of today's existing duplication at once — so only *new*
-duplication is reported — use a baseline instead; see
+For a finding that should stay visible to audit tooling, prefer a structured
+ignore entry. For accepting *all* of today's existing duplication at once — so
+only *new* duplication is reported — use a baseline instead; see
 [continuous-integration](continuous-integration.md).

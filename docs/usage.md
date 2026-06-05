@@ -96,6 +96,7 @@ Grouped by what they do. Anything here can also be set in [configuration](config
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near`; comma-list or repeatable; when present, replaces the default |
 | `--threshold T` | acceptance similarity in `[0,1]` for the `near` channel; invalid unless `--mode` includes `near` |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
+| `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |
 
 ### Ranking
 
@@ -130,8 +131,9 @@ scan scope, ranking metadata, and a `families` array. The stable contract and
 compatibility rule are documented in [scan-json](scan-json.md).
 
 **Workflow** (`--baseline`, `--write-baseline`, `--new-only`, `--fail-on-new`,
-`--fail`, `--cache-dir`, `--config`) is covered in
+`--fail`, `--ignore-file`, `--cache-dir`, `--config`) is covered in
 [continuous-integration](continuous-integration.md) and [configuration](configuration.md).
+Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
 ### Scan Modes
 

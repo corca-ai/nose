@@ -25,6 +25,13 @@ The top-level value is always an object:
     "shown_families": 10,
     "limit": 10
   },
+  "ignore": {
+    "path": "nose.ignore.json",
+    "active_entries": 2,
+    "expired_entries": 0,
+    "ignored_families": 0,
+    "expired": []
+  },
   "families": []
 }
 ```
@@ -42,16 +49,22 @@ and is read by the CLI test suite.
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
 | `ranking.sort` | string | Sort key used for `families`: `extractability`, `value`, or `sites`. |
-| `ranking.total_families` | integer | Families remaining after filters and baseline suppression, before `--top`. |
+| `ranking.total_families` | integer | Active families remaining after filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
-| `families` | array | Ranked clone families in display order. Empty means no family survived the filters. |
+| `ignore` | object, optional | Structured ignore summary when an ignore file was read. |
+| `families` | array | Active ranked clone families in display order. Empty means no family survived the filters, baseline, and structured ignores. |
+| `ignored_families` | array, optional | Suppressed families with the same family fields plus nested ignore metadata. Present when at least one current family was ignored. |
 
 When `--baseline` is active, `families` contains only reportable current families:
 new families and changed families. Exact baseline matches are counted in
 `baseline.unchanged_families`; accepted families no longer present are counted in
 `baseline.resolved_families`.
+
+When structured ignores are active, `families` contains only active findings.
+Ignored current families are omitted from `ranking.total_families` and appear in
+`ignored_families` instead.
 
 ## Baseline fields
 
@@ -67,6 +80,33 @@ The optional `baseline` object has:
 | `unchanged_families` | integer | Current families whose key exactly matches the baseline. |
 | `resolved_families` | integer | Baseline families that are no longer present in the current scan. |
 
+## Ignore fields
+
+The optional `ignore` object has:
+
+| field | type | meaning |
+|---|---|---|
+| `path` | string | Ignore file path used for the scan. |
+| `active_entries` | integer | Non-expired entries available for matching. |
+| `expired_entries` | integer | Valid entries whose `expires_at` date has passed. |
+| `ignored_families` | integer | Current families suppressed by active entries. |
+| `expired` | array | Expired entry metadata: `entry`, `reason`, optional `owner`, and `expires_at`. |
+
+Each `ignored_families[]` item has the same fields as a normal family, plus:
+
+| field | type | meaning |
+|---|---|---|
+| `ignore.entry` | integer | Zero-based index in the ignore file's `ignores` array. |
+| `ignore.reason` | string | Required structured rationale. |
+| `ignore.note` | string, optional | Human context for the decision. |
+| `ignore.owner` | string, optional | Team or person responsible for the ignore. |
+| `ignore.expires_at` | string, optional | `YYYY-MM-DD` expiry date. Expired entries are not applied. |
+| `ignore.selectors` | object | Original selectors from the entry: `family_id`, `paths`, and/or `languages`. |
+| `ignore.matched_paths` | array, optional | Family member paths that matched `paths`. |
+| `ignore.matched_languages` | array, optional | Family member languages that matched `languages`. |
+
+The ignore file format is documented in [structured-ignores](structured-ignores.md).
+
 ## Family fields
 
 Each `families[]` item is one refactoring candidate. Field names are stable within
@@ -74,6 +114,7 @@ schema version 1:
 
 | field | type | meaning |
 |---|---|---|
+| `family_id` | string | Stable family key used by baselines and structured ignores. |
 | `value` | number | Raw refactoring value: duplicated volume scaled by similarity and spread. |
 | `members` | integer | Number of duplicated sites. |
 | `files` | integer | Distinct files spanned by the family. |

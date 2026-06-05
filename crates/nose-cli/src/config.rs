@@ -12,6 +12,7 @@
 //! # threshold = 0.70 # only valid when mode includes "near"
 //! min-lines = 8
 //! min-tokens = 30
+//! ignore-file = "nose.ignore.json"
 //! ```
 
 use serde::Deserialize;
@@ -31,6 +32,7 @@ pub(crate) struct ScanConfig {
     pub min_lines: Option<u32>,
     pub min_tokens: Option<usize>,
     pub top: Option<usize>,
+    pub ignore_file: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Default)]

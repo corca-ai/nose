@@ -70,6 +70,27 @@ and want the lower bar locked in — it's a ratchet.
 With `--format json`, the top-level `baseline` object carries those counts and each
 reported family gets `baseline_status: "new"` or `"changed"`.
 
+## Structured ignores — audited suppressions
+
+Baselines accept the current state in bulk. Structured ignores are for individual
+families that were reviewed and intentionally kept. Commit `nose.ignore.json`
+next to the code, or point to another file with `--ignore-file` / `ignore-file`
+in [configuration](configuration.md):
+
+```sh
+nose scan src --ignore-file nose.ignore.json --fail
+```
+
+Ignored families are removed from the active report, so they do not fail `--fail`
+or `--fail-on-new`. They are still present in `--format json` under
+`ignored_families`, with the ignore entry's reason, note, owner, expiry, matched
+selectors, and matched paths.
+
+Malformed ignore files fail the run. Expired entries are reported as warnings and
+listed in `ignore.expired`, but are not applied. That makes stale waivers visible
+instead of silently hiding duplication. See [structured-ignores](structured-ignores.md)
+for the file format and selector semantics.
+
 ## SARIF for code scanning
 
 `--format sarif` emits SARIF 2.1.0, which GitHub code-scanning ingests to render

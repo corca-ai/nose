@@ -28,6 +28,19 @@ pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
     h
 }
 
+pub(crate) fn family_id(f: &RefactorFamily) -> String {
+    format_key(family_key(f))
+}
+
+pub(crate) fn format_key(key: u64) -> String {
+    format!("{key:016x}")
+}
+
+pub(crate) fn parse_key(s: &str) -> Option<u64> {
+    let s = s.strip_prefix("0x").unwrap_or(s);
+    u64::from_str_radix(s, 16).ok()
+}
+
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) struct MemberKey {
     pub file: String,
@@ -83,7 +96,7 @@ pub(crate) fn load(path: &Path) -> Baseline {
     let entries: Vec<BaselineEntry> = entries
         .iter()
         .filter_map(|e| {
-            let key = u64::from_str_radix(&e.key, 16).ok()?;
+            let key = parse_key(&e.key)?;
             let members = e
                 .members
                 .iter()
@@ -108,7 +121,7 @@ pub(crate) fn write(
     let mut entries: Vec<Entry> = families
         .iter()
         .map(|f| Entry {
-            key: format!("{:016x}", family_key(f)),
+            key: family_id(f),
             note: note_of(f),
             members: member_keys(f)
                 .into_iter()

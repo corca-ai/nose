@@ -126,6 +126,7 @@ fn assert_scan_json_v1_contract(json: &serde_json::Value) {
         .expect("fixture should include a family");
     let family = family.as_object().expect("family object");
     for key in [
+        "family_id",
         "value",
         "members",
         "files",
@@ -1546,6 +1547,194 @@ fn inline_nose_ignore_suppresses_a_site() {
     assert!(
         run(&["scan", p, "--min-tokens", "12"]).contains("0 clone"),
         "the marked copy must be suppressed, leaving no family"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn structured_ignore_suppresses_family_id_with_metadata() {
+    let dir = make_project("structured_ignore_id");
+    let p = dir.to_str().unwrap();
+    let before = run(&[
+        "scan",
+        p,
+        "--mode",
+        "semantic",
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let before_json = scan_json(&before);
+    let family_id = scan_families(&before_json)[0]["family_id"]
+        .as_str()
+        .expect("family_id should be exposed")
+        .to_string();
+    let ignore_file = std::env::temp_dir().join(format!(
+        "nose_structured_ignore_{}.json",
+        std::process::id()
+    ));
+    fs::write(
+        &ignore_file,
+        format!(
+            "{{\"ignores\":[{{\"family_id\":\"{family_id}\",\"reason\":\"generated-code\",\"note\":\"Generated from the same template.\",\"owner\":\"platform\",\"expires_at\":\"2099-01-01\"}}]}}\n"
+        ),
+    )
+    .unwrap();
+
+    let after = run(&[
+        "scan",
+        p,
+        "--mode",
+        "semantic",
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--ignore-file",
+        ignore_file.to_str().unwrap(),
+    ]);
+    let after_json = scan_json(&after);
+    assert!(
+        scan_families(&after_json).is_empty(),
+        "the ignored family should be absent from active findings: {after}"
+    );
+    assert_eq!(after_json["ignore"]["active_entries"], 1);
+    assert_eq!(after_json["ignore"]["ignored_families"], 1);
+    assert_eq!(after_json["ignored_families"][0]["family_id"], family_id);
+    assert_eq!(
+        after_json["ignored_families"][0]["ignore"]["reason"],
+        "generated-code"
+    );
+    assert_eq!(
+        after_json["ignored_families"][0]["ignore"]["owner"],
+        "platform"
+    );
+
+    let _ = fs::remove_file(&ignore_file);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn default_structured_ignore_file_matches_paths() {
+    let dir = make_project("structured_ignore_paths");
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"a/**\"],\"reason\":\"template-copy\",\"note\":\"a/ is generated.\"}]}\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            ".",
+            "--mode",
+            "semantic",
+            "--min-tokens",
+            "12",
+            "--format",
+            "json",
+            "--top",
+            "0",
+        ])
+        .current_dir(&dir)
+        .output()
+        .expect("run");
+    assert!(
+        out.status.success(),
+        "scan should succeed: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json = scan_json(&stdout);
+    assert!(
+        scan_families(&json).is_empty(),
+        "path ignore should suppress the family: {stdout}"
+    );
+    assert_eq!(json["ignore"]["active_entries"], 1);
+    assert_eq!(json["ignore"]["ignored_families"], 1);
+    assert_eq!(
+        json["ignored_families"][0]["ignore"]["matched_paths"][0],
+        "./a/f.py"
+    );
+    assert_eq!(
+        json["ignored_families"][0]["ignore"]["selectors"]["paths"][0],
+        "a/**"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn expired_structured_ignore_is_reported_but_not_applied() {
+    let dir = make_project("structured_ignore_expired");
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"a/**\"],\"reason\":\"temporary-waiver\",\"owner\":\"platform\",\"expires_at\":\"2000-01-01\"}]}\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            ".",
+            "--mode",
+            "semantic",
+            "--min-tokens",
+            "12",
+            "--format",
+            "json",
+            "--top",
+            "0",
+        ])
+        .current_dir(&dir)
+        .output()
+        .expect("run");
+    assert!(out.status.success());
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    let json = scan_json(&stdout);
+    assert!(
+        !scan_families(&json).is_empty(),
+        "expired ignore must not suppress the family: {stdout}"
+    );
+    assert_eq!(json["ignore"]["active_entries"], 0);
+    assert_eq!(json["ignore"]["expired_entries"], 1);
+    assert_eq!(json["ignore"]["ignored_families"], 0);
+    assert_eq!(json["ignore"]["expired"][0]["reason"], "temporary-waiver");
+    assert!(
+        stderr.contains("expired on 2000-01-01") && stderr.contains("not applied"),
+        "stderr should explain the expired entry: {stderr}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn malformed_structured_ignore_file_fails_clearly() {
+    let dir = make_project("structured_ignore_bad");
+    let ignore_file = dir.join("bad-ignore.json");
+    fs::write(
+        &ignore_file,
+        "{\"ignores\":[{\"paths\":[\"a/**\"],\"note\":\"missing reason\"}]}\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--min-tokens",
+            "12",
+            "--ignore-file",
+            ignore_file.to_str().unwrap(),
+        ])
+        .output()
+        .expect("run");
+    assert!(!out.status.success(), "malformed ignore files must fail");
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(
+        stderr.contains("parsing ignore file") || stderr.contains("validating ignore file"),
+        "error should name the ignore file problem: {stderr}"
     );
     let _ = fs::remove_dir_all(&dir);
 }
