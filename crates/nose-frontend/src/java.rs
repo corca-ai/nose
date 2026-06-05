@@ -398,7 +398,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
             let one = lo.int_lit("1", span);
-            let op = if lo.text(node).contains("--") {
+            // Decide by the operator TOKEN among this node's direct children: a substring
+            // check on the whole text misreads a nested `--`/`++` in the operand (e.g.
+            // `a[i--]++`, whose outer op is `++`).
+            let op = if crate::lower::has_direct_token(node, "--") {
                 Op::Sub
             } else {
                 Op::Add
@@ -705,5 +708,30 @@ mod tests {
             "unary ~ → Op::BitNot, got {ops:?}"
         );
         assert!(ops.contains(&Op::Not), "unary ! → Op::Not, got {ops:?}");
+    }
+
+    fn binops(src: &str) -> Vec<Op> {
+        let interner = Interner::new();
+        lower(FileId(0), "T.java", src.as_bytes(), &interner)
+            .expect("lower")
+            .nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::BinOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn postfix_increment_with_nested_decrement_in_operand() {
+        // `a[i--]++` desugars with the OUTER op being increment (`+ 1`); a substring
+        // `--` check misread the nested `i--` and flipped it to decrement.
+        let ops = binops("class C { void f(){ int[] a = new int[10]; int i = 0; a[i--]++; } }");
+        assert!(
+            ops.contains(&Op::Add),
+            "outer `++` must lower to Op::Add despite the nested `i--`, got {ops:?}"
+        );
     }
 }

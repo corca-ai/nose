@@ -97,7 +97,9 @@ pub(crate) fn build_units_cached(
         })
         .collect();
 
-    let files = per_file.len();
+    // Count only files that actually read + lowered (a `Some` stream), so the reported
+    // count matches the non-cached path, which `filter_map`s read/parse failures away.
+    let files = per_file.iter().filter(|(_, s)| s.is_some()).count();
     let mut all_units = Vec::new();
     let mut all_streams = Vec::new();
     for (u, s) in per_file {
@@ -147,4 +149,43 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
     }
     h
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    /// `files` must count only files that were actually read+lowered — matching the
+    /// non-cached path (which `filter_map`s read/parse failures away). A discovered but
+    /// unreadable file used to inflate the count.
+    #[test]
+    fn file_count_excludes_unreadable_files() {
+        let dir = std::env::temp_dir().join(format!("nose_cache_count_{}", std::process::id()));
+        let cache = std::env::temp_dir().join(format!("nose_cache_dir_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&cache).unwrap();
+
+        std::fs::write(dir.join("ok.py"), "def f():\n    return 1\n").unwrap();
+        let bad = dir.join("bad.py");
+        std::fs::write(&bad, "def g():\n    return 2\n").unwrap();
+        // Make `bad.py` unreadable so `std::fs::read` fails (skips root, where this is moot).
+        std::fs::set_permissions(&bad, std::fs::Permissions::from_mode(0o000)).unwrap();
+
+        let readable = std::fs::read(&bad).is_ok();
+        let out = build_units_cached(&[dir.as_path()], &[], &DetectOptions::default(), &cache);
+
+        // Restore perms so cleanup can proceed.
+        let _ = std::fs::set_permissions(&bad, std::fs::Permissions::from_mode(0o644));
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&cache);
+
+        if readable {
+            // Running as root (CI sometimes) — the unreadable file is still readable, so
+            // the discrepancy can't be exercised; don't assert.
+            return;
+        }
+        assert_eq!(out.files, 1, "only the readable file should be counted");
+    }
 }

@@ -478,7 +478,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
             let one = lo.int_lit("1", span);
-            let op = if lo.text(node).contains("--") {
+            // Decide by the operator TOKEN, scanning only this node's direct children:
+            // a substring check on the whole text misreads a nested `--`/`++` in the
+            // operand (e.g. `a[i--]++`, whose outer op is `++`).
+            let op = if crate::lower::has_direct_token(node, "--") {
                 Op::Sub
             } else {
                 Op::Add
@@ -633,5 +636,32 @@ mod tests {
         // `+x` and `-x` must not collapse to the same operator.
         assert_eq!(unary_ops("int f(int x){ return +x; }"), vec![Op::Pos]);
         assert_eq!(unary_ops("int f(int x){ return -x; }"), vec![Op::Neg]);
+    }
+
+    /// Collect every `Op` carried by a `BinOp` node in the lowered IL.
+    fn binops(src: &str) -> Vec<Op> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "t.c", src.as_bytes(), &interner).expect("lower");
+        il.nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::BinOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn postfix_increment_with_nested_decrement_in_operand() {
+        // `a[i--]++` desugars to `a[i--] = a[i--] + 1`: the OUTER op is increment
+        // (`+ 1`). Detecting `--` anywhere in the node text misread the nested `i--`
+        // and flipped the outer op to decrement; the operator token, not the text,
+        // decides it.
+        let ops = binops("int f(){ int a[10]; int i=0; a[i--]++; return 0; }");
+        assert!(
+            ops.contains(&Op::Add),
+            "outer `++` must lower to Op::Add despite the nested `i--`, got {ops:?}"
+        );
     }
 }

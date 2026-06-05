@@ -194,6 +194,16 @@ impl<'a> Lowering<'a> {
     }
 }
 
+/// Does `node` have a *direct* child token of the given `kind`? Used to read an
+/// operator token (`--`, `++`) off the node it belongs to without being fooled by a
+/// nested occurrence in the operand (e.g. the inner `i--` of `a[i--]++`), which a
+/// substring scan over the node's whole text would wrongly match.
+pub(crate) fn has_direct_token(node: TsNode, kind: &str) -> bool {
+    let mut cur = node.walk();
+    let found = node.children(&mut cur).any(|c| c.kind() == kind);
+    found
+}
+
 /// Lower an import / `#include` / `use` statement to a `Seq` of its identifier and
 /// string leaves. Imports carry no behavior, but a *duplicated import block* is real
 /// copy-paste (jscpd flags it); emitting its tokens lets the contiguous copy-paste
