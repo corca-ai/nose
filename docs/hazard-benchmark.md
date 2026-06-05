@@ -237,19 +237,11 @@ Consequence — **not every release forces re-tuning:**
 The dataset is built from detection output + git, **never from ranking**, so changing
 `hazard()` does not invalidate it. Only a change to detection output does.
 
-**Refresh is a fast, automated re-run, not a rebuild.** Clones are cached; the
-optimized miner re-scans and re-labels in minutes:
-
-```
-run_corpus.sh   # re-run nose across cached snapshots → fresh features + labels
-tune.py all-events.jsonl   # re-fit; compare AUC/weights to the previous nose_ver
-```
-
-The same harness *detects* whether a release needs re-tuning: if AUC and the learned
-weight directions are stable across `nose_ver`, the weights still hold; if they shift,
-re-calibrate. A future optimization caches the nose-independent per-`(file, symbol,
-interval)` change facts so a refresh only re-runs the nose scan + join. A CI guard that
-re-runs `tune.py` on each release and flags weight drift is the intended automation.
+Refresh is a fast, automated re-run (cached clones; the optimized miner re-scans and
+re-labels in minutes), not a rebuild — the same harness *detects* whether a release
+needs re-tuning by comparing weights across `nose_ver`. The **step-by-step release
+procedure, decision table, and acceptance criteria** live in one place:
+[hazard-release-checklist](hazard-release-checklist.md).
 
 ## Threats to validity
 

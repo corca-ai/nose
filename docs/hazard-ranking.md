@@ -259,6 +259,10 @@ results land in [experiments](experiments.md).
 
 ## See also
 
+- [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and dataset this
+  score is calibrated against.
+- [hazard-release-checklist](hazard-release-checklist.md) — what to do for this score on
+  every new nose release.
 - [usage](usage.md#ranking) — the user-facing ranking keys (`extractability`,
   `value`, `sites`; `hazard` to come).
 - [field-evaluation](field-evaluation.md) — why extractability replaced raw value
