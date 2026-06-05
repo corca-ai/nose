@@ -39,7 +39,7 @@ anyhow = "1"
 thiserror = "2"
 clap = { version = "4", features = ["derive"] }
 ignore = "0.4"
-toml = "0.8"
+toml = "1.1"
 
 # Centralized lint policy — every crate opts in with `[lints] workspace = true`,
 # so the quality bar is defined once and enforced uniformly. CI runs clippy with
