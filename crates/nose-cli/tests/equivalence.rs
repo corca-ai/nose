@@ -4001,3 +4001,17 @@ fn loop_accumulator_seed_is_not_abstracted() {
         "two zero-seeded countdown sums must still converge"
     );
 }
+
+#[test]
+fn c_hex_literal_with_e_lowers_to_int_not_float() {
+    // 0xE5 is a hex INTEGER (229); the 'E' is a hex digit, not a float exponent.
+    let i = Interner::new();
+    let il = nose_frontend::lower_source(FileId(0), "t", b"int f(){ return 0xE5; }", Lang::C, &i)
+        .unwrap();
+    let root = first_func(&il);
+    let s = il.to_sexpr(root, &i);
+    assert!(
+        !s.to_lowercase().contains("float"),
+        "0xE5 (hex int) must not lower to a float literal: {s}"
+    );
+}
