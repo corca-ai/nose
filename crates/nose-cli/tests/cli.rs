@@ -1267,6 +1267,169 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_under_opaque_functions(
+) {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_conditional_loop_effect_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "cond_loop_square_a.js",
+            "function condLoopSquareLeft(enabled, xs, out) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
+        ),
+        (
+            "cond_loop_square_b.js",
+            "function condLoopSquareRight(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_square_wrong_guard.js",
+            "function condLoopSquareWrongGuard(flag, ys, dst) {\n  if (!flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_else_a.js",
+            "function condLoopElseLeft(skip, xs, out) {\n  if (skip) {\n  } else {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n  }\n  audit(skip);\n}\n",
+        ),
+        (
+            "cond_loop_else_b.js",
+            "function condLoopElseRight(flag, ys, dst) {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_else_wrong_receiver.js",
+            "function condLoopElseWrongReceiver(flag, ys, dst) {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      ys.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_guard_a.js",
+            "function condLoopGuardLeft(enabled, xs, out) {\n  if (enabled) {\n    for (const x of xs) {\n      if (x > 0) out.push(x + 1);\n    }\n  }\n  audit(enabled);\n}\n",
+        ),
+        (
+            "cond_loop_guard_b.js",
+            "function condLoopGuardRight(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_guard_wrong_value.js",
+            "function condLoopGuardWrongValue(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(2 + y);\n    }\n  }\n  trace(flag);\n}\n",
+        ),
+        (
+            "cond_loop_mutated.js",
+            "function condLoopMutated(enabled, xs, out) {\n  out.push(0);\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
+        ),
+        (
+            "cond_loop_unused.js",
+            "function condLoopUnused(enabled, xs, out) {\n  if (enabled) {\n    for (const unused of xs) {\n      out.push(1);\n    }\n  }\n  audit(enabled);\n}\n",
+        ),
+        (
+            "cond_direct_unused.js",
+            "function condDirectUnused(enabled, out) {\n  if (enabled) {\n    out.push(1);\n  }\n  audit(enabled);\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "100",
+        "--min-tokens",
+        "100",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_conditional_loop_family = |left: &str,
+                                          right: &str,
+                                          negative: &str,
+                                          start_line: u64,
+                                          end_line: u64| {
+        let family = families
+                .iter()
+                .find(|family| {
+                    let locations = family["locations"].as_array().expect("locations");
+                    let fragment_files: Vec<&str> = locations
+                        .iter()
+                        .filter(|loc| {
+                            loc["start_line"] == start_line && loc["end_line"] == end_line
+                        })
+                        .filter_map(|loc| loc["file"].as_str())
+                        .collect();
+                    fragment_files.iter().any(|file| file.ends_with(left))
+                        && fragment_files.iter().any(|file| file.ends_with(right))
+                        && locations.iter().all(|loc| loc["kind"] == "Block")
+                        && locations
+                            .iter()
+                            .filter_map(|loc| loc["file"].as_str())
+                            .all(|file| !file.ends_with(negative))
+                })
+                .unwrap_or_else(|| {
+                    panic!(
+                        "missing exact conditional foreach append-effect fragment family {left}/{right}: {out}"
+                    )
+                });
+        assert!(
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .all(|loc| loc["kind"] == "Block"),
+            "conditional foreach append-effect fragments should report as Block units: {family:?}"
+        );
+    };
+
+    let assert_no_pair = |left: &str, right: &str| {
+        let has_pair = families.iter().any(|family| {
+            let files: Vec<&str> = family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .filter_map(|loc| loc["file"].as_str())
+                .collect();
+            files.iter().any(|file| file.ends_with(left))
+                && files.iter().any(|file| file.ends_with(right))
+        });
+        assert!(
+            !has_pair,
+            "conditional foreach append effect boundary must not merge {left}/{right}: {out}"
+        );
+    };
+
+    assert_conditional_loop_family(
+        "cond_loop_square_a.js",
+        "cond_loop_square_b.js",
+        "cond_loop_square_wrong_guard.js",
+        2,
+        6,
+    );
+    assert_no_pair("cond_loop_square_a.js", "cond_loop_mutated.js");
+    assert_conditional_loop_family(
+        "cond_loop_else_a.js",
+        "cond_loop_else_b.js",
+        "cond_loop_else_wrong_receiver.js",
+        2,
+        7,
+    );
+    assert_conditional_loop_family(
+        "cond_loop_guard_a.js",
+        "cond_loop_guard_b.js",
+        "cond_loop_guard_wrong_value.js",
+        2,
+        6,
+    );
+    assert_no_pair("cond_loop_unused.js", "cond_direct_unused.js");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloaded_languages() {
     let dir = std::env::temp_dir().join(format!(
         "nose_exact_index_assign_fragments_{}",

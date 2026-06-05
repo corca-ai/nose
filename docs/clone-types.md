@@ -84,10 +84,10 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   blocks and exact-safe single-statement fragments (return/throw expressions and simple
   conditional return/throw/effect guards, including bare returns, explicit empty no-op
   branches, and nested branches whose only non-empty statement is another exact
-  conditional, plus ForEach append-effect loops whose only loop-body effects append values
-  that depend on the iteration binding and non-overloadable C/Go/Java index-assignment
-  effects), not arbitrary statement windows with unmodeled free-variable, live-out,
-  receiver-overload, or effect boundaries.
+  conditional or exact ForEach append-effect loop, plus ForEach append-effect loops whose
+  only loop-body effects append values that depend on the iteration binding and
+  non-overloadable C/Go/Java index-assignment effects), not arbitrary statement windows
+  with unmodeled free-variable, live-out, receiver-overload, or effect boundaries.
 
 ## Scan modes, and cross-language
 

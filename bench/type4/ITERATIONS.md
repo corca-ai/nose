@@ -4761,6 +4761,49 @@ Targeted coverage added
 `java_arrays_aslist_single_argument_respects_array_provenance`, plus the existing literal
 collection membership and typed-empty-domain regressions stayed green.
 
+## Fragment batch 11: exact conditional ForEach append-effect branches
+
+This batch extends the batch-10 proof invariant into conditional branch bodies. A direct
+function-body `if` can become an exact `Block` fragment when a non-empty branch contains
+exactly one exact ForEach append-effect loop. The loop must satisfy the same accepted
+contract as batch 10: every loop-body effect is a single-item builtin append, the appended
+value depends on the iteration binding, the append receiver is not the iteration binding,
+and nested per-element branch bodies contain only the same append-effect shape. Empty
+branches remain no-ops, and the outer conditional path guard stays in the value
+fingerprint. General loop call effects remain rejected after the Guava `addAll`/`removeAll`
+counterexample from batch 10.
+
+The three focused positives share one proof invariant: a conditional append-effect loop is
+a guarded per-element observable mutation whose outer guard, inner per-element guard,
+append receiver, and appended value are all represented in the exact value fingerprint.
+Adjacent hard negatives cover wrong outer guard, wrong receiver/collection, wrong inner
+appended value, preceding receiver mutation, and an unused-iteration loop that must not
+merge with a single direct conditional append.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-cond-foreach-1 | candidate extraction | allow a conditional branch body to contain one exact ForEach append-effect loop | 3 focused conditional append-loop families reported as `Block` units |
+| fragment-cond-foreach-2 | soundness boundary | reuse the batch-10 append dependency rule inside conditional branches and keep empty branches as no-ops | wrong guard/value/receiver, mutation, and unused-iteration negatives excluded |
+| fragment-cond-foreach-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-cond-foreach-4 | real delta | selected JS/Python/TS and C/Go/Java scans produced no new evidence-backed real family under the narrowed invariant | JS/Python/TS stayed at 66 families; C/Go/Java stayed at 940 families; added/removed 0/0 |
+| fragment-cond-foreach-5 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 16.5ms, candidates 2.7ms, score 0.6ms; 66 semantic families |
+| fragment-cond-foreach-6 | performance | scan `bench/repos/curl bench/repos/gin bench/repos/guava` with `NOSE_TIME=1` | 4357 files; normalize+extract 169.4ms, candidates 33.2ms, score 0.6ms; 940 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_under_opaque_functions
+3 exact conditional ForEach append-effect fragment families found; wrong guard/value/receiver, mutation, and unused-iteration negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```
+
 ## Fragment batch 1: exact top-level statement fragments
 
 This batch expands semantic recall at the unit boundary, not by weakening semantic

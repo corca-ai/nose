@@ -1902,6 +1902,7 @@ fn empty_or_single_direct_exact_statement_block(il: &Il, node: NodeId) -> Option
         NodeKind::Assign if exact_index_assignment_fragment_root(il, kids[0]) => Some(true),
         NodeKind::ExprStmt if exact_expr_statement_fragment_root(il, kids[0]) => Some(true),
         NodeKind::If if exact_conditional_fragment_root(il, kids[0]) => Some(true),
+        NodeKind::Loop if exact_loop_effect_fragment_root(il, kids[0]) => Some(true),
         _ => None,
     }
 }

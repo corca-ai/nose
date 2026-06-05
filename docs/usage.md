@@ -134,7 +134,8 @@ handled.
 By default, sub-function units include bounded control-flow blocks and exact-safe
 single-statement fragments such as return/throw expressions and simple
 conditional return/throw/effect guards, including bare returns, explicit empty no-op
-branches, and nested branches whose only non-empty statement is another exact conditional.
+branches, and nested branches whose only non-empty statement is another exact conditional
+or exact ForEach append-effect loop.
 They also include ForEach append-effect loops whose only loop-body effects append values
 that depend on the iteration binding, plus C/Go/Java index-assignment effects where index
 assignment is not receiver-overloadable. Those fragments are reported only when the whole
