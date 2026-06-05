@@ -230,21 +230,25 @@ pub(crate) fn import_binding(
     module: &str,
     exported: &str,
 ) -> NodeId {
-    let lhs = lo.var(local, span);
-    let module = lo.str_lit(module, span);
-    let exported = lo.str_lit(exported, span);
-    let tag = lo.sym("import_binding");
-    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &[module, exported]);
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+    import_fact(lo, span, local, "import_binding", &[module, exported])
 }
 
 /// A strict semantic proof fact for a static namespace import:
 /// local namespace → module coordinate.
 pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {
+    import_fact(lo, span, local, "import_namespace", &[module])
+}
+
+/// Shared shape of the static-import proof facts: `local = Seq[tag](str_lit(c) for c in
+/// coords)`. Both `import_binding` and `import_namespace` build this exact form, differing
+/// only in the Seq tag and the coordinate count. The node-allocation order — lhs var, then
+/// each coordinate string, then the Seq, then the Assign — is preserved identically to the
+/// original two functions.
+fn import_fact(lo: &mut Lowering, span: Span, local: &str, tag: &str, coords: &[&str]) -> NodeId {
     let lhs = lo.var(local, span);
-    let module = lo.str_lit(module, span);
-    let tag = lo.sym("import_namespace");
-    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &[module]);
+    let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
+    let tag = lo.sym(tag);
+    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &strs);
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
