@@ -536,25 +536,21 @@ pub(crate) fn collect_into(
 }
 
 /// Lower a C-family `switch` (scrutinee in the `condition` field, case groups in
-/// `body`) to an `if`/else-if chain — the case groups become branches in source
-/// order, the last as the innermost `else`. Frontends supply only which child nodes
-/// are case groups (`is_case`) and how to lower the scrutinee and statements.
-///
-/// NOTE: case *values* are not yet matched — each branch's condition is a
-/// placeholder `Eq(scrutinee, scrutinee)`. This captures switch *shape* so it
-/// converges structurally with an `if`/`elif` chain; refining it to compare against
-/// real case labels is future work, but it lives in exactly one place now.
+/// `body`) to an `if`/else-if chain. Case labels become `scrutinee == label`
+/// conditions; a default label becomes the final `else`. Frontends supply only
+/// which child nodes are case groups (`is_case`) and how to lower expressions and
+/// statements.
 pub(crate) fn switch_to_if_chain(
     lo: &mut Lowering,
     node: TsNode,
     is_case: impl Fn(&str) -> bool,
-    lower_scrutinee: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
+    mut lower_expr: impl FnMut(&mut Lowering, TsNode) -> NodeId,
     mut lower_stmt: impl FnMut(&mut Lowering, TsNode) -> Option<NodeId>,
 ) -> NodeId {
     let span = lo.span(node);
     let scrutinee = node
         .child_by_field_name("condition")
-        .map(|c| lower_scrutinee(lo, c))
+        .map(|c| lower_expr(lo, c))
         .unwrap_or_else(|| lo.empty_block(span));
     let cases: Vec<TsNode> = node
         .child_by_field_name("body")
@@ -565,24 +561,109 @@ pub(crate) fn switch_to_if_chain(
                 .collect()
         })
         .unwrap_or_default();
-    let mut acc = lo.empty_block(span);
-    for case in cases.iter().rev() {
-        let mut stmts = Vec::new();
-        for s in Lowering::named_children(*case) {
-            if let Some(id) = lower_stmt(lo, s) {
-                stmts.push(id);
-            }
+
+    let mut branches = Vec::new();
+    let mut default_block = None;
+    for case in cases {
+        let (labels, block) = lower_switch_case(lo, case, span, &mut lower_expr, &mut lower_stmt);
+        match fold_switch_case_labels(lo, span, scrutinee, labels) {
+            Some(cond) => branches.push((cond, block)),
+            None => default_block = Some(block),
         }
-        let block = lo.add(NodeKind::Block, Payload::None, span, &stmts);
+    }
+
+    let mut acc = default_block.unwrap_or_else(|| lo.empty_block(span));
+    for (cond, block) in branches.into_iter().rev() {
+        acc = lo.add(NodeKind::If, Payload::None, span, &[cond, block, acc]);
+    }
+    acc
+}
+
+fn lower_switch_case<E, S>(
+    lo: &mut Lowering,
+    case: TsNode,
+    span: Span,
+    lower_expr: &mut E,
+    lower_stmt: &mut S,
+) -> (Vec<NodeId>, NodeId)
+where
+    E: FnMut(&mut Lowering, TsNode) -> NodeId,
+    S: FnMut(&mut Lowering, TsNode) -> Option<NodeId>,
+{
+    let mut labels = Vec::new();
+    let mut stmts = Vec::new();
+    let mut label_phase = true;
+    let mut saw_explicit_label = false;
+
+    for child in Lowering::named_children(case) {
+        if label_phase && child.kind() == "switch_label" {
+            saw_explicit_label = true;
+            for label in Lowering::named_children(child) {
+                labels.push(lower_expr(lo, label));
+            }
+            continue;
+        }
+        if label_phase && !saw_explicit_label && !is_switch_body_child(child.kind()) {
+            labels.push(lower_expr(lo, child));
+            continue;
+        }
+
+        label_phase = false;
+        if let Some(id) = lower_stmt(lo, child) {
+            stmts.push(id);
+        }
+    }
+
+    let block = lo.add(NodeKind::Block, Payload::None, span, &stmts);
+    (labels, block)
+}
+
+fn fold_switch_case_labels(
+    lo: &mut Lowering,
+    span: Span,
+    scrutinee: NodeId,
+    labels: Vec<NodeId>,
+) -> Option<NodeId> {
+    let mut acc = None;
+    for label in labels {
         let cond = lo.add(
             NodeKind::BinOp,
             Payload::Op(Op::Eq),
             span,
-            &[scrutinee, scrutinee],
+            &[scrutinee, label],
         );
-        acc = lo.add(NodeKind::If, Payload::None, span, &[cond, block, acc]);
+        acc = Some(match acc {
+            None => cond,
+            Some(prev) => lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[prev, cond]),
+        });
     }
     acc
+}
+
+fn is_switch_body_child(kind: &str) -> bool {
+    matches!(
+        kind,
+        "assert_statement"
+            | "block"
+            | "break_statement"
+            | "compound_statement"
+            | "continue_statement"
+            | "declaration"
+            | "do_statement"
+            | "expression_statement"
+            | "for_statement"
+            | "if_statement"
+            | "labeled_statement"
+            | "local_variable_declaration"
+            | "return_statement"
+            | "switch_statement"
+            | "synchronized_statement"
+            | "throw_statement"
+            | "try_statement"
+            | "try_with_resources_statement"
+            | "while_statement"
+            | "yield_statement"
+    )
 }
 
 /// Build a `Func` unit from a `name`/`parameters`/`body`-shaped node and register

@@ -758,6 +758,56 @@ mod tests {
             .collect()
     }
 
+    fn switch_case_rhs_ints(src: &str) -> Vec<i64> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "T.java", src.as_bytes(), &interner).expect("lower");
+        il.nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, n)| n.kind == NodeKind::BinOp && n.payload == Payload::Op(Op::Eq))
+            .filter_map(|(idx, _)| {
+                let kids = il.children(NodeId(idx as u32));
+                match kids {
+                    [_, rhs] => match il.node(*rhs).payload {
+                        Payload::LitInt(value) => Some(value),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    fn expr_stmt_ints(src: &str) -> Vec<i64> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "T.java", src.as_bytes(), &interner).expect("lower");
+        il.nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, n)| n.kind == NodeKind::ExprStmt)
+            .filter_map(|(idx, _)| {
+                let kids = il.children(NodeId(idx as u32));
+                match kids {
+                    [expr] => match il.node(*expr).payload {
+                        Payload::LitInt(value) => Some(value),
+                        _ => None,
+                    },
+                    _ => None,
+                }
+            })
+            .collect()
+    }
+
+    #[test]
+    fn switch_cases_compare_scrutinee_to_case_literals() {
+        let src = "class C { int f(int x){ switch(x){ case 7: return 1; case 8: return 2; default: return 3; } } }";
+        assert_eq!(switch_case_rhs_ints(src), vec![7, 8]);
+        assert!(
+            expr_stmt_ints(src).is_empty(),
+            "case labels should not remain as stray expression statements"
+        );
+    }
+
     #[test]
     fn postfix_increment_with_nested_decrement_in_operand() {
         // `a[i--]++` desugars with the OUTER op being increment (`+ 1`); a substring
