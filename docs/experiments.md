@@ -727,6 +727,17 @@ not the weights, so we mined ground truth before implementing.
   real clones (near@0.70 precision). → `hazard` reverted to opt-in (default stays
   `extractability`); a real harm ranker needs git-history + a larger gold + better clone
   precision.
+- **BG-gold2 — the structural+history ceiling is ~0.60 (definitive).** Did all three:
+  a clone-quality gate (`shared_weight≥4`), a larger gold (2,296 labeled, 51 confirmed
+  harm positives, usable CIs), and a git-history feature (blame: were the changed vs
+  lagging member last touched *together*?). Harm-AUC: `-skew_days` 0.600, `mean_sem` 0.572,
+  `same_commit` 0.568, `hazard` 0.531, `extractability` 0.475; a leave-one-repo-out logistic
+  **combination 0.524 — no lift.** git-history is real and theory-aligned (harm happens in
+  families previously maintained *together*, Barbour/Kim) but weak and only ~52%
+  computable; the gate still left 46% non-clones. **Conclusion: clone-structural +
+  git-history features cannot rank harm above ~0.60.** Harm is semantic — the LLM judge
+  captures it (the gold's basis), metrics do not. The evidence-indicated harm ranker is a
+  **bounded LLM pass over top-K structurally-surfaced candidates**, not more features.
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,

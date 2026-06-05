@@ -135,10 +135,39 @@ CIs; the robust claim is the *transfer failure*, not the exact numbers.)
 Also surfaced: **698 of 1,390 candidates (50%) are not genuine clones** per the LLM — a
 `near@0.70` precision problem that adds noise to everything downstream.
 
-**Consequences:** (1) the default stays `extractability`; `hazard` is experimental
-opt-in. (2) A real harm ranker needs signal static features lack — **git-history
-(realized prior divergence)**, a **larger gold** (label ~5–10k for ~150 positives), and
-**better clone precision** than near@0.70. That is the active work.
+**Consequences:** the default stays `extractability`; `hazard` is experimental opt-in.
+
+### Round 2 — larger gold + git-history (the ceiling is real)
+
+We then did exactly what the round-1 limits called for: a **clone-quality gate**
+(`shared_weight ≥ 4`, the best static is-clone separator, AUC 0.68), a **larger gold**
+(2,296 labeled, reusing round-1 + 1,602 fresh LLM labels with adversarial verify → **51
+confirmed harm positives**, 2.2%), and a **git-history** feature (blame the changed vs
+lagging member's function at the snapshot — were they last touched together?). Harm-AUC,
+now with usable CIs (±~0.07):
+
+| scorer | harm-AUC (51 positives) |
+|---|---|
+| `-skew_days` (git-history: touched closer in time → harm) | **0.600** |
+| `mean_sem` | 0.572 |
+| `same_commit` (git-history) | 0.568 |
+| `hazard` | 0.531 |
+| `extractability` | 0.475 |
+| leave-one-repo-out logistic **combination** of all | **0.524 (no lift)** |
+
+**The ceiling is ~0.60, and combining static + git-history does not beat the best single
+signal.** git-history is real and theoretically sound (harmful divergences happen in
+families previously maintained *together*, consistent with Barbour/Kim) but weak, and
+only computable for ~52% of candidates (git funcname tracking). The clone-quality gate
+still left 46% non-clones — `near@0.70` precision is a deep issue.
+
+**Definitive conclusion:** a good harm ranker **cannot** be built from clone-structural +
+git-history features — they cap at ~0.60. Harm is fundamentally *semantic* ("does this
+specific change apply to the sibling?"): the LLM judge captures it (that is how the gold
+was built), structural/historical features barely do. The evidence-indicated path to a
+real harm ranker is a **semantic layer** — e.g. a bounded LLM pass over the top-K
+structurally-surfaced candidates (the same judgment the gold pipeline uses), not more
+metrics.
 
 ## Gold-label audit (LLM-judge)
 
