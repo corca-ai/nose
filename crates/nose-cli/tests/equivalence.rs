@@ -1889,6 +1889,43 @@ fn value_graph_keeps_try_throw_prefix_effects() {
 }
 
 #[test]
+fn value_graph_runs_try_handler_after_static_expr_err() {
+    let i = Interner::new();
+    let try_err = "def f():\n    try:\n        1 / 0\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, try_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a statically visible expression error should run the simple catch handler"
+    );
+}
+
+#[test]
+fn value_graph_runs_try_handler_after_static_return_err() {
+    let i = Interner::new();
+    let try_err =
+        "def f():\n    try:\n        return 1 / 0\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, try_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "a statically visible return expression error is not a normal try-body return"
+    );
+}
+
+#[test]
+fn value_graph_keeps_try_static_expr_err_prefix_effects() {
+    let i = Interner::new();
+    let effect_then_err = "def f():\n    try:\n        print(1)\n        1 / 0\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_ne!(
+        value_fp(&i, effect_then_err, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "observable effects before a runtime error must not be discarded with the try body"
+    );
+}
+
+#[test]
 fn value_graph_distinguishes_membership_and_negation() {
     // `in` is directional membership, not equality: `a in b` ≠ `b in a` ≠ `a == b`.
     // And `not in` / `is not` must keep their negation (`x is not None` ≢ `x is None`).

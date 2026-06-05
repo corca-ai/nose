@@ -2875,6 +2875,53 @@ impl<'a> Builder<'a> {
         }
     }
 
+    fn is_effect_free_static_err_body(
+        &mut self,
+        node: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
+        match self.il.kind(node) {
+            NodeKind::ExprStmt => self
+                .il
+                .children(node)
+                .first()
+                .is_some_and(|&expr| self.expr_is_static_runtime_err(expr, env)),
+            NodeKind::Return => self
+                .il
+                .children(node)
+                .first()
+                .is_some_and(|&expr| self.expr_is_static_runtime_err(expr, env)),
+            NodeKind::Block => {
+                let Some((&last, prefix)) = self.il.children(node).split_last() else {
+                    return false;
+                };
+                prefix
+                    .iter()
+                    .all(|&stmt| self.is_effect_free_throw_prefix(stmt))
+                    && self.is_effect_free_static_err_body(last, env)
+            }
+            _ => false,
+        }
+    }
+
+    fn expr_is_static_runtime_err(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
+        if self.il.kind(expr) != NodeKind::BinOp {
+            return false;
+        }
+        let kids = self.il.children(expr);
+        if kids.len() != 2 {
+            return false;
+        }
+        let Payload::Op(op) = self.il.node(expr).payload else {
+            return false;
+        };
+        let rhs = self.eval(kids[1], env);
+        match op {
+            Op::Div | Op::Mod => self.int_const_eq(rhs, 0),
+            _ => false,
+        }
+    }
+
     /// Walk a container (class/module body), folding each contained method's behavior
     /// into the current sinks. A `Func` is processed in its own parameter scope (its
     /// returns/effects become the container's), so the container's fingerprint is the
@@ -3034,6 +3081,10 @@ impl<'a> Builder<'a> {
             NodeKind::Loop => self.process_loop(stmt, env),
             NodeKind::Try => {
                 let kids = self.il.children(stmt).to_vec();
+                if kids.len() == 2 && self.is_effect_free_static_err_body(kids[0], env) {
+                    self.process_stmt(kids[1], env);
+                    return;
+                }
                 if kids.len() == 2 && self.branch_returns(kids[0]) {
                     self.process_stmt(kids[0], env);
                     return;
