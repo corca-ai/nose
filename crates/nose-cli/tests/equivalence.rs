@@ -1828,6 +1828,18 @@ fn value_graph_distinguishes_throw_from_expression_effect() {
 }
 
 #[test]
+fn value_graph_reads_field_written_in_unit() {
+    let i = Interner::new();
+    let read_field = "def f(self):\n    self.x = 7\n    return self.x\n";
+    let return_value = "def f(self):\n    self.x = 7\n    return 7\n";
+    assert_eq!(
+        value_fp(&i, read_field, Lang::Python),
+        value_fp(&i, return_value, Lang::Python),
+        "a field read after a same-unit field write should resolve to the written value"
+    );
+}
+
+#[test]
 fn value_graph_distinguishes_membership_and_negation() {
     // `in` is directional membership, not equality: `a in b` ≠ `b in a` ≠ `a == b`.
     // And `not in` / `is not` must keep their negation (`x is not None` ≢ `x is None`).

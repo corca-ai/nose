@@ -191,7 +191,9 @@ range-index loops are checked under the same bounded input semantics. Bare `thro
 statements execute as observable `Err` behavior and value-graph `Throw` sinks, not plain
 expression effects, while exception handlers remain outside the interpreter rather than
 guessed. Field reads are interpreted only after the same unit has written that field; an
-unwritten field access remains unsupported rather than invented.
+unwritten field access remains unsupported rather than invented. The value graph follows the
+same boundary: `self.x = v; return self.x` resolves the read to `v`, while an unproven field
+read stays field-shaped.
 
 Out of scope (sound but not yet convergent, or genuinely hard): tree & mutual recursion
 (multiple / non-tail self-calls); list-tail catamorphisms `head ⊕ f(xs[1:])`, whose slice is

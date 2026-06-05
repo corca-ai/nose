@@ -5474,6 +5474,9 @@ impl<'a> Builder<'a> {
                         }
                     }
                 }
+                if let Some(&written) = self.field_env.get(&name) {
+                    return written;
+                }
                 self.mk(ValOp::Field(name), a)
             }
             NodeKind::Index => {
