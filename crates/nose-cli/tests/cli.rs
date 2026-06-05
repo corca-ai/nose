@@ -576,6 +576,117 @@ fn semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_fu
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_functions() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_exact_throw_guard_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "square_throw_guard_a.js",
+            "function squareThrowLeft(xs) {\n  if (xs[0] > 0) {\n    throw xs[0] * xs[0];\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "square_throw_guard_b.js",
+            "function squareThrowRight(ys) {\n  if (0 < ys[0]) {\n    throw ys[0] * ys[0];\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "square_throw_guard_neg.js",
+            "function squareThrowWrong(zs) {\n  if (zs[0] > 1) {\n    throw zs[0] * zs[0];\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "sum_throw_guard_a.js",
+            "function sumThrowLeft(xs) {\n  if (xs[0] + xs[1] > 10) {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "sum_throw_guard_b.js",
+            "function sumThrowRight(ys) {\n  if (10 < ys[1] + ys[0]) {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "sum_throw_guard_neg.js",
+            "function sumThrowWrong(zs) {\n  if (zs[0] + zs[1] > 10) {\n    throw zs[0] - zs[1];\n  }\n  audit(zs);\n}\n",
+        ),
+        (
+            "both_throw_guard_a.js",
+            "function bothThrowLeft(xs) {\n  if (xs[0] > 0 && xs[1] > 0) {\n    throw xs[0] + xs[1];\n  }\n  audit(xs);\n}\n",
+        ),
+        (
+            "both_throw_guard_b.js",
+            "function bothThrowRight(ys) {\n  if (ys[1] > 0 && ys[0] > 0) {\n    throw ys[1] + ys[0];\n  }\n  trace(ys);\n}\n",
+        ),
+        (
+            "both_throw_guard_mutated.js",
+            "function bothThrowMutated(zs) {\n  zs.push(1);\n  if (zs[0] > 0 && zs[1] > 0) {\n    throw zs[0] + zs[1];\n  }\n  audit(zs);\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_guard_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let files: Vec<&str> = family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+            })
+            .unwrap_or_else(|| {
+                panic!("missing exact conditional throw fragment family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations.iter().all(|loc| loc["kind"] == "Block"),
+            "conditional throw fragments should report as Block units: {family:?}"
+        );
+        assert!(
+            locations
+                .iter()
+                .all(|loc| !loc["file"].as_str().unwrap_or("").ends_with(negative)),
+            "hard negative must not merge into {left}/{right}: {family:?}"
+        );
+    };
+
+    assert_guard_family(
+        "square_throw_guard_a.js",
+        "square_throw_guard_b.js",
+        "square_throw_guard_neg.js",
+    );
+    assert_guard_family(
+        "sum_throw_guard_a.js",
+        "sum_throw_guard_b.js",
+        "sum_throw_guard_neg.js",
+    );
+    assert_guard_family(
+        "both_throw_guard_a.js",
+        "both_throw_guard_b.js",
+        "both_throw_guard_mutated.js",
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
     let dir =
         std::env::temp_dir().join(format!("nose_exact_throw_fragments_{}", std::process::id()));

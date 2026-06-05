@@ -4863,3 +4863,42 @@ Focused regression:
 cargo test -p nose-cli semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions
 3 exact throw fragment families found; wrong literal/operator/mutation negatives excluded.
 ```
+
+## Fragment batch 4: exact conditional-throw guard fragments
+
+This batch keeps the same exact semantic contract and generalizes the conditional fragment
+root predicate from single direct `return` branches to single direct valued exits:
+`return <expr>` or `throw <expr>`. Direct function-body `if` statements can become exact
+`Block` fragments when each present branch body has exactly one valued exit statement.
+The surrounding guard is unchanged: spans must be self-contained, the `if` must be a
+direct function-body statement, preceding siblings must not assign/alias/mutate/unknown-call
+any cid used by the fragment, and semantic acceptance still requires `exact_safe` plus the
+value-size gate.
+
+The three positives share one proof invariant: a conditional throw is an effect-bearing
+fragment whose thrown value is guarded by the condition in the value graph. The batch
+covers operand-reversed numeric guards, commuted sum guards, and commuted conjunction
+guards. Adjacent hard negatives cover a wrong guard threshold, a wrong thrown expression,
+and preceding receiver mutation.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-throw-guard-1 | candidate extraction | upgrade eligible direct `if` roots with single valued `throw` branches as exact fragments | 3 focused conditional-throw families reported as `Block` units |
+| fragment-throw-guard-2 | soundness boundary | require every present branch to be exactly one valued `return` or `throw` and reuse preceding mutation guards | wrong guard/value/mutation negatives excluded |
+| fragment-throw-guard-3 | regression | full unit/CLI/equivalence suite, core smoke, clippy, duplication, docs lint | `cargo test` pass; core smoke 626/626 positives and 0/1233 hard-negative false merges |
+| fragment-throw-guard-4 | performance | scan `bench/repos/flask bench/repos/axios bench/repos/rust` with `NOSE_TIME=1` | 335 files; normalize+extract 18.1ms, candidates 3.5ms, score 0.4ms; 65 semantic families |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_functions
+3 exact conditional-throw fragment families found; wrong guard/value/mutation negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 626/626
+hard-negative false merges: 0/1233
+```

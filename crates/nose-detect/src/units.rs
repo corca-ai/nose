@@ -1857,27 +1857,29 @@ fn exact_statement_fragment_root(
                         | NodeKind::Lit
                 )
         }
-        NodeKind::If => exact_conditional_return_fragment_root(il, node),
+        NodeKind::If => exact_conditional_exit_fragment_root(il, node),
         _ => false,
     }
 }
 
-fn exact_conditional_return_fragment_root(il: &Il, node: NodeId) -> bool {
+fn exact_conditional_exit_fragment_root(il: &Il, node: NodeId) -> bool {
     let kids = il.children(node);
     if !(kids.len() == 2 || kids.len() == 3) {
         return false;
     }
     kids.iter()
         .skip(1)
-        .all(|&branch| single_direct_return_block(il, branch))
+        .all(|&branch| single_direct_valued_exit_block(il, branch))
 }
 
-fn single_direct_return_block(il: &Il, node: NodeId) -> bool {
+fn single_direct_valued_exit_block(il: &Il, node: NodeId) -> bool {
     if il.kind(node) != NodeKind::Block {
         return false;
     }
     let kids = il.children(node);
-    kids.len() == 1 && il.kind(kids[0]) == NodeKind::Return && !il.children(kids[0]).is_empty()
+    kids.len() == 1
+        && matches!(il.kind(kids[0]), NodeKind::Return | NodeKind::Throw)
+        && !il.children(kids[0]).is_empty()
 }
 
 fn top_level_statement_fragment_context_safe(
