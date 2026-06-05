@@ -198,8 +198,8 @@ expression effects. The interpreter models the simple `try`/handler form only wh
 no `finally` and the handler is non-empty; the handler runs after an explicit throw or a
 runtime `Err` crossing a statement boundary, and stays skipped after a normal return. The
 value graph mirrors the normal-return half of that boundary by skipping the handler after an
-unconditional try-body return, and also replaces a side-effect-free bare-throw try body with
-its handler. Richer exception control flow remains outside the oracle.
+unconditional try-body return, and also replaces a side-effect-free try body that ends in a
+throw with its handler. Richer exception control flow remains outside the oracle.
 Field reads are interpreted only after the same unit has written that field; an unwritten
 field access remains unsupported rather than invented. The value graph follows the same
 boundary: `self.x = v; return self.x` resolves the read to `v`, while an unproven field read

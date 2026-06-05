@@ -2842,12 +2842,35 @@ impl<'a> Builder<'a> {
         }
     }
 
-    fn is_effect_free_bare_throw(&self, node: NodeId) -> bool {
+    fn is_effect_free_throw_body(&self, node: NodeId) -> bool {
         match self.il.kind(node) {
             NodeKind::Throw => true,
             NodeKind::Block => {
-                matches!(self.il.children(node), [only] if self.il.kind(*only) == NodeKind::Throw)
+                let Some((&last, prefix)) = self.il.children(node).split_last() else {
+                    return false;
+                };
+                self.il.kind(last) == NodeKind::Throw
+                    && prefix
+                        .iter()
+                        .all(|&stmt| self.is_effect_free_throw_prefix(stmt))
             }
+            _ => false,
+        }
+    }
+
+    fn is_effect_free_throw_prefix(&self, node: NodeId) -> bool {
+        match self.il.kind(node) {
+            NodeKind::ExprStmt => self
+                .il
+                .children(node)
+                .first()
+                .is_none_or(|&expr| crate::is_pure(self.il, expr)),
+            NodeKind::Block => self
+                .il
+                .children(node)
+                .iter()
+                .all(|&stmt| self.is_effect_free_throw_prefix(stmt)),
+            NodeKind::Seq => self.il.children(node).is_empty(),
             _ => false,
         }
     }
@@ -3015,7 +3038,7 @@ impl<'a> Builder<'a> {
                     self.process_stmt(kids[0], env);
                     return;
                 }
-                if kids.len() == 2 && self.is_effect_free_bare_throw(kids[0]) {
+                if kids.len() == 2 && self.is_effect_free_throw_body(kids[0]) {
                     self.process_stmt(kids[1], env);
                     return;
                 }

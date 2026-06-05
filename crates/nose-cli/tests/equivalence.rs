@@ -1865,6 +1865,30 @@ fn value_graph_runs_try_handler_after_bare_throw() {
 }
 
 #[test]
+fn value_graph_runs_try_handler_after_pure_throw_prefix() {
+    let i = Interner::new();
+    let try_throw = "function f() { try { 1 + 2; throw \"x\"; } catch (err) { return 7; } }";
+    let plain_return = "function f() { return 7; }";
+    assert_eq!(
+        value_fp(&i, try_throw, Lang::JavaScript),
+        value_fp(&i, plain_return, Lang::JavaScript),
+        "pure statements before a throw should not block the simple catch handler"
+    );
+}
+
+#[test]
+fn value_graph_keeps_try_throw_prefix_effects() {
+    let i = Interner::new();
+    let effect_then_throw = "def f():\n    try:\n        print(1)\n        raise Exception()\n    except Exception:\n        return 7\n";
+    let plain_return = "def f():\n    return 7\n";
+    assert_ne!(
+        value_fp(&i, effect_then_throw, Lang::Python),
+        value_fp(&i, plain_return, Lang::Python),
+        "observable effects before a throw must not be discarded with the try body"
+    );
+}
+
+#[test]
 fn value_graph_distinguishes_membership_and_negation() {
     // `in` is directional membership, not equality: `a in b` ≠ `b in a` ≠ `a == b`.
     // And `not in` / `is not` must keep their negation (`x is not None` ≢ `x is None`).
