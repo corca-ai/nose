@@ -49,6 +49,7 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
         }
         "class_definition" => Some(lower_class(lo, node)),
         "if_statement" => Some(lower_if(lo, node)),
+        "match_statement" => Some(lower_match(lo, node)),
         "for_statement" => Some(lower_for(lo, node)),
         "while_statement" => Some(lower_while(lo, node)),
         "return_statement" => {
@@ -386,6 +387,51 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_while(lo: &mut Lowering, node: TsNode) -> NodeId {
     crate::lower::while_loop(lo, node, lower_expr, |lo, b| lower_block(lo, b, false))
+}
+
+fn lower_match(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let subject = Lowering::named_children(node)
+        .into_iter()
+        .find(|child| child.kind() != "block")
+        .map(|child| lower_expr(lo, child))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let clauses: Vec<TsNode> = Lowering::named_children(node)
+        .into_iter()
+        .flat_map(|child| Lowering::named_children(child).into_iter())
+        .filter(|child| child.kind() == "case_clause")
+        .collect();
+
+    let mut acc = lo.empty_block(span);
+    for clause in clauses.into_iter().rev() {
+        let cspan = lo.span(clause);
+        let body = Lowering::named_children(clause)
+            .into_iter()
+            .rev()
+            .find(|child| child.kind() == "block")
+            .map(|body| lower_block(lo, body, false))
+            .unwrap_or_else(|| lo.empty_block(cspan));
+        let Some(pattern) = Lowering::named_children(clause)
+            .into_iter()
+            .find(|child| child.kind() == "case_pattern")
+        else {
+            acc = body;
+            continue;
+        };
+        let pattern_children = Lowering::named_children(pattern);
+        if pattern_children.is_empty()
+            || pattern_children
+                .first()
+                .is_some_and(|child| child.kind() == "identifier" && lo.text(*child) == "_")
+        {
+            acc = body;
+            continue;
+        }
+        let pat = lower_expr(lo, pattern_children[0]);
+        let cond = lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), cspan, &[subject, pat]);
+        acc = lo.add(NodeKind::If, Payload::None, cspan, &[cond, body, acc]);
+    }
+    acc
 }
 
 fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -952,4 +998,36 @@ fn py_cmp_op(text: &str) -> Option<(Op, bool)> {
         "is not" => (Op::Eq, true),
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn literal_match_lowers_without_raw_case_nodes() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    match x:\n        case 0:\n            return 1\n        case _:\n            return x\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(raw.is_empty(), "match should lower without Raw: {raw:?}");
+        assert!(
+            il.nodes.iter().any(|node| node.kind == NodeKind::If),
+            "match should lower to an if-chain"
+        );
+    }
 }
