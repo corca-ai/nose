@@ -897,10 +897,11 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
                     Int(x.wrapping_rem(*y))
                 }
             }
-            // A negative exponent has no i64 value (it is fractional), so it errs like
-            // Div/Mod by zero rather than being clamped to `0` — clamping made `b ** -n`
-            // collapse onto `b ** 0 == 1` and could license a false merge.
-            Op::Pow if *y < 0 => Value::Err,
+            // An exponent that isn't a non-negative `u32` has no usable value here: a
+            // negative one is fractional, and one past `u32::MAX` truncated under `as u32`
+            // (so `b ** 2^32` collapsed onto `b ** 0 == 1`). Both err, like Div/Mod by zero,
+            // rather than silently colliding distinct exponents.
+            Op::Pow if !(0..=u32::MAX as i64).contains(y) => Value::Err,
             Op::Pow => Int(x.wrapping_pow(*y as u32)),
             Op::Eq => Bool(x == y),
             Op::Ne => Bool(x != y),
@@ -946,7 +947,9 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
 
 fn un(op: Op, a: &Value) -> Value {
     match (op, a) {
-        (Op::Neg, Value::Int(i)) => Value::Int(-i),
+        // `wrapping_neg` (not `-i`) so negating `i64::MIN` wraps to `i64::MIN` instead of
+        // panicking on overflow — consistent with the wrapping binary arithmetic above.
+        (Op::Neg, Value::Int(i)) => Value::Int(i.wrapping_neg()),
         (Op::Pos, Value::Int(i)) => Value::Int(*i),
         (Op::BitNot, Value::Int(i)) => Value::Int(!i),
         // Negating an ERROR propagates the error — `not (1/0)` raises in Python, it does
@@ -1021,5 +1024,42 @@ mod tests {
         assert_eq!(run_pow(2, 3), Value::Int(8));
         assert_eq!(run_pow(2, 0), Value::Int(1));
         assert_eq!(run_pow(2, -1), Value::Err);
+    }
+
+    #[test]
+    fn pow_exponent_beyond_u32_is_err_not_truncated() {
+        // The exponent was cast `as u32`, so `2 ** 2^32` truncated to `2 ** 0 == 1` —
+        // colliding distinct exponents. An exponent that doesn't fit u32 has no usable
+        // value here, so it errs rather than wrap to a smaller exponent.
+        assert_eq!(run_pow(2, 1 << 32), Value::Err);
+        assert_eq!(run_pow(2, (1 << 32) + 5), Value::Err);
+    }
+
+    /// Build `fn() { return -lit }` over an integer literal and run it.
+    fn run_neg(v: i64) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let x = b.add(NodeKind::Lit, Payload::LitInt(v), sp, &[]);
+        let neg = b.add(NodeKind::UnOp, Payload::Op(Op::Neg), sp, &[x]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[neg]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn neg_of_i64_min_wraps_instead_of_panicking() {
+        // Plain `-i` panics on `i64::MIN` (overflow); every other arithmetic op here uses
+        // wrapping semantics, so negation must too — `wrapping_neg(i64::MIN) == i64::MIN`.
+        assert_eq!(run_neg(5), Value::Int(-5));
+        assert_eq!(run_neg(i64::MIN), Value::Int(i64::MIN));
     }
 }

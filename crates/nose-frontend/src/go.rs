@@ -7,7 +7,7 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
 };
 use tree_sitter::Node as TsNode;
 
@@ -242,13 +242,18 @@ fn lower_assign_like(lo: &mut Lowering, node: TsNode) -> NodeId {
         let lspan = lo.span(*l);
         let lhs = lower_expr(lo, *l);
         let rhs = if compound {
-            let op = js_like_compound_op(op_text).unwrap_or(Op::Add);
             let lhs2 = lower_expr(lo, *l);
             let r = rights
                 .get(i)
                 .map(|n| lower_expr(lo, *n))
                 .unwrap_or_else(|| lo.empty_block(lspan));
-            lo.add(NodeKind::BinOp, Payload::Op(op), lspan, &[lhs2, r])
+            // `a &^= b` → `a = a & ^b`, same bit-clear desugar as the binary form.
+            if op_text.trim_end_matches('=') == "&^" {
+                go_bitclear(lo, lspan, lhs2, r)
+            } else {
+                let op = js_like_compound_op(op_text).unwrap_or(Op::Add);
+                lo.add(NodeKind::BinOp, Payload::Op(op), lspan, &[lhs2, r])
+            }
         } else {
             rights
                 .get(i)
@@ -706,7 +711,29 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    // `a &^ b` (bit-clear / AND-NOT) desugars to `a & ^b`; the generic op-map can only
+    // yield a single BinOp, so it is built here rather than in `go_bin_op`.
+    if node.child_by_field_name("operator").map(|o| lo.text(o)) == Some("&^") {
+        let span = lo.span(node);
+        let l = node
+            .child_by_field_name("left")
+            .map(|x| lower_expr(lo, x))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let r = node
+            .child_by_field_name("right")
+            .map(|x| lower_expr(lo, x))
+            .unwrap_or_else(|| lo.empty_block(span));
+        return go_bitclear(lo, span, l, r);
+    }
     crate::lower::binary(lo, node, go_bin_op, lower_expr)
+}
+
+/// Go's bit-clear `a &^ b` ≡ `a & ^b` (AND-NOT) — it clears the bits of `a` that are set
+/// in `b`, which is NOT the same as `a & b`. Desugar to that two-node form so the two
+/// operators don't collapse to one fingerprint.
+fn go_bitclear(lo: &mut Lowering, span: Span, l: NodeId, r: NodeId) -> NodeId {
+    let not_r = lo.add(NodeKind::UnOp, Payload::Op(Op::BitNot), span, &[r]);
+    lo.add(NodeKind::BinOp, Payload::Op(Op::BitAnd), span, &[l, not_r])
 }
 
 fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -737,13 +764,53 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn go_bin_op(text: &str) -> Option<Op> {
-    // shared C-family set, plus Go's bit-clear `&^`
-    crate::lower::common_bin_op(text).or(match text {
-        "&^" => Some(Op::BitAnd),
-        _ => None,
-    })
+    // `&^` (bit-clear) is handled by desugaring in `lower_binary` / the compound path,
+    // not here, since it expands to two nodes rather than a single BinOp.
+    crate::lower::common_bin_op(text)
 }
 
 fn js_like_compound_op(text: &str) -> Option<Op> {
     go_bin_op(text.trim_end_matches('='))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ops(src: &str) -> Vec<Op> {
+        let interner = Interner::new();
+        lower(FileId(0), "t.go", src.as_bytes(), &interner)
+            .expect("lower")
+            .nodes
+            .iter()
+            .filter(|n| matches!(n.kind, NodeKind::BinOp | NodeKind::UnOp))
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn bit_clear_is_not_plain_bitand() {
+        // Go's `a &^ b` is AND-NOT (`a & ^b`): it must desugar to a `BitAnd` over a
+        // `BitNot` of the right operand, NOT collapse to a plain `a & b` (different bits,
+        // and a false merge with real `&`).
+        let clear = ops("package main\nfunc f(a int, b int) int { return a &^ b }\n");
+        assert!(
+            clear.contains(&Op::BitNot),
+            "`a &^ b` must introduce BitNot, got {clear:?}"
+        );
+        assert!(
+            clear.contains(&Op::BitAnd),
+            "`a &^ b` must keep BitAnd, got {clear:?}"
+        );
+
+        // Plain `a & b` must NOT introduce a BitNot — the two operators stay distinct.
+        let and = ops("package main\nfunc f(a int, b int) int { return a & b }\n");
+        assert!(
+            !and.contains(&Op::BitNot),
+            "`a & b` must not introduce BitNot, got {and:?}"
+        );
+    }
 }
