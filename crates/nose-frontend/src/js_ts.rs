@@ -698,51 +698,73 @@ fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
     let value = node.child_by_field_name("value").map(|v| unwrap_paren(v));
     let body = node.child_by_field_name("body");
 
-    let mut cases: Vec<(Option<NodeId>, NodeId)> = Vec::new(); // (test?, body-block)
+    let scrutinee = value
+        .map(|v| lower_expr(lo, v))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let mut pending_labels = Vec::new();
+    let mut branches = Vec::new();
+    let mut default_block = None;
     if let Some(b) = body {
         for c in Lowering::named_children(b) {
             match c.kind() {
                 "switch_case" => {
                     let cspan = lo.span(c);
-                    let val = value.map(|v| lower_expr(lo, v));
-                    let test = c.child_by_field_name("value").map(|t| lower_expr(lo, t));
-                    let test_eq = match (val, test) {
-                        (Some(v), Some(t)) => {
-                            Some(lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), cspan, &[v, t]))
-                        }
-                        _ => None,
-                    };
-                    let stmts = lower_case_body(lo, c);
-                    cases.push((test_eq, stmts));
+                    if let Some(test) = c.child_by_field_name("value").map(|t| lower_expr(lo, t)) {
+                        pending_labels.push(test);
+                    }
+                    let stmts = lower_case_body_stmts(lo, c);
+                    if stmts.is_empty() {
+                        continue;
+                    }
+                    let block = lo.add(NodeKind::Block, Payload::None, cspan, &stmts);
+                    if let Some(cond) =
+                        fold_js_switch_labels(lo, span, scrutinee, pending_labels.split_off(0))
+                    {
+                        branches.push((cond, block));
+                    }
                 }
                 "switch_default" => {
-                    let stmts = lower_case_body(lo, c);
-                    cases.push((None, stmts));
+                    pending_labels.clear();
+                    let stmts = lower_case_body_stmts(lo, c);
+                    default_block =
+                        Some(lo.add(NodeKind::Block, Payload::None, lo.span(c), &stmts));
                 }
                 _ => {}
             }
         }
     }
 
-    // Fold into nested ifs; default (test=None) becomes the trailing else.
-    let mut else_node: Option<NodeId> = None;
-    for (test, blk) in cases.into_iter().rev() {
-        match test {
-            None => else_node = Some(blk),
-            Some(t) => {
-                let mut kids = vec![t, blk];
-                if let Some(e) = else_node {
-                    kids.push(e);
-                }
-                else_node = Some(lo.add(NodeKind::If, Payload::None, span, &kids));
-            }
-        }
+    // Fold into nested ifs; default becomes the trailing else.
+    let mut acc = default_block.unwrap_or_else(|| lo.empty_block(span));
+    for (cond, block) in branches.into_iter().rev() {
+        acc = lo.add(NodeKind::If, Payload::None, span, &[cond, block, acc]);
     }
-    else_node.unwrap_or_else(|| lo.empty_block(span))
+    acc
 }
 
-fn lower_case_body(lo: &mut Lowering, case: TsNode) -> NodeId {
-    let span = lo.span(case);
+fn fold_js_switch_labels(
+    lo: &mut Lowering,
+    span: Span,
+    scrutinee: NodeId,
+    labels: Vec<NodeId>,
+) -> Option<NodeId> {
+    let mut acc = None;
+    for label in labels {
+        let cond = lo.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Eq),
+            span,
+            &[scrutinee, label],
+        );
+        acc = Some(match acc {
+            None => cond,
+            Some(prev) => lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[prev, cond]),
+        });
+    }
+    acc
+}
+
+fn lower_case_body_stmts(lo: &mut Lowering, case: TsNode) -> Vec<NodeId> {
     // The `value` field is the case test, not part of the body; skip it (and any
     // `break`, which is implicit once we drop fallthrough).
     let value_id = case.child_by_field_name("value").map(|v| v.id());
@@ -755,7 +777,7 @@ fn lower_case_body(lo: &mut Lowering, case: TsNode) -> NodeId {
             stmts.push(id);
         }
     }
-    lo.add(NodeKind::Block, Payload::None, span, &stmts)
+    stmts
 }
 
 fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1702,4 +1724,72 @@ fn js_bin_op(text: &str) -> Option<Op> {
         "instanceof" => Some(Op::Eq),
         _ => None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, Interner};
+
+    fn switch_labels_for_return(src: &str, expected_return: i64) -> Vec<i64> {
+        let interner = Interner::new();
+        let il = crate::lower_source(
+            FileId(0),
+            "t.js",
+            src.as_bytes(),
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("lower js");
+        let mut out = Vec::new();
+        for (idx, node) in il.nodes.iter().enumerate() {
+            if node.kind != NodeKind::If {
+                continue;
+            }
+            let kids = il.children(NodeId(idx as u32));
+            if kids.len() >= 2 && block_contains_return_int(&il, kids[1], expected_return) {
+                collect_eq_rhs_ints(&il, kids[0], &mut out);
+            }
+        }
+        out.sort_unstable();
+        out
+    }
+
+    fn block_contains_return_int(il: &Il, node: NodeId, expected: i64) -> bool {
+        match il.kind(node) {
+            NodeKind::Block => il
+                .children(node)
+                .iter()
+                .any(|&child| block_contains_return_int(il, child, expected)),
+            NodeKind::Return => il.children(node).first().is_some_and(
+                |&expr| matches!(il.node(expr).payload, Payload::LitInt(v) if v == expected),
+            ),
+            _ => false,
+        }
+    }
+
+    fn collect_eq_rhs_ints(il: &Il, node: NodeId, out: &mut Vec<i64>) {
+        if il.kind(node) != NodeKind::BinOp {
+            return;
+        }
+        let kids = il.children(node);
+        match il.node(node).payload {
+            Payload::Op(Op::Or) if kids.len() == 2 => {
+                collect_eq_rhs_ints(il, kids[0], out);
+                collect_eq_rhs_ints(il, kids[1], out);
+            }
+            Payload::Op(Op::Eq) if kids.len() == 2 => {
+                if let Payload::LitInt(value) = il.node(kids[1]).payload {
+                    out.push(value);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn stacked_switch_cases_share_the_following_body() {
+        let src = "function f(x) { switch (x) { case 1: case 2: return 7; default: return 0; } }";
+        assert_eq!(switch_labels_for_return(src, 7), vec![1, 2]);
+    }
 }
