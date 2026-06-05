@@ -215,10 +215,11 @@ with left-to-right effect guards, unary/binary operands, field receivers,
 index bases/subscripts, or a map/filter/reduce lambda over a statically non-empty `Seq`,
 plus index assignment targets, ternary conditions, and statically selected branches) with
 its handler. Richer exception control flow remains outside the oracle.
-Field reads evaluate their receiver before consulting same-unit field state, so receiver
-errors propagate instead of falling through to a cached field value. After that, reads are
-interpreted only when the same unit has written the field; an unwritten field access remains
-unsupported rather than invented. The value graph follows the same boundary:
+Field writes and reads evaluate their receiver before consulting or updating same-unit
+field state, so receiver errors propagate instead of falling through to a cached field
+value. After that, reads are interpreted only when the same unit has written the field; an
+unwritten field access remains unsupported rather than invented. The value graph follows
+the same boundary:
 `self.x = v; return self.x` resolves the read to `v`, while an unproven field read stays
 field-shaped.
 

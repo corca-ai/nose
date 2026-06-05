@@ -356,6 +356,12 @@ impl<'a> Interp<'a> {
             // ordered effect trace, which wrongly made commuting field-write order
             // observable — splitting equivalent constructors the value graph merges.)
             NodeKind::Field => {
+                if let Some(&receiver) = self.il.children(target).first() {
+                    let receiver = self.eval(receiver, env)?;
+                    if matches!(receiver, Value::Err) {
+                        return Ok(true);
+                    }
+                }
                 if let Payload::Name(sym) = self.il.node(target).payload {
                     self.fields.insert(nose_il::symbol_index(sym) as i64, val);
                     Ok(false)
@@ -1432,6 +1438,45 @@ mod tests {
     #[test]
     fn field_read_propagates_receiver_err_before_cached_value() {
         assert_eq!(run_field_read_with_error_receiver().ret, Value::Err);
+    }
+
+    fn run_field_write_with_error_receiver() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let field_name = interner.intern("x");
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let error_receiver = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp,
+            &[error_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
+        let later = b.add(NodeKind::Lit, Payload::LitInt(9), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[later]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn field_write_propagates_receiver_err_before_cached_value() {
+        let behavior = run_field_write_with_error_receiver();
+        assert_eq!(behavior.ret, Value::Err);
+        assert!(behavior.fields.is_empty());
     }
 
     fn run_try(body_stmt: NodeId, handler_stmt: NodeId, mut b: IlBuilder, sp: Span) -> Value {
