@@ -95,6 +95,22 @@ AXIS_PROPOSALS = {
         "axis": "import_identity",
         "why": "Wildcard, dynamic, or unresolved import forms must stay outside strict exact reporting.",
     },
+    "axis_import_namespace_shadowed_param_identity": {
+        "axis": "import_identity",
+        "why": "A JS/TS namespace import remains a proven module binding when a different function parameter shadows the same local name.",
+    },
+    "axis_import_namespace_shadowed_param_template_identity": {
+        "axis": "import_identity",
+        "why": "A JS/TS namespace import call through a template literal should preserve static template fragments and match string concatenation.",
+    },
+    "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary": {
+        "axis": "import_identity",
+        "why": "A mutation-like receiver call on the unshadowed namespace local must still block the module binding proof.",
+    },
+    "axis_import_namespace_shadowed_param_fake_receiver_boundary": {
+        "axis": "import_identity",
+        "why": "A same-named object receiver is not a proven namespace import coordinate.",
+    },
     "axis_nullish_coalesce_identity": {
         "axis": "nullish_default",
         "why": "Nullish coalescing should converge with the equivalent explicit null/undefined defaulting condition.",
@@ -5183,6 +5199,8 @@ end
 
 
 def import_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id.startswith("axis_import_namespace_shadowed_param_"):
+        return surface.key in {"javascript", "typescript"}
     if proposal_id in {"axis_import_named_identity", "axis_import_alias_identity"}:
         return surface.key in {
             "javascript",
@@ -5332,7 +5350,9 @@ end
         raise ValueError(f"unsupported import unsafe surface: {surface.key}")
 
     if surface.key in JS_LIKE_SURFACES:
-        if proposal_id == "axis_import_namespace_member_identity":
+        if proposal_id.startswith("axis_import_namespace_shadowed_param_"):
+            body = import_namespace_shadowed_param_body(entry, proposal_id, right, negative)
+        elif proposal_id == "axis_import_namespace_member_identity":
             if right:
                 ns = "mathOps"
                 member = "otherHelper" if negative else "helper"
@@ -5502,6 +5522,78 @@ func {go_entry}(value int) int {{
         return Variant("axis", src, go_entry)
 
     raise ValueError(f"{surface.key} does not support {proposal_id}")
+
+
+def import_namespace_shadowed_param_body(
+    entry: str,
+    proposal_id: str,
+    right: bool,
+    negative: bool,
+) -> str:
+    template_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${{filePath.slice("<rootDir>".length)}}`),
+  );
+}}
+"""
+    concat_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize("./" + filePath.slice("<rootDir>".length)),
+  );
+}}
+"""
+    wrong_template_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`../${{filePath.slice("<rootDir>".length)}}`),
+  );
+}}
+"""
+    if proposal_id == "axis_import_namespace_shadowed_param_identity":
+        helper = """const escapeGlobCharacters = path =>
+  path.replaceAll(/([!()*?[\\]{}])/g, "\\$1");
+
+"""
+        prefix = 'import * as path from "node:path";\n\n'
+        body = wrong_template_body if right and negative else template_body
+        return prefix + (helper if right else "") + body
+    if proposal_id == "axis_import_namespace_shadowed_param_template_identity":
+        prefix = 'import * as path from "node:path";\n\n'
+        body = wrong_template_body if right and negative else template_body
+        return prefix + (body if right else concat_body)
+    if proposal_id == "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary":
+        if right and negative:
+            return (
+                'import * as path from "node:path";\n\n'
+                'function touchPath() {\n  path.replaceAll("x", "y");\n}\n\n'
+                + template_body
+            )
+        return 'import * as path from "node:path";\n\n' + template_body
+    if proposal_id == "axis_import_namespace_shadowed_param_fake_receiver_boundary":
+        if right and negative:
+            return (
+                "const path = {\n"
+                "  normalize: value => value,\n"
+                "  resolve: (rootDir, value) => value,\n"
+                "};\n\n"
+                + template_body
+            )
+        return 'import * as path from "node:path";\n\n' + template_body
+    raise ValueError(f"unsupported namespace shadow proposal: {proposal_id}")
 
 
 def render_predicate(predicate: str, var: str) -> str:
@@ -8154,6 +8246,22 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "import-member-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary",
+                "axis_import_namespace_shadowed_param_fake_receiver_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "import-namespace-shadow-boundary",
                     )
                 )
                 continue
