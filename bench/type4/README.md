@@ -57,6 +57,10 @@ The evaluator runs `nose scan --mode semantic` over the generated sources and re
 positive recall plus hard-negative false merges. Use `--fail-on-false-merge` when this
 becomes a CI gate.
 
+`eval_manifest.py` and `frontier.py` accept both the current versioned
+`nose scan --format json` object and the older raw `families` array when `--scan-json`
+is supplied, so saved scan output can be reused without post-processing.
+
 Before spending implementation time on a new axis, run a focused preflight against the
 baseline and candidate binaries:
 
@@ -179,6 +183,12 @@ patterns. Continue for three to five passes while the top candidate still change
 delta audits expose missed strict families. Stop expanding that axis when synthetic
 positives are closed, hard negatives stay clean, and the prioritizer has moved the axis to
 `covered-current`.
+
+Real-corpus audit findings are tracked in `real_frontier.v1.json`. Each item records the
+repo-relative span, semantic claim, evidence, detector status, proof invariant, adjacent
+hard negatives, and batch assignment. Use `already-covered`, `real-miss`, `hard-negative`,
+`unsupported`, and `closed` as the audit states so prioritizer frequency, real evidence,
+and detector progress stay separate.
 
 ## CI smoke
 
