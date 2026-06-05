@@ -750,6 +750,16 @@ not the weights, so we mined ground truth before implementing.
   property of the realized edit), where #23 reaches ~0.65 — a usable **post-divergence**
   ranker. Untried/likely-additive: IL-based cognitive complexity (vs the text proxy) and a
   larger gold. Pre-divergence ranking still caps ~0.61.
+- **BG-gold4 — does the IL obscure cognitive complexity? No (tested).** Worry: cog is a
+  surface property, the IL normalizes for equivalence. `il_cog.py` computed cog from
+  `nose il --normalized` (If/Loop + nesting + And/Or) vs the source-text proxy on the gold
+  (95% IL parse rate): **harm-AUC 0.599 (IL) vs 0.597 (source) — identical.** Control
+  structure survives `il --normalized`; only the deeper value-fingerprint collapse
+  (loop≡comprehension, = `mean_sem`) erases it, and cog is not computed from that. Flip
+  side: a fancier IL-cog will NOT beat the proxy — cog is ~0.60 regardless of
+  representation. **Firmly established: the pre-divergence structural harm ceiling is
+  ~0.60 across every representation and feature; only `diff_per_cog` (post-divergence,
+  0.65) is above it. A strong harm ranker needs the semantic (LLM) layer.**
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,

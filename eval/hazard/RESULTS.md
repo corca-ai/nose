@@ -185,11 +185,32 @@ beat the single best (0.595) — combinations do not generalize on 51 positives.
 **Revised conclusion (better than round 2's):** harm is best assessed **after** a
 divergence (it is a property of the realized edit), and there the #23 signal reaches
 ~0.65 — a usable *post-divergence* ranker, the actionable form ("this clone already
-diverged and a fix likely did not propagate"). Two levers remain untried and likely
-additive: (1) compute cognitive complexity from nose's **IL** (real control structure)
-instead of the crude text proxy used here; (2) a larger gold to tighten the 0.65 CI
-(±0.07 at 51 positives). Pre-divergence ranking still caps ~0.61; the bounded-LLM
-semantic pass remains the path if a *strong* ranker is required.
+diverged and a fix likely did not propagate"). Pre-divergence ranking still caps ~0.61.
+
+### Round 4 — does nose's IL obscure cognitive complexity? (tested)
+
+The natural worry: cognitive complexity is a *surface* property, and nose's IL normalizes
+to detect *equivalence* — so the IL might erase it. **Tested** (`il_cog.py`): compute cog
+from `nose il --normalized --format json` (count If/Loop with nesting + And/Or BinOps) vs
+the source-text proxy, on the gold. Result on the IL-parsed subset (95% parse rate):
+
+| cog source | harm-AUC |
+|---|---|
+| source-text proxy | 0.597 |
+| nose IL (`--normalized`) | 0.599 |
+
+**Essentially identical — the IL does *not* obscure cog.** Control structure survives
+`il --normalized` (if/loop/&&/|| are preserved as `If`/`Loop`/`BinOp` nodes); only the
+deeper *value-fingerprint* collapse (which makes loop≡comprehension, i.e. `mean_sem`)
+erases it, and we don't compute cog from that. The flip side: **a proper IL-based cog
+will not beat the text proxy** — both cap at ~0.60. cog is ~0.60 regardless of
+representation; the only signal above it (`diff_per_cog`, 0.65) needs the realized diff.
+
+**Firmly established now:** the *pre-divergence* structural harm ceiling is ~0.60 across
+every representation (source / IL) and feature (size, dispersion, invisibility,
+git-history, cognitive complexity, and their combinations). A *strong* harm ranker needs
+the semantic layer (the bounded-LLM pass); structural signals give at best a weak
+pre-divergence prior (~0.60) and a usable post-divergence ranker (~0.65).
 
 ## Gold-label audit (LLM-judge)
 
