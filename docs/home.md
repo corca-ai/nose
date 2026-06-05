@@ -40,6 +40,8 @@ You want to *change* nose or understand how it works inside.
 
 - [architecture](architecture.md) — the crates and the lower → normalize → detect → rank pipeline.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
+- [hazard-ranking](hazard-ranking.md) — the evidence base and design for ranking clones by divergent-edit risk (a severity axis, complementing extractability).
+- [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset that hazard ranking is calibrated and validated against (repo selection, graded labels, quantitative sufficiency).
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 - [benchmark](benchmark.md) — the gold set, methodology, and the headline precision/recall numbers.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.

@@ -77,6 +77,11 @@ report is the same signal the ranking uses. Same-language families with **no** s
 invariant lines (a language idiom, or two unrelated type literals with the same shape)
 have nothing to extract and sink to the bottom, even at `sim 1.00`.
 
+Extractability ranks by *fixability* (how cleanly duplication folds into one helper).
+A complementary *severity* axis — ranking by how likely a clone is to be edited
+inconsistently and cause a bug — is designed in [hazard-ranking](hazard-ranking.md)
+(not yet shipped).
+
 **Review what was found**
 
 | flag | effect |
