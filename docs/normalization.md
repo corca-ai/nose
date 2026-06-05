@@ -87,8 +87,9 @@ Guiding constraints for every pass:
   a proven array parameter, keeping element membership distinct from singleton-list
   membership such as `List.of(values).contains(x)` or `Arrays.asList(listParam).contains(x)`.
   The oracle also propagates `Err` through append arguments, so list-building effects do
-  not silently absorb failed item computations, and C-style loop updates propagate runtime
-  errors just like the loop condition and body. Eager builtin arguments, direct
+  not silently absorb failed item computations, and C-style loop updates plus for-each
+  iterable evaluation propagate runtime errors just like the loop condition and body.
+  Eager builtin arguments, direct
   self-recursion call-by-value arguments, list/tuple literal items, reduce initial values,
   higher-order map/filter/reduce, and `any`/`all` predicate errors also stay
   observable instead of being hidden inside a collection value or coerced through truthiness

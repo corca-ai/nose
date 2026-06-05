@@ -259,6 +259,7 @@ impl<'a> Interp<'a> {
             LoopKind::ForEach if kids.len() == 3 => {
                 let seq = match self.eval(kids[1], env)? {
                     Value::List(xs) => xs,
+                    Value::Err => return Ok(Flow::Err),
                     _ => return Err(Unsupported),
                 };
                 for item in seq {
@@ -1251,6 +1252,41 @@ mod tests {
     #[test]
     fn cstyle_loop_update_err_stops_execution() {
         assert_eq!(run_cstyle_loop_with_update_err(), Value::Err);
+    }
+
+    fn run_foreach_with_iterable_err() -> Option<Value> {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let target = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let iter_err = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let body = b.add(NodeKind::Block, Payload::None, sp, &[]);
+        let loop_node = b.add(
+            NodeKind::Loop,
+            Payload::Loop(LoopKind::ForEach),
+            sp,
+            &[target, iter_err, body],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[loop_node, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).map(|behavior| behavior.ret)
+    }
+
+    #[test]
+    fn foreach_iterable_err_stops_execution() {
+        assert_eq!(run_foreach_with_iterable_err(), Some(Value::Err));
     }
 
     fn run_throw_then_return() -> Value {
