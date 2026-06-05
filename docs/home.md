@@ -13,7 +13,8 @@ docs browse cleanly on GitHub and in any Markdown viewer.
 
 Start here if you want to *run* nose on a codebase.
 
-- [usage](usage.md) — install, the commands (`scan`, `il`, `stats`), every flag, and how to read the report.
+- [usage](usage.md) — install, the commands (`scan`, `il`, `stats`, `capabilities`), every flag, and how to read the report.
+- [capabilities](capabilities.md) — the `nose capabilities` JSON contract for installers, CI wrappers, and editor integrations.
 - [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling.
 - [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, thresholds, baselines, caching, inline `// nose-ignore`.

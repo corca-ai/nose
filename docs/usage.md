@@ -166,6 +166,22 @@ start or end in the middle of a function. The normalized unit channels (`semanti
 `near`) are where renamed identifiers, cross-language convergence, and Type-3 edits are
 handled.
 
+## Integrating with nose
+
+Use `nose capabilities` when another tool needs to decide what this installed
+binary supports before it invokes a scan:
+
+```sh
+nose capabilities
+```
+
+The command emits JSON only. It reports the tool version, platform, stable
+commands, supported scan modes and output formats, JSON schema versions, config
+keys, and scan capability flags such as baselines, caching, SARIF, and
+structured ignores. Do not scrape `nose --help`; help text is for humans and may
+change to improve readability. The stable contract is documented in
+[capabilities](capabilities.md).
+
 ## Inspecting & measuring
 
 - `nose il <file> [--normalized] [--format sexpr|json]` — dump the IL for one

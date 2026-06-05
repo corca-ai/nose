@@ -3,7 +3,9 @@
 `nose scan --format json` emits a versioned machine-readable report for CI,
 dashboards, editor integrations, and baselines that need clone families as data.
 For the command context see [usage](usage.md); for CI-oriented formats see
-[continuous-integration](continuous-integration.md). Back to [home](home.md).
+[continuous-integration](continuous-integration.md). Tools can discover supported
+scan JSON schema versions with [capabilities](capabilities.md). Back to
+[home](home.md).
 
 ## Version 1
 

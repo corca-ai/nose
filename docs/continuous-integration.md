@@ -34,6 +34,9 @@ For an exact semantic-only gate, use `--mode semantic`. It does not use a
 similarity threshold.
 
 With committed settings in `nose.toml`, the CI command can be just `nose scan src --fail`.
+If a wrapper needs to support multiple installed nose versions, have it query
+`nose capabilities` first instead of scraping `--help`; the JSON contract is
+documented in [capabilities](capabilities.md).
 
 ## Baselines — incremental adoption
 

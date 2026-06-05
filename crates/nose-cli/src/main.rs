@@ -19,7 +19,8 @@ use std::path::PathBuf;
                   • `nose scan <paths>` — default: syntax + semantic clone families\n\
                   • `nose scan <paths> --mode near` — opt into Type-3 near-duplicates\n\
                   • `nose stats <paths>`    — IL lowering coverage\n\
-                  • `nose il <file>`        — inspect the IL"
+                  • `nose il <file>`        — inspect the IL\n\
+                  • `nose capabilities`     — machine-readable integration contract"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -28,6 +29,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
+    /// Emit the machine-readable capability contract for integrations.
+    Capabilities,
     /// Dump the IL for a source file (inspection / debugging the transpiler).
     Il {
         /// Path to a source file.
@@ -506,6 +509,145 @@ impl ScanScope {
 }
 
 const SCAN_JSON_SCHEMA_VERSION: u32 = 1;
+const CAPABILITIES_SCHEMA_VERSION: u32 = 1;
+
+#[derive(serde::Serialize)]
+struct CapabilitiesReport {
+    schema_version: u32,
+    tool: CapabilitiesTool,
+    platform: CapabilitiesPlatform,
+    interfaces: CapabilitiesInterfaces,
+    commands: CapabilitiesCommands,
+    schemas: CapabilitiesSchemas,
+    scan: CapabilitiesScan,
+    il: CapabilitiesIl,
+    stats: CapabilitiesStats,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesTool {
+    name: &'static str,
+    version: &'static str,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesPlatform {
+    os: &'static str,
+    arch: &'static str,
+    family: &'static str,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesInterfaces {
+    capabilities_json: bool,
+    version_json: bool,
+    doctor_json: bool,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesCommands {
+    stable: Vec<&'static str>,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesSchemas {
+    capabilities: Vec<u32>,
+    scan_json: Vec<u32>,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesScan {
+    modes: Vec<&'static str>,
+    default_modes: Vec<&'static str>,
+    output_formats: Vec<&'static str>,
+    sort_keys: Vec<&'static str>,
+    config_keys: Vec<&'static str>,
+    capabilities: std::collections::BTreeMap<&'static str, bool>,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesIl {
+    output_formats: Vec<&'static str>,
+    normalized: bool,
+    cfg_norm_toggle: bool,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesStats {
+    output_formats: Vec<&'static str>,
+}
+
+impl CapabilitiesReport {
+    fn current() -> Self {
+        CapabilitiesReport {
+            schema_version: CAPABILITIES_SCHEMA_VERSION,
+            tool: CapabilitiesTool {
+                name: "nose",
+                version: env!("CARGO_PKG_VERSION"),
+            },
+            platform: CapabilitiesPlatform {
+                os: std::env::consts::OS,
+                arch: std::env::consts::ARCH,
+                family: std::env::consts::FAMILY,
+            },
+            interfaces: CapabilitiesInterfaces {
+                capabilities_json: true,
+                version_json: false,
+                doctor_json: false,
+            },
+            commands: CapabilitiesCommands {
+                stable: vec!["capabilities", "il", "scan", "stats"],
+            },
+            schemas: CapabilitiesSchemas {
+                capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
+                scan_json: vec![SCAN_JSON_SCHEMA_VERSION],
+            },
+            scan: CapabilitiesScan {
+                modes: vec!["syntax", "semantic", "near"],
+                default_modes: vec!["syntax", "semantic"],
+                output_formats: vec!["human", "json", "markdown", "sarif"],
+                sort_keys: vec!["extractability", "value", "sites"],
+                config_keys: vec![
+                    "exclude",
+                    "ignore-file",
+                    "min-lines",
+                    "min-members",
+                    "min-tokens",
+                    "min-value",
+                    "mode",
+                    "sort",
+                    "threshold",
+                    "top",
+                ],
+                capabilities: scan_capability_flags(),
+            },
+            il: CapabilitiesIl {
+                output_formats: vec!["sexpr", "json"],
+                normalized: true,
+                cfg_norm_toggle: true,
+            },
+            stats: CapabilitiesStats {
+                output_formats: vec!["human", "json"],
+            },
+        }
+    }
+}
+
+fn scan_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
+    [
+        ("baseline", true),
+        ("baseline_changed_detection", true),
+        ("cache", true),
+        ("ci_fail_gate", true),
+        ("diff", true),
+        ("hotspots", true),
+        ("inline_suppression", true),
+        ("proposal", true),
+        ("structured_ignores", true),
+    ]
+    .into_iter()
+    .collect()
+}
 
 #[derive(serde::Serialize)]
 struct ScanJsonReport<'a> {
@@ -890,6 +1032,7 @@ fn run() -> Result<()> {
             normalized,
             no_cfg_norm,
         } => cmd_il(path, format, normalized, no_cfg_norm),
+        Cmd::Capabilities => cmd_capabilities(),
         Cmd::Detect {
             paths,
             min_lines,
@@ -2018,6 +2161,12 @@ fn cmd_stats(paths: Vec<PathBuf>, top: usize, json: bool) -> Result<()> {
     for u in &report.top_unhandled {
         println!("  {:<12} {:<34} {:>8}", u.lang, u.surface_kind, u.count);
     }
+    Ok(())
+}
+
+fn cmd_capabilities() -> Result<()> {
+    let report = CapabilitiesReport::current();
+    println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
 

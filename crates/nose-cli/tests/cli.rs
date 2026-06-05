@@ -101,6 +101,18 @@ fn scan_families(json: &serde_json::Value) -> &[serde_json::Value] {
         .expect("scan JSON should contain families array")
 }
 
+fn json_array_strings<'a>(value: &'a serde_json::Value, key: &str) -> Vec<&'a str> {
+    value[key]
+        .as_array()
+        .unwrap_or_else(|| panic!("{key} should be an array"))
+        .iter()
+        .map(|item| {
+            item.as_str()
+                .unwrap_or_else(|| panic!("{key} entries should be strings"))
+        })
+        .collect()
+}
+
 fn assert_scan_json_v1_contract(json: &serde_json::Value) {
     assert_eq!(json["schema_version"], 1);
     assert!(
@@ -1804,6 +1816,65 @@ fn diff_shows_the_differing_line() {
 fn version_flag_works() {
     let out = run(&["--version"]);
     assert!(out.starts_with("nose "), "version line: {out}");
+}
+
+#[test]
+fn capabilities_command_emits_machine_readable_contract() {
+    let out = run(&["capabilities"]);
+    let json: serde_json::Value =
+        serde_json::from_str(&out).expect("capabilities must emit valid JSON");
+
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["tool"]["name"], "nose");
+    assert_eq!(json["tool"]["version"], env!("CARGO_PKG_VERSION"));
+    assert!(
+        json["platform"]["os"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty()),
+        "platform.os should be non-empty: {out}"
+    );
+    assert!(
+        json["platform"]["arch"]
+            .as_str()
+            .is_some_and(|s| !s.is_empty()),
+        "platform.arch should be non-empty: {out}"
+    );
+    assert_eq!(json["interfaces"]["capabilities_json"], true);
+    assert_eq!(json["interfaces"]["version_json"], false);
+    assert_eq!(json["interfaces"]["doctor_json"], false);
+
+    assert_eq!(
+        json_array_strings(&json["commands"], "stable"),
+        vec!["capabilities", "il", "scan", "stats"]
+    );
+    assert_eq!(json["schemas"]["capabilities"][0], 1);
+    assert_eq!(json["schemas"]["scan_json"][0], 1);
+    assert_eq!(
+        json_array_strings(&json["scan"], "modes"),
+        vec!["syntax", "semantic", "near"]
+    );
+    assert_eq!(
+        json_array_strings(&json["scan"], "default_modes"),
+        vec!["syntax", "semantic"]
+    );
+    assert_eq!(
+        json_array_strings(&json["scan"], "output_formats"),
+        vec!["human", "json", "markdown", "sarif"]
+    );
+    assert_eq!(
+        json_array_strings(&json["scan"], "sort_keys"),
+        vec!["extractability", "value", "sites"]
+    );
+    assert_eq!(json["scan"]["capabilities"]["baseline"], true);
+    assert_eq!(json["scan"]["capabilities"]["structured_ignores"], true);
+    assert_eq!(
+        json_array_strings(&json["il"], "output_formats"),
+        vec!["sexpr", "json"]
+    );
+    assert_eq!(
+        json_array_strings(&json["stats"], "output_formats"),
+        vec!["human", "json"]
+    );
 }
 
 #[test]
