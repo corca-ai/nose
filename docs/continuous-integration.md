@@ -4,22 +4,22 @@ nose is built to run in CI as a duplication gate. The pieces below turn the
 report from [usage](usage.md) into a pass/fail check that flags only *new* duplication
 and runs fast on every push. Back to [home](home.md).
 
-## The `--fail` gate
+## The `--fail-on any` gate
 
-`--fail` makes nose exit non-zero if **any** family survives the filters. Pick the
+`--fail-on any` makes nose exit non-zero if **any** family survives the filters. Pick the
 channels deliberately: `--mode syntax` is the closest jscpd replacement, while the
 default also reports exact semantic Type-4 clones.
 
 For a jscpd-style copy-paste gate:
 
 ```sh
-nose scan src --mode syntax --fail
+nose scan src --mode syntax --fail-on any
 ```
 
 For a broader exact gate, omit `--mode` and keep only substantial findings:
 
 ```sh
-nose scan src --min-value 300 --min-members 3 --fail
+nose scan src --min-value 300 --min-members 3 --fail-on any
 ```
 
 To include Type-3 near-duplicates in a review ratchet, add `near` and tune the fuzzy
@@ -27,13 +27,13 @@ threshold. This is usually better as a report or ratchet with `--min-value` than
 bare "any finding fails" gate:
 
 ```sh
-nose scan src --mode syntax,semantic,near --threshold 0.70 --min-value 300 --min-members 3 --fail
+nose scan src --mode syntax,semantic,near --threshold 0.70 --min-value 300 --min-members 3 --fail-on any
 ```
 
 For an exact semantic-only gate, use `--mode semantic`. It does not use a
 similarity threshold.
 
-With committed settings in `nose.toml`, the CI command can be just `nose scan src --fail`.
+With committed settings in `nose.toml`, the CI command can be just `nose scan src --fail-on any`.
 If a wrapper needs to support multiple installed nose versions, have it query
 `nose capabilities` first instead of scraping `--help`; the JSON contract is
 documented in [capabilities](capabilities.md).
@@ -68,7 +68,7 @@ checks, docs wiki connectivity, and Lean soundness proofs.
 
 ## Baselines — incremental adoption
 
-An existing codebase already has dozens of clone families, so a bare `--fail`
+An existing codebase already has dozens of clone families, so a bare `--fail-on any`
 gate is unusable on day one. A **baseline** records the currently-accepted
 families; subsequent runs compare the current report to that accepted state, so
 the gate can flag only duplication introduced *after* adoption.
@@ -78,16 +78,16 @@ the gate can flag only duplication introduced *after* adoption.
 nose scan src --baseline .nose-baseline.json --write-baseline
 
 # 2. From now on, show only NEW or CHANGED families:
-nose scan src --baseline .nose-baseline.json --new-only
+nose scan src --baseline .nose-baseline.json
 
 # 3. Make CI fail only when NEW or CHANGED families exist:
-nose scan src --baseline .nose-baseline.json --fail-on-new
+nose scan src --baseline .nose-baseline.json --fail-on new
 ```
 
 `--baseline` by itself keeps the historical behavior and reports only families not
-accepted by the baseline; `--new-only` makes that intent explicit in scripts. Use
-`--fail-on-new` when you want a CI ratchet that ignores accepted debt but exits
-non-zero for new or changed clone families. Plain `--fail` still means "fail if
+accepted by the baseline (the default whenever `--baseline` is present). Use
+`--fail-on new` when you want a CI ratchet that ignores accepted debt but exits
+non-zero for new or changed clone families. Plain `--fail-on any` still means "fail if
 anything is reported after the active filters."
 
 Commit `.nose-baseline.json`. Families are keyed by their members' (file, name),
@@ -109,11 +109,11 @@ next to the code, or point to another file with `--ignore-file` / `ignore-file`
 in [configuration](configuration.md):
 
 ```sh
-nose scan src --ignore-file nose.ignore.json --fail
+nose scan src --ignore-file nose.ignore.json --fail-on any
 ```
 
-Ignored families are removed from the active report, so they do not fail `--fail`
-or `--fail-on-new`. They are still present in `--format json` under
+Ignored families are removed from the active report, so they do not fail `--fail-on any`
+or `--fail-on new`. They are still present in `--format json` under
 `ignored_families`, with the ignore entry's reason, note, owner, expiry, matched
 selectors, and matched paths.
 
@@ -151,7 +151,7 @@ extraction — which makes repeated invocations (CI, pre-commit, local iteration
 much faster. Point it at a directory your CI caches between runs.
 
 ```sh
-nose scan src --cache-dir .nose-cache --fail
+nose scan src --cache-dir .nose-cache --fail-on any
 ```
 
 See [`CONTRIBUTING`](../CONTRIBUTING.md) for the full gate list.

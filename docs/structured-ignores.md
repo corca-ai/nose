@@ -35,8 +35,8 @@ Then run `nose scan` from that root. nose automatically reads
 `ignore-file = "path/to/file.json"` in [configuration](configuration.md) when the
 file lives elsewhere.
 
-Ignored families are removed from the active report and do not trip `--fail` or
-`--fail-on-new`. JSON output still carries them under `ignored_families` with the
+Ignored families are removed from the active report and do not trip `--fail-on any` or
+`--fail-on new`. JSON output still carries them under `ignored_families` with the
 ignore metadata, so suppressions remain auditable.
 
 ## File shape

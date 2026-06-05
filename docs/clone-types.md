@@ -73,7 +73,8 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
 - **Different algorithms with the same result** — e.g. bubble sort vs quicksort, or two
   different primality tests — are **not** recognized. Only the modeled transformations
   converge; nose does not search for arbitrary input/output equivalence.
-- **Recursion ↔ iteration** is out of scope (deferred).
+- **Recursion ↔ iteration** is partially modeled — a bounded subset converges (see
+  [normalization](normalization.md)); general recursion↔iteration remains out of scope.
 - The behavioral *proof* (`nose verify`) covers only interpretable (≈ pure) units; detection
   itself runs on every unit via the fingerprint, but pairs outside that interpretable slice
   carry no per-pair behavioral proof.

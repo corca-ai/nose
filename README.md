@@ -2,10 +2,10 @@
 
 **Find code clone families across Python, JavaScript, TypeScript (incl. JSX/TSX),
 Go, Rust, Java, C, and Ruby — plus the `<script>` logic inside Vue, Svelte, and
-HTML** — fast, in one self-contained Rust binary.
+HTML** — in one self-contained Rust binary.
 
 *The name: a **nose** sniffs out code smells — the duplication worth refactoring away, even
-when it's been renamed, restructured, or rewritten in another language.*
+when it's been renamed or restructured (and, occasionally, rewritten in another language).*
 
 ## See it
 
@@ -36,9 +36,11 @@ func Total(xs []int) int {
 
 Same logic, three languages, **zero shared tokens**. nose sees through renamed variables,
 reordered statements, and loop ↔ `reduce` ↔ comprehension rewrites — so it finds the
-duplicated *logic* worth refactoring, not just literal copy-paste. And the match isn't a
-guess: an equal fingerprint is a soundness guarantee — *fingerprint-equal ⟹ behavior-equal*,
-enforced by an interpreter oracle (`nose verify`) and machine-checked in Lean.
+duplicated *logic* worth refactoring, not just literal copy-paste. (Cross-*language*
+matches like this one are real but uncommon in practice; the everyday win is the same
+logic renamed or restructured **within** a language.) And the match isn't a guess: an
+equal fingerprint is **sound by intent** — *fingerprint-equal ⟹ behavior-equal* (see
+[How it works](#how-it-works)).
 
 ## How it works
 
@@ -51,11 +53,12 @@ subexpressions). On top of the IL it detects clones and ranks **design-level ref
 opportunities**. Every IL node carries inline provenance, so every match traces back to
 its source span.
 
-The value graph is **sound by intent** — two fragments sharing a fingerprint must compute
-the same thing. That contract is enforced by a differential interpreter oracle (`nose
-verify`, which interprets the *pre-canonicalization* IL so a rewrite can't mask its own
-bug) and by machine-checked **Lean proofs** of the core canonicalizations (`formal/`).
-See [docs/architecture.md](docs/architecture.md) and Experiments §AJ/§AX.
+The value graph is **sound by intent** — two fragments sharing a fingerprint should
+compute the same thing. That contract is checked by a differential interpreter oracle
+(it interprets the *pre-canonicalization* IL so a rewrite can't mask its own bug) and by
+machine-checked **Lean proofs** of the core canonicalizations (`formal/`). It is a design
+contract and an internal test discipline, not a whole-pipeline proof. See
+[docs/architecture.md](docs/architecture.md) and Experiments §AJ/§AX.
 
 ## Clone types
 
@@ -66,8 +69,8 @@ Against the standard taxonomy (Roy, Cordy & Koschke, 2009):
   normalized unit channels; literal changes are handled by `near`.
 - **Type-3** (statements added / removed / changed) — opt in with `--mode near`.
 - **Type-4** (same computation, different syntax) — exact modeled equivalence in `semantic`
-  (loop ↔ reduce ↔ comprehension, control-flow forms, commutativity, cross-language), with a
-  soundness guarantee — **not** arbitrary algorithmic equivalence, and not recursion ↔ iteration.
+  (loop ↔ reduce ↔ comprehension, control-flow forms, commutativity, cross-language), sound by
+  intent — **not** arbitrary algorithmic equivalence.
 
 See [docs/clone-types.md](docs/clone-types.md) for the precise per-type scope and limits.
 
@@ -96,9 +99,6 @@ are attached to every [release](https://github.com/corca-ai/nose/releases).
 
 ## Quick start
 
-New to nose? [docs/getting-started.md](docs/getting-started.md) walks through a first
-scan and how to read the report.
-
 ```sh
 # Build from source (requires the Rust toolchain):
 cargo build --release
@@ -113,7 +113,7 @@ cargo build --release
 ./target/release/nose scan src --format json --top 50
 
 # jscpd-style copy-paste gate:
-./target/release/nose scan src --mode syntax --fail
+./target/release/nose scan src --mode syntax --fail-on any
 
 # Exact semantic-only audit:
 ./target/release/nose scan src --mode semantic
@@ -144,8 +144,8 @@ shared vs varies, how many lines you could remove — and **every site is listed
 can go act on it. The one-line **hint** (`→`) is grounded in the facts (a shared symbol
 name, cross-language spread, how many modules it touches), never a guess about
 semantics. For same-language families the description reads `N of M lines identical, K
-spots differ`; add `--proposal` to see the extracted helper and `--diff` to see exactly
-what varies.
+spots differ`; add `--show proposal` to see the extracted helper and `--show diff` to see
+exactly what varies.
 
 Each **family** is one refactoring decision (extract a shared helper / base class /
 data table). By default families are ranked by **extractability** — the *invariant*
@@ -187,12 +187,12 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
     `--threshold T` (only when `near` is enabled),
     `--exclude <glob>` (gitignore-syntax; `.gitignore` is respected automatically,
     even outside a git repo).
-  - review: `--diff` (show each family inline as a diff of its two copies),
-    `--proposal` (the shared skeleton with the varying spots as `⟨param N⟩` — what to
-    extract and how many parameters it needs),
-    `--hotspots` (directories ranked by duplicated lines), `--format human|json|markdown|sarif`.
+  - review: `--show diff|proposal|hotspots` (repeatable/comma-list) — `diff` shows each
+    family as a unified diff of its two copies, `proposal` the shared skeleton with varying
+    spots as `⟨param N⟩`, `hotspots` directories ranked by duplicated lines;
+    `--format human|json|markdown|sarif`.
   - workflow: `nose.toml` config (`[scan]`), `--baseline <file>`,
-    `--write-baseline`, `--new-only`, `--fail-on-new`, `--fail` (CI gate),
+    `--write-baseline`, `--fail-on any|new` (CI gate),
     `--cache-dir <dir>` (fast re-runs).
   - inline `// nose-ignore` marks a clone as intentionally kept.
 - `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — inspect the IL.

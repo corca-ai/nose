@@ -1,7 +1,7 @@
 # Getting started
 
 nose finds duplicated code — literal copy-paste, renamed copies, and the same
-logic rewritten in a different style or even a different language — and ranks each
+logic rewritten in a different style (and, occasionally, a different language) — and ranks each
 group by how cleanly you could fold it into one shared helper. Point it at a
 directory, read the list, refactor from the top.
 
@@ -82,11 +82,12 @@ for *where* to refactor, not a penalty — duplication in tests is still a smell
 
 ### See more per family
 
-Two flags expand any report so you can see the code, not just where it lives:
+The `--show` option adds views so you can see the code, not just where it lives
+(repeatable / comma-list):
 
 ```sh
-nose scan src --diff       # show each family as a unified diff of its two copies
-nose scan src --proposal   # show the extracted helper skeleton, varying spots as parameters
+nose scan src --show diff       # show each family as a unified diff of its two copies
+nose scan src --show proposal   # show the extracted helper skeleton, varying spots as parameters
 ```
 
 ## Common recipes
@@ -95,7 +96,7 @@ nose scan src --proposal   # show the extracted helper skeleton, varying spots a
 |---|---|
 | A report to paste into a PR or issue | `nose scan src --format markdown > REFACTOR.md` |
 | Only the biggest, cleanest wins | `nose scan src --min-value 300 --min-members 3` |
-| A copy-paste gate for CI (jscpd-style) | `nose scan src --mode syntax --fail` |
+| A copy-paste gate for CI (jscpd-style) | `nose scan src --mode syntax --fail-on any` |
 | High-confidence "same logic" clones only | `nose scan src --mode semantic` |
 | Fuzzy near-duplicates for review | `nose scan src --mode near --threshold 0.70` |
 | Machine-readable output | `nose scan src --format json` |

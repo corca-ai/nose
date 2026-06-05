@@ -87,17 +87,16 @@ chance** — see [hazard-ranking](hazard-ranking.md) for the full, honest evalua
 
 | flag | effect |
 |---|---|
-| `--diff` | show each family inline as a unified diff between its two representative copies — both versions and exactly what differs |
-| `--proposal` | show an extraction skeleton per family — the shared structure with the differing parts marked as parameters |
-| `--hotspots` | after the report, rank directories/modules by total duplicated lines (architecture view) |
+| `--show diff` | show each family inline as a unified diff between its two representative copies — both versions and exactly what differs |
+| `--show proposal` | show an extraction skeleton per family — the shared structure with the differing parts marked as parameters |
+| `--show hotspots` | after the report, rank directories/modules by total duplicated lines (architecture view) |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`) |
 
 `--format json` emits a versioned object with `schema_version`, `tool_version`,
 scan scope, ranking metadata, and a `families` array. The stable contract and
 compatibility rule are documented in [scan-json](scan-json.md).
 
-**Workflow** (`--baseline`, `--write-baseline`, `--new-only`, `--fail-on-new`,
-`--fail`, `--ignore-file`, `--cache-dir`, `--config`) is covered in
+**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`) is covered in
 [continuous-integration](continuous-integration.md) and [configuration](configuration.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
@@ -118,7 +117,7 @@ Examples:
 
 ```sh
 nose scan src                                  # syntax + semantic
-nose scan src --mode syntax --fail             # jscpd-style gate
+nose scan src --mode syntax --fail-on any             # jscpd-style gate
 nose scan src --mode semantic                  # exact Type-4 only
 nose scan src --mode near --threshold 0.70     # Type-3 only
 nose scan src --mode syntax,semantic,near      # all channels

@@ -85,8 +85,8 @@ ignore-file = "nose.ignore.json"
 
 When unset, nose automatically reads `nose.ignore.json` in the current working
 directory if it exists. Pass `--ignore-file <file>` to override the config for one
-run. Ignored families are hidden from the active report and from `--fail` /
-`--fail-on-new`, while `--format json` still includes them with their reason,
+run. Ignored families are hidden from the active report and from `--fail-on any` /
+`--fail-on new`, while `--format json` still includes them with their reason,
 owner, note, and expiry metadata.
 
 The file format, selector semantics, and expiry behavior are documented in
