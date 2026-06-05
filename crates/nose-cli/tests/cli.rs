@@ -192,7 +192,7 @@ fn scan_json_report_has_versioned_contract() {
     assert_eq!(json["tool_version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(json["scope"]["files"], 4);
     assert_eq!(json["scope"]["languages"][0]["language"], "python");
-    assert_eq!(json["ranking"]["sort"], "extractability");
+    assert_eq!(json["ranking"]["sort"], "hazard");
     assert_eq!(json["ranking"]["shown_families"], 1);
     assert_eq!(json["ranking"]["limit"], 1);
     let _ = fs::remove_dir_all(&dir);
@@ -4896,7 +4896,7 @@ fn capabilities_command_emits_machine_readable_contract() {
     );
     assert_eq!(
         json_array_strings(&json["scan"], "sort_keys"),
-        vec!["extractability", "value", "sites"]
+        vec!["hazard", "extractability", "value", "sites"]
     );
     assert_eq!(json["scan"]["capabilities"]["baseline"], true);
     assert_eq!(json["scan"]["capabilities"]["structured_ignores"], true);
@@ -5027,11 +5027,17 @@ fn proposal_shows_shared_skeleton_and_parameters() {
 fn sort_keys_label_the_ranking_and_reject_garbage() {
     let dir = make_project("sort");
     let p = dir.to_str().unwrap();
-    // Default ranking is extractability — the header says so, in plain language.
+    // Default ranking is divergent-edit hazard — the header says so, in plain language.
     let def = run(&["scan", p, "--min-tokens", "12"]);
     assert!(
-        def.contains("ranked by extractability"),
+        def.contains("ranked by divergent-edit hazard"),
         "default header names the ranking: {def}"
+    );
+    // --sort extractability is still available and switches the header.
+    let byext = run(&["scan", p, "--min-tokens", "12", "--sort", "extractability"]);
+    assert!(
+        byext.contains("ranked by extractability"),
+        "--sort extractability names the ranking: {byext}"
     );
     // Families are described in plain language (copies + removable lines), not a
     // wall of internal metrics.

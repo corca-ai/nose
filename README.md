@@ -127,7 +127,7 @@ cargo build --release
 ```
 $ nose scan examples --min-tokens 8
 scanned 3 files · go 1 · python 1 · typescript 1
-2 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~26 duplicated lines  (showing 2)
+2 clone families, ranked by divergent-edit hazard (most likely to be edited inconsistently)  ·  ~26 duplicated lines  (showing 2)
 
 #1  3 copies · same logic in 3 languages (go, python, typescript) · ~14 lines removable
     → local duplication — extract a helper (cross-language)
@@ -148,11 +148,12 @@ spots differ`; add `--proposal` to see the extracted helper and `--diff` to see 
 what varies.
 
 Each **family** is one refactoring decision (extract a shared helper / base class /
-data table). By default families are ranked by **extractability** — the *invariant*
-lines you'd actually fold into one helper (`N/M shared`), weighted by how much of each
-copy is invariant and dampened by how many parameters that helper needs — so a tight,
-cleanly-extractable pair outranks a big block whose copies merely look similar.
-`--sort value` ranks by raw duplicated volume instead; `--sort sites` by copy count.
+data table). By default families are ranked by **divergent-edit hazard** — how likely
+the copies are to be edited inconsistently (fix one, miss the siblings) and cause a bug,
+calibrated against mined history. It surfaces the *dangerous* clones: behaviorally
+identical yet syntactically divergent copies whose siblings a developer won't find.
+`--sort extractability` ranks by how cleanly a family folds into one helper instead (the
+*fixability* axis); `--sort value` by raw duplicated volume; `--sort sites` by copy count.
 
 ## Pipeline
 
@@ -178,8 +179,8 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
 ## CLI
 
 - `nose scan <paths…>` — ranked clone families.
-  - rank/filter/shape: `--sort extractability|value|sites` (default
-    `extractability`), `--top N`, `--min-members N`, `--min-value V`,
+  - rank/filter/shape: `--sort hazard|extractability|value|sites` (default
+    `hazard`), `--top N`, `--min-members N`, `--min-value V`,
     `--min-tokens N`, `--min-lines N`,
     `--mode syntax|semantic|near` (comma-list/repeatable; omitted = `syntax,semantic`),
     `--threshold T` (only when `near` is enabled),

@@ -116,6 +116,45 @@ impl RefactorFamily {
             * tightness
             * self.discount
     }
+
+    /// Divergent-edit **hazard**: how likely this family is to be edited inconsistently
+    /// (one copy changed, the siblings missed) and cause a bug. A *severity* axis,
+    /// orthogonal to `extractability` (which is about *fixability*). This is the formula
+    /// calibrated against mined ground truth — a leave-one-repo-out evaluation over a
+    /// 12-repo / 8-language corpus of real divergent edits (G1) and bug-linked ones (G2);
+    /// see `eval/hazard/RESULTS.md` and `docs/hazard-ranking.md`.
+    ///
+    /// The data overturned the intuitive design: semantic-fingerprint *size* (`mean_sem`)
+    /// is anti-predictive (typical divergences are in smaller families); source-**line**
+    /// span is the real magnitude signal. The terms, with their learned weight signs:
+    ///   - `mean_lines` (+) — edit surface; the more lines, the more chances to diverge.
+    ///   - `spread` (+) — cross-directory dispersion; far-apart copies are missed more.
+    ///   - `invisibility` (+) — `1 − tightness`: copies that share little *text* despite
+    ///     being a matched (semantically equivalent) family are the ones a developer can't
+    ///     see, so won't update. This is the **inverse** of extractability's `tightness`
+    ///     term, and is the top signal for cross-language (Type-4) families. Identical
+    ///     copies still carry some hazard, so it floors at 0.3 rather than 0.
+    ///   - `scope_weight` — a divergence in prod is costlier than in tests.
+    ///
+    /// (`mean_sem`, `members`, and `params` were tested and dropped — anti-predictive,
+    /// redundant, or sign-unstable noise. No `discount` term: the calibration corpus had
+    /// negligible vendored/generated code, so it is omitted to keep the score faithful to
+    /// the measured formula.)
+    pub fn hazard(&self) -> f64 {
+        // tightness = invariant fraction; 0 for cross-language (no shared source lines),
+        // which makes invisibility maximal — exactly where the data says hazard is highest.
+        let tightness = (self.shared_weight / (self.mean_lines.max(1) as f64)).clamp(0.0, 1.0);
+        let invisibility = 0.3 + 0.7 * (1.0 - tightness);
+        let scope_weight = match self.scope {
+            "test" => 0.25,
+            "mixed" => 0.5,
+            _ => 1.0, // prod
+        };
+        self.mean_lines as f64
+            * spread(self.files, self.modules, self.languages)
+            * invisibility
+            * scope_weight
+    }
 }
 
 /// The directory ("module") a file lives in — the design-level grouping key.
@@ -520,6 +559,85 @@ mod tests {
         assert!(
             tight.extractability() > bloated.extractability(),
             "extractability favors the cleanly-extractable pair"
+        );
+    }
+
+    #[test]
+    fn hazard_inverts_extractability_on_text_similarity() {
+        // The defining contract: same size and copy count, differing only in how much
+        // text the copies share. `tight` is near-identical; `divergent` is the same
+        // behavior with little shared text (an invisible sibling). Hazard must rank the
+        // divergent one higher (it's the dangerous one), and extractability the tight one
+        // — the two axes are *opposed* on the text-similarity dimension.
+        let tight = fam(
+            0.0,
+            30,
+            27,
+            0,
+            vec![loc("a.rs", 1, 30, "rs"), loc("b.rs", 1, 30, "rs")],
+        );
+        let divergent = fam(
+            0.0,
+            30,
+            3,
+            0,
+            vec![loc("c.rs", 1, 30, "rs"), loc("d.rs", 1, 30, "rs")],
+        );
+        assert!(
+            divergent.hazard() > tight.hazard(),
+            "hazard ranks the syntactically-divergent (invisible) family higher"
+        );
+        assert!(
+            tight.extractability() > divergent.extractability(),
+            "extractability ranks the tight family higher — the axes are opposed"
+        );
+    }
+
+    #[test]
+    fn hazard_surfaces_cross_language() {
+        // Cross-language families have no shared source lines (shared_weight 0), so
+        // invisibility maxes out — the sibling is truly invisible. Hazard surfaces them,
+        // where extractability can barely rank them.
+        let xlang = fam(
+            0.0,
+            30,
+            0,
+            0,
+            vec![loc("a.py", 1, 30, "py"), loc("b.ts", 1, 30, "ts")],
+        );
+        let tight_same = fam(
+            0.0,
+            30,
+            27,
+            0,
+            vec![loc("a.rs", 1, 30, "rs"), loc("b.rs", 1, 30, "rs")],
+        );
+        assert!(
+            xlang.hazard() > tight_same.hazard(),
+            "an invisible cross-language sibling outranks a tight same-language pair"
+        );
+    }
+
+    #[test]
+    fn hazard_demotes_test_scope() {
+        let prod = fam(
+            0.0,
+            30,
+            3,
+            0,
+            vec![loc("a.rs", 1, 30, "rs"), loc("b.rs", 1, 30, "rs")],
+        );
+        let mut test = fam(
+            0.0,
+            30,
+            3,
+            0,
+            vec![loc("a.rs", 1, 30, "rs"), loc("b.rs", 1, 30, "rs")],
+        );
+        test.scope = "test";
+        assert!(
+            prod.hazard() > test.hazard(),
+            "a divergence in prod outranks the same divergence in tests"
         );
     }
 

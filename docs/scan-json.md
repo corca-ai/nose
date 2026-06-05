@@ -58,7 +58,7 @@ pin a release.
 | `tool_version` | string | The `nose` package version that emitted the report. |
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
-| `ranking.sort` | string | Sort key used for `families`: `extractability`, `value`, or `sites`. |
+| `ranking.sort` | string | Sort key used for `families`: `hazard` (default), `extractability`, `value`, or `sites`. |
 | `ranking.total_families` | integer | Active families remaining after filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |

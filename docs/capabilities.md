@@ -49,7 +49,7 @@ nose capabilities
     "modes": ["syntax", "semantic", "near"],
     "default_modes": ["syntax", "semantic"],
     "output_formats": ["human", "json", "markdown", "sarif"],
-    "sort_keys": ["extractability", "value", "sites"],
+    "sort_keys": ["hazard", "extractability", "value", "sites"],
     "config_keys": ["exclude", "ignore-file", "min-lines"],
     "capabilities": {
       "baseline": true,

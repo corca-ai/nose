@@ -124,17 +124,16 @@ def span_changed(ranges, file, start, end):
 BUGFIX = re.compile(r"\b(fix(e[sd])?|bug(fix)?|defect|hotfix|patch|resolve[sd]?)\b", re.I)
 
 
-def bugfix_files(repo, sha_a, sha_b):
-    """Files touched by any bug-fix-message commit in (sha_a, sha_b] (Mockus & Votta)."""
-    r = sh(["git", "-C", repo, "log", "--no-merges", "--name-only",
-            "--pretty=format:%x01%s", f"{sha_a}..{sha_b}"])
-    files, is_bf = set(), False
+def member_bugfixed(repo, sha_a, sha_b, file, name):
+    """True if a bug-fix-message commit modified the *function* `name` in `file` during
+    (sha_a, sha_b]. Function-level (git's -L:funcname) — drift-robust, far tighter than
+    file-level attribution. Mockus & Votta message heuristic."""
+    r = sh(["git", "-C", repo, "log", "-L", f":{re.escape(name)}:{file}",
+            "--no-patch", "--pretty=format:%x01%s", f"{sha_a}..{sha_b}"])
     for line in r.stdout.splitlines():
-        if line.startswith("\x01"):
-            is_bf = bool(BUGFIX.search(line[1:]))
-        elif line.strip() and is_bf:
-            files.add(line.strip())
-    return files
+        if line.startswith("\x01") and BUGFIX.search(line[1:]):
+            return True
+    return False
 
 
 def main():
@@ -174,7 +173,6 @@ def main():
             if prev is not None:
                 psha, pfams = prev
                 ranges = changed_ranges(a.repo, psha, sha)  # one diff for the whole interval
-                bf = bugfix_files(a.repo, psha, sha)        # files touched by bug-fix commits
                 for fam in pfams:
                     flags = [span_changed(ranges, f, s, e)
                              for (f, n, s, e) in fam["members"]]
@@ -186,10 +184,13 @@ def main():
                         label = "G0c"
                     else:
                         label = "G1"
-                    # G2 = harmful divergence: a changed sibling was modified by a bug-fix
-                    # commit while lagging siblings were not (a fix that did not propagate).
+                    # G2 = harmful divergence: a changed sibling's *function* was modified by
+                    # a bug-fix commit while lagging siblings were not (a fix that did not
+                    # propagate). Function-level check — only runs for G1 (a few git calls).
                     g2 = label == "G1" and any(
-                        flags[i] and fam["members"][i][0] in bf for i in range(nmem))
+                        flags[i] and member_bugfixed(
+                            a.repo, psha, sha, fam["members"][i][0], fam["members"][i][1])
+                        for i in range(nmem))
                     counts[label] += 1
                     if g2:
                         counts["G2"] += 1

@@ -426,13 +426,19 @@ enum SortKey {
     /// How cleanly it extracts: invariant (shared) lines × copies × spread, penalized
     /// by the number of parameters the helper would need. Surfaces the duplication you
     /// can actually fold into one helper, not the biggest block that merely *looks*
-    /// similar. The default.
+    /// similar (a *fixability* axis).
     Extractability,
     /// Raw duplicated volume: removable lines × similarity × spread. The most
     /// *code* you'd delete, even if the copies diverge a lot (more manual work).
     Value,
     /// Most copies first — the most-repeated patterns.
     Sites,
+    /// Divergent-edit *hazard*: how likely a family is to be edited inconsistently
+    /// (one copy fixed, the siblings missed) and cause a bug. A severity axis, not a
+    /// fixability one — surfaces copies that share little text yet are behaviorally the
+    /// same (the invisible siblings a developer won't update). Calibrated against mined
+    /// history; see `docs/hazard-ranking.md`. The default.
+    Hazard,
 }
 
 impl SortKey {
@@ -441,6 +447,7 @@ impl SortKey {
             SortKey::Extractability => "extractability",
             SortKey::Value => "value",
             SortKey::Sites => "sites",
+            SortKey::Hazard => "hazard",
         }
     }
 
@@ -450,6 +457,7 @@ impl SortKey {
             SortKey::Extractability => f.extractability(),
             SortKey::Value => f.value,
             SortKey::Sites => f.members as f64,
+            SortKey::Hazard => f.hazard(),
         }
     }
 }
@@ -461,6 +469,7 @@ fn sort_name(s: SortKey) -> &'static str {
         SortKey::Extractability => "extractability (cleanest to fold into one helper)",
         SortKey::Value => "raw duplicated volume",
         SortKey::Sites => "number of copies",
+        SortKey::Hazard => "divergent-edit hazard (most likely to be edited inconsistently)",
     }
 }
 
@@ -606,7 +615,7 @@ impl CapabilitiesReport {
                 modes: vec!["syntax", "semantic", "near"],
                 default_modes: vec!["syntax", "semantic"],
                 output_formats: vec!["human", "json", "markdown", "sarif"],
-                sort_keys: vec!["extractability", "value", "sites"],
+                sort_keys: vec!["hazard", "extractability", "value", "sites"],
                 config_keys: vec![
                     "exclude",
                     "ignore-file",
@@ -2282,7 +2291,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let top = args.top.or(cfg.top).unwrap_or(30);
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
-    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
+    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Hazard);
     let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
     if !channels.uses_threshold() && (args.threshold.is_some() || cfg.threshold.is_some()) {
         anyhow::bail!("--threshold is only valid when --mode includes near");

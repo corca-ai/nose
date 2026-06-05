@@ -26,8 +26,9 @@ from-source `./target/release/nose`.
 
 `nose scan <paths…>` scans one or more files/directories (recursively, respecting
 `.gitignore`), groups duplicated code into **families**, and ranks them by
-**extractability** — how cleanly each family folds into one shared helper — so the
-duplication you can actually act on surfaces first. With no `--mode`, it runs
+**divergent-edit hazard** — how likely each family is to be edited inconsistently and
+cause a bug — so the most dangerous duplication surfaces first (`--sort extractability`
+for the cleanest-to-fold-up axis instead). With no `--mode`, it runs
 `syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
 
 ```sh
@@ -47,7 +48,7 @@ Grouped by what they do. Anything here can also be set in
 
 | flag | effect |
 |---|---|
-| `--sort KEY` | ranking: `extractability` (default), `value`, or `sites` (see [Ranking](#ranking)) |
+| `--sort KEY` | ranking: `hazard` (default), `extractability`, `value`, or `sites` (see [Ranking](#ranking)) |
 | `--top N` | show only the top N families (default 30; `--top 0` = all) |
 | `--min-members N` | only families with at least N duplicated sites (default 2) |
 | `--min-value V` | hide families below this refactoring value (noise floor on large repos) |
@@ -65,22 +66,26 @@ noise floor on raw value and applies under every sort.
 
 | key | ranks by | use when |
 |---|---|---|
-| `extractability` *(default)* | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count | you want the duplication that folds *cleanly* into one helper — not the biggest block that merely looks similar |
+| `hazard` *(default)* | divergent-edit risk: line span × spread, weighted by invisibility (how little the copies share despite being the same) and prod-vs-test scope | you want the duplication most likely to be edited inconsistently and cause a bug — the *severity* axis |
+| `extractability` | invariant (shared) lines × copies × spread, weighted by tightness (shared/total) and penalized by parameter count | you want the duplication that folds *cleanly* into one helper — the *fixability* axis |
 | `value` | raw duplicated volume: removable lines × similarity × spread | you want the most *code* deleted, accepting that divergent copies cost more to merge |
 | `sites` | number of copies | hunting the most-repeated patterns |
 
-Extractability is the default because raw volume over-rewards a large block whose
-copies share little: a 384-line family that shares only 22 lines across 14 varying
-spots is mostly scaffolding (6% invariant), not an extraction — it ranks far below a
-tight `15/15`-shared, zero-parameter pair. The honest `N/M shared · Pp` cell in the
-report is the same signal the ranking uses. Same-language families with **no** shared
-invariant lines (a language idiom, or two unrelated type literals with the same shape)
-have nothing to extract and sink to the bottom, even at `sim 1.00`.
+**Hazard is the default** because the reason duplication is a smell is the
+maintenance hazard: fix one copy, miss the siblings, ship a bug. It ranks by how
+*dangerous* a clone is, not how *tidy* it would be to fold — and it is the **inverse**
+of extractability on the text-similarity axis: the most dangerous clones are
+behaviorally identical yet syntactically divergent (the invisible siblings a developer
+won't find), which extractability sinks. The formula is calibrated against mined
+divergent-edit history across 12 repos; see [hazard-ranking](hazard-ranking.md) for the
+evidence and the honest limits.
 
-Extractability ranks by *fixability* (how cleanly duplication folds into one helper).
-A complementary *severity* axis — ranking by how likely a clone is to be edited
-inconsistently and cause a bug — is designed in [hazard-ranking](hazard-ranking.md)
-(not yet shipped).
+`extractability` (the former default) ranks by *fixability* instead — raw volume
+over-rewards a large block whose copies share little: a 384-line family that shares
+only 22 lines across 14 varying spots is scaffolding, not an extraction, and sinks below
+a tight `15/15`-shared pair. Same-language families with **no** shared invariant lines
+have nothing to extract and sink there too. Use `--sort extractability` when you are
+deduplicating rather than hunting divergence risk.
 
 **Review what was found**
 

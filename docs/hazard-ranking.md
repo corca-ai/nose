@@ -1,9 +1,10 @@
 # Hazard ranking (divergent-edit risk)
 
-> Status: **design + evidence base.** The signals below are grounded in the
-> clone-maintenance literature; the score and its validation are not yet
-> implemented. Measured results will land in [experiments](experiments.md).
-> The parked cognitive-complexity sub-idea lives in
+> Status: **shipped as the default sort** (`--sort hazard`, the default; `--sort
+> extractability` for the former one). The formula is calibrated against mined
+> divergent-edit history ([eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md),
+> [experiments §BG](experiments.md)); the git-history Phase 2 and a human-audited gold
+> subset remain. The parked cognitive-complexity sub-idea lives in
 > [issue #23](https://github.com/corca-ai/nose/issues/23).
 
 nose's default ranking, [extractability](usage.md#ranking), answers *"how cleanly
@@ -105,16 +106,16 @@ mismatch).
 
 The formula below is **calibrated against mined ground truth**, not guessed: a
 leave-one-repo-out evaluation over a 12-repo / 8-language corpus (462k family-interval
-events, 4,639 divergent edits G1, 1,490 bug-linked G2 — see
+events, 4,639 divergent edits G1, 181 bug-linked G2 at ~1.1% prevalence — see
 [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and [experiments](experiments.md)).
 The data **overturned the pre-data design**: leading with semantic size (`mean_sem`)
 was *anti-predictive*; source-line span, dispersion, and invisibility are the real
 signals.
 
-**Phase 1 — static hazard, from fields nose already computes.** Add a `hazard()`
-method beside `extractability()` in `crates/nose-detect/src/report.rs` and a
-`SortKey::Hazard`. No new detection logic. Measured formula (leave-one-repo-out AUC:
-G1 0.644, gold-G2 0.682; vs 0.609 / 0.644 for the size-led design it replaces):
+**Phase 1 — static hazard, from fields nose already computes** — `hazard()` beside
+`extractability()` in `crates/nose-detect/src/report.rs`, plus `SortKey::Hazard` (now
+the default). No new detection logic. Measured formula (leave-one-repo-out AUC:
+G1 0.644, gold-G2 0.704; vs 0.609 / 0.668 for the size-led design it replaces):
 
 ```
 hazard = mean_lines                        // magnitude — source-line span (+0.43)
@@ -130,10 +131,12 @@ corpus sizes — noise). `invisibility` survives and is the **top signal in the
 cross-language stratum** (AUC 0.67, P@10 0.80) — the Type-4 hypothesis held exactly
 where predicted.
 
-Ship it **opt-in** (non-default sort key). The weights are calibrated on divergence
-*propensity* (G1) and validated against bug-linked divergence (G2) over the 12-repo
-corpus; a human-audited gold subset and a tighter G2 (line-level attribution) remain
-before it could become default.
+This is **the default sort**. The weights are calibrated on divergence *propensity*
+(G1, leave-one-repo-out AUC 0.644) and validated against bug-linked divergence (G2,
+function-level attribution, ~1.1% prevalence matching the literature, AUC 0.704) over
+the 12-repo corpus — it beats the former size-led/extractability default on both
+labels. `--sort extractability` remains for the fixability axis. Still open before the
+weights are considered final: a human-audited gold subset and the git-history Phase 2.
 
 **Phase 2 — git-history realized divergence (the high-precision payload).** Because
 nose matches Type-4, it can link siblings across revisions where textual tools
@@ -155,25 +158,21 @@ later converged was probably unintended), and let users dismiss false positives 
 
 ## Implementation plan
 
-Execute in order. Phase 1 is small, opt-in, and touches only the ranking layer.
+**Phase 1 — static hazard score. ✅ Done (shipped as the default).**
 
-**Phase 1 — static hazard score (ship opt-in).**
-
-1. Extract a `tightness()` helper on `RefactorFamily` from the existing
-   `extractability()` body, so both scores share one definition of the shared-text
-   ratio (`shared_weight / representative_lines`, clamped to 1).
-2. Add `hazard()` beside `extractability()` in `crates/nose-detect/src/report.rs`,
-   implementing the formula above. Reuse `effective_copies()`, `spread()`, and the
-   `discount` field; add small `invisibility` (`0.3 + 0.7·(1 − tightness)`) and
-   `scope_weight` (prod 1.0 / mixed 0.5 / test 0.25) helpers. Magnitude is `mean_sem`
-   (semantic size damps tiny dense functions softly — the relevance job the
-   `min-tokens` gate cannot do for functions, see [normalization](normalization.md)).
-3. Add `SortKey::Hazard` in `crates/nose-cli/src/main.rs`; wire it into `score()`,
-   `sort_name()`, and the `--sort` value list. Keep the default `extractability` —
-   hazard is opt-in until calibrated.
-4. Unit tests in `report.rs` pinning the design contract (see Tier 0 below).
-5. Docs: add the `hazard` row to the [usage](usage.md#ranking) ranking table and flip
-   this page's status line.
+1. ✅ `hazard()` on `RefactorFamily` in `crates/nose-detect/src/report.rs`,
+   implementing the calibrated formula above. Reuses `spread()`; `invisibility`
+   (`0.3 + 0.7·(1 − tightness)`, `tightness = shared_weight / mean_lines`) and
+   `scope_weight` (prod 1.0 / mixed 0.5 / test 0.25) inline. Magnitude is `mean_lines`
+   — **not** `mean_sem` (the data showed semantic size is anti-predictive; this also
+   softly demotes the tiny dense functions the `min-tokens` gate cannot, see
+   [normalization](normalization.md)).
+2. ✅ `SortKey::Hazard` in `crates/nose-cli/src/main.rs`, wired into `score()`,
+   `sort_name()`, the `--sort` value list, and `capabilities` — and made **the
+   default**.
+3. ✅ Tier-0 contract unit tests in `report.rs` (divergent > tight under hazard and the
+   reverse under extractability; cross-language ranks high; test scope demoted).
+4. ✅ Docs: [usage](usage.md#ranking) ranking table, scan-json, capabilities, README.
 
 No change to detection, normalization, or the value graph.
 
@@ -265,8 +264,8 @@ results land in [experiments](experiments.md).
   score is calibrated against.
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for this score on
   every new nose release.
-- [usage](usage.md#ranking) — the user-facing ranking keys (`extractability`,
-  `value`, `sites`; `hazard` to come).
+- [usage](usage.md#ranking) — the user-facing ranking keys (`hazard` default,
+  `extractability`, `value`, `sites`).
 - [field-evaluation](field-evaluation.md) — why extractability replaced raw value
   as the default (the fixability axis this page complements).
 - [architecture](architecture.md) — the lower → normalize → detect → rank pipeline
