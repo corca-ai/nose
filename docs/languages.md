@@ -56,5 +56,6 @@ literal/wildcard/OR/guarded `match` cases lowering to an if-chain, or Go channel
 statements lowering to a tagged effect shape, or Go multi-label `switch` cases lowering to
 ORed scrutinee comparisons, or C/Java `switch` labels lowering to real scrutinee comparisons
 instead of placeholder branches, or Java `switch` expression rules lowering to expression
-if-chains instead of `Raw`) is how a language becomes a first-class citizen — see the
-[experiments](experiments.md) log and the convergence-test discipline in [`CONTRIBUTING`](../CONTRIBUTING.md).
+if-chains instead of `Raw`, or Ruby scrutinee-less `case` lowering its `when` predicates
+directly) is how a language becomes a first-class citizen — see the [experiments](experiments.md)
+log and the convergence-test discipline in [`CONTRIBUTING`](../CONTRIBUTING.md).

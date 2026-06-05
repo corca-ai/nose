@@ -227,10 +227,7 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// `case x when a … when b …` → an `if`/`else` chain (the bodies are the signal).
 fn lower_case(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let scrutinee = node
-        .child_by_field_name("value")
-        .map(|v| lower_expr(lo, v))
-        .unwrap_or_else(|| lo.empty_block(span));
+    let scrutinee = node.child_by_field_name("value").map(|v| lower_expr(lo, v));
     let whens: Vec<TsNode> = Lowering::named_children(node)
         .into_iter()
         .filter(|c| c.kind() == "when" || c.kind() == "else")
@@ -256,19 +253,25 @@ fn lower_case(lo: &mut Lowering, node: TsNode) -> NodeId {
                         .named_child(0)
                         .map(|e| lower_expr(lo, e))
                         .unwrap_or_else(|| lo.empty_block(span));
-                    lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[scrutinee, pv])
+                    match scrutinee {
+                        Some(subject) => {
+                            lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[subject, pv])
+                        }
+                        None => pv,
+                    }
                 })
                 .collect();
             let cond = cmps
                 .into_iter()
                 .reduce(|a, b| lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[a, b]))
-                .unwrap_or_else(|| {
-                    lo.add(
+                .unwrap_or_else(|| match scrutinee {
+                    Some(subject) => lo.add(
                         NodeKind::BinOp,
                         Payload::Op(Op::Eq),
                         span,
-                        &[scrutinee, scrutinee],
-                    )
+                        &[subject, subject],
+                    ),
+                    None => lo.empty_block(span),
                 });
             acc = lo.add(NodeKind::If, Payload::None, span, &[cond, body, acc]);
         }
@@ -691,6 +694,17 @@ mod tests {
             .collect()
     }
 
+    fn binary_ops(src: &str) -> Vec<Op> {
+        nodes(src)
+            .iter()
+            .filter(|n| n.kind == NodeKind::BinOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
     #[test]
     fn unary_operators_lower_to_distinct_ops() {
         let ops = unary_ops("x = +5\ny = -5\nz = !a\nw = ~5\n");
@@ -719,6 +733,19 @@ mod tests {
         assert!(
             has_seven,
             "the `when 7` pattern literal must appear in the lowered IL"
+        );
+    }
+
+    #[test]
+    fn scrutinee_less_case_uses_when_condition_directly() {
+        let ops = binary_ops("case\nwhen x > 0\n  y\nelse\n  z\nend\n");
+        assert!(
+            ops.contains(&Op::Gt),
+            "scrutinee-less case should keep the when predicate, got {ops:?}"
+        );
+        assert!(
+            !ops.contains(&Op::Eq),
+            "scrutinee-less case should not compare an empty scrutinee, got {ops:?}"
         );
     }
 }
