@@ -738,6 +738,18 @@ not the weights, so we mined ground truth before implementing.
   git-history features cannot rank harm above ~0.60.** Harm is semantic — the LLM judge
   captures it (the gold's basis), metrics do not. The evidence-indicated harm ranker is a
   **bounded LLM pass over top-K structurally-surfaced candidates**, not more features.
+- **BG-gold3 — cognitive complexity (#23) moved the ceiling, post-divergence.** Tested
+  the parked #23 edit-surface idea on the same gold from captured member code/diff
+  (`cogcomplexity.py`, `harm_model.py`). `diff_per_cog` (a small subtle change in a
+  *complex* function — Krinke "critical change") harm-AUC **0.65**, the best signal yet —
+  but it needs the diff, so it is a **post-divergence** signal. The best **pre-divergence**
+  signal is `cog` (member cognitive complexity) at ~0.61 (≈ prior ceiling). The #23
+  axis-B "edit-surface symmetry" hypothesis was wrong (asymmetry AUC 0.44); absolute
+  complexity × change locality is the signal. Combos still do not lift (logistic 0.595 on
+  51 positives). Revised view: harm is best assessed *after* a divergence (it is a
+  property of the realized edit), where #23 reaches ~0.65 — a usable **post-divergence**
+  ranker. Untried/likely-additive: IL-based cognitive complexity (vs the text proxy) and a
+  larger gold. Pre-divergence ranking still caps ~0.61.
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,

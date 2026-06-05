@@ -161,13 +161,37 @@ families previously maintained *together*, consistent with Barbour/Kim) but weak
 only computable for ~52% of candidates (git funcname tracking). The clone-quality gate
 still left 46% non-clones — `near@0.70` precision is a deep issue.
 
-**Definitive conclusion:** a good harm ranker **cannot** be built from clone-structural +
-git-history features — they cap at ~0.60. Harm is fundamentally *semantic* ("does this
-specific change apply to the sibling?"): the LLM judge captures it (that is how the gold
-was built), structural/historical features barely do. The evidence-indicated path to a
-real harm ranker is a **semantic layer** — e.g. a bounded LLM pass over the top-K
-structurally-surfaced candidates (the same judgment the gold pipeline uses), not more
-metrics.
+### Round 3 — cognitive complexity / edit-surface (issue #23) moved the ceiling
+
+The #23 direction (per-copy *edit-surface*, à la Cognitive Complexity) was the most
+productive structural angle yet — tested on the same gold from the member code/diff
+already captured (`cogcomplexity.py`, `harm_model.py`), no re-mining:
+
+| signal (#23) | harm-AUC | availability |
+|---|---|---|
+| `diff_per_cog` — small change in a *complex* function (Krinke "critical change") | **0.650** | post-divergence (needs the diff) |
+| `cog` — member cognitive complexity (branches × nesting) | 0.61 | **pre-divergence** (scan time) |
+| `maxnest` | 0.59 | pre-divergence |
+| (prior best: git-history −skew 0.60, mean_sem 0.57, hazard 0.53) | | |
+
+So the best **pre-divergence** signal is `cog` (~0.61, ≈ the prior ceiling); the best
+signal overall, `diff_per_cog` (~0.65), needs the actual diff and so is a **post-
+divergence** signal: *given* a clone has been edited apart, a small subtle change in
+complex logic is the harmful, easy-to-miss kind. The axis-B "edit-surface *symmetry*"
+hypothesis from #23 was wrong (cog asymmetry AUC 0.44); absolute complexity × change
+locality is the signal. A leave-one-repo-out logistic over all signals still does not
+beat the single best (0.595) — combinations do not generalize on 51 positives.
+
+**Revised conclusion (better than round 2's):** harm is best assessed **after** a
+divergence (it is a property of the realized edit), and there the #23 signal reaches
+~0.65 — a usable *post-divergence* ranker, the actionable form ("this clone already
+diverged and a fix likely did not propagate"). Two levers remain untried and likely
+additive: (1) compute cognitive complexity from nose's **IL** (real control structure)
+instead of the crude text proxy used here; (2) a larger gold to tighten the 0.65 CI
+(±0.07 at 51 positives). Pre-divergence ranking still caps ~0.61; the bounded-LLM
+semantic pass remains the path if a *strong* ranker is required.
+
+## Gold-label audit (LLM-judge)
 
 ## Gold-label audit (LLM-judge)
 
