@@ -456,9 +456,11 @@ fn total_span(f: &RefactorFamily) -> u32 {
 /// the bulk (≥60%) of each inner site to fall in an outer site collapses both without
 /// merging genuinely distinct code (which would need >60% line overlap to qualify).
 fn subsumes(outer: &RefactorFamily, inner: &RefactorFamily) -> bool {
-    if outer.locations.len() < inner.locations.len() {
-        return false;
-    }
+    // No site-count guard: a single large outer site can cover several smaller inner
+    // sites, so requiring `outer.len() >= inner.len()` wrongly kept those (double-counted)
+    // inner families. Coverage alone — every inner site ≥60% inside some same-file outer
+    // site — is the criterion. The caller only ever asks whether a larger-span (kept)
+    // family subsumes a smaller one, so this can't collapse genuinely distinct code.
     const COVER: f64 = 0.60;
     inner.locations.iter().all(|i| {
         outer
@@ -688,6 +690,36 @@ mod tests {
         assert!(
             !subsumes(&outer, &distinct),
             "non-overlapping family is kept"
+        );
+    }
+
+    #[test]
+    fn subsumes_when_one_outer_site_covers_several_inner_sites() {
+        // A larger family with FEWER but bigger sites can still cover an inner family's
+        // MORE numerous smaller sites — every inner site lands inside an outer one, so it
+        // is double-counting and must be subsumed. (A site-count early-out used to reject
+        // this, leaving both families in the report.)
+        let outer = fam(
+            10.0,
+            100,
+            100,
+            0,
+            vec![loc("a.rs", 1, 100, "rs"), loc("b.rs", 1, 100, "rs")],
+        );
+        let inner = fam(
+            10.0,
+            30,
+            30,
+            0,
+            vec![
+                loc("a.rs", 10, 40, "rs"),
+                loc("a.rs", 60, 90, "rs"),
+                loc("b.rs", 20, 50, "rs"),
+            ],
+        );
+        assert!(
+            subsumes(&outer, &inner),
+            "one big outer site may cover several inner sites"
         );
     }
 
