@@ -156,14 +156,7 @@ impl<'a> Lowering<'a> {
     /// behavior-DISTINCT in the value graph (`3.14` ≠ `2.71`). The structural tag stays the
     /// abstract `Float` class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn float_lit(&mut self, text: &str, span: Span) -> NodeId {
-        let mut h: u64 = 0xcbf2_9ce4_8422_2325; // FNV-1a
-        for b in text
-            .trim()
-            .trim_end_matches(['f', 'F', 'd', 'D'])
-            .as_bytes()
-        {
-            h = (h ^ *b as u64).wrapping_mul(0x0100_0000_01b3);
-        }
+        let h = nose_il::stable_symbol_hash(text.trim().trim_end_matches(['f', 'F', 'd', 'D']));
         self.b.add(NodeKind::Lit, Payload::LitFloat(h), span, &[])
     }
 
@@ -173,10 +166,7 @@ impl<'a> Lowering<'a> {
     /// class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn str_lit(&mut self, text: &str, span: Span) -> NodeId {
         let content = text.trim_matches(|c| c == '"' || c == '\'' || c == '`');
-        let mut h: u64 = 0xcbf2_9ce4_8422_2325; // FNV-1a
-        for b in content.as_bytes() {
-            h = (h ^ *b as u64).wrapping_mul(0x0100_0000_01b3);
-        }
+        let h = nose_il::stable_symbol_hash(content);
         self.b.add(NodeKind::Lit, Payload::LitStr(h), span, &[])
     }
 
