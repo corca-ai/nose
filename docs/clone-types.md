@@ -83,14 +83,11 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
 
 ## Scan modes, and cross-language
 
-- **`nose scan`**: default `syntax,semantic` — CPD-style syntax runs plus exact modeled
-  Type-4 semantic clones.
-- **`nose scan --mode syntax`**: copy-paste channel only — the Type-1/2 floor for
-  jscpd-style CI gates.
-- **`nose scan --mode semantic`**: exact value-fingerprint Type-4 matches only; high
-  confidence, lower recall, no fuzzy similarity threshold.
-- **`nose scan --mode near`**: Type-3 near-duplicates via shape candidates and fuzzy
-  structural/value scoring. This is the only channel that uses `--threshold`.
-- **Comma-lists compose channels**: `--mode syntax,semantic,near` runs all three.
-- The taxonomy is usually stated within a single language; because every language lowers to
-  one shared IL, nose applies Type-1–4 **across languages** as well.
+Each type maps to a detection channel: **Type-1/2 → `syntax`**, **Type-3 → `near`**
+(fuzzy; the threshold rides on the mode, `near:0.8`), **Type-4 → `semantic`** (exact).
+The default is `syntax,semantic`; see [usage → Scan modes](usage.md#scan-modes) for the
+full table and how to compose channels.
+
+The taxonomy is usually stated within a single language; because every language lowers to
+one shared IL, nose applies Type-1–4 **across languages** as well — though in practice
+rarely, since cross-language fragments seldom converge to the same fingerprint.

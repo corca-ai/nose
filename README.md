@@ -166,11 +166,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
                           structural + value-graph scoring ──▶ clusters ──▶ ranked families
 ```
 
-- **Normalization** (`nose-normalize`): loop unification, desugaring (`x+=1`, ternary,
-  comprehensions, `match`/`switch` → canonical forms), alpha-renaming, operator/idiom
-  canonicalization, control-flow normalization, and the value graph (GVN).
-- **Detection** (`nose-detect`): three selectable channels feeding one ranking.
-  - *Syntax* — a Rabin-Karp scan over each file's IL token stream that finds duplicated
+Normalization (the `normalize` stage above) is covered in [How it works](#how-it-works)
+and [docs/normalization.md](docs/normalization.md). **Detection** (`nose-detect`) then
+runs three selectable channels feeding one ranking:
+
+- *Syntax* — a Rabin-Karp scan over each file's IL token stream that finds duplicated
     runs regardless of unit boundaries: the jscpd-style Type-1/2 floor.
   - *Semantic* — exact value-fingerprint matches: modeled Type-4 equivalence with the
     fingerprint-equal ⇒ behavior-equal contract.
