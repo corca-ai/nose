@@ -3,6 +3,7 @@
 //! tag combined with its children's tags), a pre-order **linearization** of node
 //! tags for alignment, and a **MinHash** signature for candidate generation.
 
+use crate::fragment::{FragmentKind, ProofFacts};
 use nose_il::{
     stable_symbol_hash, Builtin, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
     ParamSemantic, Payload, Symbol, UnitKind,
@@ -55,6 +56,18 @@ pub struct UnitFeat {
     /// units can still participate in `near` via structural scoring.
     #[serde(default)]
     pub exact_safe: bool,
+    /// The exact-fragment classification, when this unit is a sub-function fragment.
+    ///
+    /// `None` for ordinary function/method/class/block units; `Some(_)` names *why* the
+    /// fragment is an exact semantic clone (its [`FragmentKind`], with a stable
+    /// [`reason_code`](FragmentKind::reason_code)). Surfaced so reporting and ranking can
+    /// separate proof fragments from actionable refactors without re-deriving the shape.
+    #[serde(default)]
+    pub fragment_kind: Option<FragmentKind>,
+    /// What the recognizer proved about this fragment at acceptance time. Present iff
+    /// [`fragment_kind`](Self::fragment_kind) is `Some`.
+    #[serde(default)]
+    pub proof_facts: Option<ProofFacts>,
 }
 
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -324,7 +337,11 @@ struct UnitRoot {
     root: NodeId,
     kind: UnitKind,
     name: Option<Symbol>,
-    exact_fragment: bool,
+    /// The exact-fragment classification, when this root was admitted as an exact
+    /// sub-function fragment. `None` for ordinary function/method/class/block units.
+    /// `Some(_)` is the authoritative "this is an exact fragment" signal; the boolean
+    /// `fragment_kind.is_some()` replaces the previous standalone `exact_fragment` flag.
+    fragment_kind: Option<FragmentKind>,
 }
 
 /// Extract all units of `il` passing the size gates, with features computed.
@@ -351,7 +368,7 @@ pub(crate) fn extract(
             root: u.root,
             kind: u.kind,
             name: u.name,
-            exact_fragment: false,
+            fragment_kind: None,
         })
         .collect();
     let parents = if block_units {
@@ -372,9 +389,10 @@ pub(crate) fn extract(
         root,
         kind,
         name: uname,
-        exact_fragment,
+        fragment_kind,
     } in roots
     {
+        let exact_fragment = fragment_kind.is_some();
         let unit_start = unit_timer.start();
         let span = il.node(root).span;
         let lines = span.line_count();
@@ -532,6 +550,10 @@ pub(crate) fn extract(
             value_ms,
         });
 
+        let proof_facts = fragment_kind.map(|fk| match fk {
+            FragmentKind::SelfFieldBody => ProofFacts::self_field_body(),
+            other => ProofFacts::context_gated(other),
+        });
         out.push(UnitFeat {
             path: il.meta.path.clone(),
             lang: il.meta.lang,
@@ -548,6 +570,8 @@ pub(crate) fn extract(
             lits,
             returns,
             exact_safe,
+            fragment_kind,
+            proof_facts,
         });
     }
     unit_timer.report_summary(&il.meta.path);
@@ -1792,7 +1816,7 @@ fn collect_block_units(il: &Il, node: NodeId, out: &mut Vec<UnitRoot>) {
             root: node,
             kind: UnitKind::Block,
             name: None,
-            exact_fragment: false,
+            fragment_kind: None,
         });
     }
     for &c in il.children(node) {
@@ -1812,55 +1836,69 @@ fn collect_exact_statement_fragment_units(
     if il.kind(node) == NodeKind::Lambda {
         return;
     }
-    if exact_statement_fragment_root(il, node, parents, interner) {
-        push_or_upgrade_exact_fragment_root(out, node);
+    if let Some(kind) = exact_statement_fragment_root(il, node, parents, interner) {
+        push_or_upgrade_exact_fragment_root(out, node, kind);
     }
     for &c in il.children(node) {
         collect_exact_statement_fragment_units(il, c, parents, interner, out);
     }
 }
 
-fn push_or_upgrade_exact_fragment_root(out: &mut Vec<UnitRoot>, root: NodeId) {
+fn push_or_upgrade_exact_fragment_root(
+    out: &mut Vec<UnitRoot>,
+    root: NodeId,
+    kind: FragmentKind,
+) {
     if let Some(existing) = out.iter_mut().find(|candidate| candidate.root == root) {
-        existing.exact_fragment = true;
+        existing.fragment_kind = Some(kind);
     } else {
         out.push(UnitRoot {
             root,
             kind: UnitKind::Block,
             name: None,
-            exact_fragment: true,
+            fragment_kind: Some(kind),
         });
     }
 }
 
+/// Classify `node` as an exact sub-function fragment root, or `None` if it is not one.
+///
+/// `Some(kind)` is returned for exactly the nodes the previous boolean recognizer
+/// accepted (`true`); the [`FragmentKind`] names which recognizer branch matched. This
+/// is the single dispatch that lowers the standalone shape predicates into the fragment
+/// substrate (issue #33, step 1).
 fn exact_statement_fragment_root(
     il: &Il,
     node: NodeId,
     parents: &[Option<NodeId>],
     interner: &Interner,
-) -> bool {
+) -> Option<FragmentKind> {
     if !subtree_spans_within(il, node, il.node(node).span) {
-        return false;
+        return None;
     }
     if exact_function_body_self_field_fragment_root(il, interner, parents, node) {
-        return true;
+        return Some(FragmentKind::SelfFieldBody);
     }
     if !top_level_statement_fragment_context_safe(il, node, parents, interner) {
-        return false;
+        return None;
     }
     let kids = il.children(node);
     match il.kind(node) {
-        NodeKind::Return => {
-            kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
+        NodeKind::Return => (kids.len() == 1
+            && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit))
+        .then_some(FragmentKind::DirectReturn),
+        NodeKind::Throw => (kids.len() == 1
+            && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit))
+        .then_some(FragmentKind::DirectThrow),
+        NodeKind::Assign => exact_assignment_fragment_kind(il, interner, node),
+        NodeKind::ExprStmt => {
+            exact_expr_statement_fragment_root(il, node).then_some(FragmentKind::ExprEffect)
         }
-        NodeKind::Throw => {
-            kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
-        }
-        NodeKind::Assign => exact_assignment_fragment_root(il, interner, node),
-        NodeKind::ExprStmt => exact_expr_statement_fragment_root(il, node),
-        NodeKind::If => exact_conditional_fragment_root(il, interner, node),
-        NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, node),
-        _ => false,
+        NodeKind::If => exact_conditional_fragment_root(il, interner, node)
+            .then_some(FragmentKind::ConditionalGuard),
+        NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, node)
+            .then_some(FragmentKind::LoopEffect),
+        _ => None,
     }
 }
 
@@ -2498,8 +2536,24 @@ fn exact_index_assignment_consumes_temp(
 }
 
 fn exact_assignment_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    exact_index_assignment_fragment_root(il, node)
-        || exact_self_field_assignment_fragment_root(il, interner, node)
+    exact_assignment_fragment_kind(il, interner, node).is_some()
+}
+
+/// Classify an assignment fragment as an index-assignment effect or a Java self-field
+/// write — the two exact assignment shapes. Index assignment is checked first so the
+/// classification is deterministic (the two shapes are structurally disjoint regardless).
+fn exact_assignment_fragment_kind(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<FragmentKind> {
+    if exact_index_assignment_fragment_root(il, node) {
+        Some(FragmentKind::IndexAssignEffect)
+    } else if exact_self_field_assignment_fragment_root(il, interner, node) {
+        Some(FragmentKind::SelfFieldAssign)
+    } else {
+        None
+    }
 }
 
 fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {

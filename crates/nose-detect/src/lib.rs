@@ -9,12 +9,14 @@
 mod align;
 mod cluster;
 mod contiguous;
+mod fragment;
 mod lsh;
 mod minhash;
 mod report;
 mod units;
 
 pub use contiguous::Stream;
+pub use fragment::{Exit, FragmentKind, ProofFacts};
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;
 
