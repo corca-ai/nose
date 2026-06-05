@@ -204,9 +204,9 @@ runtime `Err` crossing a statement boundary, and stays skipped after a normal re
 value graph mirrors the normal-return half of that boundary by skipping the handler after an
 unconditional try-body return, and also replaces a side-effect-free try body that ends in a
 throw or a statically visible expression error (`Div`/`Mod` by zero, or `Pow` with an
-exponent outside the integer oracle's domain, including the same errors inside a `Seq`
-literal or a map/filter lambda over a statically non-empty `Seq`) with its handler. Richer
-exception control flow remains outside the oracle.
+exponent outside the integer oracle's domain, including the same errors inside eager builtin
+arguments, a `Seq` literal, or a map/filter lambda over a statically non-empty `Seq`) with
+its handler. Richer exception control flow remains outside the oracle.
 Field reads are interpreted only after the same unit has written that field; an unwritten
 field access remains unsupported rather than invented. The value graph follows the same
 boundary: `self.x = v; return self.x` resolves the read to `v`, while an unproven field read

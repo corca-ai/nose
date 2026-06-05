@@ -2934,6 +2934,9 @@ impl<'a> Builder<'a> {
                     .get(1)
                     .is_some_and(|&lambda| self.lambda_body_is_static_runtime_err(lambda, env));
         }
+        if self.il.kind(expr) == NodeKind::Call && self.call_has_static_runtime_arg_err(expr, env) {
+            return true;
+        }
         if self.il.kind(expr) != NodeKind::BinOp {
             return false;
         }
@@ -2950,6 +2953,33 @@ impl<'a> Builder<'a> {
             Op::Pow => self
                 .static_int_expr(kids[1])
                 .is_some_and(|exp| !(0..=u32::MAX as i64).contains(&exp)),
+            _ => false,
+        }
+    }
+
+    fn call_has_static_runtime_arg_err(
+        &mut self,
+        call: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
+        let kids = self.il.children(call).to_vec();
+        match self.il.node(call).payload {
+            Payload::Builtin(Builtin::ValueOrDefault) => kids
+                .first()
+                .is_some_and(|&value| self.expr_is_static_runtime_err(value, env)),
+            Payload::Builtin(Builtin::Any | Builtin::All) => kids
+                .first()
+                .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env)),
+            Payload::Builtin(Builtin::Reduce) => {
+                kids.get(1)
+                    .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env))
+                    || kids
+                        .get(2)
+                        .is_some_and(|&init| self.expr_is_static_runtime_err(init, env))
+            }
+            Payload::Builtin(_) => kids
+                .into_iter()
+                .any(|arg| self.expr_is_static_runtime_err(arg, env)),
             _ => false,
         }
     }
