@@ -74,7 +74,7 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
@@ -82,7 +82,8 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 The detector should not grow as a pile of language-specific exceptions: each frontend emits
 the thinnest facts it can prove (single-assignment bindings, callee/receiver identity,
 static import/projection coordinates, own-property and record-shape guards, literal table
-keys, explicit unsafe boundaries), and the shared strict engine consumes them.
+keys, equality-chain membership, flag+break reduction, ordered string-builder, explicit
+unsafe boundaries), and the shared strict engine consumes them.
 `capabilities.v1.json` records which surfaces emit which facts, so unsupported cells stay
 visible.
 

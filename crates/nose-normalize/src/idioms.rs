@@ -267,6 +267,23 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: vec![args[0], collection],
                         };
                     }
+                    // Python `sep.join(xs)`: ordered string-builder fold. Keep this
+                    // restricted to a literal separator receiver; JavaScript/Ruby
+                    // `xs.join(sep)` have the collection as the receiver and are not this
+                    // surface shape.
+                    "join"
+                        if base.is_some()
+                            && args.len() == 1
+                            && matches!(
+                                old.node(base.unwrap()).payload,
+                                Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
+                            ) =>
+                    {
+                        return CallCanon::Builtin {
+                            op: Builtin::Join,
+                            arg_olds: vec![base.unwrap(), args[0]],
+                        };
+                    }
                     "get" | "fetch"
                         if base.is_some()
                             && args.len() == 2

@@ -246,11 +246,11 @@ methodology and the bugs this discipline caught (§S).
 
 ## Quality gates
 
-`./scripts/check.sh` runs every gate CI runs: rustfmt, clippy (`-D warnings`), doc-link
-check, the test suite, **cargo-machete** (unused deps), **cargo-deny** (advisories /
-licenses / bans), and a **duplication gate** — nose run on its own source, so the clone
-detector polices its own duplication. Lint policy lives once in `[workspace.lints]`. See
-[`CONTRIBUTING.md`](CONTRIBUTING.md).
+`./scripts/check-ci-local.sh --fast` is the PR/push preflight: rustfmt, clippy
+(`-D warnings`), `nose-cli` tests, and docs wiki lint. `./scripts/check.sh` is the
+full local CI mirror, including release build/tests, supply-chain checks, MSRV,
+Lean proofs, and the self-hosted duplication gate. Lint policy lives once in
+`[workspace.lints]`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 

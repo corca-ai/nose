@@ -433,6 +433,90 @@ fn scan_mode_semantic_allows_proved_js_static_builtins() {
 }
 
 #[test]
+fn scan_mode_semantic_proves_extreme_type4_idioms() {
+    let dir = std::env::temp_dir().join(format!("nose_extreme_type4_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("record.ts"),
+        "export function recordA(value: unknown) { return value !== null && typeof value === 'object' && Array.isArray(value) === false; }\n\
+         export function recordB(input: unknown) { return typeof input === 'object' && input !== null && !Array.isArray(input); }\n\
+         export function recordMissingArray(value: unknown) { return typeof value === 'object' && value !== null; }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("early.ts"),
+        "export function anyLoop(xs: number[]) { let found = false; for (const x of xs) { if (x > 0) { found = true; break; } } return found; }\n\
+         export function anySome(xs: number[]) { return xs.some(x => x > 0); }\n\
+         export function anyWrongPredicate(xs: number[]) { let found = false; for (const x of xs) { if (x < 0) { found = true; break; } } return found; }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("membership.ts"),
+        "export function colorOr(value: string) { return value === 'red' || value === 'blue'; }\n\
+         export function colorIncludes(value: string) { return ['blue', 'red'].includes(value); }\n\
+         export function colorWrongLiteral(value: string) { return value === 'red' || value === 'green'; }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("builder.py"),
+        concat!(
+            "def concat_loop(xs):\n",
+            "    out = \"\"\n",
+            "    for x in xs:\n",
+            "        out += x\n",
+            "    return out\n\n",
+            "def concat_join(xs):\n",
+            "    return \"\".join(xs)\n\n",
+            "def concat_prepend(xs):\n",
+            "    out = \"\"\n",
+            "    for x in xs:\n",
+            "        out = x + out\n",
+            "    return out\n",
+        ),
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
+    let family = |positives: &[&str], negatives: &[&str]| {
+        semantic_families
+            .iter()
+            .map(serde_json::Value::to_string)
+            .find(|text| {
+                positives.iter().all(|name| text.contains(name))
+                    && negatives.iter().all(|name| !text.contains(name))
+            })
+            .unwrap_or_else(|| {
+                panic!(
+                    "semantic mode should report {positives:?} without {negatives:?}: {semantic}"
+                )
+            })
+    };
+
+    family(&["recordA", "recordB"], &["recordMissingArray"]);
+    family(&["anyLoop", "anySome"], &["anyWrongPredicate"]);
+    family(&["colorOr", "colorIncludes"], &["colorWrongLiteral"]);
+    family(&["concat_loop", "concat_join"], &["concat_prepend"]);
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_proves_collection_empty_checks() {
     let dir = std::env::temp_dir().join(format!("nose_collection_empty_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

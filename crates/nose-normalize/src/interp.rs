@@ -474,6 +474,7 @@ impl<'a> Interp<'a> {
                 )),
                 _ => Ok(Value::Err),
             },
+            Builtin::Join => Ok(join_strings(args.first(), args.get(1))),
             Builtin::Abs => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.abs())),
                 _ => Ok(Value::Err),
@@ -796,6 +797,23 @@ fn string_affix(value: Option<&Value>, affix: Option<&Value>, prefix: bool) -> V
         }
         _ => Value::Err,
     }
+}
+
+fn join_strings(separator: Option<&Value>, collection: Option<&Value>) -> Value {
+    let (Some(Value::Str(separator)), Some(Value::List(items))) = (separator, collection) else {
+        return Value::Err;
+    };
+    let mut out = Vec::new();
+    for (idx, item) in items.iter().enumerate() {
+        let Value::Str(piece) = item else {
+            return Value::Err;
+        };
+        if idx > 0 {
+            out.extend(separator.iter().copied());
+        }
+        out.extend(piece.iter().copied());
+    }
+    Value::Str(out)
 }
 
 fn bin(op: Op, a: &Value, b: &Value) -> Value {

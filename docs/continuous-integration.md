@@ -38,6 +38,34 @@ If a wrapper needs to support multiple installed nose versions, have it query
 `nose capabilities` first instead of scraping `--help`; the JSON contract is
 documented in [capabilities](capabilities.md).
 
+## Local CI mirror
+
+For nose itself, use the repository scripts before opening or updating a PR:
+
+```sh
+./scripts/check-ci-local.sh --fast
+```
+
+The fast gate runs rustfmt, clippy with `-D warnings`, the `nose-cli` test suite,
+and the docs wiki lint. It is also wired into `.githooks/pre-push` when hooks are
+enabled with:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+Before merge or release-sensitive work, run the full local CI mirror:
+
+```sh
+./scripts/check-ci-local.sh --full
+# same as:
+./scripts/check.sh
+```
+
+The full gate mirrors the GitHub Actions jobs: format, clippy, rustdoc warnings,
+release build/tests, the self-hosted duplication gate, MSRV check, supply-chain
+checks, docs wiki connectivity, and Lean soundness proofs.
+
 ## Baselines — incremental adoption
 
 An existing codebase already has dozens of clone families, so a bare `--fail`

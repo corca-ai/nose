@@ -18,17 +18,21 @@
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
 > so nested filters fuse to `p∧q`), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
-> min/max and any/all reductions (cross-language), **reduce-lambda selection** (`reduce(λ. a
-> if a>b else b)≡max`), **count-of-filter** (`len([…if p])≡Σ(p?1:0)`), method-form iterator
-> reductions (Rust `.sum()/.min()/.max()/.count()`), **dict-builder ≡ dict comprehension**
+> min/max and any/all reductions (cross-language), simple **flag+break existence/universal
+> loops** (`found=false; if p { found=true; break }` / the dual `all` form),
+> **reduce-lambda selection** (`reduce(λ. a if a>b else b)≡max`), **count-of-filter**
+> (`len([…if p])≡Σ(p?1:0)`), method-form iterator reductions (Rust
+> `.sum()/.min()/.max()/.count()`), **dict-builder ≡ dict comprehension**
 > (`d={}; for x: d[k]=v` ≡ `{k:v for x}` via a `DictEntry`-distinct rep that cannot collide
-> with a list of tuples), ternary-return decomposition, negated-comparison canon. Soundness
-> enforced by the independent interpreter oracle + canon-preservation check (`nose verify`)
-> and Lean proofs (`formal/`, incl. `distrib_sound`, `filter_fusion`, `Compare.lean`); see
-> §AJ/§AW/§AX/§BA.
+> with a list of tuples), ternary-return decomposition, negated-comparison canon,
+> equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard
+> facts, and ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`).
+> Soundness enforced by the independent interpreter oracle + canon-preservation check
+> (`nose verify`) and Lean proofs (`formal/`, incl. `distrib_sound`, `filter_fusion`,
+> `Compare.lean`); see §AJ/§AW/§AX/§BA.
 > Deferred: value-dependent folding (needs literal values), full distribution
-> (equality saturation), flag-loop↔break, loop↔recursion, the loop-form any/all (existence
-> loop). Rejected as cross-language-unsound: `x*2≡x+x`
+> (equality saturation), general CFG flag-loop↔break, loop↔recursion, and non-local
+> early-exit variants beyond the simple flag+break loop. Rejected as cross-language-unsound: `x*2≡x+x`
 > doubling and `s[-1]≡s[len(s)-1]` negative-index (§BA).
 
 
