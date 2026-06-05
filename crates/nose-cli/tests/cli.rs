@@ -68,6 +68,100 @@ fn run(args: &[&str]) -> String {
     String::from_utf8(out.stdout).unwrap()
 }
 
+fn scan_json(out: &str) -> serde_json::Value {
+    serde_json::from_str(out).expect("scan should emit valid JSON")
+}
+
+fn scan_families(json: &serde_json::Value) -> &[serde_json::Value] {
+    json["families"]
+        .as_array()
+        .expect("scan JSON should contain families array")
+}
+
+fn assert_scan_json_v1_contract(json: &serde_json::Value) {
+    assert_eq!(json["schema_version"], 1);
+    assert!(
+        json["tool_version"].as_str().is_some_and(|s| !s.is_empty()),
+        "tool_version should be a non-empty string: {json}"
+    );
+    assert!(
+        json["scope"]["files"].is_number(),
+        "scope.files should be numeric: {json}"
+    );
+    assert!(
+        json["scope"]["languages"].as_array().is_some(),
+        "scope.languages should be an array: {json}"
+    );
+
+    let ranking = json["ranking"].as_object().expect("ranking object");
+    for key in ["sort", "total_families", "shown_families", "limit"] {
+        assert!(ranking.contains_key(key), "ranking.{key} missing: {json}");
+    }
+
+    let family = scan_families(json)
+        .first()
+        .expect("fixture should include a family");
+    let family = family.as_object().expect("family object");
+    for key in [
+        "value",
+        "members",
+        "files",
+        "modules",
+        "languages",
+        "mean_score",
+        "mean_lines",
+        "dup_lines",
+        "shared_lines",
+        "params",
+        "shared_weight",
+        "locations",
+        "mean_sem",
+        "scope",
+        "discount",
+    ] {
+        assert!(family.contains_key(key), "family.{key} missing: {json}");
+    }
+
+    let loc = family["locations"]
+        .as_array()
+        .and_then(|locations| locations.first())
+        .and_then(|location| location.as_object())
+        .expect("family.locations should contain location objects");
+    for key in ["file", "start_line", "end_line", "lang", "kind", "sem"] {
+        assert!(loc.contains_key(key), "location.{key} missing: {json}");
+    }
+}
+
+#[test]
+fn checked_in_scan_json_v1_example_matches_contract() {
+    let json = scan_json(include_str!("fixtures/scan-json-v1.json"));
+    assert_scan_json_v1_contract(&json);
+}
+
+#[test]
+fn scan_json_report_has_versioned_contract() {
+    let dir = make_project("json_contract");
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-tokens",
+        "12",
+        "--format",
+        "json",
+        "--top",
+        "1",
+    ]);
+    let json = scan_json(&out);
+    assert_scan_json_v1_contract(&json);
+    assert_eq!(json["tool_version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(json["scope"]["files"], 4);
+    assert_eq!(json["scope"]["languages"][0]["language"], "python");
+    assert_eq!(json["ranking"]["sort"], "extractability");
+    assert_eq!(json["ranking"]["shown_families"], 1);
+    assert_eq!(json["ranking"]["limit"], 1);
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn scan_mode_syntax_reports_copy_paste_only() {
     let dir = make_mode_project("syntax");
@@ -111,9 +205,9 @@ fn scan_mode_syntax_min_tokens_controls_copy_paste_floor() {
         "--format",
         "json",
     ]);
-    assert_eq!(
-        out.trim(),
-        "[]",
+    let json = scan_json(&out);
+    assert!(
+        scan_families(&json).is_empty(),
         "a high syntax token floor suppresses the short copy-paste run: {out}"
     );
     let _ = fs::remove_dir_all(&dir);
@@ -175,9 +269,8 @@ fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -250,9 +343,8 @@ fn scan_mode_semantic_allows_proved_js_static_builtins() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -314,9 +406,8 @@ fn scan_mode_semantic_preserves_js_typeof_operator() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -370,9 +461,8 @@ fn scan_mode_semantic_allows_safe_uninterpreted_calls() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -425,9 +515,8 @@ fn scan_mode_semantic_allows_safe_uninterpreted_method_calls() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -479,9 +568,8 @@ fn scan_mode_semantic_distinguishes_sequence_kinds() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -538,9 +626,8 @@ fn scan_mode_semantic_converges_cross_language_list_literals() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -593,9 +680,8 @@ fn scan_mode_semantic_preserves_js_object_keys() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -652,9 +738,8 @@ fn scan_mode_semantic_converges_cross_language_map_literals() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -712,9 +797,8 @@ fn scan_mode_semantic_captures_module_literal_bindings() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -777,9 +861,8 @@ fn scan_mode_semantic_preserves_python_dict_keys() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -843,9 +926,8 @@ fn scan_mode_semantic_preserves_ruby_hash_keys() {
         "--top",
         "0",
     ]);
-    let semantic_json: serde_json::Value =
-        serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
-    let semantic_families = semantic_json.as_array().expect("semantic JSON array");
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
         1,
@@ -1528,10 +1610,14 @@ fn scan_reports_what_it_scanned() {
     );
     // The scope line must not corrupt machine-readable output.
     let json = run(&["scan", p, "--min-tokens", "12", "--format", "json"]);
+    let report = scan_json(&json);
     assert!(
-        json.trim_start().starts_with('[') && !json.contains("scanned"),
-        "json output stays pure: {json}"
+        json.trim_start().starts_with('{') && !json.contains("scanned"),
+        "json output stays a pure object without human text: {json}"
     );
+    assert_eq!(report["scope"]["files"], 4);
+    assert_eq!(report["scope"]["languages"][0]["language"], "python");
+    assert_eq!(report["scope"]["languages"][0]["files"], 4);
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -1632,8 +1718,8 @@ fn top_zero_shows_all_families() {
     let p = dir.to_str().unwrap();
     let count = |args: &[&str]| -> usize {
         let out = run(args);
-        let v: serde_json::Value = serde_json::from_str(&out).expect("valid JSON");
-        v.as_array().expect("JSON array").len()
+        let v = scan_json(&out);
+        scan_families(&v).len()
     };
 
     let all = count(&[

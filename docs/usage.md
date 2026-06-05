@@ -57,8 +57,7 @@ scanned 23 files · typescript 19 · javascript 4
 The first line — `scanned N files · <language breakdown>` — reports what was actually
 analyzed. A repo where `.gitignore` or `--exclude` pruned vendored deps, build output,
 or generated code scans far fewer files than sit on disk; the count makes that scope
-explicit instead of a silent gap (compare it to what you expected). The per-language
-breakdown is omitted under `--cache-dir`, which tracks only the total. (The *ignored*
+explicit instead of a silent gap (compare it to what you expected). The *ignored*
 count is intentionally not shown: tallying it means walking into the very trees
 `.gitignore` exists to skip — slow on exactly the large repos where it matters.)
 
@@ -125,6 +124,10 @@ have nothing to extract and sink to the bottom, even at `sim 1.00`.
 | `--proposal` | show an extraction skeleton per family — the shared structure with the differing parts marked as parameters |
 | `--hotspots` | after the report, rank directories/modules by total duplicated lines (architecture view) |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`) |
+
+`--format json` emits a versioned object with `schema_version`, `tool_version`,
+scan scope, ranking metadata, and a `families` array. The stable contract and
+compatibility rule are documented in [scan-json](scan-json.md).
 
 **Workflow** (`--baseline`, `--write-baseline`, `--fail`, `--cache-dir`, `--config`)
 are covered in [continuous-integration](continuous-integration.md) and [configuration](configuration.md).

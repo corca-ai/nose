@@ -20,8 +20,15 @@ use std::path::Path;
 /// stores strict exact-safety for the semantic scan contract.)
 const SCHEMA: u32 = 4;
 
+pub(crate) struct CachedUnits {
+    pub units: Vec<UnitFeat>,
+    pub streams: Vec<Stream>,
+    pub files: usize,
+    pub langs: Vec<(&'static str, usize)>,
+}
+
 /// Build detection units **and contiguous-channel streams** for every source file under
-/// `roots`, using the on-disk cache at `dir`. Returns `(units, streams, files_seen)`.
+/// `roots`, using the on-disk cache at `dir`.
 /// Falls back to recomputation for any file that misses (or whose entry fails to
 /// read/parse), writing it back. Both the units and the stream are content-derived
 /// (interner-independent), so a file's entry depends only on its bytes/language/options.
@@ -30,7 +37,7 @@ pub(crate) fn build_units_cached(
     exclude: &[String],
     opts: &DetectOptions,
     dir: &Path,
-) -> (Vec<UnitFeat>, Vec<Stream>, usize) {
+) -> CachedUnits {
     // One bucket per (schema, options signature): changing an option that affects
     // units lands in a fresh bucket, so stale entries are never read.
     let bucket = dir.join(format!("v{SCHEMA}-{:016x}", options_signature(opts)));
@@ -42,6 +49,13 @@ pub(crate) fn build_units_cached(
         .flat_map(|r| nose_frontend::discover_paths(r, exclude))
         .collect();
     paths.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    let mut counts: std::collections::HashMap<&'static str, usize> =
+        std::collections::HashMap::new();
+    for (_, lang) in &paths {
+        *counts.entry(lang.name()).or_insert(0) += 1;
+    }
+    let mut langs: Vec<(&'static str, usize)> = counts.into_iter().collect();
+    langs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
 
     let per_file: Vec<(Vec<UnitFeat>, Option<Stream>)> = paths
         .par_iter()
@@ -91,7 +105,12 @@ pub(crate) fn build_units_cached(
             all_streams.push(s);
         }
     }
-    (all_units, all_streams, files)
+    CachedUnits {
+        units: all_units,
+        streams: all_streams,
+        files,
+        langs,
+    }
 }
 
 /// 64-bit FNV-1a over the language tag and source bytes. Collisions are

@@ -65,7 +65,8 @@ nose scan src --format sarif > nose.sarif
 # then upload nose.sarif via github/codeql-action/upload-sarif
 ```
 
-`--format json` is the general machine-readable form for any other tooling.
+`--format json` is the general machine-readable form for any other tooling. Its
+versioned contract is documented in [scan-json](scan-json.md).
 
 ## Fast re-runs: `--cache-dir`
 
