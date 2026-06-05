@@ -332,11 +332,16 @@ fn build_path_matcher(index: usize, paths: &[String]) -> Result<Option<Override>
 
 fn parse_family_id(s: &str) -> Result<u64> {
     let s = s.trim();
-    let hex = s.strip_prefix("0x").unwrap_or(s);
-    if hex.len() != 16 {
+    let hex = s
+        .strip_prefix("0x")
+        .or_else(|| s.strip_prefix("0X"))
+        .unwrap_or(s);
+    // Require exactly 16 hex digits: this rejects a sign prefix (`+`/`-`) that
+    // u64::from_str_radix would otherwise accept, and any other non-hex character.
+    if hex.len() != 16 || !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
         anyhow::bail!("family ids must be 16 hex digits, optionally prefixed with 0x");
     }
-    baseline::parse_key(s).ok_or_else(|| {
+    u64::from_str_radix(hex, 16).map_err(|_| {
         anyhow::anyhow!("family ids must be 16 hex digits, optionally prefixed with 0x")
     })
 }
@@ -437,5 +442,35 @@ fn civil_from_days(days_since_epoch: i64) -> Date {
         year: year as i32,
         month: month as u32,
         day: day as u32,
+    }
+}
+
+#[cfg(test)]
+mod parse_id_tests {
+    use super::parse_family_id;
+
+    #[test]
+    fn rejects_non_hex_sign_prefix() {
+        // '+' + 15 hex digits = 16 chars; u64::from_str_radix would accept the '+'.
+        assert!(parse_family_id("+aaaaaaaaaaaaaaa").is_err());
+        assert!(parse_family_id("-aaaaaaaaaaaaaaa").is_err());
+    }
+
+    #[test]
+    fn accepts_uppercase_0x_prefix() {
+        let v = parse_family_id("0XAAAAAAAAAAAAAAAA").expect("uppercase 0X prefix is valid");
+        assert_eq!(v, 0xAAAA_AAAA_AAAA_AAAA);
+    }
+
+    #[test]
+    fn accepts_plain_and_lowercase_prefixed_ids() {
+        assert_eq!(
+            parse_family_id("aaaaaaaaaaaaaaaa").unwrap(),
+            0xAAAA_AAAA_AAAA_AAAA
+        );
+        assert_eq!(
+            parse_family_id("0xaaaaaaaaaaaaaaaa").unwrap(),
+            0xAAAA_AAAA_AAAA_AAAA
+        );
     }
 }
