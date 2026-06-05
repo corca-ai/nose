@@ -5477,6 +5477,57 @@ full-corpus candidate path moved down 3.5%, but this is the second fragment batc
 limited real delta, so the next loop should prioritize evidence-backed real frontier
 misses and add more fragment shapes only when a real miss requires them.
 
+## Fragment batch 19: exact branch temp index-assignment fragments
+
+This batch responds to the Java-skew concern by staying on a non-Java fragment boundary.
+The prioritizer still ranks `membership_contains` and `map_default_lookup` as the broad
+open multi-language axes, but `real_frontier.v1.json` has no open non-Java `real-miss`
+entries. Corpus grep over Go/C/TypeScript sources showed many conditional assignment
+idioms; the soundly narrow slice available in the current shared fragment model is C/Go
+index assignment, where index writes are already non-overloadable exact fragments.
+
+The proof invariant is an extension of the existing conditional temp-consumption rule: a
+direct conditional branch may assign one local non-trivial temporary, or a two-temporary
+linear chain, and immediately consume the final temporary in a C/Go/Java exact index
+assignment. The index assignment receiver must not mention the temporary or any prior
+chain temporary. The key or assigned value must consume the final temporary, and a chain's
+final assignment may not also read the prior temporary. This does not open arbitrary
+statement windows, Java-specific self-field effects, JS/TS dynamic property assignments,
+or C-style loop fragments whose normalized index initializer sits outside the loop node.
+
+The focused positives share one proof invariant and intentionally use Go:
+
+- branch temp consumed by assigned value: `value := xs[0] + 1; out[0] = value * value`;
+- branch temp consumed by index key: `slot := xs[0] + 1; out[slot] = xs[1] * 2`;
+- branch two-temp chain consumed by index key: `shifted := xs[0] + 1; slot := shifted * shifted; out[slot] = xs[1]`.
+
+Adjacent hard negatives cover wrong temp RHS, wrong key/value expression, temp consumed
+through the receiver, skipped first chain temp, and final assignment that also reads a
+prior chain temp.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-branch-index-temp-1 | candidate extraction | let exact conditional temp consumers include non-overloadable index assignment effects | 3 focused Go branch index-assignment families reported as `Block` units |
+| fragment-branch-index-temp-2 | hard negatives | reject temp-dependent receivers and prior-temp reads in chain final assignments | receiver/prior-temp/skipped-first hard negatives excluded |
+| fragment-branch-index-temp-3 | real delta | compare selected Go/C repos and full `bench/repos` before/after against a detached `HEAD` baseline | selected 692 -> 692 families / 4381 -> 4381 locations; full 7403 -> 7403 families / 32961 -> 32961 locations |
+| fragment-branch-index-temp-4 | family-id audit | inspect new/removed full-corpus family IDs | no full-corpus family ID additions/removals; no location growth |
+| fragment-branch-index-temp-5 | performance | release `NOSE_TIME=1` scans before/after | selected candidate path 49.3ms -> 47.2ms, normalize+extract 1587.3ms -> 1716.0ms; full candidate path 384.7ms -> 352.9ms, normalize+extract 3820.1ms -> 3902.6ms |
+| fragment-branch-index-temp-6 | focused regression | run branch-temp CLI regression under fragment-only size gates | focused test pass; positives reported, receiver/prior-temp negatives excluded |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaque_functions -- --nocapture
+Go branch temp value/key/index-chain positives reported; receiver-temp, skipped-first,
+and prior-temp-read negatives excluded.
+```
+
+This is another unit-fragment coverage expansion, not a real-corpus completeness win. The
+full candidate path moved down after the latest rebase, but the normalize/extract cost
+still moved up slightly on the sampled full corpus. The next loop should avoid adding more
+fragment shapes unless a non-Java evidence-backed real frontier miss requires them;
+otherwise switch to the `membership_contains` or `map_default_lookup` proof-fact frontier.
+
 ## Real-corpus C u32 unsigned-cast byte-pack: batch 2026-06-06
 
 This batch was selected to correct the recent Java-heavy skew in the real frontier work.

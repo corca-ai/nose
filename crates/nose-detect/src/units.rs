@@ -2011,7 +2011,54 @@ fn exact_statement_consumes_temp(
                     None => true,
                 }
         }
+        NodeKind::Assign => {
+            exact_index_assignment_consumes_temp(il, stmt, temp_cid, forbidden_cids)
+        }
         _ => false,
+    }
+}
+
+fn exact_index_assignment_consumes_temp(
+    il: &Il,
+    stmt: NodeId,
+    temp_cid: u32,
+    forbidden_cids: Option<&FxHashSet<u32>>,
+) -> bool {
+    if !exact_index_assignment_fragment_root(il, stmt) {
+        return false;
+    }
+    let kids = il.children(stmt);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
+        return false;
+    }
+    let target_kids = il.children(kids[0]);
+    let Some(&receiver) = target_kids.first() else {
+        return false;
+    };
+
+    let mut temp = FxHashSet::default();
+    temp.insert(temp_cid);
+    if node_mentions_any_cid(il, receiver, &temp)
+        || forbidden_cids.is_some_and(|cids| node_mentions_any_cid(il, receiver, cids))
+    {
+        return false;
+    }
+
+    let key_uses_temp = target_kids
+        .get(1)
+        .is_some_and(|&key| node_mentions_any_cid(il, key, &temp));
+    let value_uses_temp = node_mentions_any_cid(il, kids[1], &temp);
+    if !(key_uses_temp || value_uses_temp) {
+        return false;
+    }
+    match forbidden_cids {
+        Some(cids) => {
+            !target_kids
+                .get(1)
+                .is_some_and(|&key| node_mentions_any_cid(il, key, cids))
+                && !node_mentions_any_cid(il, kids[1], cids)
+        }
+        None => true,
     }
 }
 

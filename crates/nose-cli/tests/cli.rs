@@ -1217,6 +1217,54 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
             "temp_chain_effect_uses_prior.js",
             "function tempChainEffectUsesPrior(xs, out) {\n  if (xs[0] > 0) {\n    const shifted = xs[0] + 1;\n    const result = shifted * shifted + xs[1];\n    out.push(result + shifted);\n  }\n  audit(xs);\n}\n",
         ),
+        (
+            "temp_index_value_a.go",
+            "package p\nfunc tempIndexValueLeft(xs []int, out []int, ok bool) {\n  if ok {\n    value := xs[0] + 1\n    out[0] = value * value\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "temp_index_value_b.go",
+            "package p\nfunc tempIndexValueRight(ys []int, dst []int, flag bool) {\n  if flag {\n    dst[0] = (1 + ys[0]) * (1 + ys[0])\n  }\n  trace(ys)\n}\n",
+        ),
+        (
+            "temp_index_value_neg.go",
+            "package p\nfunc tempIndexValueWrong(zs []int, out []int, ok bool) {\n  if ok {\n    value := zs[0] + 2\n    out[0] = value * value\n  }\n  audit(zs)\n}\n",
+        ),
+        (
+            "temp_index_key_a.go",
+            "package p\nfunc tempIndexKeyLeft(xs []int, out []int, ok bool) {\n  if ok {\n    slot := xs[0] + 1\n    out[slot] = xs[1] * 2\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "temp_index_key_b.go",
+            "package p\nfunc tempIndexKeyRight(ys []int, dst []int, flag bool) {\n  if flag {\n    dst[1 + ys[0]] = 2 * ys[1]\n  }\n  trace(ys)\n}\n",
+        ),
+        (
+            "temp_index_key_neg.go",
+            "package p\nfunc tempIndexKeyWrong(zs []int, out []int, ok bool) {\n  if ok {\n    slot := zs[0] + 2\n    out[slot] = zs[1] * 2\n  }\n  audit(zs)\n}\n",
+        ),
+        (
+            "temp_index_chain_a.go",
+            "package p\nfunc tempIndexChainLeft(xs []int, out []int, ok bool) {\n  if ok {\n    shifted := xs[0] + 1\n    slot := shifted * shifted\n    out[slot] = xs[1]\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "temp_index_chain_b.go",
+            "package p\nfunc tempIndexChainRight(ys []int, dst []int, flag bool) {\n  if flag {\n    dst[(1 + ys[0]) * (1 + ys[0])] = ys[1]\n  }\n  trace(ys)\n}\n",
+        ),
+        (
+            "temp_index_chain_neg.go",
+            "package p\nfunc tempIndexChainWrong(zs []int, out []int, ok bool) {\n  if ok {\n    shifted := zs[0] + 1\n    slot := shifted + shifted\n    out[slot] = zs[1]\n  }\n  audit(zs)\n}\n",
+        ),
+        (
+            "temp_index_receiver_uses_temp.go",
+            "package p\nfunc tempIndexReceiverUsesTemp(xs []int, tables [][]int, ok bool) {\n  if ok {\n    shifted := xs[0] + 1\n    tables[shifted][0] = xs[1]\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "temp_index_chain_unconsumed_first.go",
+            "package p\nfunc tempIndexChainUnconsumedFirst(xs []int, out []int, ok bool) {\n  if ok {\n    shifted := xs[0] + 1\n    slot := xs[0] * xs[0]\n    out[slot] = xs[1]\n  }\n  audit(xs)\n}\n",
+        ),
+        (
+            "temp_index_chain_uses_prior.go",
+            "package p\nfunc tempIndexChainUsesPrior(xs []int, out []int, ok bool) {\n  if ok {\n    shifted := xs[0] + 1\n    slot := shifted * shifted\n    out[slot + shifted] = xs[1]\n  }\n  audit(xs)\n}\n",
+        ),
     ];
     for (name, src) in fixtures {
         fs::write(dir.join(name), src).unwrap();
@@ -1301,10 +1349,31 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
         "temp_chain_effect_b.js",
         "temp_chain_effect_neg.js",
     );
+    assert_temp_family(
+        "temp_index_value_a.go",
+        "temp_index_value_b.go",
+        "temp_index_value_neg.go",
+    );
+    assert_temp_family(
+        "temp_index_key_a.go",
+        "temp_index_key_b.go",
+        "temp_index_key_neg.go",
+    );
+    assert_temp_family(
+        "temp_index_chain_a.go",
+        "temp_index_chain_b.go",
+        "temp_index_chain_neg.go",
+    );
     assert_no_pair("temp_return_self_dependent.py", "temp_return_b.py");
     assert_no_pair("temp_return_window_gap.py", "temp_return_b.py");
     assert_no_pair("temp_chain_unconsumed_first.js", "temp_chain_effect_b.js");
     assert_no_pair("temp_chain_effect_uses_prior.js", "temp_chain_effect_b.js");
+    assert_no_pair("temp_index_receiver_uses_temp.go", "temp_index_key_b.go");
+    assert_no_pair(
+        "temp_index_chain_unconsumed_first.go",
+        "temp_index_chain_b.go",
+    );
+    assert_no_pair("temp_index_chain_uses_prior.go", "temp_index_chain_b.go");
     let _ = fs::remove_dir_all(&dir);
 }
 

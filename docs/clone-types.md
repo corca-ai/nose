@@ -87,8 +87,10 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   conditional or exact ForEach append-effect loop, plus branches that assign one local
   temporary and immediately consume it in a direct return/throw/effect statement or
   assign two local temporaries as a linear chain and immediately consume the final
-  temporary, plus ForEach loops whose only loop-body effects are appends or
-  non-overloadable C/Go/Java index assignments that depend on the iteration binding,
+  temporary in such a statement or a non-overloadable C/Go/Java index assignment whose
+  receiver does not depend on the temporary, plus ForEach loops whose only loop-body
+  effects are appends or non-overloadable C/Go/Java index assignments that depend on the
+  iteration binding,
   optionally preceded by one loop-local temporary assignment or a two-temporary linear
   chain whose first RHS depends on the iteration binding and whose final value is
   immediately consumed by that effect, plus Java
