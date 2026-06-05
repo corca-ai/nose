@@ -144,15 +144,7 @@ fn collect_unshadowed_node_symbols(
     shadowed: &FxHashMap<NodeId, FxHashSet<Symbol>>,
     out: &mut FxHashSet<Symbol>,
 ) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol)
-            && !shadowed
-                .get(&node)
-                .is_some_and(|symbols| symbols.contains(&symbol))
-        {
-            out.insert(symbol);
-        }
-    }
+    mark_direct_symbol(il, node, candidates, shadowed, out);
     for &child in il.children(node) {
         collect_unshadowed_node_symbols(il, child, candidates, shadowed, out);
     }
