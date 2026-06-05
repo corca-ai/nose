@@ -273,6 +273,12 @@ struct LoopRecurrenceScope {
     loop_values: FxHashMap<u32, ValueId>,
 }
 
+#[derive(Clone, Copy)]
+struct SignedExprOperand {
+    expr: NodeId,
+    negated: bool,
+}
+
 #[derive(Default)]
 struct ReductionCache {
     reductions: FxHashMap<(ValueId, ValueId), Option<(u32, ValueId)>>,
@@ -1706,6 +1712,25 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Formula(h), vec![])
     }
 
+    fn compact_add_sub_formula(
+        &mut self,
+        operands: Vec<SignedExprOperand>,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> ValueId {
+        let mut values = Vec::new();
+        for operand in operands {
+            let mut value = self.eval(operand.expr, env);
+            if operand.negated {
+                value = self.mk(ValOp::Un(Op::Neg as u32), vec![value]);
+            }
+            self.flatten_into(value, Op::Add as u32, &mut values);
+        }
+        if values.iter().all(|&v| !is_concat_ty(self.vty(v))) {
+            values.sort_by_key(|&v| self.vhash[v as usize]);
+        }
+        self.compact_formula(Op::Add as u32, &values)
+    }
+
     /// Flatten an associative-commutative chain of value nodes into `out`.
     fn flatten_into(&mut self, vid: ValueId, opc: u32, out: &mut Vec<ValueId>) {
         let mut stack = vec![vid];
@@ -1719,6 +1744,31 @@ impl<'a> Builder<'a> {
                 }
             }
             out.push(value);
+        }
+    }
+
+    fn collect_add_sub_expr_operands(
+        &self,
+        expr: NodeId,
+        negated: bool,
+        out: &mut Vec<SignedExprOperand>,
+    ) {
+        if self.il.kind(expr) != NodeKind::BinOp {
+            out.push(SignedExprOperand { expr, negated });
+            return;
+        }
+        match op_code(self.il.node(expr).payload) {
+            op if op == Op::Add as u32 => {
+                for &child in self.il.children(expr) {
+                    self.collect_add_sub_expr_operands(child, negated, out);
+                }
+            }
+            op if op == Op::Sub as u32 && self.il.children(expr).len() == 2 => {
+                let kids = self.il.children(expr);
+                self.collect_add_sub_expr_operands(kids[0], negated, out);
+                self.collect_add_sub_expr_operands(kids[1], !negated, out);
+            }
+            _ => out.push(SignedExprOperand { expr, negated }),
         }
     }
 
@@ -4632,6 +4682,13 @@ impl<'a> Builder<'a> {
                 }
                 if let Some(v) = self.eval_static_index_membership_comparison(op, &kids, env) {
                     return v;
+                }
+                if op == Op::Add as u32 || op == Op::Sub as u32 {
+                    let mut operands = Vec::new();
+                    self.collect_add_sub_expr_operands(expr, false, &mut operands);
+                    if operands.len() >= LARGE_AC_EXPR_OPERANDS {
+                        return self.compact_add_sub_formula(operands, env);
+                    }
                 }
                 // Canonicalize subtraction to addition-of-negation: `a - b ≡ a + (-b)`
                 // (sound for the two's-complement Int model: a.wrapping_sub(b) ==

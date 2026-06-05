@@ -141,6 +141,41 @@ fn scan_mode_semantic_keeps_renamed_exact_clone_candidates() {
 }
 
 #[test]
+fn feature_extraction_keeps_dense_small_functions_but_not_small_blocks() {
+    let dir = std::env::temp_dir().join(format!("nose_dense_gate_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("a.py"),
+        "def dense(xs):\n    return sum(x for x in xs if x > 0)\n\n\
+def blocky(xs):\n    total = 0\n    if xs:\n        total = total + xs[0]\n    return total\n",
+    )
+    .unwrap();
+
+    let out = run(&[
+        "features",
+        dir.to_str().unwrap(),
+        "--min-lines",
+        "20",
+        "--min-tokens",
+        "60",
+    ]);
+    let json: serde_json::Value = serde_json::from_str(&out).expect("features JSON");
+    let units = json["units"].as_array().expect("features units array");
+    assert!(
+        units
+            .iter()
+            .any(|unit| unit["kind"] == "Function" && unit["name"] == "dense"),
+        "behaviorally dense functions keep the semantic size-gate escape: {out}"
+    );
+    assert!(
+        units.iter().all(|unit| unit["kind"] != "Block"),
+        "small block units should stay behind the syntactic gate: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
     let dir = std::env::temp_dir().join(format!("nose_regex_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

@@ -213,6 +213,58 @@ fn large_generated_ac_formula_stays_compact_and_distinct() {
 }
 
 #[test]
+fn large_generated_add_sub_formula_stays_compact_and_distinct() {
+    let i = Interner::new();
+    let params: Vec<String> = (0..80).map(|n| format!("x{n}")).collect();
+    let alternating = params
+        .iter()
+        .enumerate()
+        .map(|(idx, param)| {
+            if idx == 0 {
+                param.clone()
+            } else if idx % 2 == 0 {
+                format!("+ {param}")
+            } else {
+                format!("- {param}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let positives = (0..80)
+        .rev()
+        .filter(|idx| idx % 2 == 0)
+        .map(|idx| params[idx].clone())
+        .collect::<Vec<_>>()
+        .join(" + ");
+    let negatives = (0..80)
+        .rev()
+        .filter(|idx| idx % 2 == 1)
+        .map(|idx| format!("- {}", params[idx]))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let regrouped = format!("{positives} {negatives}");
+    let changed = alternating.replacen("- x1", "+ x1", 1);
+    let src = |expr: &str| format!("def f({}):\n    return {expr}\n", params.join(", "));
+
+    let fp = value_fp(&i, &src(&alternating), Lang::Python);
+    assert_eq!(
+        fp,
+        value_fp(&i, &src(&regrouped), Lang::Python),
+        "large generated add/sub formulas should canonicalize signed operands"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, &src(&changed), Lang::Python),
+        "large add/sub formula compaction must keep sign changes distinct"
+    );
+    assert!(
+        fp.len() < 20,
+        "large add/sub formula should fingerprint as a compact atom set: {} atoms",
+        fp.len()
+    );
+}
+
+#[test]
 fn filtered_comprehension_matches_filtered_loop() {
     // `sum(x for x in xs if x>0)` and the guarded loop `if x>0: t += x` produce the
     // same guarded Reduce (§AI). The loop additionally records the guard as a
