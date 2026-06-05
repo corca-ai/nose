@@ -1938,9 +1938,24 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
         return false;
     }
     let kids = il.children(node);
-    if !(2..=4).contains(&kids.len()) {
+    if !(2..=5).contains(&kids.len()) {
         return false;
     }
+    if !kids
+        .iter()
+        .all(|&kid| matches!(il.kind(kid), NodeKind::Assign | NodeKind::ExprStmt))
+    {
+        return false;
+    }
+    let expected_effects = match kids
+        .iter()
+        .filter(|&&kid| exact_append_effect_statement_root(il, kid))
+        .count()
+    {
+        2 if kids.len() <= 4 => 2,
+        3 => 3,
+        _ => return false,
+    };
     let mut idx = 0;
     let mut effects = 0;
     while idx < kids.len() {
@@ -1970,7 +1985,7 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
         }
         return false;
     }
-    effects == 2
+    effects == expected_effects
 }
 
 fn exact_append_effect_statement_root(il: &Il, stmt: NodeId) -> bool {

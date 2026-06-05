@@ -2317,6 +2317,161 @@ fn semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments() {
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_three_append_effect_boundary_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "append_three_a.js",
+            "function appendThreeLeft(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_b.js",
+            "function appendThreeRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_wrong_order.js",
+            "function appendThreeWrongOrder(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 3);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_wrong_receiver.js",
+            "function appendThreeWrongReceiver(flag, out, other, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    other.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_mutated.js",
+            "function appendThreeMutated(flag, out, x) {\n  out.push(0);\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_temp_a.js",
+            "function appendThreeTempLeft(flag, out, x) {\n  if (flag) {\n    const first = x + 1;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_temp_b.js",
+            "function appendThreeTempRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_temp_wrong.js",
+            "function appendThreeTempWrong(flag, out, x) {\n  if (flag) {\n    const first = x + 4;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_chain_a.js",
+            "function appendThreeChainLeft(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_chain_b.js",
+            "function appendThreeChainRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_chain_wrong.js",
+            "function appendThreeChainWrong(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base + base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_three_chain_uses_prior.js",
+            "function appendThreeChainUsesPrior(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first + base);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+        (
+            "append_four_a.js",
+            "function appendFourLeft(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n    out.push(x + 4);\n  }\n  audit(/opaque/);\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "100",
+        "--min-size",
+        "100",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_block_pair = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let locations = family["locations"].as_array().expect("locations");
+                let files: Vec<&str> = locations
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+                    && files.iter().all(|file| !file.ends_with(negative))
+                    && locations.iter().all(|loc| loc["kind"] == "Block")
+            })
+            .unwrap_or_else(|| {
+                panic!("missing three-append-effect branch family {left}/{right}: {out}")
+            });
+        assert!(
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .all(|loc| loc["kind"] == "Block"),
+            "three append-effect branch fragments should report as Block units: {family:?}"
+        );
+    };
+
+    let assert_no_merge = |left: &str, right: &str| {
+        let merged = families.iter().any(|family| {
+            let files: Vec<&str> = family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .filter_map(|loc| loc["file"].as_str())
+                .collect();
+            files.iter().any(|file| file.ends_with(left))
+                && files.iter().any(|file| file.ends_with(right))
+        });
+        assert!(
+            !merged,
+            "semantic mode must not merge three append effects across the boundary ({left}/{right}): {out}"
+        );
+    };
+
+    assert_block_pair(
+        "append_three_a.js",
+        "append_three_b.js",
+        "append_three_wrong_order.js",
+    );
+    assert_block_pair(
+        "append_three_temp_a.js",
+        "append_three_temp_b.js",
+        "append_three_temp_wrong.js",
+    );
+    assert_block_pair(
+        "append_three_chain_a.js",
+        "append_three_chain_b.js",
+        "append_three_chain_wrong.js",
+    );
+    assert_no_merge("append_three_a.js", "append_three_wrong_order.js");
+    assert_no_merge("append_three_a.js", "append_three_wrong_receiver.js");
+    assert_no_merge("append_three_a.js", "append_three_mutated.js");
+    assert_no_merge(
+        "append_three_chain_a.js",
+        "append_three_chain_uses_prior.js",
+    );
+    assert_no_merge("append_three_a.js", "append_four_a.js");
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_ordered_index_assignment_branch_fragments_for_go() {
     let dir = std::env::temp_dir().join(format!(
         "nose_index_effect_order_boundary_{}",

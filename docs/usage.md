@@ -140,8 +140,9 @@ Conditional branches may also assign one local temporary, or a two-temporary lin
 and immediately consume the final value in a direct return/throw/effect statement or a
 non-overloadable C/Go/Java index assignment whose receiver does not depend on the
 temporary.
-They may contain exactly two ordered single-item append effects when each appended item is
-direct or is immediately produced by a branch-local temporary or linear temp chain.
+They may contain exactly two or three ordered single-item append effects when each
+appended item is direct or is immediately produced by a branch-local temporary or linear
+temp chain.
 They may also contain exactly two ordered non-overloadable C/Go/Java index-assignment
 effects when each assignment is direct or immediately consumes a branch-local temporary or
 linear temp chain.

@@ -157,6 +157,7 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | string concat | operand order swap, separator placement change |
 | field write | target field changed, overwrite order changed |
 | statement effect | append/emit order changed on the same execution path |
+| branch ordered append effect | swapped append order, wrong receiver, preceding receiver mutation, wrong temp RHS, temp chain reads prior temp, fourth append |
 | foreach index assignment | wrong receiver, wrong index expression, wrong assigned value, unused iteration binding |
 | branch temp-consumed index assignment | wrong temp RHS, wrong index/value, temp consumed through the receiver, temp chain skips first temp, final assignment also reads prior temp |
 | branch ordered index assignment | swapped write order, wrong receiver, preceding receiver mutation, wrong temp RHS, wrong key/value, dynamic property assignment |

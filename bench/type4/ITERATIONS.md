@@ -5659,6 +5659,81 @@ multi-language real frontier evidence; if none is found, keep fragment work tied
 shared proof invariant and avoid opening dynamic property or arbitrary statement-window
 semantics.
 
+## Fragment batch 22: exact three-append branch fragments
+
+This batch stays on the non-Java ordered-effect axis and extends the append branch
+boundary by one effect only. A direct conditional branch may now contain exactly two or
+three ordered single-item append effects. Each appended item may be direct, produced by
+one branch-local temporary immediately consumed by the append, or produced by a
+two-temporary linear chain whose final temporary is immediately consumed by the append.
+Four or more append effects remain outside this exact fragment set.
+
+The proof invariant is the same order-sensitive append sink used by the previous
+two-effect batch. Append effects already carry effect ordinals in the value fingerprint,
+and the receiver may not depend on the temp or any prior chain temp. The helper now
+prefilters branch bodies before temp-chain parsing: only 2-5 statement blocks made of
+`Assign`/`ExprStmt` are considered, and the block must contain exactly two or three
+single-item append statements.
+
+The three focused positives share one proof invariant and intentionally use JavaScript:
+
+- direct/direct/direct append sequence: `out.push(x + 1); out.push(x + 2); out.push(x + 3)`;
+- temp/direct/direct append sequence: `first = x + 1; out.push(first * first); out.push(x + 2); out.push(x + 3)`;
+- temp-chain/direct/direct append sequence: `base = x + 1; first = base * base; out.push(first); out.push(x + 2); out.push(x + 3)`.
+
+Adjacent hard negatives cover swapped append order, wrong receiver, preceding receiver
+mutation, wrong temp RHS, wrong chain RHS, final append reading a prior chain temp, and a
+fourth append boundary.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| fragment-three-append-1 | candidate extraction | allow exactly three ordered single-item append effects in a direct conditional branch | 3 focused JS three-append branch families reported as `Block` units |
+| fragment-three-append-2 | hard negatives | preserve append order, receiver identity, temp-local consumption, prior-temp exclusion, and the four-append cap | wrong order/receiver/mutation/temp/prior-temp/fourth-append negatives excluded |
+| fragment-three-append-3 | performance guard | require 2-5 `Assign`/`ExprStmt` statements and exactly 2 or 3 append statements before temp-chain parsing | selected/full families and locations unchanged; full median normalize+extract 3807.3ms -> 3827.8ms |
+| fragment-three-append-4 | regression | rerun existing two-append focused test to prove the earlier batch still reports | existing two-append focused test pass |
+| fragment-three-append-5 | release gates | run full Rust suite, clippy, docs lint, compact all-cross core smoke | `cargo test` pass; clippy clean; core smoke 634/634 positives and 0/1246 hard-negative false merges |
+
+Focused regression:
+
+```text
+cargo test -p nose-cli semantic_scan_reports_exact_safe_three_append_effect_branch_fragments -- --nocapture
+3 three-append branch positives reported; wrong-order, wrong-receiver,
+preceding-mutation, wrong-temp, prior-temp-read, and fourth-append negatives excluded.
+```
+
+Core gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+positive recall: 634/634
+hard-negative false merges: 0/1246
+```
+
+Real corpus and performance:
+
+```text
+NOSE_TIME=1 <baseline> scan radash axios prettier jest date-fns --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan radash axios prettier jest date-fns --mode semantic --format json --top 0
+selected files: 9882
+families: 192 before, 192 after
+locations: 600 before, 600 after
+normalize+extract: 180.8ms before, 179.6ms after
+candidates: 6.3ms before, 8.8ms after
+
+NOSE_TIME=1 <baseline> scan . --mode semantic --format json --top 0
+NOSE_TIME=1 target/release/nose scan . --mode semantic --format json --top 0
+full files: 60748
+families: 7403 before, 7403 after
+locations: 32965 before, 32965 after
+median normalize+extract over three alternating runs: 3807.3ms before, 3827.8ms after
+median candidates over three alternating runs: 281.2ms before, 288.4ms after
+```
+
+This is another focused unit-fragment completeness expansion rather than a real-corpus
+evidence-backed closure. The full-corpus candidate phase moved up by 7.2ms median, so
+the next loop should either find evidence-backed real frontier work or use a similarly
+tight prefilter before adding any larger fragment window.
+
 ## Fragment batch 20: exact ordered append-effect branch fragments
 
 This batch stays on the non-Java unit-fragment axis and opens only an effect sequence that
