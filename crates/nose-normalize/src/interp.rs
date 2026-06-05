@@ -510,6 +510,9 @@ impl<'a> Interp<'a> {
         for &k in &kids {
             args.push(self.eval(k, env)?);
         }
+        if args.iter().any(|arg| matches!(arg, Value::Err)) {
+            return Ok(Value::Err);
+        }
         match b {
             Builtin::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
@@ -1562,6 +1565,35 @@ mod tests {
     #[test]
     fn hof_filter_propagates_lambda_errors() {
         assert_eq!(hof_with_error_lambda(HoFKind::Filter), Value::Err);
+    }
+
+    fn print_with_error_arg_then_return() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let div = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let print = b.add(NodeKind::Call, Payload::Builtin(Builtin::Print), sp, &[div]);
+        let print_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[print]);
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[seven]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[print_stmt, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn eager_builtin_argument_err_stops_execution() {
+        assert_eq!(print_with_error_arg_then_return(), Value::Err);
     }
 
     fn run_any_all_with_error_predicate(all: bool) -> Value {
