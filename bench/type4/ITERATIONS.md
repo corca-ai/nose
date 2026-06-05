@@ -4155,3 +4155,590 @@ the full fuzzy space:
 Assessment: this is an exactness-first widening. The useful new merges are deliberately
 small and high-confidence, and every slice has an adjacent hard negative in the CLI gate:
 missing not-array proof, wrong early-exit predicate, wrong literal set, and ordered prepend.
+
+## Real-corpus Python docstring no-op: batch 2026-06-05
+
+This batch switches the loop from synthetic pair-weighted completeness to the real pinned
+corpus frontier. The selected evidence came from SymPy verify leads on real corpus files:
+the previous release split behavior-equal Python functions when one side had a leading
+static docstring. This is a narrow Python proof invariant: a function or method's first
+static string literal statement is documentation metadata and does not affect callable
+return behavior. The batch does not ignore returned strings, assigned strings, or dynamic
+f-string/call effects.
+
+Closed selected real misses:
+
+- `sympy/matrices/common.py:1362` `dirac` ↔ `sympy/physics/paulialgebra.py:24` `delta`;
+- `sympy/ntheory/modular.py:11` `symmetric_residue` ↔ `sympy/polys/galoistools.py:154` `gf_int`;
+- `sympy/polys/densebasic.py:285` `dup_degree` ↔ `sympy/polys/galoistools.py:175` `gf_degree`;
+- `sympy/polys/densebasic.py:415` `dup_strip` ↔ `sympy/polys/galoistools.py:233` `gf_strip`.
+
+The selected real scan also surfaced three additional same-invariant families:
+`dup_LC`/`gf_LC`, `dup_TC`/`gf_TC`, and the `shape` property pair in
+`sympy/matrices/common.py`.
+
+Synthetic coverage added `axis_python_docstring_*`: three positives for guard-return,
+direct-return, and different-docstring text; hard negatives cover returned string values,
+assigned string values, semantic mutations, and a dynamic `observe(f"{value}")` effect.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-docstring-1 | real frontier selection | choose SymPy docstring/no-docstring verify leads sharing one invariant | selected verify before: 66/70 completeness, 4 under-merged groups, SOUND |
+| real-docstring-2 | detector strengthening | drop only leading static Python docstring statements from function/class body lowering | targeted equivalence test passed |
+| real-docstring-3 | focused synthetic gate | add Python-only docstring no-op positives and hard negatives | previous release 0/3 positives, 0/6 false merges; candidate 3/3, 0/6 |
+| real-docstring-4 | real corpus delta | rescan selected SymPy files | selected verify after: 70/70 completeness, 0 under-merged; semantic scan adds 7 evidence-backed function/method families |
+| real-docstring-5 | release gates | run required focused, axis-core, all-cross core gates | focused 3/3, 0/6; axis core 3/3, 0/6; all-cross 616/616, 0/1207 |
+| real-docstring-6 | performance | compare selected SymPy scan timings with previous release | normalize+extract 9.9ms -> 10.1ms; candidate/cluster path 1.4ms -> 1.3ms |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_python_docstring_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 9
+positive recall: 3/3
+hard-negative false merges: 0/6
+SOUND: no false merges
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1823/6684
+positive recall: 616/616
+hard-negative false merges: 0/1207
+Raw nodes: 0/66307
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 66/70, under-merged groups 4, SOUND
+candidate release: completeness 70/70, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: the earlier real audit still leaves Java `Arrays.asList(array)`
+membership unsupported until array type/provenance facts exist, and the next efficient
+batch should be selected by rerunning `prioritize_frontier.py` rather than widening
+docstring handling beyond static leading Python docstrings.
+
+## Real-corpus JS/TS namespace import shadowing: batch 2026-06-05
+
+This batch selected a Jest real miss after the post-docstring frontier audit found that
+the high-scoring membership and map-default leads were either unsupported or unsafe
+without new receiver/type facts. The evidence-backed miss was the duplicated
+`replaceRootDirInPath` helper in `jest-config` and `jest-resolve`. The previous release
+split the pair because `jest-config/src/utils.ts` also has an unrelated
+`escapeGlobCharacters(path)` parameter whose `path.replaceAll(...)` call was treated as
+a mutation of the file's `import * as path from "node:path"` namespace binding.
+
+Closed selected real miss:
+
+- `jest/packages/jest-config/src/utils.ts:57` `replaceRootDirInPath` ↔
+  `jest/packages/jest-resolve/src/utils.ts:21` `replaceRootDirInPath`.
+
+The shared proof invariant is narrow: in JS/TS-family IL, a function or lambda parameter
+that shadows a module binding name does not mutate the module binding; an unshadowed
+mutation-like receiver call still blocks the proof. The same real helper also required
+preserving static template literal fragments as behavior-defining string literals, so
+`` `./${x}` `` can be exact-safe and converge with `"./" + x` while `` `../${x}` ``
+stays distinct.
+
+Synthetic coverage added `axis_import_namespace_shadowed_param_*`: positives for
+namespace import under parameter shadowing and template literal versus concat; hard
+negatives cover unshadowed mutation-like receiver calls, fake same-named receivers, and
+wrong template fragments.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-js-import-1 | real frontier selection | choose the Jest `replaceRootDirInPath` verify lead after rejecting unsupported membership/map leads | previous release verify: 0/1 completeness, 1 under-merged group, SOUND |
+| real-js-import-2 | detector strengthening | make JS/TS module mutation collection scope-aware for parameter shadowing; preserve JS/TS template static fragments as `LitStr` | targeted equivalence tests passed |
+| real-js-import-3 | focused synthetic gate | add namespace-shadow/template positives and adjacent hard negatives | previous release 0/4 positives, 0/8 false merges; candidate 4/4, 0/8 |
+| real-js-import-4 | real corpus delta | rescan selected Jest dirs | semantic scan goes from 0 families to family `5dc1326d43c86973` for the two helpers |
+| real-js-import-5 | release gates | run required focused, import-axis core, all-cross core gates | focused 4/4, 0/8; import core 9/9, 0/16; all-cross 618/618, 0/1210 |
+| real-js-import-6 | performance | compare selected Jest scan timings with previous release | normalize+extract 6.4ms -> 6.3ms on final run; candidate/cluster path 1.2ms -> 1.0ms |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_import_namespace_shadowed_param_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 12
+positive recall: 4/4
+hard-negative false merges: 0/8
+Raw nodes: 0/880
+```
+
+Final release import-axis core gate:
+
+```text
+GATE=core AXIS=import_identity CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 25/124
+positive recall: 9/9
+hard-negative false merges: 0/16
+Raw nodes: 0/1026
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1828/6696
+positive recall: 618/618
+hard-negative false merges: 0/1210
+Raw nodes: 0/66721
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: Java `Arrays.asList(array)` membership still requires array
+provenance facts; Python `**kwargs.get` and omitted-`None` map defaults had no repeated
+real miss groups in the audited repos; remaining JS/TS leads in Zod/date-fns/RxJS were
+oracle artifacts or non-equivalent.
+
+## Real-corpus C total-order comparator: batch 2026-06-05
+
+This batch came from the post-Jest real audit rather than synthetic ratio pressure.
+`prioritize_frontier.py` still ranked broad membership/map-default axes highest, but the
+top audited repos were already covered, unsupported without new provenance facts, or hard
+negatives. The first evidence-backed low-cost miss found in the next real sweep was Vim's
+C comparator group: `lnum_compare` in `diff.c` was behavior-equal to the already-covered
+`int_cmp`/`syn_compare_stub` family but split because its guard-return order checked
+`<` before `>`.
+
+Closed selected real candidates:
+
+- `vim/src/diff.c:937` `lnum_compare` ↔ `vim/src/syntax.c:5288`
+  `syn_compare_stub`;
+- `vim/src/diff.c:937` `lnum_compare` ↔ `vim/src/window.c:8495` `int_cmp`;
+- the existing `int_cmp` ↔ `syn_compare_stub` two-copy family is now a 3-copy family with
+  `lnum_compare` instead of a partial pair.
+
+The shared proof invariant is primitive total-order guard absorption: for source languages
+whose comparison operators are not receiver-overloadable, a strict comparison guard implies
+the same-direction non-strict guard, so `(x < y) and (x <= y)` can absorb the non-strict
+residue. The implementation lives in the shared value graph but is gated to primitive
+comparison languages; Python/Ruby/JS-style overloadable or effectful receiver comparisons
+remain outside the proof.
+
+Synthetic coverage added `axis_total_order_compare_*`: two positives for guard-order and
+ternary sign forms, and five hard negatives covering descending sign, equality-boundary
+sign, wrong returned sign value, the per-positive semantic mutation, and an explicit
+overloadable-comparison regression test.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-c-compare-1 | real frontier selection | choose Vim comparator verify lead after rejecting unsupported broad membership/map leads | previous release selected verify: SOUND, completeness 1/3, 1 under-merged group |
+| real-c-compare-2 | detector strengthening | add primitive-order guard absorption in the shared value graph, gated away from overloadable comparisons | targeted C convergence and Python overload hard-negative tests passed |
+| real-c-compare-3 | focused synthetic gate | add total-order comparator positives and adjacent hard negatives | previous release 0/2 positives, 0/5 false merges; candidate 2/2, 0/5 |
+| real-c-compare-4 | real corpus delta | rescan selected Vim files and whole Vim repo | selected verify after: 3/3 completeness, 0 under-merged; whole scan reports family `e498fe8139e65f5c` with all 3 comparators |
+| real-c-compare-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 2/2, 0/5; axis core 2/2, 0/5; all-cross core improves 618/620 -> 620/620 with 0/1215 false merges; cargo test passed |
+| real-c-compare-6 | performance | compare whole Vim scan timings with previous release | normalize+extract 225.9ms -> 208.8ms; candidate path 13.1ms -> 12.8ms; scanned files unchanged at 354 |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_total_order_compare_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 7
+positive recall: 2/2
+hard-negative false merges: 0/5
+SOUND: no false merges
+```
+
+Final release total-order axis core gate:
+
+```text
+GATE=core AXIS=total_order_compare CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 7/7
+positive recall: 2/2
+hard-negative false merges: 0/5
+Raw nodes: 0/374
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1835/6703
+positive recall: 620/620
+hard-negative false merges: 0/1215
+Raw nodes: 0/67095
+```
+
+The informational synthetic `nose verify` calibration count on the compact all-cross corpus
+did not increase: previous release and candidate both reported 110 oracle violations on
+the same current manifest while candidate removed the two total-order under-merge misses.
+
+Real selected verification:
+
+```text
+previous release: completeness 1/3, under-merged groups 1, SOUND
+candidate release: completeness 3/3, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: Java `Arrays.asList(array)` membership still needs array
+provenance/type facts before it can be sound; the broad membership/map-default axes should
+not be widened from untyped receivers. The next efficient batch should rerun the real
+prioritizer and continue the medium-repo audit, looking for another repeated real miss
+with a shared proof invariant rather than expanding comparator handling into overloadable
+language semantics.
+
+## Real-corpus Java empty-domain soundness: batch 2026-06-05
+
+This batch came from the large real-corpus sweep after the comparator batch. It is a
+soundness blocker rather than a completeness expansion: whole-Netty `verify` exposed two
+false merges in the exact value fingerprint. The detector collapsed Java null-or-empty
+helpers across three receiver domains:
+
+- `netty/codec-classes-quic/.../QuicheQuicSslEngine.java:305`:
+  `Object[]` null-or-`length == 0`;
+- `netty/common/.../AbstractScheduledEventExecutor.java:147`:
+  `Queue.isEmpty()`;
+- `netty/common/.../StringUtil.java:593`:
+  `String.isEmpty()`.
+
+Selected reason: this was the only audited real-corpus lead that violated the non-negotiable
+soundness rule. Broad completeness work was paused until the hard-negative merge was removed.
+
+Closed candidates: 0 completeness candidates; 2 real false-merge edges removed.
+
+The proof invariant is receiver-domain preservation for strict emptiness. A collection
+receiver, Java array parameter, and Java string parameter must not share the same exact value
+fingerprint merely because each has an empty idiom. The implementation records Java array
+parameters as `ParamSemantic::Array` and salts empty-check values as `CollectionParam`,
+`ArrayParam`, or `StringParam` only at the empty-check proof point. It does not widen untyped
+receivers or generic method calls.
+
+Synthetic coverage added two focused hard negatives:
+
+- `axis_collection_typed_domain_array_boundary`: `Queue.isEmpty()` vs `Object[].length == 0`;
+- `axis_collection_typed_domain_string_boundary`: `Queue.isEmpty()` vs `String.isEmpty()`.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-empty-domain-1 | real soundness audit | whole-Netty verifier found `Object[]` empty merged with `Queue` and `String` empty helpers | previous release: 2 false merges |
+| real-java-empty-domain-2 | detector narrowing | preserve typed empty receiver domains in the shared value graph; Java arrays get an explicit param semantic fact | targeted regression test passed |
+| real-java-empty-domain-3 | focused synthetic gate | add Java typed empty-domain hard negatives | focused: 0/0 positives, 0/2 false merges |
+| real-java-empty-domain-4 | real corpus delta | rerun whole-Netty verifier | candidate: SOUND, 0 false merges; completeness shifts 1528/2790 -> 1525/2790 because false merges were split |
+| real-java-empty-domain-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | collection core 11/11, 0/12; all-cross core 620/620, 0/1216; cargo test passed |
+| real-java-empty-domain-6 | performance | compare whole-Netty scan timings with previous release | normalize+extract 99.5ms -> 92.5ms; candidate path 20.6ms -> 25.7ms; families unchanged at 182 |
+
+Final focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_collection_typed_domain_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 2
+positive recall: 0/0
+hard-negative false merges: 0/2
+SOUND: no false merges
+```
+
+Final collection-empty axis core gate:
+
+```text
+GATE=core AXIS=collection_empty_check CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 23/68
+positive recall: 11/11
+hard-negative false merges: 0/12
+Raw nodes: 0/510
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1836/6705
+positive recall: 620/620
+hard-negative false merges: 0/1216
+Raw nodes: 0/67132
+```
+
+Real selected verification:
+
+```text
+previous release: 2 false merges in whole-Netty verify
+candidate release: SOUND with --max-violations 0
+```
+
+Remaining open frontier: the Netty verifier now surfaces the prior null-or-empty pair as a
+low-VJ under-merge (`Queue.isEmpty()` ↮ `String.isEmpty()`), which should stay unsupported
+until string and collection receiver semantics are intentionally connected. The next
+completeness batch should return to evidence-backed real misses such as the libgdx dead-loop
+`findFloats` pair or another repeated invariant from the real sweep, with this typed-domain
+boundary kept as a hard negative.
+
+## Real-corpus Java statically-false loop guard: batch 2026-06-05
+
+This batch returns to completeness after the Netty soundness blocker. The real-corpus audit
+checked the current verify leads in libgdx, git, and h2database. Most high-scoring leads were
+unsupported without new dynamic/type facts: float floor/ceil identities, pointer/index cast
+boundaries, comparator receivers with dynamic comparator objects, and null/collection/string
+domain boundaries. The first evidence-backed low-cost miss was libgdx's two `BufferUtils`
+`findFloats` overloads.
+
+Closed selected real candidate:
+
+- `libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java:433`
+  `findFloats(...)` to `BufferUtils.java:458` `findFloats(..., float epsilon)`.
+
+The intended batch size is about three evidence-backed miss candidates sharing one proof
+invariant, not three snippets. An exact pinned-corpus search for `boolean <local> = true`
+followed by a `!<local> && ...` loop guard found only this libgdx family for the current
+invariant, so the batch stays small instead of adding unrelated proof work.
+
+The shared proof invariant is local and short-circuit based: when a local boolean is proven
+`true` before a loop entry condition, a left-hand `!local` atom in an `&&` guard is proven
+false, so the loop body and update are unreachable. The implementation intentionally does
+not evaluate or fold the right-hand guard. While closing the real pair, the value graph also
+had to make loop-carried placeholders alpha-stable by traversal/carry slot rather than source
+cid; otherwise the extra unused `epsilon` parameter shifted local ids and kept equivalent
+dead loops apart.
+
+Synthetic coverage added `axis_java_dead_loop_*`: one focused positive for the exact-vs-
+epsilon dead-loop pair and four adjacent hard negatives covering wrong reachable return,
+false initialization, positive guard, and reassigned guard.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-dead-loop-1 | real frontier selection | choose the libgdx `BufferUtils.findFloats` verify lead after rejecting unsupported libgdx/git/h2database leads | previous release selected verify: SOUND, completeness 0/1, 1 under-merged group |
+| real-java-dead-loop-2 | detector strengthening | skip only while-loop bodies whose entry guard is statically false by a local boolean short-circuit proof; stabilize loop placeholder keys against unused-parameter cid shifts | targeted Java convergence and hard-negative tests passed |
+| real-java-dead-loop-3 | focused synthetic gate | add Java dead-loop positive and adjacent hard negatives | previous release 0/1 positives, 0/4 false merges; candidate 1/1, 0/4 |
+| real-java-dead-loop-4 | real corpus delta | verify selected BufferUtils.java and scan whole libgdx | selected verify after: 1/1 completeness, 0 under-merged; whole libgdx semantic families 141 -> 142 |
+| real-java-dead-loop-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 1/1, 0/4; axis core 1/1, 0/4; all-cross core 621/621, 0/1220; cargo test passed |
+| real-java-dead-loop-6 | performance | compare whole-libgdx scan timings with previous release using three alternating redirected runs | median normalize+extract 76.6ms -> 77.9ms; median candidate path 13.9ms -> 13.9ms; scanned files unchanged at 2100 |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_java_dead_loop_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 5
+positive recall: 1/1
+hard-negative false merges: 0/4
+Raw nodes: 0
+```
+
+Final Java statically-false loop axis core gate:
+
+```text
+GATE=core AXIS=java_statically_false_loop CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 5/5
+positive recall: 1/1
+hard-negative false merges: 0/4
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1841/6710
+positive recall: 621/621
+hard-negative false merges: 0/1220
+Raw nodes: 0/67880
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Whole-libgdx performance scan, median of three alternating redirected runs:
+
+```text
+previous release: discover 8.2ms, parse+lower 116.3ms, normalize+extract 76.6ms, candidates 12.6ms, candidate path 13.9ms, semantic families 141
+candidate release: discover 9.3ms, parse+lower 123.4ms, normalize+extract 77.9ms, candidates 12.4ms, candidate path 13.9ms, semantic families 142
+```
+
+No candidate-path regression showed up; normalize/extract moved by 1.3ms median within the
+observed run-to-run noise, and the one extra family is the expected BufferUtils dead-loop
+pair. The open frontier remains broad Java
+array provenance for `Arrays.asList(array).contains(value)` and other dynamic/type-sensitive
+leads. The next completeness batch should continue real-corpus audit for another repeated
+proof invariant rather than widening this rule beyond local boolean short-circuit facts.
+
+## Real-corpus Java low-bit toggle: batch 2026-06-05
+
+This batch continued from the refreshed real-corpus priority sweep. Broad high-scoring axes
+such as membership and map-default lookup were mostly already covered, unsupported without
+new type facts, or adjacent hard negatives. The audit checked Guava, SQLAlchemy, Rubocop,
+SymPy, Poetry, Scrapy, Commons Lang, Marshmallow, HTTPie, JUnit5, Jedis, RxJava, chi, and
+Graphhopper. The first evidence-backed low-cost miss was Graphhopper's reverse-edge key
+idiom.
+
+Closed selected real candidate:
+
+- `graphhopper/core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java:199`
+  `getPosOfReverseEdge(int edgeId)` to
+  `graphhopper/core/src/main/java/com/graphhopper/util/GHUtility.java:370`
+  `reverseEdgeKey(int edgeKey)`.
+
+An exact pinned-corpus search for the same `% 2 == 0 ? x + 1 : x - 1` idiom found only this
+Graphhopper family, so this is another intentionally small batch rather than three unrelated
+misses. The shared proof invariant is Java primitive-integer low-bit toggling: even values
+take `+1`, odd values take `-1`, and that is exactly `x ^ 1`. The branch split avoids
+overflow at both signed extremes because `Integer.MAX_VALUE` is odd and takes `-1`, while
+`Integer.MIN_VALUE` is even and takes `+1`. The detector keeps the rule Java-only; overloadable
+or coercive operator surfaces are not included.
+
+Synthetic coverage added `axis_java_low_bit_toggle_*`: two positives (`== 0` branch form
+versus `^ 1`, and the equivalent `!= 0` branch order) plus six hard negatives covering
+automatic semantic mutations, reversed branches, `^ 2`, `% 2 == 1` on negative Java odds, and
+wrong branch deltas.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-java-low-bit-1 | real frontier selection | choose Graphhopper after rejecting unsupported or hard-negative leads in the audited repos | previous release selected verify: SOUND, completeness 0/1, 1 under-merged group |
+| real-java-low-bit-2 | detector strengthening | recognize only Java `Phi(x % 2 == 0, x + 1, x - 1)` and equivalent `!= 0` branch order as `x ^ 1` | targeted Java convergence and hard-negative tests passed |
+| real-java-low-bit-3 | focused synthetic gate | add low-bit toggle positives and adjacent hard negatives | focused 2/2 positives, 0/6 false merges |
+| real-java-low-bit-4 | real corpus delta | verify selected Graphhopper files and scan whole Graphhopper | selected verify after: 1/1 completeness, 0 under-merged; whole repo families 28 -> 29 |
+| real-java-low-bit-5 | performance | compare whole-Graphhopper scan timings with previous release using three alternating redirected runs | median normalize+extract 70.1ms -> 61.5ms; median candidate path 12.2ms -> 12.2ms |
+| real-java-low-bit-6 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 2/2, 0/6; axis core 2/2, 0/6; all-cross core 623/623, 0/1226; cargo test passed |
+
+Focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_java_low_bit_toggle_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 8
+positive recall: 2/2
+hard-negative false merges: 0/6
+Raw nodes: 0
+```
+
+Final Java low-bit toggle axis core gate:
+
+```text
+GATE=core AXIS=java_integer_low_bit_toggle CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 8/8
+positive recall: 2/2
+hard-negative false merges: 0/6
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1849/6718
+positive recall: 623/623
+hard-negative false merges: 0/1226
+Raw nodes: 0/68141
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 0/1, under-merged groups 1, SOUND
+candidate release: completeness 1/1, under-merged groups 0, SOUND
+```
+
+Whole-Graphhopper performance scan, median of three alternating redirected runs:
+
+```text
+previous release: discover 10.3ms, parse+lower 77.2ms, normalize+extract 70.1ms, candidates 12.2ms, candidate path 12.2ms, semantic families 28
+candidate release: discover 9.9ms, parse+lower 73.0ms, normalize+extract 61.5ms, candidates 12.2ms, candidate path 12.2ms, semantic families 29
+```
+
+No candidate-path regression showed up; the one extra family is the expected Graphhopper
+reverse-edge pair. Remaining open frontier remains mostly broad membership/map/default and
+dynamic receiver/API-chain proof work. The next completeness batch should keep auditing for
+another evidence-backed repeated invariant rather than broadening this Java integer rule to
+surfaces with overload or coercion semantics.
+
+## Real-corpus C u16 byte-pack: batch 2026-06-05
+
+This batch targeted a compact real SQLite miss where the detector split equivalent
+big-endian 16-bit byte decoders by representation. The selected files were
+`sqlite/ext/misc/btreeinfo.c`, `sqlite/ext/recover/dbdata.c`,
+`sqlite/ext/fts5/fts5_index.c`, `sqlite/ext/recover/sqlite3recover.c`, and
+`sqlite/ext/rtree/rtree.c`. They were chosen because the previous selected verify run was
+SOUND but exposed byte-decoder under-merge: addition-form `u16` helpers and bitwise-or-form
+`u16` helpers did not converge, while adjacent `u32` helpers and unresolved include typedefs
+made the soundness boundary concrete.
+
+Closed selected real candidate:
+
+- SQLite `get_uint16` / `recoverGetU16` / `readInt16` big-endian byte decoders:
+  `btreeinfo.c:269`, `dbdata.c:344`, `sqlite3recover.c:2078`, and `rtree.c:525`.
+
+The batch's three synthetic positives were same-invariant micro-frontiers, not three
+unrelated real duplicate families: `unsigned char *`, `uint8_t *`, and same-file
+`typedef unsigned char u8` byte buffers. The shared proof invariant is intentionally
+narrow: in C, the receiver must be a proven byte buffer, the high lane must be index 0
+shifted left exactly 8, the low lane must be index 1 from the same base pointer, and the
+combining operator may be `+` or `|`. This is sound for 16-bit packing because the shifted
+byte remains representable in `int`; the batch does not generalize to 32-bit uncasted
+packing such as `a[0] << 24`.
+
+Synthetic coverage added `axis_c_u16_be_byte_pack_*`: three positives
+(`unsigned char`, `uint8_t`, and same-file `u8` typedef) plus seven hard negatives covering
+wrong byte order, overlapping shifts, wrong low-byte coordinate, unproven alias spelling,
+and semantic mutations.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-c-u16-1 | real frontier selection | choose SQLite byte decoders after verifying that `u32` packing and include-header `u8` aliases are unsupported proof gaps | previous release selected verify: SOUND, completeness 5/16, 2 under-merged groups |
+| real-c-u16-2 | frontend proof fact | add `ParamSemantic::ByteArray` for C `unsigned char *`, `uint8_t *`, and same-file `typedef unsigned char u8` pointer parameters | targeted IL/equivalence tests passed |
+| real-c-u16-3 | value-graph canon | converge `a[0] << 8 + a[1]` and `a[0] << 8 | a[1]` only under the byte-buffer lane proof, with lane constants retained so exact scan buckets stay reachable | CLI semantic scan regression reports only the proven byte-buffer family |
+| real-c-u16-4 | focused synthetic gate | add C u16 positives and adjacent hard negatives | focused 3/3 positives, 0/7 false merges |
+| real-c-u16-5 | real corpus delta | scan and verify selected SQLite files | selected verify after: SOUND, completeness 7/16; selected scan reports a 4-copy u16 family |
+| real-c-u16-6 | release gates | run required focused, axis-core, and all-cross core gates | focused 3/3, 0/7; axis core 3/3, 0/7; all-cross core 626/626, 0/1233 |
+| real-c-u16-7 | performance | measure selected SQLite scan with `NOSE_TIME=1` | discover 19.3ms, parse+lower 21.6ms, lower 40.9ms, normalize+extract 26.9ms, candidates 1.2ms, total candidate path 1.4ms |
+
+Focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_c_u16_be_byte_pack_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 10
+positive recall: 3/3
+hard-negative false merges: 0/7
+Raw nodes: 0
+```
+
+Final C u16 byte-pack axis core gate:
+
+```text
+GATE=core AXIS=c_u16_be_byte_pack CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 10/10
+positive recall: 3/3
+hard-negative false merges: 0/7
+Raw nodes: 0
+```
+
+Final compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1859/6728
+positive recall: 626/626
+hard-negative false merges: 0/1233
+Raw nodes: 0/68421
+```
+
+Real selected verification:
+
+```text
+previous release: completeness 5/16, under-merged groups 2, SOUND
+candidate release: completeness 7/16, under-merged groups 2, SOUND
+```
+
+Selected SQLite scan with timing:
+
+```text
+NOSE_TIME=1 target/release/nose scan <selected sqlite files> --mode semantic --top 0
+semantic families: 3
+expected new u16 family: btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, rtree.c:525
+candidate path: 1.4ms
+```
+
+Remaining open frontier is explicit. `fts5_index.c:712` still uses `u8`, but the typedef is
+provided by an included header and current C lowering does not perform include resolution, so
+it remains unsupported rather than guessed. The `u32` helpers remain open because uncasted C
+left shifts such as `a[0] << 24` can overflow or be undefined without a stronger unsigned
+cast/proven-range invariant. The next C byte-decoder batch should add include-aware typedef
+proofs or unsigned-cast/range facts before attempting those cases.

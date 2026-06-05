@@ -271,6 +271,65 @@ fn scan_mode_semantic_keeps_renamed_exact_clone_candidates() {
 }
 
 #[test]
+fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
+    let dir = std::env::temp_dir().join(format!("nose_c_u16_pack_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("add.c"),
+        "typedef unsigned char u8;\nunsigned int add_pack(const u8 *a) {\n  return (a[0] << 8) + a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("or.c"),
+        "unsigned int or_pack(unsigned char *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("wrong_order.c"),
+        "typedef unsigned char u8;\nunsigned int wrong_order(const u8 *a) {\n  return (a[1] << 8) | a[0];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("int_pointer.c"),
+        "unsigned int int_pointer(const int *a) {\n  return (a[0] << 8) | a[1];\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-tokens",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
+    assert_eq!(
+        semantic_families.len(),
+        1,
+        "semantic mode should report only the proven byte-buffer u16 pack family: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("add.c")
+            && semantic_text.contains("or.c")
+            && !semantic_text.contains("wrong_order.c")
+            && !semantic_text.contains("int_pointer.c"),
+        "semantic mode must preserve byte order and require a byte-buffer proof: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn feature_extraction_keeps_dense_small_functions_but_not_small_blocks() {
     let dir = std::env::temp_dir().join(format!("nose_dense_gate_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

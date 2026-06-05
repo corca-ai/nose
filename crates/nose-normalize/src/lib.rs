@@ -21,6 +21,7 @@ mod desugar;
 mod idioms;
 mod interp;
 mod literals;
+pub mod module_facts;
 mod recursion;
 mod types;
 mod value_graph;

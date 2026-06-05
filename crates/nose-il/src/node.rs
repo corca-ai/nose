@@ -128,6 +128,8 @@ pub enum Payload {
 /// annotations. These are proof gates only: `Unknown` is represented by absence.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum ParamSemantic {
+    Array,
+    ByteArray,
     Collection,
     Map,
     Number,

@@ -7,7 +7,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -72,11 +73,14 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "function_definition" => Some(lower_func(lo, node)),
         "declaration" => Some(lower_decl(lo, node)),
         "preproc_include" => Some(crate::lower::import_tokens(lo, node)),
+        "type_definition" => {
+            record_c_type_definition(lo, node);
+            None
+        }
         "preproc_def"
         | "preproc_function_def"
         | "preproc_ifdef"
         | "preproc_if"
-        | "type_definition"
         | "struct_specifier"
         | "union_specifier"
         | "enum_specifier"
@@ -109,6 +113,9 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
                 let sym = p
                     .child_by_field_name("declarator")
                     .and_then(|x| declarator_name(lo, x));
+                if let Some(semantic) = c_param_semantic_from_text(lo, lo.text(p)) {
+                    lo.record_param_semantic(pspan, semantic);
+                }
                 kids.push(lo.add(
                     NodeKind::Param,
                     sym.map(Payload::Name).unwrap_or(Payload::None),
@@ -126,6 +133,68 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
     let func = lo.add(NodeKind::Func, Payload::None, span, &kids);
     lo.push_unit(func, UnitKind::Function, name);
     func
+}
+
+fn record_c_type_definition(lo: &mut Lowering, node: TsNode) {
+    if let Some(alias) = c_unsigned_char_typedef_alias(lo.text(node)) {
+        lo.record_param_semantic_alias(&alias, ParamSemantic::ByteArray);
+    }
+}
+
+fn c_unsigned_char_typedef_alias(text: &str) -> Option<String> {
+    let compact = compact_c_type_text(text);
+    let rest = compact.strip_prefix("typedefunsignedchar")?;
+    let alias = rest.strip_suffix(';').unwrap_or(rest);
+    if is_c_identifier(alias) {
+        Some(alias.to_string())
+    } else {
+        None
+    }
+}
+
+fn c_param_semantic_from_text(lo: &Lowering, text: &str) -> Option<ParamSemantic> {
+    if c_byte_buffer_param(lo, text) {
+        Some(ParamSemantic::ByteArray)
+    } else {
+        crate::lower::param_semantic_from_text(text)
+    }
+}
+
+fn c_byte_buffer_param(lo: &Lowering, text: &str) -> bool {
+    let compact = compact_c_type_text(text);
+    if !(compact.contains('*') || compact.contains('[')) {
+        return false;
+    }
+    let tokens = c_identifier_tokens(text);
+    if tokens.iter().any(|token| token == "uint8_t")
+        || (tokens.iter().any(|token| token == "unsigned")
+            && tokens.iter().any(|token| token == "char"))
+    {
+        return true;
+    }
+    lo.param_semantic_aliases.iter().any(|(alias, semantic)| {
+        *semantic == ParamSemantic::ByteArray && tokens.iter().any(|token| token == alias)
+    })
+}
+
+fn compact_c_type_text(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_whitespace())
+        .flat_map(char::to_lowercase)
+        .collect()
+}
+
+fn c_identifier_tokens(text: &str) -> Vec<String> {
+    text.split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
+        .filter(|token| !token.is_empty())
+        .map(|token| token.to_ascii_lowercase())
+        .collect()
+}
+
+fn is_c_identifier(text: &str) -> bool {
+    let mut chars = text.chars();
+    matches!(chars.next(), Some(ch) if ch == '_' || ch.is_ascii_alphabetic())
+        && chars.all(|ch| ch == '_' || ch.is_ascii_alphanumeric())
 }
 
 fn find_param_list(decl: TsNode) -> Option<TsNode> {

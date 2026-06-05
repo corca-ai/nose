@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "source": {
+    "corpus": "bench/goldens/corpus.json",
+    "repos_root": "bench/repos",
+    "purpose": "Evidence-backed real-corpus Type-4 frontier items used to raise practical semantic completeness."
+  },
+  "entry_contract": {
+    "case_id": "Stable id for this real-corpus frontier item.",
+    "status": "already-covered | real-miss | hard-negative | unsupported | closed",
+    "candidate_axis": "Prioritizer candidate or semantic axis, such as membership_contains.",
+    "repo": "Pinned corpus repository id.",
+    "language": "Primary source language for the audited span.",
+    "locations": "One or more repo-relative source spans participating in the claim.",
+    "semantic_claim": "Concrete equivalence or non-equivalence claim being audited.",
+    "evidence": "Same-spec/property evidence for positives, or counterexample/non-equivalence witness for negatives.",
+    "detector": "Baseline and candidate detection status for the audited spans.",
+    "proof_invariant": "The narrow proof fact required before the detector may merge the item.",
+    "hard_negative_siblings": "Adjacent boundary cases that must remain unmerged.",
+    "batch": "Batch id once the item is selected for implementation.",
+    "notes": "Short audit notes, including why unsupported items are not detector work."
+  },
+  "items": [
+    {
+      "case_id": "membership-java-enumset-of-junit5-doc-chronounit",
+      "status": "unsupported",
+      "candidate_axis": "membership_contains / literal_collection_membership",
+      "repo": "junit5",
+      "language": "java",
+      "locations": [
+        {
+          "path": "documentation/src/test/java/example/ParameterizedTestDemo.java",
+          "span": "149",
+          "snippet": "assertTrue(EnumSet.of(ChronoUnit.DAYS, ChronoUnit.HOURS).contains(unit));"
+        },
+        {
+          "path": "documentation/src/test/java/example/ParameterizedTestDemo.java",
+          "span": "181-182",
+          "snippet": "assertTrue(EnumSet.of(ChronoUnit.HOURS, ChronoUnit.DAYS).contains(unit)); assertFalse(EnumSet.of(ChronoUnit.HALF_DAYS).contains(unit));"
+        }
+      ],
+      "semantic_claim": "The two EnumSet membership predicates share the same item set and searched element when item order is ignored.",
+      "evidence": "IL confirms both predicates lower to EnumSet.of(...).contains(unit), but the second enclosing method has an additional HALF_DAYS exclusion assertion, so the method-level units are not an evidence-backed Type-4 clone pair.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose scan ParameterizedTestDemo.java --mode semantic --format json --top 0 --min-tokens 1 --min-lines 1",
+        "baseline_result": "No family contains testWithEnumSourceInclude and testWithEnumSourceRangeExclude; selected before/after EnumSet whitelist experiment also produced no new real family."
+      },
+      "proof_invariant": "Would require only unshadowed java.util.EnumSet.of with strict-safe arguments and order-insensitive membership collection canon, but this is not sufficient to close a real method-level miss here.",
+      "hard_negative_siblings": [
+        "EnumSet.of(ChronoUnit.HOURS, ChronoUnit.HALF_DAYS, ChronoUnit.DAYS).contains(unit)",
+        "assertFalse(EnumSet.of(ChronoUnit.ERAS, ChronoUnit.FOREVER).contains(unit))",
+        "same-file class EnumSet shadowing java.util.EnumSet"
+      ],
+      "batch": null,
+      "notes": "Do not implement as a completeness batch unless another real corpus counterpart is found."
+    },
+    {
+      "case_id": "membership-java-arrays-aslist-array-param-antlr4-skip-targets",
+      "status": "unsupported",
+      "candidate_axis": "membership_contains / literal_collection_membership",
+      "repo": "antlr4",
+      "language": "java",
+      "locations": [
+        {
+          "path": "runtime-testsuite/test/org/antlr/v4/test/runtime/RuntimeTestDescriptor.java",
+          "span": "91-92",
+          "snippet": "return Arrays.asList(skipTargets).contains(targetName);"
+        }
+      ],
+      "semantic_claim": "For a proven Java array receiver, Arrays.asList(array).contains(value) is membership in the array elements.",
+      "evidence": "The source declares skipTargets as String[], but current IL only preserves a var/field use and not an array type fact at the contains call.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose il RuntimeTestDescriptor.java",
+        "baseline_result": "IL shows Arrays.asList(skipTargets).contains(targetName) without a retained array proof fact."
+      },
+      "proof_invariant": "Requires a frontend proof fact that the single Arrays.asList argument is a Java array, plus mutation/alias boundaries for field or parameter provenance.",
+      "hard_negative_siblings": [
+        "Arrays.asList(list).contains(value), which tests whether value equals the list object",
+        "Arrays.asList(object).contains(value)",
+        "mutated or reassigned field provenance for skipTargets"
+      ],
+      "batch": null,
+      "notes": "Do not treat generic Arrays.asList(x) as collection-param membership without an array proof."
+    },
+    {
+      "case_id": "java-class-literal-equals-junit5-supports-parameter",
+      "status": "unsupported",
+      "candidate_axis": "class_literal_equality",
+      "repo": "junit5",
+      "language": "java",
+      "locations": [
+        {
+          "path": "documentation/src/test/java/example/extensions/HttpServerExtension.java",
+          "span": "26-29",
+          "snippet": "return HttpServer.class.equals(parameterContext.getParameter().getType());"
+        },
+        {
+          "path": "documentation/src/test/java/example/session/HttpTests.java",
+          "span": "47-50",
+          "snippet": "return HttpServer.class.equals(parameterContext.getParameter().getType());"
+        }
+      ],
+      "semantic_claim": "The two supportsParameter implementations are syntactically and behaviorally identical for the documented ParameterResolver shape.",
+      "evidence": "near/syntax scan reports a real duplicate block, but semantic scan alone reports no family because the expression depends on a dynamic JUnit API call chain.",
+      "detector": {
+        "current_detector_miss": true,
+        "baseline_command": "nose scan HttpServerExtension.java HttpTests.java --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "0 semantic families; syntax,semantic reports a block family."
+      },
+      "proof_invariant": "Would require proving Class literal equality and the purity/identity of parameterContext.getParameter().getType(), which is a library-specific receiver chain not currently modeled.",
+      "hard_negative_siblings": [
+        "custom receiver equals overloads",
+        "different getParameter/getType receiver chains",
+        "calls with side effects or mutation before getType"
+      ],
+      "batch": null,
+      "notes": "Not suitable for a soundness-preserving Type-4 detector batch without shared proof facts for Java reflection/JUnit APIs."
+    },
+    {
+      "case_id": "python-docstring-sympy-dirac-delta",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "1362-1365",
+          "snippet": "def dirac(i, j): if i == j: return 1; return 0"
+        },
+        {
+          "path": "sympy/physics/paulialgebra.py",
+          "span": "24-42",
+          "snippet": "def delta(i, j): \"\"\"...\"\"\"; if i == j: return 1; else: return 0"
+        }
+      ],
+      "semantic_claim": "Both functions return 1 exactly when i == j and 0 otherwise; delta differs by a leading static docstring and equivalent else form.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.85 common.py:1362 ↮ paulialgebra.py:24. After the batch the selected verify run reports 70/70 completeness and 0 under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Missed by previous release; semantic scan only exposed a smaller block family at common.py:1363 and paulialgebra.py:39.",
+        "candidate_result": "target/debug/nose scan selected SymPy files reports function family a3aee3c67319983d with paulialgebra.py:24 and common.py:1362."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "returning different string literals",
+        "assigning and returning different string literals",
+        "calling observe(f\"{value}\") before returning"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-symmetric-residue-gf-int",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/ntheory/modular.py",
+          "span": "11-22",
+          "snippet": "def symmetric_residue(a, m): \"\"\"...\"\"\"; if a <= m // 2: return a; return a - m"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "154-172",
+          "snippet": "def gf_int(a, p): \"\"\"...\"\"\"; if a <= p // 2: return a; else: return a - p"
+        }
+      ],
+      "semantic_claim": "Both functions map a residue into the symmetric half-modulus interval, differing only in parameter names, docstrings, and equivalent fallthrough/else return shape.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.76 modular.py:11 ↮ galoistools.py:154. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "Previous release had only a smaller block family at modular.py:20 and galoistools.py:169.",
+        "candidate_result": "Candidate scan reports function family 666a9056967fa013 with galoistools.py:154 and modular.py:11."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "wrong returned arithmetic expression",
+        "returned string literal differences",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-degree-gf-degree",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "285-302",
+          "snippet": "def dup_degree(f): \"\"\"...\"\"\"; return len(f) - 1"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "175-190",
+          "snippet": "def gf_degree(f): \"\"\"...\"\"\"; return len(f) - 1"
+        }
+      ],
+      "semantic_claim": "Both functions return len(f) - 1; type annotations and docstring text do not change runtime return behavior for this detector proof.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.60 densebasic.py:285 ↮ galoistools.py:175. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Missed by previous release as a function-level family.",
+        "candidate_result": "Candidate scan reports function family 823edb6d7e558128 with densebasic.py:285 and galoistools.py:175."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return len(f) instead of len(f) - 1",
+        "returned string literal differences",
+        "assigned string values used in return"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-strip-gf-strip",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "415-440",
+          "snippet": "def dup_strip(...): \"\"\"...\"\"\"; if not f or f[0]: return f; ...; return f[i:]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "233-257",
+          "snippet": "def gf_strip(...): \"\"\"...\"\"\"; if not f or f[0]: return f; ...; return f[k:]"
+        }
+      ],
+      "semantic_claim": "Both functions strip leading zero coefficients using alpha-equivalent loop state; docstrings and local variable names differ.",
+      "evidence": "nose verify selected SymPy files before: under-merged lead vj=0.84 densebasic.py:415 ↮ galoistools.py:233. After the batch selected verify reports no under-merged groups.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose verify selected SymPy files --leads /tmp/sympy-docstring-before-leads.json",
+        "baseline_result": "Previous release exposed only a smaller block family at densebasic.py:434 and galoistools.py:252.",
+        "candidate_result": "Candidate scan reports function family 087fb7c9a965310c with densebasic.py:415 and galoistools.py:233."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "wrong slice index",
+        "wrong loop break condition",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Selected first-batch real miss from SymPy verify leads."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-lc-gf-lc",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "121-138",
+          "snippet": "def dup_LC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[0]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "193-210",
+          "snippet": "def gf_LC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[0]"
+        }
+      ],
+      "semantic_claim": "Both functions return the first coefficient or K.zero for an empty polynomial; docstrings differ only as metadata.",
+      "evidence": "Candidate scan added function family 81a0c70aa0e3d978; previous release had no function-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release function family for densebasic.py:121 and galoistools.py:193.",
+        "candidate_result": "Candidate scan reports function family 81a0c70aa0e3d978."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return f[-1] instead of f[0]",
+        "wrong empty fallback",
+        "assigned string values used in return"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "python-docstring-sympy-dup-tc-gf-tc",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/polys/densebasic.py",
+          "span": "141-158",
+          "snippet": "def dup_TC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[-1]"
+        },
+        {
+          "path": "sympy/polys/galoistools.py",
+          "span": "213-230",
+          "snippet": "def gf_TC(...): \"\"\"...\"\"\"; if not f: return K.zero; else: return f[-1]"
+        }
+      ],
+      "semantic_claim": "Both functions return the trailing coefficient or K.zero for an empty polynomial; docstrings differ only as metadata.",
+      "evidence": "Candidate scan added function family 490a609cb8f7e2b8; previous release had no function-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release function family for densebasic.py:141 and galoistools.py:213.",
+        "candidate_result": "Candidate scan reports function family 490a609cb8f7e2b8."
+      },
+      "proof_invariant": "A Python function leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "return f[0] instead of f[-1]",
+        "wrong empty fallback",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "python-docstring-sympy-shape-property",
+      "status": "closed",
+      "candidate_axis": "python_docstring_noop",
+      "repo": "sympy",
+      "language": "python",
+      "locations": [
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "693-708",
+          "snippet": "@property def shape(self): \"\"\"...\"\"\"; return (self.rows, self.cols)"
+        },
+        {
+          "path": "sympy/matrices/common.py",
+          "span": "3142-3143",
+          "snippet": "@property def shape(self): return (self.rows, self.cols)"
+        }
+      ],
+      "semantic_claim": "Both shape properties return the same (rows, cols) tuple; the public property docstring is metadata.",
+      "evidence": "Candidate scan added method family 8cfcba8974d82c2d; previous release had no method-level family for these spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "nose scan selected SymPy files --mode semantic --format json --top 0 --min-lines 1 --min-tokens 1",
+        "baseline_result": "No previous release method family for common.py:693 and common.py:3142.",
+        "candidate_result": "Candidate scan reports method family 8cfcba8974d82c2d."
+      },
+      "proof_invariant": "A Python method leading static string literal statement is docstring metadata and does not affect callable return behavior.",
+      "hard_negative_siblings": [
+        "returning (cols, rows)",
+        "returning a string literal",
+        "dynamic leading f-string/call effect"
+      ],
+      "batch": "2026-06-05-python-docstring-noop",
+      "notes": "Additional same-invariant real family found by selected real scan delta."
+    },
+    {
+      "case_id": "typescript-import-namespace-shadow-jest-replace-root-dir",
+      "status": "closed",
+      "candidate_axis": "import_identity",
+      "repo": "jest",
+      "language": "typescript",
+      "locations": [
+        {
+          "path": "packages/jest-config/src/utils.ts",
+          "span": "57-69",
+          "snippet": "export const replaceRootDirInPath = (rootDir, filePath) => { ... return path.resolve(rootDir, path.normalize(`./${filePath.slice('<rootDir>'.length)}`)); }"
+        },
+        {
+          "path": "packages/jest-resolve/src/utils.ts",
+          "span": "21-30",
+          "snippet": "const replaceRootDirInPath = (rootDir, filePath) => { ... return path.resolve(rootDir, path.normalize(`./${filePath.slice('<rootDir>'.length)}`)); }"
+        }
+      ],
+      "semantic_claim": "Both helpers return filePath unchanged unless it starts with <rootDir>, otherwise they resolve rootDir plus the normalized suffix after the <rootDir> marker.",
+      "evidence": "Previous release verify over jest-config/src and jest-resolve/src reported one under-merged behavior group at utils.ts:57 ↮ utils.ts:21 with SOUND. Candidate verify reports completeness 1/1, 0 under-merged groups, and semantic scan reports family 5dc1326d43c86973 containing the two replaceRootDirInPath functions.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-shadow scan jest-config/src jest-resolve/src --mode semantic --top 0",
+        "baseline_result": "0 semantic families; features showed both functions exact_safe=false and the jest-config value fingerprint lacked the node:path namespace literals because a different function parameter named path was treated as a module-binding mutation.",
+        "candidate_result": "target/release/nose scan reports one semantic family with packages/jest-config/src/utils.ts:57-69 and packages/jest-resolve/src/utils.ts:21-30; both feature records are exact_safe=true with identical value fingerprints."
+      },
+      "proof_invariant": "For JS/TS-family files, a function or lambda parameter that shadows a module-level binding name must not count as mutation of that module binding; unshadowed mutation-like receiver calls still block the proof. Static template literal fragments are behavior-defining string literals and must be preserved in the value graph.",
+      "hard_negative_siblings": [
+        "path.replaceAll(...) on the unshadowed namespace local still taints the module binding proof",
+        "a same-named local object with resolve/normalize is not a proven node:path namespace import",
+        "a different template literal fragment such as ../ changes the resolved path"
+      ],
+      "batch": "2026-06-05-js-namespace-shadow-template",
+      "notes": "Selected from Jest real verify lead after broader membership/map audits found no sound higher-yield real misses."
+    },
+    {
+      "case_id": "c-total-order-comparator-vim-lnum-syn-int",
+      "status": "closed",
+      "candidate_axis": "total_order_compare",
+      "repo": "vim",
+      "language": "c",
+      "locations": [
+        {
+          "path": "src/diff.c",
+          "span": "937-947",
+          "snippet": "static int lnum_compare(const void *s1, const void *s2) { ... if (lnum1 < lnum2) return -1; if (lnum1 > lnum2) return 1; return 0; }"
+        },
+        {
+          "path": "src/window.c",
+          "span": "8495-8505",
+          "snippet": "static int int_cmp(const void *pa, const void *pb) { ... if (a > b) return 1; if (a < b) return -1; return 0; }"
+        },
+        {
+          "path": "src/syntax.c",
+          "span": "5288-5295",
+          "snippet": "static int syn_compare_stub(const void *v1, const void *v2) { ... return (*s1 > *s2 ? 1 : *s1 < *s2 ? -1 : 0); }"
+        }
+      ],
+      "semantic_claim": "All three Vim callbacks implement the same ascending three-way total-order comparator over the dereferenced scalar pair, returning -1, 1, or 0 for less, greater, or equal.",
+      "evidence": "Previous release verify over selected Vim comparator files reported one behavior-equal group with completeness 1/3 and an under-merged lead diff.c:937 ↮ syntax.c:5288. Candidate verify reports completeness 3/3, 0 under-merged groups, and whole-repo semantic scan reports family e498fe8139e65f5c containing lnum_compare, int_cmp, and syn_compare_stub.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-nextbatch verify diff.c syntax.c window.c viminfo.c insexpand.c --leads /tmp/nose-vim-comparator-before-leads.json",
+        "baseline_result": "SOUND; completeness 1/3; one under-merged group at diff.c:937 ↮ syntax.c:5288. Whole Vim scan reported only window.c:int_cmp with syntax.c:syn_compare_stub in family d3b98d6969be6d8d.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 3/3, and 0 under-merged groups; whole Vim scan reports a 3-copy comparator family containing diff.c:937, window.c:8495, and syntax.c:5288."
+      },
+      "proof_invariant": "For primitive source-language comparisons, a strict ordered comparison guard implies the same-direction non-strict guard, so a path condition such as (x < y) and (x <= y) can absorb the non-strict residue. Receiver-overloadable comparisons are excluded.",
+      "hard_negative_siblings": [
+        "descending comparator that returns 1 for less and -1 for greater",
+        "equality-boundary comparator that returns -1 when left == right",
+        "wrong positive sign value such as returning 2 for greater",
+        "Python/Ruby/JS-style receiver-overloadable or effectful comparisons without a primitive order proof"
+      ],
+      "batch": "2026-06-05-c-total-order-compare",
+      "notes": "Selected from the real audit after broad membership/map-default priority leads were already covered, unsupported, or hard negatives."
+    },
+    {
+      "case_id": "java-empty-domain-netty-array-queue-string",
+      "status": "closed",
+      "candidate_axis": "collection_empty_check / typed_empty_domain_soundness",
+      "repo": "netty",
+      "language": "java",
+      "locations": [
+        {
+          "path": "codec-classes-quic/src/main/java/io/netty/handler/codec/quic/QuicheQuicSslEngine.java",
+          "span": "305-307",
+          "snippet": "private boolean isEmpty(Object @Nullable [] arr) { return arr == null || arr.length == 0; }"
+        },
+        {
+          "path": "common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
+          "span": "147-149",
+          "snippet": "private static boolean isNullOrEmpty(Queue<ScheduledFutureTask<?>> queue) { return queue == null || queue.isEmpty(); }"
+        },
+        {
+          "path": "common/src/main/java/io/netty/util/internal/StringUtil.java",
+          "span": "593-595",
+          "snippet": "public static boolean isNullOrEmpty(String s) { return s == null || s.isEmpty(); }"
+        }
+      ],
+      "semantic_claim": "These null-or-empty helpers have the same surface shape but are not proven equivalent across Java array, Queue/collection, and String receiver domains under the independent verifier.",
+      "evidence": "Previous release whole-Netty verify reported two false merges from QuicheQuicSslEngine.java:305 to AbstractScheduledEventExecutor.java:147 and StringUtil.java:593, each with 72 differing inputs. Candidate whole-Netty verify with --max-violations 0 is SOUND.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-empty-target2/release/nose verify bench/repos/netty --max-violations 10",
+        "baseline_result": "2 false merges: Object[] null-or-length-empty collapsed with Queue.isEmpty and String.isEmpty.",
+        "candidate_result": "target/release/nose verify bench/repos/netty --max-violations 0 reports SOUND; feature dump shows the three value fingerprints are distinct."
+      },
+      "proof_invariant": "A strict empty-check merge may share coordinates only when the receiver domain is proven compatible. Java array length, receiver-provided collection emptiness, and string emptiness are distinct domains unless a stronger proof connects them.",
+      "hard_negative_siblings": [
+        "Queue<String> value == null || value.isEmpty() vs Object[] value == null || value.length == 0",
+        "Queue<String> value == null || value.isEmpty() vs String value == null || value.isEmpty()",
+        "untyped or shadowed receiver emptiness without a domain proof"
+      ],
+      "batch": "2026-06-05-java-empty-domain-soundness",
+      "notes": "Soundness blocker batch. It intentionally reduces an over-broad merge rather than closing a completeness miss; follow-up completeness work should continue from the remaining real under-merged Netty leads only after preserving this boundary."
+    },
+    {
+      "case_id": "java-dead-loop-libgdx-bufferutils-find-floats",
+      "status": "closed",
+      "candidate_axis": "java_statically_false_loop",
+      "repo": "libgdx",
+      "language": "java",
+      "locations": [
+        {
+          "path": "backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java",
+          "span": "433-449",
+          "snippet": "public static long findFloats(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { ... boolean found = true; for (int j = 0; !found && j < size; j++) ... }"
+        },
+        {
+          "path": "backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java",
+          "span": "458-474",
+          "snippet": "public static long findFloats(float[] vertex, int strideInBytes, float[] vertices, int numVertices, float epsilon) { ... boolean found = true; for (int j = 0; !found && j < size; j++) ... }"
+        }
+      ],
+      "semantic_claim": "Both overloads return the first vertex index whenever numVertices is positive, otherwise -1, because the inner comparison loop is unreachable after found is initialized true and the guard starts with !found.",
+      "evidence": "Previous release selected verify over BufferUtils.java reported SOUND with completeness 0/1 and under-merged lead BufferUtils.java:433 to BufferUtils.java:458. Candidate selected verify reports SOUND with completeness 1/1 and 0 under-merged groups. An exact pinned-corpus search for the same boolean-true plus !guard pattern found only these two libgdx spans.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-java-dead-loop verify bench/repos/libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java --max-violations 0 --leads /tmp/nose-libgdx-gwt-bufferutils-before-rerun-leads.json",
+        "baseline_result": "SOUND; completeness 0/1; under-merged lead BufferUtils.java:433 to BufferUtils.java:458 with vj=0.43.",
+        "candidate_result": "target/release/nose verify bench/repos/libgdx/backends/gdx-backends-gwt/src/com/badlogic/gdx/backends/gwt/emu/com/badlogic/gdx/utils/BufferUtils.java --max-violations 0 --leads /tmp/nose-libgdx-gwt-bufferutils-after-rerun-leads.json reports SOUND; completeness 1/1; under-merged groups 0. Whole-libgdx semantic scan reports family 3aaacf7da1b4536d containing both methods."
+      },
+      "proof_invariant": "For a local boolean proven true before a while-loop entry guard, a left short-circuit atom !local in an && guard is proven false, so the loop body and update are unreachable. The merge also requires loop-carried recurrence placeholders to be keyed by traversal/carry slot rather than source cid so unused parameters do not change the value identity.",
+      "hard_negative_siblings": [
+        "boolean found = false before !found && ..., where the body can execute",
+        "found && ... with found initialized true, where the body can execute",
+        "found reassigned before the guard, removing the constant proof",
+        "same-template mutation changing a reachable returned index even when the loop body is dead"
+      ],
+      "batch": "2026-06-05-java-dead-loop-guard",
+      "notes": "Small completeness batch: the real audit over libgdx, git, and h2database plus exact pinned search found one evidence-backed same-invariant real family, so this batch intentionally closes one real candidate rather than padding to three unrelated candidates."
+    },
+    {
+      "case_id": "java-low-bit-toggle-graphhopper-reverse-edge",
+      "status": "closed",
+      "candidate_axis": "java_integer_low_bit_toggle",
+      "repo": "graphhopper",
+      "language": "java",
+      "locations": [
+        {
+          "path": "core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java",
+          "span": "199-202",
+          "snippet": "static int getPosOfReverseEdge(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1; }"
+        },
+        {
+          "path": "core/src/main/java/com/graphhopper/util/GHUtility.java",
+          "span": "370-372",
+          "snippet": "public static int reverseEdgeKey(int edgeKey) { return edgeKey ^ 1; }"
+        }
+      ],
+      "semantic_claim": "Both helpers toggle the low bit of a Java primitive int edge key: even values return x + 1 and odd values return x - 1, which is exactly x ^ 1.",
+      "evidence": "Previous release selected verify over QueryGraph.java and GHUtility.java reported SOUND with completeness 0/1 and under-merged lead QueryGraph.java:199 to GHUtility.java:370. Candidate selected verify reports SOUND with completeness 1/1 and 0 under-merged groups. Whole-Graphhopper semantic scan reports a new family containing both methods.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-goal-baseline-target/release/nose verify bench/repos/graphhopper/core/src/main/java/com/graphhopper/routing/querygraph/QueryGraph.java bench/repos/graphhopper/core/src/main/java/com/graphhopper/util/GHUtility.java --max-violations 0 --leads /tmp/nose-graphhopper-bit-toggle-baseline-check-leads.json",
+        "baseline_result": "SOUND; completeness 0/1; under-merged lead QueryGraph.java:199 to GHUtility.java:370 with vj=0.12. Whole-Graphhopper scan reported 28 semantic families.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 1/1, and 0 under-merged groups. Whole-Graphhopper scan reports 29 semantic families including QueryGraph.java:199 and GHUtility.java:370."
+      },
+      "proof_invariant": "For Java primitive integer operators, x % 2 == 0 partitions even values from odd values; x + 1 is used only for even values and x - 1 only for odd values, avoiding signed overflow at both int extremes and matching the low-bit toggle x ^ 1. The proof is not applied to overloadable or coercive surfaces.",
+      "hard_negative_siblings": [
+        "reversed branches: x % 2 == 0 ? x - 1 : x + 1",
+        "wrong bit: x ^ 2",
+        "positive-one parity check: x % 2 == 1 ? x - 1 : x + 1, which fails for negative odd Java ints",
+        "wrong branch delta such as x % 2 == 0 ? x + 1 : x - 2",
+        "non-Java or overloadable/coercive operator surfaces without a primitive integer proof"
+      ],
+      "batch": "2026-06-05-java-low-bit-toggle",
+      "notes": "The audit covered Guava, SQLAlchemy, Rubocop, SymPy, Poetry, Scrapy, Commons Lang, Marshmallow, HTTPie, JUnit5, Jedis, RxJava, chi, and Graphhopper. Most leads were unsupported or hard negatives; exact pinned-corpus search found only this same-invariant real miss, so the batch is intentionally small."
+    },
+    {
+      "case_id": "c-u16-byte-pack-sqlite-big-endian-decode",
+      "status": "closed",
+      "candidate_axis": "c_u16_be_byte_pack",
+      "repo": "sqlite",
+      "language": "c",
+      "locations": [
+        {
+          "path": "ext/misc/btreeinfo.c",
+          "span": "269-271",
+          "snippet": "static unsigned int get_uint16(unsigned char *a) { return (a[0]<<8) + a[1]; }"
+        },
+        {
+          "path": "ext/recover/dbdata.c",
+          "span": "344-346",
+          "snippet": "static unsigned int get_uint16(unsigned char *a) { return (a[0]<<8) + a[1]; }"
+        },
+        {
+          "path": "ext/recover/sqlite3recover.c",
+          "span": "2078-2080",
+          "snippet": "static u16 recoverGetU16(const u8 *aBuf) { return (aBuf[0] << 8) | aBuf[1]; }"
+        },
+        {
+          "path": "ext/rtree/rtree.c",
+          "span": "525-527",
+          "snippet": "static int readInt16(u8 *p) { return (p[0]<<8) + p[1]; }"
+        }
+      ],
+      "semantic_claim": "All four helpers decode the same big-endian unsigned 16-bit value from two disjoint byte lanes: high byte a[0] shifted by 8 plus low byte a[1]. Addition and bitwise-or are equivalent under this byte-lane proof.",
+      "evidence": "Previous release selected SQLite verify was SOUND but completeness was 5/16, with an under-merged u16 lead fts5_index.c:712 to btreeinfo.c:269 and split add-vs-or families. Candidate verify over the five selected SQLite files is SOUND with completeness 7/16; semantic scan reports family 56852dae75c4d7f4 containing btreeinfo.c:269, dbdata.c:344, sqlite3recover.c:2078, and rtree.c:525.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "previous release: nose verify ext/misc/btreeinfo.c ext/recover/dbdata.c ext/fts5/fts5_index.c ext/recover/sqlite3recover.c ext/rtree/rtree.c",
+        "baseline_result": "SOUND; completeness 5/16; add-form u16 helpers and or-form u16 helpers were split, and fts5_index.c remained under-merged.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 7/16, and 2 remaining under-merged groups. NOSE_TIME=1 target/release/nose scan over the selected files reports 3 semantic families, including the expected 4-copy u16 family."
+      },
+      "proof_invariant": "In C only, the parameter must be proven to be a byte buffer: unsigned char *, uint8_t *, or a same-file typedef alias such as typedef unsigned char u8. The expression must use the same base pointer, high lane index 0 shifted left exactly 8, low lane index 1, and either + or |. The proof is limited to 16-bit packing, where the shifted byte stays representable in int.",
+      "hard_negative_siblings": [
+        "swapped byte order: (a[1] << 8) | a[0]",
+        "overlapping lanes such as (a[0] << 4) | a[1]",
+        "wrong low byte coordinate such as a[2]",
+        "u8 spelling without same-file proof that it aliases unsigned char",
+        "int * or other non-byte-buffer receiver",
+        "32-bit packing such as a[0] << 24, which is not accepted without an unsigned-overflow proof"
+      ],
+      "batch": "2026-06-05-c-u16-byte-pack",
+      "notes": "fts5_index.c remains open because its u8 typedef is in an included header that the current C lowering does not resolve. The 32-bit get_uint32/recoverGetU32 pair remains unsupported because uncasted signed left shifts can overflow or enter undefined behavior."
+    }
+  ]
+}

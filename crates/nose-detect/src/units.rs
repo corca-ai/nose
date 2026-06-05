@@ -7,7 +7,7 @@ use nose_il::{
     Builtin, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload, Symbol,
     UnitKind,
 };
-use nose_normalize::node_tag;
+use nose_normalize::{module_facts::collect_module_mutations, node_tag};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
 
@@ -616,113 +616,6 @@ fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
         return None;
     };
     il.cid_names.get(cid as usize).copied()
-}
-
-fn collect_module_mutations(
-    il: &Il,
-    interner: &Interner,
-    candidates: &FxHashSet<Symbol>,
-    is_top_level: &[bool],
-) -> FxHashSet<Symbol> {
-    let mut mutated = FxHashSet::default();
-    if candidates.is_empty() {
-        return mutated;
-    }
-    for (idx, node) in il.nodes.iter().enumerate() {
-        let node_id = NodeId(idx as u32);
-        match node.kind {
-            NodeKind::Call if matches!(node.payload, Payload::Builtin(Builtin::Append)) => {
-                if let Some(receiver) = il.children(node_id).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
-                }
-            }
-            NodeKind::Field => {
-                let Payload::Name(method) = node.payload else {
-                    continue;
-                };
-                if !mutating_method_name(interner.resolve(method)) {
-                    continue;
-                }
-                if let Some(receiver) = il.children(node_id).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
-                }
-            }
-            NodeKind::Assign if !is_top_level.get(idx).copied().unwrap_or(false) => {
-                if let Some(lhs) = il.children(node_id).first().copied() {
-                    collect_node_symbols(il, lhs, candidates, &mut mutated);
-                }
-            }
-            _ => {}
-        }
-    }
-    mutated
-}
-
-fn collect_node_symbols(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol(il, node) {
-        if candidates.contains(&symbol) {
-            out.insert(symbol);
-        }
-    }
-    for &child in il.children(node) {
-        collect_node_symbols(il, child, candidates, out);
-    }
-}
-
-fn mark_direct_symbol(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol(il, node) {
-        if candidates.contains(&symbol) {
-            out.insert(symbol);
-        }
-    }
-}
-
-fn node_symbol(il: &Il, node: NodeId) -> Option<Symbol> {
-    match il.node(node).payload {
-        Payload::Name(symbol) => Some(symbol),
-        Payload::Cid(cid) => il.cid_names.get(cid as usize).copied(),
-        _ => None,
-    }
-}
-
-fn mutating_method_name(method: &str) -> bool {
-    matches!(
-        method,
-        "add"
-            | "addAll"
-            | "append"
-            | "delete"
-            | "clear"
-            | "compute"
-            | "computeIfAbsent"
-            | "computeIfPresent"
-            | "merge"
-            | "pop"
-            | "push"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "removeAll"
-            | "removeIf"
-            | "replace"
-            | "replaceAll"
-            | "retainAll"
-            | "shift"
-            | "sort"
-            | "splice"
-            | "unshift"
-            | "set"
-    )
 }
 
 fn strict_exact_module_container_binding_safe(

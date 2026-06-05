@@ -19,6 +19,10 @@
 //! the detector can use instead of (or alongside) subtree shapes.
 
 use crate::combine;
+use crate::module_facts::{
+    assignment_name_in, collect_all_node_symbols, collect_module_mutations, mutating_method_name,
+    shadowed_js_like_module_binding_nodes_for_symbol, top_level_statements_for,
+};
 use crate::types::Ty;
 use nose_il::{
     Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
@@ -206,6 +210,8 @@ enum ValOp {
     Hof(u32),        // higher-order op kind
     Seq(u64),        // aggregate literal, keyed by lowered sequence kind
     CollectionParam, // proven collection parameter, distinct from map-like key membership
+    ArrayParam,      // proven array parameter, distinct from receiver-provided collections
+    StringParam,     // proven string parameter, distinct from collection emptiness
     Phi,             // branch merge: args = [cond, then, else]
     Lambda(u64),     // opaque, keyed by a structural hash of the lambda body
     Loop(u32),       // loop-carried opaque value, keyed by canonical id
@@ -290,6 +296,7 @@ struct Builder<'a> {
     /// compact coupled recurrences such as `s1 += f(s2); s2 += g(s1)`, which otherwise
     /// expand into a large raw expression DAG even though they are not clean reductions.
     loop_recurrence: Option<LoopRecurrenceScope>,
+    next_loop_key_base: u32,
     /// Pointer-length contracts the unit RELIED ON to converge: `(array_param_pos,
     /// length_param_pos)` pairs recorded wherever `full_pointer_length_contract` fired (the
     /// loop bound `n` was treated as `len(array)`, not data, and dropped from the
@@ -304,6 +311,8 @@ struct Builder<'a> {
 #[derive(Clone)]
 struct LoopRecurrenceScope {
     loop_values: FxHashMap<u32, ValueId>,
+    loop_keys: FxHashMap<u32, u32>,
+    loop_key_set: FxHashSet<u32>,
 }
 
 #[derive(Clone, Copy)]
@@ -339,6 +348,7 @@ impl<'a> Builder<'a> {
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
             loop_recurrence: None,
+            next_loop_key_base: 0,
             contracts: Vec::new(),
         }
     }
@@ -408,7 +418,8 @@ impl<'a> Builder<'a> {
                     Ty::Unknown
                 }
             }
-            ValOp::Seq(_) | ValOp::CollectionParam => Ty::List,
+            ValOp::Seq(_) | ValOp::CollectionParam | ValOp::ArrayParam => Ty::List,
+            ValOp::StringParam => Ty::Str,
             ValOp::Call(tag)
                 if matches!(
                     *tag,
@@ -599,6 +610,18 @@ impl<'a> Builder<'a> {
             return false;
         };
         matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Map))
+    }
+
+    fn param_domain_value(&mut self, value: ValueId) -> ValueId {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return value;
+        };
+        match self.param_semantic.get(&cid).copied() {
+            Some(ParamSemantic::Array) => self.mk(ValOp::ArrayParam, vec![value]),
+            Some(ParamSemantic::Collection) => self.mk(ValOp::CollectionParam, vec![value]),
+            Some(ParamSemantic::String) => self.mk(ValOp::StringParam, vec![value]),
+            _ => value,
+        }
     }
 
     fn is_js_like_lang(&self) -> bool {
@@ -972,41 +995,11 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(field).payload else {
             return Some(false);
         };
-        if !Self::mutating_method_name(self.interner.resolve(method)) {
+        if !mutating_method_name(self.interner.resolve(method)) {
             return Some(false);
         }
         let receiver = self.il.children(field).first().copied()?;
         Some(self.node_refers_to_cid(receiver, cid))
-    }
-
-    fn mutating_method_name(method: &str) -> bool {
-        matches!(
-            method,
-            "add"
-                | "addAll"
-                | "append"
-                | "delete"
-                | "clear"
-                | "compute"
-                | "computeIfAbsent"
-                | "computeIfPresent"
-                | "merge"
-                | "pop"
-                | "push"
-                | "put"
-                | "putAll"
-                | "remove"
-                | "removeAll"
-                | "removeIf"
-                | "replace"
-                | "replaceAll"
-                | "retainAll"
-                | "shift"
-                | "sort"
-                | "splice"
-                | "unshift"
-                | "set"
-        )
     }
 
     fn proven_map_constructor_entries(&mut self, value: ValueId) -> Option<ValueId> {
@@ -1546,6 +1539,13 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+        if let ValOp::Bin(o) = op {
+            if args.len() == 2 && (o == Op::Add as u32 || o == Op::BitOr as u32) {
+                if let Some(v) = self.c_u16_be_byte_pack_pattern(args[0], args[1]) {
+                    return v;
+                }
+            }
+        }
         // Type-gated simplifications — now SOUND because the operand type is PROVEN (these
         // were the 17 false merges when applied untyped; they only hold on numbers/bools):
         //   -(-x) → x        when x : Num   (−(−x) = x; on a list it would Err ≠ x)
@@ -1656,6 +1656,9 @@ impl<'a> Builder<'a> {
                     // type error every comparison Errs identically on both sides. It composes
                     // through the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
                     if is_and {
+                        if let Some(v) = self.lattice_strict_absorbs_nonstrict(args[0], args[1]) {
+                            return v;
+                        }
                         if let Some(v) = self.lattice_le_ne_to_lt(args[0], args[1]) {
                             return v;
                         }
@@ -1690,6 +1693,9 @@ impl<'a> Builder<'a> {
                     return v;
                 }
                 if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
+                    return v;
+                }
+                if let Some(v) = self.low_bit_toggle_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
                 if let Some(v) = self.map_default_pattern(args[0], args[1], args[2]) {
@@ -1905,6 +1911,30 @@ impl<'a> Builder<'a> {
                     if (n0 == x && n1 == y) || (n0 == y && n1 == x) {
                         return Some(self.mk(ValOp::Bin(Op::Lt as u32), vec![x, y]));
                     }
+                }
+            }
+        }
+        None
+    }
+
+    fn has_primitive_order_comparisons(&self) -> bool {
+        matches!(self.il.meta.lang, Lang::C | Lang::Go | Lang::Java)
+    }
+
+    /// `(x < y) ∧ (x ≤ y) → x < y`. Guard-clause lowering accumulates path conditions
+    /// from earlier returns, so a comparator written as `if x<y return -1; if x>y return
+    /// 1; return 0` otherwise leaves the second return guarded by `x≤y ∧ x<y` after
+    /// comparison-direction canon. The non-strict half is implied by the strict half and
+    /// can be absorbed only for source languages whose comparison operators are primitive
+    /// rather than receiver-overloadable.
+    fn lattice_strict_absorbs_nonstrict(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
+        if !self.has_primitive_order_comparisons() {
+            return None;
+        }
+        for (lt_v, le_v) in [(a, b), (b, a)] {
+            if let Some((x, y)) = self.cmp_operands(lt_v, Op::Lt as u32) {
+                if self.cmp_operands(le_v, Op::Le as u32) == Some((x, y)) {
+                    return Some(lt_v);
                 }
             }
         }
@@ -2148,22 +2178,21 @@ impl<'a> Builder<'a> {
 
     fn module_binding_mutated(&self, name: Symbol) -> bool {
         let top_level = self.top_level_statements();
-        self.il
-            .nodes
-            .iter()
-            .enumerate()
-            .any(|(idx, node)| match node.kind {
-                NodeKind::Call => self
-                    .call_mutates_binding(NodeId(idx as u32), name)
-                    .unwrap_or(false),
-                NodeKind::Field => self
-                    .field_mutates_binding(NodeId(idx as u32), name)
-                    .unwrap_or(false),
-                NodeKind::Assign if !top_level.contains(&NodeId(idx as u32)) => self
-                    .assignment_mutates_binding(NodeId(idx as u32), name)
+        let shadowed = shadowed_js_like_module_binding_nodes_for_symbol(self.il, name);
+        self.il.nodes.iter().enumerate().any(|(idx, node)| {
+            let node_id = NodeId(idx as u32);
+            if shadowed.contains(&node_id) {
+                return false;
+            }
+            match node.kind {
+                NodeKind::Call => self.call_mutates_binding(node_id, name).unwrap_or(false),
+                NodeKind::Field => self.field_mutates_binding(node_id, name).unwrap_or(false),
+                NodeKind::Assign if !top_level.contains(&node_id) => self
+                    .assignment_mutates_binding(node_id, name)
                     .unwrap_or(false),
                 _ => false,
-            })
+            }
+        })
     }
 
     fn assignment_mutates_binding(&self, assign: NodeId, name: Symbol) -> Option<bool> {
@@ -2186,7 +2215,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(field).payload else {
             return Some(false);
         };
-        if !Self::mutating_method_name(self.interner.resolve(method)) {
+        if !mutating_method_name(self.interner.resolve(method)) {
             return Some(false);
         }
         let receiver = self.il.children(field).first().copied()?;
@@ -2819,7 +2848,13 @@ impl<'a> Builder<'a> {
             return value;
         }
 
-        let h = combine(combine(0xC0AD_D1EC, cid as u64), self.vhash[value as usize]);
+        let key = self
+            .loop_recurrence
+            .as_ref()
+            .and_then(|scope| scope.loop_keys.get(&cid))
+            .copied()
+            .unwrap_or(cid);
+        let h = combine(combine(0xC0AD_D1EC, key as u64), self.vhash[value as usize]);
         self.mk(ValOp::Recurrence(h), vec![])
     }
 
@@ -2829,6 +2864,7 @@ impl<'a> Builder<'a> {
         self_cid: u32,
         scope: &LoopRecurrenceScope,
     ) -> bool {
+        let self_key = scope.loop_keys.get(&self_cid).copied();
         let mut stack = vec![value];
         let mut seen = FxHashSet::default();
         while let Some(v) = stack.pop() {
@@ -2836,7 +2872,7 @@ impl<'a> Builder<'a> {
                 continue;
             }
             match &self.nodes[v as usize].op {
-                ValOp::Loop(cid) if *cid != self_cid && scope.loop_values.contains_key(cid) => {
+                ValOp::Loop(key) if Some(*key) != self_key && scope.loop_key_set.contains(key) => {
                     return true;
                 }
                 ValOp::Recurrence(_) => return true,
@@ -3011,6 +3047,12 @@ impl<'a> Builder<'a> {
             Some(&b) => b,
             None => return,
         };
+        if kind == LoopKind::While
+            && kids.len() == 2
+            && self.loop_entry_condition_is_proven_false(kids[0], env)
+        {
+            return;
+        }
 
         // Discover the loop's *element source* so per-element computations converge
         // across loop shapes (the §AH representation axis):
@@ -3174,8 +3216,18 @@ impl<'a> Builder<'a> {
         // so the body expresses its update as a *recurrence* over `Loop(cid)`.
         let mut body_env = env.clone();
         let mut loop_vals: FxHashMap<u32, ValueId> = FxHashMap::default();
-        for &cid in &carried {
-            let lv = self.mk(ValOp::Loop(cid), vec![]);
+        let loop_key_base = self.next_loop_key_base;
+        let loop_key_count = u32::try_from(carried.len()).unwrap_or(u32::MAX);
+        self.next_loop_key_base = self
+            .next_loop_key_base
+            .wrapping_add(loop_key_count.saturating_add(1));
+        let mut loop_keys: FxHashMap<u32, u32> = FxHashMap::default();
+        let mut loop_key_set: FxHashSet<u32> = FxHashSet::default();
+        for (slot, &cid) in carried.iter().enumerate() {
+            let key = loop_key_base.wrapping_add(slot as u32);
+            loop_keys.insert(cid, key);
+            loop_key_set.insert(key);
+            let lv = self.mk(ValOp::Loop(key), vec![]);
             loop_vals.insert(cid, lv);
             body_env.insert(cid, lv);
         }
@@ -3199,6 +3251,8 @@ impl<'a> Builder<'a> {
         let sink_start = self.sinks.len();
         let outer_recurrence = self.loop_recurrence.replace(LoopRecurrenceScope {
             loop_values: loop_vals.clone(),
+            loop_keys,
+            loop_key_set,
         });
         let pre_body_env = body_env.clone();
         self.process_stmt(body, &mut body_env);
@@ -3440,6 +3494,48 @@ impl<'a> Builder<'a> {
             (self.il.kind(node), self.il.node(node).payload),
             (NodeKind::Var, Payload::Cid(c)) if c == cid
         )
+    }
+
+    fn loop_entry_condition_is_proven_false(
+        &self,
+        cond: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> bool {
+        if self.condition_atom_is_proven_false(cond, env) {
+            return true;
+        }
+        if self.il.kind(cond) != NodeKind::BinOp
+            || op_code(self.il.node(cond).payload) != Op::And as u32
+        {
+            return false;
+        }
+        let kids = self.il.children(cond);
+        kids.len() == 2 && self.condition_atom_is_proven_false(kids[0], env)
+    }
+
+    fn condition_atom_is_proven_false(&self, atom: NodeId, env: &FxHashMap<u32, ValueId>) -> bool {
+        match self.il.node(atom).payload {
+            Payload::LitBool(false) if self.il.kind(atom) == NodeKind::Lit => true,
+            Payload::Cid(cid) if self.il.kind(atom) == NodeKind::Var => env
+                .get(&cid)
+                .and_then(|&v| self.bool_const(v))
+                .is_some_and(|value| !value),
+            Payload::Op(Op::Not) if self.il.kind(atom) == NodeKind::UnOp => {
+                let kids = self.il.children(atom);
+                if kids.len() != 1 {
+                    return false;
+                }
+                match self.il.node(kids[0]).payload {
+                    Payload::LitBool(true) if self.il.kind(kids[0]) == NodeKind::Lit => true,
+                    Payload::Cid(cid) if self.il.kind(kids[0]) == NodeKind::Var => env
+                        .get(&cid)
+                        .and_then(|&v| self.bool_const(v))
+                        .is_some_and(|value| value),
+                    _ => false,
+                }
+            }
+            _ => false,
+        }
     }
 
     /// The iterable of a `while i < len(xs)`-style loop: from a comparison whose
@@ -3858,6 +3954,164 @@ impl<'a> Builder<'a> {
         } else {
             None
         }
+    }
+
+    /// Java integer low-bit toggle: `x % 2 == 0 ? x + 1 : x - 1` (and the
+    /// equivalent `!= 0` branch order) is exactly `x ^ 1`. The branch split avoids
+    /// overflow at both signed extremes: max values take the `-1` branch and min
+    /// values take the `+1` branch. Keep this Java-only for now because the real
+    /// frontier evidence is Java and other surfaces may expose overload/coercion
+    /// semantics for these operators.
+    fn low_bit_toggle_pattern(
+        &mut self,
+        cond: ValueId,
+        then: ValueId,
+        els: ValueId,
+    ) -> Option<ValueId> {
+        if !self.has_java_primitive_integer_ops() {
+            return None;
+        }
+        let (base, even_when_true) = self.parity_zero_condition(cond)?;
+        let then_delta = self.additive_one_delta(then, base)?;
+        let else_delta = self.additive_one_delta(els, base)?;
+        let is_toggle = (even_when_true && then_delta == 1 && else_delta == -1)
+            || (!even_when_true && then_delta == -1 && else_delta == 1);
+        if !is_toggle {
+            return None;
+        }
+        let one = self.int_const(1);
+        Some(self.mk(ValOp::Bin(Op::BitXor as u32), vec![base, one]))
+    }
+
+    fn has_java_primitive_integer_ops(&self) -> bool {
+        self.il.meta.lang == Lang::Java
+    }
+
+    fn parity_zero_condition(&self, cond: ValueId) -> Option<(ValueId, bool)> {
+        let node = &self.nodes[cond as usize];
+        let even_when_true = match node.op {
+            ValOp::Bin(o) if o == Op::Eq as u32 => true,
+            ValOp::Bin(o) if o == Op::Ne as u32 => false,
+            _ => return None,
+        };
+        if node.args.len() != 2 {
+            return None;
+        }
+        for (candidate, zero) in [(node.args[0], node.args[1]), (node.args[1], node.args[0])] {
+            if self.int_const_eq(zero, 0) {
+                if let Some(base) = self.mod_by_two_base(candidate) {
+                    return Some((base, even_when_true));
+                }
+            }
+        }
+        None
+    }
+
+    fn mod_by_two_base(&self, value: ValueId) -> Option<ValueId> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Bin(o) if o == Op::Mod as u32) || node.args.len() != 2 {
+            return None;
+        }
+        if self.int_const_eq(node.args[1], 2) {
+            Some(node.args[0])
+        } else {
+            None
+        }
+    }
+
+    fn additive_one_delta(&mut self, value: ValueId, base: ValueId) -> Option<i8> {
+        if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == Op::Add as u32) {
+            return None;
+        }
+        let mut leaves = Vec::new();
+        self.flatten_into(value, Op::Add as u32, &mut leaves);
+        if leaves.len() != 2 {
+            return None;
+        }
+        if leaves[0] == base {
+            self.signed_one_const(leaves[1])
+        } else if leaves[1] == base {
+            self.signed_one_const(leaves[0])
+        } else {
+            None
+        }
+    }
+
+    fn signed_one_const(&self, value: ValueId) -> Option<i8> {
+        if self.int_const_eq(value, 1) {
+            return Some(1);
+        }
+        if self.int_const_eq(value, -1) {
+            return Some(-1);
+        }
+        let node = &self.nodes[value as usize];
+        if matches!(node.op, ValOp::Un(o) if o == Op::Neg as u32)
+            && node.args.len() == 1
+            && self.int_const_eq(node.args[0], 1)
+        {
+            return Some(-1);
+        }
+        None
+    }
+
+    fn c_u16_be_byte_pack_pattern(&mut self, left: ValueId, right: ValueId) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::C {
+            return None;
+        }
+        for (shifted, low) in [(left, right), (right, left)] {
+            let (base, high_index) = self.shifted_byte_lane(shifted)?;
+            let (low_base, low_index) = self.byte_lane(low)?;
+            if base == low_base
+                && high_index == 0
+                && low_index == 1
+                && self.is_byte_array_param_value(base)
+            {
+                let zero = self.int_const(0);
+                let one = self.int_const(1);
+                return Some(self.mk(ValOp::Call(C_U16_BE_BYTE_PACK_CODE), vec![base, zero, one]));
+            }
+        }
+        None
+    }
+
+    fn shifted_byte_lane(&self, value: ValueId) -> Option<(ValueId, u8)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Bin(o) if o == Op::Shl as u32) || node.args.len() != 2 {
+            return None;
+        }
+        if !self.int_const_eq(node.args[1], 8) {
+            return None;
+        }
+        self.byte_lane(node.args[0])
+    }
+
+    fn byte_lane(&self, value: ValueId) -> Option<(ValueId, u8)> {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Index) || node.args.len() != 2 {
+            return None;
+        }
+        if self.int_const_eq(node.args[1], 0) {
+            Some((node.args[0], 0))
+        } else if self.int_const_eq(node.args[1], 1) {
+            Some((node.args[0], 1))
+        } else {
+            None
+        }
+    }
+
+    fn is_byte_array_param_value(&self, value: ValueId) -> bool {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return false;
+        };
+        matches!(
+            self.param_semantic.get(&cid),
+            Some(ParamSemantic::ByteArray)
+        )
+    }
+
+    fn int_const_eq(&self, value: ValueId, expected: i64) -> bool {
+        let expected_key = 0x1000_0000u32.wrapping_add(expected as u32);
+        matches!(self.nodes[value as usize].op, ValOp::Const(key) if key == expected_key)
     }
 
     /// An integer-literal value, keyed identically to `eval`'s `LitInt` path so a
@@ -4450,6 +4704,7 @@ impl<'a> Builder<'a> {
     }
 
     fn is_empty_value(&mut self, coll: ValueId) -> ValueId {
+        let coll = self.param_domain_value(coll);
         let len = self.mk(ValOp::Call(Builtin::Len as u32 + 1), vec![coll]);
         let zero = self.int_const(0);
         self.mk(ValOp::Bin(Op::Eq as u32), vec![len, zero])
@@ -5503,117 +5758,6 @@ impl<'a> Builder<'a> {
     }
 }
 
-fn top_level_statements_for(il: &Il) -> Vec<NodeId> {
-    let mut out = Vec::new();
-    for &stmt in il.children(il.root) {
-        if il.kind(stmt) == NodeKind::Block {
-            out.extend(il.children(stmt).iter().copied());
-        } else {
-            out.push(stmt);
-        }
-    }
-    out
-}
-
-fn assignment_name_in(il: &Il, stmt: NodeId) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    il.cid_names.get(cid as usize).copied()
-}
-
-fn node_symbol_in(il: &Il, node: NodeId) -> Option<Symbol> {
-    match il.node(node).payload {
-        Payload::Name(symbol) => Some(symbol),
-        Payload::Cid(cid) => il.cid_names.get(cid as usize).copied(),
-        _ => None,
-    }
-}
-
-fn collect_node_symbols(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol) {
-            out.insert(symbol);
-        }
-    }
-    for &child in il.children(node) {
-        collect_node_symbols(il, child, candidates, out);
-    }
-}
-
-fn collect_all_node_symbols(il: &Il, node: NodeId, out: &mut FxHashSet<Symbol>) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        out.insert(symbol);
-    }
-    for &child in il.children(node) {
-        collect_all_node_symbols(il, child, out);
-    }
-}
-
-fn mark_direct_symbol(
-    il: &Il,
-    node: NodeId,
-    candidates: &FxHashSet<Symbol>,
-    out: &mut FxHashSet<Symbol>,
-) {
-    if let Some(symbol) = node_symbol_in(il, node) {
-        if candidates.contains(&symbol) {
-            out.insert(symbol);
-        }
-    }
-}
-
-fn collect_module_mutations(
-    il: &Il,
-    interner: &Interner,
-    candidates: &FxHashSet<Symbol>,
-    is_top_level: &[bool],
-) -> FxHashSet<Symbol> {
-    let mut mutated = FxHashSet::default();
-    if candidates.is_empty() {
-        return mutated;
-    }
-    for (idx, node) in il.nodes.iter().enumerate() {
-        match node.kind {
-            NodeKind::Call if matches!(node.payload, Payload::Builtin(Builtin::Append)) => {
-                if let Some(receiver) = il.children(NodeId(idx as u32)).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
-                }
-            }
-            NodeKind::Field => {
-                let Payload::Name(method) = node.payload else {
-                    continue;
-                };
-                if !Builder::mutating_method_name(interner.resolve(method)) {
-                    continue;
-                }
-                if let Some(receiver) = il.children(NodeId(idx as u32)).first().copied() {
-                    mark_direct_symbol(il, receiver, candidates, &mut mutated);
-                }
-            }
-            NodeKind::Assign if !is_top_level.get(idx).copied().unwrap_or(false) => {
-                if let Some(lhs) = il.children(NodeId(idx as u32)).first().copied() {
-                    collect_node_symbols(il, lhs, candidates, &mut mutated);
-                }
-            }
-            _ => {}
-        }
-    }
-    mutated
-}
-
 fn collect_assigned(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
     if il.kind(node) == NodeKind::Assign {
         if let Some(&lhs) = il.children(node).first() {
@@ -5863,6 +6007,7 @@ const ABS_CODE: u32 = 0xAB5;
 const MIN_CODE: u32 = 0x319;
 const MAX_CODE: u32 = 0x32A;
 const JS_PROTOTYPE_IN_CODE: u32 = 0x4A53_494E;
+const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 const OWN_PROPERTY_GUARD_SEQ_TAG: u64 = 8;
 
 /// A selection reduction (min/max) keeps no additive/multiplicative identity, so its
@@ -5898,6 +6043,8 @@ fn op_tag(op: &ValOp) -> u64 {
         ValOp::Hof(h) => (8, *h as u64),
         ValOp::Seq(t) => (9, *t),
         ValOp::CollectionParam => (17, 0),
+        ValOp::ArrayParam => (18, 0),
+        ValOp::StringParam => (19, 0),
         ValOp::Phi => (10, 0),
         ValOp::Lambda(h) => (11, *h),
         ValOp::Loop(c) => (12, *c as u64),

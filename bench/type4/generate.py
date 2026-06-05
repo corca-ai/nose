@@ -95,6 +95,22 @@ AXIS_PROPOSALS = {
         "axis": "import_identity",
         "why": "Wildcard, dynamic, or unresolved import forms must stay outside strict exact reporting.",
     },
+    "axis_import_namespace_shadowed_param_identity": {
+        "axis": "import_identity",
+        "why": "A JS/TS namespace import remains a proven module binding when a different function parameter shadows the same local name.",
+    },
+    "axis_import_namespace_shadowed_param_template_identity": {
+        "axis": "import_identity",
+        "why": "A JS/TS namespace import call through a template literal should preserve static template fragments and match string concatenation.",
+    },
+    "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary": {
+        "axis": "import_identity",
+        "why": "A mutation-like receiver call on the unshadowed namespace local must still block the module binding proof.",
+    },
+    "axis_import_namespace_shadowed_param_fake_receiver_boundary": {
+        "axis": "import_identity",
+        "why": "A same-named object receiver is not a proven namespace import coordinate.",
+    },
     "axis_nullish_coalesce_identity": {
         "axis": "nullish_default",
         "why": "Nullish coalescing should converge with the equivalent explicit null/undefined defaulting condition.",
@@ -227,6 +243,94 @@ AXIS_PROPOSALS = {
         "axis": "numeric_minmax_abs",
         "why": "A Rust custom `.max()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
     },
+    "axis_total_order_compare_guard_order_identity": {
+        "axis": "total_order_compare",
+        "why": "Two strict total-order guard returns commute when each branch exits and the fallback is equality.",
+    },
+    "axis_total_order_compare_ternary_identity": {
+        "axis": "total_order_compare",
+        "why": "A strict three-way comparator written as guard returns should prove the same sign result as the nested ternary form.",
+    },
+    "axis_total_order_compare_descending_boundary": {
+        "axis": "total_order_compare",
+        "why": "Ascending and descending comparators reverse negative/positive results and must not merge.",
+    },
+    "axis_total_order_compare_equal_boundary": {
+        "axis": "total_order_compare",
+        "why": "A comparator that treats equality as less changes the equality result and must not merge.",
+    },
+    "axis_total_order_compare_wrong_value_boundary": {
+        "axis": "total_order_compare",
+        "why": "A three-way comparator proof fixes the returned sign values -1, 0, and 1.",
+    },
+    "axis_java_dead_loop_guard_identity": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop whose entry guard starts with a proven false short-circuit operand has an unreachable body.",
+    },
+    "axis_java_dead_loop_false_init_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop guarded by `!found && ...` can execute when `found` is initialized false.",
+    },
+    "axis_java_dead_loop_positive_guard_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A Java loop guarded by `found && ...` can execute when `found` is initialized true.",
+    },
+    "axis_java_dead_loop_reassigned_guard_boundary": {
+        "axis": "java_statically_false_loop",
+        "why": "A reassigned guard variable is not a proof that the loop entry guard is false.",
+    },
+    "axis_java_low_bit_toggle_even_identity": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "For Java primitive integers, the even/odd +/-1 reverse-edge idiom toggles the low bit exactly like `x ^ 1`.",
+    },
+    "axis_java_low_bit_toggle_odd_identity": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "The `% 2 != 0` branch order is the same Java primitive-integer low-bit toggle proof.",
+    },
+    "axis_java_low_bit_toggle_reversed_branch_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "Reversing the +/-1 branches changes the low-bit toggle direction and must not merge.",
+    },
+    "axis_java_low_bit_toggle_xor_two_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "Toggling bit 1 with `x ^ 2` is not the same as toggling the low bit.",
+    },
+    "axis_java_low_bit_toggle_positive_one_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "In Java, `x % 2 == 1` is not an oddness proof for negative odd integers.",
+    },
+    "axis_java_low_bit_toggle_wrong_delta_boundary": {
+        "axis": "java_integer_low_bit_toggle",
+        "why": "The low-bit toggle proof fixes both branch deltas to exactly +1 and -1.",
+    },
+    "axis_c_u16_be_byte_pack_unsigned_char_identity": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "A proven C byte-buffer `u16` big-endian decode should treat disjoint byte-lane addition and bitwise-or as the same value.",
+    },
+    "axis_c_u16_be_byte_pack_uint8_identity": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "A `uint8_t *` byte-buffer proof should support the same `u16` big-endian lane packing identity.",
+    },
+    "axis_c_u16_be_byte_pack_uncasted_add_identity": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "A same-file `typedef unsigned char u8` proof should support uncasted C byte-lane addition in 16-bit big-endian decoders.",
+    },
+    "axis_c_u16_be_byte_pack_wrong_order_boundary": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "Swapping the two decoded bytes changes the big-endian value and must not merge.",
+    },
+    "axis_c_u16_be_byte_pack_overlap_boundary": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "Addition and bitwise-or are not equivalent when shifted lanes overlap.",
+    },
+    "axis_c_u16_be_byte_pack_wrong_byte_boundary": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "The byte-pack proof fixes the low byte coordinate to index 1.",
+    },
+    "axis_c_u16_be_byte_pack_unproven_alias_boundary": {
+        "axis": "c_u16_be_byte_pack",
+        "why": "A C `u8` spelling is not a byte-buffer proof unless the same file proves it aliases unsigned char.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -271,6 +375,30 @@ AXIS_PROPOSALS = {
         "axis": "projection_identity",
         "why": "Dynamic property keys do not prove a fixed projected coordinate for strict exact reporting.",
     },
+    "axis_python_docstring_guard_identity": {
+        "axis": "python_docstring_noop",
+        "why": "A leading static Python function docstring is metadata and must not affect equivalent guard-return behavior.",
+    },
+    "axis_python_docstring_return_identity": {
+        "axis": "python_docstring_noop",
+        "why": "A leading static Python function docstring is metadata and must not affect a returned expression.",
+    },
+    "axis_python_docstring_different_text_identity": {
+        "axis": "python_docstring_noop",
+        "why": "Different Python docstring text is documentation metadata, not callable behavior.",
+    },
+    "axis_python_docstring_returned_string_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "Returned string literals are behavior-defining values and must not be treated as docstrings.",
+    },
+    "axis_python_docstring_assigned_string_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "String literals assigned and returned through locals are behavior-defining values.",
+    },
+    "axis_python_docstring_fstring_boundary": {
+        "axis": "python_docstring_noop",
+        "why": "A leading f-string expression can evaluate dynamic formatting and is not a static docstring proof.",
+    },
     "axis_record_guard_order_identity": {
         "axis": "record_shape_guard",
         "why": "A complete record-shape guard should be order-insensitive across its static clauses.",
@@ -302,6 +430,14 @@ AXIS_PROPOSALS = {
     "axis_collection_wrong_receiver_boundary": {
         "axis": "collection_empty_check",
         "why": "Length or emptiness checks over different collection parameters are different proof coordinates.",
+    },
+    "axis_collection_typed_domain_array_boundary": {
+        "axis": "collection_empty_check",
+        "why": "A typed Java receiver collection empty check is not equivalent to a Java array length-empty check without an array receiver proof.",
+    },
+    "axis_collection_typed_domain_string_boundary": {
+        "axis": "collection_empty_check",
+        "why": "A typed Java receiver collection empty check is not equivalent to a Java string empty check without a string receiver proof.",
     },
     "axis_string_prefix_identity": {
         "axis": "string_prefix_suffix",
@@ -2219,6 +2355,229 @@ pub fn {snake_name}(left: Wrap, right: i64, other: i64) -> i64 {{
     raise ValueError(f"unsupported surface for scalar min/max axis: {surface.key}")
 
 
+def total_order_compare_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_total_order_compare_") and surface.key == "c"
+
+
+def axis_total_order_compare_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "c":
+        raise ValueError(f"unsupported surface for total-order comparator axis: {surface.key}")
+    snake_name = "build_case" if right else "axis_case"
+    mode = "less_first"
+    if right and proposal_id == "axis_total_order_compare_guard_order_identity" and not negative:
+        mode = "greater_first"
+    elif right and proposal_id == "axis_total_order_compare_ternary_identity" and not negative:
+        mode = "ternary"
+    elif right and proposal_id == "axis_total_order_compare_descending_boundary":
+        mode = "descending"
+    elif right and proposal_id == "axis_total_order_compare_equal_boundary":
+        mode = "equal_as_less"
+    elif right and (
+        negative
+        or proposal_id == "axis_total_order_compare_wrong_value_boundary"
+    ):
+        mode = "wrong_value"
+
+    if mode == "less_first":
+        body = """    if (left < right)
+        return -1;
+    if (left > right)
+        return 1;
+    return 0;"""
+    elif mode == "greater_first":
+        body = """    if (left > right)
+        return 1;
+    if (left < right)
+        return -1;
+    return 0;"""
+    elif mode == "ternary":
+        body = "    return left > right ? 1 : left < right ? -1 : 0;"
+    elif mode == "descending":
+        body = """    if (left < right)
+        return 1;
+    if (left > right)
+        return -1;
+    return 0;"""
+    elif mode == "equal_as_less":
+        body = """    if (left <= right)
+        return -1;
+    if (left > right)
+        return 1;
+    return 0;"""
+    elif mode == "wrong_value":
+        body = """    if (left < right)
+        return -1;
+    if (left > right)
+        return 2;
+    return 0;"""
+    else:
+        raise ValueError(f"unknown total-order comparator mode: {mode}")
+
+    src = f"""int {snake_name}(const void *a, const void *b) {{
+    const int left = *(const int *)a;
+    const int right = *(const int *)b;
+{body}
+}}
+"""
+    return Variant("axis", src, snake_name)
+
+
+def java_dead_loop_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_java_dead_loop_") and surface.key == "java"
+
+
+def java_low_bit_toggle_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_java_low_bit_toggle_") and surface.key == "java"
+
+
+def c_u16_be_byte_pack_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_c_u16_be_byte_pack_") and surface.key == "c"
+
+
+def axis_java_dead_loop_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "java":
+        raise ValueError(f"unsupported surface for Java dead-loop axis: {surface.key}")
+    name = "buildCase" if right else "axisCase"
+    mode = "exact_dead"
+    if right and proposal_id == "axis_java_dead_loop_guard_identity" and not negative:
+        mode = "epsilon_dead"
+    elif right and proposal_id == "axis_java_dead_loop_guard_identity" and negative:
+        mode = "wrong_return"
+    elif right and proposal_id == "axis_java_dead_loop_false_init_boundary":
+        mode = "false_init"
+    elif right and proposal_id == "axis_java_dead_loop_positive_guard_boundary":
+        mode = "positive_guard"
+    elif right and proposal_id == "axis_java_dead_loop_reassigned_guard_boundary":
+        mode = "reassigned_guard"
+
+    params = "float[] vertex, int strideInBytes, float[] vertices, int numVertices"
+    body = "if (vertices[offset + j] != vertex[j]) found = false;"
+    found_setup = "boolean found = true;"
+    guard = "!found && j < size"
+    return_expr = "(long)i"
+    if mode == "epsilon_dead":
+        params += ", float epsilon"
+        body = """if ((vertices[offset + j] > vertex[j]
+                    ? vertices[offset + j] - vertex[j]
+                    : vertex[j] - vertices[offset + j]) > epsilon) found = false;"""
+    elif mode == "wrong_return":
+        return_expr = "(long)i + 1"
+    elif mode == "false_init":
+        found_setup = "boolean found = false;"
+        body = "if (vertices[offset + j] == vertex[j]) found = true;"
+    elif mode == "positive_guard":
+        guard = "found && j < size"
+    elif mode == "reassigned_guard":
+        found_setup = "boolean found = true;\n            found = vertices == vertex;"
+
+    src = f"""class C {{
+    static long {name}({params}) {{
+        final int size = strideInBytes / 4;
+        for (int i = 0; i < numVertices; i++) {{
+            final int offset = i * size;
+            {found_setup}
+            for (int j = 0; {guard}; j++)
+                {body}
+            if (found) return {return_expr};
+        }}
+        return -1;
+    }}
+}}
+"""
+    return Variant("axis", src, name)
+
+
+def axis_java_low_bit_toggle_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "java":
+        raise ValueError(f"unsupported surface for Java low-bit toggle axis: {surface.key}")
+    name = "reverseEdgeKey" if right else "getPosOfReverseEdge"
+    expr = "edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1"
+    param = "edgeId"
+    if right:
+        param = "edgeKey"
+        if proposal_id == "axis_java_low_bit_toggle_even_identity" and not negative:
+            expr = "edgeKey ^ 1"
+        elif proposal_id == "axis_java_low_bit_toggle_odd_identity" and not negative:
+            expr = "edgeKey % 2 != 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_even_identity" and negative:
+            expr = "edgeKey ^ 2"
+        elif proposal_id == "axis_java_low_bit_toggle_odd_identity" and negative:
+            expr = "edgeKey % 2 == 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_reversed_branch_boundary":
+            expr = "edgeKey % 2 == 0 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_xor_two_boundary":
+            expr = "edgeKey ^ 2"
+        elif proposal_id == "axis_java_low_bit_toggle_positive_one_boundary":
+            expr = "edgeKey % 2 == 1 ? edgeKey - 1 : edgeKey + 1"
+        elif proposal_id == "axis_java_low_bit_toggle_wrong_delta_boundary":
+            expr = "edgeKey % 2 == 0 ? edgeKey + 1 : edgeKey - 2"
+
+    src = f"""class C {{
+    static int {name}(int {param}) {{
+        return {expr};
+    }}
+}}
+"""
+    return Variant("axis", src, name)
+
+
+def axis_c_u16_be_byte_pack_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "c":
+        raise ValueError(f"unsupported surface for C byte-pack axis: {surface.key}")
+    name = "build_case" if right else "axis_case"
+    typedef = "typedef unsigned char u8;\n"
+    param = "const u8 *a"
+    expr = "(((unsigned int)a[0]) << 8) + ((unsigned int)a[1])"
+    if right:
+        param = "unsigned char *a"
+        expr = "(a[0] << 8) | a[1]"
+        typedef = ""
+        if proposal_id == "axis_c_u16_be_byte_pack_uint8_identity" and not negative:
+            param = "const uint8_t *a"
+        elif proposal_id == "axis_c_u16_be_byte_pack_uncasted_add_identity" and not negative:
+            typedef = "typedef unsigned char u8;\n"
+            param = "u8 *a"
+            expr = "(a[0] << 8) + a[1]"
+        elif proposal_id == "axis_c_u16_be_byte_pack_wrong_order_boundary":
+            expr = "(a[1] << 8) | a[0]"
+        elif proposal_id == "axis_c_u16_be_byte_pack_overlap_boundary":
+            expr = "(a[0] << 4) | a[1]"
+        elif (
+            negative
+            or proposal_id == "axis_c_u16_be_byte_pack_wrong_byte_boundary"
+        ):
+            expr = "(a[0] << 8) | a[2]"
+        elif proposal_id == "axis_c_u16_be_byte_pack_unproven_alias_boundary":
+            typedef = "typedef unsigned short u8;\n"
+            param = "const u8 *a"
+
+    src = f"""{typedef}unsigned int {name}({param}) {{
+    return {expr};
+}}
+"""
+    return Variant("axis", src, name)
+
+
 def record_guard_axis_supported(surface: Surface, proposal_id: str) -> bool:
     return proposal_id.startswith("axis_record_guard_") and surface.key in JS_LIKE_SURFACES
 
@@ -2329,6 +2688,8 @@ def axis_record_guard_variant(
 def collection_empty_axis_supported(surface: Surface, proposal_id: str) -> bool:
     if not proposal_id.startswith("axis_collection_"):
         return False
+    if proposal_id.startswith("axis_collection_typed_domain_"):
+        return surface.key == "java"
     return surface.key in {
         "python",
         "javascript",
@@ -2354,7 +2715,39 @@ def axis_collection_empty_variant(
     nonempty = proposal_id == "axis_collection_nonempty_named_identity"
     wrong_threshold = proposal_id == "axis_collection_threshold_boundary"
     wrong_receiver = proposal_id == "axis_collection_wrong_receiver_boundary"
+    typed_domain_array = proposal_id == "axis_collection_typed_domain_array_boundary"
+    typed_domain_string = proposal_id == "axis_collection_typed_domain_string_boundary"
     semantic_mutation = right and negative and not (wrong_threshold or wrong_receiver)
+
+    if typed_domain_array or typed_domain_string:
+        if surface.key != "java":
+            raise ValueError(f"unsupported typed-domain empty boundary surface: {surface.key}")
+        name = "buildCase" if right else "axisCase"
+        if not right:
+            src = f"""import java.util.Queue;
+
+class AxisCase {{
+    static boolean {name}(Queue<String> values) {{
+        return values == null || values.isEmpty();
+    }}
+}}
+"""
+            return Variant("java_queue_null_empty", src, name)
+        if typed_domain_array:
+            src = f"""class AxisCase {{
+    static boolean {name}(Object[] values) {{
+        return values == null || values.length == 0;
+    }}
+}}
+"""
+            return Variant("java_array_null_empty", src, name)
+        src = f"""class AxisCase {{
+    static boolean {name}(String value) {{
+        return value == null || value.isEmpty();
+    }}
+}}
+"""
+        return Variant("java_string_null_empty", src, name)
 
     if surface.language == "javascript":
         name = "buildCase" if right else "axisCase"
@@ -4796,6 +5189,80 @@ def projection_axis_supported(surface: Surface, proposal_id: str) -> bool:
     return False
 
 
+def python_docstring_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_python_docstring_") and surface.key == "python"
+
+
+def axis_python_docstring_variant(
+    surface: Surface, proposal_id: str, negative: bool, right: bool
+) -> Variant:
+    if surface.key != "python":
+        raise ValueError(f"unsupported surface for Python docstring axis: {surface.key}")
+
+    name = "axis_case"
+    if proposal_id == "axis_python_docstring_guard_identity":
+        miss_value = 2 if right and negative else 0
+        if right:
+            src = f'''def {name}(i, j):
+    """Return one when the indexes match."""
+    if i == j:
+        return 1
+    else:
+        return {miss_value}
+'''
+            return Variant("function-docstring-ifelse", src, name)
+        src = f"""def {name}(i, j):
+    if i == j:
+        return 1
+    return 0
+"""
+        return Variant("guard-return", src, name)
+
+    if proposal_id == "axis_python_docstring_return_identity":
+        doc = '    """Return the final valid index."""\n' if right else ""
+        offset = "" if not (right and negative) else " + 1"
+        src = f"""def {name}(values):
+{doc}    return len(values) - 1{offset}
+"""
+        return Variant("function-docstring-return" if right else "direct-return", src, name)
+
+    if proposal_id == "axis_python_docstring_different_text_identity":
+        doc = (
+            '    """First documentation text."""\n'
+            if not right
+            else '    """Second documentation text with different words."""\n'
+        )
+        addend = 2 if right and negative else 1
+        src = f"""def {name}(value):
+{doc}    return value * value + {addend}
+"""
+        return Variant("different-docstring-text", src, name)
+
+    if proposal_id == "axis_python_docstring_returned_string_boundary":
+        value = "blue" if right and negative else "red"
+        src = f"""def {name}():
+    return "{value}"
+"""
+        return Variant("returned-string", src, name)
+
+    if proposal_id == "axis_python_docstring_assigned_string_boundary":
+        value = "blue" if right and negative else "red"
+        src = f"""def {name}():
+    label = "{value}"
+    return label
+"""
+        return Variant("assigned-string", src, name)
+
+    if proposal_id == "axis_python_docstring_fstring_boundary":
+        effect = '    observe(f"{value}")\n' if right and negative else ""
+        src = f"""def {name}(value):
+{effect}    return 1
+"""
+        return Variant("dynamic-fstring-effect" if effect else "no-effect", src, name)
+
+    raise ValueError(f"unknown Python docstring proposal: {proposal_id}")
+
+
 def axis_projection_variant(surface: Surface, proposal_id: str, negative: bool, right: bool) -> Variant:
     field = (
         "tomorrow"
@@ -5085,6 +5552,8 @@ end
 
 
 def import_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    if proposal_id.startswith("axis_import_namespace_shadowed_param_"):
+        return surface.key in {"javascript", "typescript"}
     if proposal_id in {"axis_import_named_identity", "axis_import_alias_identity"}:
         return surface.key in {
             "javascript",
@@ -5234,7 +5703,9 @@ end
         raise ValueError(f"unsupported import unsafe surface: {surface.key}")
 
     if surface.key in JS_LIKE_SURFACES:
-        if proposal_id == "axis_import_namespace_member_identity":
+        if proposal_id.startswith("axis_import_namespace_shadowed_param_"):
+            body = import_namespace_shadowed_param_body(entry, proposal_id, right, negative)
+        elif proposal_id == "axis_import_namespace_member_identity":
             if right:
                 ns = "mathOps"
                 member = "otherHelper" if negative else "helper"
@@ -5404,6 +5875,78 @@ func {go_entry}(value int) int {{
         return Variant("axis", src, go_entry)
 
     raise ValueError(f"{surface.key} does not support {proposal_id}")
+
+
+def import_namespace_shadowed_param_body(
+    entry: str,
+    proposal_id: str,
+    right: bool,
+    negative: bool,
+) -> str:
+    template_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${{filePath.slice("<rootDir>".length)}}`),
+  );
+}}
+"""
+    concat_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize("./" + filePath.slice("<rootDir>".length)),
+  );
+}}
+"""
+    wrong_template_body = f"""function {entry}(rootDir, filePath) {{
+  if (!filePath.startsWith("<rootDir>")) {{
+    return filePath;
+  }}
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`../${{filePath.slice("<rootDir>".length)}}`),
+  );
+}}
+"""
+    if proposal_id == "axis_import_namespace_shadowed_param_identity":
+        helper = """const escapeGlobCharacters = path =>
+  path.replaceAll(/([!()*?[\\]{}])/g, "\\$1");
+
+"""
+        prefix = 'import * as path from "node:path";\n\n'
+        body = wrong_template_body if right and negative else template_body
+        return prefix + (helper if right else "") + body
+    if proposal_id == "axis_import_namespace_shadowed_param_template_identity":
+        prefix = 'import * as path from "node:path";\n\n'
+        body = wrong_template_body if right and negative else template_body
+        return prefix + (body if right else concat_body)
+    if proposal_id == "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary":
+        if right and negative:
+            return (
+                'import * as path from "node:path";\n\n'
+                'function touchPath() {\n  path.replaceAll("x", "y");\n}\n\n'
+                + template_body
+            )
+        return 'import * as path from "node:path";\n\n' + template_body
+    if proposal_id == "axis_import_namespace_shadowed_param_fake_receiver_boundary":
+        if right and negative:
+            return (
+                "const path = {\n"
+                "  normalize: value => value,\n"
+                "  resolve: (rootDir, value) => value,\n"
+                "};\n\n"
+                + template_body
+            )
+        return 'import * as path from "node:path";\n\n' + template_body
+    raise ValueError(f"unsupported namespace shadow proposal: {proposal_id}")
 
 
 def render_predicate(predicate: str, var: str) -> str:
@@ -6900,6 +7443,26 @@ def axis_variants(
             axis_scalar_abs_variant(surface, proposal_id, False, False),
             axis_scalar_abs_variant(surface, proposal_id, negative, True),
         )
+    if axis == "total_order_compare":
+        return (
+            axis_total_order_compare_variant(surface, proposal_id, False, False),
+            axis_total_order_compare_variant(surface, proposal_id, negative, True),
+        )
+    if axis == "java_statically_false_loop":
+        return (
+            axis_java_dead_loop_variant(surface, proposal_id, False, False),
+            axis_java_dead_loop_variant(surface, proposal_id, negative, True),
+        )
+    if axis == "java_integer_low_bit_toggle":
+        return (
+            axis_java_low_bit_toggle_variant(surface, proposal_id, False, False),
+            axis_java_low_bit_toggle_variant(surface, proposal_id, negative, True),
+        )
+    if axis == "c_u16_be_byte_pack":
+        return (
+            axis_c_u16_be_byte_pack_variant(surface, proposal_id, False, False),
+            axis_c_u16_be_byte_pack_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -6920,6 +7483,11 @@ def axis_variants(
             axis_projection_variant(surface, proposal_id, False, False),
             axis_projection_variant(surface, proposal_id, negative, True),
         )
+    if axis == "python_docstring_noop":
+        return (
+            axis_python_docstring_variant(surface, proposal_id, False, False),
+            axis_python_docstring_variant(surface, proposal_id, negative, True),
+        )
     if axis == "unsafe_boundary":
         return (
             axis_unsafe_boundary_variant(surface, False),
@@ -6939,8 +7507,13 @@ def axis_data_shape(axis: str) -> str:
         "nullish_default": "nullable<int>+fallback",
         "numeric_minmax_abs": "scalar<int>+alternate",
         "projection_identity": "record<today:int,tomorrow:int>",
+        "python_docstring_noop": "python-callable",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
+        "total_order_compare": "ordered-scalar-pair",
+        "java_statically_false_loop": "java-array-scan",
+        "java_integer_low_bit_toggle": "java-int-edge-key",
+        "c_u16_be_byte_pack": "c-byte-buffer",
     }.get(axis, "scalar<int>")
 
 
@@ -7162,6 +7735,51 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "property_inputs": ["prelude", "case-suf", "other"],
                 "outputs": [],
             }
+        if axis == "python_docstring_noop":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"i": 1, "j": 1, "values": [1, 2, 3], "value": 2},
+                    {"i": 1, "j": 2, "values": [1], "value": -3},
+                ],
+                "outputs": [],
+            }
+        if axis == "total_order_compare":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"left": -1, "right": 2},
+                    {"left": 4, "right": 4},
+                    {"left": 7, "right": 3},
+                ],
+                "claim": "Ascending three-way total-order comparator returns -1, 0, or 1 from the same ordered pair.",
+                "outputs": [],
+            }
+        if axis == "java_statically_false_loop":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"numVertices": 0, "strideInBytes": 4},
+                    {"numVertices": 1, "strideInBytes": 4},
+                ],
+                "claim": "`found=true` makes `!found && ...` false on loop entry, so the loop body and update are unreachable.",
+                "outputs": [],
+            }
+        if axis == "java_integer_low_bit_toggle":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"edgeKey": -3},
+                    {"edgeKey": 0},
+                    {"edgeKey": 7},
+                ],
+                "claim": "For Java primitive integers, even values take `+1` and odd values take `-1`, exactly toggling bit 0.",
+                "outputs": [],
+            }
         return {
             "level": "E1",
             "kind": f"same-spec-{axis}",
@@ -7218,6 +7836,22 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "left": True,
                 "right": False,
             }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "python_docstring_noop":
+        if proposal_id == "axis_python_docstring_fstring_boundary":
+            counterexample = {
+                "input": {"value": "red", "observer": "records calls"},
+                "left": {"return": 1, "effects": []},
+                "right": {"return": 1, "effects": ["observe(red)"]},
+            }
+        elif proposal_id == "axis_python_docstring_assigned_string_boundary":
+            counterexample = {"input": {}, "left": "red", "right": "blue"}
+        else:
+            counterexample = {"input": {}, "left": "red", "right": "blue"}
         return {
             "level": "E2",
             "kind": f"counterexample-{axis}",
@@ -7548,6 +8182,65 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "kind": f"counterexample-{axis}",
             "counterexample": counterexample,
         }
+    elif axis == "total_order_compare":
+        if proposal_id == "axis_total_order_compare_equal_boundary":
+            counterexample = {
+                "input": {"left": 4, "right": 4},
+                "left": 0,
+                "right": -1,
+            }
+        elif proposal_id == "axis_total_order_compare_wrong_value_boundary":
+            counterexample = {
+                "input": {"left": 7, "right": 3},
+                "left": 1,
+                "right": 2,
+            }
+        else:
+            counterexample = {
+                "input": {"left": -1, "right": 2},
+                "left": -1,
+                "right": 1,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
+    elif axis == "java_statically_false_loop":
+        if proposal_id == "axis_java_dead_loop_false_init_boundary":
+            right = "body can execute because found starts false"
+        elif proposal_id == "axis_java_dead_loop_positive_guard_boundary":
+            right = "body can execute because found starts true and the guard is positive"
+        elif proposal_id == "axis_java_dead_loop_guard_identity":
+            right = "wrong reachable return value"
+        else:
+            right = "body can execute after the guard variable is reassigned"
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": {
+                "input": {"numVertices": 1, "strideInBytes": 4},
+                "left": "first index is returned before comparing elements",
+                "right": right,
+            },
+        }
+    elif axis == "java_integer_low_bit_toggle":
+        if proposal_id == "axis_java_low_bit_toggle_positive_one_boundary":
+            counterexample = {"input": {"edgeKey": -1}, "left": -2, "right": 0}
+        elif proposal_id in {
+            "axis_java_low_bit_toggle_xor_two_boundary",
+            "axis_java_low_bit_toggle_even_identity",
+        }:
+            counterexample = {"input": {"edgeKey": 0}, "left": 1, "right": 2}
+        elif proposal_id == "axis_java_low_bit_toggle_wrong_delta_boundary":
+            counterexample = {"input": {"edgeKey": 3}, "left": 2, "right": 1}
+        else:
+            counterexample = {"input": {"edgeKey": 0}, "left": 1, "right": -1}
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
     else:
         left_output = 8
         right_output = 9
@@ -7650,6 +8343,22 @@ def generate_axis_items(
             if proposal_id.startswith("axis_scalar_") and not scalar_abs_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_scalar_rust_"):
+                continue
+            if proposal_id.startswith(
+                "axis_total_order_compare_"
+            ) and not total_order_compare_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_java_dead_loop_") and not java_dead_loop_axis_supported(
+                surface, proposal_id
+            ):
+                continue
+            if proposal_id.startswith(
+                "axis_java_low_bit_toggle_"
+            ) and not java_low_bit_toggle_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith(
+                "axis_c_u16_be_byte_pack_"
+            ) and not c_u16_be_byte_pack_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_own_property_") and not own_property_axis_supported(
                 surface, proposal_id
@@ -7757,6 +8466,8 @@ def generate_axis_items(
             if proposal_id in {
                 "axis_collection_threshold_boundary",
                 "axis_collection_wrong_receiver_boundary",
+                "axis_collection_typed_domain_array_boundary",
+                "axis_collection_typed_domain_string_boundary",
             }:
                 items.append(
                     make_axis_item(
@@ -7766,7 +8477,62 @@ def generate_axis_items(
                         surface,
                         "not_equivalent",
                         "heldout",
-                        "collection-empty-boundary",
+                        "typed-empty-domain-boundary"
+                        if proposal_id.startswith("axis_collection_typed_domain_")
+                        else "collection-empty-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_java_dead_loop_false_init_boundary",
+                "axis_java_dead_loop_positive_guard_boundary",
+                "axis_java_dead_loop_reassigned_guard_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "java-dead-loop-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_java_low_bit_toggle_reversed_branch_boundary",
+                "axis_java_low_bit_toggle_xor_two_boundary",
+                "axis_java_low_bit_toggle_positive_one_boundary",
+                "axis_java_low_bit_toggle_wrong_delta_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "java-low-bit-toggle-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_c_u16_be_byte_pack_wrong_order_boundary",
+                "axis_c_u16_be_byte_pack_overlap_boundary",
+                "axis_c_u16_be_byte_pack_wrong_byte_boundary",
+                "axis_c_u16_be_byte_pack_unproven_alias_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "c-u16-byte-pack-boundary",
                     )
                 )
                 continue
@@ -7960,9 +8726,30 @@ def generate_axis_items(
                     )
                 )
                 continue
+            if proposal_id in {
+                "axis_total_order_compare_descending_boundary",
+                "axis_total_order_compare_equal_boundary",
+                "axis_total_order_compare_wrong_value_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "total-order-compare-boundary",
+                    )
+                )
+                continue
             if proposal_id.startswith("axis_projection_") and not projection_axis_supported(
                 surface, proposal_id
             ):
+                continue
+            if proposal_id.startswith(
+                "axis_python_docstring_"
+            ) and not python_docstring_axis_supported(surface, proposal_id):
                 continue
             if proposal_id in {
                 "axis_projection_default_boundary",
@@ -7977,6 +8764,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "unproven-projection-binding",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_python_docstring_returned_string_boundary",
+                "axis_python_docstring_assigned_string_boundary",
+                "axis_python_docstring_fstring_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "python-docstring-boundary",
                     )
                 )
                 continue
@@ -8003,6 +8807,22 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "import-member-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_import_namespace_shadowed_param_unshadowed_mutation_boundary",
+                "axis_import_namespace_shadowed_param_fake_receiver_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "import-namespace-shadow-boundary",
                     )
                 )
                 continue

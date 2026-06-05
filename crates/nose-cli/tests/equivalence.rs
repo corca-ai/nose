@@ -801,6 +801,126 @@ fn branch_swapped_returns_stay_distinct() {
 }
 
 #[test]
+fn c_total_order_comparator_guard_order_converges() {
+    let i = Interner::new();
+    let less_first = r#"
+int f(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let greater_first = r#"
+int g(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a > b)
+        return 1;
+    if (a < b)
+        return -1;
+    return 0;
+}
+"#;
+    let ternary = r#"
+int h(const void *pa, const void *pb) {
+    const int *a = pa;
+    const int *b = pb;
+    return (*a > *b ? 1 : *a < *b ? -1 : 0);
+}
+"#;
+    let fp = value_fp(&i, less_first, Lang::C);
+    assert_eq!(
+        fp,
+        value_fp(&i, greater_first, Lang::C),
+        "strict comparator guard order should not affect the fingerprint"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, ternary, Lang::C),
+        "strict if-return comparator should converge with the ternary sign form"
+    );
+}
+
+#[test]
+fn c_total_order_comparator_boundaries_stay_distinct() {
+    let i = Interner::new();
+    let ascending = r#"
+int f(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let descending = r#"
+int g(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return 1;
+    if (a > b)
+        return -1;
+    return 0;
+}
+"#;
+    let equal_as_less = r#"
+int h(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a <= b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let fp = value_fp(&i, ascending, Lang::C);
+    assert_ne!(
+        fp,
+        value_fp(&i, descending, Lang::C),
+        "descending comparator order is a hard negative"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, equal_as_less, Lang::C),
+        "changing the equal case must stay distinct"
+    );
+}
+
+#[test]
+fn overloadable_comparator_guard_order_stays_distinct() {
+    let i = Interner::new();
+    let less_first = r#"
+def f(a, b):
+    if a < b:
+        return -1
+    if a > b:
+        return 1
+    return 0
+"#;
+    let greater_first = r#"
+def g(a, b):
+    if a > b:
+        return 1
+    if a < b:
+        return -1
+    return 0
+"#;
+    assert_ne!(
+        value_fp(&i, less_first, Lang::Python),
+        value_fp(&i, greater_first, Lang::Python),
+        "Python comparison methods can be receiver-overloaded or effectful"
+    );
+}
+
+#[test]
 fn reduction_keeps_behavior_distinct() {
     // The behavior axis (§AH): a sum-loop and a product-loop share a skeleton but are
     // NOT behaviorally equivalent — their reductions must stay distinct.
@@ -960,14 +1080,21 @@ fn embedded_scripts_converge_with_plain_js_ts() {
 }
 
 #[test]
-fn fstring_multi_interpolation_chains() {
-    // Two interpolations fold into two Adds — same shape as the JS template.
+fn template_multi_interpolation_preserves_static_fragments() {
+    // Static template fragments are behavior-defining. A multi-interpolation
+    // template should match explicit concatenation and stay distinct when the
+    // middle fragment changes or disappears.
     let i = Interner::new();
-    let py = "def f(a, b):\n    return f\"{a} and {b}\"\n";
-    let js = "function g(a, b){\n  return `${a} and ${b}`;\n}\n";
+    let template = "function f(a, b){\n  return `${a} and ${b}`;\n}\n";
+    let concat = "function g(a, b){\n  return \"\" + a + \" and \" + b;\n}\n";
+    let missing_fragment = "function h(a, b){\n  return `${a}${b}`;\n}\n";
     assert_eq!(
-        unit_hash(&i, py, Lang::Python),
-        unit_hash(&i, js, Lang::JavaScript),
+        value_fp(&i, template, Lang::JavaScript),
+        value_fp(&i, concat, Lang::JavaScript),
+    );
+    assert_ne!(
+        value_fp(&i, template, Lang::JavaScript),
+        value_fp(&i, missing_fragment, Lang::JavaScript),
     );
 }
 
@@ -1555,6 +1682,41 @@ fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec
 }
 
 #[test]
+fn python_docstrings_are_function_semantic_noops() {
+    let i = Interner::new();
+    let plain = "def f(i, j):\n    if i == j:\n        return 1\n    return 0\n";
+    let docstring = "def g(i, j):\n    \"\"\"Return one when the indexes match.\"\"\"\n    if i == j:\n        return 1\n    else:\n        return 0\n";
+    let other_docstring = "def h(i, j):\n    \"\"\"Different documentation text.\"\"\"\n    if i == j:\n        return 1\n    return 0\n";
+
+    assert_eq!(
+        value_fp(&i, plain, Lang::Python),
+        value_fp(&i, docstring, Lang::Python),
+        "a Python function docstring must not change call behavior"
+    );
+    assert_eq!(
+        value_fp(&i, plain, Lang::Python),
+        value_fp(&i, other_docstring, Lang::Python),
+        "docstring text is metadata, not function return behavior"
+    );
+
+    let returned_red = "def f():\n    return \"red\"\n";
+    let returned_blue = "def g():\n    return \"blue\"\n";
+    assert_ne!(
+        value_fp(&i, returned_red, Lang::Python),
+        value_fp(&i, returned_blue, Lang::Python),
+        "returned strings are behavior-defining values"
+    );
+
+    let f_string = "def f(x):\n    f\"{x}\"\n    return 1\n";
+    let no_effect = "def g(x):\n    return 1\n";
+    assert_ne!(
+        value_fp(&i, f_string, Lang::Python),
+        value_fp(&i, no_effect, Lang::Python),
+        "a leading f-string expression is not a static docstring proof"
+    );
+}
+
+#[test]
 fn value_graph_ignores_statement_order() {
     // x and y are each used twice → NOT inlined; only the value graph (not the
     // AST) makes the two statement orders converge.
@@ -1768,6 +1930,103 @@ fn import_named_and_namespace_member_coordinates_converge() {
     let py_fp = value_fp(&i, py_named, Lang::Python);
     assert_eq!(py_fp, value_fp(&i, py_namespace, Lang::Python));
     assert_ne!(py_fp, value_fp(&i, py_wrong_member, Lang::Python));
+}
+
+#[test]
+fn js_namespace_imports_ignore_parameter_shadow_mutations_only() {
+    let i = Interner::new();
+    let plain = r#"
+import * as path from "node:path";
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let shadowed_param = r#"
+import * as path from "node:path";
+
+export const escapeGlobCharacters = (path: string): string =>
+  path.replaceAll(/([!()*?[\\\]{}])/g, "\\$1");
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let unshadowed_mutation = r#"
+import * as path from "node:path";
+
+export const touchPath = (): void => {
+  path.replaceAll("x", "y");
+};
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+    let fake_receiver = r#"
+const path = {
+  normalize(value: string): string {
+    return value;
+  },
+  resolve(rootDir: string, value: string): string {
+    return value;
+  },
+};
+
+export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
+  if (!filePath.startsWith("<rootDir>")) {
+    return filePath;
+  }
+
+  return path.resolve(
+    rootDir,
+    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
+  );
+};
+"#;
+
+    let fp = value_fp_named(&i, plain, Lang::TypeScript, "replaceRootDirInPath");
+    assert_eq!(
+        fp,
+        value_fp_named(&i, shadowed_param, Lang::TypeScript, "replaceRootDirInPath"),
+        "a parameter named like the namespace import must not taint the module binding"
+    );
+    assert_ne!(
+        fp,
+        value_fp_named(
+            &i,
+            unshadowed_mutation,
+            Lang::TypeScript,
+            "replaceRootDirInPath"
+        ),
+        "an unshadowed mutation-like receiver call must still block the import proof"
+    );
+    assert_ne!(
+        fp,
+        value_fp_named(&i, fake_receiver, Lang::TypeScript, "replaceRootDirInPath"),
+        "a same-named local object is not a proven import namespace"
+    );
 }
 
 #[test]
@@ -2266,6 +2525,30 @@ fn collection_membership_set_construction_converges_with_boundaries() {
 }
 
 #[test]
+fn typed_empty_checks_keep_array_collection_and_string_domains_distinct() {
+    let i = Interner::new();
+    let java_list_size =
+        "class C { static boolean f(java.util.List<Integer> values) { return values == null || values.size() == 0; } }\n";
+    let java_list_named =
+        "class C { static boolean f(java.util.List<Integer> values) { return values == null || values.isEmpty(); } }\n";
+    let java_queue_named = "import java.util.Queue;\n\nclass C { static boolean f(Queue<String> values) { return values == null || values.isEmpty(); } }\n";
+    let java_array_length =
+        "class C { static boolean f(Object[] values) { return values == null || values.length == 0; } }\n";
+    let java_string_named =
+        "class C { static boolean f(String value) { return value == null || value.isEmpty(); } }\n";
+
+    let list_fp = value_fp(&i, java_list_size, Lang::Java);
+    assert_eq!(list_fp, value_fp(&i, java_list_named, Lang::Java));
+    assert_eq!(list_fp, value_fp(&i, java_queue_named, Lang::Java));
+    assert_ne!(list_fp, value_fp(&i, java_array_length, Lang::Java));
+    assert_ne!(list_fp, value_fp(&i, java_string_named, Lang::Java));
+    assert_ne!(
+        value_fp(&i, java_array_length, Lang::Java),
+        value_fp(&i, java_string_named, Lang::Java)
+    );
+}
+
+#[test]
 fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
     let i = Interner::new();
     let py_literal = "def f(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n";
@@ -2747,6 +3030,124 @@ fn value_graph_distinguishes_early_break() {
         value_fp(&i, brk, Lang::Python),
         "an early-break loop must not fingerprint identically to a full-iteration loop"
     );
+}
+
+#[test]
+fn statically_false_loop_guard_skips_dead_body() {
+    let i = Interner::new();
+    let exact = "class C { static long f(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { final int size = strideInBytes / 4; for (int i = 0; i < numVertices; i++) { final int offset = i * size; boolean found = true; for (int j = 0; !found && j < size; j++) if (vertices[offset + j] != vertex[j]) found = false; if (found) return (long)i; } return -1; } }";
+    let epsilon = "class C { static long f(float[] vertex, int strideInBytes, float[] vertices, int numVertices, float epsilon) { final int size = strideInBytes / 4; for (int i = 0; i < numVertices; i++) { final int offset = i * size; boolean found = true; for (int j = 0; !found && j < size; j++) if ((vertices[offset + j] > vertex[j] ? vertices[offset + j] - vertex[j] : vertex[j] - vertices[offset + j]) > epsilon) found = false; if (found) return (long)i; } return -1; } }";
+    let executes_from_false = "class C { static long f(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { final int size = strideInBytes / 4; for (int i = 0; i < numVertices; i++) { final int offset = i * size; boolean found = false; for (int j = 0; !found && j < size; j++) if (vertices[offset + j] == vertex[j]) found = true; if (found) return (long)i; } return -1; } }";
+    let positive_guard = "class C { static long f(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { final int size = strideInBytes / 4; for (int i = 0; i < numVertices; i++) { final int offset = i * size; boolean found = true; for (int j = 0; found && j < size; j++) if (vertices[offset + j] != vertex[j]) found = false; if (found) return (long)i; } return -1; } }";
+    let reassigned_guard = "class C { static long f(float[] vertex, int strideInBytes, float[] vertices, int numVertices) { final int size = strideInBytes / 4; for (int i = 0; i < numVertices; i++) { final int offset = i * size; boolean found = true; found = vertices == vertex; for (int j = 0; !found && j < size; j++) if (vertices[offset + j] != vertex[j]) found = false; if (found) return (long)i; } return -1; } }";
+    let fp = value_fp(&i, exact, Lang::Java);
+    assert_eq!(
+        fp,
+        value_fp(&i, epsilon, Lang::Java),
+        "a loop guarded by !found after found=true has an unreachable body"
+    );
+    assert_ne!(fp, value_fp(&i, executes_from_false, Lang::Java));
+    assert_ne!(fp, value_fp(&i, positive_guard, Lang::Java));
+    assert_ne!(fp, value_fp(&i, reassigned_guard, Lang::Java));
+}
+
+#[test]
+fn java_low_bit_toggle_parity_converges_with_xor() {
+    let i = Interner::new();
+    let even_branch = "class C { static int f(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 1; } }";
+    let xor = "class C { static int g(int edgeKey) { return edgeKey ^ 1; } }";
+    let odd_branch = "class C { static int h(int edgeId) { return edgeId % 2 != 0 ? edgeId - 1 : edgeId + 1; } }";
+    let reversed = "class C { static int r(int edgeId) { return edgeId % 2 == 0 ? edgeId - 1 : edgeId + 1; } }";
+    let xor_two = "class C { static int x(int edgeId) { return edgeId ^ 2; } }";
+    let positive_one = "class C { static int p(int edgeId) { return edgeId % 2 == 1 ? edgeId - 1 : edgeId + 1; } }";
+    let wrong_delta = "class C { static int w(int edgeId) { return edgeId % 2 == 0 ? edgeId + 1 : edgeId - 2; } }";
+
+    let fp = value_fp(&i, even_branch, Lang::Java);
+    assert_eq!(
+        fp,
+        value_fp(&i, xor, Lang::Java),
+        "Java even/odd +/-1 reverse-edge idiom should converge with low-bit xor"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, odd_branch, Lang::Java),
+        "the equivalent != 0 branch order should also converge"
+    );
+    assert_ne!(fp, value_fp(&i, reversed, Lang::Java));
+    assert_ne!(fp, value_fp(&i, xor_two, Lang::Java));
+    assert_ne!(fp, value_fp(&i, positive_one, Lang::Java));
+    assert_ne!(fp, value_fp(&i, wrong_delta, Lang::Java));
+}
+
+#[test]
+fn c_u16_big_endian_byte_pack_converges_with_boundaries() {
+    let i = Interner::new();
+    let add_casted = r#"
+typedef unsigned char u8;
+unsigned int f(const u8 *a) {
+    return (((unsigned int)a[0]) << 8) + ((unsigned int)a[1]);
+}
+"#;
+    let add_uncasted = r#"
+typedef unsigned char u8;
+int g(u8 *p) {
+    return (p[0] << 8) + p[1];
+}
+"#;
+    let bit_or = r#"
+unsigned int h(unsigned char *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let uint8_or = r#"
+unsigned int j(const uint8_t *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let wrong_order = r#"
+typedef unsigned char u8;
+unsigned int r(const u8 *a) {
+    return (a[1] << 8) | a[0];
+}
+"#;
+    let overlapping_lane = r#"
+typedef unsigned char u8;
+unsigned int o(const u8 *a) {
+    return (a[0] << 4) | a[1];
+}
+"#;
+    let wrong_second_byte = r#"
+typedef unsigned char u8;
+unsigned int w(const u8 *a) {
+    return (a[0] << 8) | a[2];
+}
+"#;
+    let unproven_alias = r#"
+typedef unsigned short u8;
+unsigned int u(const u8 *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+    let int_pointer = r#"
+unsigned int q(const int *a) {
+    return (a[0] << 8) | a[1];
+}
+"#;
+
+    let fp = value_fp(&i, add_casted, Lang::C);
+    assert!(
+        fp.len() >= 4,
+        "C u16 byte-pack fingerprint must stay large enough for exact scan buckets: {} atoms",
+        fp.len()
+    );
+    assert_eq!(fp, value_fp(&i, add_uncasted, Lang::C));
+    assert_eq!(fp, value_fp(&i, bit_or, Lang::C));
+    assert_eq!(fp, value_fp(&i, uint8_or, Lang::C));
+    assert_ne!(fp, value_fp(&i, wrong_order, Lang::C));
+    assert_ne!(fp, value_fp(&i, overlapping_lane, Lang::C));
+    assert_ne!(fp, value_fp(&i, wrong_second_byte, Lang::C));
+    assert_ne!(fp, value_fp(&i, unproven_alias, Lang::C));
+    assert_ne!(fp, value_fp(&i, int_pointer, Lang::C));
 }
 
 #[test]

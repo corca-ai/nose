@@ -40,6 +40,8 @@ By default the generator emits:
   literal map-default lookup, map key-membership predicates,
   null/none/nil/option presence predicates including Rust
   option-pattern predicates, scalar absolute-value and min/max idioms, and
+  C total-order three-way comparator guard/ternary forms, C byte-buffer u16
+  big-endian packing, and Java statically-false loop-entry guard and low-bit toggle forms, plus
   unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
@@ -57,6 +59,10 @@ The evaluator runs `nose scan --mode semantic` over the generated sources and re
 positive recall plus hard-negative false merges. Use `--fail-on-false-merge` when this
 becomes a CI gate.
 
+`eval_manifest.py` and `frontier.py` accept both the current versioned
+`nose scan --format json` object and the older raw `families` array when `--scan-json`
+is supplied, so saved scan output can be reused without post-processing.
+
 Before spending implementation time on a new axis, run a focused preflight against the
 baseline and candidate binaries:
 
@@ -71,26 +77,26 @@ misses or remove baseline false merges.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 2453
-positive recall: 914/914
-hard-negative false merges: 0/1539
+items: 3127
+positive recall: 1098/1098
+hard-negative false merges: 0/2029
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1751
-positive recall: 631/631
-hard-negative false merges: 0/1120
+items: 1940
+positive recall: 682/682
+hard-negative false merges: 0/1258
 ```
 
-With `--cross all`, the dense corpus now has 4971 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 6728 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 774/4971
-positive recall: 312/312
-hard-negative false merges: 0/462
+selected items: 1859/6728
+positive recall: 626/626
+hard-negative false merges: 0/1233
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic
@@ -179,6 +185,12 @@ patterns. Continue for three to five passes while the top candidate still change
 delta audits expose missed strict families. Stop expanding that axis when synthetic
 positives are closed, hard negatives stay clean, and the prioritizer has moved the axis to
 `covered-current`.
+
+Real-corpus audit findings are tracked in `real_frontier.v1.json`. Each item records the
+repo-relative span, semantic claim, evidence, detector status, proof invariant, adjacent
+hard negatives, and batch assignment. Use `already-covered`, `real-miss`, `hard-negative`,
+`unsupported`, and `closed` as the audit states so prioritizer frequency, real evidence,
+and detector progress stay separate.
 
 ## CI smoke
 

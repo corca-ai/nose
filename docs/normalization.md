@@ -26,8 +26,14 @@
 > (`d={}; for x: d[k]=v` ≡ `{k:v for x}` via a `DictEntry`-distinct rep that cannot collide
 > with a list of tuples), ternary-return decomposition, negated-comparison canon,
 > equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard
-> facts, and ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`). Also
-> landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
+> facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`),
+> statically-false loop entry guards (a proven-true local boolean makes a left
+> short-circuit `!local && ...` guard unreachable), primitive total-order comparator
+> guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
+> C byte-buffer `u16` big-endian packing (`(a[0]<<8)+a[1]` ≡ `(a[0]<<8)|a[1]` only
+> under a byte-array parameter proof), plus Java primitive-integer low-bit toggle selection
+> (`x%2==0 ? x+1 : x-1` ≡ `x^1`).
+> Also landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
 > structural (linear) recursion → an accumulator fold, so a recursive function converges with
 > the loop a programmer would have written and with other same-shape recursions
 > (cross-language included). Structural recursion is gated to a `+`/`·` numeric monoid
@@ -72,6 +78,10 @@ Guiding constraints for every pass:
   value-returning short-circuit `Phi`). Identity elimination `x+0`/`x*1`→`x` is dropped
   entirely — it is unsound for non-Num (`"a"+0` Errs), and type inference is optimistic
   (it would infer `Num` from the `*1` itself), so even a Num gate can't make it safe.
+  Typed emptiness checks carry the proven receiver domain in the value graph: collection
+  receivers, arrays, and strings do not share the same strict fingerprint merely because
+  each surface exposes an “empty” idiom. A real Netty audit caught this boundary when Java
+  `Object[]` length, `Queue.isEmpty()`, and `String.isEmpty()` had collapsed.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its
@@ -108,6 +118,12 @@ downstream value-graph.
   experiments. Hard parts: φ-handling across control flow, effect ordering,
   canonical graph hashing.
 
+  A narrow Java-only selection idiom lives here: `x % 2 == 0 ? x + 1 : x - 1`
+  and the equivalent `x % 2 != 0 ? x - 1 : x + 1` canonicalize to `x ^ 1`.
+  The proof relies on Java primitive integer operators: even values take `+1`, odd
+  values take `-1`, and the branch split avoids overflow at both signed extremes.
+  It deliberately does not apply to overloadable or coercive operator surfaces.
+
 ## Track 2 — Algebraic expression canonicalization (E-graph)
 
 Generalize the current commutative-operand sort into a principled canonicalizer
@@ -131,6 +147,13 @@ structured CFG and canonicalize equivalent shapes — flag-variable loop ↔ `br
 nested guards ↔ flattened guards, `continue`-skip ↔ wrapped body, redundant-jump
 elimination. Hard parts: structuring
 arbitrary control flow, proving shape-equivalence, determinism.
+
+A narrow value-graph CFG fact is accepted for statically-false loop entry guards: if a local
+boolean is already proven `true`, `while (!local && rhs) { ... }` has an unreachable body and
+update by short-circuit semantics. This deliberately does not fold the right-hand guard and
+does not apply after reassignment or to unproven receiver/dynamic facts. Loop-carried
+placeholders are keyed by traversal/carry slot, not source variable id, so unused parameters
+do not keep equivalent loop recurrences apart.
 
 ## Track 4 — Recursion → iteration
 
