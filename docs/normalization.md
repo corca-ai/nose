@@ -26,7 +26,9 @@
 > (`d={}; for x: d[k]=v` ≡ `{k:v for x}` via a `DictEntry`-distinct rep that cannot collide
 > with a list of tuples), ternary-return decomposition, negated-comparison canon,
 > equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard
-> facts, and ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`). Also
+> facts, ordered string-builder joins (`out += elem` over a loop ≡ `"".join(xs)`), and
+> primitive total-order comparator guard absorption (`x<y ∧ x≤y` keeps `x<y` for
+> non-overloadable ordered comparisons). Also
 > landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
 > structural (linear) recursion → an accumulator fold, so a recursive function converges with
 > the loop a programmer would have written and with other same-shape recursions

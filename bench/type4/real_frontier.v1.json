@@ -397,6 +397,47 @@
       ],
       "batch": "2026-06-05-js-namespace-shadow-template",
       "notes": "Selected from Jest real verify lead after broader membership/map audits found no sound higher-yield real misses."
+    },
+    {
+      "case_id": "c-total-order-comparator-vim-lnum-syn-int",
+      "status": "closed",
+      "candidate_axis": "total_order_compare",
+      "repo": "vim",
+      "language": "c",
+      "locations": [
+        {
+          "path": "src/diff.c",
+          "span": "937-947",
+          "snippet": "static int lnum_compare(const void *s1, const void *s2) { ... if (lnum1 < lnum2) return -1; if (lnum1 > lnum2) return 1; return 0; }"
+        },
+        {
+          "path": "src/window.c",
+          "span": "8495-8505",
+          "snippet": "static int int_cmp(const void *pa, const void *pb) { ... if (a > b) return 1; if (a < b) return -1; return 0; }"
+        },
+        {
+          "path": "src/syntax.c",
+          "span": "5288-5295",
+          "snippet": "static int syn_compare_stub(const void *v1, const void *v2) { ... return (*s1 > *s2 ? 1 : *s1 < *s2 ? -1 : 0); }"
+        }
+      ],
+      "semantic_claim": "All three Vim callbacks implement the same ascending three-way total-order comparator over the dereferenced scalar pair, returning -1, 1, or 0 for less, greater, or equal.",
+      "evidence": "Previous release verify over selected Vim comparator files reported one behavior-equal group with completeness 1/3 and an under-merged lead diff.c:937 ↮ syntax.c:5288. Candidate verify reports completeness 3/3, 0 under-merged groups, and whole-repo semantic scan reports family e498fe8139e65f5c containing lnum_compare, int_cmp, and syn_compare_stub.",
+      "detector": {
+        "current_detector_miss": false,
+        "baseline_command": "/tmp/nose-before-nextbatch verify diff.c syntax.c window.c viminfo.c insexpand.c --leads /tmp/nose-vim-comparator-before-leads.json",
+        "baseline_result": "SOUND; completeness 1/3; one under-merged group at diff.c:937 ↮ syntax.c:5288. Whole Vim scan reported only window.c:int_cmp with syntax.c:syn_compare_stub in family d3b98d6969be6d8d.",
+        "candidate_result": "target/release/nose verify over the same selected files reports SOUND, completeness 3/3, and 0 under-merged groups; whole Vim scan reports a 3-copy comparator family containing diff.c:937, window.c:8495, and syntax.c:5288."
+      },
+      "proof_invariant": "For primitive source-language comparisons, a strict ordered comparison guard implies the same-direction non-strict guard, so a path condition such as (x < y) and (x <= y) can absorb the non-strict residue. Receiver-overloadable comparisons are excluded.",
+      "hard_negative_siblings": [
+        "descending comparator that returns 1 for less and -1 for greater",
+        "equality-boundary comparator that returns -1 when left == right",
+        "wrong positive sign value such as returning 2 for greater",
+        "Python/Ruby/JS-style receiver-overloadable or effectful comparisons without a primitive order proof"
+      ],
+      "batch": "2026-06-05-c-total-order-compare",
+      "notes": "Selected from the real audit after broad membership/map-default priority leads were already covered, unsupported, or hard negatives."
     }
   ]
 }

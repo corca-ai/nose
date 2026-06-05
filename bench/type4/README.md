@@ -40,6 +40,7 @@ By default the generator emits:
   literal map-default lookup, map key-membership predicates,
   null/none/nil/option presence predicates including Rust
   option-pattern predicates, scalar absolute-value and min/max idioms, and
+  C total-order three-way comparator guard/ternary forms, plus
   unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
@@ -75,26 +76,26 @@ misses or remove baseline false merges.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 2453
-positive recall: 914/914
-hard-negative false merges: 0/1539
+items: 3127
+positive recall: 1098/1098
+hard-negative false merges: 0/2029
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1751
-positive recall: 631/631
-hard-negative false merges: 0/1120
+items: 1940
+positive recall: 682/682
+hard-negative false merges: 0/1258
 ```
 
-With `--cross all`, the dense corpus now has 6696 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 6703 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 1828/6696
-positive recall: 618/618
-hard-negative false merges: 0/1210
+selected items: 1835/6703
+positive recall: 620/620
+hard-negative false merges: 0/1215
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic

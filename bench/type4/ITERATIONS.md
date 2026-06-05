@@ -4299,3 +4299,90 @@ Remaining open frontier: Java `Arrays.asList(array)` membership still requires a
 provenance facts; Python `**kwargs.get` and omitted-`None` map defaults had no repeated
 real miss groups in the audited repos; remaining JS/TS leads in Zod/date-fns/RxJS were
 oracle artifacts or non-equivalent.
+
+## Real-corpus C total-order comparator: batch 2026-06-05
+
+This batch came from the post-Jest real audit rather than synthetic ratio pressure.
+`prioritize_frontier.py` still ranked broad membership/map-default axes highest, but the
+top audited repos were already covered, unsupported without new provenance facts, or hard
+negatives. The first evidence-backed low-cost miss found in the next real sweep was Vim's
+C comparator group: `lnum_compare` in `diff.c` was behavior-equal to the already-covered
+`int_cmp`/`syn_compare_stub` family but split because its guard-return order checked
+`<` before `>`.
+
+Closed selected real candidates:
+
+- `vim/src/diff.c:937` `lnum_compare` ↔ `vim/src/syntax.c:5288`
+  `syn_compare_stub`;
+- `vim/src/diff.c:937` `lnum_compare` ↔ `vim/src/window.c:8495` `int_cmp`;
+- the existing `int_cmp` ↔ `syn_compare_stub` two-copy family is now a 3-copy family with
+  `lnum_compare` instead of a partial pair.
+
+The shared proof invariant is primitive total-order guard absorption: for source languages
+whose comparison operators are not receiver-overloadable, a strict comparison guard implies
+the same-direction non-strict guard, so `(x < y) and (x <= y)` can absorb the non-strict
+residue. The implementation lives in the shared value graph but is gated to primitive
+comparison languages; Python/Ruby/JS-style overloadable or effectful receiver comparisons
+remain outside the proof.
+
+Synthetic coverage added `axis_total_order_compare_*`: two positives for guard-order and
+ternary sign forms, and five hard negatives covering descending sign, equality-boundary
+sign, wrong returned sign value, the per-positive semantic mutation, and an explicit
+overloadable-comparison regression test.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| real-c-compare-1 | real frontier selection | choose Vim comparator verify lead after rejecting unsupported broad membership/map leads | previous release selected verify: SOUND, completeness 1/3, 1 under-merged group |
+| real-c-compare-2 | detector strengthening | add primitive-order guard absorption in the shared value graph, gated away from overloadable comparisons | targeted C convergence and Python overload hard-negative tests passed |
+| real-c-compare-3 | focused synthetic gate | add total-order comparator positives and adjacent hard negatives | previous release 0/2 positives, 0/5 false merges; candidate 2/2, 0/5 |
+| real-c-compare-4 | real corpus delta | rescan selected Vim files and whole Vim repo | selected verify after: 3/3 completeness, 0 under-merged; whole scan reports family `e498fe8139e65f5c` with all 3 comparators |
+| real-c-compare-5 | release gates | run required focused, axis-core, all-cross core gates and `cargo test` | focused 2/2, 0/5; axis core 2/2, 0/5; all-cross core improves 618/620 -> 620/620 with 0/1215 false merges; cargo test passed |
+| real-c-compare-6 | performance | compare whole Vim scan timings with previous release | normalize+extract 225.9ms -> 208.8ms; candidate path 13.1ms -> 12.8ms; scanned files unchanged at 354 |
+
+Final release focused gate:
+
+```text
+GATE=focused PROPOSAL_PREFIX=axis_total_order_compare_ CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+items: 7
+positive recall: 2/2
+hard-negative false merges: 0/5
+SOUND: no false merges
+```
+
+Final release total-order axis core gate:
+
+```text
+GATE=core AXIS=total_order_compare CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 7/7
+positive recall: 2/2
+hard-negative false merges: 0/5
+Raw nodes: 0/374
+```
+
+Final release compact all-cross gate:
+
+```text
+GATE=core CROSS=all NOSE=target/release/nose scripts/type4-smoke.sh
+selected items: 1835/6703
+positive recall: 620/620
+hard-negative false merges: 0/1215
+Raw nodes: 0/67095
+```
+
+The informational synthetic `nose verify` calibration count on the compact all-cross corpus
+did not increase: previous release and candidate both reported 110 oracle violations on
+the same current manifest while candidate removed the two total-order under-merge misses.
+
+Real selected verification:
+
+```text
+previous release: completeness 1/3, under-merged groups 1, SOUND
+candidate release: completeness 3/3, under-merged groups 0, SOUND
+```
+
+Remaining open frontier: Java `Arrays.asList(array)` membership still needs array
+provenance/type facts before it can be sound; the broad membership/map-default axes should
+not be widened from untyped receivers. The next efficient batch should rerun the real
+prioritizer and continue the medium-repo audit, looking for another repeated real miss
+with a shared proof invariant rather than expanding comparator handling into overloadable
+language semantics.

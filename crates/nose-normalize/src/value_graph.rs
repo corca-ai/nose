@@ -1656,6 +1656,9 @@ impl<'a> Builder<'a> {
                     // type error every comparison Errs identically on both sides. It composes
                     // through the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
                     if is_and {
+                        if let Some(v) = self.lattice_strict_absorbs_nonstrict(args[0], args[1]) {
+                            return v;
+                        }
                         if let Some(v) = self.lattice_le_ne_to_lt(args[0], args[1]) {
                             return v;
                         }
@@ -1905,6 +1908,30 @@ impl<'a> Builder<'a> {
                     if (n0 == x && n1 == y) || (n0 == y && n1 == x) {
                         return Some(self.mk(ValOp::Bin(Op::Lt as u32), vec![x, y]));
                     }
+                }
+            }
+        }
+        None
+    }
+
+    fn has_primitive_order_comparisons(&self) -> bool {
+        matches!(self.il.meta.lang, Lang::C | Lang::Go | Lang::Java)
+    }
+
+    /// `(x < y) ∧ (x ≤ y) → x < y`. Guard-clause lowering accumulates path conditions
+    /// from earlier returns, so a comparator written as `if x<y return -1; if x>y return
+    /// 1; return 0` otherwise leaves the second return guarded by `x≤y ∧ x<y` after
+    /// comparison-direction canon. The non-strict half is implied by the strict half and
+    /// can be absorbed only for source languages whose comparison operators are primitive
+    /// rather than receiver-overloadable.
+    fn lattice_strict_absorbs_nonstrict(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
+        if !self.has_primitive_order_comparisons() {
+            return None;
+        }
+        for (lt_v, le_v) in [(a, b), (b, a)] {
+            if let Some((x, y)) = self.cmp_operands(lt_v, Op::Lt as u32) {
+                if self.cmp_operands(le_v, Op::Le as u32) == Some((x, y)) {
+                    return Some(lt_v);
                 }
             }
         }

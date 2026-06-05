@@ -801,6 +801,126 @@ fn branch_swapped_returns_stay_distinct() {
 }
 
 #[test]
+fn c_total_order_comparator_guard_order_converges() {
+    let i = Interner::new();
+    let less_first = r#"
+int f(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let greater_first = r#"
+int g(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a > b)
+        return 1;
+    if (a < b)
+        return -1;
+    return 0;
+}
+"#;
+    let ternary = r#"
+int h(const void *pa, const void *pb) {
+    const int *a = pa;
+    const int *b = pb;
+    return (*a > *b ? 1 : *a < *b ? -1 : 0);
+}
+"#;
+    let fp = value_fp(&i, less_first, Lang::C);
+    assert_eq!(
+        fp,
+        value_fp(&i, greater_first, Lang::C),
+        "strict comparator guard order should not affect the fingerprint"
+    );
+    assert_eq!(
+        fp,
+        value_fp(&i, ternary, Lang::C),
+        "strict if-return comparator should converge with the ternary sign form"
+    );
+}
+
+#[test]
+fn c_total_order_comparator_boundaries_stay_distinct() {
+    let i = Interner::new();
+    let ascending = r#"
+int f(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let descending = r#"
+int g(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a < b)
+        return 1;
+    if (a > b)
+        return -1;
+    return 0;
+}
+"#;
+    let equal_as_less = r#"
+int h(const void *pa, const void *pb) {
+    const int a = *(const int *)pa;
+    const int b = *(const int *)pb;
+    if (a <= b)
+        return -1;
+    if (a > b)
+        return 1;
+    return 0;
+}
+"#;
+    let fp = value_fp(&i, ascending, Lang::C);
+    assert_ne!(
+        fp,
+        value_fp(&i, descending, Lang::C),
+        "descending comparator order is a hard negative"
+    );
+    assert_ne!(
+        fp,
+        value_fp(&i, equal_as_less, Lang::C),
+        "changing the equal case must stay distinct"
+    );
+}
+
+#[test]
+fn overloadable_comparator_guard_order_stays_distinct() {
+    let i = Interner::new();
+    let less_first = r#"
+def f(a, b):
+    if a < b:
+        return -1
+    if a > b:
+        return 1
+    return 0
+"#;
+    let greater_first = r#"
+def g(a, b):
+    if a > b:
+        return 1
+    if a < b:
+        return -1
+    return 0
+"#;
+    assert_ne!(
+        value_fp(&i, less_first, Lang::Python),
+        value_fp(&i, greater_first, Lang::Python),
+        "Python comparison methods can be receiver-overloaded or effectful"
+    );
+}
+
+#[test]
 fn reduction_keeps_behavior_distinct() {
     // The behavior axis (§AH): a sum-loop and a product-loop share a skeleton but are
     // NOT behaviorally equivalent — their reductions must stay distinct.

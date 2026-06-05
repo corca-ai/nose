@@ -243,6 +243,26 @@ AXIS_PROPOSALS = {
         "axis": "numeric_minmax_abs",
         "why": "A Rust custom `.max()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
     },
+    "axis_total_order_compare_guard_order_identity": {
+        "axis": "total_order_compare",
+        "why": "Two strict total-order guard returns commute when each branch exits and the fallback is equality.",
+    },
+    "axis_total_order_compare_ternary_identity": {
+        "axis": "total_order_compare",
+        "why": "A strict three-way comparator written as guard returns should prove the same sign result as the nested ternary form.",
+    },
+    "axis_total_order_compare_descending_boundary": {
+        "axis": "total_order_compare",
+        "why": "Ascending and descending comparators reverse negative/positive results and must not merge.",
+    },
+    "axis_total_order_compare_equal_boundary": {
+        "axis": "total_order_compare",
+        "why": "A comparator that treats equality as less changes the equality result and must not merge.",
+    },
+    "axis_total_order_compare_wrong_value_boundary": {
+        "axis": "total_order_compare",
+        "why": "A three-way comparator proof fixes the returned sign values -1, 0, and 1.",
+    },
     "axis_own_property_hasown_identity": {
         "axis": "own_property_guard",
         "why": "Object.hasOwn and Object.prototype.hasOwnProperty.call prove the same own-property presence check.",
@@ -2257,6 +2277,78 @@ pub fn {snake_name}(left: Wrap, right: i64, other: i64) -> i64 {{
         return Variant("axis", src, snake_name)
 
     raise ValueError(f"unsupported surface for scalar min/max axis: {surface.key}")
+
+
+def total_order_compare_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return proposal_id.startswith("axis_total_order_compare_") and surface.key == "c"
+
+
+def axis_total_order_compare_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "c":
+        raise ValueError(f"unsupported surface for total-order comparator axis: {surface.key}")
+    snake_name = "build_case" if right else "axis_case"
+    mode = "less_first"
+    if right and proposal_id == "axis_total_order_compare_guard_order_identity" and not negative:
+        mode = "greater_first"
+    elif right and proposal_id == "axis_total_order_compare_ternary_identity" and not negative:
+        mode = "ternary"
+    elif right and proposal_id == "axis_total_order_compare_descending_boundary":
+        mode = "descending"
+    elif right and proposal_id == "axis_total_order_compare_equal_boundary":
+        mode = "equal_as_less"
+    elif right and (
+        negative
+        or proposal_id == "axis_total_order_compare_wrong_value_boundary"
+    ):
+        mode = "wrong_value"
+
+    if mode == "less_first":
+        body = """    if (left < right)
+        return -1;
+    if (left > right)
+        return 1;
+    return 0;"""
+    elif mode == "greater_first":
+        body = """    if (left > right)
+        return 1;
+    if (left < right)
+        return -1;
+    return 0;"""
+    elif mode == "ternary":
+        body = "    return left > right ? 1 : left < right ? -1 : 0;"
+    elif mode == "descending":
+        body = """    if (left < right)
+        return 1;
+    if (left > right)
+        return -1;
+    return 0;"""
+    elif mode == "equal_as_less":
+        body = """    if (left <= right)
+        return -1;
+    if (left > right)
+        return 1;
+    return 0;"""
+    elif mode == "wrong_value":
+        body = """    if (left < right)
+        return -1;
+    if (left > right)
+        return 2;
+    return 0;"""
+    else:
+        raise ValueError(f"unknown total-order comparator mode: {mode}")
+
+    src = f"""int {snake_name}(const void *a, const void *b) {{
+    const int left = *(const int *)a;
+    const int right = *(const int *)b;
+{body}
+}}
+"""
+    return Variant("axis", src, snake_name)
 
 
 def record_guard_axis_supported(surface: Surface, proposal_id: str) -> bool:
@@ -7090,6 +7182,11 @@ def axis_variants(
             axis_scalar_abs_variant(surface, proposal_id, False, False),
             axis_scalar_abs_variant(surface, proposal_id, negative, True),
         )
+    if axis == "total_order_compare":
+        return (
+            axis_total_order_compare_variant(surface, proposal_id, False, False),
+            axis_total_order_compare_variant(surface, proposal_id, negative, True),
+        )
     if axis == "immutable_binding":
         return (
             axis_immutable_binding_variant(surface, False, False),
@@ -7137,6 +7234,7 @@ def axis_data_shape(axis: str) -> str:
         "python_docstring_noop": "python-callable",
         "string_prefix_suffix": "string",
         "table_access": "map<string,int>",
+        "total_order_compare": "ordered-scalar-pair",
     }.get(axis, "scalar<int>")
 
 
@@ -7366,6 +7464,18 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"i": 1, "j": 1, "values": [1, 2, 3], "value": 2},
                     {"i": 1, "j": 2, "values": [1], "value": -3},
                 ],
+                "outputs": [],
+            }
+        if axis == "total_order_compare":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"left": -1, "right": 2},
+                    {"left": 4, "right": 4},
+                    {"left": 7, "right": 3},
+                ],
+                "claim": "Ascending three-way total-order comparator returns -1, 0, or 1 from the same ordered pair.",
                 "outputs": [],
             }
         return {
@@ -7770,6 +7880,30 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "kind": f"counterexample-{axis}",
             "counterexample": counterexample,
         }
+    elif axis == "total_order_compare":
+        if proposal_id == "axis_total_order_compare_equal_boundary":
+            counterexample = {
+                "input": {"left": 4, "right": 4},
+                "left": 0,
+                "right": -1,
+            }
+        elif proposal_id == "axis_total_order_compare_wrong_value_boundary":
+            counterexample = {
+                "input": {"left": 7, "right": 3},
+                "left": 1,
+                "right": 2,
+            }
+        else:
+            counterexample = {
+                "input": {"left": -1, "right": 2},
+                "left": -1,
+                "right": 1,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
     else:
         left_output = 8
         right_output = 9
@@ -7872,6 +8006,10 @@ def generate_axis_items(
             if proposal_id.startswith("axis_scalar_") and not scalar_abs_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_scalar_rust_"):
+                continue
+            if proposal_id.startswith(
+                "axis_total_order_compare_"
+            ) and not total_order_compare_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_own_property_") and not own_property_axis_supported(
                 surface, proposal_id
@@ -8179,6 +8317,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "numeric-abs-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_total_order_compare_descending_boundary",
+                "axis_total_order_compare_equal_boundary",
+                "axis_total_order_compare_wrong_value_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "total-order-compare-boundary",
                     )
                 )
                 continue

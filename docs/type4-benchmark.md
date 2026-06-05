@@ -74,7 +74,7 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, total-order comparator, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
@@ -158,6 +158,7 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | field write | target field changed, overwrite order changed |
 | indexed loop | skipped first or last element, wrong collection indexed |
 | C pointer-length contract | skipped first element, stride greater than one, non-contract bound |
+| total-order comparator | descending sign, equality-boundary sign, wrong returned sign value, overloadable receiver comparison |
 | own-property guard | prototype-including `in`, shadowable method call, shadowed `Object`, different static key |
 | record-shape guard | missing null exclusion, missing array exclusion, unrelated property predicate |
 
@@ -201,6 +202,12 @@ of `xs`, and aligned-array `int f(int *a, int *b, int n)` treats `n` as the shar
 C predicate reductions use `1/0` as boolean `true/false`. The detector consumes that
 contract only for strict full traversals — skipped-first and stride-two C siblings are
 generated as hard negatives.
+
+The current C total-order comparator contract is similarly narrow: generated comparator
+callbacks dereference two scalar coordinates and return `-1`, `1`, or `0` for ascending
+less, greater, and equal cases. Guard-return order and nested ternary sign forms may
+converge only when the comparison operators are primitive ordered comparisons; overloadable
+or effectful receiver comparisons remain hard negatives.
 
 ## Promotion rules
 
