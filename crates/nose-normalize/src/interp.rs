@@ -11,7 +11,9 @@
 //! the checker excludes it rather than guess. Determinism + a step budget guarantee
 //! termination; the exact arithmetic need not match any real language, only be
 //! self-consistent — a genuinely-equivalent pair agrees under *any* consistent
-//! semantics, so a fingerprint merge the interpreter contradicts is a real bug.
+//! semantics, so a fingerprint merge the interpreter contradicts is a real bug. A
+//! bare `throw`/`raise` is modeled as observable `Err` behavior; exception handlers
+//! remain unsupported.
 
 use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -184,6 +186,12 @@ impl<'a> Interp<'a> {
                     None => Value::Null,
                 };
                 Ok(Flow::Ret(v))
+            }
+            NodeKind::Throw => {
+                if let Some(&e) = self.il.children(node).first() {
+                    self.eval(e, env)?;
+                }
+                Ok(Flow::Err)
             }
             NodeKind::If => {
                 let kids = self.il.children(node).to_vec();
@@ -1051,6 +1059,32 @@ mod tests {
     #[test]
     fn range_zero_step_is_err_behavior() {
         assert_eq!(run_range(&[1, 5, 0]), Value::Err);
+    }
+
+    fn run_throw_then_return() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let thrown = b.add(NodeKind::Lit, Payload::LitStr(0xBAD), sp, &[]);
+        let throw = b.add(NodeKind::Throw, Payload::None, sp, &[thrown]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[one]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[throw, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn throw_is_err_behavior_and_stops_execution() {
+        assert_eq!(run_throw_then_return(), Value::Err);
     }
 
     /// Build `fn() { return base ** exp }` over integer literals and run it.
