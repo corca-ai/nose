@@ -67,7 +67,7 @@ Each entry must have:
 |---|---:|---|
 | `reason` | yes | Short rationale category, such as `generated-code`, `framework-required`, or `accepted-risk`. |
 | `family_id` | one selector required | Stable family ID printed by nose. Best for one exact finding. |
-| `paths` | one selector required | Gitignore-style path globs matched against the paths shown in the report. Best for generated directories or templates. |
+| `paths` | one selector required | Gitignore-style path globs (positive patterns only; a leading `!` negation is rejected as an error) matched against the paths shown in the report. Best for generated directories or templates. |
 | `languages` | one selector required | Language names such as `python`, `typescript`, or `rust`. Best as a broad guard combined with another selector. |
 | `note` | no | Human review context. Explain where the real refactoring point is. |
 | `owner` | no | Team or person responsible for revisiting the decision. |

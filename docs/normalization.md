@@ -67,8 +67,10 @@ Guiding constraints for every pass:
   numbers, tolerating structural difference — lives in the **candidate axis** and its
   scoring, never in the behavioral base. Never nondeterministic, either way.
 - **Termination**: bounded rewriting (no infinite saturation).
-- **Composition order**: desugar → alpha → **dataflow** → **algebra** → cfg →
-  (later) value-graph. Each documented below.
+- **Composition order**: desugar → alpha → **dataflow** → [dce] → **cfg_norm::structure**
+  → **algebra** → **cfg_norm::run** → (later) value-graph (matching the status block above;
+  CFG normalization straddles algebra — `structure()` runs before it, `run()` after). Each
+  documented below.
 
 ---
 

@@ -7,24 +7,36 @@ ranking duplicated code by how much it's worth refactoring. The repository
 [`README`](../README.md) is the one-screen overview; this wiki is the full guide.
 
 Every page lives in `docs/` and links to its neighbours with relative links, so the
-docs browse cleanly on GitHub and in any Markdown viewer.
+docs browse cleanly on GitHub and in any Markdown viewer. The pages are grouped by
+what you're here to do.
 
-## For users
+## Start here
 
-Start here if you want to *run* nose on a codebase.
+- [getting-started](getting-started.md) — install, run your first scan, and learn
+  to read the report in a few minutes. **The friendly on-ramp; read this first.**
 
-- [usage](usage.md) — install, the commands (`scan`, `il`, `stats`, `capabilities`), every flag, and how to read the report.
-- [capabilities](capabilities.md) — the `nose capabilities` JSON contract for installers, CI wrappers, and editor integrations.
-- [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling.
-- [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
+## Using nose
+
+You want to *run* nose on a codebase and act on what it finds.
+
+- [usage](usage.md) — the complete command and flag reference (`scan`, `stats`, `il`), the ranking keys, and the scan modes.
 - [configuration](configuration.md) — the `nose.toml` file: excludes, thresholds, baselines, caching, inline `// nose-ignore`.
-- [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.
 - [continuous-integration](continuous-integration.md) — the `--fail` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
+- [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.
+- [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
 - [languages](languages.md) — the supported languages and the embedded `<script>` extraction for Vue/Svelte/HTML.
 
-## For contributors
+## Integrating nose
 
-Start here if you want to *change* nose or understand how it works.
+You're building tooling — an installer, CI wrapper, or editor integration — on top
+of nose's machine-readable output.
+
+- [capabilities](capabilities.md) — the `nose capabilities` JSON contract: what an installed binary supports, so a wrapper never has to scrape `--help`.
+- [scan-json](scan-json.md) — the versioned `nose scan --format json` contract for downstream tooling.
+
+## Contributing
+
+You want to *change* nose or understand how it works inside.
 
 - [architecture](architecture.md) — the crates and the lower → normalize → detect → rank pipeline.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
