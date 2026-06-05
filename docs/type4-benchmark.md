@@ -67,7 +67,7 @@ Useful axes:
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
 | evidence | `E1` same-spec/property evidence, `E2` counterexample evidence, future interpreter/symbolic/proof evidence |
@@ -80,7 +80,8 @@ emit the thinnest facts it can prove, while the common strict engine consumes th
 single-assignment immutable bindings, safe function-binding identity, receiver/method
 identity, static import coordinates, nullish-default coordinates, static field/property
 projection coordinates, own-property guard facts, record-shape guard facts, literal table
-keys, and explicit unsafe boundaries.
+keys, equality-chain membership facts, simple flag+break reduction facts, ordered
+string-builder facts, and explicit unsafe boundaries.
 `capabilities.v1.json` records which surfaces currently emit which facts so unsupported
 cells stay visible.
 

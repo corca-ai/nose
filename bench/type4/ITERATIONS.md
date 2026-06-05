@@ -4126,3 +4126,32 @@ and simultaneously removed a previous false merge, so batching did not weaken th
 proof bar. The important constraint is that a batch should still share one invariant:
 here, all three items are about the same stable module binding proof and its mutation
 boundary.
+
+## Extreme exact Type-4 idiom slice: loops 407-411
+
+This pass implements the four highest-priority Type-4 improvements selected from the
+current frontier proposal, but keeps each one in a strict first slice rather than opening
+the full fuzzy space:
+
+- JS/TS record-shape guards now accept `Array.isArray(value) === false` and its symmetric
+  false comparison as the same not-array proof as `!Array.isArray(value)`, while preserving
+  the existing shadowed-`Array` boundary.
+- Simple boolean flag loops with `assign; break` branches now converge with `any`/`all`
+  reductions when the predicate is over the loop element.
+- Equality OR-chains over the same candidate and static literals now converge with literal
+  collection membership, with collection item order ignored.
+- Python ordered string builders of the form `out = ""; for x in xs: out += f(x)` now
+  converge with literal-separator `sep.join(xs)` when the contribution is genuinely
+  per-element; prepend and non-element builders remain outside the canon.
+
+| loop | pressure | change | measured result |
+|---|---|---|---:|
+| 407 | priority batch selection | implement record not-array comparisons, flag+break reductions, equality-chain membership, and ordered string builder joins as four strict slices | focused hand corpus covers 4 positives and 4 hard negatives |
+| 408 | detector strengthening | add common value-graph canons plus the JS/TS record guard and Python literal-separator `join` idiom | targeted CLI regression passed |
+| 409 | cache boundary | bump the scan cache schema because semantic feature extraction changed | stale v4 cache entries ignored |
+| 410 | focused regression gate | run the new `scan_mode_semantic_proves_extreme_type4_idioms` test | CLI test passed |
+| 411 | local semantic probe | scan a hand-written four-file corpus in semantic JSON mode | 4/4 expected families, 0/4 hard-negative inclusions |
+
+Assessment: this is an exactness-first widening. The useful new merges are deliberately
+small and high-confidence, and every slice has an adjacent hard negative in the CLI gate:
+missing not-array proof, wrong early-exit predicate, wrong literal set, and ordered prepend.

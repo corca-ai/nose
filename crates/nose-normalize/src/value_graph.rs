@@ -1319,6 +1319,7 @@ impl<'a> Builder<'a> {
                 .proven_collection_value(receiver_value)
                 .or_else(|| self.proven_local_collection_binding_value(receiver, env))
             {
+                let collection = self.canonical_membership_collection_value(collection);
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             None
@@ -1335,6 +1336,7 @@ impl<'a> Builder<'a> {
             } else {
                 self.proven_collection_expr(kids[1], env)?
             };
+            let collection = self.canonical_membership_collection_value(collection);
             Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]))
         } else {
             None
@@ -1640,6 +1642,11 @@ impl<'a> Builder<'a> {
             let is_and = o == Op::And as u32;
             if (is_or || is_and) && args.len() == 2 {
                 if self.vty(args[0]) == Ty::Bool && self.vty(args[1]) == Ty::Bool {
+                    if is_or {
+                        if let Some(v) = self.literal_equality_disjunction(args[0], args[1]) {
+                            return v;
+                        }
+                    }
                     // LATTICE CANON on a total order — close the strict comparison from a
                     // non-strict one plus an (in)equality, so a guard written as the
                     // conjunction/disjunction converges with the strict comparison:
@@ -3193,6 +3200,7 @@ impl<'a> Builder<'a> {
         let outer_recurrence = self.loop_recurrence.replace(LoopRecurrenceScope {
             loop_values: loop_vals.clone(),
         });
+        let pre_body_env = body_env.clone();
         self.process_stmt(body, &mut body_env);
         self.loop_recurrence = outer_recurrence;
         if !index_vals.is_empty() {
@@ -3205,6 +3213,18 @@ impl<'a> Builder<'a> {
                 if let Some(&v) = body_env.get(&cid) {
                     let nv = self.rewrite_indices(v, &index_vals, &mut memo);
                     body_env.insert(cid, nv);
+                }
+            }
+        }
+        let mut flag_break_reduction = None;
+        for &cid in &carried {
+            if let Some(&init) = env.get(&cid) {
+                if let Some(v) =
+                    self.flag_break_reduction(body, cid, init, &pre_body_env, &index_vals)
+                {
+                    flag_break_reduction = Some((cid, v));
+                    self.sinks.truncate(sink_start);
+                    break;
                 }
             }
         }
@@ -3245,6 +3265,20 @@ impl<'a> Builder<'a> {
         // than a bare opaque `Loop` value reaching the sinks).
         let mut reduction_cache = ReductionCache::default();
         for &cid in &carried {
+            if let Some((flag_cid, v)) = flag_break_reduction {
+                if flag_cid == cid {
+                    env.insert(cid, v);
+                    continue;
+                }
+            }
+            if let Some(&init) = env.get(&cid) {
+                if let Some(v) =
+                    self.ordered_string_concat_loop(body, cid, init, &pre_body_env, &index_vals)
+                {
+                    env.insert(cid, v);
+                    continue;
+                }
+            }
             if iter_vars.contains(&cid) || induction.contains(&cid) {
                 continue; // iteration mechanics, not an accumulator
             }
@@ -3271,6 +3305,128 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+    }
+
+    fn flag_break_reduction(
+        &mut self,
+        body: NodeId,
+        cid: u32,
+        init: ValueId,
+        env: &FxHashMap<u32, ValueId>,
+        index_vals: &FxHashSet<ValueId>,
+    ) -> Option<ValueId> {
+        let init_bool = self.bool_const(init)?;
+        let (cond_node, assigned_bool) = self.flag_break_if(body, cid)?;
+        if init_bool == assigned_bool {
+            return None;
+        }
+        let mut cond = self.eval(cond_node, env);
+        if !index_vals.is_empty() {
+            let mut memo = FxHashMap::default();
+            cond = self.rewrite_indices(cond, index_vals, &mut memo);
+        }
+        if !self.refs_elem(cond) {
+            return None;
+        }
+        if !init_bool && assigned_bool {
+            Some(self.mk(ValOp::Reduce(REDUCE_ANY), vec![cond]))
+        } else {
+            let pred = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+            Some(self.mk(ValOp::Reduce(REDUCE_ALL), vec![pred]))
+        }
+    }
+
+    fn flag_break_if(&self, body: NodeId, cid: u32) -> Option<(NodeId, bool)> {
+        let stmts = self.direct_block_statements(body);
+        if stmts.len() != 1 || self.il.kind(stmts[0]) != NodeKind::If {
+            return None;
+        }
+        let if_kids = self.il.children(stmts[0]);
+        if if_kids.len() != 2 {
+            return None;
+        }
+        let branch = self.direct_block_statements(if_kids[1]);
+        if branch.len() != 2 || self.il.kind(branch[1]) != NodeKind::Break {
+            return None;
+        }
+        Some((if_kids[0], self.flag_assignment(branch[0], cid)?))
+    }
+
+    fn ordered_string_concat_loop(
+        &mut self,
+        body: NodeId,
+        cid: u32,
+        init: ValueId,
+        env: &FxHashMap<u32, ValueId>,
+        index_vals: &FxHashSet<ValueId>,
+    ) -> Option<ValueId> {
+        if !self.is_empty_string_value(init) {
+            return None;
+        }
+        let contrib_node = self.ordered_concat_contribution(body, cid)?;
+        let mut contrib = self.eval(contrib_node, env);
+        if !index_vals.is_empty() {
+            let mut memo = FxHashMap::default();
+            contrib = self.rewrite_indices(contrib, index_vals, &mut memo);
+        }
+        if !self.refs_elem(contrib) {
+            return None;
+        }
+        let sep = self.empty_string_value();
+        Some(self.mk(ValOp::Reduce(ORDERED_STRING_JOIN), vec![sep, contrib]))
+    }
+
+    fn ordered_concat_contribution(&self, body: NodeId, cid: u32) -> Option<NodeId> {
+        let stmts = self.direct_block_statements(body);
+        if stmts.len() != 1 || self.il.kind(stmts[0]) != NodeKind::Assign {
+            return None;
+        }
+        let kids = self.il.children(stmts[0]);
+        if kids.len() != 2 || !self.is_var_cid(kids[0], cid) {
+            return None;
+        }
+        if self.il.kind(kids[1]) != NodeKind::BinOp
+            || op_code(self.il.node(kids[1]).payload) != Op::Add as u32
+        {
+            return None;
+        }
+        let add = self.il.children(kids[1]);
+        if add.len() != 2 || !self.is_var_cid(add[0], cid) {
+            return None;
+        }
+        if mentioned_cids(self.il, add[1]).contains(&cid) {
+            return None;
+        }
+        Some(add[1])
+    }
+
+    fn direct_block_statements(&self, node: NodeId) -> Vec<NodeId> {
+        if self.il.kind(node) == NodeKind::Block {
+            self.il.children(node).to_vec()
+        } else {
+            vec![node]
+        }
+    }
+
+    fn flag_assignment(&self, stmt: NodeId, cid: u32) -> Option<bool> {
+        if self.il.kind(stmt) != NodeKind::Assign {
+            return None;
+        }
+        let kids = self.il.children(stmt);
+        if kids.len() != 2 || !self.is_var_cid(kids[0], cid) {
+            return None;
+        }
+        match self.il.node(kids[1]).payload {
+            Payload::LitBool(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    fn is_var_cid(&self, node: NodeId, cid: u32) -> bool {
+        matches!(
+            (self.il.kind(node), self.il.node(node).payload),
+            (NodeKind::Var, Payload::Cid(c)) if c == cid
+        )
     }
 
     /// The iterable of a `while i < len(xs)`-style loop: from a comparison whose
@@ -3709,6 +3865,111 @@ impl<'a> Builder<'a> {
         }
     }
 
+    fn literal_equality_disjunction(&mut self, left: ValueId, right: ValueId) -> Option<ValueId> {
+        let mut element = None;
+        let mut items = Vec::new();
+        self.collect_literal_membership_terms(left, &mut element, &mut items)?;
+        self.collect_literal_membership_terms(right, &mut element, &mut items)?;
+        if items.len() < 2 {
+            return None;
+        }
+        items.sort_by_key(|&v| (self.vhash[v as usize], v));
+        items.dedup();
+        let collection = self.mk(ValOp::Seq(1), items);
+        Some(self.mk(ValOp::Bin(Op::In as u32), vec![element?, collection]))
+    }
+
+    fn collect_literal_membership_terms(
+        &self,
+        value: ValueId,
+        element: &mut Option<ValueId>,
+        items: &mut Vec<ValueId>,
+    ) -> Option<()> {
+        let node = &self.nodes[value as usize];
+        match node.op {
+            ValOp::Bin(op) if op == Op::Or as u32 && node.args.len() == 2 => {
+                self.collect_literal_membership_terms(node.args[0], element, items)?;
+                self.collect_literal_membership_terms(node.args[1], element, items)
+            }
+            ValOp::Bin(op) if op == Op::Eq as u32 && node.args.len() == 2 => {
+                let a = node.args[0];
+                let b = node.args[1];
+                let (candidate, literal) = if self.static_membership_literal_value(a) {
+                    (b, a)
+                } else if self.static_membership_literal_value(b) {
+                    (a, b)
+                } else {
+                    return None;
+                };
+                self.record_literal_membership_term(candidate, literal, element, items)
+            }
+            ValOp::Bin(op) if op == Op::In as u32 && node.args.len() == 2 => {
+                let candidate = node.args[0];
+                let collection = &self.nodes[node.args[1] as usize];
+                if !matches!(collection.op, ValOp::Seq(1))
+                    || !collection
+                        .args
+                        .iter()
+                        .all(|&item| self.static_membership_literal_value(item))
+                {
+                    return None;
+                }
+                match *element {
+                    Some(current) if current != candidate => None,
+                    Some(_) => {
+                        items.extend(collection.args.iter().copied());
+                        Some(())
+                    }
+                    None => {
+                        *element = Some(candidate);
+                        items.extend(collection.args.iter().copied());
+                        Some(())
+                    }
+                }
+            }
+            _ => None,
+        }
+    }
+
+    fn record_literal_membership_term(
+        &self,
+        candidate: ValueId,
+        literal: ValueId,
+        element: &mut Option<ValueId>,
+        items: &mut Vec<ValueId>,
+    ) -> Option<()> {
+        match *element {
+            Some(current) if current != candidate => None,
+            Some(_) => {
+                items.push(literal);
+                Some(())
+            }
+            None => {
+                *element = Some(candidate);
+                items.push(literal);
+                Some(())
+            }
+        }
+    }
+
+    fn static_membership_literal_value(&self, value: ValueId) -> bool {
+        matches!(
+            self.nodes[value as usize].op,
+            ValOp::Const(key) if key != 0x3000_0000
+        )
+    }
+
+    fn empty_string_value(&mut self) -> ValueId {
+        self.mk(ValOp::Const(stable_string_const_key("")), vec![])
+    }
+
+    fn is_empty_string_value(&self, value: ValueId) -> bool {
+        matches!(
+            self.nodes[value as usize].op,
+            ValOp::Const(key) if key == stable_string_const_key("")
+        )
+    }
+
     /// A canonical "element of `coll`" value. The collection is carried as an argument
     /// (not just folded into the key) so it is reachable from the fingerprint wherever
     /// the element is used — identically for a loop, a `reduce`, and a `sum(map)` over
@@ -3945,6 +4206,15 @@ impl<'a> Builder<'a> {
                     }
                 };
                 Some(self.mk(ValOp::Reduce(code), vec![contrib]))
+            }
+            Builtin::Join => {
+                if kids.len() != 2 {
+                    return None;
+                }
+                let sep = self.eval(kids[0], env);
+                let coll = self.eval(kids[1], env);
+                let elem = self.elem(coll);
+                Some(self.mk(ValOp::Reduce(ORDERED_STRING_JOIN), vec![sep, elem]))
             }
             _ => None,
         }
@@ -4292,42 +4562,46 @@ impl<'a> Builder<'a> {
         Some((key, map, !negated))
     }
 
-    fn static_literal_membership_predicate(&self, pred: ValueId) -> Option<(ValueId, ValueId)> {
+    fn static_literal_membership_predicate(&mut self, pred: ValueId) -> Option<(ValueId, ValueId)> {
         let node = &self.nodes[pred as usize];
         if !matches!(node.op, ValOp::Bin(o) if o == Op::Eq as u32) || node.args.len() != 2 {
             return None;
         }
-        if let Some(collection) = self.static_literal_elem_collection(node.args[0]) {
-            return Some((node.args[1], collection));
+        let left = node.args[0];
+        let right = node.args[1];
+        if let Some(collection) = self.static_literal_elem_collection(left) {
+            return Some((right, collection));
         }
-        if let Some(collection) = self.static_literal_elem_collection(node.args[1]) {
-            return Some((node.args[0], collection));
+        if let Some(collection) = self.static_literal_elem_collection(right) {
+            return Some((left, collection));
         }
         None
     }
 
-    fn static_literal_absence_predicate(&self, pred: ValueId) -> Option<(ValueId, ValueId)> {
+    fn static_literal_absence_predicate(&mut self, pred: ValueId) -> Option<(ValueId, ValueId)> {
         let node = &self.nodes[pred as usize];
         if !matches!(node.op, ValOp::Bin(o) if o == Op::Ne as u32) || node.args.len() != 2 {
             return None;
         }
-        if let Some(collection) = self.static_literal_elem_collection(node.args[0]) {
-            return Some((node.args[1], collection));
+        let left = node.args[0];
+        let right = node.args[1];
+        if let Some(collection) = self.static_literal_elem_collection(left) {
+            return Some((right, collection));
         }
-        if let Some(collection) = self.static_literal_elem_collection(node.args[1]) {
-            return Some((node.args[0], collection));
+        if let Some(collection) = self.static_literal_elem_collection(right) {
+            return Some((left, collection));
         }
         None
     }
 
-    fn static_literal_elem_collection(&self, value: ValueId) -> Option<ValueId> {
+    fn static_literal_elem_collection(&mut self, value: ValueId) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Elem(_)) || node.args.len() != 1 {
             return None;
         }
         let collection = node.args[0];
         self.is_static_membership_collection(collection)
-            .then_some(collection)
+            .then(|| self.canonical_membership_collection_value(collection))
     }
 
     fn is_static_membership_collection(&self, value: ValueId) -> bool {
@@ -4395,13 +4669,27 @@ impl<'a> Builder<'a> {
         }
         if self.il.kind(collection) != NodeKind::Seq {
             let value = self.eval(collection, env);
-            return self
+            let collection = self
                 .proven_collection_value(value)
                 .or_else(|| self.proven_local_collection_binding_value(collection, env))
                 .unwrap_or(value);
+            return self.canonical_membership_collection_value(collection);
         }
         let kids = self.il.children(collection).to_vec();
-        let items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+        let mut items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+        items.sort_by_key(|&v| (self.vhash[v as usize], v));
+        items.dedup();
+        self.mk(ValOp::Seq(1), items)
+    }
+
+    fn canonical_membership_collection_value(&mut self, value: ValueId) -> ValueId {
+        let node = &self.nodes[value as usize];
+        if !matches!(node.op, ValOp::Seq(1)) {
+            return value;
+        }
+        let mut items = node.args.clone();
+        items.sort_by_key(|&v| (self.vhash[v as usize], v));
+        items.dedup();
         self.mk(ValOp::Seq(1), items)
     }
 
@@ -5552,6 +5840,7 @@ const REDUCE_MIN: u32 = 0xFF01;
 /// the offset to pick the OR/AND identity false/true).
 const REDUCE_ANY: u32 = 0xFF02;
 const REDUCE_ALL: u32 = 0xFF03;
+const ORDERED_STRING_JOIN: u32 = 0xFF04;
 
 /// `Un` op code for absolute value — `abs(x)` and the `x if x>=0 else -x` idiom both
 /// canonicalize to `Un(ABS_CODE, [x])`. Clear of the small `Op` discriminants.
