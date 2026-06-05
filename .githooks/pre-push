@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Push-time gate: run the fast local CI preflight before publishing a branch.
+#
+# Bypass deliberately with:
+#   NOSE_SKIP_PRE_PUSH=1 git push
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+if [[ "${NOSE_SKIP_PRE_PUSH:-}" == "1" ]]; then
+    echo "NOSE_SKIP_PRE_PUSH=1: skipping pre-push local CI gate"
+    exit 0
+fi
+
+./scripts/check-ci-local.sh --fast

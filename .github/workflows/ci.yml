@@ -1,0 +1,96 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: build · test · lint · dup-gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: format
+        run: cargo fmt --all --check
+      - name: clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: doc
+        run: cargo doc --no-deps --workspace
+        env:
+          RUSTDOCFLAGS: -D warnings
+      - name: build
+        run: cargo build --release
+      - name: test
+        run: cargo test --release
+      - name: duplication gate (nose on itself)
+        run: ./scripts/check-duplication.sh
+
+  msrv:
+    name: minimum supported rust version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Read the MSRV from Cargo.toml so this job never drifts from the declared value.
+      - id: msrv
+        run: echo "v=$(grep -m1 '^rust-version' Cargo.toml | sed -E 's/.*\"(.*)\".*/\1/')" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.v }}
+      - uses: Swatinem/rust-cache@v2
+      # `+toolchain` overrides rust-toolchain.toml so we really test the MSRV.
+      - run: cargo "+${{ steps.msrv.outputs.v }}" check --workspace --all-targets
+
+  supply-chain:
+    name: unused-deps · advisories · licenses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Prebuilt binaries — no compile cost.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete,cargo-deny
+      - name: cargo-machete (unused dependencies)
+        run: cargo machete
+      - name: cargo-deny (advisories / licenses / bans / sources)
+        run: cargo deny check
+
+  docs:
+    name: docs wiki connectivity (awiki)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      # awiki lints the docs/ wiki: fails on orphan pages or disconnected islands.
+      - name: install awiki
+        run: go install github.com/corca-ai/awiki/cmd/awiki@v0.1.4
+      - name: lint docs graph
+        run: awiki lint --root docs
+
+  formal:
+    name: lean proofs (value-graph soundness)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The formal/ proofs are standalone Lean 4 files (no Mathlib); each must type-check
+      # with no `sorry`. They machine-check the value-graph canonicalization rules
+      # (AC sort, distribution, map/filter fusion, …). See formal/README.md.
+      - name: install elan (lean toolchain)
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain leanprover/lean4:v4.30.0
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: check proofs
+        run: |
+          set -e
+          for f in formal/*.lean; do echo "checking $f"; lean "$f"; done

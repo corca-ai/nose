@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Fast pre-commit gate: formatting + docs connectivity (awiki). The push-time
+# hook runs ./scripts/check-ci-local.sh --fast, and ./scripts/check.sh runs the
+# full local CI mirror.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+echo "== rustfmt =="
+cargo fmt --all --check
+
+echo "== docs (awiki connectivity) =="
+./scripts/check-docs.sh

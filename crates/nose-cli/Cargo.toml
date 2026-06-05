@@ -1,0 +1,37 @@
+[package]
+name = "nose-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+description = "Detect semantic (Type-4) code clones and refactoring candidates across many languages"
+homepage.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "nose"
+path = "src/main.rs"
+
+[dependencies]
+nose-il = { workspace = true }
+nose-frontend = { workspace = true }
+nose-normalize = { workspace = true }
+nose-detect = { workspace = true }
+nose-eval = { workspace = true }
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+rayon = { workspace = true }
+ignore = { workspace = true }
+
+[dev-dependencies]
+nose-il = { workspace = true }
+nose-frontend = { workspace = true }
+nose-normalize = { workspace = true }
+nose-detect = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
