@@ -3,6 +3,7 @@
 mod baseline;
 mod cache;
 mod config;
+mod fnv;
 mod ignores;
 mod review;
 

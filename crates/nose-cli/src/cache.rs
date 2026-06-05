@@ -120,14 +120,10 @@ pub(crate) fn build_units_cached(
 /// astronomically unlikely at corpus scale; a clash would at worst reuse one file's
 /// units for another (never a crash), so 64 bits is ample for a cache.
 fn content_hash(lang: Lang, src: &[u8]) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    let mut mix = |b: u8| {
-        h ^= b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01b3);
-    };
-    mix(lang as u8);
+    let mut h = crate::fnv::OFFSET_BASIS;
+    h = crate::fnv::mix(h, lang as u8 as u64);
     for &b in src {
-        mix(b);
+        h = crate::fnv::mix(h, b as u64);
     }
     h
 }
@@ -136,7 +132,7 @@ fn content_hash(lang: Lang, src: &[u8]) -> u64 {
 /// the cache bucket. (`threshold`/`bands` only affect scoring/candidate-gen, not the
 /// units themselves, so they are deliberately excluded.)
 fn options_signature(opts: &DetectOptions) -> u64 {
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut h = crate::fnv::OFFSET_BASIS;
     for v in [
         opts.min_lines as u64,
         opts.min_tokens as u64,
@@ -146,7 +142,7 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         opts.minhash_k as u64,
         opts.shape_features as u64,
     ] {
-        h = (h ^ v).wrapping_mul(0x0000_0100_0000_01b3);
+        h = crate::fnv::mix(h, v);
     }
     h
 }

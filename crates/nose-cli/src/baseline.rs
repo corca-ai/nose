@@ -14,12 +14,12 @@ use std::path::Path;
 pub(crate) fn family_key(f: &RefactorFamily) -> u64 {
     let mut members = member_keys(f);
     members.sort_unstable();
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    let mut h = crate::fnv::OFFSET_BASIS;
     let mut mix = |bytes: &[u8]| {
         for &b in bytes {
-            h = (h ^ b as u64).wrapping_mul(0x0000_0100_0000_01b3);
+            h = crate::fnv::mix(h, b as u64);
         }
-        h = (h ^ 0xff).wrapping_mul(0x0000_0100_0000_01b3); // field separator
+        h = crate::fnv::mix(h, 0xff); // field separator
     };
     for MemberKey { file, name } in members {
         mix(file.as_bytes());
