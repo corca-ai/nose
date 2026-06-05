@@ -88,38 +88,46 @@ def main():
     fams = defaultdict(list)
     for e in events:
         fams[(e["repo"], e["fam_key"])].append(e)
-    table = []  # (repo, label, feats-median-dict)
+    table = []  # (repo, ever_g1, ever_g2, feats-median-dict)
     for (repo, _k), evs in fams.items():
         med = {}
         for key in evs[0]["feats"]:
             vals = [e["feats"][key] for e in evs]
             med[key] = statistics.median(vals) if isinstance(vals[0], (int, float)) else \
                 statistics.mode([e["feats"][key] for e in evs])
-        table.append((repo, 1 if any(e["label"] == "G1" for e in evs) else 0, med))
+        ever_g1 = 1 if any(e["label"] == "G1" for e in evs) else 0
+        ever_g2 = 1 if any(e.get("g2") for e in evs) else 0
+        table.append((repo, ever_g1, ever_g2, med))
 
-    repos = sorted(set(r for r, _, _ in table))
-    print(f"per-family rows: {len(table)} | positives: {sum(l for _, l, _ in table)} "
-          f"({sum(l for _,l,_ in table)/len(table):.1%}) | repos: {len(repos)}")
+    repos = sorted(set(r for r, *_ in table))
+    n_g1 = sum(g1 for _, g1, _, _ in table); n_g2 = sum(g2 for _, _, g2, _ in table)
+    print(f"per-family rows: {len(table)} | ever-G1: {n_g1} ({n_g1/len(table):.1%}) | "
+          f"ever-G2 (gold): {n_g2} ({n_g2/len(table):.1%}) | repos: {len(repos)}")
 
-    # ---- candidate formulas, leave-one-repo-out ----
-    print("\n### candidate formulas — leave-one-repo-out test AUC")
-    print(f"  {'formula':24s} {'mean':>6s}  per-repo")
-    for name, fn in CANDIDATES.items():
-        aucs = []
-        for ho in repos:
-            te = [(fn(m), l) for r, l, m in table if r == ho]
-            pos = [s for s, l in te if l == 1]; neg = [s for s, l in te if l == 0]
-            a = auc(pos, neg)
-            if not math.isnan(a): aucs.append(a)
-        m = statistics.mean(aucs) if aucs else float("nan")
-        print(f"  {name:24s} {m:6.3f}")
+    # ---- candidate formulas, leave-one-repo-out, for both labels ----
+    def eval_candidates(label_idx, title):
+        print(f"\n### candidate formulas — leave-one-repo-out test AUC vs {title}")
+        print(f"  {'formula':24s} {'mean':>6s}")
+        for name, fn in CANDIDATES.items():
+            aucs = []
+            for ho in repos:
+                te = [(fn(row[3]), row[label_idx]) for row in table if row[0] == ho]
+                pos = [s for s, l in te if l == 1]; neg = [s for s, l in te if l == 0]
+                a = auc(pos, neg)
+                if not math.isnan(a): aucs.append(a)
+            m = statistics.mean(aucs) if aucs else float("nan")
+            print(f"  {name:24s} {m:6.3f}")
+
+    eval_candidates(1, "ever-G1 (divergence)")
+    if n_g2 >= 20:
+        eval_candidates(2, "ever-G2 (gold: bug-fix not propagated)")
 
     # ---- logistic regression, leave-one-repo-out ----
     print("\n### logistic regression — leave-one-repo-out test AUC + learned weights")
     coefs = defaultdict(list); test_aucs = []
     for ho in repos:
-        tr = [(m, l) for r, l, m in table if r != ho]
-        te = [(m, l) for r, l, m in table if r == ho]
+        tr = [(row[3], row[1]) for row in table if row[0] != ho]
+        te = [(row[3], row[1]) for row in table if row[0] == ho]
         Xtr_raw = [featvec(m) for m, _ in tr]; ytr = [l for _, l in tr]
         Xtr, mu, sd = standardize(Xtr_raw)
         w, b = fit_logistic(Xtr, ytr)

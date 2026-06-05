@@ -121,6 +121,22 @@ def span_changed(ranges, file, start, end):
     return False
 
 
+BUGFIX = re.compile(r"\b(fix(e[sd])?|bug(fix)?|defect|hotfix|patch|resolve[sd]?)\b", re.I)
+
+
+def bugfix_files(repo, sha_a, sha_b):
+    """Files touched by any bug-fix-message commit in (sha_a, sha_b] (Mockus & Votta)."""
+    r = sh(["git", "-C", repo, "log", "--no-merges", "--name-only",
+            "--pretty=format:%x01%s", f"{sha_a}..{sha_b}"])
+    files, is_bf = set(), False
+    for line in r.stdout.splitlines():
+        if line.startswith("\x01"):
+            is_bf = bool(BUGFIX.search(line[1:]))
+        elif line.strip() and is_bf:
+            files.add(line.strip())
+    return files
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -148,7 +164,7 @@ def main():
     print(f"[mine] {repo_name}: {len(commits)} monthly snapshots "
           f"{commits[0][1][:7]}..{commits[-1][1][:7]}", file=sys.stderr)
 
-    counts = {"G1": 0, "G0c": 0, "G0s": 0}
+    counts = {"G1": 0, "G0c": 0, "G0s": 0, "G2": 0}
     with open(a.out, "w") as fout:
         prev = None
         for sha, iso in commits:
@@ -158,6 +174,7 @@ def main():
             if prev is not None:
                 psha, pfams = prev
                 ranges = changed_ranges(a.repo, psha, sha)  # one diff for the whole interval
+                bf = bugfix_files(a.repo, psha, sha)        # files touched by bug-fix commits
                 for fam in pfams:
                     flags = [span_changed(ranges, f, s, e)
                              for (f, n, s, e) in fam["members"]]
@@ -169,16 +186,22 @@ def main():
                         label = "G0c"
                     else:
                         label = "G1"
+                    # G2 = harmful divergence: a changed sibling was modified by a bug-fix
+                    # commit while lagging siblings were not (a fix that did not propagate).
+                    g2 = label == "G1" and any(
+                        flags[i] and fam["members"][i][0] in bf for i in range(nmem))
                     counts[label] += 1
+                    if g2:
+                        counts["G2"] += 1
                     fout.write(json.dumps({
                         "repo": repo_name, "fam_key": fam["key"], "nose_ver": nose_ver,
                         "from": psha, "to": sha, "date": iso[:10],
-                        "label": label, "k_changed": k, "n_members": nmem,
+                        "label": label, "g2": g2, "k_changed": k, "n_members": nmem,
                         "feats": fam["feats"],
                     }) + "\n")
             prev = (sha, fams)
-    print(f"[mine] DONE {repo_name}: G1={counts['G1']} G0c={counts['G0c']} "
-          f"G0s={counts['G0s']} -> {a.out}", file=sys.stderr)
+    print(f"[mine] DONE {repo_name}: G1={counts['G1']} (G2={counts['G2']}) "
+          f"G0c={counts['G0c']} G0s={counts['G0s']} -> {a.out}", file=sys.stderr)
 
 
 if __name__ == "__main__":

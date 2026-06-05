@@ -104,34 +104,36 @@ mismatch).
 ## Score design
 
 The formula below is **calibrated against mined ground truth**, not guessed: a
-leave-one-repo-out evaluation over a 7-language corpus (241k family-interval events,
-1,699 divergent edits — see [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and
-[experiments](experiments.md)). The data **overturned the pre-data design**: leading
-with semantic size (`mean_sem`) was *anti-predictive*; source-line span, dispersion,
-and invisibility are the real signals.
+leave-one-repo-out evaluation over a 12-repo / 8-language corpus (462k family-interval
+events, 4,639 divergent edits G1, 1,490 bug-linked G2 — see
+[eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and [experiments](experiments.md)).
+The data **overturned the pre-data design**: leading with semantic size (`mean_sem`)
+was *anti-predictive*; source-line span, dispersion, and invisibility are the real
+signals.
 
 **Phase 1 — static hazard, from fields nose already computes.** Add a `hazard()`
 method beside `extractability()` in `crates/nose-detect/src/report.rs` and a
-`SortKey::Hazard`. No new detection logic. Measured formula (cross-repo AUC 0.674 vs
-0.619 for the size-led design it replaces):
+`SortKey::Hazard`. No new detection logic. Measured formula (leave-one-repo-out AUC:
+G1 0.644, gold-G2 0.682; vs 0.609 / 0.644 for the size-led design it replaces):
 
 ```
-hazard = mean_lines                        // magnitude — source-line span (+0.48)
-       × spread(files, modules, languages) // dispersion — cross-directory (+0.29), existing helper
-       × invisibility                      // 0.3 + 0.7·(1 − tightness) (+0.20); dominant in cross-language
+hazard = mean_lines                        // magnitude — source-line span (+0.43)
+       × spread(files, modules, languages) // dispersion — cross-directory (+0.28), existing helper
+       × invisibility                      // 0.3 + 0.7·(1 − tightness) (+0.14); dominant in cross-language
        × scope_weight                      // prod 1.0 / mixed 0.5 / test 0.25
-       × 1/(1 + 0.5·params)                // params is anti-predictive — same penalty extractability uses
 ```
 
-Note what the data changed from the first draft: **`mean_sem` is dropped** (its
-learned weight was −0.18 — larger semantic fingerprints diverge *less*); `mean_lines`
-replaces it as the magnitude term; `params` is *dampened*, not peaked. `invisibility`
-survives and is the **top signal in the cross-language stratum** (AUC 0.67, P@10 0.80)
-— the Type-4 hypothesis held exactly where predicted.
+Note what the data changed from the first draft: **`mean_sem` is dropped** (its learned
+weight is −0.27 — larger semantic fingerprints diverge *less*); `mean_lines` replaces it
+as the magnitude term; **`params` is not used** (its weight is sign-unstable across
+corpus sizes — noise). `invisibility` survives and is the **top signal in the
+cross-language stratum** (AUC 0.67, P@10 0.80) — the Type-4 hypothesis held exactly
+where predicted.
 
 Ship it **opt-in** (non-default sort key). The weights are calibrated on divergence
-*propensity* (G1); they will be re-validated against bug-linked divergence (G2) and a
-larger corpus before becoming default.
+*propensity* (G1) and validated against bug-linked divergence (G2) over the 12-repo
+corpus; a human-audited gold subset and a tighter G2 (line-level attribution) remain
+before it could become default.
 
 **Phase 2 — git-history realized divergence (the high-precision payload).** Because
 nose matches Type-4, it can link siblings across revisions where textual tools

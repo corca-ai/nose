@@ -681,22 +681,30 @@ literature ([hazard-benchmark](hazard-benchmark.md)) gave the signals and direct
 not the weights, so we mined ground truth before implementing.
 
 - **BG-data.** Used nose as a cross-revision linker (`eval/hazard/`): monthly snapshots
-  of 7 repos across 7 languages (django, hugo, tokio, redis, thrift[X], vue-core,
-  express), labeling each family-interval by Kim's Inconsistent-Change predicate from
-  `git diff` over member spans. **241,520 events; 1,699 divergent edits (G1) over 6,986
-  families** — past the benchmark's G1≥1000 floor; below repos≥12 / G2 / audit.
+  of **12 repos across 8 languages** (django, pandas, kafka[Java], terraform, hugo, tokio,
+  ripgrep, redis, vue-core, express; thrift[X], grpc[X]), labeling each family-interval by
+  Kim's Inconsistent-Change from `git diff` over member spans; **G2** = a G1 whose changed
+  sibling was modified by a bug-fix commit that did not propagate. **462,569 events;
+  4,639 divergent edits (G1), 1,490 bug-linked (G2) over 15,199 families** — meets the
+  benchmark floors (repos≥12, G1≥1000, G2≥80, X-stratum G2≥40). Still missing: human audit;
+  G2 is a loose file-level/interval proxy (13–46% G2-among-G1 vs literature's 1–3% — an
+  upper bound).
 - **BG-finding — the pre-data formula was mis-specified.** Leave-one-repo-out logistic
-  weights: `mean_lines` **+0.48** (top), `modules` **+0.29**, `invisibility` **+0.20**,
-  `mean_sem` **−0.18 (anti)**, `params` −0.06. The first-draft design led with `mean_sem`
-  as the *primary* multiplier — but semantic-fingerprint size is **anti-predictive** for
+  weights (stable): `mean_lines` **+0.43** (top), `modules` **+0.28**, `mean_sem`
+  **−0.27 (anti)**, `invisibility` **+0.14**, `members` +0.13, `params` +0.04 (noise — sign
+  flipped from −0.06 at 7 repos). The first-draft design led with `mean_sem` as the
+  *primary* multiplier — but semantic-fingerprint size is **anti-predictive** for
   divergent-edit ranking (typical divergences are in smaller families; the mean is a
   large-tail artifact). Source-**line** span is the real magnitude signal.
 - **BG-formula.** `hazard = mean_lines × spread(files,modules,languages) × invisibility ×
-  scope_weight × 1/(1+0.5·params)` — cross-repo AUC **0.674 vs 0.619** for the size-led
-  draft (+0.055), vs 0.60 value-baseline, ~0.49 random. `invisibility` (1−tightness) is
-  the **top signal in the cross-language stratum** (AUC 0.67, P@10 0.80) — the Type-4
-  "invisible sibling" hypothesis held exactly where predicted, and only there.
+  scope_weight` — leave-one-repo-out AUC **G1 0.644, gold-G2 0.682** vs **0.609 / 0.644**
+  for the size-led draft, vs ~0.49 random. The param-dampening term tested earlier was
+  dropped (helps G1 marginally, hurts G2, rests on a sign-unstable weight).
+  `invisibility` (1−tightness) is the **top signal in the cross-language stratum** (AUC
+  0.67, P@10 0.80) — the Type-4 "invisible sibling" hypothesis held exactly where
+  predicted, and only there.
 - **BG-durability.** Labels are git-derived (version-independent); features/families are
   nose-derived (stamped `nose_ver`). Only *detection* changes force a re-mine+re-tune;
   ranking changes (this work) do not. Refresh = `run_corpus.sh` + `tune.py` (minutes,
-  cached clones). Full numbers in `eval/hazard/RESULTS.md`.
+  cached clones); per-release steps in [hazard-release-checklist](hazard-release-checklist.md).
+  Full numbers in `eval/hazard/RESULTS.md`.
