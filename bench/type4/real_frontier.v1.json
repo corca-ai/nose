@@ -53,7 +53,13 @@
         "same-file class EnumSet shadowing java.util.EnumSet"
       ],
       "batch": null,
-      "notes": "Do not implement as a completeness batch unless another real corpus counterpart is found."
+      "reverify": {
+        "date": "2026-06-06",
+        "finding": "Adding EnumSet to the proven java collection factory (alongside Set.of/List.of) is sound but inert: EnumSet.of arguments are always enum constants lowered as Field(CONST, Var(Type)). Enum-constant elements are not exact_safe, so even Set.of(ChronoUnit.DAYS, ChronoUnit.HOURS).contains(unit) yields 0 semantic families. Reproduced with minimal A/B files (target/release/nose scan --mode semantic).",
+        "why_unsound_to_force": "Making Type.CONST field accesses exact_safe is unsound without import/type resolution: a free name Type can bind to different declarations across files, so two same-named-but-distinct enums sharing a constant name would false-merge. The exact_safe gate deliberately rejects opaque free-name field chains.",
+        "conclusion": "Two independent blockers (enum-constant strict-safety is unsound; the real junit5 method pair diverges on a HALF_DAYS exclusion and is not a true clone). Stays unsupported."
+      },
+      "notes": "Do not implement as a completeness batch unless another real corpus counterpart is found. Re-verified 2026-06-06: even an order-insensitive EnumSet.of canon cannot reach a semantic family because enum-constant elements are intentionally non-exact-safe."
     },
     {
       "case_id": "membership-java-arrays-aslist-array-param-antlr4-skip-targets",
