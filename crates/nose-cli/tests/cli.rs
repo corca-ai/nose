@@ -303,7 +303,7 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
         "semantic",
         "--min-lines",
         "1",
-        "--min-tokens",
+        "--min-size",
         "1",
         "--format",
         "json",
