@@ -457,6 +457,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.int_lit(t.trim_end_matches(|c: char| c.is_alphabetic()), span)
         }
         "float_literal" => lo.float_lit(lo.text(node), span),
+        "negative_literal" => lower_negative_literal(lo, node),
         "string_literal" | "raw_string_literal" | "char_literal" => {
             let t = lo.text(node);
             lo.str_lit(t, span)
@@ -782,6 +783,26 @@ fn lower_closure(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or_else(|| lo.empty_block(span));
     kids.push(body);
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn lower_negative_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let Some(child) = node.named_child(0) else {
+        return lo.raw(node.kind(), span, &[]);
+    };
+    match child.kind() {
+        "integer_literal" => {
+            let text = lo.text(child);
+            let magnitude = text.trim_end_matches(|c: char| c.is_alphabetic());
+            let signed = format!("-{magnitude}");
+            lo.int_lit(&signed, span)
+        }
+        "float_literal" => {
+            let signed = format!("-{}", lo.text(child));
+            lo.float_lit(&signed, span)
+        }
+        _ => lo.raw(node.kind(), span, &[]),
+    }
 }
 
 fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1220,6 +1241,19 @@ mod tests {
             !raw.iter().any(|name| name == "reference_pattern"),
             "reference match pattern should lower without Raw reference_pattern: {raw:?}"
         );
+    }
+
+    #[test]
+    fn match_negative_literal_pattern_lowers_without_raw() {
+        let src = "fn f(x: i32) -> i32 { match x { -1 => 7, _ => 0 } }";
+        let (interner, il) = lower_rust(src);
+
+        let raw = raw_names(&il, &interner);
+        assert!(
+            !raw.iter().any(|name| name == "negative_literal"),
+            "negative literal match pattern should lower without Raw negative_literal: {raw:?}"
+        );
+        assert!(match_case_rhs_ints(src).contains(&-1));
     }
 
     #[test]
