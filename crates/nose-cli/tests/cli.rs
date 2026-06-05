@@ -4114,7 +4114,8 @@ fn hotspots_lists_modules() {
         dir.to_str().unwrap(),
         "--min-tokens",
         "12",
-        "--hotspots",
+        "--show",
+        "hotspots",
     ]);
     assert!(
         out.contains("duplication hotspots"),
@@ -4835,7 +4836,8 @@ fn diff_shows_the_differing_line() {
         "0.5",
         "--min-tokens",
         "10",
-        "--diff",
+        "--show",
+        "diff",
     ]);
     assert!(out.contains("diff  "), "should print a diff header: {out}");
     assert!(
@@ -4946,7 +4948,8 @@ fn broken_pipe_exits_cleanly() {
             "near",
             "--threshold",
             "0.5",
-            "--diff",
+            "--show",
+            "diff",
             "--top",
             "40",
         ])
@@ -5007,7 +5010,8 @@ fn proposal_shows_shared_skeleton_and_parameters() {
         "near",
         "--threshold",
         "0.5",
-        "--proposal",
+        "--show",
+        "proposal",
         "--min-tokens",
         "12",
     ]);

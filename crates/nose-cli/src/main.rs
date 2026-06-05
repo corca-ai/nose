@@ -138,10 +138,11 @@ enum Cmd {
             value_name = "MODE"
         )]
         mode: Vec<ScanMode>,
-        /// After the report, print duplication hotspots — directories/modules
-        /// ranked by total duplicated lines across families (architecture view).
-        #[arg(long)]
-        hotspots: bool,
+        /// Extra views (repeatable / comma-list): `diff` (each family as a unified
+        /// diff of its two copies), `proposal` (an extraction skeleton), `hotspots`
+        /// (directories ranked by duplicated lines). e.g. `--show diff,hotspots`.
+        #[arg(long, value_delimiter = ',', value_name = "VIEW")]
+        show: Vec<ShowView>,
         /// Cache per-file analysis under this directory. Re-runs reuse the cache for
         /// unchanged files (keyed by content hash), skipping parse/normalize/extract
         /// — much faster on repeated invocations (CI, pre-commit, iterating).
@@ -182,15 +183,6 @@ enum Cmd {
         /// Output format.
         #[arg(long, default_value = "human")]
         format: ReportFormat,
-        /// Show each family's source inline (human format) as a unified diff between
-        /// its two representative members — both copies and exactly what differs.
-        #[arg(long)]
-        diff: bool,
-        /// Show an extraction proposal per family (human format): the shared skeleton
-        /// of two copies with the varying spots collapsed to ⟨param N⟩ placeholders —
-        /// i.e. what to extract and how many parameters it needs.
-        #[arg(long)]
-        proposal: bool,
         /// Skip files matching a gitignore-style glob (repeatable), e.g.
         /// `--exclude tests --exclude 'vendor/**' --exclude '**/*.generated.ts'`.
         /// (.gitignore is already respected automatically.)
@@ -473,6 +465,18 @@ fn sort_name(s: SortKey) -> &'static str {
         SortKey::Sites => "number of copies",
         SortKey::Hazard => "divergent-edit hazard (most likely to be edited inconsistently)",
     }
+}
+
+/// Extra per-report views (human/markdown), selected with `--show`.
+#[derive(Clone, Copy, PartialEq, Eq, clap::ValueEnum, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum ShowView {
+    /// Each family inline as a unified diff between its two representative copies.
+    Diff,
+    /// An extraction skeleton per family: the shared structure with varying spots as ⟨param N⟩.
+    Proposal,
+    /// After the report, directories/modules ranked by total duplicated lines.
+    Hotspots,
 }
 
 /// What `scan` actually looked at: the file count and per-language breakdown, shown as
@@ -1091,7 +1095,7 @@ fn run() -> Result<()> {
             sort,
             config,
             mode,
-            hotspots,
+            show,
             cache_dir,
             fail,
             baseline,
@@ -1101,8 +1105,6 @@ fn run() -> Result<()> {
             write_baseline,
             threshold,
             format,
-            diff,
-            proposal,
             exclude,
             min_tokens,
             min_lines,
@@ -1114,7 +1116,7 @@ fn run() -> Result<()> {
             sort,
             config,
             mode,
-            hotspots,
+            show,
             cache_dir,
             fail,
             baseline,
@@ -1123,8 +1125,6 @@ fn run() -> Result<()> {
             write_baseline,
             threshold,
             format,
-            diff,
-            proposal,
             exclude,
             min_tokens,
             min_lines,
@@ -2189,7 +2189,7 @@ struct ScanArgs {
     sort: Option<SortKey>,
     config: Option<PathBuf>,
     mode: Vec<ScanMode>,
-    hotspots: bool,
+    show: Vec<ShowView>,
     cache_dir: Option<PathBuf>,
     fail: bool,
     baseline: Option<PathBuf>,
@@ -2198,8 +2198,6 @@ struct ScanArgs {
     write_baseline: bool,
     threshold: Option<f64>,
     format: ReportFormat,
-    diff: bool,
-    proposal: bool,
     exclude: Vec<String>,
     min_tokens: Option<usize>,
     min_lines: Option<u32>,
@@ -2485,11 +2483,20 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             if let Some(ignore_set) = &ignore_set {
                 println!("{}", ignore_set.summary(ignored_families.len()).line());
             }
-            print_refactor_human(&families, &shown, sort, channels, args.diff, args.proposal)
+            print_refactor_human(
+                &families,
+                &shown,
+                sort,
+                channels,
+                args.show.contains(&ShowView::Diff),
+                args.show.contains(&ShowView::Proposal),
+            )
         }
         ReportFormat::Sarif => println!("{}", refactor_sarif(&shown, families.len())?),
     }
-    if args.hotspots && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown) {
+    if args.show.contains(&ShowView::Hotspots)
+        && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown)
+    {
         print_hotspots(&families);
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
