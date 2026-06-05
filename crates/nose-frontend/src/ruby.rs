@@ -244,12 +244,32 @@ fn lower_case(lo: &mut Lowering, node: TsNode) -> NodeId {
         if w.kind() == "else" {
             acc = body;
         } else {
-            let cond = lo.add(
-                NodeKind::BinOp,
-                Payload::Op(Op::Eq),
-                span,
-                &[scrutinee, scrutinee],
-            );
+            // `when p1, p2 …` → `scrutinee == p1 || scrutinee == p2 || …`. Each `when`
+            // carries one or more `pattern` fields wrapping the match expression; lower
+            // those so the pattern's computation is in the IL (previously the condition
+            // was `scrutinee == scrutinee`, dropping the patterns entirely).
+            let cmps: Vec<NodeId> = Lowering::named_children(*w)
+                .into_iter()
+                .filter(|c| c.kind() == "pattern")
+                .map(|p| {
+                    let pv = p
+                        .named_child(0)
+                        .map(|e| lower_expr(lo, e))
+                        .unwrap_or_else(|| lo.empty_block(span));
+                    lo.add(NodeKind::BinOp, Payload::Op(Op::Eq), span, &[scrutinee, pv])
+                })
+                .collect();
+            let cond = cmps
+                .into_iter()
+                .reduce(|a, b| lo.add(NodeKind::BinOp, Payload::Op(Op::Or), span, &[a, b]))
+                .unwrap_or_else(|| {
+                    lo.add(
+                        NodeKind::BinOp,
+                        Payload::Op(Op::Eq),
+                        span,
+                        &[scrutinee, scrutinee],
+                    )
+                });
             acc = lo.add(NodeKind::If, Payload::None, span, &[cond, body, acc]);
         }
     }
@@ -348,10 +368,14 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .named_child(node.named_child_count().saturating_sub(1))
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
-            let op = if lo.text(node).starts_with('!') || lo.text(node).starts_with("not") {
-                Op::Not
-            } else {
-                Op::Neg
+            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
+            // `~`→BitNot, `!`/`not`→Not. Reading only the first byte collapsed `+5`
+            // and `~5` onto `Neg`.
+            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+                Some("+") => Op::Pos,
+                Some("~") => Op::BitNot,
+                Some("!") | Some("not") => Op::Not,
+                _ => Op::Neg,
             };
             lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
         }
@@ -643,4 +667,58 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         kids.push(lower_expr(lo, b));
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn nodes(src: &str) -> Vec<nose_il::Node> {
+        let interner = Interner::new();
+        lower(FileId(0), "t.rb", src.as_bytes(), &interner)
+            .expect("lower")
+            .nodes
+    }
+
+    fn unary_ops(src: &str) -> Vec<Op> {
+        nodes(src)
+            .iter()
+            .filter(|n| n.kind == NodeKind::UnOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn unary_operators_lower_to_distinct_ops() {
+        let ops = unary_ops("x = +5\ny = -5\nz = !a\nw = ~5\n");
+        assert!(ops.contains(&Op::Pos), "unary + → Op::Pos, got {ops:?}");
+        assert!(ops.contains(&Op::Neg), "unary - → Op::Neg, got {ops:?}");
+        assert!(ops.contains(&Op::Not), "unary ! → Op::Not, got {ops:?}");
+        assert!(
+            ops.contains(&Op::BitNot),
+            "unary ~ → Op::BitNot, got {ops:?}"
+        );
+    }
+
+    #[test]
+    fn keyword_not_lowers_to_not() {
+        assert_eq!(unary_ops("y = not a\n"), vec![Op::Not]);
+    }
+
+    #[test]
+    fn case_when_compares_scrutinee_against_pattern() {
+        // `case x when 7 ...` must lower a comparison of the scrutinee against the
+        // pattern `7`; previously the pattern was dropped (cond was `x == x`), so the
+        // literal 7 never appeared in the IL.
+        let has_seven = nodes("case x\nwhen 7\n  y\nend\n")
+            .iter()
+            .any(|n| matches!(n.payload, Payload::LitInt(7)));
+        assert!(
+            has_seven,
+            "the `when 7` pattern literal must appear in the lowered IL"
+        );
+    }
 }

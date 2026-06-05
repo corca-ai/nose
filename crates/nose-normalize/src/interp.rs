@@ -466,7 +466,10 @@ impl<'a> Interp<'a> {
         match b {
             Builtin::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
-                Some(Value::Str(_)) => Ok(Value::Int(1)),
+                // A string is the free monoid over opaque piece hashes; its character
+                // length is unknown (piece count ≠ char count), so `len` stays `Err` —
+                // matching the type doc and the `IsEmpty` sibling. Returning a constant
+                // `Int(1)` falsely equated `len(any_string)` with the literal `1`.
                 _ => Ok(Value::Err),
             },
             Builtin::IsEmpty => match args.first() {
@@ -949,5 +952,39 @@ fn un(op: Op, a: &Value) -> Value {
         (Op::Not, Value::Err) => Value::Err,
         (Op::Not, _) => Value::Bool(!truthy(a)),
         _ => Value::Err,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, Span};
+
+    /// Build `fn() { return len(<str literal>) }` and run it.
+    fn run_len_of_string() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let s = b.add(NodeKind::Lit, Payload::LitStr(0xABCD), sp, &[]);
+        let call = b.add(NodeKind::Call, Payload::Builtin(Builtin::Len), sp, &[s]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn len_of_string_is_err_not_one() {
+        // Strings are the free monoid over opaque piece hashes — character length is
+        // unknown, so `len(str)` must be `Err` (matching the documented contract and the
+        // sibling `IsEmpty`), not a hardcoded `Int(1)`.
+        assert_eq!(run_len_of_string(), Value::Err);
     }
 }

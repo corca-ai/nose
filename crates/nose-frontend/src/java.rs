@@ -347,10 +347,17 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .child_by_field_name("operand")
                 .map(|o| lower_expr(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
-            let op = if lo.text(node).starts_with('!') {
-                Op::Not
-            } else {
-                Op::Neg
+            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
+            // `~`→BitNot, `!`→Not. Reading only the first byte collapsed `+x` and `~x`
+            // onto `Neg` (same class of bug as the C/Ruby frontends).
+            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
+            // `~`→BitNot, `!`→Not. Reading only the first byte collapsed `+x` and `~x`
+            // onto `Neg` (same class of bug as the C/Ruby frontends).
+            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+                Some("+") => Op::Pos,
+                Some("~") => Op::BitNot,
+                Some("!") => Op::Not,
+                _ => Op::Neg,
             };
             lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
         }
@@ -665,4 +672,38 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn unary_ops(src: &str) -> Vec<Op> {
+        let interner = Interner::new();
+        lower(FileId(0), "T.java", src.as_bytes(), &interner)
+            .expect("lower")
+            .nodes
+            .iter()
+            .filter(|n| n.kind == NodeKind::UnOp)
+            .filter_map(|n| match n.payload {
+                Payload::Op(op) => Some(op),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn unary_operators_lower_to_distinct_ops() {
+        // `+x` must be Pos and `~x` BitNot, not both collapsed onto Neg.
+        let ops = unary_ops(
+            "class C { int f(int x){ return +x + -x + ~x; } boolean g(boolean b){ return !b; } }",
+        );
+        assert!(ops.contains(&Op::Pos), "unary + → Op::Pos, got {ops:?}");
+        assert!(ops.contains(&Op::Neg), "unary - → Op::Neg, got {ops:?}");
+        assert!(
+            ops.contains(&Op::BitNot),
+            "unary ~ → Op::BitNot, got {ops:?}"
+        );
+        assert!(ops.contains(&Op::Not), "unary ! → Op::Not, got {ops:?}");
+    }
 }
