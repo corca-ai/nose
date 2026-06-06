@@ -167,6 +167,37 @@ Until then, prefer **adding individually-proven sound rules** over re-platformin
 
 ---
 
+## 4b. The coverage co-evolution loop (implemented)
+
+The adversarial recall/soundness co-evolution is now a running, deterministic loop in
+`bench/type4/`, expanding an explicit `(axis × language × {recall, soundness})` coverage
+matrix evenly instead of by prevalence:
+
+- **`coverage_taxonomy.py`** — the controlled axis vocabulary, incl. the high-value
+  *structural* axes the old queue never tracked (extract-method inline, partial sub-DAG,
+  recursion↔iteration extended, statement-window) + explicit out-of-scope rows.
+- **`coverage_matrix.py`** — `matrix` (the grid + evenness gauge), `next` (a coverage-aware
+  *cell* dispenser: gap term + fairness floor — fixes the old `type4-next` axis-atom +
+  static-prevalence bias that produced a diagonal, language-skewed matrix), `soundness` (the
+  soundness arm).
+- **`coverage_sweep.py`** — runs each generatable axis through nose per language AND through
+  the interpreter oracle (`nose verify`). One run advances **both arms**: positive recall +
+  generator hard-negatives + oracle under-merged leads + completeness. **Strengthening the
+  oracle is part of every sweep**, not a separate pass.
+- **`coverage_probe.py`** — checked-in positive + adjacent hard-negative pairs for axes the
+  generator can't make; each positive must converge, each hard-negative must stay un-merged
+  (the soundness guard). Block sub-units are skipped (a bare loop with no escaping effect is a
+  vacuous no-op — its collision is sound, not a clone).
+
+**Soundness co-evolves with recall by construction**: no axis is "done" without a
+hard-negative guard, and the oracle runs on every sweep (0 merged hard-negatives across all
+swept axes; the real-corpus 0-violation gate remains `nose verify bench/repos`).
+
+The battery has already paid off — it surfaced a systematic **`exact_safe` language
+asymmetry** (recursion / builder loops / java stream-reduce admitted to the exact channel in
+some languages but not others — `bench/type4/coverage_leads.md`), the concrete next implement
+queue for *even* cross-language coverage.
+
 ## 5. Decisive measurements (run before betting heavily)
 
 Cheap experiments that turn direction into data:
