@@ -61,17 +61,15 @@ rust builder-loop now `exact_safe=True`; rust flat_map converges. Validated: tes
 `rust_vec_new_builder_loop_converges_with_flat_map`, full suite + clippy, real-corpus scan
 behavior-invariance (0 detection lost; only new convergences) + `nose verify` 0-violation gate.
 
-## L3 — `exact_safe`: java stream `.reduce(seed, lambda)`
+## L3 — java stream `.reduce(seed, lambda)` — ✅ RESOLVED (fixture, not a detector gap)
 
-A java enhanced-for sum loop (`exact_safe=True`) does NOT converge with
-`Arrays.stream(xs).reduce(0, (a,x)->a+x)` (`exact_safe=False` as written). The passing test
-`java_stream_aggregates_converge_with_loops` uses a `.filter(...).reduce(...)` chain with an
-`import` — narrowing why the bare fully-qualified `.reduce` is excluded is the next step.
-
-```
-reduce_minmax_anyall/java/pos   # pos 0/1 — stream side exact_safe=False
-reduce_minmax_anyall/{python,javascript,rust}/pos  # covered 1/1
-```
+NOT a detector gap. The idiomatic `import java.util.Arrays; Arrays.stream(xs).reduce(0, (a,x)
+-> a+x)` already converges with the loop (exact_safe=True, gate handles the reduce lambda). My
+probe fixture used the non-idiomatic fully-qualified `java.util.Arrays.stream(...)`, whose
+longer field chain (`java.util.Arrays`) the gate doesn't recognize as the stream source.
+Fixed the fixture to the import form; `reduce_minmax_anyall` now covered in all applicable
+languages. (A separate minor lead: recognize the fully-qualified `java.util.Arrays` receiver
+chain — low value, rare in idiomatic code.)
 
 ## L4 — recall extension: `.flatMap(x => x)` (identity) ≡ flatten — ✅ RESOLVED
 

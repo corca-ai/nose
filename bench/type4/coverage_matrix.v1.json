@@ -283,7 +283,7 @@
     "reduce_minmax_anyall": {
       "c": "none",
       "go": "none",
-      "java": "unsupported",
+      "java": "covered",
       "javascript": "covered",
       "python": "covered",
       "ruby": "covered",
@@ -372,7 +372,7 @@
     },
     "java": {
       "applicable": 27,
-      "covered": 13
+      "covered": 14
     },
     "javascript": {
       "applicable": 27,
