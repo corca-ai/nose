@@ -396,6 +396,13 @@ struct Builder<'a> {
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
     /// data (`const table = {...}`) to free uses inside the function.
     global_env: FxHashMap<Symbol, ValueId>,
+    /// Interprocedural inline registry: `name → (param cids, body)` for PURE, file-local,
+    /// uniquely-named functions (`function_binding_safe`: no effects, loops, throws, lambdas, or
+    /// user calls). A call to such a function is inlined to its body's value (β-reduction over a
+    /// pure function — sound), so `f(args)` ≡ the extracted helper's body. Built once per unit
+    /// build (after binding seeding, before body eval). Pure bodies have no user calls, so an
+    /// inlined body never triggers further inlining — single-level, no cycles, no depth bound.
+    inline_fns: FxHashMap<Symbol, (Vec<u32>, NodeId)>,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
     local_scope_nodes: Vec<bool>,
@@ -469,6 +476,7 @@ impl<'a> Builder<'a> {
             effect_slot: 0,
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
+            inline_fns: FxHashMap::default(),
             local_scope_nodes: local_scope_nodes(il),
             loop_recurrence: None,
             next_loop_key_base: 0,
@@ -2184,6 +2192,7 @@ impl<'a> Builder<'a> {
         self.param_semantic.clear();
         self.seed_param_semantics(root);
         self.seed_immutable_bindings(root, context);
+        self.build_inline_registry(root);
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         match self.il.kind(root) {
             NodeKind::Func => {
@@ -2495,6 +2504,96 @@ impl<'a> Builder<'a> {
                 .iter()
                 .all(|&c| self.immutable_binding_safe(c, env)),
         }
+    }
+
+    /// Build the interprocedural inline registry (see the `inline_fns` field): pure,
+    /// uniquely-named, file-local functions/methods that can be inlined to their body's value.
+    /// Excludes the unit currently being built (`root`) so a function is never inlined into
+    /// itself, and drops any name shared by two definitions (ambiguous → not resolvable).
+    fn build_inline_registry(&mut self, root: NodeId) {
+        if !self.inline_fns.is_empty() {
+            return;
+        }
+        let mut ambiguous: FxHashSet<Symbol> = FxHashSet::default();
+        for unit in self.il.units.clone() {
+            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) || unit.root == root {
+                continue;
+            }
+            let Some(name) = unit.name else { continue };
+            if ambiguous.contains(&name) {
+                continue;
+            }
+            if self.inline_fns.contains_key(&name) {
+                self.inline_fns.remove(&name);
+                ambiguous.insert(name);
+                continue;
+            }
+            if !self.function_binding_safe(unit.root, unit.root) {
+                continue;
+            }
+            // SOUNDNESS: only inline a function whose body is a single `return <expr>` — a pure
+            // value with NO statement effects. `function_binding_safe` alone is too weak here: it
+            // admits field/index writes (an effect the value-only inline would silently drop,
+            // which the oracle — blind to cross-function calls — could not catch). A lone return
+            // has no other statements, so there is nothing to drop.
+            let Some(ret_expr) = self.single_return_expr(unit.root) else {
+                continue;
+            };
+            let kids = self.il.children(unit.root);
+            let params: Vec<u32> = kids
+                .iter()
+                .filter_map(|&p| match self.il.node(p).payload {
+                    Payload::Cid(c) if self.il.kind(p) == NodeKind::Param => Some(c),
+                    _ => None,
+                })
+                .collect();
+            self.inline_fns.insert(name, (params, ret_expr));
+        }
+    }
+
+    /// Inline a call to a PURE registered function: bind its parameters to the (caller-evaluated)
+    /// argument values and evaluate its body to a single value — β-reduction over an effect-free
+    /// function, so `f(args)` ≡ the function's body with `args` substituted (the extract-method /
+    /// interprocedural-summary equivalence). Returns `None` for non-direct calls, unknown/
+    /// ambiguous callees, or arity mismatch — leaving the opaque-call fallback to run.
+    fn eval_inlined_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let &callee = kids.first()?;
+        if self.il.kind(callee) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(fname) = self.il.node(callee).payload else {
+            return None;
+        };
+        let (params, ret_expr) = self.inline_fns.get(&fname)?.clone();
+        if params.len() != kids.len() - 1 {
+            return None;
+        }
+        let mut fenv: FxHashMap<u32, ValueId> = FxHashMap::default();
+        for (pi, &pc) in params.iter().enumerate() {
+            let av = self.eval(kids[pi + 1], env);
+            fenv.insert(pc, av);
+        }
+        Some(self.eval(ret_expr, &fenv))
+    }
+
+    /// The single `return <expr>` of a function body, or `None` if the body is anything else
+    /// (locals, multiple statements, effects, control flow) — so only an effect-free pure value
+    /// qualifies for value-only inlining. Accepts `{ return e; }` and a bare `return e`.
+    fn single_return_expr(&self, root: NodeId) -> Option<NodeId> {
+        let &body = self.il.children(root).last()?;
+        let ret = match self.il.kind(body) {
+            NodeKind::Return => body,
+            NodeKind::Block => match self.il.children(body) {
+                [only] if self.il.kind(*only) == NodeKind::Return => *only,
+                _ => return None,
+            },
+            _ => return None,
+        };
+        self.il.children(ret).first().copied()
     }
 
     fn function_binding_safe(&self, root: NodeId, node: NodeId) -> bool {
@@ -6967,6 +7066,12 @@ impl<'a> Builder<'a> {
                 if self.is_unproven_membership_like_call(expr, &kids) {
                     let salt = self.source_salted_hash(expr, 0x4D45_4D42_4552);
                     return self.mk(ValOp::Opaque(salt), vec![]);
+                }
+                // Interprocedural pure inline: `f(args)` to a pure file-local function ≡ its body
+                // with `args` substituted — converges with the same logic written inline / with
+                // a different extracted helper. Sound (β-reduction of an effect-free function).
+                if let Some(v) = self.eval_inlined_call(&kids, env) {
+                    return v;
                 }
                 let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 let tag = match node.payload {

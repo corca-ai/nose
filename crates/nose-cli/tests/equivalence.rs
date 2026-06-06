@@ -576,6 +576,29 @@ fn go_functional_append_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn interprocedural_pure_inline_converges_extract_method() {
+    // A function whose body inlines a computation converges with one that calls a PURE extracted
+    // helper for it — `f(args)` is β-reduced to the helper's body (interprocedural summary), the
+    // extract-method equivalence. An EFFECTFUL helper (a field write the value-only inline would
+    // drop) is NOT inlined, so its caller stays distinct from the effect-free version.
+    let i = Interner::new();
+    let inline = "def price(item):\n    return item.price * item.qty * (1 + 0.1)\n";
+    let helper = "def base(item):\n    return item.price * item.qty\n\ndef price(item):\n    return base(item) * (1 + 0.1)\n";
+    assert_eq!(
+        value_fp_named(&i, inline, Lang::Python, "price"),
+        value_fp_named(&i, helper, Lang::Python, "price"),
+        "calling a pure extracted helper must converge with the inlined computation"
+    );
+    let eff_helper = "def bump(box, x):\n    box.count = box.count + 1\n    return x * 2\n\ndef use(box, x):\n    return bump(box, x) + 5\n";
+    let eff_free = "def use(box, x):\n    return x * 2 + 5\n";
+    assert_ne!(
+        value_fp_named(&i, eff_helper, Lang::Python, "use"),
+        value_fp_named(&i, eff_free, Lang::Python, "use"),
+        "an effectful (field-writing) helper must not be inlined — its effect can't be dropped"
+    );
+}
+
+#[test]
 fn sub_dag_anchor_shared_when_units_share_a_heavy_computation() {
     // Two functions that share a large sub-computation (subtotal/tax/shipping/grand) but differ
     // elsewhere are a PARTIAL / sub-DAG clone — they share a heavy anchor (an extractable common
