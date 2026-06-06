@@ -118,6 +118,10 @@ oracle evidence instead of purity assumptions.
 For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
 name-only lower/upper conventions, non-exiting checks, swapped bounds, and float
 domains must stay hard negatives.
+For map-default import rules, resolve only unambiguous Python sibling-module literal
+exports today: the provider must have one immutable literal binding, and provider mutation,
+importer mutation, duplicate providers, shadowing, unresolved imports, and non-Python
+module bridges remain hard-negative or successor work.
 
 ## Adversarial Cases
 

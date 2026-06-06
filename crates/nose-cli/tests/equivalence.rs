@@ -1782,6 +1782,25 @@ fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec
     nose_normalize::value_fingerprint(&n, root, interner)
 }
 
+fn corpus_value_fp(corpus: &Corpus, path_suffix: &str, name: &str) -> Vec<u64> {
+    let il = corpus
+        .files
+        .iter()
+        .find(|il| il.meta.path.ends_with(path_suffix))
+        .unwrap_or_else(|| panic!("expected corpus file ending with {path_suffix}"));
+    let n = normalize(il, &corpus.interner, &NormalizeOptions::default());
+    let root = n
+        .units
+        .iter()
+        .find(|unit| {
+            unit.name
+                .is_some_and(|symbol| corpus.interner.resolve(symbol) == name)
+        })
+        .map(|unit| unit.root)
+        .unwrap_or_else(|| panic!("expected function unit named {name} in {path_suffix}"));
+    nose_normalize::value_fingerprint(&n, root, &corpus.interner)
+}
+
 #[test]
 fn python_docstrings_are_function_semantic_noops() {
     let i = Interner::new();
@@ -3288,6 +3307,74 @@ fn literal_map_default_lookup_converges_with_module_map_bindings() {
     assert_ne!(fp, value_fp(&i, js_mutated, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, ts_shadowed, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, java_shadowed, Lang::Java));
+}
+
+#[test]
+fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_imported_map_default_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("local.py"),
+        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("tables.py"),
+        "LOOKUP = {\"red\": 1, \"blue\": 2}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("imported.py"),
+        "from tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("wrong_map.py"),
+        "from tables import LOOKUP\n\ndef lookup(key, other):\n    return {\"red\": 9, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("mutated_tables.py"),
+        "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP.clear()\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("imported_mutated_provider.py"),
+        "from mutated_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("imported_mutated_receiver.py"),
+        "from tables import LOOKUP\nLOOKUP.clear()\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+
+    let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
+    let local = corpus_value_fp(&corpus, "local.py", "lookup");
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "imported.py", "lookup"),
+        "imported immutable literal map binding should prove the same lookup/default coordinates"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "wrong_map.py", "lookup"),
+        "different literal map contents must stay distinct"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "imported_mutated_provider.py", "lookup"),
+        "provider mutation must block imported literal provenance"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "imported_mutated_receiver.py", "lookup"),
+        "importer mutation must block imported literal provenance"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]

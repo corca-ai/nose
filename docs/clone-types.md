@@ -60,7 +60,9 @@ graph, and canonicalizations actually model:
   comprehension `{k: v for x in xs}`;
 - literal map-default lookup through proven map/key/fallback coordinates, including
   Python `dict.get(key, fallback)` and Ruby literal `Hash#fetch(key, fallback)` or
-  zero-arg pure fallback blocks such as `Hash#fetch(key) { fallback }`;
+  zero-arg pure fallback blocks such as `Hash#fetch(key) { fallback }`, plus Python
+  sibling-module `from module import LOOKUP` literal bindings when the provider binding is
+  unique, immutable, and unambiguous;
 - `filter q (filter p) ↔ filter (p∧q)` (and the filtered comprehension / `.filter().filter()`
   chain / filtered builder loop);
 - guard-clause ↔ nested-if, ternary ↔ early-return, min/max idioms, commutativity +

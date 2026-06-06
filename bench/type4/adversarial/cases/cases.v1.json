@@ -159,7 +159,12 @@
       "kind": "positive",
       "semantic_family": "map_default_lookup",
       "claim": "Imported immutable literal map lookup with default can converge with local literal/default forms when provenance is proven.",
-      "evidence": "Proof-fact-blocked candidate."
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_cross_file/local.py",
+        "bench/type4/adversarial/cases/map_default_cross_file/tables.py",
+        "bench/type4/adversarial/cases/map_default_cross_file/imported.py"
+      ],
+      "evidence": "Semantic scan groups local.py and imported.py after Python sibling import provenance resolves the unmutated literal provider."
     },
     {
       "id": "map_default_mutated_receiver",
@@ -167,7 +172,12 @@
       "semantic_family": "map_default_lookup",
       "claim": "Receiver mutation between binding/import and lookup changes behavior.",
       "mutation": "insert write to receiver before lookup",
-      "evidence": "Whole-file mutation exclusion boundary."
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_cross_file/mutated_tables.py",
+        "bench/type4/adversarial/cases/map_default_cross_file/imported_mutated_provider.py",
+        "bench/type4/adversarial/cases/map_default_cross_file/imported_mutated_receiver.py"
+      ],
+      "evidence": "Provider and importer mutation fixtures stay out of the imported/local semantic family."
     },
     {
       "id": "map_default_wrong_map",
@@ -175,7 +185,22 @@
       "semantic_family": "map_default_lookup",
       "claim": "Looking up the same key/default on a different map is behaviorally different.",
       "mutation": "receiver map coordinate changes",
-      "evidence": "Existing map-default tests use wrong-map siblings."
+      "fixtures": ["bench/type4/adversarial/cases/map_default_cross_file/wrong_map.py"],
+      "evidence": "Existing map-default tests and the cross-file wrong_map fixture keep changed present-key values split."
+    },
+    {
+      "id": "map_default_imported_js_ts_literal",
+      "kind": "positive",
+      "semantic_family": "map_default_lookup",
+      "claim": "Imported JavaScript/TypeScript literal map exports can converge with local map-default forms when module/export provenance is proven.",
+      "evidence": "Successor candidate; current generator lacks focused multi-file JS/TS import fixtures."
+    },
+    {
+      "id": "map_default_imported_java_static_literal",
+      "kind": "positive",
+      "semantic_family": "map_default_lookup",
+      "claim": "Imported Java static literal map bindings can converge with local map-default forms when static import provenance is proven.",
+      "evidence": "Successor candidate; current slice intentionally stops at Python sibling imports."
     },
     {
       "id": "hof_error_propagation",

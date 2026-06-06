@@ -9,6 +9,7 @@ mod go;
 mod java;
 mod js_ts;
 mod lower;
+mod module_imports;
 mod python;
 mod ruby;
 mod rust;
@@ -125,7 +126,7 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     }
 
     let t1 = std::time::Instant::now();
-    let files: Vec<Il> = paths
+    let mut files: Vec<Il> = paths
         .par_iter()
         .enumerate()
         .filter_map(|(i, (path, lang))| {
@@ -133,6 +134,7 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
             lower_source(FileId(i as u32), path, &src, *lang, &interner).ok()
         })
         .collect();
+    module_imports::resolve_imported_immutable_bindings(&mut files, &interner);
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  (read+parse+lower, parallel)",
