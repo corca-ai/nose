@@ -3967,7 +3967,8 @@ fn normalization_is_idempotent() {
 
 /// DISTRIBUTION / FACTORING (Num-gated): `a*c + b*c` ≡ `(a+b)*c`. The value graph factors
 /// a shared multiplicand out of a sum of products when every leaf is proven numeric
-/// (`value_graph.rs::factor_distribute`, Lean `Algebra.lean::distrib_sound`). The `*`
+/// (`value_graph/rules/factor_distribute.rs`, Lean obligation
+/// `normalize.value_graph.factor_distribute`). The `*`
 /// operands here are provably `Num`, so the factoring fires and the two forms converge.
 #[test]
 fn distribution_factors_common_multiplicand() {
@@ -3991,7 +3992,7 @@ fn distribution_factors_common_multiplicand() {
 
 /// FILTER FUSION: `filter(q, filter(p, xs))` ≡ `filter(p∧q, xs)`. The value graph carries a
 /// filter's element so nested filters fuse (`value_graph.rs` `HoFKind::Filter` arm, Lean
-/// `Functor.lean::filter_fusion`). A two-filter comprehension, an explicitly nested one, and
+/// `normalize.value_graph.functor`). A two-filter comprehension, an explicitly nested one, and
 /// (cross-language) a JS `.filter().filter()` all converge to one filtered stream.
 #[test]
 fn filter_fusion_converges() {

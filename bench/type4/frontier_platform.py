@@ -811,13 +811,13 @@ TARGET_PACKETS = [
         "evidence_case_ids": ["numeric-clamp-minmax-ternary-real-miss"],
         "owner_route": "proof-fact-prerequisite",
         "owner_issue": None,
-        "why_now": "A genuine machine-checked semantic under-merge (formal/Clamp.lean) that is "
+        "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is "
         "broad and generalizing — present in all 7 corpus primary languages on both the dev and "
         "held-out splits. It is NOT directly implementable: the merge is sound only under "
         "`lo <= hi`, and no existing proof fact establishes bound ordering. This packet's value "
         "is identifying the next proof fact to pursue, with a machine-checked target invariant.",
         "blocked_by": [
-            "bound-order / guarded-range proof fact that `lo <= hi` (formal/Clamp.lean proves "
+            "bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves "
             "the precondition is required; existing scalar min/max facts do not prove it, and "
             "parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
             "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on "

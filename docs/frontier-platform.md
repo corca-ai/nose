@@ -84,7 +84,7 @@ conclusion cannot silently drift when an axis is added or removed.
 
 The first extra axis is `numeric_clamp` — `min(max(x, lo), hi)` clamp composition, a real
 under-merge whose identity and hard negatives are machine-checked in
-[`formal/Clamp.lean`](../formal/Clamp.lean).
+[`formal/obligations/normalize/value_graph/clamp/Proof.lean`](../formal/obligations/normalize/value_graph/clamp/Proof.lean).
 
 ## Target packets (`frontier_target_packets.v1.json`)
 

@@ -1,0 +1,17 @@
+id = "normalize.value_graph.functor"
+status = "proven"
+kind = "soundness"
+summary = "Map/filter fusion and count-of-filter normalization preserve List denotation."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"]
+symbols = ["HoFKind::Map", "HoFKind::Filter", "and_preds"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFunctor.map_fusion",
+  "NoseFunctor.map_id",
+  "NoseFunctor.filter_fusion",
+  "NoseFunctor.filter_length_eq_count",
+]

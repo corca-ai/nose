@@ -238,9 +238,9 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
   and fzf `Constrain` (max(min)) do not merge across files.
 - Broad and generalizing: present in 26 repos across all 7 primary languages on both splits
   (dev 14 / held-out 12). The identity and its hard negatives (swapped bound order, wrong
-  nesting, the `lo ≤ hi` precondition) are machine-checked in `formal/Clamp.lean`.
+  nesting, the `lo ≤ hi` precondition) are machine-checked in `formal/obligations/normalize/value_graph/clamp/Proof.lean`.
 - Recorded as a `real-miss` in `real_frontier.v1.json` (existing schema/status) and linked by
-  a target packet routed `proof-fact-prerequisite` (no team yet). `formal/Clamp.lean` proves
+  a target packet routed `proof-fact-prerequisite` (no team yet). `formal/obligations/normalize/value_graph/clamp/Proof.lean` proves
   the merge is sound only under `lo ≤ hi`, and no existing scalar min/max fact proves bound
   ordering — parameter naming (e.g. fzf `Constrain(val, minimum, maximum)`) is not a proof, a
   boundary we explicitly forbid. So the packet's value is identifying the next proof fact

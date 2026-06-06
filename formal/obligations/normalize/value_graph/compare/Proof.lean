@@ -7,7 +7,7 @@ negated comparison to its complement (`value_graph.rs` `mk`: `a > b → b < a`, 
 invariant under the rewrite. This file proves that over `Int` (a total order), using the
 decidable comparisons the interpreter (`interp.rs`) evaluates.
 
-Self-contained; check:  ~/.elan/bin/lean formal/Compare.lean   (exit 0 = proofs hold)
+Self-contained; checked by the formal obligation CI gate.
 -/
 
 namespace NoseCompare

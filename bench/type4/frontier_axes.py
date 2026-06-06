@@ -33,7 +33,7 @@ import prioritize_frontier as pf  # noqa: E402  (reuse Candidate / PatternSpec /
 # denote the same value for `lo <= hi`, yet the value graph converges none of them (unlike
 # the structurally-similar abs idiom, which it DOES canonicalize). It is prevalent across all
 # seven corpus primary languages on both splits. The identity (and its hard negatives) is
-# machine-checked in `formal/Clamp.lean`.
+# machine-checked in `formal/obligations/normalize/value_graph/clamp/Proof.lean`.
 #
 # Patterns are the nested-call / built-in `clamp` forms ONLY. The `.min(...).max(...)` method
 # chain is intentionally excluded: it false-positives on schema/query builders such as Zod
@@ -48,7 +48,7 @@ EXTRA_CANDIDATES = [
         "open",
         "min(max(x,lo),hi) clamp composition is a real under-merge vs the two-comparison "
         "form; prevalent across all seven languages on both splits; composes already-proven "
-        "scalar min/max facts. Backed by formal/Clamp.lean.",
+        "scalar min/max facts. Backed by formal/obligations/normalize/value_graph/clamp/Proof.lean.",
         "Audit corpus clamp pairs; require the lo<=hi precondition and reject swapped bound "
         "order, wrong nesting, and float NaN as hard negatives.",
         (
@@ -88,6 +88,6 @@ EXTRA_CURATED: dict[str, dict] = {
         "substrate_required": "none",
         "rationale": "A value-graph clamp canonicalization over already-proven scalar "
         "min/max facts; lo<=hi precondition and float NaN are the soundness boundaries "
-        "(machine-checked in formal/Clamp.lean).",
+        "(machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean).",
     },
 }

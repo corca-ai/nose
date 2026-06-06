@@ -8,7 +8,7 @@ The value graph fuses higher-order pipelines via the laws of the list functor:
 This file proves both laws hold for `List`, so the fusions are denotation-preserving —
 the converged pipelines compute the same result.
 
-Self-contained; check:  ~/.elan/bin/lean formal/Functor.lean   (exit 0 = proofs hold)
+Self-contained; checked by the formal obligation CI gate.
 -/
 
 namespace NoseFunctor

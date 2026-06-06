@@ -1,0 +1,22 @@
+id = "normalize.value_graph.clamp"
+status = "proven"
+kind = "soundness"
+summary = "Clamp min/max compositions and two-comparison forms agree only under the lo <= hi precondition."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs"]
+symbols = ["minmax_pattern"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseClamp.clamp_minmax",
+  "NoseClamp.clamp_maxmin",
+  "NoseClamp.clamp_forms_agree",
+]
+counterexamples = "Counterexamples.lean"
+counterexample_theorems = [
+  "NoseClampCounterexamples.swapped_bounds_not_clamp",
+  "NoseClampCounterexamples.wrong_nesting_not_clamp",
+  "NoseClampCounterexamples.precondition_required",
+]

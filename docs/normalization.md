@@ -46,8 +46,9 @@
 > literal; the interpreter now executes self-recursion so `nose verify` interprets the
 > pre-canon recursive form and validates the rewrite (see *Recursion → iteration* below).
 > Soundness enforced by the independent interpreter oracle + canon-preservation check
-> (`nose verify`) and Lean proofs (`formal/`, incl. `distrib_sound`, `filter_fusion`,
-> `Compare.lean`); see §AJ/§AW/§AX/§BA.
+> (`nose verify`) and Lean proof obligations (`formal/obligations`, incl.
+> `NoseAlgebra.distrib_sound`, `NoseFunctor.filter_fusion`,
+> `normalize.value_graph.compare`); see §AJ/§AW/§AX/§BA.
 > Deferred: value-dependent folding (needs literal values), full distribution
 > (equality saturation), general CFG flag-loop↔break, and non-local early-exit variants
 > beyond the simple flag+break loop; recursion→iteration beyond the tail / numeric-monoid

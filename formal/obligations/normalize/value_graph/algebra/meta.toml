@@ -1,0 +1,17 @@
+id = "normalize.value_graph.algebra"
+status = "proven"
+kind = "soundness"
+summary = "Associative-commutative numeric algebra and subtraction/negation canonicalization preserve Int denotation."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/algebra.rs"]
+symbols = ["flatten_into", "intern_ac_chain", "collect_add_sub_expr_operands"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseAlgebra.canon_sound",
+  "NoseAlgebra.sub_eq_add_neg",
+  "NoseAlgebra.neg_add_distrib",
+  "NoseAlgebra.distrib_sound",
+]
