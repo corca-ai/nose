@@ -1,5 +1,15 @@
 {
   "audit_conclusion": {
+    "applies_to_candidates": [
+      "collection_empty_check",
+      "map_default_lookup",
+      "membership_contains",
+      "null_option_presence",
+      "numeric_minmax_abs",
+      "own_property_guard",
+      "property_type_guard",
+      "string_prefix_suffix"
+    ],
     "evidence_pointers": [
       "Top-breadth axes membership_contains and collection_empty_check are frontier-recorded (human evidence: unsupported / closed) \u2014 high prevalence is not next work (the #36 lesson, now visible via evidence_tier).",
       "null_option_presence has the largest raw occurrence (~126k) yet is a covered-current axis ranked below membership_contains on breadth \u2014 the presence-based ranking deliberately refuses to promote it on raw count.",
@@ -24,9 +34,23 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.9787,
         "heldout_presence": 46,
-        "language_breadth": 0.875,
-        "language_presence": 7,
-        "languages": [
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 22979,
+        "repo_breadth": 0.9429,
+        "repo_presence": 99,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
           "go",
           "java",
           "javascript",
@@ -34,10 +58,7 @@
           "ruby",
           "rust",
           "typescript"
-        ],
-        "raw_occurrences": 22979,
-        "repo_breadth": 0.9429,
-        "repo_presence": 99
+        ]
       },
       "candidate_id": "membership_contains",
       "curated": {
@@ -175,9 +196,23 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.9362,
         "heldout_presence": 44,
-        "language_breadth": 1.0,
-        "language_presence": 8,
-        "languages": [
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 21562,
+        "repo_breadth": 0.9333,
+        "repo_presence": 98,
+        "source_language_breadth": 1.0,
+        "source_language_presence": 8,
+        "source_languages": [
           "c",
           "go",
           "java",
@@ -186,10 +221,7 @@
           "ruby",
           "rust",
           "typescript"
-        ],
-        "raw_occurrences": 21562,
-        "repo_breadth": 0.9333,
-        "repo_presence": 98
+        ]
       },
       "candidate_id": "collection_empty_check",
       "curated": {
@@ -321,9 +353,23 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.9574,
         "heldout_presence": 45,
-        "language_breadth": 0.875,
-        "language_presence": 7,
-        "languages": [
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 6174,
+        "repo_breadth": 0.9238,
+        "repo_presence": 97,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
           "go",
           "java",
           "javascript",
@@ -331,10 +377,7 @@
           "ruby",
           "rust",
           "typescript"
-        ],
-        "raw_occurrences": 6174,
-        "repo_breadth": 0.9238,
-        "repo_presence": 97
+        ]
       },
       "candidate_id": "string_prefix_suffix",
       "curated": {
@@ -457,9 +500,23 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.9149,
         "heldout_presence": 43,
-        "language_breadth": 0.875,
-        "language_presence": 7,
-        "languages": [
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 126057,
+        "repo_breadth": 0.8952,
+        "repo_presence": 94,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
           "c",
           "go",
           "java",
@@ -467,10 +524,7 @@
           "python",
           "rust",
           "typescript"
-        ],
-        "raw_occurrences": 126057,
-        "repo_breadth": 0.8952,
-        "repo_presence": 94
+        ]
       },
       "candidate_id": "null_option_presence",
       "curated": {
@@ -593,9 +647,23 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.6596,
         "heldout_presence": 31,
-        "language_breadth": 0.875,
-        "language_presence": 7,
-        "languages": [
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 4319,
+        "repo_breadth": 0.6952,
+        "repo_presence": 73,
+        "source_language_breadth": 0.875,
+        "source_language_presence": 7,
+        "source_languages": [
           "go",
           "java",
           "javascript",
@@ -603,10 +671,7 @@
           "ruby",
           "rust",
           "typescript"
-        ],
-        "raw_occurrences": 4319,
-        "repo_breadth": 0.6952,
-        "repo_presence": 73
+        ]
       },
       "candidate_id": "map_default_lookup",
       "curated": {
@@ -738,15 +803,25 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.1702,
         "heldout_presence": 8,
-        "language_breadth": 0.25,
-        "language_presence": 2,
-        "languages": [
-          "javascript",
-          "typescript"
+        "primary_language_breadth": 0.8571,
+        "primary_language_presence": 6,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Ruby",
+          "Rust",
+          "TypeScript"
         ],
         "raw_occurrences": 764,
         "repo_breadth": 0.219,
-        "repo_presence": 23
+        "repo_presence": 23,
+        "source_language_breadth": 0.25,
+        "source_language_presence": 2,
+        "source_languages": [
+          "javascript",
+          "typescript"
+        ]
       },
       "candidate_id": "own_property_guard",
       "curated": {
@@ -869,15 +944,25 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.1489,
         "heldout_presence": 7,
-        "language_breadth": 0.25,
-        "language_presence": 2,
-        "languages": [
-          "javascript",
-          "typescript"
+        "primary_language_breadth": 0.8571,
+        "primary_language_presence": 6,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Ruby",
+          "Rust",
+          "TypeScript"
         ],
         "raw_occurrences": 435,
         "repo_breadth": 0.181,
-        "repo_presence": 19
+        "repo_presence": 19,
+        "source_language_breadth": 0.25,
+        "source_language_presence": 2,
+        "source_languages": [
+          "javascript",
+          "typescript"
+        ]
       },
       "candidate_id": "property_type_guard",
       "curated": {
@@ -1000,14 +1085,19 @@
         "generalization": "both-splits",
         "heldout_breadth": 0.1489,
         "heldout_presence": 7,
-        "language_breadth": 0.125,
-        "language_presence": 1,
-        "languages": [
-          "rust"
+        "primary_language_breadth": 0.1429,
+        "primary_language_presence": 1,
+        "primary_languages": [
+          "Rust"
         ],
         "raw_occurrences": 425,
         "repo_breadth": 0.1429,
-        "repo_presence": 15
+        "repo_presence": 15,
+        "source_language_breadth": 0.125,
+        "source_language_presence": 1,
+        "source_languages": [
+          "rust"
+        ]
       },
       "candidate_id": "numeric_minmax_abs",
       "curated": {
@@ -1124,7 +1214,7 @@
     }
   ],
   "identity": {
-    "build_ref": "9a3b44f9b7e1dc35e6ad84ca0c75caf4c39a5971",
+    "build_ref": "cb265958afcfa0319059905e4e7f7eec9fa71df6",
     "candidate_signature": "86f9f9b8fae022499af23274e5f248d0eed707d916d6fd1ade6ae7a0aa773a35",
     "corpus": {
       "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
@@ -1132,6 +1222,25 @@
       "corpus_schema_version": "0.1.0",
       "repo_count": 105
     },
+    "corpus_primary_languages": [
+      "C",
+      "Go",
+      "Java",
+      "Python",
+      "Ruby",
+      "Rust",
+      "TypeScript"
+    ],
+    "corpus_source_languages": [
+      "c",
+      "go",
+      "java",
+      "javascript",
+      "python",
+      "ruby",
+      "rust",
+      "typescript"
+    ],
     "max_bytes_per_file": 512000,
     "nose_binary": null,
     "repos_root": "/Users/ak/prjs/cc/nose/bench/repos",
@@ -1142,7 +1251,17 @@
     },
     "tool_version": "frontier-platform/1"
   },
-  "languages": [
+  "primary_languages": [
+    "C",
+    "Go",
+    "Java",
+    "Python",
+    "Ruby",
+    "Rust",
+    "TypeScript"
+  ],
+  "schema_version": 1,
+  "source_languages": [
     "c",
     "go",
     "java",
@@ -1152,7 +1271,6 @@
     "rust",
     "typescript"
   ],
-  "schema_version": 1,
   "tool_version": "frontier-platform/1",
   "vocabulary": {
     "evidence_tier": [
