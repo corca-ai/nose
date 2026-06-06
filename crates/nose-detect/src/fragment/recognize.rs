@@ -31,7 +31,7 @@ pub(crate) const MIGRATED: &[FragmentKind] = &[
 ];
 
 /// Recognize `node` as a migrated exact-fragment shape by building its contract directly,
-/// independently of [`crate::units::exact_statement_fragment_root`]. Returns `None` for
+/// independently of `units::exact_statement_fragment_root`. Returns `None` for
 /// non-fragments and for shapes not yet migrated.
 pub(crate) fn recognize_contract(
     il: &Il,

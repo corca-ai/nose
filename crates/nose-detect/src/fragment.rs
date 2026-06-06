@@ -29,7 +29,7 @@ pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};
 /// The shape of an accepted exact sub-function fragment.
 ///
 /// Each variant is the classification of one recognizer branch in
-/// [`crate::units::exact_statement_fragment_root`]. The discriminant is the *why*: a
+/// `units::exact_statement_fragment_root`. The discriminant is the *why*: a
 /// `DirectReturn` fragment is an exact-safe `return <expr>` lifted out of a larger body,
 /// a `LoopEffect` fragment is a `for-each` whose body is a single proven append, and so
 /// on. Two fragments with the same kind were accepted by the same proof argument.
