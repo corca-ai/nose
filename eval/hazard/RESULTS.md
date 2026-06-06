@@ -40,6 +40,35 @@ rate at ~1.1% (family) — matching the literature's 1–3% release-level rate.
 > The clean, directly-observed **G1** label (some siblings changed, others not — no
 > fragile bug-fix attribution) remains the real validation below.
 
+## Refresh — current main (re-mined 2026-06-06)
+
+Re-ran the full pipeline against the current detector — HEAD after the #43–#65 Type-4
+exact-fragment / proof-obligation / flat-map work, **+189 commits past the v1 corpus's
+`nose 0.5.0` build** — on the same cached clones. Per the
+[release checklist](../../docs/hazard-release-checklist.md), detection output changed so
+the dataset was regenerated, but the **formula still holds** (weights stable, best
+candidate AUC unchanged) → no re-calibration; the shipped `hazard()` is untouched.
+
+| | v1 (0.5.0 early) | refresh (current main) | Δ |
+|---|---|---|---|
+| families | 15,199 | 14,942 | −1.7% |
+| ever-G1 | 24.8% | 24.8% | — |
+| true cross-language families (langs > 1) | 37 | 36 | −1 |
+| **v5 (shipped) G1 AUC** | **0.644** | **0.641** | −0.003 |
+| v7 G1 AUC | 0.659 | 0.655 | −0.004 |
+| logistic G1 AUC | 0.639 | 0.635 | −0.004 |
+
+Every shift is within leave-one-repo-out noise; weight signs and order are unchanged
+(`mean_lines` +0.45 top, `mean_sem` −0.27 anti-predictive, `invisibility` +0.15). The
+large Type-4 engine expansion barely moved the function-level family backbone the corpus
+is built on, and did **not** populate the structurally-rare cross-language stratum
+(37 → 36) — reconfirming, from a fresh angle, that the ~0.60 structural ceiling is
+invariant to detection quality (a strong harm ranker still needs the semantic layer).
+
+> **Tooling fix made during this refresh:** `mine.py` still invoked the pre-consolidation
+> `--threshold` flag, which the current CLI rejects (→ 0 families on every snapshot, a
+> silently-broken refresh). Updated to the inline `--mode near:T` syntax.
+
 ## Headline finding — the literature-derived formula was mis-specified
 
 Leave-one-repo-out logistic weights (stable, low variance across 12 held-out repos):

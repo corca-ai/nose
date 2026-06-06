@@ -46,9 +46,12 @@ def scan(repo, sha, nose, subdir, mode, threshold):
     if sh(["git", "-C", repo, "checkout", "-q", "--detach", sha]).returncode != 0:
         return None
     target = repo if not subdir else f"{repo}/{subdir}"
-    cmd = [nose, "scan", target, "--mode", mode, "--format", "json", "--top", "0"]
-    if "near" in mode:
-        cmd += ["--threshold", str(threshold)]
+    # CLI consolidation removed the standalone --threshold flag; the near channel now
+    # carries its acceptance threshold inline as `near:T`. Rewrite a bare `near` token.
+    mode_eff = ",".join(
+        f"near:{threshold}" if ch == "near" else ch for ch in mode.split(",")
+    )
+    cmd = [nose, "scan", target, "--mode", mode_eff, "--format", "json", "--top", "0"]
     r = sh(cmd)
     try:
         return json.loads(r.stdout)
