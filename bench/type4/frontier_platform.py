@@ -151,6 +151,48 @@ CURATED: dict[str, dict] = {
     },
 }
 
+# Curated audit conclusion for the current corpus + axis state (issue #44 acceptance:
+# "at least one recommendation OR an explicit no-batch conclusion, backed by real examples
+# and hard-negative ideas"). This is a HUMAN judgment, not auto-derived — it is recorded
+# here so the structured output is self-contained for the next team. It must be revisited
+# when a new candidate axis is added or the prioritizer's coverage changes.
+AUDIT_CONCLUSION = {
+    "verdict": "no-implementation-ready-batch",
+    "generated_against": "the eight prevalence axes currently defined in prioritize_frontier.py",
+    "summary": (
+        "No implementation-ready real-miss batch is supported by this pass. Every "
+        "high-breadth axis is either already covered by the strict frontier or already "
+        "carries human-verified evidence; the broad-probe queue is fully drained (100% "
+        "probe coverage, zero uncovered forms across all 8 axes), so prevalence offers no "
+        "new uncovered-gap signal to promote."
+    ),
+    "evidence_pointers": [
+        "Top-breadth axes membership_contains and collection_empty_check are "
+        "frontier-recorded (human evidence: unsupported / closed) — high prevalence is not "
+        "next work (the #36 lesson, now visible via evidence_tier).",
+        "null_option_presence has the largest raw occurrence (~126k) yet is a covered-"
+        "current axis ranked below membership_contains on breadth — the presence-based "
+        "ranking deliberately refuses to promote it on raw count.",
+        "All eight axes report 100% broad-probe coverage and zero uncovered samples, so "
+        "the detector-suggested probe has no gap location to investigate.",
+    ],
+    "what_a_future_batch_would_need": (
+        "A future real-miss batch needs a NEW axis whose breadth is wide, whose broad "
+        "probe surfaces UNCOVERED forms, and whose semantic equivalence a human can pin to "
+        "a narrow proof invariant with a concrete hard-negative sibling — recorded in "
+        "real_frontier.v1.json, not inferred from prevalence."
+    ),
+    "hard_negative_ideas": [
+        "membership_contains: substring `contains` vs element membership; mutated or "
+        "append-expanded receiver bindings; shadowed constructor/type/package; untyped "
+        "dynamic receiver — all must stay non-equivalent.",
+        "map_default_lookup: absent-key semantics beyond a proven zero default; receiver "
+        "mutation/effects between binding and lookup; cross-file unproven map provenance.",
+        "null_option_presence: effectful guard bodies and pointer/reference aliasing that "
+        "change observable behavior must not merge with pure presence checks.",
+    ],
+}
+
 # Platform recommendation categories are NOT frontier statuses. They derive from the axis
 # language scope; `soundness-fix` and `product-noise-ranking-only` are reserved curated
 # overrides (none of the current axes are either) that route to #43-adjacent soundness work
@@ -585,6 +627,7 @@ def build(
         "tool_version": TOOL_VERSION,
         "identity": identity,
         "languages": list(ALL_LANGUAGES),
+        "audit_conclusion": AUDIT_CONCLUSION,
         "candidates": candidates_out,
         "vocabulary": {
             "implementation_cost": sorted(IMPLEMENTATION_COST),
@@ -626,6 +669,19 @@ def markdown_report(result: dict) -> str:
         )
     else:
         lines.append("- nose binary: not probed (pattern-signal only)")
+    ac = result["audit_conclusion"]
+    lines += [
+        "",
+        "## Audit conclusion (curated)",
+        "",
+        f"**Verdict: {ac['verdict']}.** {ac['summary']}",
+        "",
+        "Evidence:",
+    ]
+    lines += [f"- {p}" for p in ac["evidence_pointers"]]
+    lines += ["", f"_What a future batch would need:_ {ac['what_a_future_batch_would_need']}", ""]
+    lines += ["Hard-negative ideas to keep non-equivalent:"]
+    lines += [f"- {h}" for h in ac["hard_negative_ideas"]]
     lines += [
         "",
         "## Presence-ranked candidates",
@@ -698,8 +754,56 @@ def markdown_report(result: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def selftest() -> int:
+    """Corpus-free correctness checks. The live detector probe legitimately finds zero
+    gaps on the current mature axes, so the gap/family logic is proven here on synthetic
+    inputs instead."""
+    validate_vocab()
+    # Every curated axis routes a recommendation category and a known substrate value.
+    for c in pf.CANDIDATES:
+        assert SCOPE_TO_CATEGORY.get(c.scope, c.scope) in RECOMMENDATION_CATEGORY, c.candidate_id
+        assert curated_for(c.candidate_id)["substrate_required"] in SUBSTRATE_REQUIRED
+
+    # Presence ranking: breadth dominates raw occurrence. A wide-breadth/low-raw axis must
+    # outrank a narrow-breadth/huge-raw axis.
+    wide = {"repo_breadth": 0.9, "language_breadth": 0.8, "generalization": "both-splits",
+            "heldout_breadth": 0.9, "raw_occurrences": 10}
+    narrow = {"repo_breadth": 0.2, "language_breadth": 0.2, "generalization": "dev-only",
+              "heldout_breadth": 0.0, "raw_occurrences": 10_000_000}
+    assert presence_rank_key(wide) > presence_rank_key(narrow), "breadth must beat raw count"
+
+    # Generalization classification.
+    totals = {"dev": 2, "heldout": 2}
+    dev_only = breadth_metrics(
+        {"repos": {"a": {"split": "dev", "langs": {"go"}, "raw": 1}}, "languages": {"go"},
+         "gap_repos": set()}, totals)
+    assert dev_only["generalization"] == "dev-only", dev_only["generalization"]
+    both = breadth_metrics(
+        {"repos": {"a": {"split": "dev", "langs": {"go"}, "raw": 1},
+                   "b": {"split": "heldout", "langs": {"go"}, "raw": 1}},
+         "languages": {"go"}, "gap_repos": set()}, totals)
+    assert both["generalization"] == "both-splits"
+    assert both["dev_breadth"] == 0.5 and both["heldout_breadth"] == 0.5
+
+    # Family-on-line detection (the detector-suggested probe's covered/miss kernel).
+    report = json.dumps({"families": [{"locations": [
+        {"file": "src/x.go", "start_line": 10, "end_line": 12}]}]})
+    assert _families_on_line(report, "src/x.go", 11) == 1, "overlapping line => covered"
+    assert _families_on_line(report, "src/x.go", 99) == 0, "non-overlapping line => miss"
+    assert _families_on_line("", "src/x.go", 11) == 0, "no families => miss"
+    assert _families_on_line("not json", "src/x.go", 11) == 0, "bad json => miss, no crash"
+
+    # The audit conclusion is self-contained for the next team.
+    for key in ("verdict", "summary", "evidence_pointers", "hard_negative_ideas",
+                "what_a_future_batch_would_need"):
+        assert AUDIT_CONCLUSION.get(key), key
+    print("selftest OK")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--selftest", action="store_true", help="run corpus-free correctness checks")
     ap.add_argument("--corpus", type=Path, default=pf.DEFAULT_CORPUS)
     ap.add_argument("--repos-root", type=Path, default=pf.DEFAULT_REPOS_ROOT)
     ap.add_argument("--max-bytes", type=int, default=512_000)
@@ -718,6 +822,9 @@ def main() -> int:
     ap.add_argument("--json-out", type=Path, default=None)
     ap.add_argument("--markdown-out", type=Path, default=None)
     args = ap.parse_args()
+
+    if args.selftest:
+        return selftest()
 
     nose_binary = None
     if args.with_detector_probe:
