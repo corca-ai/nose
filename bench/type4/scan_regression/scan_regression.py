@@ -29,11 +29,15 @@ Why this exists, and the rules it follows (from the issue #37 decision):
    warm (reused cache) and never feeds the default baseline.
 
 5. Output drift is compared on the `--top 0` full JSON, canonicalized: family order
-   and ranking tie-breaks are ignored. `family_id` is the stable key, and we also
-   compare normalized (repo-relative) locations, unit kind, mean_lines / span size,
-   location count, and product JSON byte size. Forward-compatible: when #33 starts
-   emitting `fragment_kind` / `reason_code`, those are counted automatically; until
-   then we bucket by unit `kind` (e.g. `Block`) + span size as the interim view (#35).
+   and ranking tie-breaks are ignored. Families are keyed by their normalized
+   (repo-relative) location set, because the product `family_id` is NOT unique (distinct
+   families can share one id); family_id is compared as an attribute and is itself a
+   drift signal. We also compare unit kind, mean_lines / span size, location count, and
+   product JSON byte size. There is a forward-compatible hook for
+   `fragment_kind` / `reason_code`, but it is INERT today: #33 has merged yet the product
+   scan JSON still serializes only `kind` per location, so those counts stay empty until
+   a separate scan-JSON change exposes the fields. Until then we bucket by unit `kind`
+   (e.g. `Block`) + span size as the interim view (#35).
 
 6. Durable artifacts live next to this script in `bench/type4/scan_regression/`:
    `subset.json` (the small subset), `baseline.v1.json` (the recorded baseline),
@@ -70,8 +74,11 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# Project root = the dir four levels up: <root>/bench/type4/scan_regression/.
+# Project root = three levels up: <root>/bench/type4/scan_regression/.
 ROOT = HERE.parents[2]
+# Hard wall-clock cap per single scan, so a hung scan can't make the harness wait
+# forever (the subset is sub-second per repo; this is a generous safety net).
+SCAN_TIMEOUT_S = 600
 DEFAULT_SUBSET = HERE / "subset.json"
 DEFAULT_BASELINE = HERE / "baseline.v1.json"
 DEFAULT_SUMMARY = HERE / "compare-summary.md"
@@ -136,13 +143,18 @@ def binary_identity(nose: str, build_ref: str | None) -> dict:
 # ---------------------------------------------------------------------------
 # Product scan path (rules 1, 2)
 # ---------------------------------------------------------------------------
-def scan_command(nose: str, repo: Path, scan: dict, cache_dir: Path | None) -> list[str]:
+def scan_command(nose: str, scan: dict, cache_dir: Path | None) -> list[str]:
     """The ONE fixed product command. Only --top/--mode/--format come from config so
-    a typo can't silently switch detector paths; everything else is constant."""
+    a typo can't silently switch detector paths; everything else is constant.
+
+    The scan target is always `.`; `run_scan` sets `cwd` to the repo so the CLI emits
+    repo-relative location paths. That makes `family_id`, locations, and
+    `product_json_bytes` independent of where the corpus is checked out — the same repo
+    canonicalizes identically whether it lives under the main worktree or elsewhere."""
     cmd = [
         nose,
         "scan",
-        str(repo),
+        ".",
         "--mode",
         scan.get("mode", "semantic"),
         "--format",
@@ -186,10 +198,17 @@ def run_scan(
     nose: str, repo: Path, scan: dict, cache_dir: Path | None = None
 ) -> tuple[dict, dict, float]:
     """Run one product scan. Returns (scan_json, phase_timings_ms, wall_ms)."""
-    cmd = scan_command(nose, repo, scan, cache_dir)
+    cmd = scan_command(nose, scan, cache_dir)
     env = dict(os.environ, NOSE_TIME="1")
     t0 = time.perf_counter()
-    proc = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=ROOT)
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, env=env, cwd=repo, timeout=SCAN_TIMEOUT_S
+        )
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(
+            f"scan for {repo.name} exceeded {SCAN_TIMEOUT_S}s and was killed"
+        ) from e
     wall_ms = (time.perf_counter() - t0) * 1e3
     if proc.returncode != 0:
         raise RuntimeError(
@@ -218,8 +237,10 @@ def _span_bucket(mean_lines: int) -> str:
 
 
 def _count_meta(obj: dict, key: str, sink: dict) -> None:
-    """Count a forward-compatible metadata field (#33: fragment_kind / reason_code)
-    wherever it appears, so the harness picks it up the day it ships."""
+    """Count a forward-compatible metadata field (fragment_kind / reason_code) wherever
+    it appears. INERT today: although #33 has merged, the product scan JSON still
+    serializes only `kind` per location, so these stay empty until a separate scan-JSON
+    change exposes the fields — at which point this lights up with no code change."""
     val = obj.get(key)
     if isinstance(val, str):
         sink[val] = sink.get(val, 0) + 1
@@ -235,9 +256,12 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
     repo_abs = repo.resolve()
 
     def relloc(loc: dict) -> str:
+        # The scan runs with cwd=repo, so `file` is already repo-relative (e.g.
+        # "middleware/x_test.go"). Re-base against the repo anyway to absorb a leading
+        # "./" or any absolute path, keeping the key checkout-location independent.
         f = loc.get("file", "")
         try:
-            rel = os.path.relpath((ROOT / f).resolve(), repo_abs)
+            rel = os.path.relpath((repo_abs / f).resolve(), repo_abs)
         except ValueError:
             rel = f
         return f"{rel}:{loc.get('start_line')}-{loc.get('end_line')}:{loc.get('kind')}"
@@ -246,10 +270,15 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
     span_buckets: dict[str, int] = {}
     fragment_kind_counts: dict[str, int] = {}
     reason_code_counts: dict[str, int] = {}
+    # NOTE: the product `family_id` is NOT unique — distinct families can share one id
+    # (observed in chi: two Block families both keyed `c55b843732270ba0`). Keying by
+    # family_id would silently drop a family, so families are keyed by their normalized
+    # location set (the true identity per the #37 decision), with family_id kept as an
+    # attribute (and itself a drift signal). The location-set key also keeps the diff
+    # robust to family_id scheme changes.
     families: dict[str, dict] = {}
 
     for fam in families_in:
-        fid = fam.get("family_id", "")
         locs = fam.get("locations", [])
         fam_kinds: dict[str, int] = {}
         for loc in locs:
@@ -265,7 +294,10 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
         bucket = _span_bucket(mean_lines)
         span_buckets[bucket] = span_buckets.get(bucket, 0) + 1
 
-        families[fid] = {
+        loc_list = sorted(relloc(l) for l in locs)
+        key = hashlib.sha1("\n".join(loc_list).encode()).hexdigest()[:16]
+        families[key] = {
+            "family_id": fam.get("family_id", ""),
             "members": fam.get("members"),
             "files": fam.get("files"),
             "languages": fam.get("languages"),
@@ -273,7 +305,7 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
             "span_bucket": bucket,
             "location_count": len(locs),
             "kinds": dict(sorted(fam_kinds.items())),
-            "locations": sorted(relloc(l) for l in locs),
+            "locations": loc_list,
         }
 
     ranking = scan_json.get("ranking", {})
@@ -285,6 +317,9 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
         },
         "total_families": ranking.get("total_families"),
         "shown_families": ranking.get("shown_families"),
+        # If two families ever shared an identical location set, this would fall below
+        # shown_families — surfaced rather than silently collapsed.
+        "distinct_location_sets": len(families),
         "product_json_bytes": product_json_bytes(scan_json),
         "kind_counts": dict(sorted(kind_counts.items())),
         "span_buckets": dict(sorted(span_buckets.items())),
@@ -423,16 +458,25 @@ def compare_repo(repo_id: str, base: dict, cur: dict) -> dict:
     bo, co = base["output"], cur["output"]
     triggers: list[str] = []
 
-    # Family set drift (rule 5: family_id stable key).
-    base_fams, cur_fams = set(bo["families"]), set(co["families"])
-    added = sorted(cur_fams - base_fams)
-    removed = sorted(base_fams - cur_fams)
+    # Family set drift (rule 5). Families are keyed by their normalized location set,
+    # not the non-unique family_id; we report each by family_id + a location for humans.
+    bfam, cfam = bo["families"], co["families"]
+    base_keys, cur_keys = set(bfam), set(cfam)
+
+    def label(rec: dict) -> str:
+        loc = rec["locations"][0] if rec["locations"] else "?"
+        return f"{rec.get('family_id') or '<no-id>'} ({loc})"
+
+    added = [label(cfam[k]) for k in sorted(cur_keys - base_keys)]
+    removed = [label(bfam[k]) for k in sorted(base_keys - cur_keys)]
     changed = []
-    for fid in sorted(base_fams & cur_fams):
-        bf, cf = bo["families"][fid], co["families"][fid]
-        fields = ["members", "location_count", "mean_lines", "kinds", "locations"]
+    for k in sorted(base_keys & cur_keys):
+        bf, cf = bfam[k], cfam[k]
+        # locations are baked into the key, so they match; compare the rest, including
+        # family_id (a new id for the same location set is itself worth a look).
+        fields = ["family_id", "members", "location_count", "mean_lines", "kinds"]
         if any(bf.get(f) != cf.get(f) for f in fields):
-            changed.append(fid)
+            changed.append(label(cf))
 
     if bo["total_families"] != co["total_families"]:
         triggers.append(

@@ -63,18 +63,27 @@ fire** — triggers are investigation prompts, not merge blockers (see below). P
 ## What gets compared (output drift)
 
 The `--top 0` full JSON is canonicalized so **family order and ranking tie-breaks are
-ignored** and locations are made **repo-relative** (the same corpus checked out
-elsewhere canonicalizes identically). Per repo we record and diff:
+ignored** and locations are made **repo-relative**. Each scan runs with `cwd` set to the
+repo and a `.` target, so the CLI emits repo-relative paths and `family_id`,
+`product_json_bytes`, and the location keys are **independent of where the corpus is
+checked out** — the committed baseline compares cleanly whether the corpus lives under the
+main worktree or any other path you pass to `--repos-root`. Per repo we record and diff:
 
 - `total_families` / `shown_families`
 - `product_json_bytes` — payload byte size with the volatile `tool_version` removed
 - `kind_counts` — unit kinds across all locations (`Block`, `Function`, `Method`, …)
 - `span_buckets` — families bucketed by `mean_lines` (`1`, `2-3`, `4-10`, `11-30`, `31+`)
-- per family (keyed by stable `family_id`): `members`, `location_count`, `mean_lines`,
-  per-kind counts, and the sorted set of repo-relative locations
-- `fragment_kind_counts` / `reason_code_counts` — **forward-compatible**: empty today,
-  auto-populated the moment #33 emits these fields. Until then the kind + span buckets
-  are the interim output-quality view; they are where #35's buckets plug in.
+- per family — **keyed by the normalized location set, not `family_id`** (the product
+  `family_id` is not unique; distinct families can share one id, so keying on it would
+  silently drop a family): `family_id` (kept as an attribute and a drift signal),
+  `members`, `location_count`, `mean_lines`, per-kind counts, and the sorted locations.
+  `distinct_location_sets` is recorded so a true location-set collision would surface
+  rather than collapse silently.
+- `fragment_kind_counts` / `reason_code_counts` — a **forward-compatible hook that is
+  inert today**: #33 has merged, but the product scan JSON still serializes only `kind`
+  per location, so these stay empty until a separate scan-JSON change exposes the fields
+  (then they light up with no code change here). Until then the kind + span buckets are
+  the interim output-quality view; they are where #35's buckets plug in.
 
 `baseline` runs each repo `runtime_repeats` times and asserts the canonical output is
 **identical across runs** on one binary — a determinism guard. A mismatch aborts before
