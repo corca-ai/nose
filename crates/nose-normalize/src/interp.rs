@@ -977,11 +977,22 @@ impl<'a> Interp<'a> {
             return Err(Unsupported);
         }
         let body = *kids.last().ok_or(Unsupported)?;
-        match self.exec(body, &mut local)? {
-            Flow::Ret(v) => Ok(v),
-            Flow::Err => Ok(Value::Err),
-            Flow::Normal => Ok(Value::Null),
-            Flow::Break | Flow::Continue => Err(Unsupported),
+        match self.il.kind(body) {
+            NodeKind::Block
+            | NodeKind::Assign
+            | NodeKind::ExprStmt
+            | NodeKind::Return
+            | NodeKind::Throw
+            | NodeKind::Loop
+            | NodeKind::Try
+            | NodeKind::Break
+            | NodeKind::Continue => match self.exec(body, &mut local)? {
+                Flow::Ret(v) => Ok(v),
+                Flow::Err => Ok(Value::Err),
+                Flow::Normal => Ok(Value::Null),
+                Flow::Break | Flow::Continue => Err(Unsupported),
+            },
+            _ => self.eval(body, &mut local),
         }
     }
 }
@@ -2271,6 +2282,144 @@ mod tests {
     #[test]
     fn hof_filter_map_effectful_lambda_records_effects() {
         let behavior = hof_filter_map_effectful_lambda();
+        assert_eq!(
+            behavior.ret,
+            Value::List(vec![Value::Int(1), Value::Int(2)])
+        );
+        assert_eq!(behavior.effects, vec![Value::Int(1), Value::Int(2)]);
+    }
+
+    fn java_stream_nested_expression_lambda_behavior(outer_kind: HoFKind) -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let xs_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let ys_param = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+
+        let x_param = b.add(NodeKind::Param, Payload::Cid(2), sp, &[]);
+        let y_param = b.add(NodeKind::Param, Payload::Cid(3), sp, &[]);
+        let x_in_inner = b.add(NodeKind::Var, Payload::Cid(2), sp, &[]);
+        let y = b.add(NodeKind::Var, Payload::Cid(3), sp, &[]);
+        let sum = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp, &[x_in_inner, y]);
+        let inner_lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[y_param, sum]);
+        let ys = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let inner_map = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::Map),
+            sp,
+            &[ys, inner_lambda],
+        );
+        let outer_lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[x_param, inner_map]);
+        let xs = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let outer = b.add(
+            NodeKind::HoF,
+            Payload::HoF(outer_kind),
+            sp,
+            &[xs, outer_lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[outer]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            sp,
+            &[xs_param, ys_param, ret],
+        );
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "T.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(
+            &il,
+            func,
+            &[
+                Value::List(vec![Value::Int(1), Value::Int(2)]),
+                Value::List(vec![Value::Int(10), Value::Int(20)]),
+            ],
+        )
+        .expect("run_unit")
+    }
+
+    #[test]
+    fn java_stream_flat_map_expression_lambdas_are_interpretable() {
+        assert_eq!(
+            java_stream_nested_expression_lambda_behavior(HoFKind::FlatMap).ret,
+            Value::List(vec![
+                Value::Int(11),
+                Value::Int(21),
+                Value::Int(12),
+                Value::Int(22),
+            ])
+        );
+    }
+
+    #[test]
+    fn java_stream_map_returning_stream_stays_nested() {
+        assert_eq!(
+            java_stream_nested_expression_lambda_behavior(HoFKind::Map).ret,
+            Value::List(vec![
+                Value::List(vec![Value::Int(11), Value::Int(21)]),
+                Value::List(vec![Value::Int(12), Value::Int(22)]),
+            ])
+        );
+    }
+
+    fn java_stream_flat_map_effectful_lambda_behavior() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let xs_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+
+        let x_param = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+        let printed = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let print = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Print),
+            sp,
+            &[printed],
+        );
+        let print_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[print]);
+        let returned = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let single = b.add(NodeKind::Seq, Payload::None, sp, &[returned]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[single]);
+        let lambda_body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp,
+            &[print_stmt, lambda_ret],
+        );
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[x_param, lambda_body]);
+        let xs = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let flat_map = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FlatMap),
+            sp,
+            &[xs, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[flat_map]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[xs_param, ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "T.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(
+            &il,
+            func,
+            &[Value::List(vec![Value::Int(1), Value::Int(2)])],
+        )
+        .expect("run_unit")
+    }
+
+    #[test]
+    fn java_stream_flat_map_effectful_lambda_records_effects() {
+        let behavior = java_stream_flat_map_effectful_lambda_behavior();
         assert_eq!(
             behavior.ret,
             Value::List(vec![Value::Int(1), Value::Int(2)])

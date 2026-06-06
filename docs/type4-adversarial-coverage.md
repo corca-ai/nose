@@ -111,6 +111,10 @@ one registry rule instead of adding parallel language-specific exceptions.
 For option-producing iterator rules, record the absence/value boundary explicitly:
 the current oracle `FilterMap` model treats `Null` as absence, propagates `Err`,
 and emits every other value, including falsey values such as `0`.
+For Java stream rules, keep the registry scoped to the proven pure subset:
+`Arrays.stream(...).flatMap(...map...)` can share the FlatMap HoF only while
+`map`-returning-stream siblings stay nested and callback effects remain observable
+oracle evidence instead of purity assumptions.
 
 ## Adversarial Cases
 
@@ -124,6 +128,7 @@ attack exactly the proof invariant a rule needs:
 - wrong collection/key/default coordinate;
 - missing type/provenance/order proof;
 - filter-map absence vs emitted falsey value;
+- Java stream `flatMap` vs `map` returning streams;
 - effectful callback where a pure HoF rule would be unsound;
 - representation growth that makes a coverage win too expensive.
 

@@ -67,20 +67,21 @@
       "id": "iterator.java_stream.flat_map",
       "semantic_family": "hof.flat_map",
       "title": "Java Stream.flatMap converges with shared FlatMap HoF",
-      "status": "oracle-blocked",
-      "next_action": "oracle",
-      "priority": 30,
+      "status": "covered",
+      "next_action": "monitor",
+      "priority": 0,
       "languages": ["java", "python"],
       "representations": ["java_stream", "multi_clause_comprehension", "nested_builder_loop"],
       "rule_ids": ["hof.flat_map", "idiom.java_stream", "oracle.java_stream"],
       "positive_cases": ["java_stream_flat_map_py_comp"],
       "adversarial_cases": ["java_stream_map_not_flat_map", "java_stream_effectful_lambda"],
-      "evidence": "The idiom family is likely valuable, but acceptance needs oracle support for enough Java stream/lambda behavior to reject hard negatives.",
-      "agent_task": "Start with oracle capability: determine which Java stream flatMap examples are interpretable. Extend oracle only for pure, bounded forms before adding idiom canonicalization.",
+      "evidence": "Pure Java Arrays.stream(xs).flatMap(x -> Arrays.stream(ys).map(...)) now converges with Python multi-clause comprehension through the shared FlatMap HoF. The oracle interprets Java expression-body stream lambdas; map-returning-stream remains nested, and effectful callbacks are observable rather than assumed pure. Successor audit: the closed gap was the Java stream oracle/lambda blocker; no new successor cell was added because aggregate/terminal FlatMap consumers are already tracked by hof.flat_map.aggregate_bridge.",
+      "agent_task": "Monitor pure Java stream flatMap coverage. New aggregate or terminal-consumer gaps should attach to hof.flat_map.aggregate_bridge unless they require a Java-only oracle boundary.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item iterator.java_stream.flat_map",
         "cargo test -p nose-normalize java_stream",
-        "cargo run -p nose-cli -- verify --max-violations 0 <focused-java-stream-corpus>"
+        "cargo test -p nose-cli --test equivalence java_stream_flat_map",
+        "cargo run -p nose-cli -- verify --max-violations 0 bench/type4/adversarial/cases/java_stream_flat_map"
       ],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
     },
