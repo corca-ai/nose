@@ -10,6 +10,8 @@
 //! 5. `algebra` — algebraic canonicalization (assoc/comm flatten, comparison
 //!    direction, De Morgan; subsumes commutative operand sorting).
 //! 6. `cfg_norm::run` — orient `if` branches (when `cfg_norm` is enabled).
+//!
+//! proof-obligation: oracle.cutoff
 
 mod algebra;
 mod alpha;

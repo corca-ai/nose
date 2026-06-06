@@ -6,6 +6,7 @@ summary = "Associative-commutative numeric algebra and subtraction/negation cano
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/algebra.rs"]
 symbols = ["flatten_into", "intern_ac_chain", "collect_add_sub_expr_operands"]
+markers = ["normalize.value_graph.algebra"]
 
 [lean]
 proof = "Proof.lean"

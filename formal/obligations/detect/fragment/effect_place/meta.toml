@@ -6,6 +6,7 @@ summary = "Append and index effects are directly observed; field writes require 
 [rust]
 files = ["crates/nose-detect/src/fragment/contract.rs"]
 symbols = ["Effect", "Place", "writes_proven"]
+markers = ["detect.fragment.effect_place"]
 
 [lean]
 proof = "Proof.lean"

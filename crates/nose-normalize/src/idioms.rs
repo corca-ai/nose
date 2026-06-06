@@ -2,6 +2,10 @@
 //! different languages to one [`Builtin`] op so that, e.g., Python `len(xs)`,
 //! JS `xs.length`, and Go `len(xs)` all converge. Detection on `xs.length` (a
 //! field access) is handled by the caller; this module only inspects `Call`s.
+//!
+//! proof-obligation: normalize.value_graph.bool_reduce
+//! proof-obligation: normalize.value_graph.functor
+//! proof-obligation: normalize.value_graph.min_max
 
 use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 

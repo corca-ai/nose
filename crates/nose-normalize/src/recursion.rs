@@ -32,9 +32,12 @@
 //! the interpreter now executes as a real call (see [`crate::interp`]) — and the rewritten
 //! loop, and flags any behavioral difference.
 
-use crate::types::{infer_param_types, result_ty, Ty};
+use crate::types::{infer_param_types, Ty};
 use nose_il::{Il, IlBuilder, NodeId, NodeKind, Op, Payload, Symbol, UnitKind};
 use rustc_hash::{FxHashMap, FxHashSet};
+
+mod structural_fold;
+mod tail;
 
 pub(crate) fn run(old: &Il) -> Il {
     // A same-named call inside a standalone function is its self-call. Methods are excluded:
@@ -71,19 +74,8 @@ struct Rebuilder<'a> {
 /// (copied into the new one during emission). `param_cids` is the function's parameters in
 /// order; `args` are the next-call arguments, positionally matched to them.
 enum Plan {
-    Tail {
-        param_cids: Vec<u32>,
-        guards: Vec<(NodeId, NodeId)>, // (cond, returned value)
-        args: Vec<NodeId>,
-    },
-    Structural {
-        param_cids: Vec<u32>,
-        base_cond: NodeId,
-        op: Op,
-        head: NodeId,
-        args: Vec<NodeId>,
-        identity: NodeId,
-    },
+    Tail(tail::Plan),
+    Structural(structural_fold::Plan),
 }
 
 impl Rebuilder<'_> {
@@ -211,63 +203,11 @@ impl Rebuilder<'_> {
         };
         let param_cids = self.param_cids(fid);
 
-        // Tail recursion: the recursive case IS the self-call.
-        if let Some(args) = self.as_self_call(rexpr, name) {
-            if args.len() != param_cids.len() {
-                return None;
-            }
-            return Some(Plan::Tail {
-                param_cids,
-                guards,
-                args,
-            });
+        if let Some(plan) = tail::recognize(self, param_cids.clone(), guards.clone(), rexpr, name) {
+            return Some(Plan::Tail(plan));
         }
-
-        // Structural recursion: `HEAD ⊕ f(a…)` / `f(a…) ⊕ HEAD`, gated to a numeric monoid.
-        if self.old.kind(rexpr) == NodeKind::BinOp {
-            let op = match self.old.node(rexpr).payload {
-                Payload::Op(o) => o,
-                _ => return None,
-            };
-            if !matches!(op, Op::Add | Op::Mul) {
-                return None;
-            }
-            let operands = self.old.children(rexpr);
-            if operands.len() != 2 {
-                return None;
-            }
-            let (a, b) = (operands[0], operands[1]);
-            let (head, args) = match (self.as_self_call(a, name), self.as_self_call(b, name)) {
-                (Some(args), None) => (b, args),
-                (None, Some(args)) => (a, args),
-                _ => return None, // both or neither — not a linear fold
-            };
-            if args.len() != param_cids.len() || guards.len() != 1 {
-                return None;
-            }
-            let (base_cond, identity) = guards[0];
-            // Numeric monoid gate: ⊕ on proven-`Num` operands (so commutative + associative)
-            // and the base case returning ⊕'s identity literal (`0` for `+`, `1` for `·`).
-            let ev = self.param_type_env(fid, &param_cids);
-            if result_ty(self.old, head, &ev) != Ty::Num {
-                return None;
-            }
-            let want_identity = match op {
-                Op::Add => 0,
-                Op::Mul => 1,
-                _ => return None,
-            };
-            if !self.is_int_literal(identity, want_identity) {
-                return None;
-            }
-            return Some(Plan::Structural {
-                param_cids,
-                base_cond,
-                op,
-                head,
-                args,
-                identity,
-            });
+        if let Some(plan) = structural_fold::recognize(self, fid, param_cids, guards, rexpr, name) {
+            return Some(Plan::Structural(plan));
         }
         None
     }
@@ -298,72 +238,8 @@ impl Rebuilder<'_> {
             .collect();
 
         let body = match plan {
-            Plan::Tail {
-                param_cids,
-                guards,
-                args,
-            } => {
-                let updates = self.ordered_updates(param_cids, args)?;
-                let cond = self.not_any(guards.iter().map(|&(c, _)| c).collect());
-                let loop_body = self.b.add(NodeKind::Block, Payload::None, span, &updates);
-                let wl = self.while_loop(cond, loop_body, span);
-                // Post-loop guard chain: exactly one guard holds on exit, so the final one
-                // is an unconditional return.
-                let mut stmts = vec![wl];
-                for (i, &(cond, val)) in guards.iter().enumerate() {
-                    let v = self.go_val(val);
-                    let ret = self.ret(v, span);
-                    if i + 1 == guards.len() {
-                        stmts.push(ret);
-                    } else {
-                        let c = self.go_val(cond);
-                        let then = self.b.add(NodeKind::Block, Payload::None, span, &[ret]);
-                        stmts.push(self.b.add(NodeKind::If, Payload::None, span, &[c, then]));
-                    }
-                }
-                self.b.add(NodeKind::Block, Payload::None, span, &stmts)
-            }
-            Plan::Structural {
-                param_cids,
-                base_cond,
-                op,
-                head,
-                args,
-                identity,
-            } => {
-                let acc = self.fresh_cid(fid);
-                let init = {
-                    let lhs = self.var(acc, span);
-                    let rhs = self.go_val(*identity);
-                    self.b
-                        .add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
-                };
-                // `acc = acc ⊕ HEAD` runs first (reads the current params/acc), then the
-                // params advance to the next call's arguments.
-                let acc_update = {
-                    let lhs = self.var(acc, span);
-                    let cur = self.var(acc, span);
-                    let h = self.go_val(*head);
-                    let combined = self
-                        .b
-                        .add(NodeKind::BinOp, Payload::Op(*op), span, &[cur, h]);
-                    self.b
-                        .add(NodeKind::Assign, Payload::None, span, &[lhs, combined])
-                };
-                let mut loop_stmts = vec![acc_update];
-                loop_stmts.extend(self.ordered_updates(param_cids, args)?);
-                let cond = self.not_any(vec![*base_cond]);
-                let loop_body = self
-                    .b
-                    .add(NodeKind::Block, Payload::None, span, &loop_stmts);
-                let wl = self.while_loop(cond, loop_body, span);
-                let ret = {
-                    let v = self.var(acc, span);
-                    self.ret(v, span)
-                };
-                self.b
-                    .add(NodeKind::Block, Payload::None, span, &[init, wl, ret])
-            }
+            Plan::Tail(plan) => tail::build_body(self, plan, span)?,
+            Plan::Structural(plan) => structural_fold::build_body(self, fid, plan, span)?,
         };
 
         let mut children = params;

@@ -33,6 +33,16 @@ Some semantic surfaces are required even when they are not one-file rule modules
 currently requires obligations for IL arena validity/deep-copy, recursion rewrites, exact
 fragment effect/place and wrapper contracts, and the oracle cutoff.
 
+Every Rust-backed obligation must list `rust.markers = ["<obligation id>"]`, and one of the
+listed Rust files must contain the matching comment marker:
+
+```rust
+//! proof-obligation: detect.fragment.effect_place
+```
+
+The linter also scans Rust files in the other direction: a marker with no matching
+obligation, or a marker in a file not named by that obligation's `rust.files`, fails CI.
+
 ## Registered proof families
 
 - `normalize.value_graph.algebra` — associative-commutative numeric algebra,
@@ -53,7 +63,7 @@ fragment effect/place and wrapper contracts, and the oracle cutoff.
   distinct-field commutativity, and same-field order counterexample.
 - `normalize.recursion.tail` — tail-recursive self-call elimination into a while loop.
 - `normalize.recursion.structural_fold` — numeric structural recursion as an accumulator
-  fold for `+` and `*`.
+  fold for `+` and `*`, with counterexamples for subtraction and wrong identities.
 - `detect.fragment.effect_place` — append/index effects need no receiver proof; field
   writes require an exact-safe place and reject `Unknown`.
 - `detect.fragment.free_inputs` — wrapper parameters are reads minus fragment-local

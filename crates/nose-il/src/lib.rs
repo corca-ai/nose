@@ -5,6 +5,8 @@
 //! string [`Interner`]. Every node carries a [`Span`] for sourcemap-style
 //! traceback. The crate defines the data model and (de)serialization only — the
 //! frontends build raw IL, and `nose-normalize` rewrites it into canonical form.
+//!
+//! proof-obligation: il.arena.validity
 
 pub mod intern;
 pub mod node;

@@ -6,6 +6,7 @@ summary = "Clamp min/max compositions and two-comparison forms agree only under 
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs"]
 symbols = ["minmax_pattern"]
+markers = ["normalize.value_graph.clamp"]
 
 [lean]
 proof = "Proof.lean"

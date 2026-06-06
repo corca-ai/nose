@@ -11,6 +11,10 @@
 //! The forcing function: a contract that cannot be lowered into a runnable wrapper is
 //! *underspecified*. [`synthesize_wrapper`] returning `None` is therefore a signal that the
 //! recognizer described a fragment the oracle cannot vouch for — fail closed.
+//!
+//! proof-obligation: detect.fragment.free_inputs
+//! proof-obligation: detect.fragment.wrapper_synthesis
+//! proof-obligation: il.arena.deep_copy
 
 use super::contract::FragmentContract;
 use nose_il::{FileMeta, Il, IlBuilder, LoopKind, NodeId, NodeKind, Payload, Span, Unit, UnitKind};

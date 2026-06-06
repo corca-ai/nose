@@ -183,9 +183,11 @@ do not keep equivalent loop recurrences apart.
 
 ## Track 4 — Recursion → iteration
 
-`recursion.rs` rewrites the two recursion schemes that have a behavior-preserving iterative
-form, in the SEMANTIC phase (after the oracle's structural cutoff), so the loops it emits
-flow through dataflow / cfg-norm / the value graph and converge with hand-written iteration.
+`recursion.rs` coordinates the two recursion schemes that have a behavior-preserving
+iterative form, with the proof-sensitive rule bodies split into `recursion/tail.rs` and
+`recursion/structural_fold.rs`. They run in the SEMANTIC phase (after the oracle's structural
+cutoff), so the loops they emit flow through dataflow / cfg-norm / the value graph and
+converge with hand-written iteration.
 
 - **Tail recursion → `while`.** `f(p…): if c₀: return v₀; …; return f(a…)` becomes
   `while not(c₀ or …) { p… := a… }; if c₀: return v₀; …; return vₖ₋₁`. The next call's
@@ -206,8 +208,9 @@ anything else is left untouched. The proof obligations
 [`normalize.recursion.tail`](../formal/obligations/normalize/recursion/tail/Proof.lean)
 and
 [`normalize.recursion.structural_fold`](../formal/obligations/normalize/recursion/structural_fold/Proof.lean)
-record the tail-loop equivalence and the numeric `+`/`*` fold laws. **Soundness** is checked,
-not assumed: the interpreter
+record the tail-loop equivalence, the numeric `+`/`*` fold laws, and boundary
+counterexamples for cyclic tail-call bindings, subtraction, and wrong identities.
+**Soundness** is checked, not assumed: the interpreter
 ([`interp`](../crates/nose-normalize/src/interp.rs)) now executes self-recursion, so
 `nose verify` interprets the original recursion *and* the rewritten loop and flags any
 behavioral difference (when the recursion terminates on the input battery — a guard like

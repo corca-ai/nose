@@ -4,12 +4,20 @@ kind = "soundness"
 summary = "Numeric structural recursion can be emitted as an accumulator fold for addition and multiplication monoids."
 
 [rust]
-files = ["crates/nose-normalize/src/recursion.rs"]
-symbols = ["Structural", "result_ty", "is_int_literal"]
+files = ["crates/nose-normalize/src/recursion/structural_fold.rs"]
+symbols = ["recognize", "build_body"]
+markers = ["normalize.recursion.structural_fold"]
 
 [lean]
 proof = "Proof.lean"
 theorems = [
+  "NoseRecursionStructuralFold.add_monoid_preconditions",
+  "NoseRecursionStructuralFold.mul_monoid_preconditions",
   "NoseRecursionStructuralFold.add_structural_fold_sound",
   "NoseRecursionStructuralFold.mul_structural_fold_sound",
+]
+counterexamples = "Counterexamples.lean"
+counterexample_theorems = [
+  "NoseRecursionStructuralFoldCounterexamples.subtraction_is_not_a_structural_fold_monoid",
+  "NoseRecursionStructuralFoldCounterexamples.wrong_mul_identity_changes_fold",
 ]

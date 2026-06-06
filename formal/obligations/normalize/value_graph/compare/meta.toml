@@ -6,6 +6,7 @@ summary = "Comparison direction, negated comparisons, and total-order lattice ca
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/algebra.rs"]
 symbols = ["negate_cmp_code", "lattice_le_ne_to_lt", "lattice_lt_eq_to_le"]
+markers = ["normalize.value_graph.compare"]
 
 [lean]
 proof = "Proof.lean"

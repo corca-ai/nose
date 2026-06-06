@@ -17,6 +17,16 @@
 //!
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
+//!
+//! proof-obligation: normalize.control_flow.guard_returns
+//! proof-obligation: normalize.value_graph.algebra
+//! proof-obligation: normalize.value_graph.bool_reduce
+//! proof-obligation: normalize.value_graph.clamp
+//! proof-obligation: normalize.value_graph.compare
+//! proof-obligation: normalize.value_graph.field_writes
+//! proof-obligation: normalize.value_graph.free_monoid
+//! proof-obligation: normalize.value_graph.functor
+//! proof-obligation: normalize.value_graph.min_max
 
 mod rules;
 

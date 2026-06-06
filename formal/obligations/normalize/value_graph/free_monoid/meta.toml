@@ -6,6 +6,7 @@ summary = "String/list builder semantics are ordered free-monoid concatenation, 
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/interp.rs"]
 symbols = ["is_concat_ty", "join_strings"]
+markers = ["normalize.value_graph.free_monoid"]
 
 [lean]
 proof = "Proof.lean"

@@ -31,8 +31,18 @@ namespaces such as:
 - `oracle.*` — behavioral-oracle independence contracts such as the normalization cutoff.
 
 The linter has a required-surface list for proof-sensitive areas whose omission would be
-easy to miss. Those obligations must list the expected Rust files and symbols in
+easy to miss. Those obligations must list the expected Rust files, symbols, and markers in
 `meta.toml`; otherwise CI fails even if a Lean file exists somewhere else.
+
+Every Rust-backed obligation must also be marked from the Rust side:
+
+```rust
+//! proof-obligation: normalize.recursion.structural_fold
+```
+
+The linter checks both directions. A marker without a matching `meta.toml` fails, and a
+`meta.toml` whose `rust.markers` entry is not present in one of its `rust.files` fails. This
+keeps proof-sensitive code from drifting away from the registry.
 
 ## Named rule modules
 
@@ -47,6 +57,11 @@ formal/obligations/normalize/value_graph/<rule>/meta.toml
 The linter checks that every file in `value_graph/rules/*.rs` has a matching obligation and
 that the matching obligation sets `rust.rule_module = true`. This makes omission visible:
 a new named semantic rule cannot be added without registering its proof state.
+
+For proof-sensitive rewrites that are not value-graph rule modules, prefer the same shape:
+put the rule-specific recognition/emission in a named module and mark that module with the
+obligation id. Recursion now follows this pattern with `recursion/tail.rs` and
+`recursion/structural_fold.rs`.
 
 ## Statuses
 

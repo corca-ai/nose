@@ -8,6 +8,8 @@
 //! - [`run`] (in-place, run last): **branch orientation** — when an `if`'s two
 //!   branches could be swapped, orient them canonically by inverting a comparison
 //!   condition. `if a < b { X } else { Y }` ≡ `if a >= b { Y } else { X }`.
+//!
+//! proof-obligation: normalize.control_flow.guard_returns
 
 use crate::commutative::subtree_hashes;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload};

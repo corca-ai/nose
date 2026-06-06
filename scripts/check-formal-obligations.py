@@ -38,6 +38,8 @@ RULE_ROOTS = {
     "normalize.value_graph": ROOT / "crates" / "nose-normalize" / "src" / "value_graph" / "rules",
 }
 
+RUST_ROOTS = (ROOT / "crates",)
+MARKER_RE = re.compile(r"\bproof-obligation:\s*([A-Za-z0-9_.]+)\b")
 DECL_RE = re.compile(r"^\s*(?:theorem|lemma|def)\s+([A-Za-z_][A-Za-z0-9_']*)\b")
 NAMESPACE_RE = re.compile(r"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_'.]*)\b")
 END_RE = re.compile(r"^\s*end(?:\s+[A-Za-z_][A-Za-z0-9_'.]*)?\s*$")
@@ -72,13 +74,13 @@ REQUIRED_OBLIGATIONS = (
     ),
     RequiredObligation(
         "normalize.recursion.tail",
-        ("crates/nose-normalize/src/recursion.rs",),
-        ("Tail", "ordered_updates", "while_loop"),
+        ("crates/nose-normalize/src/recursion/tail.rs",),
+        ("recognize", "build_body"),
     ),
     RequiredObligation(
         "normalize.recursion.structural_fold",
-        ("crates/nose-normalize/src/recursion.rs",),
-        ("Structural", "result_ty", "is_int_literal"),
+        ("crates/nose-normalize/src/recursion/structural_fold.rs",),
+        ("recognize", "build_body"),
     ),
     RequiredObligation(
         "detect.fragment.effect_place",
@@ -232,7 +234,24 @@ def load_obligations(errors: list[str]) -> dict[str, Obligation]:
     return obligations
 
 
-def lint_meta(obligation: Obligation, all_ids: set[str], errors: list[str]) -> None:
+def collect_rust_markers() -> dict[str, set[str]]:
+    markers: dict[str, set[str]] = {}
+    for root in RUST_ROOTS:
+        if not root.exists():
+            continue
+        for rust_file in sorted(root.rglob("*.rs")):
+            rel = str(rust_file.relative_to(ROOT))
+            for match in MARKER_RE.finditer(rust_file.read_text(encoding="utf-8")):
+                markers.setdefault(match.group(1), set()).add(rel)
+    return markers
+
+
+def lint_meta(
+    obligation: Obligation,
+    all_ids: set[str],
+    errors: list[str],
+    rust_markers: dict[str, set[str]] | None = None,
+) -> None:
     rel = obligation.path.relative_to(ROOT)
     where = str(rel / "meta.toml")
     meta = obligation.meta
@@ -260,6 +279,16 @@ def lint_meta(obligation: Obligation, all_ids: set[str], errors: list[str]) -> N
         for symbol in symbols:
             if re.search(rf"\b{re.escape(symbol)}\b", contents) is None:
                 error(errors, f"{where}: rust symbol `{symbol}` was not found in listed files")
+    markers = as_list(rust.get("markers", []), "rust.markers", errors, where)
+    if rust_files and not markers:
+        error(errors, f"{where}: rust-backed obligations must list at least one `rust.markers` entry")
+    if rust_files and rust_markers is not None:
+        for marker in markers:
+            if marker != obligation.id:
+                error(errors, f"{where}: rust marker `{marker}` must match obligation id `{obligation.id}`")
+            found_files = rust_markers.get(marker, set())
+            if not any(rust_file in found_files for rust_file in rust_files):
+                error(errors, f"{where}: rust marker `{marker}` was not found in listed rust files")
 
     if rust.get("rule_module", False) is True:
         matching_prefix = next((prefix for prefix in RULE_ROOTS if obligation.id.startswith(prefix + ".")), None)
@@ -360,6 +389,26 @@ def lint_rule_modules(obligations: dict[str, Obligation], errors: list[str]) -> 
                 )
 
 
+def lint_rust_marker_index(
+    obligations: dict[str, Obligation],
+    rust_markers: dict[str, set[str]],
+    errors: list[str],
+) -> None:
+    for marker, marker_files in sorted(rust_markers.items()):
+        if marker not in obligations:
+            for marker_file in sorted(marker_files):
+                error(errors, f"{marker_file}: marker references unknown obligation `{marker}`")
+            continue
+        rust = obligations[marker].meta.get("rust", {})
+        rust_files = rust.get("files", []) if isinstance(rust, dict) else []
+        if not isinstance(rust_files, list):
+            rust_files = []
+        for marker_file in sorted(marker_files):
+            if marker_file not in rust_files:
+                where = str(obligations[marker].path.relative_to(ROOT) / "meta.toml")
+                error(errors, f"{where}: marker `{marker}` appears in `{marker_file}` but `rust.files` does not list it")
+
+
 def lint_required_obligations(
     obligations: dict[str, Obligation],
     errors: list[str],
@@ -387,6 +436,9 @@ def lint_required_obligations(
         rust_symbols = rust.get("symbols", [])
         if not isinstance(rust_symbols, list):
             rust_symbols = []
+        rust_markers = rust.get("markers", [])
+        if not isinstance(rust_markers, list):
+            rust_markers = []
 
         for rust_file in item.rust_files:
             if rust_file not in rust_files:
@@ -394,6 +446,8 @@ def lint_required_obligations(
         for symbol in item.rust_symbols:
             if symbol not in rust_symbols:
                 error(errors, f"{where}: required surface must list rust symbol `{symbol}`")
+        if item.id not in rust_markers:
+            error(errors, f"{where}: required surface must list rust marker `{item.id}`")
 
 
 def lint_lean_layout(errors: list[str]) -> None:
@@ -427,9 +481,18 @@ def run_self_tests() -> int:
                 "summary": "self-test obligation",
             }
 
-        def lint(meta: dict[str, Any], all_ids: set[str] | None = None) -> list[str]:
+        def lint(
+            meta: dict[str, Any],
+            all_ids: set[str] | None = None,
+            rust_markers: dict[str, set[str]] | None = None,
+        ) -> list[str]:
             errors: list[str] = []
-            lint_meta(Obligation("self_test", obligation_path, meta), all_ids or {"self_test"}, errors)
+            lint_meta(
+                Obligation("self_test", obligation_path, meta),
+                all_ids or {"self_test"},
+                errors,
+                rust_markers,
+            )
             return errors
 
         def required_lint(obligations: dict[str, Obligation]) -> list[str]:
@@ -445,6 +508,14 @@ def run_self_tests() -> int:
                     ),
                 ),
             )
+            return errors
+
+        def marker_index_lint(
+            obligations: dict[str, Obligation],
+            rust_markers: dict[str, set[str]],
+        ) -> list[str]:
+            errors: list[str] = []
+            lint_rust_marker_index(obligations, rust_markers, errors)
             return errors
 
         cases = [
@@ -481,6 +552,30 @@ def run_self_tests() -> int:
                 True,
                 "rejected-counterexample obligations must list at least one "
                 "`lean.counterexample_theorems`",
+            ),
+            (
+                "rust-backed obligation without marker list",
+                {
+                    **base_meta("proven"),
+                    "rust": {"files": ["required.rs"], "symbols": []},
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "rust-backed obligations must list at least one `rust.markers` entry",
+            ),
+            (
+                "rust-backed obligation with missing marker",
+                {
+                    **base_meta("proven"),
+                    "rust": {
+                        "files": ["required.rs"],
+                        "symbols": [],
+                        "markers": ["self_test"],
+                    },
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "rust marker `self_test` was not found in listed rust files",
             ),
         ]
 
@@ -520,11 +615,60 @@ def run_self_tests() -> int:
                 },
                 "required surface must list rust symbol `required_symbol`",
             ),
+            (
+                "required obligation missing rust marker",
+                {
+                    "self_test": Obligation(
+                        "self_test",
+                        obligation_path,
+                        {
+                            **base_meta("proven"),
+                            "rust": {
+                                "files": ["required.rs"],
+                                "symbols": ["required_symbol"],
+                                "markers": [],
+                            },
+                            "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                        },
+                    )
+                },
+                "required surface must list rust marker `self_test`",
+            ),
+        ]
+
+        marker_index_cases = [
+            (
+                "orphan rust marker",
+                {},
+                {"missing.obligation": {"crates/missing.rs"}},
+                "crates/missing.rs: marker references unknown obligation `missing.obligation`",
+            ),
+            (
+                "marker file not listed by meta",
+                {
+                    "self_test": Obligation(
+                        "self_test",
+                        obligation_path,
+                        {
+                            **base_meta("proven"),
+                            "rust": {
+                                "files": ["other.rs"],
+                                "symbols": [],
+                                "markers": ["self_test"],
+                            },
+                            "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                        },
+                    )
+                },
+                {"self_test": {"required.rs"}},
+                "marker `self_test` appears in `required.rs` but `rust.files` does not list it",
+            ),
         ]
 
         failures = []
         for name, meta, should_fail, expected in cases:
-            errors = lint(meta)
+            rust_marker_index = {"self_test": {"required.rs"}} if "missing marker" not in name else {}
+            errors = lint(meta, rust_markers=rust_marker_index)
             joined = "\n".join(errors)
             if should_fail and expected not in joined:
                 failures.append(f"{name}: expected `{expected}`, got {errors}")
@@ -532,6 +676,11 @@ def run_self_tests() -> int:
                 failures.append(f"{name}: expected no errors, got {errors}")
         for name, obligations, expected in required_cases:
             errors = required_lint(obligations)
+            joined = "\n".join(errors)
+            if expected not in joined:
+                failures.append(f"{name}: expected `{expected}`, got {errors}")
+        for name, obligations, rust_markers, expected in marker_index_cases:
+            errors = marker_index_lint(obligations, rust_markers)
             joined = "\n".join(errors)
             if expected not in joined:
                 failures.append(f"{name}: expected `{expected}`, got {errors}")
@@ -555,9 +704,11 @@ def main() -> int:
     errors: list[str] = []
     obligations = load_obligations(errors)
     all_ids = set(obligations)
+    rust_markers = collect_rust_markers()
     for obligation in obligations.values():
-        lint_meta(obligation, all_ids, errors)
+        lint_meta(obligation, all_ids, errors, rust_markers)
     lint_rule_modules(obligations, errors)
+    lint_rust_marker_index(obligations, rust_markers, errors)
     lint_required_obligations(obligations, errors)
     lint_lean_layout(errors)
 

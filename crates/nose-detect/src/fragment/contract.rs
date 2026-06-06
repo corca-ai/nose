@@ -14,6 +14,8 @@
 //! carries one; a multi-statement body (a conditional branch, a loop body, an ordered effect
 //! sequence) carries its effects in execution order. The [`Place`] receiver-identity model
 //! is fail-closed so receiver-bearing effects can only be admitted when proven.
+//!
+//! proof-obligation: detect.fragment.effect_place
 
 use super::{Exit, FragmentKind};
 use nose_il::NodeId;

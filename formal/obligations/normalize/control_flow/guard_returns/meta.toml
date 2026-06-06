@@ -6,6 +6,7 @@ summary = "Guard-return, dead-code-after-return, and ternary-return control-flow
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/cfg_norm.rs"]
 symbols = ["guarded", "process_block"]
+markers = ["normalize.control_flow.guard_returns"]
 
 [lean]
 proof = "Proof.lean"

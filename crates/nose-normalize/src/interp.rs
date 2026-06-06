@@ -14,6 +14,9 @@
 //! consistent semantics, so a fingerprint merge the interpreter contradicts is a real
 //! bug. A bare `throw`/`raise` is modeled as observable `Err` behavior; exception
 //! handlers remain unsupported.
+//!
+//! proof-obligation: normalize.value_graph.field_writes
+//! proof-obligation: normalize.value_graph.free_monoid
 
 use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
 use rustc_hash::{FxHashMap, FxHashSet};

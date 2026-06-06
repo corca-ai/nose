@@ -6,6 +6,7 @@ summary = "Fragment wrapper inputs are exactly reads from the enclosing scope wi
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]
 symbols = ["free_input_cids", "collect_bound_cids", "collect_binding_targets"]
+markers = ["detect.fragment.free_inputs"]
 
 [lean]
 proof = "Proof.lean"

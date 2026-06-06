@@ -6,6 +6,7 @@ summary = "Oracle-mode normalization stops after desugar and alpha, excluding se
 [rust]
 files = ["crates/nose-normalize/src/lib.rs"]
 symbols = ["NormalizeOptions", "oracle", "recursion::run"]
+markers = ["oracle.cutoff"]
 
 [lean]
 proof = "Proof.lean"

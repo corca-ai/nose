@@ -6,6 +6,8 @@
 //! The rule fires only when both operands are 2-ary `Mul` nodes sharing exactly one factor
 //! and every leaf is a proven `Num`. Distribution is unsound for the string/list
 //! repetition monoid, so the type gate is part of the proof obligation.
+//!
+//! proof-obligation: normalize.value_graph.factor_distribute
 
 use super::super::{Builder, ValOp, ValueId};
 use crate::types::Ty;

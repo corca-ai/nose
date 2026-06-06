@@ -16,6 +16,9 @@
 //! values, which are abstracted to classes. Full distribution (where the
 //! canonical form is non-obvious) is also deferred; a confluent rewrite gives a
 //! normal form without the cost/ambiguity of equality saturation.
+//!
+//! proof-obligation: normalize.value_graph.algebra
+//! proof-obligation: normalize.value_graph.compare
 
 use crate::combine;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
