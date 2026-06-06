@@ -112,6 +112,28 @@
       "source": "sweep"
     },
     {
+      "axis": "filter_fusion",
+      "gen_axis": "probe:filter_fusion",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "flat_map",
+      "gen_axis": "probe:flat_map",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
       "axis": "identity_value_soundness",
       "gen_axis": "unsafe_boundary",
       "language": "c",
@@ -495,6 +517,17 @@
       "false_merges": 0,
       "neg": 1,
       "source": "sweep"
+    },
+    {
+      "axis": "map_fusion",
+      "gen_axis": "probe:map_fusion",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "membership_contains",
@@ -1078,6 +1111,28 @@
       "false_merges": 0,
       "neg": 6,
       "source": "sweep"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
     },
     {
       "axis": "string_prefix_suffix",

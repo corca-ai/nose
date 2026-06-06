@@ -75,7 +75,7 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "none",
       "rust": "none",
       "typescript": "none"
@@ -85,7 +85,7 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "none",
       "rust": "none",
       "typescript": "none"
@@ -165,7 +165,7 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "none",
       "rust": "none",
       "typescript": "none"
@@ -275,7 +275,7 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "none",
       "rust": "none",
       "typescript": "none"
@@ -285,7 +285,7 @@
       "go": "none",
       "java": "none",
       "javascript": "none",
-      "python": "none",
+      "python": "covered",
       "ruby": "none",
       "rust": "none",
       "typescript": "none"
@@ -380,7 +380,7 @@
     },
     "python": {
       "applicable": 26,
-      "covered": 11
+      "covered": 16
     },
     "ruby": {
       "applicable": 24,
