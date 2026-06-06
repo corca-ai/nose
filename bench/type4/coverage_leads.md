@@ -107,3 +107,22 @@ overloaded shift/append). The builder loop's value graph is a shift recurrence, 
 so it never matches the `flat_map`. Fix is in the ruby frontend (lower `<<` as append when the
 receiver is array-like) and is inherently ambiguous without type/context — a separate frontend
 lead, not a value-graph/gate alignment. Low-to-medium value; deferred.
+
+## L6 — go/java/ruby builder loops → comprehension (deferred, ambiguity)
+
+Cross-language builder loops (`out := []T{}; for … out = append(out, e)` in Go; `new ArrayList`
++ `.add` in Java) do not converge with the comprehension/`.map` form. Investigation:
+- The VALUE GRAPH *can* be made to converge them. Go's functional append `r = append(r, e)`
+  (an `Assign` whose RHS is `Append(r, …)`) is recognizable as the same per-element `Map` build
+  as the effect-form `r.append(e)`; with that recognition the Go builder's value fingerprint
+  becomes byte-identical to the Python comprehension (verified end-to-end in a spike).
+- But the EXACT channel is then blocked at the gate: the Go seed `[]int{}` lowers to a
+  `Seq("composite_literal")`, which `strict_exact_safe_seq` rejects. Admitting it is NOT a clean
+  L2-style alignment: `composite_literal` is also Go's MAP and STRUCT literal syntax, and the
+  value graph already tags all three `Seq(1)` — so opening the gate would let `Point{1,2}`
+  merge with `[]int{1,2}` / `[1,2]` (a struct ≡ slice false merge). Sound admission needs Go
+  type/context info (slice vs map vs struct). Java `.add` (List vs Set) and Ruby `<<`
+  (shift vs append, L5) have the same shape of ambiguity.
+- These are therefore NOT quick gate-alignments like L1/L2; they need a typed/contextual
+  collection-kind proof to stay sound. Deferred (the spike value-graph change was reverted to
+  avoid shipping a fingerprint change with no sound exact-channel payoff).
