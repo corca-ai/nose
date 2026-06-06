@@ -1,12 +1,12 @@
 {
   "binary": {
     "binary_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-51-fragment-measurement/target/release/nose",
-    "build_ref": "issue-51@a592075",
-    "sha256": "00511c77fdb0f5878deed159594e9970e2e83914fc71035440324e435ecc212d",
-    "size_bytes": 13549648,
+    "build_ref": "issue-51-generator@cb0c549",
+    "sha256": "bdd103dfc3e3e3d26545c2aac04049dbeb5aa8250fb84567829ffcfe6040f079",
+    "size_bytes": 13549664,
     "source_dirty": false,
-    "source_git_describe": "v0.5.0-185-ga592075",
-    "source_git_sha": "a5920752058bab950e06e12b49a5b67dc2f86b29",
+    "source_git_describe": "v0.5.0-188-gcb0c549",
+    "source_git_sha": "cb0c54974c64bb8d5e8d01e6a73fa4acaca4b5e9",
     "version": "nose 0.5.0"
   },
   "generated_by": "bench/type4/scan_regression/scan_regression.py baseline",
@@ -27,6 +27,8 @@
             "family_id": "c1a7ee35d645dfb8",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -44,6 +46,8 @@
             ],
             "mean_lines": 2,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -55,6 +59,8 @@
             "family_id": "bf3614d2ad0776e2",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -69,6 +75,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -80,6 +88,12 @@
             "family_id": "0bdc5238e860ca25",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -98,6 +112,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -109,6 +129,8 @@
             "family_id": "89d8d6810dd22a60",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -123,6 +145,8 @@
             ],
             "mean_lines": 16,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -134,6 +158,8 @@
             "family_id": "317cdc648c21457d",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -148,6 +174,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -159,6 +187,12 @@
             "family_id": "221fac5b06a56791",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -177,6 +211,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -188,6 +228,8 @@
             "family_id": "dc9e5e2e0733adea",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -202,6 +244,8 @@
             ],
             "mean_lines": 8,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -213,6 +257,8 @@
             "family_id": "88f32e5afb8f1f10",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -227,6 +273,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -238,6 +286,12 @@
             "family_id": "d501e0bf7fb4023f",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -256,6 +310,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -267,6 +327,8 @@
             "family_id": "03fd32e6d5c1416f",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -281,6 +343,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -292,6 +356,8 @@
             "family_id": "befde3f12eba7a81",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -306,6 +372,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -317,6 +385,12 @@
             "family_id": "c12a5f75e261382b",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -336,6 +410,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -347,6 +427,12 @@
             "family_id": "f5d7edd64d7d3675",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -365,6 +451,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -376,6 +468,8 @@
             "family_id": "a34a326d9ed57b37",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -393,6 +487,8 @@
             ],
             "mean_lines": 2,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -404,6 +500,12 @@
             "family_id": "c421e937f67d6a85",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -423,6 +525,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -434,6 +542,8 @@
             "family_id": "0d65157602531a65",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -448,6 +558,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -459,6 +571,12 @@
             "family_id": "54ca8e7b7b17d7d7",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "direct-return": 1
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -478,6 +596,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-direct-return": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -489,6 +613,8 @@
             "family_id": "096334183198eee0",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -505,6 +631,8 @@
             ],
             "mean_lines": 2,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -516,6 +644,12 @@
             "family_id": "52d091a1c797fb4a",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -534,6 +668,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -545,6 +685,8 @@
             "family_id": "3001ad0849b667c3",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -559,6 +701,8 @@
             ],
             "mean_lines": 34,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "31+"
           },
@@ -570,6 +714,8 @@
             "family_id": "68067a7d2e9931ea",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -584,6 +730,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -595,6 +743,8 @@
             "family_id": "c22aaec191559be9",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -610,6 +760,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -621,6 +773,8 @@
             "family_id": "da5521864dd50141",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -635,6 +789,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -646,6 +802,8 @@
             "family_id": "cc6dda466a93ac9d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -660,6 +818,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -671,6 +831,12 @@
             "family_id": "f5d7edd64d7d3675",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -689,6 +855,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -700,6 +872,8 @@
             "family_id": "aff74ff2549b5c1e",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -716,6 +890,8 @@
             ],
             "mean_lines": 6,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -727,6 +903,8 @@
             "family_id": "f49a5aa0e8108bdf",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -741,6 +919,8 @@
             ],
             "mean_lines": 8,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -752,6 +932,12 @@
             "family_id": "52d091a1c797fb4a",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -770,6 +956,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -781,6 +973,12 @@
             "family_id": "e60652555898f589",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 18
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 18
+            },
             "fragment_line_span_buckets": {
               "1": 18
             },
@@ -815,6 +1013,12 @@
             ],
             "mean_lines": 1,
             "members": 18,
+            "reason_code_counts": {
+              "exact-expr-effect": 18
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 18
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -826,6 +1030,8 @@
             "family_id": "be87bec48929d902",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -840,6 +1046,8 @@
             ],
             "mean_lines": 8,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -851,6 +1059,12 @@
             "family_id": "3ef7f89fc7052764",
             "family_shape": "all-fragment",
             "files": 4,
+            "fragment_kind_counts": {
+              "conditional-guard": 5
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 5
+            },
             "fragment_line_span_buckets": {
               "2-3": 5
             },
@@ -872,6 +1086,12 @@
             ],
             "mean_lines": 2,
             "members": 5,
+            "reason_code_counts": {
+              "exact-conditional-guard": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 5
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -883,6 +1103,12 @@
             "family_id": "943290def00e3eeb",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -901,6 +1127,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -912,6 +1144,8 @@
             "family_id": "aa88b4085f8c6f66",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -926,6 +1160,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -937,6 +1173,12 @@
             "family_id": "ed6bd8b1c8a22ded",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "conditional-guard": 3
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "2-3": 3
             },
@@ -956,6 +1198,12 @@
             ],
             "mean_lines": 2,
             "members": 3,
+            "reason_code_counts": {
+              "exact-conditional-guard": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -967,6 +1215,8 @@
             "family_id": "52d091a1c797fb4a",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -981,6 +1231,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -992,6 +1244,8 @@
             "family_id": "88c27a78caf274b0",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1006,6 +1260,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -1017,6 +1273,12 @@
             "family_id": "8625bfb61cdefb25",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 16
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 16
+            },
             "fragment_line_span_buckets": {
               "1": 16
             },
@@ -1049,6 +1311,12 @@
             ],
             "mean_lines": 1,
             "members": 16,
+            "reason_code_counts": {
+              "exact-expr-effect": 16
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 16
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1060,6 +1328,8 @@
             "family_id": "bb6a0cc094762b7c",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1074,6 +1344,8 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -1085,6 +1357,12 @@
             "family_id": "162e33869320bb7d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -1103,6 +1381,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1114,6 +1398,12 @@
             "family_id": "aab95bae61012b3d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 7
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 7
+            },
             "fragment_line_span_buckets": {
               "1": 7
             },
@@ -1137,6 +1427,12 @@
             ],
             "mean_lines": 1,
             "members": 7,
+            "reason_code_counts": {
+              "exact-expr-effect": 7
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 7
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1148,6 +1444,12 @@
             "family_id": "ed6bd8b1c8a22ded",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "conditional-guard": 3
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "2-3": 3
             },
@@ -1167,6 +1469,12 @@
             ],
             "mean_lines": 2,
             "members": 3,
+            "reason_code_counts": {
+              "exact-conditional-guard": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1178,6 +1486,12 @@
             "family_id": "c421e937f67d6a85",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -1197,6 +1511,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1208,6 +1528,8 @@
             "family_id": "d04448284a8828f4",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1222,6 +1544,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -1233,6 +1557,12 @@
             "family_id": "82ac7e88d1d8e025",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 6
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 6
+            },
             "fragment_line_span_buckets": {
               "1": 6
             },
@@ -1255,6 +1585,12 @@
             ],
             "mean_lines": 1,
             "members": 6,
+            "reason_code_counts": {
+              "exact-expr-effect": 6
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 6
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1266,6 +1602,8 @@
             "family_id": "260229e6609d1830",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1280,6 +1618,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           }
@@ -1346,19 +1686,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 2.5,
+          "candidates": 2.1,
           "cluster": 0.1,
           "contiguous": 0.0,
           "discover": 3.4,
           "groups": 0.3,
-          "lower": 13.1,
-          "normalize+extract": 9.1,
-          "parse+lower": 9.7,
+          "lower": 13.0,
+          "normalize+extract": 8.6,
+          "parse+lower": 9.5,
           "score": 0.3
         },
         "repeats": 5,
-        "wall_ms_median": 39.52,
-        "wall_ms_min": 37.31
+        "wall_ms_median": 38.15,
+        "wall_ms_min": 35.64
       }
     },
     "chi": {
@@ -1377,6 +1717,12 @@
             "family_id": "1b8f7e5b24f35a84",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 5
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 5
+            },
             "fragment_line_span_buckets": {
               "1": 5
             },
@@ -1398,6 +1744,12 @@
             ],
             "mean_lines": 1,
             "members": 5,
+            "reason_code_counts": {
+              "exact-expr-effect": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 5
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1409,6 +1761,12 @@
             "family_id": "c55b843732270ba0",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -1427,6 +1785,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1438,6 +1802,12 @@
             "family_id": "57d3ad5ed5c000af",
             "family_shape": "all-fragment",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 6
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 6
+            },
             "fragment_line_span_buckets": {
               "1": 6
             },
@@ -1460,6 +1830,12 @@
             ],
             "mean_lines": 1,
             "members": 6,
+            "reason_code_counts": {
+              "exact-expr-effect": 6
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 6
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -1471,6 +1847,12 @@
             "family_id": "c55b843732270ba0",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -1489,6 +1871,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           }
@@ -1538,19 +1926,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 0.9,
+          "candidates": 1.0,
           "cluster": 0.0,
           "contiguous": 0.0,
-          "discover": 3.8,
+          "discover": 3.4,
           "groups": 0.1,
-          "lower": 12.5,
-          "normalize+extract": 6.9,
-          "parse+lower": 8.1,
+          "lower": 12.9,
+          "normalize+extract": 7.3,
+          "parse+lower": 9.4,
           "score": 0.2
         },
         "repeats": 5,
-        "wall_ms_median": 31.16,
-        "wall_ms_min": 30.66
+        "wall_ms_median": 30.66,
+        "wall_ms_min": 30.34
       }
     },
     "cmark": {
@@ -1569,6 +1957,8 @@
             "family_id": "26ced6842ce520b9",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1583,6 +1973,8 @@
             ],
             "mean_lines": 23,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -1594,6 +1986,12 @@
             "family_id": "fcc9256e3e7a7eed",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -1612,6 +2010,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1623,6 +2027,8 @@
             "family_id": "170d015e2ec1088d",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1637,6 +2043,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -1648,6 +2056,8 @@
             "family_id": "9e9b104e3f14e44f",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1663,6 +2073,8 @@
             ],
             "mean_lines": 25,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -1674,6 +2086,12 @@
             "family_id": "c8aef64af19c431d",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "conditional-guard": 4
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "2-3": 4
             },
@@ -1694,6 +2112,12 @@
             ],
             "mean_lines": 2,
             "members": 4,
+            "reason_code_counts": {
+              "exact-conditional-guard": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1705,6 +2129,12 @@
             "family_id": "b9b46d92887b4874",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 17
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 17
+            },
             "fragment_line_span_buckets": {
               "2-3": 17
             },
@@ -1738,6 +2168,12 @@
             ],
             "mean_lines": 3,
             "members": 17,
+            "reason_code_counts": {
+              "exact-conditional-guard": 17
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 17
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1749,6 +2185,8 @@
             "family_id": "26ced6842ce520b9",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1763,6 +2201,8 @@
             ],
             "mean_lines": 21,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -1774,6 +2214,8 @@
             "family_id": "767624ff995a5fed",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1788,6 +2230,8 @@
             ],
             "mean_lines": 11,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -1799,6 +2243,12 @@
             "family_id": "7a4fac3c354dbb1c",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 3
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "2-3": 3
             },
@@ -1818,6 +2268,12 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {
+              "exact-conditional-guard": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1829,6 +2285,12 @@
             "family_id": "daf11c9215fb53e1",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -1847,6 +2309,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1858,6 +2326,8 @@
             "family_id": "d8d475406c21ae4f",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -1872,6 +2342,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -1883,6 +2355,12 @@
             "family_id": "5122da1710c96f93",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -1901,6 +2379,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1912,6 +2396,12 @@
             "family_id": "5122da1710c96f93",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -1930,6 +2420,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1941,6 +2437,12 @@
             "family_id": "17857b88e1f45cc6",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 13
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 13
+            },
             "fragment_line_span_buckets": {
               "2-3": 13
             },
@@ -1970,6 +2472,12 @@
             ],
             "mean_lines": 3,
             "members": 13,
+            "reason_code_counts": {
+              "exact-conditional-guard": 13
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 13
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -1981,6 +2489,8 @@
             "family_id": "4fa35f7ab1a6ca1d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2053,6 +2563,8 @@
             ],
             "mean_lines": 28,
             "members": 60,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -2064,6 +2576,8 @@
             "family_id": "3f29c523d7246497",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2131,6 +2645,8 @@
             ],
             "mean_lines": 21,
             "members": 55,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -2142,6 +2658,12 @@
             "family_id": "fcc9256e3e7a7eed",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -2160,6 +2682,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           }
@@ -2224,16 +2752,16 @@
           "candidates": 1.4,
           "cluster": 0.0,
           "contiguous": 0.0,
-          "discover": 3.4,
+          "discover": 4.9,
           "groups": 0.1,
-          "lower": 21.5,
-          "normalize+extract": 21.5,
-          "parse+lower": 17.3,
-          "score": 0.2
+          "lower": 22.5,
+          "normalize+extract": 21.9,
+          "parse+lower": 17.6,
+          "score": 0.3
         },
         "repeats": 5,
-        "wall_ms_median": 56.5,
-        "wall_ms_min": 56.15
+        "wall_ms_median": 58.62,
+        "wall_ms_min": 54.73
       }
     },
     "gin": {
@@ -2252,6 +2780,12 @@
             "family_id": "11872955a669aabd",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -2270,6 +2804,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2281,6 +2821,12 @@
             "family_id": "5b6f1fdf00d78bfe",
             "family_shape": "all-fragment",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 5
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 5
+            },
             "fragment_line_span_buckets": {
               "1": 5
             },
@@ -2302,6 +2848,12 @@
             ],
             "mean_lines": 1,
             "members": 5,
+            "reason_code_counts": {
+              "exact-expr-effect": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 5
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2313,6 +2865,8 @@
             "family_id": "515439eb60de28eb",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2327,6 +2881,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           }
@@ -2378,19 +2934,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 1.7,
+          "candidates": 2.0,
           "cluster": 0.1,
           "contiguous": 0.0,
           "discover": 3.4,
           "groups": 0.1,
-          "lower": 19.3,
-          "normalize+extract": 13.0,
-          "parse+lower": 15.7,
-          "score": 0.2
+          "lower": 21.0,
+          "normalize+extract": 13.3,
+          "parse+lower": 17.6,
+          "score": 0.3
         },
         "repeats": 5,
-        "wall_ms_median": 47.49,
-        "wall_ms_min": 44.48
+        "wall_ms_median": 49.28,
+        "wall_ms_min": 47.02
       }
     },
     "junit5": {
@@ -2409,6 +2965,8 @@
             "family_id": "2143942e284cf486",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2426,6 +2984,8 @@
             ],
             "mean_lines": 5,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2437,6 +2997,12 @@
             "family_id": "e0728d4490777b48",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -2456,6 +3022,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2467,6 +3039,8 @@
             "family_id": "ab0f921c1cbe0836",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2482,6 +3056,8 @@
             ],
             "mean_lines": 4,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2493,6 +3069,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -2511,6 +3093,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2522,6 +3110,12 @@
             "family_id": "6d7e90f44ec4127f",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -2541,6 +3135,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -2552,6 +3152,12 @@
             "family_id": "4c2c96ab825e8236",
             "family_shape": "mixed",
             "files": 21,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -2590,6 +3196,12 @@
             ],
             "mean_lines": 2,
             "members": 21,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -2601,6 +3213,8 @@
             "family_id": "76c6c4d6601b5773",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2616,6 +3230,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -2627,6 +3243,12 @@
             "family_id": "4255208f745f46fb",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 4
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -2647,6 +3269,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2658,6 +3286,12 @@
             "family_id": "9dfa3678f03263d3",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -2679,6 +3313,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 3
+            },
             "recommended_surface": "default",
             "span_bucket": "1"
           },
@@ -2690,6 +3330,8 @@
             "family_id": "bca5a5a55ade0006",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2706,6 +3348,8 @@
             ],
             "mean_lines": 8,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2717,6 +3361,12 @@
             "family_id": "43f5ea9611cf5b11",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 4
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -2737,6 +3387,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2748,6 +3404,8 @@
             "family_id": "d1018b34e92cc6c7",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2762,6 +3420,8 @@
             ],
             "mean_lines": 8,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2773,6 +3433,12 @@
             "family_id": "0d28fc3ca805c28d",
             "family_shape": "mixed",
             "files": 5,
+            "fragment_kind_counts": {
+              "expr-effect": 5
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 5
+            },
             "fragment_line_span_buckets": {
               "1": 5
             },
@@ -2797,6 +3463,12 @@
             ],
             "mean_lines": 2,
             "members": 7,
+            "reason_code_counts": {
+              "exact-expr-effect": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 5
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -2808,6 +3480,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -2826,6 +3504,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -2837,6 +3521,12 @@
             "family_id": "6fb988936b3d3f08",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -2855,6 +3545,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -2866,6 +3562,12 @@
             "family_id": "f73cb1974ad97af2",
             "family_shape": "mixed",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -2887,6 +3589,12 @@
             ],
             "mean_lines": 3,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -2898,6 +3606,8 @@
             "family_id": "d88dd594718b3b6c",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2912,6 +3622,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2923,6 +3635,8 @@
             "family_id": "1be4bc830ed32051",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2937,6 +3651,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2948,6 +3664,8 @@
             "family_id": "ab37cb8aa4dba419",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2962,6 +3680,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2973,6 +3693,8 @@
             "family_id": "d2cb1c30398b890e",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -2987,6 +3709,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -2998,6 +3722,12 @@
             "family_id": "e53f8d946f20b6e1",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -3016,6 +3746,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3027,6 +3763,12 @@
             "family_id": "8b18a08c0d3e331d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -3045,6 +3787,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -3056,6 +3804,8 @@
             "family_id": "f55ea4cfd0feeae1",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3070,6 +3820,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3081,6 +3833,12 @@
             "family_id": "d67f6f6f1964d5f0",
             "family_shape": "mixed",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -3102,6 +3860,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 3
+            },
             "recommended_surface": "default",
             "span_bucket": "1"
           },
@@ -3113,6 +3877,12 @@
             "family_id": "a4936437856ae127",
             "family_shape": "all-fragment",
             "files": 5,
+            "fragment_kind_counts": {
+              "conditional-guard": 5
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 5
+            },
             "fragment_line_span_buckets": {
               "2-3": 5
             },
@@ -3134,6 +3904,12 @@
             ],
             "mean_lines": 3,
             "members": 5,
+            "reason_code_counts": {
+              "exact-conditional-guard": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 5
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -3145,6 +3921,12 @@
             "family_id": "bdfc531cb3d705e9",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3164,6 +3946,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3175,6 +3963,12 @@
             "family_id": "a84c990d8f7a7231",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "self-field-assign": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-assign|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -3193,6 +3987,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-assign": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-assign|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3204,6 +4004,12 @@
             "family_id": "3010f335ef366f67",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3223,6 +4029,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3234,6 +4046,8 @@
             "family_id": "f8690b33f8ee1d50",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3248,6 +4062,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3259,6 +4075,12 @@
             "family_id": "e2278a0a8987f4cb",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -3277,6 +4099,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -3288,6 +4116,12 @@
             "family_id": "c350578012489fcd",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 8
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 8
+            },
             "fragment_line_span_buckets": {
               "1": 8
             },
@@ -3312,6 +4146,12 @@
             ],
             "mean_lines": 1,
             "members": 8,
+            "reason_code_counts": {
+              "exact-expr-effect": 8
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 8
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3323,6 +4163,12 @@
             "family_id": "db6182162c37f866",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 12
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 12
+            },
             "fragment_line_span_buckets": {
               "2-3": 12
             },
@@ -3351,6 +4197,12 @@
             ],
             "mean_lines": 3,
             "members": 12,
+            "reason_code_counts": {
+              "exact-conditional-guard": 12
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 12
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -3362,6 +4214,12 @@
             "family_id": "e1a53c94b04b2272",
             "family_shape": "mixed",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 5
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 5
+            },
             "fragment_line_span_buckets": {
               "1": 5
             },
@@ -3385,6 +4243,12 @@
             ],
             "mean_lines": 1,
             "members": 6,
+            "reason_code_counts": {
+              "exact-expr-effect": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 5
+            },
             "recommended_surface": "default",
             "span_bucket": "1"
           },
@@ -3396,6 +4260,12 @@
             "family_id": "c350578012489fcd",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 8
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 8
+            },
             "fragment_line_span_buckets": {
               "1": 8
             },
@@ -3420,6 +4290,12 @@
             ],
             "mean_lines": 1,
             "members": 8,
+            "reason_code_counts": {
+              "exact-expr-effect": 8
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 8
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3431,6 +4307,8 @@
             "family_id": "e61e9bc27e381359",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3445,6 +4323,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3456,6 +4336,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -3474,6 +4360,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3485,6 +4377,12 @@
             "family_id": "a1ce072397dad29a",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 19
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 19
+            },
             "fragment_line_span_buckets": {
               "1": 19
             },
@@ -3520,6 +4418,12 @@
             ],
             "mean_lines": 1,
             "members": 19,
+            "reason_code_counts": {
+              "exact-expr-effect": 19
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 19
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3531,6 +4435,12 @@
             "family_id": "54a961c71502a4fc",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "self-field-body": 3
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 3
+            },
             "fragment_line_span_buckets": {
               "4-10": 3
             },
@@ -3550,6 +4460,12 @@
             ],
             "mean_lines": 6,
             "members": 3,
+            "reason_code_counts": {
+              "exact-self-field-body": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 3
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -3561,6 +4477,8 @@
             "family_id": "b3d48309fdd743df",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3578,6 +4496,8 @@
             ],
             "mean_lines": 3,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3589,6 +4509,12 @@
             "family_id": "0dd96d3d8d2dc31f",
             "family_shape": "mixed",
             "files": 16,
+            "fragment_kind_counts": {
+              "direct-return": 1
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3624,6 +4550,12 @@
             ],
             "mean_lines": 3,
             "members": 18,
+            "reason_code_counts": {
+              "exact-direct-return": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3635,6 +4567,12 @@
             "family_id": "acc03cae66d1faf2",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3654,6 +4592,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3665,6 +4609,12 @@
             "family_id": "7f37a94ee382840d",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3684,6 +4634,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3695,6 +4651,8 @@
             "family_id": "d2bad11185a36c2d",
             "family_shape": "whole-only",
             "files": 5,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3714,6 +4672,8 @@
             ],
             "mean_lines": 4,
             "members": 7,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3725,6 +4685,12 @@
             "family_id": "db1604d0005f4b27",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 23
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 23
+            },
             "fragment_line_span_buckets": {
               "1": 23
             },
@@ -3764,6 +4730,12 @@
             ],
             "mean_lines": 1,
             "members": 23,
+            "reason_code_counts": {
+              "exact-expr-effect": 23
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 23
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3775,6 +4747,8 @@
             "family_id": "a2cb0765594b08b5",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3794,6 +4768,8 @@
             ],
             "mean_lines": 4,
             "members": 7,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3805,6 +4781,12 @@
             "family_id": "99d425da8ef6d48c",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -3824,6 +4806,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3835,6 +4823,8 @@
             "family_id": "05d2e0bdfc2e0b4d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3849,6 +4839,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3860,6 +4852,8 @@
             "family_id": "3ed50d87b1fa4c3b",
             "family_shape": "whole-only",
             "files": 6,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3878,6 +4872,8 @@
             ],
             "mean_lines": 3,
             "members": 6,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -3889,6 +4885,12 @@
             "family_id": "43f5ea9611cf5b11",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 4
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -3909,6 +4911,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -3920,6 +4928,8 @@
             "family_id": "d9a3ae65a28a3560",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -3936,6 +4946,8 @@
             ],
             "mean_lines": 9,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -3947,6 +4959,12 @@
             "family_id": "da5d8f99df433f90",
             "family_shape": "mixed",
             "files": 7,
+            "fragment_kind_counts": {
+              "expr-effect": 14
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 14
+            },
             "fragment_line_span_buckets": {
               "1": 14
             },
@@ -4003,6 +5021,12 @@
             ],
             "mean_lines": 3,
             "members": 39,
+            "reason_code_counts": {
+              "exact-expr-effect": 14
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 14
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4014,6 +5038,8 @@
             "family_id": "81a3c1fba74e2baa",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4032,6 +5058,8 @@
             ],
             "mean_lines": 5,
             "members": 6,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4043,6 +5071,12 @@
             "family_id": "5b5d9b975eadd9ee",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4064,6 +5098,12 @@
             ],
             "mean_lines": 3,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4075,6 +5115,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4093,6 +5139,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4104,6 +5156,12 @@
             "family_id": "0d87b515f7f4cdb9",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -4122,6 +5180,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -4133,6 +5197,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4151,6 +5221,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4162,6 +5238,8 @@
             "family_id": "df239aa2aaa409e3",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4176,6 +5254,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4187,6 +5267,12 @@
             "family_id": "c350578012489fcd",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 8
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 8
+            },
             "fragment_line_span_buckets": {
               "1": 8
             },
@@ -4211,6 +5297,12 @@
             ],
             "mean_lines": 1,
             "members": 8,
+            "reason_code_counts": {
+              "exact-expr-effect": 8
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 8
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4222,6 +5314,12 @@
             "family_id": "dcd46868e73e1a62",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "direct-return": 6
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|hidden": 6
+            },
             "fragment_line_span_buckets": {
               "1": 6
             },
@@ -4244,6 +5342,12 @@
             ],
             "mean_lines": 1,
             "members": 6,
+            "reason_code_counts": {
+              "exact-direct-return": 6
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|hidden": 6
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4255,6 +5359,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4273,6 +5383,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4284,6 +5400,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4302,6 +5424,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4313,6 +5441,8 @@
             "family_id": "17042f858679169d",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4328,6 +5458,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4339,6 +5471,8 @@
             "family_id": "338352926aa4c5a2",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4355,6 +5489,8 @@
             ],
             "mean_lines": 4,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4366,6 +5502,12 @@
             "family_id": "7590e21d9ebe3744",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "self-field-assign": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-assign|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4384,6 +5526,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-assign": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-assign|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4395,6 +5543,8 @@
             "family_id": "d5286b31f9abe095",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4411,6 +5561,8 @@
             ],
             "mean_lines": 5,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4422,6 +5574,12 @@
             "family_id": "1212bfd748b723fc",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -4441,6 +5599,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4452,6 +5616,8 @@
             "family_id": "dfbe73614adc1d15",
             "family_shape": "whole-only",
             "files": 5,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4469,6 +5635,8 @@
             ],
             "mean_lines": 4,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4480,6 +5648,8 @@
             "family_id": "1d20f56e7a17eb3d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4494,6 +5664,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4505,6 +5677,12 @@
             "family_id": "741727513b76e4b0",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -4523,6 +5701,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -4534,6 +5718,12 @@
             "family_id": "d8179569e58ce18c",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -4553,6 +5743,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4564,6 +5760,8 @@
             "family_id": "0cc22f843db81fef",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4578,6 +5776,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4589,6 +5789,8 @@
             "family_id": "5b1b31cca36ba575",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4605,6 +5807,8 @@
             ],
             "mean_lines": 5,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4616,6 +5820,8 @@
             "family_id": "a14db4860a7641fa",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4633,6 +5839,8 @@
             ],
             "mean_lines": 5,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4644,6 +5852,12 @@
             "family_id": "0e78734476d15bdd",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -4663,6 +5877,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4674,6 +5894,8 @@
             "family_id": "81697e54fcaace1c",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4688,6 +5910,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4699,6 +5923,8 @@
             "family_id": "ce251eda98b1e3a1",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4716,6 +5942,8 @@
             ],
             "mean_lines": 4,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4727,6 +5955,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4745,6 +5979,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4756,6 +5996,8 @@
             "family_id": "1f38b13bdbbedeeb",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4770,6 +6012,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4781,6 +6025,8 @@
             "family_id": "54feecf6a08b7e70",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4798,6 +6044,8 @@
             ],
             "mean_lines": 4,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4809,6 +6057,8 @@
             "family_id": "667c976d88b07fe4",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4824,6 +6074,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4835,6 +6087,8 @@
             "family_id": "952d57af41288b17",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4849,6 +6103,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4860,6 +6116,8 @@
             "family_id": "50e3c86cc78eef19",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4875,6 +6133,8 @@
             ],
             "mean_lines": 6,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4886,6 +6146,8 @@
             "family_id": "8161fd205551fbf9",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -4900,6 +6162,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -4911,6 +6175,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -4929,6 +6199,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -4940,6 +6216,12 @@
             "family_id": "1403ea654a505247",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -4959,6 +6241,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -4970,6 +6258,12 @@
             "family_id": "04937b5c97ecfb45",
             "family_shape": "mixed",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -4992,6 +6286,12 @@
             ],
             "mean_lines": 3,
             "members": 5,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5003,6 +6303,8 @@
             "family_id": "451c840f3aed0f5e",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5017,6 +6319,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5028,6 +6332,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5046,6 +6356,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5057,6 +6373,8 @@
             "family_id": "b4598cb9bb0bbd5e",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5071,6 +6389,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5082,6 +6402,8 @@
             "family_id": "bb8e343f0aef42c5",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5096,6 +6418,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5107,6 +6431,12 @@
             "family_id": "b5844d386ab99691",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -5159,6 +6489,12 @@
             ],
             "mean_lines": 5,
             "members": 35,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5170,6 +6506,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5188,6 +6530,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5199,6 +6547,8 @@
             "family_id": "d4adfc512c01eeb7",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5215,6 +6565,8 @@
             ],
             "mean_lines": 5,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5226,6 +6578,8 @@
             "family_id": "a77724a5fdfcefb0",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5240,6 +6594,8 @@
             ],
             "mean_lines": 7,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5251,6 +6607,8 @@
             "family_id": "40d028f3da647b65",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5266,6 +6624,8 @@
             ],
             "mean_lines": 4,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5277,6 +6637,12 @@
             "family_id": "297b86e9a1c7af62",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -5296,6 +6662,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5307,6 +6679,8 @@
             "family_id": "52e612cc3c05277b",
             "family_shape": "whole-only",
             "files": 5,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5324,6 +6698,8 @@
             ],
             "mean_lines": 4,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5335,6 +6711,12 @@
             "family_id": "c77d9cdc336f09c5",
             "family_shape": "mixed",
             "files": 6,
+            "fragment_kind_counts": {
+              "expr-effect": 7
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 7
+            },
             "fragment_line_span_buckets": {
               "1": 7
             },
@@ -5361,6 +6743,12 @@
             ],
             "mean_lines": 1,
             "members": 9,
+            "reason_code_counts": {
+              "exact-expr-effect": 7
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 7
+            },
             "recommended_surface": "default",
             "span_bucket": "1"
           },
@@ -5372,6 +6760,12 @@
             "family_id": "297b86e9a1c7af62",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -5391,6 +6785,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5402,6 +6802,8 @@
             "family_id": "3af516c04fca08e2",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5416,6 +6818,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5427,6 +6831,12 @@
             "family_id": "8a108c32b1d5a718",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "direct-return": 3
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -5446,6 +6856,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-direct-return": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5457,6 +6873,8 @@
             "family_id": "d996426dc1aa67b7",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5473,6 +6891,8 @@
             ],
             "mean_lines": 7,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5484,6 +6904,12 @@
             "family_id": "4c72daf37946c2b3",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -5503,6 +6929,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5514,6 +6946,8 @@
             "family_id": "67ced0dc8d5f3b26",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5556,6 +6990,8 @@
             ],
             "mean_lines": 6,
             "members": 30,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5567,6 +7003,8 @@
             "family_id": "e72a9e05a67d3a32",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5582,6 +7020,8 @@
             ],
             "mean_lines": 5,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5593,6 +7033,12 @@
             "family_id": "8b850ab2be11fa11",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5611,6 +7057,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5622,6 +7074,8 @@
             "family_id": "d21a9f347a1616cf",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5636,6 +7090,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5647,6 +7103,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5665,6 +7127,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5676,6 +7144,12 @@
             "family_id": "c350578012489fcd",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 8
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 8
+            },
             "fragment_line_span_buckets": {
               "1": 8
             },
@@ -5700,6 +7174,12 @@
             ],
             "mean_lines": 1,
             "members": 8,
+            "reason_code_counts": {
+              "exact-expr-effect": 8
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 8
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5711,6 +7191,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5729,6 +7215,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5740,6 +7232,12 @@
             "family_id": "a817a833fec8efec",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -5759,6 +7257,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5770,6 +7274,8 @@
             "family_id": "d50bb3d159f309a9",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5785,6 +7291,8 @@
             ],
             "mean_lines": 5,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5796,6 +7304,8 @@
             "family_id": "81aab54a66d9b56f",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5811,6 +7321,8 @@
             ],
             "mean_lines": 4,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5822,6 +7334,12 @@
             "family_id": "1a4990efefa3ce95",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5840,6 +7358,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5851,6 +7375,8 @@
             "family_id": "dbd8065f90391018",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5866,6 +7392,8 @@
             ],
             "mean_lines": 4,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5877,6 +7405,8 @@
             "family_id": "718f59b29e3e3774",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5892,6 +7422,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5903,6 +7435,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -5921,6 +7459,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -5932,6 +7476,8 @@
             "family_id": "efd2bdc14522ae2d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -5946,6 +7492,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -5957,6 +7505,12 @@
             "family_id": "94cc02144a8bfa3b",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -5976,6 +7530,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -5987,6 +7547,8 @@
             "family_id": "26137d475bfc2f4e",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6001,6 +7563,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6012,6 +7576,8 @@
             "family_id": "ccdb5ca61bafe62e",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6028,6 +7594,8 @@
             ],
             "mean_lines": 7,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6039,6 +7607,8 @@
             "family_id": "48def426c4ac4fda",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6053,6 +7623,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6064,6 +7636,8 @@
             "family_id": "9dbd48403f577f14",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6078,6 +7652,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6089,6 +7665,8 @@
             "family_id": "1b9092454c9ac906",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6105,6 +7683,8 @@
             ],
             "mean_lines": 4,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6116,6 +7696,12 @@
             "family_id": "370bf55dbf47b6ba",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -6134,6 +7720,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -6145,6 +7737,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6163,6 +7761,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6174,6 +7778,12 @@
             "family_id": "27f948eedd152caf",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -6193,6 +7803,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -6204,6 +7820,12 @@
             "family_id": "22ca8b89294ba6f4",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6224,6 +7846,12 @@
             ],
             "mean_lines": 2,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -6235,6 +7863,12 @@
             "family_id": "59be20b108ab3d9a",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -6253,6 +7887,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -6264,6 +7904,12 @@
             "family_id": "276ee63009995506",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 4
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -6284,6 +7930,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6295,6 +7947,8 @@
             "family_id": "cf6cdd886e48a175",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6309,6 +7963,8 @@
             ],
             "mean_lines": 22,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "11-30"
           },
@@ -6320,6 +7976,12 @@
             "family_id": "932b2bb0cc6e0070",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "conditional-guard": 4
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "2-3": 4
             },
@@ -6340,6 +8002,12 @@
             ],
             "mean_lines": 3,
             "members": 4,
+            "reason_code_counts": {
+              "exact-conditional-guard": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -6351,6 +8019,12 @@
             "family_id": "5b9ca6bebdb793cd",
             "family_shape": "all-fragment",
             "files": 5,
+            "fragment_kind_counts": {
+              "conditional-guard": 10
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 10
+            },
             "fragment_line_span_buckets": {
               "2-3": 10
             },
@@ -6377,6 +8051,12 @@
             ],
             "mean_lines": 3,
             "members": 10,
+            "reason_code_counts": {
+              "exact-conditional-guard": 10
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 10
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -6388,6 +8068,8 @@
             "family_id": "123075daa7af496f",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6402,6 +8084,8 @@
             ],
             "mean_lines": 74,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "31+"
           },
@@ -6413,6 +8097,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6431,6 +8121,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6442,6 +8138,8 @@
             "family_id": "4c0a5c00536755a2",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6456,6 +8154,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6467,6 +8167,12 @@
             "family_id": "43f5ea9611cf5b11",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 4
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -6487,6 +8193,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6498,6 +8210,12 @@
             "family_id": "d5d4ef35b9c4941d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6516,6 +8234,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6527,6 +8251,12 @@
             "family_id": "b55fe592fb55bc17",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "self-field-assign": 3
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-assign|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -6546,6 +8276,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-self-field-assign": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-assign|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6557,6 +8293,12 @@
             "family_id": "434468096b49a83d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6575,6 +8317,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6586,6 +8334,12 @@
             "family_id": "b9a80f700dee5662",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -6605,6 +8359,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6616,6 +8376,12 @@
             "family_id": "cb28ebf51398c134",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "expr-effect": 5
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 5
+            },
             "fragment_line_span_buckets": {
               "1": 5
             },
@@ -6637,6 +8403,12 @@
             ],
             "mean_lines": 1,
             "members": 5,
+            "reason_code_counts": {
+              "exact-expr-effect": 5
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 5
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6648,6 +8420,8 @@
             "family_id": "39bd79ecdd76f59e",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6663,6 +8437,8 @@
             ],
             "mean_lines": 5,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6674,6 +8450,12 @@
             "family_id": "4dcfe2ade2e50d1b",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6695,6 +8477,12 @@
             ],
             "mean_lines": 3,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -6706,6 +8494,8 @@
             "family_id": "892507fd578d252d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6724,6 +8514,8 @@
             ],
             "mean_lines": 5,
             "members": 6,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6735,6 +8527,8 @@
             "family_id": "b92d28747f692386",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6749,6 +8543,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6760,6 +8556,12 @@
             "family_id": "9877ce64af1f59b5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6778,6 +8580,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6789,6 +8597,8 @@
             "family_id": "2f0ce67332ea01fa",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6804,6 +8614,8 @@
             ],
             "mean_lines": 4,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6815,6 +8627,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6833,6 +8651,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6844,6 +8668,8 @@
             "family_id": "195a660bab7bfc9c",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6858,6 +8684,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -6869,6 +8697,12 @@
             "family_id": "7e6fe1ee85168fda",
             "family_shape": "mixed",
             "files": 4,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -6890,6 +8724,12 @@
             ],
             "mean_lines": 3,
             "members": 4,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -6901,6 +8741,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -6919,6 +8765,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -6930,6 +8782,12 @@
             "family_id": "b934b8a29aeba1af",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -6948,6 +8806,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           },
@@ -6959,6 +8823,8 @@
             "family_id": "48522a5cdb987b57",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -6984,6 +8850,8 @@
             ],
             "mean_lines": 3,
             "members": 13,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -6995,6 +8863,12 @@
             "family_id": "3806784fd261674b",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -7014,6 +8888,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -7025,6 +8905,8 @@
             "family_id": "abe20a06b2a339fd",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7039,6 +8921,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7050,6 +8934,12 @@
             "family_id": "d851463c4ec906dd",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -7068,6 +8958,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7079,6 +8975,12 @@
             "family_id": "5a568fe9355c648c",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -7104,6 +9006,12 @@
             ],
             "mean_lines": 3,
             "members": 8,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -7115,6 +9023,12 @@
             "family_id": "a2da4db67e5225e6",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 1
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -7134,6 +9048,12 @@
             ],
             "mean_lines": 2,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -7145,6 +9065,12 @@
             "family_id": "fde80121ae3096ff",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 6
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 6
+            },
             "fragment_line_span_buckets": {
               "1": 6
             },
@@ -7167,6 +9093,12 @@
             ],
             "mean_lines": 1,
             "members": 6,
+            "reason_code_counts": {
+              "exact-expr-effect": 6
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 6
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7178,6 +9110,8 @@
             "family_id": "db4842d46086325d",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7216,6 +9150,8 @@
             ],
             "mean_lines": 4,
             "members": 26,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7227,6 +9163,12 @@
             "family_id": "8b18a08c0d3e331d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "self-field-body": 2
+            },
+            "fragment_kind_surface_counts": {
+              "self-field-body|review": 2
+            },
             "fragment_line_span_buckets": {
               "4-10": 2
             },
@@ -7245,6 +9187,12 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {
+              "exact-self-field-body": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-self-field-body|review": 2
+            },
             "recommended_surface": "review",
             "span_bucket": "4-10"
           },
@@ -7256,6 +9204,12 @@
             "family_id": "d93ee3cd23cc0a85",
             "family_shape": "all-fragment",
             "files": 3,
+            "fragment_kind_counts": {
+              "expr-effect": 3
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -7275,6 +9229,12 @@
             ],
             "mean_lines": 1,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 3
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7286,6 +9246,8 @@
             "family_id": "83eba3548175b08c",
             "family_shape": "whole-only",
             "files": 5,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7315,6 +9277,8 @@
             ],
             "mean_lines": 5,
             "members": 17,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7326,6 +9290,8 @@
             "family_id": "acc54c51920acc79",
             "family_shape": "whole-only",
             "files": 4,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7344,6 +9310,8 @@
             ],
             "mean_lines": 3,
             "members": 6,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -7355,6 +9323,8 @@
             "family_id": "5cfeb93e1d748570",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7369,6 +9339,8 @@
             ],
             "mean_lines": 7,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7380,6 +9352,12 @@
             "family_id": "b10ac7c95afc9b33",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -7398,6 +9376,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7409,6 +9393,8 @@
             "family_id": "aa92227fb21f6b95",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7423,6 +9409,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7434,6 +9422,8 @@
             "family_id": "48def426c4ac4fda",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7448,6 +9438,8 @@
             ],
             "mean_lines": 8,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7459,6 +9451,8 @@
             "family_id": "a3ab09b856d99fb7",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7473,6 +9467,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7484,6 +9480,8 @@
             "family_id": "7fb06e488f4f66bd",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7498,6 +9496,8 @@
             ],
             "mean_lines": 4,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7509,6 +9509,12 @@
             "family_id": "ed25c2922b485156",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|default": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -7529,6 +9535,12 @@
             ],
             "mean_lines": 2,
             "members": 3,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|default": 2
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           }
@@ -7608,19 +9620,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 7.5,
+          "candidates": 7.9,
           "cluster": 0.4,
           "contiguous": 0.0,
           "discover": 10.5,
           "groups": 2.4,
-          "lower": 52.0,
-          "normalize+extract": 39.2,
-          "parse+lower": 41.9,
+          "lower": 51.9,
+          "normalize+extract": 39.3,
+          "parse+lower": 42.1,
           "score": 0.4
         },
         "repeats": 5,
-        "wall_ms_median": 183.1,
-        "wall_ms_min": 176.04
+        "wall_ms_median": 183.29,
+        "wall_ms_min": 176.42
       }
     },
     "ky": {
@@ -7639,6 +9651,8 @@
             "family_id": "7490df14f9361713",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7653,6 +9667,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7664,6 +9680,8 @@
             "family_id": "5fbd95eaff90e98d",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7678,6 +9696,8 @@
             ],
             "mean_lines": 10,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7689,6 +9709,8 @@
             "family_id": "2f0d340158c80b31",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7705,6 +9727,8 @@
             ],
             "mean_lines": 6,
             "members": 4,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7716,6 +9740,12 @@
             "family_id": "dc1cd0cfbefcac6d",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "2-3": 2
             },
@@ -7734,6 +9764,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "2-3"
           }
@@ -7784,19 +9820,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 1.0,
+          "candidates": 0.7,
           "cluster": 0.0,
           "contiguous": 0.0,
           "discover": 3.4,
           "groups": 0.0,
-          "lower": 16.5,
-          "normalize+extract": 7.4,
-          "parse+lower": 13.1,
+          "lower": 15.5,
+          "normalize+extract": 7.5,
+          "parse+lower": 12.0,
           "score": 0.2
         },
         "repeats": 5,
-        "wall_ms_median": 35.51,
-        "wall_ms_min": 33.71
+        "wall_ms_median": 34.42,
+        "wall_ms_min": 33.83
       }
     },
     "liquid": {
@@ -7815,6 +9851,8 @@
             "family_id": "6caa2ef93eaffa55",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7829,6 +9867,8 @@
             ],
             "mean_lines": 5,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -7840,6 +9880,12 @@
             "family_id": "d27c3b2e93cae4a5",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 4
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 4
+            },
             "fragment_line_span_buckets": {
               "1": 4
             },
@@ -7860,6 +9906,12 @@
             ],
             "mean_lines": 1,
             "members": 4,
+            "reason_code_counts": {
+              "exact-conditional-guard": 4
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 4
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7871,6 +9923,12 @@
             "family_id": "33a17da33703efc9",
             "family_shape": "all-fragment",
             "files": 1,
+            "fragment_kind_counts": {
+              "conditional-guard": 2
+            },
+            "fragment_kind_surface_counts": {
+              "conditional-guard|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -7889,6 +9947,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-conditional-guard": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-conditional-guard|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -7900,6 +9964,8 @@
             "family_id": "67318164927549c5",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -7914,6 +9980,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           }
@@ -7966,19 +10034,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 1.8,
+          "candidates": 1.7,
           "cluster": 0.1,
           "contiguous": 0.0,
           "discover": 3.4,
           "groups": 0.1,
-          "lower": 14.5,
-          "normalize+extract": 10.8,
-          "parse+lower": 11.0,
+          "lower": 14.6,
+          "normalize+extract": 11.0,
+          "parse+lower": 11.5,
           "score": 0.2
         },
         "repeats": 5,
-        "wall_ms_median": 40.56,
-        "wall_ms_min": 38.43
+        "wall_ms_median": 39.81,
+        "wall_ms_min": 38.63
       }
     },
     "serde_json": {
@@ -7997,6 +10065,12 @@
             "family_id": "f182d3c11d972de6",
             "family_shape": "all-fragment",
             "files": 2,
+            "fragment_kind_counts": {
+              "expr-effect": 2
+            },
+            "fragment_kind_surface_counts": {
+              "expr-effect|hidden": 2
+            },
             "fragment_line_span_buckets": {
               "1": 2
             },
@@ -8015,6 +10089,12 @@
             ],
             "mean_lines": 1,
             "members": 2,
+            "reason_code_counts": {
+              "exact-expr-effect": 2
+            },
+            "reason_code_surface_counts": {
+              "exact-expr-effect|hidden": 2
+            },
             "recommended_surface": "hidden",
             "span_bucket": "1"
           },
@@ -8026,6 +10106,12 @@
             "family_id": "1051970f845496b4",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "direct-return": 1
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -8045,6 +10131,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-direct-return": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8056,6 +10148,8 @@
             "family_id": "fbb253861b54e9ed",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8070,6 +10164,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8081,6 +10177,8 @@
             "family_id": "52f1ce45e98c9e1a",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8096,6 +10194,8 @@
             ],
             "mean_lines": 6,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -8107,6 +10207,8 @@
             "family_id": "cf1f75081d0ceec1",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8121,6 +10223,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -8132,6 +10236,12 @@
             "family_id": "202cd8c3b8e31f52",
             "family_shape": "mixed",
             "files": 1,
+            "fragment_kind_counts": {
+              "direct-return": 1
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|default": 1
+            },
             "fragment_line_span_buckets": {
               "1": 1
             },
@@ -8151,6 +10261,12 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {
+              "exact-direct-return": 1
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|default": 1
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8162,6 +10278,8 @@
             "family_id": "a9070706acf347ba",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8179,6 +10297,8 @@
             ],
             "mean_lines": 5,
             "members": 5,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -8190,6 +10310,8 @@
             "family_id": "4ca8b9749aab45cd",
             "family_shape": "whole-only",
             "files": 2,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8204,6 +10326,8 @@
             ],
             "mean_lines": 3,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8215,6 +10339,8 @@
             "family_id": "e9c0156f4388acc7",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8230,6 +10356,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8241,6 +10369,8 @@
             "family_id": "79e903477a6a5faa",
             "family_shape": "whole-only",
             "files": 3,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8256,6 +10386,8 @@
             ],
             "mean_lines": 3,
             "members": 3,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "2-3"
           },
@@ -8267,6 +10399,8 @@
             "family_id": "8cb22fd507f5c505",
             "family_shape": "whole-only",
             "files": 1,
+            "fragment_kind_counts": {},
+            "fragment_kind_surface_counts": {},
             "fragment_line_span_buckets": {},
             "fragment_location_count": 0,
             "fragment_token_span_buckets": {},
@@ -8281,6 +10415,8 @@
             ],
             "mean_lines": 6,
             "members": 2,
+            "reason_code_counts": {},
+            "reason_code_surface_counts": {},
             "recommended_surface": "default",
             "span_bucket": "4-10"
           },
@@ -8292,6 +10428,12 @@
             "family_id": "e4dfbe75341879a1",
             "family_shape": "mixed",
             "files": 2,
+            "fragment_kind_counts": {
+              "direct-return": 3
+            },
+            "fragment_kind_surface_counts": {
+              "direct-return|default": 3
+            },
             "fragment_line_span_buckets": {
               "1": 3
             },
@@ -8314,6 +10456,12 @@
             ],
             "mean_lines": 3,
             "members": 5,
+            "reason_code_counts": {
+              "exact-direct-return": 3
+            },
+            "reason_code_surface_counts": {
+              "exact-direct-return|default": 3
+            },
             "recommended_surface": "default",
             "span_bucket": "2-3"
           }
@@ -8370,19 +10518,19 @@
       },
       "runtime": {
         "phase_ms_median": {
-          "candidates": 1.9,
+          "candidates": 2.1,
           "cluster": 0.1,
           "contiguous": 0.0,
           "discover": 3.4,
           "groups": 0.1,
-          "lower": 12.7,
+          "lower": 14.7,
           "normalize+extract": 10.3,
-          "parse+lower": 9.4,
-          "score": 0.2
+          "parse+lower": 11.3,
+          "score": 0.3
         },
         "repeats": 5,
-        "wall_ms_median": 38.17,
-        "wall_ms_min": 35.83
+        "wall_ms_median": 41.86,
+        "wall_ms_min": 39.78
       }
     }
   },
