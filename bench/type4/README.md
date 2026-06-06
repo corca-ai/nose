@@ -63,6 +63,23 @@ becomes a CI gate.
 `nose scan --format json` object and the older raw `families` array when `--scan-json`
 is supplied, so saved scan output can be reused without post-processing.
 
+## Scan regression harness
+
+Where the manifest evaluator asks *"does semantic detection cover the intended classes?"*,
+the scan regression harness asks *"did a detector change move product runtime or output
+volume on real repos?"* It measures only the product scan path
+(`nose scan --mode semantic --format json --top 0`), records full binary identity, takes
+median no-cache runtimes, and canonicalizes the `--top 0` JSON for order-independent
+output-drift comparison against a recorded baseline. Thresholds are investigation
+triggers, not merge blockers.
+
+```sh
+python3 bench/type4/scan_regression/scan_regression.py compare --nose ./target/release/nose
+```
+
+See [`scan_regression/README.md`](scan_regression/README.md) for the subset, baseline,
+cache mode, and thresholds.
+
 Before spending implementation time on a new axis, run a focused preflight against the
 baseline and candidate binaries:
 
