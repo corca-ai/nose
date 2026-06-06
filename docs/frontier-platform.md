@@ -130,6 +130,15 @@ Add `--with-detector-probe --nose-binary ./target/release/nose` to attach the
 detector-*suggested* tier; it records the nose binary identity and never finalizes a
 status. `--selftest` runs corpus-free correctness checks.
 
+The committed artifacts are **machine-independent**: paths are repo-root-relative and
+`build_ref` defaults to `null` (embedding the live `git HEAD` would make an artifact stale
+the moment it is committed). So they regenerate byte-identically from the command above. The
+corpus **location** (`--repos-root`), an explicit `--build-ref`, and the nose binary identity
+are machine-local provenance that is *excluded* from the byte-identity claim — the corpus
+**commit digest** (from `corpus.json`) is what identifies the content. Evidence records in
+`real_frontier.v1.json` keep an absolute `binary_path`/`build_ref` on purpose: that is the
+provenance of the detector run that produced the evidence.
+
 ## Audit template
 
 A "no implementation-ready batch" conclusion is a valid, evidence-backed result, and is the

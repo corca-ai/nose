@@ -239,10 +239,14 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
   (dev 14 / held-out 12). The identity and its hard negatives (swapped bound order, wrong
   nesting, the `lo ≤ hi` precondition) are machine-checked in `formal/Clamp.lean`.
 - Recorded as a `real-miss` in `real_frontier.v1.json` (existing schema/status) and linked by
-  a target packet routed to `team-a-detector` (#49) — a value-graph clamp canonicalization
-  over already-proven scalar min/max facts (not blocked, not proof-fact-prerequisite). Team A
-  owns the recognizer and soundness gates; the packet's contract ends at the proof invariant
-  and target evidence.
+  a target packet routed `proof-fact-prerequisite` (no team yet). `formal/Clamp.lean` proves
+  the merge is sound only under `lo ≤ hi`, and no existing scalar min/max fact proves bound
+  ordering — parameter naming (e.g. fzf `Constrain(val, minimum, maximum)`) is not a proof, a
+  boundary we explicitly forbid. So the packet's value is identifying the next proof fact
+  (bound-order / guarded-range proof, plus a float-NaN domain exclusion); it must NOT be handed
+  to a Team A implementation batch until the precondition is provable. boltons `clamp`
+  source-proves `lower <= upper` via an explicit guard — the narrow slice such a proof fact
+  would target.
 
 ## Current Next Work
 

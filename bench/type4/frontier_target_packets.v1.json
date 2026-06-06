@@ -1,13 +1,13 @@
 {
   "identity": {
-    "build_ref": "ffdecc62b82a1c8acafe50fbead3ae1af7d7f358",
+    "build_ref": null,
     "corpus": {
       "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
-      "corpus_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/bench/goldens/corpus.json",
+      "corpus_path": "bench/goldens/corpus.json",
       "corpus_schema_version": "0.1.0",
       "repo_count": 105
     },
-    "real_frontier": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/bench/type4/real_frontier.v1.json",
+    "real_frontier": "bench/type4/real_frontier.v1.json",
     "union_signature": "35fa3e15355ae0691ad39f36815c680b6161caea7ff81a750a899574dd5cc598"
   },
   "owner_route_vocabulary": [
@@ -18,7 +18,10 @@
   "packet_count": 1,
   "packets": [
     {
-      "blocked_by": [],
+      "blocked_by": [
+        "bound-order / guarded-range proof fact that `lo <= hi` (formal/Clamp.lean proves the precondition is required; existing scalar min/max facts do not prove it, and parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
+        "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on NaN, by language)"
+      ],
       "breadth": {
         "dev_breadth": 0.2414,
         "dev_presence": 14,
@@ -63,8 +66,8 @@
       "current_detector_result": {
         "baseline_command": "nose scan <two-form file with abs control + clamp> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
         "baseline_result": "abs control merges (1 family: absTern, absBuilt); the clamp forms (clampTern, clampBuilt) are NOT merged.",
-        "binary_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/target/release/nose",
-        "build_ref": "c941c4094b608335f8b378224a17cea63ad84640",
+        "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
+        "build_ref": "58c4c9b0c513b3893b4d29552167b800595ce87e",
         "current_detector_miss": true,
         "default_scan_result": "Cross-language pair; the value graph does not canonicalize clamp, so syntax/semantic default does not merge them either.",
         "nose_version": "nose 0.5.0",
@@ -98,13 +101,13 @@
           "split": "heldout"
         }
       ],
-      "notes": "Value-graph clamp canonicalization. NOT proof-fact-prerequisite: the required scalar min/max facts already exist (numeric_minmax_abs is covered). Team A owns the recognizer/soundness gates; this packet's contract ends at the proof invariant and target evidence.",
-      "owner_issue": "#49",
-      "owner_route": "team-a-detector",
+      "notes": "Value-graph clamp canonicalization, blocked on a bound-order proof fact. Routed proof-fact-prerequisite per #50 decision 3: it must NOT be handed to a Team A implementation batch until the precondition is provable, or it would merge clamps without rejecting the swapped/inverted-bound hard negatives. boltons `clamp` source-proves `lower <= upper` via an explicit `raise ValueError` guard \u2014 the narrow slice a future guarded-range proof fact would target; fzf `Constrain` only names its bounds.",
+      "owner_issue": null,
+      "owner_route": "proof-fact-prerequisite",
       "packet_id": "numeric-clamp-2026-06-06",
       "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/Clamp.lean.",
       "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
-      "why_now": "A genuine machine-checked semantic under-merge (formal/Clamp.lean) that is broad and generalizing \u2014 present in all 7 corpus primary languages on both the dev and held-out splits \u2014 and composes already-proven scalar min/max facts, so the proof invariant is narrow. Two real canonical forms (boltons `clamp` = min(max), fzf `Constrain` = max(min)) do not converge today."
+      "why_now": "A genuine machine-checked semantic under-merge (formal/Clamp.lean) that is broad and generalizing \u2014 present in all 7 corpus primary languages on both the dev and held-out splits. It is NOT directly implementable: the merge is sound only under `lo <= hi`, and no existing proof fact establishes bound ordering. This packet's value is identifying the next proof fact to pursue, with a machine-checked target invariant."
     }
   ],
   "schema_version": 1,

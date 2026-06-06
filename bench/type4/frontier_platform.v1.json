@@ -1371,11 +1371,11 @@
     }
   ],
   "identity": {
-    "build_ref": "ffdecc62b82a1c8acafe50fbead3ae1af7d7f358",
+    "build_ref": null,
     "candidate_signature": "86f9f9b8fae022499af23274e5f248d0eed707d916d6fd1ade6ae7a0aa773a35",
     "corpus": {
       "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
-      "corpus_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/bench/goldens/corpus.json",
+      "corpus_path": "bench/goldens/corpus.json",
       "corpus_schema_version": "0.1.0",
       "repo_count": 105
     },
@@ -1400,7 +1400,6 @@
     ],
     "max_bytes_per_file": 512000,
     "nose_binary": null,
-    "repos_root": "/Users/ak/prjs/cc/nose/bench/repos",
     "schema_version": 1,
     "split_totals": {
       "dev": 58,

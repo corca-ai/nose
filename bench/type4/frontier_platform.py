@@ -614,6 +614,16 @@ def _families_on_line(stdout: str, rel: str, line: int | None) -> int:
 # ---------------------------------------------------------------------------
 # Reproducibility identity.
 # ---------------------------------------------------------------------------
+def repo_rel(path: Path) -> str:
+    """A repo-root-relative path string when `path` is inside the repo, else its basename.
+    Keeps the committed artifacts machine-independent (no absolute worktree paths), so they
+    regenerate byte-identically regardless of where the checkout lives."""
+    try:
+        return str(Path(path).resolve().relative_to(ROOT))
+    except ValueError:
+        return Path(path).name
+
+
 def corpus_identity(corpus_path: Path) -> dict:
     """Stable corpus identity from corpus.json (id/split/language/commit) — independent of
     file mtimes, so it reproduces across machines and checkouts."""
@@ -625,7 +635,7 @@ def corpus_identity(corpus_path: Path) -> dict:
             h.update(str(repo.get(field, "")).encode())
             h.update(b"\x00")
     return {
-        "corpus_path": str(corpus_path),
+        "corpus_path": repo_rel(corpus_path),
         "corpus_schema_version": doc.get("schema_version"),
         "repo_count": len(repos),
         "commit_digest": h.hexdigest(),
@@ -649,14 +659,10 @@ def nose_identity(nose_binary: Path) -> dict:
 
 
 def git_build_ref(explicit: str | None) -> str | None:
-    if explicit:
-        return explicit
-    try:
-        return subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, timeout=30
-        ).stdout.strip() or None
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+    # Default is None (NOT `git rev-parse HEAD`): embedding the live commit would make the
+    # committed artifact go stale the moment it is committed (its own commit changes HEAD).
+    # build_ref is optional provenance, passed via --build-ref only when wanted.
+    return explicit
 
 
 # ---------------------------------------------------------------------------
@@ -755,8 +761,10 @@ def build(
         "split_totals": dict(sorted(split_totals.items())),
         "corpus_primary_languages": corpus_primary_languages,
         "corpus_source_languages": corpus_source_languages,
-        "repos_root": str(repos_root),
         "max_bytes_per_file": max_bytes,
+        # The corpus location (--repos-root) and binary identity are machine-local provenance;
+        # the corpus COMMIT DIGEST above is what identifies the content. `nose_binary` is only
+        # populated by the optional detector probe (and excluded from committed artifacts).
         "nose_binary": nose_identity(nose_binary) if nose_binary is not None else None,
     }
     return {
@@ -801,18 +809,26 @@ TARGET_PACKETS = [
         "packet_id": "numeric-clamp-2026-06-06",
         "candidate_axis": "numeric_clamp",
         "evidence_case_ids": ["numeric-clamp-minmax-ternary-real-miss"],
-        "owner_route": "team-a-detector",
-        "owner_issue": "#49",
+        "owner_route": "proof-fact-prerequisite",
+        "owner_issue": None,
         "why_now": "A genuine machine-checked semantic under-merge (formal/Clamp.lean) that is "
         "broad and generalizing — present in all 7 corpus primary languages on both the dev and "
-        "held-out splits — and composes already-proven scalar min/max facts, so the proof "
-        "invariant is narrow. Two real canonical forms (boltons `clamp` = min(max), fzf "
-        "`Constrain` = max(min)) do not converge today.",
-        "blocked_by": [],
-        "notes": "Value-graph clamp canonicalization. NOT proof-fact-prerequisite: the required "
-        "scalar min/max facts already exist (numeric_minmax_abs is covered). Team A owns the "
-        "recognizer/soundness gates; this packet's contract ends at the proof invariant and "
-        "target evidence.",
+        "held-out splits. It is NOT directly implementable: the merge is sound only under "
+        "`lo <= hi`, and no existing proof fact establishes bound ordering. This packet's value "
+        "is identifying the next proof fact to pursue, with a machine-checked target invariant.",
+        "blocked_by": [
+            "bound-order / guarded-range proof fact that `lo <= hi` (formal/Clamp.lean proves "
+            "the precondition is required; existing scalar min/max facts do not prove it, and "
+            "parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
+            "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on "
+            "NaN, by language)",
+        ],
+        "notes": "Value-graph clamp canonicalization, blocked on a bound-order proof fact. "
+        "Routed proof-fact-prerequisite per #50 decision 3: it must NOT be handed to a Team A "
+        "implementation batch until the precondition is provable, or it would merge clamps "
+        "without rejecting the swapped/inverted-bound hard negatives. boltons `clamp` source-"
+        "proves `lower <= upper` via an explicit `raise ValueError` guard — the narrow slice a "
+        "future guarded-range proof fact would target; fzf `Constrain` only names its bounds.",
         # Representative corpus locations (repo-explicit; split/primary-language enriched below).
         "locations": [
             {"repo": "boltons", "path": "boltons/mathutils.py", "span": "40-69",
@@ -894,7 +910,7 @@ def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path)
             "build_ref": platform_result["identity"]["build_ref"],
             "union_signature": platform_result["identity"]["union_signature"],
             "corpus": platform_result["identity"]["corpus"],
-            "real_frontier": str(real_frontier),
+            "real_frontier": repo_rel(real_frontier),
         },
         "owner_route_vocabulary": sorted(OWNER_ROUTE),
         "packet_count": len(packets),
@@ -945,7 +961,7 @@ def packets_markdown(packet_doc: dict) -> str:
         lines += [
             f"## `{p['packet_id']}` — axis `{p['candidate_axis']}`",
             "",
-            f"- **owner route**: `{p['owner_route']}` ({p['owner_issue']}) · evidence tier: "
+            f"- **owner route**: `{p['owner_route']}` ({p['owner_issue'] or 'no team yet'}) · evidence tier: "
             f"`{p['evidence_tier']}` · cost `{p['curated']['implementation_cost']}` · risk "
             f"`{p['curated']['soundness_risk']}` · substrate `{p['curated']['substrate_required']}`",
             f"- **breadth**: repo {b.get('repo_breadth', 0):.0%} · primary-language "

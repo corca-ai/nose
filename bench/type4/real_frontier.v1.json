@@ -830,9 +830,9 @@
       "evidence": "formal/Clamp.lean machine-checks the identity and its hard negatives (self-contained Lean 4, no Mathlib). A 196-case integer battery confirms min(max)==max(min)==ternary for every lo<=hi. A controlled semantic scan shows the abs idiom DOES merge (absTern/absBuilt, 1 family) while the clamp idiom does NOT (clampTern/clampBuilt, 0 clamp family); boltons `clamp` and fzf `Constrain` do not merge across files. The idiom appears in 26 repos across all 7 primary languages on both splits (frontier_platform breadth).",
       "detector": {
         "current_detector_miss": true,
-        "binary_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/target/release/nose",
+        "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
         "nose_version": "nose 0.5.0",
-        "build_ref": "c941c4094b608335f8b378224a17cea63ad84640",
+        "build_ref": "58c4c9b0c513b3893b4d29552167b800595ce87e",
         "baseline_command": "nose scan <two-form file with abs control + clamp> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
         "baseline_result": "abs control merges (1 family: absTern, absBuilt); the clamp forms (clampTern, clampBuilt) are NOT merged.",
         "semantic_scan_result": "nose scan boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic --format json --top 0 --min-size 1 --min-lines 1: the clamp pair is not merged across files.",
@@ -847,7 +847,7 @@
       ],
       "batch": null,
       "reverify": "Re-run the controlled abs-vs-clamp semantic scan and the boltons/fzf cross-file scan; re-check formal/Clamp.lean type-checks. Reclassify if a future value-graph clamp canonicalization lands (then status -> closed).",
-      "notes": "Issue #50 Team B target packet evidence (linked by frontier_target_packets). A real, machine-checked semantic under-merge; owner route team-a-detector (#49) as a value-graph clamp canonicalization, not blocked (composes already-proven scalar min/max facts)."
+      "notes": "Issue #50 Team B target packet evidence (linked by frontier_target_packets). A real, machine-checked semantic under-merge. Routed proof-fact-prerequisite, NOT directly implementable: formal/Clamp.lean proves the lo<=hi precondition is required, and no existing scalar min/max fact proves bound ordering — parameter naming (e.g. fzf Constrain(val, minimum, maximum)) is not a proof. A new bound-order / guarded-range proof fact (and a float-NaN domain exclusion) is the prerequisite before any detector batch."
     }
   ]
 }
