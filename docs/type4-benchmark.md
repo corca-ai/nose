@@ -303,6 +303,9 @@ The seed lives in `bench/type4/`:
   baseline, fragment/reason-code/surface bucket drift, enclosing-unit recovery metrics,
   and threshold docs; see
   `bench/type4/scan_regression/README.md`;
+- `adversarial/` — the agent-facing coverage matrix, rule registry, adversarial case
+  handles, and next-task scripts; see
+  [type4-adversarial-coverage](type4-adversarial-coverage.md);
 - `README.md` — commands and current smoke numbers.
 
 The long-term direction is an adversarial semantic test factory: the generator creates

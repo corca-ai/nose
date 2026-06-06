@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+"""Summarize `nose verify --leads` output into matrix candidate drafts."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+
+def lead_score(lead: dict) -> float:
+    return float(lead.get("vj", 0.0)) + (1.0 if lead.get("structurally_near") else 0.0)
+
+
+def draft_cell(lead: dict, idx: int, family: str, source: Path) -> dict:
+    return {
+        "id": f"lead.{family}.{idx + 1:03d}",
+        "semantic_family": family,
+        "title": "Verifier lead: behavior-equal units are fingerprint-split",
+        "status": "under-merged",
+        "next_action": "engine",
+        "priority": 50 + int(float(lead.get("vj", 0.0)) * 100),
+        "languages": ["unknown"],
+        "representations": ["unknown"],
+        "rule_ids": [],
+        "positive_cases": [],
+        "adversarial_cases": [],
+        "evidence": (
+            f"Imported from {source}: vj={float(lead.get('vj', 0.0)):.2f}, "
+            f"structurally_near={bool(lead.get('structurally_near'))}; "
+            f"a={lead.get('a')}; b={lead.get('b')}"
+        ),
+        "agent_task": "Audit this verifier lead, classify the semantic family, add focused positives and hard negatives, then replace this draft with a real matrix cell.",
+        "required_gates": [
+            "bench/type4/adversarial/scripts/type4-check",
+            "cargo run -p nose-cli -- verify --max-violations 0 <focused-lead-corpus>"
+        ],
+        "docs": ["docs/type4-adversarial-coverage.md"]
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("leads_json", type=Path)
+    parser.add_argument("--family", default="unclassified")
+    parser.add_argument("--limit", default=10, type=int)
+    parser.add_argument("--draft-json", action="store_true", help="emit candidate cell drafts")
+    args = parser.parse_args()
+
+    payload = json.loads(args.leads_json.read_text())
+    leads = list(payload.get("leads", []))
+    leads.sort(key=lambda lead: (-lead_score(lead), lead.get("a", ""), lead.get("b", "")))
+    selected = leads[: max(args.limit, 0)]
+
+    if args.draft_json:
+        print(
+            json.dumps(
+                [draft_cell(lead, idx, args.family, args.leads_json) for idx, lead in enumerate(selected)],
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    total = int(payload.get("under_merged_pairs", len(leads)))
+    near = int(payload.get("structurally_near", sum(1 for lead in leads if lead.get("structurally_near"))))
+    print(f"under-merged pairs: {total}")
+    print(f"structurally-near: {near}")
+    print()
+    if not selected:
+        print("No leads found.")
+        return 0
+    print("top leads:")
+    for idx, lead in enumerate(selected, start=1):
+        marker = "near" if lead.get("structurally_near") else "low"
+        print(
+            f"  {idx:2d}. vj={float(lead.get('vj', 0.0)):.2f} [{marker}] "
+            f"{lead.get('a')} <-> {lead.get('b')}"
+        )
+    print()
+    print("Use --draft-json to emit candidate cells for manual matrix curation.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

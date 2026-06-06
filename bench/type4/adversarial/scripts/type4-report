@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+"""Summarize Type-4 adversarial coverage matrix state."""
+
+from __future__ import annotations
+
+import argparse
+from collections import Counter, defaultdict
+
+from _type4_adversarial import ACTIONABLE_STATUSES, cell_score, load_all, validate_all
+
+
+def print_counter(title: str, counter: Counter[str]) -> None:
+    print(f"\n{title}:")
+    for key, count in sorted(counter.items()):
+        print(f"  {key}: {count}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--limit", default=10, type=int)
+    args = parser.parse_args()
+
+    matrix, registry, cases = load_all()
+    errors = validate_all(matrix, registry, cases)
+    if errors:
+        for error in errors:
+            print(f"error: {error}")
+        return 1
+
+    cells = matrix.get("cells", [])
+    by_status = Counter(cell["status"] for cell in cells)
+    by_action = Counter(cell["next_action"] for cell in cells)
+    by_family = Counter(cell["semantic_family"] for cell in cells)
+    by_family_status: dict[str, Counter[str]] = defaultdict(Counter)
+    for cell in cells:
+        by_family_status[cell["semantic_family"]][cell["status"]] += 1
+
+    print(f"cells: {len(cells)}")
+    print(f"rules: {len(registry.get('rules', []))}")
+    print(f"cases: {len(cases.get('cases', []))}")
+    print_counter("by status", by_status)
+    print_counter("by action", by_action)
+    print_counter("by semantic family", by_family)
+
+    print("\nfamily/status:")
+    for family in sorted(by_family_status):
+        parts = ", ".join(
+            f"{status}={count}" for status, count in sorted(by_family_status[family].items())
+        )
+        print(f"  {family}: {parts}")
+
+    backlog = [
+        cell for cell in cells if cell["status"] in ACTIONABLE_STATUSES
+    ]
+    backlog = sorted(backlog, key=lambda cell: (-cell_score(cell), cell["id"]))
+    print("\nnext backlog:")
+    for cell in backlog[: args.limit]:
+        print(
+            f"  {cell_score(cell):4d}  {cell['id']}  "
+            f"[{cell['status']} / {cell['next_action']}]"
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "description": "Rules and substrates referenced by the Type-4 adversarial coverage matrix.",
+  "rules": [
+    {
+      "id": "hof.flat_map",
+      "kind": "engine",
+      "status": "landed",
+      "summary": "Represent one-level flat-map as a first-class HoF and value-graph node.",
+      "implementation": [
+        "crates/nose-il/src/node.rs",
+        "crates/nose-frontend/src/python.rs",
+        "crates/nose-normalize/src/idioms.rs",
+        "crates/nose-normalize/src/value_graph.rs"
+      ],
+      "positive_cases": ["flat_map_py_loop_js"],
+      "hard_negatives": ["flat_map_vs_nested_list", "flat_map_vs_map"],
+      "boundaries": ["Do not model depth-parameterized Array.prototype.flat(depth) as this rule.", "Nested-list comprehensions remain Map-of-Map, not FlatMap."],
+      "docs": ["docs/clone-types.md", "docs/normalization.md"]
+    },
+    {
+      "id": "oracle.hof.flat_map",
+      "kind": "oracle",
+      "status": "landed",
+      "summary": "Interpreter executes FlatMap and propagates lambda errors or non-list lambda results as Err.",
+      "implementation": ["crates/nose-normalize/src/interp.rs"],
+      "positive_cases": ["flat_map_py_loop_js", "hof_error_propagation"],
+      "hard_negatives": ["hof_non_list_flat_map"],
+      "boundaries": ["Oracle support must land before broadening HoF canonicalization."],
+      "docs": ["docs/normalization.md"]
+    },
+    {
+      "id": "hof.filter_map",
+      "kind": "engine",
+      "status": "proposed",
+      "summary": "Canonicalize option-producing filter-map forms to a shared representation.",
+      "implementation": ["crates/nose-normalize/src/idioms.rs", "crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["filter_map_filter_map_equiv"],
+      "hard_negatives": ["filter_map_none_boundary", "filter_map_value_change"],
+      "boundaries": ["Must distinguish dropped None values from mapped Some values.", "Do not assume arbitrary callbacks are pure."],
+      "docs": ["docs/type4-adversarial-coverage.md"]
+    },
+    {
+      "id": "hof.aggregate_bridge",
+      "kind": "engine",
+      "status": "proposed",
+      "summary": "Teach aggregate consumers how to consume FlatMap streams without confusing them with filtered Map nodes.",
+      "implementation": ["crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["sum_flat_map_nested_loop"],
+      "hard_negatives": ["sum_flat_map_wrong_seed", "sum_flat_map_nested_list"],
+      "boundaries": ["Map and FlatMap argument layouts are different; aggregate code must match the HoF kind explicitly."],
+      "docs": ["docs/normalization.md"]
+    },
+    {
+      "id": "idiom.java_stream",
+      "kind": "engine",
+      "status": "proposed",
+      "summary": "Lower pure Java stream adapters into shared HoF/value-graph representations.",
+      "implementation": ["crates/nose-normalize/src/idioms.rs"],
+      "positive_cases": ["java_stream_flat_map_py_comp"],
+      "hard_negatives": ["java_stream_map_not_flat_map", "java_stream_effectful_lambda"],
+      "boundaries": ["Requires oracle support for enough Java lambda/stream behavior before detection can claim soundness."],
+      "docs": ["docs/type4-adversarial-coverage.md"]
+    },
+    {
+      "id": "oracle.java_stream",
+      "kind": "oracle",
+      "status": "proposed",
+      "summary": "Interpreter support for a small, pure subset of Java stream chains.",
+      "implementation": ["crates/nose-normalize/src/interp.rs"],
+      "positive_cases": ["java_stream_flat_map_py_comp"],
+      "hard_negatives": ["java_stream_effectful_lambda"],
+      "boundaries": ["No effectful stream callbacks; no parallel stream semantics."],
+      "docs": ["docs/type4-adversarial-coverage.md"]
+    },
+    {
+      "id": "oracle.option_iterator",
+      "kind": "oracle",
+      "status": "proposed",
+      "summary": "Interpreter support for option-producing iterator adapters used by filter_map-like idioms.",
+      "implementation": ["crates/nose-normalize/src/interp.rs"],
+      "positive_cases": ["filter_map_filter_map_equiv"],
+      "hard_negatives": ["filter_map_none_boundary"],
+      "boundaries": ["Must preserve Err/None/Some distinctions."],
+      "docs": ["docs/type4-adversarial-coverage.md"]
+    },
+    {
+      "id": "numeric.clamp_composition",
+      "kind": "engine",
+      "status": "proposed",
+      "summary": "Canonicalize clamp-shaped min/max compositions when numeric bounds are proven ordered.",
+      "implementation": ["crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["clamp_minmax_guarded_bounds"],
+      "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
+      "boundaries": ["Requires numeric domain and lo<=hi proof; float/NaN behavior remains a boundary."],
+      "docs": ["docs/frontier-platform.md", "docs/normalization.md"]
+    },
+    {
+      "id": "proof.bound_order",
+      "kind": "proof-fact",
+      "status": "partial",
+      "summary": "Recover conservative facts that prove lower bound order for clamp-like canons.",
+      "implementation": ["crates/nose-normalize/src/value_graph.rs", "formal/obligations/normalize/value_graph/clamp"],
+      "positive_cases": ["clamp_minmax_guarded_bounds"],
+      "hard_negatives": ["clamp_unordered_bounds"],
+      "boundaries": ["No order fact means no clamp canon."],
+      "docs": ["docs/formal-soundness.md", "docs/normalization.md"]
+    },
+    {
+      "id": "proof.collection_provenance",
+      "kind": "proof-fact",
+      "status": "partial",
+      "summary": "Prove receiver/key/default identity for collection and map-default idioms across local/module/import boundaries.",
+      "implementation": ["crates/nose-normalize/src/module_facts.rs", "crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["map_default_imported_literal"],
+      "hard_negatives": ["map_default_mutated_receiver", "map_default_wrong_map"],
+      "boundaries": ["Mutation, shadowing, and unresolved imports stay fail-closed."],
+      "docs": ["docs/clone-types.md"]
+    },
+    {
+      "id": "idiom.map_default_lookup",
+      "kind": "engine",
+      "status": "partial",
+      "summary": "Canonicalize proven map/dict lookup-with-default idioms.",
+      "implementation": ["crates/nose-normalize/src/idioms.rs", "crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["map_default_imported_literal"],
+      "hard_negatives": ["map_default_mutated_receiver", "map_default_wrong_map"],
+      "boundaries": ["Requires proven receiver/key/default coordinates."],
+      "docs": ["docs/clone-types.md"]
+    },
+    {
+      "id": "perf.value_graph_budget",
+      "kind": "performance",
+      "status": "proposed",
+      "summary": "Keep HoF value-graph growth and semantic scan runtime bounded while coverage expands.",
+      "implementation": ["bench/type4/scan_regression", "crates/nose-normalize/src/value_graph.rs"],
+      "positive_cases": ["deep_hof_chain_budget"],
+      "hard_negatives": ["wide_hof_chain_budget"],
+      "boundaries": ["Coverage wins that expand fingerprints without bound are perf-blocked until represented compactly."],
+      "docs": ["docs/type4-benchmark.md"]
+    }
+  ]
+}

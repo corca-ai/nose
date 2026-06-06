@@ -49,6 +49,7 @@ You want to *change* nose or understand how it works inside.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 - [benchmark](benchmark.md) — the gold set, methodology, and the headline precision/recall numbers.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
+- [type4-adversarial-coverage](type4-adversarial-coverage.md) — the agent-facing Type-4 coverage matrix, adversarial cases, rule registry, and next-task workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.
 - [fragment-output-audit](fragment-output-audit.md) — exact semantic fragment output quality, ranking/grouping recommendations, and metadata requirements for default/review/debug surfaces.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
