@@ -17,8 +17,8 @@ mod units;
 
 pub use contiguous::Stream;
 pub use fragment::{
-    fragment_behavior, free_input_cids, synthesize_wrapper, Effect, Exit, FragmentContract,
-    FragmentKind, Place, ProofFacts,
+    fragment_behavior, free_input_cids, synthesize_wrapper, Effect, EffectSite, Exit,
+    FragmentContract, FragmentKind, Place, ProofFacts,
 };
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;

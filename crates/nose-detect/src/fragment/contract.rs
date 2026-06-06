@@ -8,20 +8,54 @@
 //! into a wrapper, the contract is underspecified, which is exactly the soundness property
 //! we want to force.
 //!
-//! This is the minimal contract: it models the direct-return shape (inputs + a value/throw
-//! exit). Heap writes, effect algebra, and [`Place`] receiver identity are layered on in
-//! later steps; the placeholder [`Place`] enum below fixes the fail-closed default now so
-//! receiver-bearing shapes have a home to migrate into.
+//! A contract describes a fragment as an ordered sequence of observable effects (possibly
+//! empty, for a pure value/control sink) plus the control exit it terminates in. A
+//! single-statement sink (direct return/throw) carries no effects; a single-statement write
+//! carries one; a multi-statement body (a conditional branch, a loop body, an ordered effect
+//! sequence) carries its effects in execution order. The [`Place`] receiver-identity model
+//! is fail-closed so receiver-bearing effects can only be admitted when proven.
 
 use super::{Exit, FragmentKind};
 use nose_il::NodeId;
 
+/// One observable effect in a fragment body, paired with its write-target identity.
+///
+/// The [`place`](Self::place) is `Some` only when the effect's soundness depends on knowing
+/// *whose* state it touches — i.e. [`Effect::requires_proven_place`]. Append/index writes are
+/// observable in the interpreter's effect trace and so carry no receiver-identity obligation;
+/// their `place` is `None` even though they do mutate a collection.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EffectSite {
+    /// How this effect is observed (see [`Effect`]).
+    pub effect: Effect,
+    /// The proven write target, for receiver-bearing effects; `None` otherwise.
+    pub place: Option<Place>,
+}
+
+impl EffectSite {
+    /// An effect whose observability carries no receiver-identity obligation (append/index).
+    pub fn observable(effect: Effect) -> Self {
+        EffectSite {
+            effect,
+            place: None,
+        }
+    }
+
+    /// A receiver-bearing effect (a field write) over a resolved [`Place`].
+    pub fn at(effect: Effect, place: Place) -> Self {
+        EffectSite {
+            effect,
+            place: Some(place),
+        }
+    }
+}
+
 /// A first-class description of one exact sub-function fragment.
 ///
 /// The contract is recognizer-independent: two fragments with the same inputs, exit, and
-/// effect are interchangeable to the oracle regardless of which predicate matched them. The
-/// [`root`](Self::root) points at the fragment statement in the *source* IL; lowering
-/// deep-copies that subtree into a synthetic wrapper.
+/// ordered effects are interchangeable to the oracle regardless of which predicate matched
+/// them. The [`root`](Self::root) points at the fragment statement (or block) in the *source*
+/// IL; lowering deep-copies that subtree into a synthetic wrapper.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FragmentContract {
     /// Which recognizer shape produced this contract.
@@ -33,12 +67,9 @@ pub struct FragmentContract {
     pub inputs: Vec<u32>,
     /// The control sink the fragment terminates in.
     pub exit: Exit,
-    /// The observable effect the fragment produces, for effect-bearing shapes. `None` for
-    /// pure value/control sinks (direct return/throw). See [`Effect`] for the algebra.
-    pub effect: Option<Effect>,
-    /// The proven write-target identity, for shapes that mutate heap/object state. See
-    /// [`Place`]; `None` for shapes with no heap write.
-    pub place: Option<Place>,
+    /// The fragment's observable effects, in execution order. Empty for pure value/control
+    /// sinks; one entry for a single-effect write; several for an ordered multi-effect body.
+    pub effects: Vec<EffectSite>,
 }
 
 impl FragmentContract {
@@ -47,16 +78,61 @@ impl FragmentContract {
         self.inputs.len()
     }
 
-    /// A pure value/control-sink contract (direct return/throw): no effect, no write place.
+    /// A pure value/control-sink contract (direct return/throw): no observable effects.
     pub fn value_sink(kind: FragmentKind, root: NodeId, inputs: Vec<u32>, exit: Exit) -> Self {
         FragmentContract {
             kind,
             root,
             inputs,
             exit,
-            effect: None,
-            place: None,
+            effects: Vec::new(),
         }
+    }
+
+    /// A single-effect contract (one append/index/field/other write), normal exit.
+    pub fn single_effect(
+        kind: FragmentKind,
+        root: NodeId,
+        inputs: Vec<u32>,
+        site: EffectSite,
+    ) -> Self {
+        FragmentContract {
+            kind,
+            root,
+            inputs,
+            exit: Exit::Normal,
+            effects: vec![site],
+        }
+    }
+
+    /// A multi-effect contract: an ordered sequence of effects over a (block) body.
+    pub fn ordered_effects(
+        kind: FragmentKind,
+        root: NodeId,
+        inputs: Vec<u32>,
+        exit: Exit,
+        effects: Vec<EffectSite>,
+    ) -> Self {
+        FragmentContract {
+            kind,
+            root,
+            inputs,
+            exit,
+            effects,
+        }
+    }
+
+    /// Whether every receiver-bearing effect has a proven, exact-safe [`Place`].
+    ///
+    /// Fail-closed: a [`Effect::FieldWrite`] with no place, or a place rooted at
+    /// [`Place::Unknown`], is not proven. Effects that carry no receiver obligation
+    /// ([`Effect::Append`]/[`Effect::IndexWrite`]) never block this. This is the soundness
+    /// predicate receiver-bearing shapes gate on before the contract is admitted.
+    pub fn writes_proven(&self) -> bool {
+        self.effects.iter().all(|site| {
+            !site.effect.requires_proven_place()
+                || site.place.as_ref().is_some_and(Place::is_exact_safe)
+        })
     }
 }
 
@@ -147,5 +223,70 @@ mod tests {
         // A proven receiver with a field/index path is safe.
         assert!(Place::Field(Box::new(Place::This), 3).is_exact_safe());
         assert!(Place::Index(Box::new(Place::Param(0)), 9).is_exact_safe());
+    }
+
+    use super::super::FragmentKind;
+    use nose_il::NodeId;
+
+    #[test]
+    fn writes_proven_gates_only_receiver_bearing_effects() {
+        let root = NodeId(0);
+        // No effects: trivially proven (a pure sink).
+        assert!(FragmentContract::value_sink(
+            FragmentKind::DirectReturn,
+            root,
+            vec![],
+            Exit::Return
+        )
+        .writes_proven());
+
+        // Append/index writes carry no receiver obligation — proven regardless of place.
+        let appends = FragmentContract::ordered_effects(
+            FragmentKind::ExprEffect,
+            root,
+            vec![],
+            Exit::Normal,
+            vec![
+                EffectSite::observable(Effect::Append),
+                EffectSite::observable(Effect::IndexWrite),
+            ],
+        );
+        assert!(appends.writes_proven());
+
+        // A field write over a proven `This` place is admitted; over Unknown it is not.
+        let proven = FragmentContract::single_effect(
+            FragmentKind::SelfFieldAssign,
+            root,
+            vec![],
+            EffectSite::at(Effect::FieldWrite, Place::Field(Box::new(Place::This), 7)),
+        );
+        assert!(proven.writes_proven());
+
+        let unproven = FragmentContract::single_effect(
+            FragmentKind::SelfFieldAssign,
+            root,
+            vec![],
+            EffectSite::at(
+                Effect::FieldWrite,
+                Place::Field(Box::new(Place::Unknown), 7),
+            ),
+        );
+        assert!(
+            !unproven.writes_proven(),
+            "field write through Unknown is fail-closed"
+        );
+
+        // A field write with no resolved place at all is fail-closed too.
+        let missing = FragmentContract::ordered_effects(
+            FragmentKind::SelfFieldBody,
+            root,
+            vec![],
+            Exit::Normal,
+            vec![EffectSite {
+                effect: Effect::FieldWrite,
+                place: None,
+            }],
+        );
+        assert!(!missing.writes_proven());
     }
 }

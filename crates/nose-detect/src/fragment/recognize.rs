@@ -13,7 +13,7 @@
 //! changes which nodes are accepted fails this test. As [`MIGRATED`] grows, the gate keeps
 //! the two paths in lockstep until every shape is contract-expressed.
 
-use super::contract::{Effect, FragmentContract};
+use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind, Place};
 use crate::units::{exact_java_this_field, exact_java_this_var};
@@ -151,14 +151,12 @@ fn effect_contract(
     effect: Effect,
     place: Option<Place>,
 ) -> FragmentContract {
-    FragmentContract {
+    FragmentContract::single_effect(
         kind,
-        root: node,
-        inputs: free_input_cids(il, node),
-        exit: Exit::Normal,
-        effect: Some(effect),
-        place,
-    }
+        node,
+        free_input_cids(il, node),
+        EffectSite { effect, place },
+    )
 }
 
 /// Resolve a write target's [`Place`] receiver identity, fail-closed to [`Place::Unknown`].
@@ -377,10 +375,16 @@ mod tests {
         );
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::SelfFieldAssign);
-        assert_eq!(c.effect, Some(Effect::FieldWrite));
-        assert!(matches!(c.place, Some(Place::Field(ref base, _)) if **base == Place::This));
-        assert!(c.place.as_ref().unwrap().is_exact_safe());
-        assert!(c.effect.unwrap().requires_proven_place());
+        assert_eq!(c.effects.len(), 1);
+        let site = &c.effects[0];
+        assert_eq!(site.effect, Effect::FieldWrite);
+        assert!(matches!(site.place, Some(Place::Field(ref base, _)) if **base == Place::This));
+        assert!(site.place.as_ref().unwrap().is_exact_safe());
+        assert!(site.effect.requires_proven_place());
+        assert!(
+            c.writes_proven(),
+            "a proven self-field write must pass writes_proven"
+        );
 
         // Java `a[i] = v` → IndexWrite over an index place. The base here is an instance
         // field accessed bare, so it resolves to a fail-closed `Unknown` receiver — yet the
@@ -392,17 +396,22 @@ mod tests {
         );
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::IndexAssignEffect);
-        assert_eq!(c.effect, Some(Effect::IndexWrite));
-        assert!(matches!(c.place, Some(Place::Index(_, _))));
-        assert!(!c.effect.unwrap().requires_proven_place());
+        assert_eq!(c.effects.len(), 1);
+        let site = &c.effects[0];
+        assert_eq!(site.effect, Effect::IndexWrite);
+        assert!(matches!(site.place, Some(Place::Index(_, _))));
+        assert!(!site.effect.requires_proven_place());
+        // An index write needs no proven receiver, so it passes regardless of the Unknown base.
+        assert!(c.writes_proven());
 
         // JS `xs.push(v)` → Append effect, no heap place.
         let (il, parents, interner) =
             norm("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::ExprEffect);
-        assert_eq!(c.effect, Some(Effect::Append));
-        assert_eq!(c.place, None);
+        assert_eq!(c.effects.len(), 1);
+        assert_eq!(c.effects[0].effect, Effect::Append);
+        assert_eq!(c.effects[0].place, None);
     }
 
     #[test]
@@ -417,7 +426,7 @@ mod tests {
         let run = |src: &str| -> Vec<nose_normalize::Behavior> {
             let (il, parents, interner) = norm(src, Lang::JavaScript);
             let c = first_contract(&il, &parents, &interner);
-            assert_eq!(c.effect, Some(Effect::Append));
+            assert_eq!(c.effects.first().map(|s| s.effect), Some(Effect::Append));
             battery
                 .iter()
                 .map(|row| {

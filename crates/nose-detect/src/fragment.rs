@@ -23,7 +23,7 @@ mod contract;
 mod oracle;
 pub(crate) mod recognize;
 
-pub use contract::{Effect, FragmentContract, Place};
+pub use contract::{Effect, EffectSite, FragmentContract, Place};
 pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};
 
 /// The shape of an accepted exact sub-function fragment.
