@@ -99,3 +99,11 @@ Remaining structural axes are larger NEW MECHANISMS (not gate alignments), track
 `coverage_taxonomy.py`: **anchored sub-DAG matching** (partial overlap of larger functions) and
 **extract-method / interprocedural pure inlining**. These need their own design + the same
 validation discipline.
+
+## L5 — ruby `arr << x` lowered as `Shl` (shift), not append (deferred, frontend)
+
+ruby flat_map builder loop stays a gap: `out << y` lowers to `(binop Shl out y)` (ruby `<<` is
+overloaded shift/append). The builder loop's value graph is a shift recurrence, not an append,
+so it never matches the `flat_map`. Fix is in the ruby frontend (lower `<<` as append when the
+receiver is array-like) and is inherently ambiguous without type/context — a separate frontend
+lead, not a value-graph/gate alignment. Low-to-medium value; deferred.
