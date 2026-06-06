@@ -2800,28 +2800,54 @@ impl<'a> Builder<'a> {
     /// If `e` is a single-item `append(r, item)` to an ACTIVE builder var `r`, record the
     /// per-element contribution under the current path guard and return true (the append IS
     /// the build, not an effect). A multi-item form spoils the builder.
-    fn try_record_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, ValueId>) -> bool {
-        if self.il.kind(e) != NodeKind::Call
-            || !matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append))
-        {
-            return false;
+    /// Recognize the two effect-append shapes to a var `r`, returning `(r_cid, item_args)`:
+    ///   • the canonical `Append(Var r, items…)` — Python/JS `.append`/`.push`, lowered by idioms;
+    ///   • Java's `r.add(item…)` List method call — `Call(Field("add", Var r), items…)`.
+    /// The caller spoils on `!= 1` item. The Java `.add` is recognized only structurally here;
+    /// it becomes a *build* only via `builder_candidates`' empty-Seq-seed gate, which is satisfied
+    /// only by `[]` / `new ArrayList<>()` — so overloaded `.add` (BigInteger, Set, `.add(i, x)`)
+    /// never enters the Map build.
+    fn list_append_parts(&self, e: NodeId) -> Option<(u32, Vec<NodeId>)> {
+        if self.il.kind(e) != NodeKind::Call {
+            return None;
         }
         let kids = self.il.children(e).to_vec();
-        let Some(&target) = kids.first() else {
-            return false;
-        };
-        let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(target), self.il.node(target).payload)
-        else {
+        let &first = kids.first()?;
+        if matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append)) {
+            let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(first), self.il.node(first).payload)
+            else {
+                return None;
+            };
+            return Some((c, kids[1..].to_vec()));
+        }
+        if self.il.kind(first) == NodeKind::Field {
+            if let Payload::Name(s) = self.il.node(first).payload {
+                if self.interner.resolve(s) == "add" {
+                    if let Some(&recv) = self.il.children(first).first() {
+                        if let (NodeKind::Var, Payload::Cid(c)) =
+                            (self.il.kind(recv), self.il.node(recv).payload)
+                        {
+                            return Some((c, kids[1..].to_vec()));
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn try_record_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, ValueId>) -> bool {
+        let Some((c, items)) = self.list_append_parts(e) else {
             return false;
         };
         if !self.building.contains_key(&c) {
             return false;
         }
-        if kids.len() != 2 {
+        if items.len() != 1 {
             self.building.insert(c, None); // multi-item append — not a clean map
             return true;
         }
-        let contrib = self.eval(kids[1], env);
+        let contrib = self.eval(items[0], env);
         let guard = self.path_cond();
         self.building.insert(c, Some((contrib, guard)));
         true
@@ -2912,20 +2938,14 @@ impl<'a> Builder<'a> {
             if let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(n), self.il.node(n).payload) {
                 *mentions.entry(c).or_insert(0) += 1;
             }
-            if self.il.kind(n) == NodeKind::Call
-                && matches!(self.il.node(n).payload, Payload::Builtin(Builtin::Append))
-            {
-                let k = self.il.children(n);
-                if let Some(&t) = k.first() {
-                    if let (NodeKind::Var, Payload::Cid(c)) =
-                        (self.il.kind(t), self.il.node(t).payload)
-                    {
-                        if k.len() == 2 {
-                            *appends.entry(c).or_insert(0) += 1;
-                        } else {
-                            spoiled.insert(c);
-                        }
-                    }
+            // An effect-form append — `r.append/push(item)` (canonical) or Java `r.add(item)` —
+            // counts as r's build append (the receiver mention is counted by the generic Var
+            // scan above / below as the node's children are walked).
+            if let Some((c, items)) = self.list_append_parts(n) {
+                if items.len() == 1 {
+                    *appends.entry(c).or_insert(0) += 1;
+                } else {
+                    spoiled.insert(c);
                 }
             }
             // A `d[k] = v` assignment is a DICT build for `d` — counted like an append, so

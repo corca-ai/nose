@@ -506,6 +506,30 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn java_arraylist_add_builder_loop_converges_with_comprehension() {
+    // Java builds a list with `List<T> out = new ArrayList<>(); for (…) out.add(e); return out`.
+    // Modeling `new ArrayList<>()` as the empty `array` Seq and `out.add(e)` as the per-element
+    // build (scoped by the empty-Seq seed — so overloaded `.add` on a Set/BigInteger never
+    // enters) makes the Java builder loop converge with the Python comprehension. A different
+    // contribution stays a hard negative.
+    let i = Interner::new();
+    let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
+    let java_build = "import java.util.*;\nclass C { static List<Integer> f(int[] xs) { List<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
+    let java_build_diff = "import java.util.*;\nclass C { static List<Integer> f(int[] xs) { List<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x + 1); } return out; } }\n";
+    let comp_fp = value_fp(&i, py_comp, Lang::Python);
+    assert_eq!(
+        comp_fp,
+        value_fp(&i, java_build, Lang::Java),
+        "java ArrayList+add builder loop must converge with the python comprehension"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, java_build_diff, Lang::Java),
+        "a different per-element contribution must stay distinct"
+    );
+}
+
+#[test]
 fn go_functional_append_builder_loop_converges_with_comprehension() {
     // Go builds a list with `out := []T{}; for … { out = append(out, e) }` — a FUNCTIONAL
     // append (reassignment), not the effect-form `out.append(e)` of Python/JS. Recognizing the

@@ -523,6 +523,21 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     kids.push(lower_expr(lo, a));
                 }
             }
+            // `new ArrayList<>()` / `new LinkedList<>()` with no args is an empty ordered list —
+            // model it as the empty `array` Seq (like `[]`) so a List builder loop
+            // (`out = new ArrayList<>(); for … out.add(e)`) converges with the comprehension /
+            // `.map` form. Scoped to List types (NOT Set/Map) so the builder's empty-Seq-seed
+            // requirement keeps `set.add` / `map.put` out of the Map-build recognition.
+            if kids.is_empty() {
+                if let Some(ty) = node.child_by_field_name("type") {
+                    let tn = lo.text(ty);
+                    let base = tn.split('<').next().unwrap_or(tn).trim();
+                    if matches!(base, "ArrayList" | "LinkedList") {
+                        let tag = lo.sym("array");
+                        return lo.add(NodeKind::Seq, Payload::Name(tag), span, &[]);
+                    }
+                }
+            }
             lo.add(NodeKind::Call, Payload::None, span, &kids)
         }
         "field_access" => {
