@@ -16,7 +16,10 @@ mod report;
 mod units;
 
 pub use contiguous::Stream;
-pub use fragment::{Exit, FragmentKind, ProofFacts};
+pub use fragment::{
+    fragment_behavior, free_input_cids, synthesize_wrapper, Exit, FragmentContract, FragmentKind,
+    Place, ProofFacts,
+};
 pub use report::{rank_families, RefactorFamily};
 pub use units::UnitFeat;
 

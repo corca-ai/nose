@@ -19,6 +19,12 @@
 //!
 //! [`reason_code`]: FragmentKind::reason_code
 
+mod contract;
+mod oracle;
+
+pub use contract::{FragmentContract, Place};
+pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};
+
 /// The shape of an accepted exact sub-function fragment.
 ///
 /// Each variant is the classification of one recognizer branch in
