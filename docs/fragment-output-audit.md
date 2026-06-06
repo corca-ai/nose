@@ -308,3 +308,10 @@ machine-readable output while using `recommended_surface` and default ranking
 damping so tiny proof fragments do not read as first-class refactoring
 candidates. The important product decision remains: exact semantic fragments
 are evidence, not automatically refactoring candidates.
+
+The scan-regression harness measures that placement policy without expanding the
+stable scan JSON schema. Its canonical output tracks `recommended_surface`
+distribution, whole-only/all-fragment/mixed family shape, fragment proof reason by
+surface, fragment line/token span buckets, and enclosing-unit recovery. These metrics
+are regression gates for future calibration: they should move only when product
+placement intentionally changes, while `--top 0` keeps full fragment visibility.

@@ -300,7 +300,8 @@ The seed lives in `bench/type4/`:
 - `schema.json` — pair-level manifest schema;
 - `scan_regression/` — the repeatable product-scan runtime/output-drift harness
   (`nose scan --mode semantic --format json --top 0`), with its own subset, recorded
-  baseline, fragment/reason-code bucket drift, and threshold docs; see
+  baseline, fragment/reason-code/surface bucket drift, enclosing-unit recovery metrics,
+  and threshold docs; see
   `bench/type4/scan_regression/README.md`;
 - `README.md` — commands and current smoke numbers.
 
