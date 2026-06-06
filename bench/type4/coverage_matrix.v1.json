@@ -86,7 +86,7 @@
       "java": "none",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "unsupported",
+      "ruby": "covered",
       "rust": "covered",
       "typescript": "covered"
     },
@@ -384,7 +384,7 @@
     },
     "ruby": {
       "applicable": 24,
-      "covered": 12
+      "covered": 13
     },
     "rust": {
       "applicable": 25,

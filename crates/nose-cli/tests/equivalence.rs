@@ -506,6 +506,28 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn ruby_shovel_builder_loop_converges_with_comprehension() {
+    // Ruby builds a list with `out = []; xs.each { |x| out << e }` — `<<` lowers to `Shl`.
+    // Recognizing `out << e` as the per-element build (scoped to Ruby AND the empty-Seq seed,
+    // so integer `a << b` shift never enters) makes it converge with the Python comprehension.
+    let i = Interner::new();
+    let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
+    let ruby_build = "def f(xs)\n  out = []\n  xs.each { |x| out << x * x }\n  out\nend\n";
+    let ruby_diff = "def f(xs)\n  out = []\n  xs.each { |x| out << x + 1 }\n  out\nend\n";
+    let comp_fp = value_fp(&i, py_comp, Lang::Python);
+    assert_eq!(
+        comp_fp,
+        value_fp(&i, ruby_build, Lang::Ruby),
+        "ruby << builder loop must converge with the python comprehension"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, ruby_diff, Lang::Ruby),
+        "a different per-element contribution must stay distinct"
+    );
+}
+
+#[test]
 fn java_arraylist_add_builder_loop_converges_with_comprehension() {
     // Java builds a list with `List<T> out = new ArrayList<>(); for (…) out.add(e); return out`.
     // Modeling `new ArrayList<>()` as the empty `array` Seq and `out.add(e)` as the per-element

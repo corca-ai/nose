@@ -100,7 +100,7 @@ Remaining structural axes are larger NEW MECHANISMS (not gate alignments), track
 **extract-method / interprocedural pure inlining**. These need their own design + the same
 validation discipline.
 
-## L5 — ruby `arr << x` lowered as `Shl` (shift), not append (deferred, frontend)
+## L5 — ruby `arr << x` builder (`<<` = `Shl`) — ✅ RESOLVED (scoped append)
 
 ruby flat_map builder loop stays a gap: `out << y` lowers to `(binop Shl out y)` (ruby `<<` is
 overloaded shift/append). The builder loop's value graph is a shift recurrence, not an append,

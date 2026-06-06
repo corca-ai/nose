@@ -2808,6 +2808,22 @@ impl<'a> Builder<'a> {
     /// only by `[]` / `new ArrayList<>()` — so overloaded `.add` (BigInteger, Set, `.add(i, x)`)
     /// never enters the Map build.
     fn list_append_parts(&self, e: NodeId) -> Option<(u32, Vec<NodeId>)> {
+        // Ruby `r << item` appends to a list (`<<` lowers to `Shl`, a BinOp not a Call). Scoped
+        // to Ruby and — via `builder_candidates`' empty-Seq-seed gate — to a `[]`-seeded builder,
+        // so integer `a << b` shift (`a` is not a list-builder) never enters the Map build.
+        if self.il.meta.lang == Lang::Ruby
+            && self.il.kind(e) == NodeKind::BinOp
+            && matches!(self.il.node(e).payload, Payload::Op(Op::Shl))
+        {
+            if let [recv, item] = self.il.children(e) {
+                if let (NodeKind::Var, Payload::Cid(c)) =
+                    (self.il.kind(*recv), self.il.node(*recv).payload)
+                {
+                    return Some((c, vec![*item]));
+                }
+            }
+            return None;
+        }
         if self.il.kind(e) != NodeKind::Call {
             return None;
         }
