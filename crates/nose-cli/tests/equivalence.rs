@@ -794,6 +794,67 @@ fn numeric_clamp_minmax_compositions_require_bound_proof() {
 }
 
 #[test]
+fn numeric_clamp_surface_bridge_requires_bound_proof() {
+    let i = Interner::new();
+    let minmax_guarded = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n";
+    let ternary_guarded = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return lo if x < lo else (hi if x > hi else x)\n";
+    let ternary_unproven =
+        "def f(x: int, lo: int, hi: int):\n    return lo if x < lo else (hi if x > hi else x)\n";
+    let ternary_swapped = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return hi if x < hi else (lo if x > lo else x)\n";
+    let float_ternary = "def f(x: float, lo: float, hi: float):\n    if hi < lo:\n        raise 0\n    return lo if x < lo else (hi if x > hi else x)\n";
+    let literal_minmax = "def f(x: int):\n    return min(max(x, 0), 10)\n";
+    let rust_literal_clamp = "fn f(x: i64) -> i64 { x.clamp(0, 10) }";
+    let rust_guarded_minmax =
+        "fn f(x: i64, lo: i64, hi: i64) -> i64 { if hi < lo { panic!(); } x.max(lo).min(hi) }";
+    let rust_guarded_clamp =
+        "fn f(x: i64, lo: i64, hi: i64) -> i64 { if hi < lo { panic!(); } x.clamp(lo, hi) }";
+    let rust_unproven_clamp = "fn f(x: i64, lo: i64, hi: i64) -> i64 { x.clamp(lo, hi) }";
+    let rust_custom_clamp = "struct Wrap(i64);\nimpl Wrap { fn clamp(&self, _lo: i64, _hi: i64) -> i64 { 0 } }\nfn f(x: Wrap) -> i64 { x.clamp(0, 10) }\n";
+
+    let guarded_fp = value_fp(&i, minmax_guarded, Lang::Python);
+    assert_eq!(
+        guarded_fp,
+        value_fp(&i, ternary_guarded, Lang::Python),
+        "proof-backed two-comparison ternary clamp should converge with min/max Clamp"
+    );
+    assert_eq!(
+        value_fp(&i, literal_minmax, Lang::Python),
+        value_fp(&i, rust_literal_clamp, Lang::Rust),
+        "literal ordered Rust .clamp should converge with literal min/max Clamp"
+    );
+    assert_eq!(
+        value_fp(&i, rust_guarded_minmax, Lang::Rust),
+        value_fp(&i, rust_guarded_clamp, Lang::Rust),
+        "guarded Rust .clamp should converge with guarded Rust min/max"
+    );
+    assert_ne!(
+        value_fp(&i, ternary_unproven, Lang::Python),
+        guarded_fp,
+        "unproven parameter bound order must not bridge ternary clamp"
+    );
+    assert_ne!(
+        guarded_fp,
+        value_fp(&i, ternary_swapped, Lang::Python),
+        "swapped two-comparison clamp bounds are behaviorally different"
+    );
+    assert_ne!(
+        guarded_fp,
+        value_fp(&i, float_ternary, Lang::Python),
+        "float/NaN-sensitive ternary clamp needs a separate proof"
+    );
+    assert_ne!(
+        value_fp(&i, rust_unproven_clamp, Lang::Rust),
+        value_fp(&i, rust_literal_clamp, Lang::Rust),
+        "method name alone must not prove parameter bound order"
+    );
+    assert_ne!(
+        value_fp(&i, rust_literal_clamp, Lang::Rust),
+        value_fp(&i, rust_custom_clamp, Lang::Rust),
+        "custom clamp methods must stay outside the numeric library bridge"
+    );
+}
+
+#[test]
 fn conditional_abs_reduction_converges_with_aggregate() {
     // A branch in the per-element contribution is still a single reduction:
     // `total += (x < 0 ? -x : x)` must converge with aggregate `sum(abs(x))`.

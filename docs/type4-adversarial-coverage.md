@@ -127,8 +127,10 @@ filtered Map's `[contrib, pred]`. Wrong sum seeds, nested-list aggregation,
 outer-cardinality-only cases, and changed flattened predicates remain hard
 negatives; filtered/carry-predicate FlatMap aggregates are successor work.
 For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
-name-only lower/upper conventions, non-exiting checks, swapped bounds, and float
-domains must stay hard negatives.
+proof-backed min/max compositions, two-comparison ternaries, and proven numeric
+library clamp methods share `Clamp(x, lo, hi)`. Name-only lower/upper conventions,
+method names without numeric receiver proof, non-exiting checks, swapped bounds,
+and float domains must stay hard negatives.
 For map-default import rules, resolve only unambiguous Python sibling-module literal
 exports today: the provider must have one immutable literal binding, and provider mutation,
 importer mutation, duplicate providers, shadowing, unresolved imports, and non-Python
