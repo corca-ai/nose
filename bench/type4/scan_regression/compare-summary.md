@@ -8,11 +8,9 @@
 | | baseline | current |
 |---|---|---|
 | version | `nose 0.5.0` | `nose 0.5.0` |
-| sha256 | `bdd103dfc3e3e3d26545c2aac04049dbeb5aa8250fb84567829ffcfe6040f079` | `bdd103dfc3e3e3d26545c2aac04049dbeb5aa8250fb84567829ffcfe6040f079` |
-| source_git_describe | `v0.5.0-188-gcb0c549` | `v0.5.0-189-g12ec95e` |
-| build_ref | `issue-51-generator@cb0c549` | `issue-51-generator@12ec95e` |
-
-**Note: identical binary sha256 — any output/runtime delta below is environment noise, not a code change.**
+| sha256 | `bdd103dfc3e3e3d26545c2aac04049dbeb5aa8250fb84567829ffcfe6040f079` | `3d309e1c166b4dc9f21e43ead0312cfd3d0a5bdd50abed7773685d9470dfb4e1` |
+| source_git_describe | `v0.5.0-188-gcb0c549` | `v0.5.0-199-gfea7dad` |
+| build_ref | `issue-51-generator@cb0c549` | `issues-49-51-55@fea7dad` |
 
 ## Results
 
