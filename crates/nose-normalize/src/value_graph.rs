@@ -3887,9 +3887,10 @@ impl<'a> Builder<'a> {
                 continue;
             };
             let loopv = loop_vals[&cid];
+            let loop_context: Vec<ValueId> = pattern_bindings.iter().map(|&(_, v)| v).collect();
             match (
                 env.get(&cid).copied(),
-                self.as_reduction_cached(newv, loopv, &mut reduction_cache),
+                self.as_loop_reduction_step(newv, loopv, &loop_context, &mut reduction_cache),
             ) {
                 (Some(init), Some((op, contrib))) => {
                     // Selection reductions (min/max) carry no init; folds carry one.
@@ -4272,6 +4273,33 @@ impl<'a> Builder<'a> {
     fn as_reduction(&mut self, val: ValueId, loopv: ValueId) -> Option<(u32, ValueId)> {
         let mut cache = ReductionCache::default();
         self.as_reduction_cached(val, loopv, &mut cache)
+    }
+
+    fn as_loop_reduction_step(
+        &mut self,
+        val: ValueId,
+        loopv: ValueId,
+        loop_context: &[ValueId],
+        cache: &mut ReductionCache,
+    ) -> Option<(u32, ValueId)> {
+        if let ValOp::Reduce(op) = self.nodes[val as usize].op {
+            let args = self.nodes[val as usize].args.clone();
+            if is_selection_code(op)
+                && args.len() == 1
+                && !self.references_cached(args[0], loopv, cache)
+                && self.references_any_cached(args[0], loop_context, cache)
+            {
+                return Some((op, args[0]));
+            }
+            if args.len() == 2
+                && args[0] == loopv
+                && !self.references_cached(args[1], loopv, cache)
+                && self.references_any_cached(args[1], loop_context, cache)
+            {
+                return Some((op, args[1]));
+            }
+        }
+        self.as_reduction_cached(val, loopv, cache)
     }
 
     fn as_reduction_cached(
@@ -4895,18 +4923,35 @@ impl<'a> Builder<'a> {
     /// the element is used — identically for a loop, a `reduce`, and a `sum(map)` over
     /// the same collection, so they converge without a separate iterable sink.
     fn elem(&mut self, coll: ValueId) -> ValueId {
-        // FUNCTOR LAW / map fusion: an element drawn from `map(f, c)` is `f` applied to an
-        // element of `c`, and a pure Map node's `contrib` (args[0]) already *is* that
-        // per-element value. So `Elem(Map(f, c)) → contrib`, which fuses nested maps:
-        // `map(g, map(f, xs))` and `map(g∘f, xs)` converge to one fingerprint. Sound
-        // (functor composition law: map g ∘ map f = map (g∘f)). A *filtered* map carries a
-        // predicate (args.len() == 2) and is NOT peeled (the filter changes which elements).
-        if let ValOp::Hof(k) = self.nodes[coll as usize].op {
-            if k == HoFKind::Map as u32 && self.nodes[coll as usize].args.len() == 1 {
-                return self.nodes[coll as usize].args[0];
-            }
+        if let Some(value) = self.hof_emitted_elem(coll) {
+            return value;
         }
         self.mk(ValOp::Elem(self.vhash[coll as usize]), vec![coll])
+    }
+
+    fn hof_emitted_elem(&mut self, coll: ValueId) -> Option<ValueId> {
+        // FUNCTOR LAW / map fusion: an element drawn from `map(f, c)` is `f` applied to an
+        // element of `c`, and a pure Map node's `contrib` (args[0]) already *is* that
+        // per-element value. So `Elem(Map(f, c)) -> contrib`, which fuses nested maps:
+        // `map(g, map(f, xs))` and `map(g o f, xs)` converge to one fingerprint. Sound
+        // (functor composition law: map g o map f = map (g o f)). A *filtered* map carries a
+        // predicate (args.len() == 2) and is NOT peeled (the filter changes which elements).
+        //
+        // FlatMap emits the elements produced by its inner stream. When the modeled inner
+        // stream is a pure Map, `Elem(FlatMap(xs, map(f, ys)))` is the same emitted `f(y)`
+        // value. Keep this separate from the filtered-Map two-argument layout so aggregate
+        // consumers do not confuse `FlatMap[outer, inner]` with `Map[contrib, pred]`.
+        let (op, args) = {
+            let n = &self.nodes[coll as usize];
+            (n.op.clone(), n.args.clone())
+        };
+        match op {
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => Some(args[0]),
+            ValOp::Hof(k) if k == HoFKind::FlatMap as u32 && args.len() == 2 => self
+                .hof_emitted_elem(args[1])
+                .filter(|&emitted| self.references(emitted, args[0])),
+            _ => None,
+        }
     }
 
     /// A canonical "iteration index into `coll`". `for i in range(len(xs))`, an indexed
@@ -6109,6 +6154,18 @@ impl<'a> Builder<'a> {
         let result = self.references(v, target);
         cache.references.insert(key, result);
         result
+    }
+
+    fn references_any_cached(
+        &self,
+        v: ValueId,
+        targets: &[ValueId],
+        cache: &mut ReductionCache,
+    ) -> bool {
+        targets
+            .iter()
+            .copied()
+            .any(|target| self.references_cached(v, target, cache))
     }
 
     fn eval(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {

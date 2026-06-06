@@ -1722,6 +1722,116 @@ fn multi_clause_comprehension_converges_as_flat_map() {
     );
 }
 
+/// Aggregates over a flat-map stream consume the flattened element stream, not the outer
+/// mapped collection. Keep this bridge explicit so FlatMap is not accidentally treated as
+/// the filtered-Map representation (`Hof(Map, [contrib, pred])`).
+#[test]
+fn flat_map_aggregate_converges_with_nested_reduction_loop() {
+    let i = Interner::new();
+    let sum_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return sum(x + y for x in xs for y in ys)\n",
+        Lang::Python,
+    );
+    let sum_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    total = 0\n    for x in xs:\n        for y in ys:\n            total = total + x + y\n    return total\n",
+        Lang::Python,
+    );
+    let sum_js = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.flatMap(x => ys.map(y => x + y)).reduce((a, v) => a + v, 0); }",
+        Lang::JavaScript,
+    );
+    let wrong_seed = value_fp(
+        &i,
+        "def bad(xs, ys):\n    total = 1\n    for x in xs:\n        for y in ys:\n            total = total + x + y\n    return total\n",
+        Lang::Python,
+    );
+    let nested_list = value_fp(
+        &i,
+        "def nested(xs, ys):\n    return sum([x + y for y in ys] for x in xs)\n",
+        Lang::Python,
+    );
+    let max_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return max(x + y for x in xs for y in ys)\n",
+        Lang::Python,
+    );
+    let max_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    best = 0\n    for x in xs:\n        for y in ys:\n            v = x + y\n            if v > best:\n                best = v\n    return best\n",
+        Lang::Python,
+    );
+    let any_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return any(x + y > 0 for x in xs for y in ys)\n",
+        Lang::Python,
+    );
+    let any_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    for x in xs:\n        for y in ys:\n            if x + y > 0:\n                return True\n    return False\n",
+        Lang::Python,
+    );
+    let any_bad_predicate = value_fp(
+        &i,
+        "def bad(xs, ys):\n    return any(x + y < 0 for x in xs for y in ys)\n",
+        Lang::Python,
+    );
+    let outer_independent_flat = value_fp(
+        &i,
+        "def f(xs, ys):\n    return sum(y for x in xs for y in ys)\n",
+        Lang::Python,
+    );
+    let outer_independent_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    total = 0\n    for x in xs:\n        for y in ys:\n            total = total + y\n    return total\n",
+        Lang::Python,
+    );
+    let direct_inner_sum = value_fp(
+        &i,
+        "def h(xs, ys):\n    return sum(y for y in ys)\n",
+        Lang::Python,
+    );
+
+    assert_eq!(
+        sum_gen, sum_loop,
+        "sum over a flat-map generator should match the nested reduction loop"
+    );
+    assert_eq!(
+        sum_gen, sum_js,
+        "sum over a flatMap/map chain should match the flattened reduction"
+    );
+    assert_ne!(
+        sum_gen, wrong_seed,
+        "changing the additive seed changes aggregate behavior"
+    );
+    assert_ne!(
+        sum_gen, nested_list,
+        "aggregating nested list rows is not aggregating the flattened stream"
+    );
+    assert_eq!(
+        max_gen, max_loop,
+        "max over a flat-map generator should match the nested selection loop"
+    );
+    assert_eq!(
+        any_gen, any_loop,
+        "any over a flat-map generator should match the nested early-return loop"
+    );
+    assert_ne!(
+        any_gen, any_bad_predicate,
+        "changing the flattened any predicate changes behavior"
+    );
+    assert_ne!(
+        outer_independent_flat, direct_inner_sum,
+        "a flat-map aggregate that ignores the outer value still depends on outer cardinality"
+    );
+    assert_ne!(
+        outer_independent_loop, direct_inner_sum,
+        "a nested loop that ignores the outer value still depends on outer cardinality"
+    );
+}
+
 /// Cross-language `any`/`all` predicate reductions converge to one fingerprint: Python
 /// `any(p(x) for x in xs)`, JS `xs.some(p)`, Rust `xs.iter().any(p)` — and likewise
 /// `all`/`every`. `any` and `all` stay DISTINCT (different short-circuit behavior).
