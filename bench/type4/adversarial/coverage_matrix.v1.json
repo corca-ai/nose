@@ -77,7 +77,7 @@
       "rule_ids": ["hof.flat_map", "hof.aggregate_bridge", "oracle.hof.flat_map"],
       "positive_cases": ["sum_flat_map_nested_loop", "max_flat_map_nested_loop", "any_flat_map_nested_loop"],
       "adversarial_cases": ["sum_flat_map_wrong_seed", "sum_flat_map_nested_list", "any_flat_map_wrong_predicate", "flat_map_aggregate_outer_cardinality_boundary"],
-      "evidence": "Pure FlatMap aggregates now consume the emitted inner Map value explicitly instead of treating FlatMap's [outer, inner] args like filtered Map's [contrib, pred] layout. Nested reduction loops that carry an accumulator through an inner Reduce converge with sum/max/any flat-map generators and JS flatMap().reduce(); wrong seed, nested-list aggregation, changed any predicate, and outer-cardinality-dependent aggregates stay split. Successor audit: filtered/carry-predicate FlatMap aggregates and method terminal predicate forms remain separate frontier work.",
+      "evidence": "Pure FlatMap aggregates now consume the emitted inner Map value explicitly instead of treating FlatMap's [outer, inner] args like filtered Map's [contrib, pred] layout. Nested reduction loops that carry an accumulator through an inner Reduce converge with sum/max/any flat-map generators and JS flatMap().reduce(); wrong seed, nested-list aggregation, changed any predicate, and outer-cardinality-dependent aggregates stay split. Successor audit: filtered Sum/Reduce FlatMap aggregates and method terminal predicates are covered by hof.flat_map.filtered_aggregate_bridge; filtered nested early-return any/all loops remain separate frontier work.",
       "agent_task": "Monitor pure FlatMap aggregate consumers. Filtered FlatMap aggregate or terminal-method gaps should attach to hof.flat_map.filtered_aggregate_bridge.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item hof.flat_map.aggregate_bridge",
@@ -91,20 +91,41 @@
       "id": "hof.flat_map.filtered_aggregate_bridge",
       "semantic_family": "hof.flat_map",
       "title": "Filtered FlatMap aggregate consumers preserve carried predicates",
-      "status": "candidate",
-      "next_action": "survey",
-      "priority": 54,
+      "status": "covered",
+      "next_action": "monitor",
+      "priority": 0,
       "languages": ["python", "javascript", "rust"],
       "representations": ["filtered_flat_map_chain", "nested_guarded_reduction_loop", "method_terminal_predicate"],
       "rule_ids": ["hof.flat_map", "hof.aggregate_bridge", "oracle.hof.flat_map"],
       "positive_cases": ["sum_filtered_flat_map_nested_loop"],
       "adversarial_cases": ["flat_map_aggregate_filter_predicate_change", "flat_map_vs_nested_list"],
-      "evidence": "The covered aggregate bridge is intentionally limited to pure inner Map FlatMap streams. Aggregates where FlatMap carries an outer or inner filter predicate, or method terminals apply a fresh predicate to the flattened stream, still need focused reproduction before the bridge can widen.",
-      "agent_task": "Survey filtered flat-map aggregate consumers and add hard negatives for changed outer/inner predicates before broadening aggregate predicate handling.",
+      "evidence": "Filtered FlatMap Sum/Reduce consumers now carry outer and inner filter predicates into the reduction identity branch, so Python filtered flat-map sums converge with equivalent nested guarded reduction loops and JS filtered flatMap().reduce(). JS method-terminal .some() over a filtered FlatMap also converges with the equivalent Python filtered any generator while changed outer, inner, and terminal predicates stay split. Successor audit: filtered nested early-return any/all loops remain under-merged and are tracked by hof.flat_map.filtered_any_early_return_loop.",
+      "agent_task": "Monitor filtered FlatMap aggregate consumers. Predicate-carrying Sum/Reduce and method-terminal Any/All are covered; nested early-return existence loops should attach to hof.flat_map.filtered_any_early_return_loop.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item hof.flat_map.filtered_aggregate_bridge",
         "cargo test -p nose-cli --test equivalence flat_map",
-        "cargo run -p nose-cli -- verify --max-violations 0 <focused-filtered-flatmap-aggregate-corpus>"
+        "cargo run -p nose-cli -- verify --max-violations 0 bench/type4/adversarial/cases/flat_map_aggregate"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
+    },
+    {
+      "id": "hof.flat_map.filtered_any_early_return_loop",
+      "semantic_family": "hof.flat_map",
+      "title": "Filtered FlatMap any loops converge with method/generator aggregates",
+      "status": "under-merged",
+      "next_action": "engine",
+      "priority": 57,
+      "languages": ["python", "javascript"],
+      "representations": ["filtered_flat_map_generator", "nested_guarded_early_return_loop", "method_terminal_predicate"],
+      "rule_ids": ["hof.flat_map", "hof.aggregate_bridge", "oracle.hof.flat_map"],
+      "positive_cases": ["any_filtered_flat_map_early_return_loop"],
+      "adversarial_cases": ["flat_map_aggregate_filter_predicate_change", "flat_map_vs_nested_list"],
+      "evidence": "Successor audit from hof.flat_map.filtered_aggregate_bridge: Python filtered any generator and JS filtered flatMap().some() converge, but the equivalent Python nested guarded early-return loop remains split because existence-loop reduction does not yet normalize stacked FlatMap filter guards into the same method-terminal predicate shape.",
+      "agent_task": "Extend existence-loop/any-all normalization for nested filtered FlatMap early-return loops without dropping outer or inner filter predicates; keep changed predicate and nested-list hard negatives split.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item hof.flat_map.filtered_any_early_return_loop",
+        "cargo test -p nose-cli --test equivalence flat_map",
+        "cargo run -p nose-cli -- verify --max-violations 0 bench/type4/adversarial/cases/flat_map_aggregate"
       ],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
     },

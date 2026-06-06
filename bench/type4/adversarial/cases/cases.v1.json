@@ -176,15 +176,39 @@
       "kind": "positive",
       "semantic_family": "hof.flat_map",
       "claim": "A filtered flat-map aggregate may converge with an equivalent nested guarded reduction when outer and inner predicates are preserved.",
-      "evidence": "Successor candidate; the current aggregate bridge intentionally covers pure inner Map FlatMap streams only."
+      "fixtures": [
+        "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_flat.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_loop.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered.js",
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_flat.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered.js"
+      ],
+      "evidence": "Focused equivalence test converges Python filtered flat-map sum, Python nested guarded sum loop, JS filtered flatMap().reduce(), and JS method-terminal .some() with the equivalent Python filtered any generator."
     },
     {
       "id": "flat_map_aggregate_filter_predicate_change",
       "kind": "hard-negative",
       "semantic_family": "hof.flat_map",
       "claim": "Changing an outer or inner FlatMap aggregate predicate changes behavior.",
-      "mutation": "outer/inner filter predicate changed while contribution stays the same",
-      "evidence": "Successor boundary for hof.flat_map.filtered_aggregate_bridge."
+      "mutation": "outer/inner/terminal predicate changed to a static false predicate while contribution stays the same",
+      "fixtures": [
+        "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_outer_changed.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_inner_changed.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_terminal_changed.js"
+      ],
+      "evidence": "Focused equivalence test keeps static-false outer predicates, inner predicates, and method-terminal predicates distinct from the covered filtered FlatMap aggregate."
+    },
+    {
+      "id": "any_filtered_flat_map_early_return_loop",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "A filtered FlatMap any/existence aggregate may converge with the equivalent nested guarded early-return loop.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_flat.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered.js",
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_loop.py"
+      ],
+      "evidence": "Successor audit from hof.flat_map.filtered_aggregate_bridge: Python filtered any generator and JS filtered flatMap().some() converge, but the equivalent nested guarded early-return loop remains under-merged."
     },
     {
       "id": "java_stream_flat_map_py_comp",

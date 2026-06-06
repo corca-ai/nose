@@ -46,9 +46,9 @@
       "status": "landed",
       "summary": "Aggregate consumers read pure FlatMap emitted values without confusing FlatMap and filtered Map argument layouts.",
       "implementation": ["crates/nose-normalize/src/value_graph.rs"],
-      "positive_cases": ["sum_flat_map_nested_loop", "max_flat_map_nested_loop", "any_flat_map_nested_loop", "sum_filtered_flat_map_nested_loop"],
+      "positive_cases": ["sum_flat_map_nested_loop", "max_flat_map_nested_loop", "any_flat_map_nested_loop", "sum_filtered_flat_map_nested_loop", "any_filtered_flat_map_early_return_loop"],
       "hard_negatives": ["sum_flat_map_wrong_seed", "sum_flat_map_nested_list", "any_flat_map_wrong_predicate", "flat_map_aggregate_outer_cardinality_boundary", "flat_map_aggregate_filter_predicate_change"],
-      "boundaries": ["Map and FlatMap argument layouts are different; aggregate code must match the HoF kind explicitly.", "The landed bridge covers pure inner Map FlatMap streams and nested inner Reduce loops only when the emitted contribution depends on the outer element.", "Filtered/carry-predicate FlatMap aggregates and method terminal predicate forms remain successor work."],
+      "boundaries": ["Map and FlatMap argument layouts are different; aggregate code must match the HoF kind explicitly.", "The landed bridge covers pure inner Map FlatMap streams, filtered Sum/Reduce FlatMap streams, and method-terminal Any/All predicates over filtered FlatMap streams when the emitted contribution depends on the outer element.", "Filtered nested early-return any/all loops and outer-ignored FlatMap aggregates remain successor work."],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
     },
     {
