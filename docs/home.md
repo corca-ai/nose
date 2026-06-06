@@ -47,6 +47,7 @@ You want to *change* nose or understand how it works inside.
 - [experiments](experiments.md) — the measured log of what was tried and what happened.
 - [benchmark](benchmark.md) — the gold set, methodology, and the headline precision/recall numbers.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
+- [fragment-output-audit](fragment-output-audit.md) — exact semantic fragment output quality, ranking/grouping recommendations, and metadata requirements for default/review/debug surfaces.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [dogfooding](dogfooding.md) — nose run on its own source, and what its findings taught us.
 
