@@ -88,7 +88,11 @@
       "kind": "positive",
       "semantic_family": "hof.flat_map",
       "claim": "A pure Java Stream.flatMap chain can express the same one-level flat-map as Python multi-clause comprehension.",
-      "evidence": "Oracle-blocked candidate; needs interpretable Java stream subset before promotion."
+      "fixtures": [
+        "bench/type4/adversarial/cases/java_stream_flat_map/FlatMap.java",
+        "bench/type4/adversarial/cases/java_stream_flat_map/flat_map.py"
+      ],
+      "evidence": "Focused Java stream corpus verifies with 4/4 interpretable units, zero false merges, and complete behavior-equal convergence; the source-level equivalence test asserts Java Stream.flatMap/map matches Python multi-clause comprehension."
     },
     {
       "id": "java_stream_map_not_flat_map",
@@ -96,7 +100,11 @@
       "semantic_family": "hof.flat_map",
       "claim": "Java Stream.map returning streams is not Stream.flatMap.",
       "mutation": "flatMap -> map",
-      "evidence": "Hard negative for Java stream idiom work."
+      "fixtures": [
+        "bench/type4/adversarial/cases/java_stream_flat_map/FlatMap.java",
+        "bench/type4/adversarial/cases/java_stream_flat_map/flat_map.py"
+      ],
+      "evidence": "The focused corpus includes nestedMapJava and nested_map_py as the nested-shape sibling, and the source-level equivalence test asserts nested-map fingerprints differ from flat-map fingerprints."
     },
     {
       "id": "java_stream_effectful_lambda",
@@ -104,7 +112,7 @@
       "semantic_family": "hof.flat_map",
       "claim": "Effectful stream callbacks cannot be treated as pure HoF transformations.",
       "mutation": "lambda mutates external state or performs an effect",
-      "evidence": "Oracle boundary for stream support."
+      "evidence": "The Java stream oracle tests execute a FlatMap callback containing a print effect and assert the effect trace is preserved, so callback effects remain observable and outside the pure idiom rule."
     },
     {
       "id": "clamp_minmax_guarded_bounds",

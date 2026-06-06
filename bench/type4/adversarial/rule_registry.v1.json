@@ -54,23 +54,23 @@
     {
       "id": "idiom.java_stream",
       "kind": "engine",
-      "status": "proposed",
-      "summary": "Lower pure Java stream adapters into shared HoF/value-graph representations.",
+      "status": "partial",
+      "summary": "Lower proven pure Java stream adapters into shared HoF/value-graph representations, including flatMap/map chains.",
       "implementation": ["crates/nose-normalize/src/idioms.rs"],
       "positive_cases": ["java_stream_flat_map_py_comp"],
       "hard_negatives": ["java_stream_map_not_flat_map", "java_stream_effectful_lambda"],
-      "boundaries": ["Requires oracle support for enough Java lambda/stream behavior before detection can claim soundness."],
+      "boundaries": ["Only the modeled pure stream subset is covered.", "Stream.map returning streams remains nested and must not collapse to FlatMap.", "Effectful callbacks and parallel stream semantics remain outside the pure idiom rule."],
       "docs": ["docs/type4-adversarial-coverage.md"]
     },
     {
       "id": "oracle.java_stream",
       "kind": "oracle",
-      "status": "proposed",
-      "summary": "Interpreter support for a small, pure subset of Java stream chains.",
+      "status": "landed",
+      "summary": "Interpreter support for the pure Java stream HoF subset, including expression-body lambda callbacks.",
       "implementation": ["crates/nose-normalize/src/interp.rs"],
       "positive_cases": ["java_stream_flat_map_py_comp"],
-      "hard_negatives": ["java_stream_effectful_lambda"],
-      "boundaries": ["No effectful stream callbacks; no parallel stream semantics."],
+      "hard_negatives": ["java_stream_map_not_flat_map", "java_stream_effectful_lambda"],
+      "boundaries": ["Expression-body lambdas are evaluated as expressions; statement/block lambdas still execute through the statement path.", "Effects inside callbacks are recorded by the oracle and are not proof of a pure canonicalization.", "No parallel stream semantics."],
       "docs": ["docs/type4-adversarial-coverage.md"]
     },
     {

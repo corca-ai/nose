@@ -17,8 +17,9 @@
 > fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
 > so nested filters fuse to `p∧q`), first-class **flat-map** modeling for Python
-> multi-clause comprehensions, JS `.flatMap`, and equivalent nested list-builder loops
-> (kept distinct from nested-list comprehensions), full **AC flatten+sort in the value graph itself** (not
+> multi-clause comprehensions, JS `.flatMap`, pure Java `Arrays.stream(...).flatMap(...map...)`,
+> and equivalent nested list-builder loops (kept distinct from nested-list comprehensions
+> and Java stream `map` returning streams), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
@@ -109,7 +110,9 @@ Guiding constraints for every pass:
   self-recursion call-by-value arguments, list/tuple literal items, reduce initial values,
   higher-order map/filter/filter-map/flat-map/reduce, and `any`/`all` predicate errors also stay
   observable instead of being hidden inside a collection value or coerced through truthiness
-  into `false`. The filter-map oracle model treats `Null` as absence, propagates `Err`,
+  into `false`. Java stream expression-body lambdas are evaluated as callback expressions,
+  while block/effectful callbacks still execute through the statement path and preserve
+  their effect trace. The filter-map oracle model treats `Null` as absence, propagates `Err`,
   and emits every other value, including falsey values such as `0`; richer wrapped
   `Some(None)`-style payloads remain outside the modeled option subset.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely

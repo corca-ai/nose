@@ -386,6 +386,32 @@ fn java_stream_aggregates_converge_with_loops() {
 }
 
 #[test]
+fn java_stream_flat_map_converges_with_python_comprehension() {
+    let i = Interner::new();
+    let py_flat = "def f(xs, ys):\n    return [x + y for x in xs for y in ys]\n";
+    let java_flat = "import java.util.Arrays; class C { static Object f(int[] xs, int[] ys) { return Arrays.stream(xs).flatMap(x -> Arrays.stream(ys).map(y -> x + y)); } }";
+    let py_nested = "def f(xs, ys):\n    return [[x + y for y in ys] for x in xs]\n";
+    let java_nested = "import java.util.Arrays; class C { static Object f(int[] xs, int[] ys) { return Arrays.stream(xs).map(x -> Arrays.stream(ys).map(y -> x + y)); } }";
+
+    let flat_fp = value_fp(&i, py_flat, Lang::Python);
+    let nested_fp = value_fp(&i, py_nested, Lang::Python);
+    assert_eq!(
+        flat_fp,
+        value_fp(&i, java_flat, Lang::Java),
+        "Java Stream.flatMap/map should match Python multi-clause comprehension"
+    );
+    assert_eq!(
+        nested_fp,
+        value_fp(&i, java_nested, Lang::Java),
+        "Java Stream.map returning streams should stay nested"
+    );
+    assert_ne!(
+        flat_fp, nested_fp,
+        "flatMap and map-returning-stream must remain distinct"
+    );
+}
+
+#[test]
 fn ruby_select_reduce_converges_with_guarded_loop() {
     // Ruby `select { p }.reduce(init) { |a, x| ... }` is the same filtered fold as
     // a guarded `each` accumulator loop. The changed seed remains a hard negative.
