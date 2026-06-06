@@ -22,8 +22,9 @@ mod rules;
 
 use crate::combine;
 use crate::module_facts::{
-    assignment_name_in, collect_all_node_symbols, collect_module_mutations, mutating_method_name,
-    shadowed_js_like_module_binding_nodes_for_symbol, top_level_statements_for,
+    assignment_name_in_scope, collect_all_node_symbols_in_scope, collect_module_mutations_in_scope,
+    local_scope_nodes, mutating_method_name, node_symbol_in_scope,
+    shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
 use crate::types::Ty;
 use nose_il::{
@@ -97,6 +98,7 @@ impl ValueFingerprintContext {
 }
 
 struct ModuleSeedContext {
+    local_scope: Vec<bool>,
     top_level: Vec<NodeId>,
     assignment_counts: FxHashMap<Symbol, usize>,
     assignment_deps: FxHashMap<Symbol, FxHashSet<Symbol>>,
@@ -106,6 +108,7 @@ struct ModuleSeedContext {
 
 impl ModuleSeedContext {
     fn new(il: &Il, interner: &Interner) -> Self {
+        let local_scope = local_scope_nodes(il);
         let top_level = top_level_statements_for(il);
         let mut is_top_level = vec![false; il.nodes.len()];
         for &stmt in &top_level {
@@ -116,18 +119,18 @@ impl ModuleSeedContext {
 
         let mut assignment_counts: FxHashMap<Symbol, usize> = FxHashMap::default();
         for &stmt in &top_level {
-            if let Some(name) = assignment_name_in(il, stmt) {
+            if let Some(name) = assignment_name_in_scope(il, stmt, &local_scope) {
                 *assignment_counts.entry(name).or_insert(0) += 1;
             }
         }
         let mut assignment_deps: FxHashMap<Symbol, FxHashSet<Symbol>> = FxHashMap::default();
         for &stmt in &top_level {
-            let Some(name) = assignment_name_in(il, stmt) else {
+            let Some(name) = assignment_name_in_scope(il, stmt, &local_scope) else {
                 continue;
             };
             if let Some(&rhs) = il.children(stmt).get(1) {
                 let mut deps = FxHashSet::default();
-                collect_all_node_symbols(il, rhs, &mut deps);
+                collect_all_node_symbols_in_scope(il, rhs, &local_scope, &mut deps);
                 assignment_deps.insert(name, deps);
             }
         }
@@ -140,10 +143,16 @@ impl ModuleSeedContext {
                 (count == 1 && !unit_symbols.contains(&name)).then_some(name)
             })
             .collect();
-        let mutated_bindings =
-            collect_module_mutations(il, interner, &candidate_names, &is_top_level);
+        let mutated_bindings = collect_module_mutations_in_scope(
+            il,
+            interner,
+            &candidate_names,
+            &is_top_level,
+            &local_scope,
+        );
 
         Self {
+            local_scope,
             top_level,
             assignment_counts,
             assignment_deps,
@@ -154,7 +163,7 @@ impl ModuleSeedContext {
 
     fn required_bindings_for(&self, il: &Il, root: NodeId) -> FxHashSet<Symbol> {
         let mut required = FxHashSet::default();
-        collect_all_node_symbols(il, root, &mut required);
+        collect_all_node_symbols_in_scope(il, root, &self.local_scope, &mut required);
         let mut stack: Vec<Symbol> = required.iter().copied().collect();
         while let Some(name) = stack.pop() {
             let Some(deps) = self.assignment_deps.get(&name) else {
@@ -336,6 +345,9 @@ struct Builder<'a> {
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
     /// data (`const table = {...}`) to free uses inside the function.
     global_env: FxHashMap<Symbol, ValueId>,
+    /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
+    /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
+    local_scope_nodes: Vec<bool>,
     /// Current loop-carried placeholders while evaluating a loop body. Used only to
     /// compact coupled recurrences such as `s1 += f(s2); s2 += g(s1)`, which otherwise
     /// expand into a large raw expression DAG even though they are not clean reductions.
@@ -398,6 +410,7 @@ impl<'a> Builder<'a> {
             effect_slot: 0,
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
+            local_scope_nodes: local_scope_nodes(il),
             loop_recurrence: None,
             next_loop_key_base: 0,
             contracts: Vec::new(),
@@ -2229,17 +2242,7 @@ impl<'a> Builder<'a> {
     }
 
     fn assignment_name(&self, stmt: NodeId) -> Option<Symbol> {
-        if self.il.kind(stmt) != NodeKind::Assign {
-            return None;
-        }
-        let kids = self.il.children(stmt);
-        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Var {
-            return None;
-        }
-        let Payload::Cid(cid) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        self.il.cid_names.get(cid as usize).copied()
+        assignment_name_in_scope(self.il, stmt, &self.local_scope_nodes)
     }
 
     fn unit_defines_symbol(&self, symbol: Symbol) -> bool {
@@ -2251,7 +2254,11 @@ impl<'a> Builder<'a> {
 
     fn module_binding_mutated(&self, name: Symbol) -> bool {
         let top_level = self.top_level_statements();
-        let shadowed = shadowed_js_like_module_binding_nodes_for_symbol(self.il, name);
+        let shadowed = shadowed_js_like_module_binding_nodes_for_symbol_in_scope(
+            self.il,
+            name,
+            &self.local_scope_nodes,
+        );
         self.il.nodes.iter().enumerate().any(|(idx, node)| {
             let node_id = NodeId(idx as u32);
             if shadowed.contains(&node_id) {
@@ -2300,11 +2307,7 @@ impl<'a> Builder<'a> {
     }
 
     fn node_symbol(&self, node: NodeId) -> Option<Symbol> {
-        match self.il.node(node).payload {
-            Payload::Name(symbol) => Some(symbol),
-            Payload::Cid(cid) => self.il.cid_names.get(cid as usize).copied(),
-            _ => None,
-        }
+        node_symbol_in_scope(self.il, node, &self.local_scope_nodes)
     }
 
     fn node_contains_symbol(&self, node: NodeId, name: Symbol) -> bool {
