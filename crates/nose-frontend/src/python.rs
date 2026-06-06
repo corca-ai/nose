@@ -943,14 +943,40 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
     acc.unwrap_or_else(|| lo.empty_block(span))
 }
 
+/// Build a lambda `λ<pattern>. <Block[Return[body]]>` over a comprehension's
+/// iteration pattern (the `for x in …` target), so the body converges with a JS
+/// `x => body` arrow.
+fn comp_lambda(lo: &mut Lowering, pattern: Option<TsNode>, body: NodeId, bspan: Span) -> NodeId {
+    let mut kids = Vec::new();
+    if let Some(p) = pattern {
+        push_pattern_params(lo, p, &mut kids);
+    }
+    let ret = lo.add(NodeKind::Return, Payload::None, bspan, &[body]);
+    let block = lo.add(NodeKind::Block, Payload::None, bspan, &[ret]);
+    kids.push(block);
+    lo.add(NodeKind::Lambda, Payload::None, bspan, &kids)
+}
+
 /// A comprehension `[body for x in xs]` lowers to `HoF(Map)[xs, λx. body]`, with
 /// the body wrapped as `Block[Return[body]]` so it converges with a JS
 /// `xs.map(x => body)` arrow (whose expression body lowers the same way). A filter
 /// `… if cond` wraps the collection in `HoF(Filter)[xs, λx. cond]`, so a filtered
 /// comprehension converges with a guarded loop (`if cond: …`) — see §AI.
+///
+/// A *multi-clause* comprehension (`[body for a in A for b in B]`) is a flat-map
+/// nesting with no first-class IL primitive yet, so it is lowered fail-closed —
+/// see [`lower_multi_clause_comprehension`].
 fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let body_node = node.named_child(0);
+
+    let for_clauses = Lowering::named_children(node)
+        .into_iter()
+        .filter(|c| c.kind() == "for_in_clause")
+        .count();
+    if for_clauses >= 2 {
+        return lower_multi_clause_comprehension(lo, node, span, body_node);
+    }
 
     let clause = Lowering::named_children(node)
         .into_iter()
@@ -961,18 +987,6 @@ fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
         .map(|r| lower_expr(lo, r))
         .unwrap_or_else(|| lo.empty_block(span));
 
-    // Build a lambda `λ<pattern>. <Block[Return[body]]>` over the iteration pattern.
-    let lambda = |lo: &mut Lowering, body: NodeId, bspan| {
-        let mut kids = Vec::new();
-        if let Some(p) = pattern {
-            push_pattern_params(lo, p, &mut kids);
-        }
-        let ret = lo.add(NodeKind::Return, Payload::None, bspan, &[body]);
-        let block = lo.add(NodeKind::Block, Payload::None, bspan, &[ret]);
-        kids.push(block);
-        lo.add(NodeKind::Lambda, Payload::None, bspan, &kids)
-    };
-
     // Each `if cond` clause wraps the collection in a `HoF(Filter)`.
     for f in Lowering::named_children(node) {
         if f.kind() != "if_clause" {
@@ -981,7 +995,7 @@ fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
         if let Some(cn) = f.named_child(0) {
             let fspan = lo.span(f);
             let cond = lower_expr(lo, cn);
-            let flam = lambda(lo, cond, fspan);
+            let flam = comp_lambda(lo, pattern, cond, fspan);
             collection = lo.add(
                 NodeKind::HoF,
                 Payload::HoF(HoFKind::Filter),
@@ -994,13 +1008,88 @@ fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
     let body = body_node
         .map(|b| lower_expr(lo, b))
         .unwrap_or_else(|| lo.empty_block(span));
-    let map_lam = lambda(lo, body, span);
+    let map_lam = comp_lambda(lo, pattern, body, span);
     lo.add(
         NodeKind::HoF,
         Payload::HoF(HoFKind::Map),
         span,
         &[collection, map_lam],
     )
+}
+
+/// Lower a comprehension with more than one `for` clause. `[body for a in A for
+/// b in B]` is Python sugar for nested iteration that *flattens* — equivalent to
+/// `A.flatMap(a => B.map(b => body))`. nose has no `FlatMap` HoF primitive, so a
+/// naive `Map[A, λa. Map[B, λb. body]]` would be byte-identical to the genuinely
+/// different *nested* comprehension `[[body for b in B] for a in A]` (a list of
+/// lists) — an unsound false merge.
+///
+/// Until flat-map is modeled (tracked separately), this lowers fail-closed: it
+/// builds the nested `Map`/`Filter` structure (so every clause's collection and
+/// target is preserved and bound) and wraps the whole thing in an opaque `Raw`
+/// node. The value graph keys `Raw` by full subtree content, so two flat-maps
+/// converge only when structurally identical and never collide with a nested
+/// comprehension, a single-clause `Map`, or any other construct. Convergence with
+/// the equivalent explicit nested loop is deferred to the flat-map work.
+fn lower_multi_clause_comprehension(
+    lo: &mut Lowering,
+    node: TsNode,
+    span: Span,
+    body_node: Option<TsNode>,
+) -> NodeId {
+    // Group each `for` clause with the `if` clauses that follow it, in source order.
+    let mut groups: Vec<(TsNode, Vec<TsNode>)> = Vec::new();
+    for c in Lowering::named_children(node) {
+        match c.kind() {
+            "for_in_clause" => groups.push((c, Vec::new())),
+            "if_clause" => {
+                if let Some(last) = groups.last_mut() {
+                    last.1.push(c);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    // Build inside-out: the body is the innermost produced element; each `for`
+    // clause (outer→inner in source, so iterated in reverse) wraps it in a `Map`
+    // over its (optionally filtered) collection, binding that clause's target.
+    let mut inner = body_node
+        .map(|b| lower_expr(lo, b))
+        .unwrap_or_else(|| lo.empty_block(span));
+    for (forc, ifs) in groups.iter().rev() {
+        let pattern = forc
+            .child_by_field_name("left")
+            .or_else(|| forc.named_child(0));
+        let mut collection = forc
+            .child_by_field_name("right")
+            .or_else(|| forc.named_child(1))
+            .map(|r| lower_expr(lo, r))
+            .unwrap_or_else(|| lo.empty_block(span));
+        for ifc in ifs {
+            if let Some(cn) = ifc.named_child(0) {
+                let fspan = lo.span(*ifc);
+                let cond = lower_expr(lo, cn);
+                let flam = comp_lambda(lo, pattern, cond, fspan);
+                collection = lo.add(
+                    NodeKind::HoF,
+                    Payload::HoF(HoFKind::Filter),
+                    fspan,
+                    &[collection, flam],
+                );
+            }
+        }
+        let lam = comp_lambda(lo, pattern, inner, span);
+        inner = lo.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::Map),
+            span,
+            &[collection, lam],
+        );
+    }
+
+    // Fail-closed: an opaque wrapper that cannot be confused with a nested `Map`.
+    lo.raw("comprehension", span, &[inner])
 }
 
 /// Emit `Param` nodes for a comprehension/loop target (identifier or tuple).
@@ -1260,6 +1349,63 @@ mod tests {
                 .iter()
                 .any(|node| node.payload == Payload::LitInt(1)),
             "as-pattern should preserve its inner value pattern"
+        );
+    }
+
+    #[test]
+    fn multi_clause_comprehension_binds_all_iterables() {
+        // `[a + b for a in A for b in B]` is sugar for nested iteration: every
+        // clause and target must survive lowering. Dropping the second clause
+        // leaves `b` unbound and makes this comprehension collide with the
+        // single-clause `[a + b for a in A]` (a false merge).
+        // `xs`/`ys` are free module-level iterables (not params) so a reference
+        // to `ys` can only come from the second clause actually being lowered.
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f():\n    return [a + b for a in xs for b in ys]\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let names: Vec<_> = il
+            .nodes
+            .iter()
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            names.contains(&"ys"),
+            "second clause `for b in ys` was dropped; names = {names:?}"
+        );
+    }
+
+    #[test]
+    fn multi_clause_comprehension_differs_from_single_clause() {
+        // The two-clause comprehension must not lower identically to the
+        // one-clause version — otherwise the value graph false-merges them.
+        let interner = Interner::new();
+        let two = lower(
+            FileId(0),
+            "t.py",
+            b"def f(A, B):\n    return [a + b for a in A for b in B]\n",
+            &interner,
+        )
+        .expect("lower");
+        let one = lower(
+            FileId(0),
+            "t.py",
+            b"def f(A, B):\n    return [a + b for a in A]\n",
+            &interner,
+        )
+        .expect("lower");
+        assert_ne!(
+            two.nodes.len(),
+            one.nodes.len(),
+            "two-clause and one-clause comprehensions lowered to the same shape"
         );
     }
 

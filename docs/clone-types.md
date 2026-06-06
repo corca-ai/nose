@@ -109,6 +109,10 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   boundaries. Multiple statement-level effects are ordered through control-flow-aware
   sink tags; swapping appends/emits on one execution path is a behavior change, not a
   Type-4 clone.
+- **Multi-clause (flat-map) comprehensions** — a Python `[e for a in A for b in B]`
+  flattens (`A.flatMap(a => B.map(b => e))`), and nose has no `FlatMap` IL primitive yet,
+  so these lower fail-closed (an opaque node) rather than converging with the equivalent
+  nested loop. Single-clause comprehensions converge as above. Tracked in issue #57.
 
 Exact fragment proof is not the same thing as user-facing refactorability. The
 [fragment output audit](fragment-output-audit.md) classifies current real-corpus fragment
