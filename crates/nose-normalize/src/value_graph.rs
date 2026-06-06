@@ -6019,6 +6019,18 @@ impl<'a> Builder<'a> {
         params: &[ValueId],
         parent_env: &FxHashMap<u32, ValueId>,
     ) -> Option<(ValueId, Option<ValueId>)> {
+        match self.eval_filter_map_lambda_result(lambda, params, parent_env)? {
+            FilterMapResult::Emit { value, predicate } => Some((value, predicate)),
+            FilterMapResult::Drop => None,
+        }
+    }
+
+    fn eval_filter_map_lambda_result(
+        &mut self,
+        lambda: NodeId,
+        params: &[ValueId],
+        parent_env: &FxHashMap<u32, ValueId>,
+    ) -> Option<FilterMapResult> {
         if self.il.kind(lambda) != NodeKind::Lambda {
             return None;
         }
@@ -6035,10 +6047,7 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        match self.eval_filter_map_output(*kids.last()?, &mut env)? {
-            FilterMapResult::Emit { value, predicate } => Some((value, predicate)),
-            FilterMapResult::Drop => None,
-        }
+        self.eval_filter_map_output(*kids.last()?, &mut env)
     }
 
     fn eval_filter_map_output(
@@ -6077,6 +6086,9 @@ impl<'a> Builder<'a> {
             NodeKind::If => self.eval_filter_map_if(node, env),
             NodeKind::Lit if self.is_null_literal(node) => Some(FilterMapResult::Drop),
             NodeKind::Call => {
+                if let Some((receiver, lambda)) = self.rust_option_and_then_call_parts(node) {
+                    return self.eval_filter_map_and_then(receiver, lambda, env);
+                }
                 let value = self
                     .rust_some_call_arg(node)
                     .map(|value| self.eval(value, env))?;
@@ -6086,6 +6098,29 @@ impl<'a> Builder<'a> {
                 })
             }
             _ => None,
+        }
+    }
+
+    fn eval_filter_map_and_then(
+        &mut self,
+        receiver: NodeId,
+        lambda: NodeId,
+        env: &mut FxHashMap<u32, ValueId>,
+    ) -> Option<FilterMapResult> {
+        let receiver_result = self.eval_filter_map_output(receiver, env)?;
+        let FilterMapResult::Emit { value, predicate } = receiver_result else {
+            return Some(FilterMapResult::Drop);
+        };
+        let inner_result = self.eval_filter_map_lambda_result(lambda, &[value], env)?;
+        match inner_result {
+            FilterMapResult::Emit {
+                value,
+                predicate: inner_predicate,
+            } => Some(FilterMapResult::Emit {
+                value,
+                predicate: self.and_preds(predicate, inner_predicate),
+            }),
+            FilterMapResult::Drop => Some(FilterMapResult::Drop),
         }
     }
 
@@ -6160,6 +6195,24 @@ impl<'a> Builder<'a> {
         };
         let text = self.interner.resolve(name);
         (text == "Some" || text.ends_with("::Some")).then_some(kids[1])
+    }
+
+    fn rust_option_and_then_call_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
+        if self.il.meta.lang != Lang::Rust || self.il.kind(node) != NodeKind::Call {
+            return None;
+        }
+        let kids = self.il.children(node);
+        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        if self.interner.resolve(method) != "and_then" {
+            return None;
+        }
+        let receiver = *self.il.children(kids[0]).first()?;
+        Some((receiver, kids[1]))
     }
 
     fn is_rust_vec_new_call(&self, callee: NodeId) -> bool {

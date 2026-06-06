@@ -119,11 +119,12 @@ Guiding constraints for every pass:
   observable instead of being hidden inside a collection value or coerced through truthiness
   into `false`. Java stream expression-body lambdas are evaluated as callback expressions,
   while block/effectful callbacks still execute through the statement path and preserve
-  their effect trace. The filter-map oracle model treats `Null` as absence, propagates `Err`,
-  and emits every other value, including falsey values such as `0`; the engine mirrors only
-  the direct Rust `if p { Some(v) } else { None }` / guarded-builder subset today, while
-  richer match/and_then forms and wrapped `Some(None)`-style payloads remain outside the
-  modeled option subset.
+  their effect trace. The filter-map oracle model treats callback-level `Null` as absence,
+  propagates `Err`, and emits every other value, including falsey values such as `0`; the
+  engine mirrors direct Rust `if p { Some(v) } else { None }`, match-guard option callbacks,
+  pure `Some(x).and_then(...)` helper chains, and guarded builders today. Wrapped
+  `Some(None)`-style callbacks are emitted `Null` payloads, not dropped items, while
+  effectful callbacks and unmodeled option helper chains remain fail-closed.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its

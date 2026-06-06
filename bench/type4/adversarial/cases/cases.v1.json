@@ -78,7 +78,13 @@
       "kind": "positive",
       "semantic_family": "hof.filter_map",
       "claim": "Richer option-producing match/and_then forms may converge with explicit filter+map when they preserve the same absence and emitted-value coordinates.",
-      "evidence": "Successor candidate; not covered by the current direct Some/None if-expression rule."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_filter_map/filtered.py",
+        "bench/type4/adversarial/cases/hof_filter_map/filtered.ts",
+        "bench/type4/adversarial/cases/hof_filter_map/match_option.rs",
+        "bench/type4/adversarial/cases/hof_filter_map/and_then.rs"
+      ],
+      "evidence": "Focused equivalence test and hof_filter_map smoke converge Python/TypeScript filter+map with Rust match-guard and pure Option::and_then filter_map callbacks."
     },
     {
       "id": "filter_map_wrapped_none_payload",
@@ -86,7 +92,11 @@
       "semantic_family": "hof.filter_map",
       "claim": "A wrapped None payload is an emitted value in richer option domains, not the current Null absence sentinel.",
       "mutation": "Some(None)-style payload vs None absence",
-      "evidence": "Successor boundary for hof.filter_map.rich_option_shapes and the oracle.option_iterator Null-only absence model."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_filter_map/filtered_none.py",
+        "bench/type4/adversarial/cases/hof_filter_map/wrapped_none.rs"
+      ],
+      "evidence": "Focused equivalence test converges Rust Some(None) payloads with Python filtered None values and rejects them against mapped x*2 values."
     },
     {
       "id": "sum_flat_map_nested_loop",
@@ -368,7 +378,8 @@
       "semantic_family": "oracle",
       "claim": "Effectful callbacks cannot be folded into pure value-graph HoF facts without effect modeling.",
       "mutation": "callback emits or mutates",
-      "evidence": "Interpreter tests assert FilterMap callback print effects remain observable and ordered."
+      "fixtures": ["bench/type4/adversarial/cases/hof_filter_map/effectful_filter_map.rs"],
+      "evidence": "Interpreter tests assert FilterMap callback print effects remain observable and ordered; the hof_filter_map corpus carries an effectful Rust filter_map callback that the value graph must leave opaque."
     },
     {
       "id": "deep_hof_chain_budget",
