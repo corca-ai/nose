@@ -56,9 +56,12 @@ python3 bench/type4/scan_regression/scan_regression.py compare \
     --repos-root /path/to/main/bench/repos
 ```
 
-`compare` writes `compare-summary.md` and prints it. It **exits 0 even when triggers
-fire** — triggers are investigation prompts, not merge blockers (see below). Pass
-`--strict` to make any trigger non-zero once the thresholds are calibrated.
+`compare` writes `compare-summary.md` and prints it. It always runs the corpus-free HoF
+value-graph budget smoke before any repo scans, so a fresh worktree with no `bench/repos`
+still exercises the generated deep/wide HoF budget cases. Real-repo drift triggers are
+investigation prompts, not merge blockers; HoF budget failures are hard failures because
+they guard unbounded representation growth. Pass `--strict` to make real-repo triggers
+non-zero once the thresholds are calibrated.
 
 Run the corpus-free unit checks for the canonicalization/gate logic:
 
@@ -132,6 +135,17 @@ baseline, the summary says so explicitly and any delta is environment noise. The
 committed `baseline.v1.json` runtime numbers are a snapshot from one machine; the
 **output drift** in it is portable, the **runtime** is not.
 
+Every `compare` also runs a generated HoF value-graph smoke that does not depend on
+`bench/repos`. It creates a deep filter/map/reduce chain and a wide sum of filter/map/reduce
+chains, then records:
+
+- `nose features` wall time;
+- semantic `nose scan --mode semantic --format json --top 0` wall time;
+- per-case token counts, value-fingerprint-node counts, and return-fingerprint-node counts.
+
+Those HoF smoke budgets live in `HOF_RUNTIME_BUDGETS` and `HOF_CASE_BUDGETS`. Unlike the
+real-repo runtime drift thresholds, they are hard compare failures.
+
 ## Compare summary identity
 
 `compare-summary.md` is a committed generated report. Its `current` `source_git_describe`
@@ -153,8 +167,8 @@ repo, keeping the cache effect isolated from the normalize/extract cost.
 
 ## Thresholds = investigation triggers, not merge blockers
 
-Until calibrated, a single noisy wall-clock run must not fail a build. `compare` flags,
-for a human to look at, not to gate:
+Until calibrated, a single noisy real-repo wall-clock run must not fail a build.
+`compare` flags these repo drift signals for a human to look at, not to gate:
 
 | signal | trigger |
 |---|---|
@@ -164,8 +178,10 @@ for a human to look at, not to gate:
 | kind / span / fragment / reason-code / surface / enclosing-unit buckets | any count change |
 | runtime (per-phase + wall median) | > 25% growth **and** > 5 ms absolute (loose + floored because it's noisy) |
 
-The thresholds live in `THRESHOLDS` at the top of `scan_regression.py`. Tune them there
-as the harness is calibrated, then turn on `--strict` for the signals you trust.
+The repo drift thresholds live in `THRESHOLDS` at the top of `scan_regression.py`. Tune
+them there as the harness is calibrated, then turn on `--strict` for the signals you
+trust. The generated HoF smoke budgets are separate hard gates in `HOF_RUNTIME_BUDGETS`
+and `HOF_CASE_BUDGETS`.
 
 ## Subset (and the #36 link)
 

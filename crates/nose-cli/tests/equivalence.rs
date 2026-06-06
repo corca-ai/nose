@@ -265,6 +265,47 @@ fn large_generated_add_sub_formula_stays_compact_and_distinct() {
 }
 
 #[test]
+fn large_generated_hof_chains_stay_compact_and_distinct() {
+    fn hof_chain_expr(depth: usize, seed: usize) -> String {
+        let mut expr = "xs".to_string();
+        for i in 0..depth {
+            let threshold = (i + seed) % 7;
+            let delta = (i + seed) % 11;
+            expr = format!("{expr}.filter((x) => x > {threshold}).map((x) => x + {delta})");
+        }
+        format!("{expr}.reduce((acc, x) => acc + x, 0)")
+    }
+
+    let i = Interner::new();
+    let deep_src = format!("function f(xs) {{ return {}; }}", hof_chain_expr(32, 0));
+    let changed_src = format!("function f(xs) {{ return {}; }}", hof_chain_expr(32, 1));
+    let wide_terms = (0..12)
+        .map(|seed| hof_chain_expr(6, seed))
+        .collect::<Vec<_>>()
+        .join(" + ");
+    let wide_src = format!("function f(xs) {{ return {wide_terms}; }}");
+
+    let deep_fp = value_fp(&i, &deep_src, Lang::JavaScript);
+    assert_ne!(
+        deep_fp,
+        value_fp(&i, &changed_src, Lang::JavaScript),
+        "deep HoF budget smoke must keep changed predicates and maps distinct"
+    );
+    assert!(
+        deep_fp.len() <= 450,
+        "deep HoF chain should keep a compact value fingerprint: {} nodes",
+        deep_fp.len()
+    );
+
+    let wide_fp = value_fp(&i, &wide_src, Lang::JavaScript);
+    assert!(
+        wide_fp.len() <= 1200,
+        "wide HoF chain should keep a compact value fingerprint: {} nodes",
+        wide_fp.len()
+    );
+}
+
+#[test]
 fn filtered_comprehension_matches_filtered_loop() {
     // `sum(x for x in xs if x>0)` and the guarded loop `if x>0: t += x` produce the
     // same guarded Reduce (§AI). The loop additionally records the guard as a
