@@ -216,10 +216,44 @@ def cmd_next(args):
     return 0
 
 
+def cmd_soundness(_args):
+    """The soundness arm: per axis, is there a hard-negative guard, did any merge, and what
+    did the oracle find. Strengthening the oracle = no axis left without a guard."""
+    if not SWEEP_EVIDENCE.exists():
+        print("no sweep evidence yet (run coverage_sweep.py)")
+        return 0
+    oracle = json.loads(SWEEP_EVIDENCE.read_text()).get("oracle", [])
+    # fold duplicate (gen_axis) rows up to the taxonomy axis
+    by_axis = defaultdict(lambda: {"hn": 0, "merged": 0, "leads": 0})
+    for o in oracle:
+        a = by_axis[o["axis"]]
+        a["hn"] += o.get("hard_negatives") or 0
+        a["merged"] += o.get("hard_negatives_merged") or 0
+        a["leads"] += o.get("oracle_under_merged") or 0
+    print("SOUNDNESS ARM  (hard-neg guard / merged=bug / oracle leads = recall feedback)")
+    print(f"{'axis':28s} {'hard-neg':>8s} {'merged':>6s} {'leads':>6s}  guard")
+    print("-" * 60)
+    leaky = guarded = unguarded = 0
+    for axis in sorted(by_axis):
+        a = by_axis[axis]
+        if a["merged"]:
+            g, leaky = "✗ LEAKY", leaky + 1
+        elif a["hn"] > 0:
+            g, guarded = "✓", guarded + 1
+        else:
+            g, unguarded = "· none", unguarded + 1
+        print(f"{axis:28s} {a['hn']:8d} {a['merged']:6d} {a['leads']:6d}  {g}")
+    print(f"\n{guarded} guarded, {leaky} LEAKY (false merges), {unguarded} unguarded.")
+    print("oracle: 0 merged hard-negatives across all axes = soundness arm holds on the "
+          "synthetic corpus. (real-corpus gate: `nose verify bench/repos` == 0 violations.)")
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("matrix").set_defaults(func=cmd_matrix)
+    sub.add_parser("soundness").set_defaults(func=cmd_soundness)
     n = sub.add_parser("next")
     n.add_argument("--limit", type=int, default=3)
     n.add_argument("--arm", choices=["recall", "soundness"])

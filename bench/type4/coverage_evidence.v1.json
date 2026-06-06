@@ -1167,5 +1167,232 @@
       "neg": 5,
       "source": "sweep"
     }
+  ],
+  "oracle": [
+    {
+      "axis": "c_u16_be_byte_pack",
+      "gen_axis": "c_u16_be_byte_pack",
+      "hard_negatives": 7,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "c_u32_be_byte_pack",
+      "gen_axis": "c_u32_be_byte_pack",
+      "hard_negatives": 7,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 1,
+      "oracle_completeness_pct": 77,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "collection_empty_check",
+      "gen_axis": "collection_empty_check",
+      "hard_negatives": 46,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 4,
+      "oracle_completeness_pct": 50,
+      "oracle_canon_changed_budget": 20
+    },
+    {
+      "axis": "filter_fusion",
+      "gen_axis": "hof_filter_map",
+      "hard_negatives": 0,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "identity_value_soundness",
+      "gen_axis": "unsafe_boundary",
+      "hard_negatives": 11,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "immutable_binding",
+      "gen_axis": "immutable_binding",
+      "hard_negatives": 11,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "import_identity",
+      "gen_axis": "import_identity",
+      "hard_negatives": 75,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "java_integer_low_bit_toggle",
+      "gen_axis": "java_integer_low_bit_toggle",
+      "hard_negatives": 6,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "java_statically_false_loop",
+      "gen_axis": "java_statically_false_loop",
+      "hard_negatives": 4,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "map_default_lookup",
+      "gen_axis": "literal_map_default_lookup",
+      "hard_negatives": 14,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "map_default_lookup",
+      "gen_axis": "map_default_lookup",
+      "hard_negatives": 12,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "map_default_lookup",
+      "gen_axis": "table_access",
+      "hard_negatives": 7,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "membership_contains",
+      "gen_axis": "literal_collection_membership",
+      "hard_negatives": 61,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 1,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "membership_contains",
+      "gen_axis": "map_key_membership",
+      "hard_negatives": 24,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 1,
+      "oracle_completeness_pct": 81,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "null_option_presence",
+      "gen_axis": "null_presence_predicate",
+      "hard_negatives": 36,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "null_option_presence",
+      "gen_axis": "nullish_default",
+      "hard_negatives": 20,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 1,
+      "oracle_completeness_pct": 57,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "numeric_clamp",
+      "gen_axis": "numeric_clamp",
+      "hard_negatives": 4,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "numeric_minmax_abs",
+      "gen_axis": "numeric_minmax_abs",
+      "hard_negatives": 85,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 2,
+      "oracle_completeness_pct": 85,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "own_property_guard",
+      "gen_axis": "own_property_guard",
+      "hard_negatives": 20,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "property_type_guard",
+      "gen_axis": "projection_identity",
+      "hard_negatives": 44,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": null,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "property_type_guard",
+      "gen_axis": "record_shape_guard",
+      "hard_negatives": 20,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "proven_callee_identity",
+      "gen_axis": "proven_callee_identity",
+      "hard_negatives": 11,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "python_docstring_noop",
+      "gen_axis": "python_docstring_noop",
+      "hard_negatives": 6,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "string_prefix_suffix",
+      "gen_axis": "string_prefix_suffix",
+      "hard_negatives": 50,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 1,
+      "oracle_completeness_pct": 81,
+      "oracle_canon_changed_budget": null
+    },
+    {
+      "axis": "total_order_compare",
+      "gen_axis": "total_order_compare",
+      "hard_negatives": 5,
+      "hard_negatives_merged": 0,
+      "oracle_under_merged": 0,
+      "oracle_completeness_pct": 100,
+      "oracle_canon_changed_budget": null
+    }
   ]
 }
