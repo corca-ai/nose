@@ -87,8 +87,15 @@ test suite + clippy + Lean gate green. js/ts/python flat-map identity now conver
 
 ---
 
-These four are the next *real* implement targets for even cross-language coverage. L1–L3 are
-one theme: the `exact_safe` static gate admits constructs unevenly across languages, so the
-same modeled equivalence surfaces in some languages and not others. Resolving them widens the
-matrix without lowering thresholds — and each must ship with its hard negatives (already
-authored) and a clean `nose verify`.
+**Status: L1, L1b, L2, L3, L4 all RESOLVED** (4 structural axes implemented + 1 fixture
+artifact). The recurring theme was that the *value graph* already modeled an equivalence but a
+*syntactic recognizer/gate* hadn't caught up (recursion recognizer's bare-Return match; the
+exact-safe gate's `Vec::new`; the recursion canon's Function-only filter) — each fix aligned
+the gate/recognizer with the established value-graph semantics, never a blind loosen, and was
+validated by full suite + clippy + real-corpus scan behavior-invariance (0 detection lost) +
+`nose verify` delta (0 new false merges) + Lean where a new equivalence (flatMap-identity).
+
+Remaining structural axes are larger NEW MECHANISMS (not gate alignments), tracked in
+`coverage_taxonomy.py`: **anchored sub-DAG matching** (partial overlap of larger functions) and
+**extract-method / interprocedural pure inlining**. These need their own design + the same
+validation discipline.
