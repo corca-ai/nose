@@ -1,13 +1,13 @@
 //! Corpus-level import proof facts that need more than one lowered file.
 //!
 //! Frontends lower a static import as `local = import_binding(module, exported)`.
-//! Once the whole corpus is available, a sibling Python module can prove that this
-//! binding names a single immutable literal value. In that narrow case we replace
-//! the import fact RHS with a cloned literal subtree, so the existing per-file
-//! value-graph module-binding seed can reuse its mutation and canonicalization logic.
+//! Once the whole corpus is available, a sibling module can prove that this binding
+//! names a single immutable literal value. In that narrow case we replace the import
+//! fact RHS with a cloned literal subtree, so the existing per-file value-graph
+//! module-binding seed can reuse its mutation and canonicalization logic.
 
 use nose_il::{
-    stable_symbol_hash, Il, Interner, Lang, Node, NodeId, NodeKind, Payload, Span, Symbol,
+    stable_symbol_hash, Il, Interner, Lang, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
@@ -33,7 +33,7 @@ struct SubtreeSnapshot {
 }
 
 pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &Interner) {
-    let exports = collect_python_literal_exports(files, interner);
+    let exports = collect_literal_exports(files, interner);
     if exports.is_empty() {
         return;
     }
@@ -42,9 +42,6 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         .iter()
         .enumerate()
         .map(|(file_idx, il)| {
-            if il.meta.lang != Lang::Python {
-                return Vec::new();
-            }
             collect_top_level_statements(il)
                 .into_iter()
                 .filter_map(|stmt| {
@@ -67,53 +64,51 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
     }
 }
 
-fn collect_python_literal_exports(
+fn collect_literal_exports(
     files: &[Il],
     interner: &Interner,
 ) -> FxHashMap<(u64, u64), ExportedBinding> {
     let mut exports = FxHashMap::default();
     let mut ambiguous = FxHashSet::default();
     for (file_idx, il) in files.iter().enumerate() {
-        if il.meta.lang != Lang::Python {
+        let module_hashes = file_module_hashes(il);
+        if !module_hashes.is_empty() {
+            let top_level = collect_top_level_statements(il);
+            collect_statement_exports(
+                il,
+                interner,
+                file_idx,
+                &top_level,
+                &module_hashes,
+                &mut exports,
+                &mut ambiguous,
+            );
+        }
+
+        if il.meta.lang != Lang::Java {
             continue;
         }
-        let module_hashes = python_module_hashes(&il.meta.path);
-        if module_hashes.is_empty() {
-            continue;
-        }
-        let top_level = collect_top_level_statements(il);
-        let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
-        for &stmt in &top_level {
-            if let Some(name) = assignment_name(il, stmt) {
-                *counts.entry(name).or_insert(0) += 1;
+        for unit in &il.units {
+            if unit.kind != UnitKind::Class {
+                continue;
             }
-        }
-        for &stmt in &top_level {
-            let Some(name) = assignment_name(il, stmt) else {
+            let Some(class_name) = unit.name else {
                 continue;
             };
-            if counts.get(&name).copied().unwrap_or(0) != 1 {
+            let class_module_hashes = java_class_module_hashes(il, interner, class_name);
+            if class_module_hashes.is_empty() {
                 continue;
             }
-            if binding_mutated(il, interner, name, stmt) {
-                continue;
-            }
-            let Some(rhs) = assignment_rhs(il, stmt) else {
-                continue;
-            };
-            if !literal_map_export_safe(il, interner, rhs) {
-                continue;
-            }
-            let exported = stable_symbol_hash(interner.resolve(name));
-            for &module in &module_hashes {
-                let key = (module, exported);
-                if exports
-                    .insert(key, ExportedBinding { file_idx, rhs })
-                    .is_some()
-                {
-                    ambiguous.insert(key);
-                }
-            }
+            let statements = collect_statements_for_root(il, unit.root);
+            collect_statement_exports(
+                il,
+                interner,
+                file_idx,
+                &statements,
+                &class_module_hashes,
+                &mut exports,
+                &mut ambiguous,
+            );
         }
     }
     for key in ambiguous {
@@ -122,12 +117,74 @@ fn collect_python_literal_exports(
     exports
 }
 
+fn collect_statement_exports(
+    il: &Il,
+    interner: &Interner,
+    file_idx: usize,
+    statements: &[NodeId],
+    module_hashes: &[u64],
+    exports: &mut FxHashMap<(u64, u64), ExportedBinding>,
+    ambiguous: &mut FxHashSet<(u64, u64)>,
+) {
+    let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
+    for &stmt in statements {
+        if let Some(name) = assignment_name(il, stmt) {
+            *counts.entry(name).or_insert(0) += 1;
+        }
+    }
+    for &stmt in statements {
+        let Some(name) = assignment_name(il, stmt) else {
+            continue;
+        };
+        if counts.get(&name).copied().unwrap_or(0) != 1 {
+            continue;
+        }
+        if binding_mutated(il, interner, name, stmt) {
+            continue;
+        }
+        let Some(rhs) = assignment_rhs(il, stmt) else {
+            continue;
+        };
+        if !imported_literal_export_safe(il, interner, rhs) {
+            continue;
+        }
+        let exported = stable_symbol_hash(interner.resolve(name));
+        for &module in module_hashes {
+            let key = (module, exported);
+            if exports
+                .insert(key, ExportedBinding { file_idx, rhs })
+                .is_some()
+            {
+                ambiguous.insert(key);
+            }
+        }
+    }
+}
+
 fn collect_top_level_statements(il: &Il) -> Vec<NodeId> {
-    il.children(il.root)
+    let class_roots: FxHashSet<NodeId> = il
+        .units
+        .iter()
+        .filter_map(|unit| (unit.kind == UnitKind::Class).then_some(unit.root))
+        .collect();
+    collect_statements_for_root_except(il, il.root, &class_roots)
+}
+
+fn collect_statements_for_root(il: &Il, root: NodeId) -> Vec<NodeId> {
+    collect_statements_for_root_except(il, root, &FxHashSet::default())
+}
+
+fn collect_statements_for_root_except(
+    il: &Il,
+    root: NodeId,
+    non_flattened_blocks: &FxHashSet<NodeId>,
+) -> Vec<NodeId> {
+    il.children(root)
         .iter()
         .copied()
         .fold(Vec::new(), |mut statements, node| {
             match il.kind(node) {
+                NodeKind::Block if non_flattened_blocks.contains(&node) => statements.push(node),
                 NodeKind::Block => statements.extend_from_slice(il.children(node)),
                 _ => statements.push(node),
             }
@@ -183,19 +240,22 @@ fn literal_string_hash(il: &Il, node: NodeId) -> Option<u64> {
     }
 }
 
-fn literal_map_export_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.kind(node) != NodeKind::Seq {
-        return false;
+fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    match il.kind(node) {
+        NodeKind::Seq => {
+            let Payload::Name(tag) = il.node(node).payload else {
+                return false;
+            };
+            if !imported_literal_seq_tag_safe(interner.resolve(tag)) {
+                return false;
+            }
+            il.children(node)
+                .iter()
+                .all(|&child| literal_export_value_safe(il, interner, child))
+        }
+        NodeKind::Call => imported_map_factory_call_safe(il, interner, node),
+        _ => false,
     }
-    let Payload::Name(tag) = il.node(node).payload else {
-        return false;
-    };
-    if interner.resolve(tag) != "dictionary" {
-        return false;
-    }
-    il.children(node)
-        .iter()
-        .all(|&child| literal_export_value_safe(il, interner, child))
 }
 
 fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -215,8 +275,133 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
             .children(node)
             .iter()
             .all(|&child| literal_export_value_safe(il, interner, child)),
+        NodeKind::Call => java_map_entry_call_safe(il, interner, node),
         _ => false,
     }
+}
+
+fn imported_literal_seq_tag_safe(tag: &str) -> bool {
+    matches!(
+        tag,
+        "dictionary" | "object" | "array" | "array_expression" | "tuple_expression"
+    )
+}
+
+fn imported_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    match il.meta.lang {
+        Lang::JavaScript | Lang::TypeScript => js_map_constructor_call_safe(il, interner, call),
+        Lang::Java => java_map_factory_call_safe(il, interner, call),
+        Lang::Rust => rust_std_map_factory_call_safe(il, interner, call),
+        _ => false,
+    }
+}
+
+fn js_map_constructor_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    if kids.len() != 2 || !var_named(il, interner, kids[0], "Map") {
+        return false;
+    }
+    if file_defines_symbol(il, interner, "Map") {
+        return false;
+    }
+    literal_export_value_safe(il, interner, kids[1])
+}
+
+fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let Some(method) = field_method_on_var(il, interner, callee, "Map") else {
+        return false;
+    };
+    if java_file_defines_type_name(il, interner, "Map") {
+        return false;
+    }
+    match method {
+        "of" => {
+            args.len() % 2 == 0
+                && args
+                    .iter()
+                    .all(|&arg| literal_export_value_safe(il, interner, arg))
+        }
+        "ofEntries" => args
+            .iter()
+            .all(|&arg| java_map_entry_call_safe(il, interner, arg)),
+        _ => false,
+    }
+}
+
+fn java_map_entry_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    if il.kind(call) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(call);
+    if kids.len() != 3 {
+        return false;
+    }
+    if field_method_on_var(il, interner, kids[0], "Map") != Some("entry") {
+        return false;
+    }
+    if java_file_defines_type_name(il, interner, "Map") {
+        return false;
+    }
+    literal_export_value_safe(il, interner, kids[1])
+        && literal_export_value_safe(il, interner, kids[2])
+}
+
+fn rust_std_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    let kids = il.children(call);
+    if kids.len() != 2 {
+        return false;
+    }
+    if !var_named(il, interner, kids[0], "std::collections::HashMap::from")
+        && !var_named(il, interner, kids[0], "std::collections::BTreeMap::from")
+    {
+        return false;
+    }
+    literal_export_value_safe(il, interner, kids[1])
+}
+
+fn field_method_on_var<'a>(
+    il: &Il,
+    interner: &'a Interner,
+    node: NodeId,
+    receiver: &str,
+) -> Option<&'a str> {
+    if il.kind(node) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(node).payload else {
+        return None;
+    };
+    let receiver_node = il.children(node).first().copied()?;
+    var_named(il, interner, receiver_node, receiver).then(|| interner.resolve(method))
+}
+
+fn var_named(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool {
+    if il.kind(node) != NodeKind::Var {
+        return false;
+    }
+    matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == expected)
+}
+
+fn file_defines_symbol(il: &Il, interner: &Interner, expected: &str) -> bool {
+    il.units.iter().any(|unit| {
+        unit.name
+            .is_some_and(|name| interner.resolve(name) == expected)
+    }) || collect_top_level_statements(il).into_iter().any(|stmt| {
+        assignment_name(il, stmt).is_some_and(|name| interner.resolve(name) == expected)
+    })
+}
+
+fn java_file_defines_type_name(il: &Il, interner: &Interner, expected: &str) -> bool {
+    il.units.iter().any(|unit| {
+        unit.kind == UnitKind::Class
+            && unit
+                .name
+                .is_some_and(|name| interner.resolve(name) == expected)
+    })
 }
 
 fn binding_mutated(il: &Il, interner: &Interner, name: Symbol, defining_stmt: NodeId) -> bool {
@@ -251,7 +436,17 @@ fn field_mutates_binding(il: &Il, interner: &Interner, field: NodeId, name: Symb
 fn mutating_method_name(method: &str) -> bool {
     matches!(
         method,
-        "clear" | "pop" | "popitem" | "setdefault" | "update"
+        "clear"
+            | "delete"
+            | "insert"
+            | "pop"
+            | "popitem"
+            | "put"
+            | "putAll"
+            | "remove"
+            | "set"
+            | "setdefault"
+            | "update"
     )
 }
 
@@ -270,34 +465,119 @@ fn node_contains_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
             .any(|&child| node_contains_symbol(il, child, name))
 }
 
-fn python_module_hashes(path: &str) -> Vec<u64> {
-    let path = Path::new(path);
-    if path.extension().and_then(|ext| ext.to_str()) != Some("py") {
+fn file_module_hashes(il: &Il) -> Vec<u64> {
+    match il.meta.lang {
+        Lang::Python => module_hashes_from_path(&il.meta.path, &["py"], ".", false, true),
+        Lang::JavaScript | Lang::TypeScript => module_hashes_from_path(
+            &il.meta.path,
+            &["js", "jsx", "mjs", "cjs", "ts", "tsx", "mts", "cts"],
+            "/",
+            true,
+            false,
+        ),
+        Lang::Java => module_hashes_from_path(&il.meta.path, &["java"], ".", false, false),
+        Lang::Rust => {
+            let mut hashes = module_hashes_from_path(&il.meta.path, &["rs"], "::", false, false);
+            for module in module_names_from_path(&il.meta.path, &["rs"], "::", false) {
+                hashes.push(stable_symbol_hash(&format!("crate::{module}")));
+                hashes.push(stable_symbol_hash(&format!("self::{module}")));
+            }
+            dedupe_hashes(hashes)
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn java_class_module_hashes(il: &Il, interner: &Interner, class_name: Symbol) -> Vec<u64> {
+    let class_name = interner.resolve(class_name);
+    let mut hashes = vec![stable_symbol_hash(class_name)];
+    if let Some(mut parts) = path_parts_without_extension(&il.meta.path, &["java"]) {
+        if let Some(last) = parts.last_mut() {
+            *last = class_name.to_string();
+        }
+        for module in suffix_module_names(&parts, ".") {
+            hashes.push(stable_symbol_hash(&module));
+        }
+    }
+    dedupe_hashes(hashes)
+}
+
+fn module_hashes_from_path(
+    path: &str,
+    extensions: &[&str],
+    separator: &str,
+    include_relative_dot: bool,
+    drop_python_init: bool,
+) -> Vec<u64> {
+    let hashes = module_names_from_path(path, extensions, separator, drop_python_init)
+        .into_iter()
+        .flat_map(|module| {
+            if include_relative_dot {
+                vec![
+                    stable_symbol_hash(&module),
+                    stable_symbol_hash(&format!("./{module}")),
+                ]
+            } else {
+                vec![stable_symbol_hash(&module)]
+            }
+        })
+        .collect::<Vec<_>>();
+    dedupe_hashes(hashes)
+}
+
+fn module_names_from_path(
+    path: &str,
+    extensions: &[&str],
+    separator: &str,
+    drop_python_init: bool,
+) -> Vec<String> {
+    let Some(mut parts) = path_parts_without_extension(path, extensions) else {
         return Vec::new();
+    };
+    if drop_python_init && parts.last().is_some_and(|part| part == "__init__") {
+        parts.pop();
+    }
+    suffix_module_names(&parts, separator)
+}
+
+fn path_parts_without_extension(path: &str, extensions: &[&str]) -> Option<Vec<String>> {
+    let path = Path::new(path);
+    let ext = path.extension().and_then(|ext| ext.to_str())?;
+    if !extensions.contains(&ext) {
+        return None;
     }
     let mut parts: Vec<String> = path
         .components()
         .filter_map(|component| component.as_os_str().to_str())
-        .filter(|part| !part.is_empty())
+        .filter(|part| !part.is_empty() && *part != "/")
         .map(ToOwned::to_owned)
         .collect();
-    let Some(last) = parts.last_mut() else {
-        return Vec::new();
-    };
-    if let Some(stripped) = last.strip_suffix(".py") {
-        *last = stripped.to_string();
-    }
-    if last == "__init__" {
-        parts.pop();
-    }
+    let last = parts.last_mut()?;
+    let stem = Path::new(last)
+        .file_stem()
+        .and_then(|stem| stem.to_str())?
+        .to_string();
+    *last = stem;
+    Some(parts)
+}
+
+fn suffix_module_names(parts: &[String], separator: &str) -> Vec<String> {
     let mut out = Vec::new();
     for start in 0..parts.len() {
-        let module = parts[start..].join(".");
+        let module = parts[start..].join(separator);
         if !module.is_empty() {
-            out.push(stable_symbol_hash(&module));
+            out.push(module);
         }
     }
     out
+}
+
+fn dedupe_hashes(hashes: Vec<u64>) -> Vec<u64> {
+    let mut seen = FxHashSet::default();
+    hashes
+        .into_iter()
+        .filter(|hash| seen.insert(*hash))
+        .collect()
 }
 
 fn snapshot_subtree(il: &Il, root: NodeId) -> SubtreeSnapshot {
