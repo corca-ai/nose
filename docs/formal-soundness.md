@@ -42,6 +42,7 @@ a new named semantic rule cannot be added without registering its proof state.
 ## Local checks
 
 ```sh
+python3 scripts/check-formal-obligations.py --self-test
 python3 scripts/check-formal-obligations.py
 while IFS= read -r f; do
   lean --error=warning "$f"

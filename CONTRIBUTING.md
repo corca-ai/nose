@@ -38,7 +38,7 @@ full run here is a green CI. The full gates are:
 | **unused deps** | `cargo machete` | no dependency declared but unused (à la *knip*) |
 | **supply chain** | `cargo deny check` | no advisories/yanked crates, only allowed licenses, no dup/wildcard deps, crates.io-only |
 | **docs wiki** | `awiki lint --root docs` | the `docs/` wiki is one connected graph — no orphan pages or islands |
-| **formal obligations** | `python3 scripts/check-formal-obligations.py` | proof-sensitive rule modules are registered, theorem names exist, and counterexample files are tracked |
+| **formal obligations** | `python3 scripts/check-formal-obligations.py --self-test && python3 scripts/check-formal-obligations.py` | proof-sensitive rule modules are registered, theorem names exist, and counterexample files are tracked |
 | **formal proofs** | `find formal -name '*.lean' -print \| sort \| xargs -n1 lean --error=warning` | value-graph soundness proofs type-check with warnings, including `sorry`, treated as errors |
 
 The dev/CI toolchain is pinned in `rust-toolchain.toml` (rustup installs it

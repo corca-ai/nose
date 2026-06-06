@@ -52,6 +52,7 @@ run_docs_wiki_lint() {
 
 run_formal_obligations_lint() {
     need_cmd python3
+    python3 scripts/check-formal-obligations.py --self-test
     python3 scripts/check-formal-obligations.py
 }
 

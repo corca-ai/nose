@@ -92,7 +92,9 @@ jobs:
             | sh -s -- -y --default-toolchain "$toolchain"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
       - name: lint proof obligations
-        run: python3 scripts/check-formal-obligations.py
+        run: |
+          python3 scripts/check-formal-obligations.py --self-test
+          python3 scripts/check-formal-obligations.py
       - name: check proofs
         run: |
           set -e

@@ -14,6 +14,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
 try:
@@ -50,6 +51,10 @@ class Obligation:
 
 def error(errors: list[str], message: str) -> None:
     errors.append(message)
+
+
+def non_empty_str(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 def as_list(value: Any, field: str, errors: list[str], where: str) -> list[str]:
@@ -220,9 +225,14 @@ def lint_meta(obligation: Obligation, all_ids: set[str], errors: list[str]) -> N
         lean = {}
     proof = lean.get("proof")
     theorems = as_list(lean.get("theorems", []), "lean.theorems", errors, where)
-    if status == "proven" and not isinstance(proof, str):
-        error(errors, f"{where}: proven obligations must name `lean.proof`")
-    if isinstance(proof, str):
+    if status == "proven":
+        if not non_empty_str(proof):
+            error(errors, f"{where}: proven obligations must name `lean.proof`")
+        if not theorems:
+            error(errors, f"{where}: proven obligations must list at least one `lean.theorems`")
+    if proof is not None and not non_empty_str(proof):
+        error(errors, f"{where}: `lean.proof` must be a non-empty string")
+    if non_empty_str(proof):
         proof_path = obligation.path / proof
         if not proof_path.exists():
             error(errors, f"{where}: proof file does not exist: {proof}")
@@ -239,9 +249,21 @@ def lint_meta(obligation: Obligation, all_ids: set[str], errors: list[str]) -> N
         errors,
         where,
     )
-    if status == "rejected-counterexample" and not isinstance(counterexamples, str):
-        error(errors, f"{where}: rejected-counterexample obligations must name `lean.counterexamples`")
-    if isinstance(counterexamples, str):
+    if status == "rejected-counterexample":
+        if not non_empty_str(counterexamples):
+            error(
+                errors,
+                f"{where}: rejected-counterexample obligations must name `lean.counterexamples`",
+            )
+        if not counterexample_theorems:
+            error(
+                errors,
+                f"{where}: rejected-counterexample obligations must list at least one "
+                "`lean.counterexample_theorems`",
+            )
+    if counterexamples is not None and not non_empty_str(counterexamples):
+        error(errors, f"{where}: `lean.counterexamples` must be a non-empty string")
+    if non_empty_str(counterexamples):
         counterexample_path = obligation.path / counterexamples
         if not counterexample_path.exists():
             error(errors, f"{where}: counterexample file does not exist: {counterexamples}")
@@ -250,8 +272,13 @@ def lint_meta(obligation: Obligation, all_ids: set[str], errors: list[str]) -> N
             for theorem in counterexample_theorems:
                 if theorem not in decls:
                     error(errors, f"{where}: counterexample theorem `{theorem}` not found in {counterexamples}")
+        if not counterexample_theorems:
+            error(errors, f"{where}: listed `lean.counterexamples` must name counterexample theorems")
 
-    for covered_id in as_list(meta.get("covered_by", []), "covered_by", errors, where):
+    covered_by = as_list(meta.get("covered_by", []), "covered_by", errors, where)
+    if status == "covered" and not covered_by:
+        error(errors, f"{where}: covered obligations must list at least one `covered_by`")
+    for covered_id in covered_by:
         if covered_id not in all_ids:
             error(errors, f"{where}: covered_by references unknown obligation `{covered_id}`")
 
@@ -287,7 +314,96 @@ def lint_lean_layout(errors: list[str]) -> None:
             error(errors, f"{lean_file.relative_to(ROOT)}: missing sibling meta.toml")
 
 
+def run_self_tests() -> int:
+    target = ROOT / "target"
+    target.mkdir(exist_ok=True)
+    with TemporaryDirectory(prefix="formal-obligation-self-test-", dir=target) as temp:
+        obligation_path = Path(temp) / "formal" / "obligations" / "self_test"
+        obligation_path.mkdir(parents=True)
+        (obligation_path / "Proof.lean").write_text(
+            "namespace SelfTest\n\ntheorem ok : True := by\n  trivial\n\nend SelfTest\n",
+            encoding="utf-8",
+        )
+        (obligation_path / "Counterexamples.lean").write_text(
+            "namespace SelfTest\n\ntheorem bad : True := by\n  trivial\n\nend SelfTest\n",
+            encoding="utf-8",
+        )
+
+        def base_meta(status: str) -> dict[str, Any]:
+            return {
+                "id": "self_test",
+                "status": status,
+                "kind": "self-test",
+                "summary": "self-test obligation",
+            }
+
+        def lint(meta: dict[str, Any], all_ids: set[str] | None = None) -> list[str]:
+            errors: list[str] = []
+            lint_meta(Obligation("self_test", obligation_path, meta), all_ids or {"self_test"}, errors)
+            return errors
+
+        cases = [
+            (
+                "valid proven",
+                {
+                    **base_meta("proven"),
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                False,
+                "",
+            ),
+            (
+                "proven without theorem list",
+                {
+                    **base_meta("proven"),
+                    "lean": {"proof": "Proof.lean", "theorems": []},
+                },
+                True,
+                "proven obligations must list at least one `lean.theorems`",
+            ),
+            (
+                "covered without covered_by",
+                {**base_meta("covered"), "covered_by": []},
+                True,
+                "covered obligations must list at least one `covered_by`",
+            ),
+            (
+                "rejected counterexample without theorem list",
+                {
+                    **base_meta("rejected-counterexample"),
+                    "lean": {"counterexamples": "Counterexamples.lean", "counterexample_theorems": []},
+                },
+                True,
+                "rejected-counterexample obligations must list at least one "
+                "`lean.counterexample_theorems`",
+            ),
+        ]
+
+        failures = []
+        for name, meta, should_fail, expected in cases:
+            errors = lint(meta)
+            joined = "\n".join(errors)
+            if should_fail and expected not in joined:
+                failures.append(f"{name}: expected `{expected}`, got {errors}")
+            elif not should_fail and errors:
+                failures.append(f"{name}: expected no errors, got {errors}")
+
+    if failures:
+        print("formal obligation self-test failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"  - {failure}", file=sys.stderr)
+        return 1
+    print("formal obligation self-test passed")
+    return 0
+
+
 def main() -> int:
+    if len(sys.argv) == 2 and sys.argv[1] == "--self-test":
+        return run_self_tests()
+    if len(sys.argv) > 1:
+        print("usage: scripts/check-formal-obligations.py [--self-test]", file=sys.stderr)
+        return 2
+
     errors: list[str] = []
     obligations = load_obligations(errors)
     all_ids = set(obligations)
