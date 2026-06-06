@@ -49,9 +49,15 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
 import prioritize_frontier as pf  # noqa: E402  (reuse candidate/probe defs + scan helpers)
+import frontier_axes as fa  # noqa: E402  (Team B extra axes, kept out of the frozen prioritizer)
 
 TOOL_VERSION = "frontier-platform/1"
 SCHEMA_VERSION = 1
+
+# The union of the frozen prioritizer axes and the Team B extra axes (issue #50 decision 1).
+# `prioritize_frontier.py` stays byte-stable; new axes live in `frontier_axes.py`.
+ALL_CANDIDATES = list(pf.CANDIDATES) + list(fa.EXTRA_CANDIDATES)
+ALL_PROBES = {**pf.PROBES_BY_CANDIDATE, **fa.EXTRA_PROBES_BY_CANDIDATE}
 
 # The corpus is balanced per primary language, so "larger language dominates by raw count"
 # is an OCCURRENCE-frequency bias, not a corpus-imbalance one. The platform answers it by
@@ -208,6 +214,25 @@ AUDIT_CONCLUSION = {
     ],
 }
 
+# Merged curated metadata over the union of prioritizer + Team B axes.
+CURATED_ALL = {**CURATED, **fa.EXTRA_CURATED}
+
+# Union staleness guard (issue #50 decision 1): covers the prioritizer axes PLUS the Team B
+# extra axes. This is DISTINCT from the #44 `AUDIT_CONCLUSION` guard, which stays scoped to
+# the eight prevalence axes. A new or removed axis anywhere in the union fails build +
+# selftest, so a target packet / conclusion cannot silently drift.
+EXPECTED_UNION_AXES = [
+    "collection_empty_check",
+    "map_default_lookup",
+    "membership_contains",
+    "null_option_presence",
+    "numeric_clamp",
+    "numeric_minmax_abs",
+    "own_property_guard",
+    "property_type_guard",
+    "string_prefix_suffix",
+]
+
 # Platform recommendation categories are NOT frontier statuses. They derive from the axis
 # language scope; `soundness-fix` and `product-noise-ranking-only` are reserved curated
 # overrides (none of the current axes are either) that route to #43-adjacent soundness work
@@ -221,7 +246,7 @@ SCOPE_TO_CATEGORY = {
 
 
 def curated_for(candidate_id: str) -> dict:
-    meta = CURATED.get(candidate_id)
+    meta = CURATED_ALL.get(candidate_id)
     if meta is None:
         return {
             "implementation_cost": "unknown",
@@ -233,26 +258,56 @@ def curated_for(candidate_id: str) -> dict:
 
 
 def validate_vocab() -> None:
-    """Fail loud if any curated value escapes the controlled vocabulary, or if any current
-    prioritizer axis has no curated review (a silent `unknown` fallback would violate the
-    'curated, not estimated' principle — issue #44 decision 5)."""
-    for cid, meta in CURATED.items():
+    """Fail loud if any curated value escapes the controlled vocabulary, or if any axis in
+    the union has no curated review (a silent `unknown` fallback would violate the
+    'curated, not estimated' principle — issue #44 decision 5 / #50 decision 1)."""
+    for cid, meta in CURATED_ALL.items():
         assert meta["implementation_cost"] in IMPLEMENTATION_COST, cid
         assert meta["soundness_risk"] in SOUNDNESS_RISK, cid
         assert meta["substrate_required"] in SUBSTRATE_REQUIRED, cid
-    missing = sorted(c.candidate_id for c in pf.CANDIDATES if c.candidate_id not in CURATED)
-    assert not missing, f"axes missing curated metadata (add to CURATED): {missing}"
+    missing = sorted(c.candidate_id for c in ALL_CANDIDATES if c.candidate_id not in CURATED_ALL)
+    assert not missing, f"axes missing curated metadata: {missing}"
 
 
 def validate_conclusion() -> None:
-    """Fail loud if the prioritizer's axis set drifts from the set the curated audit
-    conclusion was written against, so a stale 'no-batch' verdict cannot be reused after a
-    new axis is added or removed (issue #44 decision 2)."""
+    """Fail loud if the PRIORITIZER's axis set drifts from the set the #44 audit conclusion
+    was written against, so a stale 'no-batch' verdict cannot be reused after a new or removed
+    prioritizer axis (issue #44 decision 2). Scoped to the eight prevalence axes."""
     current = sorted(c.candidate_id for c in pf.CANDIDATES)
     assert current == sorted(AUDIT_CONCLUSION_CANDIDATES), (
-        "candidate axis set changed since the audit conclusion was written; revisit "
+        "prioritizer axis set changed since the audit conclusion was written; revisit "
         f"AUDIT_CONCLUSION. expected {sorted(AUDIT_CONCLUSION_CANDIDATES)}, got {current}"
     )
+
+
+def validate_union() -> None:
+    """Fail loud if the UNION axis set (prioritizer + Team B extras) drifts from the recorded
+    expectation, so target packets and conclusions cannot silently drift (issue #50)."""
+    current = sorted(c.candidate_id for c in ALL_CANDIDATES)
+    assert current == sorted(EXPECTED_UNION_AXES), (
+        "union axis set changed; update EXPECTED_UNION_AXES and revisit packets/guards. "
+        f"expected {sorted(EXPECTED_UNION_AXES)}, got {current}"
+    )
+
+
+def union_signature() -> str:
+    """A stable signature over the union axis defs (ids + patterns + probes), so a regex
+    change in any axis is visible in the reproducibility identity."""
+    payload = {
+        "axes": [
+            {
+                "candidate_id": c.candidate_id,
+                "scope": c.scope,
+                "patterns": sorted((s.pattern_id, s.lang, s.regex.pattern) for s in c.patterns),
+                "probes": sorted(
+                    (s.probe_id, s.lang, s.regex.pattern)
+                    for s in ALL_PROBES.get(c.candidate_id, ())
+                ),
+            }
+            for c in ALL_CANDIDATES
+        ]
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -273,7 +328,7 @@ def presence_scan(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
             "gap_samples": [],
             "samples": [],
         }
-        for c in pf.CANDIDATES
+        for c in ALL_CANDIDATES
     }
     # The corpus source-language universe (file-extension languages actually present), so
     # the diagnostic source-language breadth denominator is derived, not hard-coded.
@@ -289,11 +344,11 @@ def presence_scan(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
             except OSError:
                 continue
             rel = str(path.relative_to(repo_path))
-            for candidate in pf.CANDIDATES:
+            for candidate in ALL_CANDIDATES:
                 specs = [s for s in candidate.patterns if s.lang == lang]
                 probes = [
                     s
-                    for s in pf.PROBES_BY_CANDIDATE.get(candidate.candidate_id, ())
+                    for s in ALL_PROBES.get(candidate.candidate_id, ())
                     if s.lang == lang
                 ]
                 if not specs and not probes:
@@ -619,6 +674,7 @@ def build(
 ) -> dict:
     validate_vocab()
     validate_conclusion()
+    validate_union()
     repos = pf.load_repos(corpus_path, repos_root)
     split_totals: dict[str, int] = {}
     for repo in repos:
@@ -634,7 +690,7 @@ def build(
     evidence = load_frontier_evidence(real_frontier)
 
     candidates_out = []
-    for candidate in pf.CANDIDATES:
+    for candidate in ALL_CANDIDATES:
         bucket = buckets[candidate.candidate_id]
         metrics = breadth_metrics(
             bucket, split_totals, corpus_primary_languages, corpus_source_languages
@@ -693,6 +749,8 @@ def build(
         "schema_version": SCHEMA_VERSION,
         "build_ref": git_build_ref(build_ref),
         "candidate_signature": pf.candidate_signature(),
+        "union_signature": union_signature(),
+        "union_axes": sorted(c.candidate_id for c in ALL_CANDIDATES),
         "corpus": corpus_identity(corpus_path),
         "split_totals": dict(sorted(split_totals.items())),
         "corpus_primary_languages": corpus_primary_languages,
@@ -841,9 +899,10 @@ def selftest() -> int:
     gaps on the current mature axes, so the gap/family logic is proven here on synthetic
     inputs instead."""
     validate_vocab()  # also asserts every current axis is curated (no silent `unknown`)
-    validate_conclusion()  # asserts the axis set matches the curated conclusion
+    validate_conclusion()  # asserts the prioritizer axis set matches the #44 conclusion
+    validate_union()  # asserts the union axis set (prioritizer + extras) matches expectation
     # Every curated axis routes a recommendation category and a known substrate value.
-    for c in pf.CANDIDATES:
+    for c in ALL_CANDIDATES:
         assert SCOPE_TO_CATEGORY.get(c.scope, c.scope) in RECOMMENDATION_CATEGORY, c.candidate_id
         assert curated_for(c.candidate_id)["substrate_required"] in SUBSTRATE_REQUIRED
 
