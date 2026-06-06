@@ -43,9 +43,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
 3. **Extract units & features**: frontend units are augmented with bounded
    sub-function units: control-flow blocks (`loop` / statement `if` / `try`) and
    exact-safe statement fragments whose whole value subtree stays inside the reported
-   source span. Each unit becomes a multiset of subtree-shape hashes, a value-graph
-   fingerprint, a pre-order linearization for alignment, a MinHash signature, plus
-   literal- and return-value multisets used by the strict precision gates.
+   source span. Exact fragments carry a first-class classification, contract, and
+   behavior oracle — see [fragment-contracts](fragment-contracts.md). Each unit becomes a
+   multiset of subtree-shape hashes, a value-graph fingerprint, a pre-order linearization
+   for alignment, a MinHash signature, plus literal- and return-value multisets used by
+   the strict precision gates.
 4. **Candidate generation**: the selected scan channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures, `near` uses shape MinHash
    signatures, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
