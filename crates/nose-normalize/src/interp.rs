@@ -891,6 +891,17 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
+            HoFKind::FilterMap => {
+                let mut out = Vec::new();
+                for x in coll {
+                    match self.apply(f, &[x], env)? {
+                        Value::Err => return Ok(Value::Err),
+                        Value::Null => {}
+                        value => out.push(value),
+                    }
+                }
+                Ok(Value::List(out))
+            }
             HoFKind::Filter => {
                 let mut out = Vec::new();
                 for x in coll {
@@ -1962,6 +1973,11 @@ mod tests {
         assert_eq!(hof_with_error_lambda(HoFKind::FlatMap), Value::Err);
     }
 
+    #[test]
+    fn hof_filter_map_propagates_lambda_errors() {
+        assert_eq!(hof_with_error_lambda(HoFKind::FilterMap), Value::Err);
+    }
+
     fn hof_flat_map_value() -> Value {
         let sp = Span::synthetic(FileId(0));
         let mut b = IlBuilder::new(FileId(0));
@@ -2005,6 +2021,261 @@ mod tests {
                 Value::Int(2)
             ])
         );
+    }
+
+    fn hof_scalar_flat_map_value() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let var = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[var]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FlatMap),
+            sp,
+            &[coll, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_flat_map_scalar_lambda_result_is_err() {
+        assert_eq!(hof_scalar_flat_map_value(), Value::Err);
+    }
+
+    fn hof_filter_map_value() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let var = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let is_zero = b.add(NodeKind::BinOp, Payload::Op(Op::Eq), sp, &[var, zero]);
+        let var_again = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let none = b.add(NodeKind::Lit, Payload::Lit(LitClass::Null), sp, &[]);
+        let selected = b.add(NodeKind::If, Payload::None, sp, &[is_zero, var_again, none]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[selected]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[zero, one]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FilterMap),
+            sp,
+            &[coll, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Rust,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_filter_map_drops_null_and_keeps_falsey_values() {
+        assert_eq!(hof_filter_map_value(), Value::List(vec![Value::Int(0)]));
+    }
+
+    fn hof_with_empty_collection_and_error_lambda(kind: HoFKind) -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
+        let div = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[div]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[]);
+        let hof = b.add(NodeKind::HoF, Payload::HoF(kind), sp, &[coll, lambda]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_empty_collections_skip_lambda_errors() {
+        let empty = Value::List(Vec::new());
+        assert_eq!(
+            hof_with_empty_collection_and_error_lambda(HoFKind::Map),
+            empty
+        );
+        assert_eq!(
+            hof_with_empty_collection_and_error_lambda(HoFKind::Filter),
+            empty
+        );
+        assert_eq!(
+            hof_with_empty_collection_and_error_lambda(HoFKind::FlatMap),
+            empty
+        );
+        assert_eq!(
+            hof_with_empty_collection_and_error_lambda(HoFKind::FilterMap),
+            empty
+        );
+    }
+
+    fn hof_filter_map_with_scalar_collection() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let var = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[var]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let scalar = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FilterMap),
+            sp,
+            &[scalar, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Rust,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_filter_map_scalar_collection_is_err() {
+        assert_eq!(hof_filter_map_with_scalar_collection(), Value::Err);
+    }
+
+    fn hof_filter_map_with_captured_value() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let offset_var = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let ten = b.add(NodeKind::Lit, Payload::LitInt(10), sp, &[]);
+        let assign_offset = b.add(NodeKind::Assign, Payload::None, sp, &[offset_var, ten]);
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let x = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let offset = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let sum = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp, &[x, offset]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[sum]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one, two]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FilterMap),
+            sp,
+            &[coll, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign_offset, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Rust,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_filter_map_lambda_captures_outer_environment() {
+        assert_eq!(
+            hof_filter_map_with_captured_value(),
+            Value::List(vec![Value::Int(11), Value::Int(12)])
+        );
+    }
+
+    fn hof_filter_map_effectful_lambda() -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let printed = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let print = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Print),
+            sp,
+            &[printed],
+        );
+        let print_stmt = b.add(NodeKind::ExprStmt, Payload::None, sp, &[print]);
+        let returned = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[returned]);
+        let lambda_body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp,
+            &[print_stmt, lambda_ret],
+        );
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one, two]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FilterMap),
+            sp,
+            &[coll, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Rust,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit")
+    }
+
+    #[test]
+    fn hof_filter_map_effectful_lambda_records_effects() {
+        let behavior = hof_filter_map_effectful_lambda();
+        assert_eq!(
+            behavior.ret,
+            Value::List(vec![Value::Int(1), Value::Int(2)])
+        );
+        assert_eq!(behavior.effects, vec![Value::Int(1), Value::Int(2)]);
     }
 
     fn print_with_error_arg_then_return() -> Value {

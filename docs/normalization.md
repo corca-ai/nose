@@ -107,9 +107,11 @@ Guiding constraints for every pass:
   runtime errors just like the loop condition and body.
   Eager builtin arguments (left-to-right), direct
   self-recursion call-by-value arguments, list/tuple literal items, reduce initial values,
-  higher-order map/filter/reduce, and `any`/`all` predicate errors also stay
+  higher-order map/filter/filter-map/flat-map/reduce, and `any`/`all` predicate errors also stay
   observable instead of being hidden inside a collection value or coerced through truthiness
-  into `false`.
+  into `false`. The filter-map oracle model treats `Null` as absence, propagates `Err`,
+  and emits every other value, including falsey values such as `0`; richer wrapped
+  `Some(None)`-style payloads remain outside the modeled option subset.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its

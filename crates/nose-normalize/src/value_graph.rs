@@ -3114,6 +3114,7 @@ impl<'a> Builder<'a> {
             && matches!(
                 self.il.node(expr).payload,
                 Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter)
+                    | Payload::HoF(HoFKind::FilterMap)
             )
         {
             let kids = self.il.children(expr).to_vec();
