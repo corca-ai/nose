@@ -1,0 +1,22 @@
+id = "normalize.value_graph.free_monoid"
+status = "proven"
+kind = "soundness-boundary"
+summary = "String/list builder semantics are ordered free-monoid concatenation, not commutative algebra."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/interp.rs"]
+symbols = ["is_concat_ty", "join_strings"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFreeMonoid.concat_assoc",
+  "NoseFreeMonoid.concat_left_id",
+  "NoseFreeMonoid.concat_right_id",
+  "NoseFreeMonoid.repeat_two_eq_concat_self",
+]
+counterexamples = "Counterexamples.lean"
+counterexample_theorems = [
+  "NoseFreeMonoidCounterexamples.concat_not_commutative",
+  "NoseFreeMonoidCounterexamples.repeat_distribution_not_sound",
+]

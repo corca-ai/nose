@@ -139,7 +139,7 @@ impl Rewriter<'_> {
         }
         match op {
             // Canonicalize comparison direction by reflecting the order: `a > b` → `b < a`
-            // (Lean `Compare.lean::gt_eq_lt_swap`), `a >= b` → `b <= a` (`ge_eq_le_swap`).
+            // (`normalize.value_graph.compare`), `a >= b` → `b <= a`.
             // Both arms swap the operands and emit the mirror operator; only the target
             // opcode differs.
             Op::Gt | Op::Ge => {
@@ -298,7 +298,7 @@ impl Rewriter<'_> {
                     //   !(x > y)  = x <= y   !(x >= y) = x < y     (operands stay)
                     // The strict/non-strict polarity flips (`<`,`>` → `<=`; `<=`,`>=` → `<`),
                     // and only the already-reflected `<`/`<=` cases swap operands so the result
-                    // points the canonical way. Lean: `Compare.lean::not_lt_eq_ge`+`ge_eq_le_swap`,
+                    // points the canonical way. Lean obligation: `normalize.value_graph.compare`,
                     // `not_le_eq_gt`+`gt_eq_lt_swap`, `not_gt_eq_le`, `not_ge_eq_lt`.
                     Op::Lt | Op::Le | Op::Gt | Op::Ge => {
                         let flip = if matches!(op, Op::Lt | Op::Gt) {

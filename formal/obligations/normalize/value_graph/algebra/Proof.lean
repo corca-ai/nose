@@ -10,7 +10,7 @@ This file proves exactly that for `+` over `Int`: flattening an add-tree to a le
 preserves its denotation, and ANY permutation of that leaf list (the sort is one) has the
 same denotation. Hence sorting flattened `+`-operands is denotation-preserving — sound.
 
-Self-contained: no Mathlib. Compile:  ~/.elan/bin/lean formal/Algebra.lean
+Self-contained: no Mathlib. Checked by the formal obligation CI gate.
 -/
 
 namespace NoseAlgebra

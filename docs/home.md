@@ -42,6 +42,7 @@ You want to *change* nose or understand how it works inside.
 - [architecture](architecture.md) — the crates and the lower → normalize → detect → rank pipeline.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.
+- [formal-soundness](formal-soundness.md) — Lean 4 proof-obligation registry for proof-sensitive semantic rewrites, including named rule modules and counterexample files.
 - [hazard-ranking](hazard-ranking.md) — the evidence base for the experimental `--sort hazard` (a divergence-*propensity* signal; **not** a validated harm ranker — it ranks actual harm near chance) and the honest evaluation trail.
 - [hazard-benchmark](hazard-benchmark.md) — the evaluation criteria and labeled dataset hazard is measured against (repo selection, graded labels, quantitative sufficiency).
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for the hazard ranking on every new nose release (one-page runbook: refresh the dataset, re-tune, re-validate).

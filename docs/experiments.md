@@ -555,7 +555,8 @@ false merge and gets rolled back.** **Phase 0** drove false merges 15 → 0 via 
 language-general fixes (subtree-hash keying for `Raw` nodes, dead-code-after-unconditional-return
 drop, last-write-wins per field, `Err` propagation through conditions, excluding empty
 fingerprints from `verify`). **Phase 1** moved the soundness contract from empirical ("0 merges on
-N repos") to **proven in Lean 4** (`formal/Algebra.lean`, `Control.lean`, `Functor.lean`:
+N repos") to **proven in Lean 4** (`normalize.value_graph.algebra`,
+`normalize.control_flow.guard_returns`, `normalize.value_graph.functor`:
 AC-flatten+sort denotation-preserving, `a − b → a + (−b)`, guard-clause ≡ if-else, map-fusion
 functor law). Bold canons were verifier-gated: untyped `-(-x) → x` / `x & x → x` were **refuted
 (caught 17 false merges** — they drop the operator's type-error behavior), then re-enabled
@@ -616,10 +617,10 @@ A focused pass to raise *exact* Type-4 convergence while holding full-corpus `ve
 backing each algebraic law with a Lean proof. **Adopted** (93 equivalence tests green, SOUND):
 fixpoint param-type inference over subexpression result types (`types.rs`, licensing the gated
 numeric rewrites); distribution/factoring `a*c + b*c → (a+b)*c` gated on proven Num
-(`Algebra.lean::distrib_sound`); full **AC canonicalization in the value graph itself** (`mk`
+(`NoseAlgebra.distrib_sound`); full **AC canonicalization in the value graph itself** (`mk`
 flattens+sorts `+ * & | ^`, so *synthesized* nodes re-canonicalize, not only the IL algebra pass);
 **filter fusion** representing `filter(p, c)` as a filtered identity-map `Hof(Map, [Elem c, p])` so
-nested filters fuse to `p ∧ q` (`Functor.lean::filter_fusion` — the deferred "make Filter carry its
+nested filters fuse to `p ∧ q` (`NoseFunctor.filter_fusion` — the deferred "make Filter carry its
 element"; an earlier peel-to-bare-`Filter` caused 2 false merges, this does not); reduce-lambda
 min/max selection; count-of-filter; method-form iterator reductions
 (`xs.iter().filter(p).sum()` ≡ Python `sum(… if p)`); and **dict-builder ≡ dict-comprehension**,
@@ -631,7 +632,8 @@ language-semantic divergences, not representation gaps.* Verdict: **full-corpus 
 false merges across 28,113 interpretable units, and the v5 refactoring-precision number is
 unchanged — reconfirming §AY that behavioral-convergence gains don't move the judgment-deep
 number while costing nothing there. The win is squarely on the exact-Type-4 axis.** The Lean core
-gained `Compare.lean`; a `formal` CI job regression-checks all theorems.
+gained the `normalize.value_graph.compare` obligation; a `formal` CI job regression-checks all
+theorems.
 
 ## BB. Confluence audit + lattice comparison canon (rules, not a new engine)
 
@@ -642,7 +644,8 @@ reproduces §C/§AW by construction: **the lever is new sound rules, not a bette
 engine** — an e-graph would still need each rule declared, and the fixpoint it buys is largely
 already present. The one gap was the lattice identity `(x ≤ y) ∧ (x ≠ y) ≡ x < y`; adding just that
 one rule (`value_graph.rs lattice_le_ne_to_lt` + dual) *composes through the `mk` fixpoint* to close
-the full cross-language `not(a > b or a == b) ≡ a < b`. Sound on any total order (`Compare.lean`).
+the full cross-language `not(a > b or a == b) ≡ a < b`. Sound on any total order
+(`normalize.value_graph.compare`).
 
 ## BC–BF. Behavioral-equivalence gate and widening the oracle
 

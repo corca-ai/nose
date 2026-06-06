@@ -78,19 +78,25 @@ jobs:
         run: awiki lint --root docs
 
   formal:
-    name: lean proofs (value-graph soundness)
+    name: formal obligations · lean proofs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The formal/ proofs are standalone Lean 4 files (no Mathlib); each must type-check
-      # with no `sorry`. They machine-check the value-graph canonicalization rules
-      # (AC sort, distribution, map/filter fusion, …). See formal/README.md.
+      # The formal obligation registry maps proof-sensitive rewrite modules to Lean proof
+      # files and counterexamples. The proofs are standalone Lean 4 files (no Mathlib);
+      # each must type-check with warnings promoted to errors. See formal/README.md.
       - name: install elan (lean toolchain)
         run: |
+          toolchain="$(cat lean-toolchain)"
           curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
-            | sh -s -- -y --default-toolchain leanprover/lean4:v4.30.0
+            | sh -s -- -y --default-toolchain "$toolchain"
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: lint proof obligations
+        run: python3 scripts/check-formal-obligations.py
       - name: check proofs
         run: |
           set -e
-          for f in formal/*.lean; do echo "checking $f"; lean "$f"; done
+          while IFS= read -r f; do
+            echo "checking $f"
+            lean --error=warning "$f"
+          done < <(find formal -name '*.lean' -print | sort)

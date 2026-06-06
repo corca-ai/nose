@@ -94,7 +94,7 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 - category: **all-language** · evidence tier: **frontier-recorded** · prioritizer status: `open`
 - presence: 26 repos / 7 primary langs (C, Go, Java, Python, Ruby, Rust, TypeScript) · source langs c, go, java, javascript, python, ruby, rust, typescript · dev 14 · heldout 12 · both-splits
 - curated: cost `medium` · risk `medium` · substrate `none`
-  - rationale: A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/Clamp.lean).
+  - rationale: A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean).
   - human evidence: `numeric-clamp-minmax-ternary-real-miss` → **real-miss** (numeric_clamp / clamp_minmax_composition)
 
 ### `own_property_guard` — Own-property guard forms

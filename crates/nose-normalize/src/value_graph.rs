@@ -18,6 +18,8 @@
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
 
+mod rules;
+
 use crate::combine;
 use crate::module_facts::{
     assignment_name_in, collect_all_node_symbols, collect_module_mutations, mutating_method_name,
@@ -1687,9 +1689,10 @@ impl<'a> Builder<'a> {
             // DISTRIBUTION / FACTORING: `x*f + y*f → (x+y)*f`. Canonicalizes toward the
             // factored form so `a*c + b*c` converges with `(a+b)*c`. Sound ONLY on numbers —
             // string `*int` is repetition, where `"a"*2 + "b"*2` ("aabb") ≠ `("a"+"b")*2`
-            // ("abab") — so every leaf must be PROVEN `Num`. Lean: `Algebra.lean::distrib_sound`.
+            // ("abab") — so every leaf must be PROVEN `Num`. Lean obligation:
+            // `normalize.value_graph.factor_distribute`.
             if o == Op::Add as u32 && args.len() == 2 {
-                if let Some(v) = self.factor_distribute(args[0], args[1]) {
+                if let Some(v) = rules::factor_distribute::apply(self, args[0], args[1]) {
                     return v;
                 }
             }
@@ -1726,9 +1729,9 @@ impl<'a> Builder<'a> {
                     // conjunction/disjunction converges with the strict comparison:
                     //   (x ≤ y) ∧ (x ≠ y) → x < y     (dual of below)
                     //   (x < y) ∨ (x = y) → x ≤ y
-                    // Sound for any total order (Lean `Compare.lean::le_and_ne_eq_lt`); on a
-                    // type error every comparison Errs identically on both sides. It composes
-                    // through the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
+                    // Sound for any total order (`normalize.value_graph.compare`); on a type
+                    // error every comparison Errs identically on both sides. It composes through
+                    // the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
                     if is_and {
                         if let Some(v) = self.lattice_strict_absorbs_nonstrict(args[0], args[1]) {
                             return v;
@@ -1787,7 +1790,7 @@ impl<'a> Builder<'a> {
         // built. The value graph thus canonicalizes AC chains itself, not only via the
         // earlier `algebra` IL pass (which keyed by a different hash and did not see nodes
         // synthesized here). Sound: any operand permutation of an AC chain is denotation-
-        // preserving (Lean `Algebra.lean::canon_sound`). String/list `+` is NOT reordered
+        // preserving (`normalize.value_graph.algebra`). String/list `+` is NOT reordered
         // (it is ordered concat); `* & | ^` Err on non-numeric regardless of order.
         if let ValOp::Bin(o) = op {
             if is_assoc_comm_code(o) && args.len() == 2 {
@@ -1924,43 +1927,6 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Opaque(c as u64), vec![])
     }
 
-    /// Factor a common multiplicand out of a sum of two products: `x*f + y*f → (x+y)*f`.
-    /// Returns the factored value id when both operands are 2-ary `Mul` nodes sharing
-    /// exactly one factor AND every leaf is a PROVEN `Num` (distribution is unsound on the
-    /// string/list `*`-as-repetition monoid). Terminates: the rebuilt `Add(x,y)` has
-    /// non-`Mul` leaves, so it does not re-distribute. Lean: `Algebra.lean::distrib_sound`.
-    fn factor_distribute(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
-        let mul = Op::Mul as u32;
-        let as_mul = |v: ValueId, s: &Self| -> Option<(ValueId, ValueId)> {
-            if let ValOp::Bin(o) = s.nodes[v as usize].op {
-                if o == mul && s.nodes[v as usize].args.len() == 2 {
-                    let ar = &s.nodes[v as usize].args;
-                    return Some((ar[0], ar[1]));
-                }
-            }
-            None
-        };
-        let (a0, a1) = as_mul(a, self)?;
-        let (b0, b1) = as_mul(b, self)?;
-        // (distributed-from-a, distributed-from-b, shared factor)
-        let (x, y, f) = if a0 == b0 {
-            (a1, b1, a0)
-        } else if a0 == b1 {
-            (a1, b0, a0)
-        } else if a1 == b0 {
-            (a0, b1, a1)
-        } else if a1 == b1 {
-            (a0, b0, a1)
-        } else {
-            return None;
-        };
-        if self.vty(x) != Ty::Num || self.vty(y) != Ty::Num || self.vty(f) != Ty::Num {
-            return None;
-        }
-        let sum = self.mk(ValOp::Bin(Op::Add as u32), vec![x, y]);
-        Some(self.mk(ValOp::Bin(mul), vec![sum, f]))
-    }
-
     /// The operands of a comparison node `cmp`, if it has opcode `want`. `Le`/`Lt` are
     /// ORDERED (operands kept in source order); `Eq`/`Ne` are COMMUTATIVE (operands
     /// vhash-sorted), so callers compare them as an unordered pair.
@@ -2001,7 +1967,7 @@ impl<'a> Builder<'a> {
     }
 
     /// `(x ≤ y) ∧ (x ≠ y) → x < y`. Sound on a total order
-    /// (Lean `Compare.lean::le_and_ne_eq_lt`); the post-normalize oracle re-checks it.
+    /// (`normalize.value_graph.compare`); the post-normalize oracle re-checks it.
     fn lattice_le_ne_to_lt(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
         self.lattice_pair_canon(a, b, Op::Le as u32, Op::Ne as u32, Op::Lt as u32)
     }
@@ -2031,7 +1997,7 @@ impl<'a> Builder<'a> {
     }
 
     /// `(x < y) ∨ (x = y) → x ≤ y` — the dual of [`lattice_le_ne_to_lt`] over `∨`
-    /// (Lean `Compare.lean::lt_or_eq_eq_le`).
+    /// (`normalize.value_graph.compare`).
     fn lattice_lt_eq_to_le(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
         self.lattice_pair_canon(a, b, Op::Lt as u32, Op::Eq as u32, Op::Le as u32)
     }
@@ -2667,7 +2633,7 @@ impl<'a> Builder<'a> {
     /// The canonical value of a dict key→value entry — `Call(DictEntry, [k, v])` — shared by
     /// a dict `pair`, a dict-comprehension body, and a `d[k]=v` building loop, so all three
     /// converge, while staying DISTINCT from a tuple `Seq([k, v])` (a list of pairs is a
-    /// different value than a dict). Lean: `Functor.lean::map_dict_entry` (the build is a map).
+    /// different value than a dict). Covered by the functor/map obligation; the build is a map.
     fn dict_entry(&mut self, kv: Vec<ValueId>) -> ValueId {
         self.mk(ValOp::Call(builtin_tag(Builtin::DictEntry)), kv)
     }
@@ -6173,7 +6139,8 @@ impl<'a> Builder<'a> {
                         // `filter(p∧q, xs)` both reduce to `Hof(Map, [Elem(xs), p∧q])`. It
                         // also unifies a standalone filter with the filtered-loop builder
                         // (`r=[]; for x: if p: r.append(x)` → the same node) and the filtered
-                        // comprehension `[x for x in xs if p]`. Lean: `Functor.lean::filter_fusion`.
+                        // comprehension `[x for x in xs if p]`
+                        // (`normalize.value_graph.functor`).
                         let (elems, carried_pred) = self.map_source(kids.first().copied(), env);
                         let elem = elems
                             .first()

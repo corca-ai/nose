@@ -1,0 +1,17 @@
+id = "normalize.control_flow.guard_returns"
+status = "proven"
+kind = "soundness"
+summary = "Guard-return, dead-code-after-return, and ternary-return control-flow canons preserve return semantics."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/cfg_norm.rs"]
+symbols = ["guarded", "process_block"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseControl.guard_clause",
+  "NoseControl.guard_clause_cascade",
+  "NoseControl.dead_code_after_return",
+  "NoseControl.ternary_return",
+]

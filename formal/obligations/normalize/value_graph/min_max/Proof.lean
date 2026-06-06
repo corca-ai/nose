@@ -7,7 +7,7 @@ loop as a selection reduction. This file proves the laws those rely on: `Min`/`M
 exactly the ternary, and they are commutative and associative (a commutative monoid up to
 the ±∞ identity) — so the canonical node is order-insensitive and the fold is well-defined.
 
-Self-contained over `Int`; check:  ~/.elan/bin/lean formal/MinMax.lean
+Self-contained over `Int`; checked by the formal obligation CI gate.
 -/
 
 namespace NoseMinMax

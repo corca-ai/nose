@@ -21,7 +21,8 @@ usage: ./scripts/check-ci-local.sh [--fast|--full]
 
   --fast  rustfmt, clippy -D warnings, nose-cli tests, docs wiki lint
   --full  full local mirror of CI: format, clippy, docs, release build/tests,
-          duplication, MSRV, supply-chain, docs wiki, and Lean proofs
+          duplication, MSRV, supply-chain, docs wiki, formal obligation lint,
+          and Lean proofs
 EOF
         exit 0
         ;;
@@ -49,20 +50,27 @@ run_docs_wiki_lint() {
     awiki lint --root docs
 }
 
+run_formal_obligations_lint() {
+    need_cmd python3
+    python3 scripts/check-formal-obligations.py
+}
+
 run_formal_lean() {
+    local toolchain
+    toolchain="$(cat lean-toolchain 2>/dev/null || printf 'leanprover/lean4:v4.30.0')"
     if command -v elan >/dev/null 2>&1; then
-        for f in formal/*.lean; do
+        while IFS= read -r f; do
             echo "checking $f"
-            elan run leanprover/lean4:v4.30.0 lean "$f"
-        done
+            elan run "$toolchain" lean --error=warning "$f"
+        done < <(find formal -name '*.lean' -print | sort)
         return
     fi
 
     need_cmd lean
-    for f in formal/*.lean; do
+    while IFS= read -r f; do
         echo "checking $f"
-        lean "$f"
-    done
+        lean --error=warning "$f"
+    done < <(find formal -name '*.lean' -print | sort)
 }
 
 run_msrv_check() {
@@ -121,6 +129,9 @@ cargo deny check
 
 step "docs wiki connectivity (awiki)"
 run_docs_wiki_lint
+
+step "formal obligation registry"
+run_formal_obligations_lint
 
 step "Lean proofs (value-graph soundness)"
 run_formal_lean

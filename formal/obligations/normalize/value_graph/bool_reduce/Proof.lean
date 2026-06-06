@@ -9,7 +9,7 @@ AND with identity `true` for `all`. This file proves exactly those laws over `Bo
 that folding a predicate-mapped list with them computes existential / universal truth — so
 the cross-language forms denote the same thing.
 
-Self-contained over `Bool`/`List`; check:  ~/.elan/bin/lean formal/BoolReduce.lean
+Self-contained over `Bool`/`List`; checked by the formal obligation CI gate.
 -/
 
 namespace NoseBoolReduce

@@ -117,10 +117,11 @@ break.
     the numeric rewrites soundly.
 
 ### Formal
-- New machine-checked Lean proofs: `Algebra.lean::distrib_sound`,
-  `Functor.lean::{filter_fusion, filter_length_eq_count}`, and a new `Compare.lean`
-  (comparison-direction and negated-comparison canons). A CI `formal` job checks
-  `formal/*.lean` on every push.
+- New machine-checked Lean proofs: `NoseAlgebra.distrib_sound`,
+  `NoseFunctor.{filter_fusion, filter_length_eq_count}`, and the
+  `normalize.value_graph.compare` obligation (comparison-direction and
+  negated-comparison canons). A CI `formal` job checks the proof-obligation registry
+  and all `formal/**/*.lean` files on every push.
 
 ## [0.2.0] - 2026-06-04
 

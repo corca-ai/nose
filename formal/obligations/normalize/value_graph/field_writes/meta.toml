@@ -1,0 +1,17 @@
+id = "normalize.value_graph.field_writes"
+status = "proven"
+kind = "soundness-boundary"
+summary = "Field writes are interpreted as final field state with last-write-wins semantics."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/interp.rs"]
+symbols = ["flush_fields", "field_env"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFieldWrites.same_field_last_write_wins",
+  "NoseFieldWrites.different_field_writes_commute",
+]
+counterexamples = "Counterexamples.lean"
+counterexample_theorems = ["NoseFieldWriteCounterexamples.same_field_write_order_matters"]

@@ -1,0 +1,13 @@
+id = "normalize.value_graph.factor_distribute"
+status = "proven"
+kind = "soundness"
+summary = "The named factor_distribute rule preserves Int denotation and is gated away from free-monoid repetition."
+
+[rust]
+rule_module = true
+files = ["crates/nose-normalize/src/value_graph/rules/factor_distribute.rs"]
+symbols = ["apply"]
+
+[lean]
+proof = "Proof.lean"
+theorems = ["NoseFactorDistribute.distrib_sound"]

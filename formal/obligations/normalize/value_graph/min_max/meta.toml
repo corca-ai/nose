@@ -1,0 +1,20 @@
+id = "normalize.value_graph.min_max"
+status = "proven"
+kind = "soundness"
+summary = "Min/max select idioms and accumulator reductions are commutative and associative over Int."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"]
+symbols = ["minmax_pattern", "MIN_CODE", "MAX_CODE"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseMinMax.min_is_ternary",
+  "NoseMinMax.max_is_ternary",
+  "NoseMinMax.vmin_comm",
+  "NoseMinMax.vmax_comm",
+  "NoseMinMax.vmin_assoc",
+  "NoseMinMax.vmax_assoc",
+  "NoseMinMax.vmin_idem",
+]

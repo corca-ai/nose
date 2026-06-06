@@ -9,7 +9,7 @@ Proven here:
   • dead_code_after_return — a statement after an unconditional return is unreachable
                             (value_graph.rs `process_block` dead-code break)
 
-Self-contained; check:  ~/.elan/bin/lean formal/Control.lean   (exit 0 = proofs hold)
+Self-contained; checked by the formal obligation CI gate.
 -/
 
 namespace NoseControl
