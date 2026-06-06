@@ -28,6 +28,7 @@ pub(crate) const MIGRATED: &[FragmentKind] = &[
     FragmentKind::IndexAssignEffect,
     FragmentKind::SelfFieldAssign,
     FragmentKind::ExprEffect,
+    FragmentKind::LoopEffect,
 ];
 
 /// Recognize `node` as a migrated exact-fragment shape by building its contract directly,
@@ -76,6 +77,7 @@ pub(crate) fn recognize_contract(
                 EffectSite::observable(effect),
             ))
         }
+        NodeKind::Loop => super::loop_effect::recognize_loop_effect(il, node),
         _ => None,
     }
 }
@@ -312,9 +314,25 @@ mod tests {
 
     #[test]
     fn differential_ignores_non_migrated_shapes() {
-        // Loop/append and conditional effect shapes are accepted by the predicate path
-        // under OTHER kinds and must be excluded from the contract path — the migrated
-        // intersection stays empty and equal.
+        // ConditionalGuard and SelfFieldBody are still predicate-owned: the predicate accepts
+        // the `if`/body as those kinds, but the contract path must not produce them. Only the
+        // migrated *leaves* inside them (DirectReturn, SelfFieldAssign) appear on both paths,
+        // so the migrated intersection stays equal.
+        assert_paths_agree(
+            "function f(a){ if (a > 0) { return a * a; } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "class C { int x; int y; void set(int a, int b){ this.x = a; this.y = b; } }",
+            Lang::Java,
+        );
+    }
+
+    #[test]
+    fn differential_loop_effect() {
+        // Accepted: for-each loops whose body is an iteration-dependent append/index effect,
+        // including a local-temp variant — the predicate and the independent contract
+        // recognizer must agree on the loop node (and every migrated leaf).
         assert_paths_agree(
             "function h(xs){ const out=[]; for(const x of xs){ out.push(x*2); } return out; }",
             Lang::JavaScript,
@@ -322,6 +340,30 @@ mod tests {
         assert_paths_agree(
             "def k(xs):\n    out = []\n    for x in xs:\n        out.append(x + 1)\n    return out\n",
             Lang::Python,
+        );
+        assert_paths_agree(
+            "function t(xs){ const out=[]; for(const x of xs){ const v = x*2; out.push(v); } return out; }",
+            Lang::JavaScript,
+        );
+        // Go index-write loop: `out[x] = x*2`, key/value depend on the loop var, receiver does not.
+        assert_paths_agree(
+            "package p\nfunc f(xs []int, out []int) {\n\tfor _, x := range xs {\n\t\tout[x] = x * 2\n\t}\n}\n",
+            Lang::Go,
+        );
+        // Rejected by both paths: receiver depends on the loop var (not loop-invariant);
+        // appended value is loop-invariant; the loop is not a for-each. Each leaves the
+        // migrated set empty at the loop node on both sides.
+        assert_paths_agree(
+            "function r(xs){ for(const x of xs){ x.push(1); } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function r(xs, out){ for(const x of xs){ out.push(1); } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function r(xs, out){ let i = 0; while (i < xs.length){ out.push(xs[i]); i = i + 1; } }",
+            Lang::JavaScript,
         );
     }
 
