@@ -350,6 +350,14 @@ mod tests {
             "package p\nfunc f(xs []int, out []int) {\n\tfor _, x := range xs {\n\t\tout[x] = x * 2\n\t}\n}\n",
             Lang::Go,
         );
+        // `if`-guarded effect body: both paths recurse into the branch identically. (The
+        // condition is not effect-checked on either path — the contract recognizer is a
+        // faithful mirror of the predicate here, which is exactly what output-preserving
+        // migration requires; the differential gate locks the two together.)
+        assert_paths_agree(
+            "function g(xs){ const out=[]; for(const x of xs){ if (x > 0) { out.push(x); } } return out; }",
+            Lang::JavaScript,
+        );
         // Rejected by both paths: receiver depends on the loop var (not loop-invariant);
         // appended value is loop-invariant; the loop is not a for-each. Each leaves the
         // migrated set empty at the loop node on both sides.
