@@ -21,6 +21,7 @@
 
 mod contract;
 mod oracle;
+pub(crate) mod recognize;
 
 pub use contract::{FragmentContract, Place};
 pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};
