@@ -99,6 +99,31 @@ THRESHOLDS = {
     "runtime_floor_ms": 5.0,
 }
 
+# Compact corpus-free HoF value-graph smoke. These budgets are deliberately loose: they
+# catch unbounded representation growth while staying stable across ordinary laptops/CI.
+HOF_RUNTIME_BUDGETS = {
+    "features_wall_ms": 3000.0,
+    "scan_wall_ms": 3000.0,
+}
+
+HOF_CASE_BUDGETS = {
+    "deep_hof_chain_budget": {
+        "function": "deepHofBudget",
+        "depth": 32,
+        "max_token_count": 900,
+        "max_value_fingerprint_nodes": 450,
+        "max_return_fingerprint_nodes": 12,
+    },
+    "wide_hof_chain_budget": {
+        "function": "wideHofBudget",
+        "chains": 12,
+        "depth": 6,
+        "max_token_count": 1600,
+        "max_value_fingerprint_nodes": 1200,
+        "max_return_fingerprint_nodes": 12,
+    },
+}
+
 SURFACE_BUCKETS = ("default", "review", "hidden", "debug")
 FAMILY_SHAPE_BUCKETS = ("whole-only", "all-fragment", "mixed")
 
@@ -228,6 +253,142 @@ def run_scan(
     except json.JSONDecodeError as e:
         raise RuntimeError(f"scan emitted non-JSON for {repo}: {e}") from e
     return scan_json, parse_phase_timings(proc.stderr), wall_ms
+
+
+def _hof_chain_expr(depth: int, seed: int = 0) -> str:
+    expr = "xs"
+    for i in range(depth):
+        threshold = (i + seed) % 7
+        delta = (i + seed) % 11
+        expr = f"{expr}.filter((x) => x > {threshold}).map((x) => x + {delta})"
+    return f"{expr}.reduce((acc, x) => acc + x, 0)"
+
+
+def _write_hof_smoke_corpus(root: Path) -> None:
+    deep = HOF_CASE_BUDGETS["deep_hof_chain_budget"]
+    (root / "deep_hof_chain.js").write_text(
+        "function deepHofBudget(xs) {\n"
+        f"  return {_hof_chain_expr(deep['depth'])};\n"
+        "}\n"
+    )
+
+    wide = HOF_CASE_BUDGETS["wide_hof_chain_budget"]
+    terms = [
+        _hof_chain_expr(wide["depth"], seed=i)
+        for i in range(wide["chains"])
+    ]
+    (root / "wide_hof_chain.js").write_text(
+        "function wideHofBudget(xs) {\n"
+        "  return " + "\n    + ".join(terms) + ";\n"
+        "}\n"
+    )
+
+
+def _run_json_command(cmd: list[str], cwd: Path) -> tuple[dict, float]:
+    t0 = time.perf_counter()
+    proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=SCAN_TIMEOUT_S)
+    wall_ms = (time.perf_counter() - t0) * 1e3
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"command failed ({' '.join(cmd)}) with exit {proc.returncode}:\n{proc.stderr[-2000:]}"
+        )
+    try:
+        return json.loads(proc.stdout), wall_ms
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"command emitted non-JSON ({' '.join(cmd)}): {e}") from e
+
+
+def run_hof_budget_smoke(nose: str) -> dict:
+    """Run a generated HoF-chain features/scan smoke and enforce compact budgets."""
+    nose_path = str(nose_binary_path(nose))
+    with tempfile.TemporaryDirectory(prefix="nose-hof-budget-") as td:
+        corpus = Path(td)
+        _write_hof_smoke_corpus(corpus)
+
+        features_json, features_wall_ms = _run_json_command(
+            [
+                nose_path,
+                "features",
+                "--min-lines",
+                "1",
+                "--min-tokens",
+                "1",
+                "--no-blocks",
+                str(corpus),
+            ],
+            ROOT,
+        )
+        scan_json, scan_wall_ms = _run_json_command(
+            [
+                nose_path,
+                "scan",
+                str(corpus),
+                "--mode",
+                "semantic",
+                "--format",
+                "json",
+                "--top",
+                "0",
+                "--min-size",
+                "1",
+            ],
+            ROOT,
+        )
+
+    units = {
+        unit.get("name"): unit
+        for unit in features_json.get("units", [])
+        if isinstance(unit.get("name"), str)
+    }
+    cases: dict[str, dict] = {}
+    failures: list[str] = []
+    for case_id, budget in HOF_CASE_BUDGETS.items():
+        fn_name = budget["function"]
+        unit = units.get(fn_name)
+        if unit is None:
+            failures.append(f"{case_id}: missing features unit `{fn_name}`")
+            continue
+        value_nodes = len(unit.get("value", []))
+        return_nodes = len(unit.get("returns", []))
+        token_count = unit.get("token_count", 0)
+        record = {
+            "function": fn_name,
+            "token_count": token_count,
+            "value_fingerprint_nodes": value_nodes,
+            "return_fingerprint_nodes": return_nodes,
+            "budgets": {
+                "max_token_count": budget["max_token_count"],
+                "max_value_fingerprint_nodes": budget["max_value_fingerprint_nodes"],
+                "max_return_fingerprint_nodes": budget["max_return_fingerprint_nodes"],
+            },
+        }
+        cases[case_id] = record
+        for metric, limit_key in [
+            ("token_count", "max_token_count"),
+            ("value_fingerprint_nodes", "max_value_fingerprint_nodes"),
+            ("return_fingerprint_nodes", "max_return_fingerprint_nodes"),
+        ]:
+            if record[metric] > budget[limit_key]:
+                failures.append(
+                    f"{case_id}: {metric} {record[metric]} exceeds {budget[limit_key]}"
+                )
+
+    runtime = {
+        "features_wall_ms": round(features_wall_ms, 2),
+        "scan_wall_ms": round(scan_wall_ms, 2),
+        "budgets": HOF_RUNTIME_BUDGETS,
+        "scan_total_families": scan_json.get("ranking", {}).get("total_families"),
+    }
+    for metric, limit in HOF_RUNTIME_BUDGETS.items():
+        if runtime[metric] > limit:
+            failures.append(f"runtime: {metric} {runtime[metric]}ms exceeds {limit}ms")
+
+    return {
+        "schema_version": 1,
+        "cases": cases,
+        "runtime": runtime,
+        "failures": failures,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -697,7 +858,13 @@ def compare_repo(repo_id: str, base: dict, cur: dict) -> dict:
     }
 
 
-def render_summary(ident_base: dict, ident_cur: dict, results: list[dict], skipped: list[str]) -> str:
+def render_summary(
+    ident_base: dict,
+    ident_cur: dict,
+    results: list[dict],
+    skipped: list[str],
+    hof_smoke: dict | None = None,
+) -> str:
     lines = ["# Scan-regression compare summary", ""]
     lines.append("> Investigation triggers, not merge blockers (issue #37, rule 7).")
     lines.append(
@@ -740,6 +907,37 @@ def render_summary(ident_base: dict, ident_cur: dict, results: list[dict], skipp
         if r["changed"]:
             lines.append(f"  - changed families: {', '.join(r['changed'][:10])}" + (" …" if len(r["changed"]) > 10 else ""))
         lines.append("")
+
+    if hof_smoke is not None:
+        lines.append("")
+        lines.append("## HoF Value-Graph Budget Smoke")
+        lines.append("")
+        runtime = hof_smoke["runtime"]
+        lines.append(
+            f"- features wall: {runtime['features_wall_ms']:.2f}ms "
+            f"(budget {runtime['budgets']['features_wall_ms']:.0f}ms)"
+        )
+        lines.append(
+            f"- semantic scan wall: {runtime['scan_wall_ms']:.2f}ms "
+            f"(budget {runtime['budgets']['scan_wall_ms']:.0f}ms)"
+        )
+        lines.append(f"- scan total families: {runtime['scan_total_families']}")
+        lines.append("")
+        lines.append("| case | tokens | value fp nodes | return fp nodes | budgets |")
+        lines.append("|---|---:|---:|---:|---|")
+        for case_id, rec in sorted(hof_smoke["cases"].items()):
+            b = rec["budgets"]
+            lines.append(
+                f"| `{case_id}` | {rec['token_count']} | "
+                f"{rec['value_fingerprint_nodes']} | {rec['return_fingerprint_nodes']} | "
+                f"tokens<={b['max_token_count']}, value<={b['max_value_fingerprint_nodes']}, "
+                f"returns<={b['max_return_fingerprint_nodes']} |"
+            )
+        if hof_smoke["failures"]:
+            lines.append("")
+            lines.append("Budget failures:")
+            for failure in hof_smoke["failures"]:
+                lines.append(f"- {failure}")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -756,6 +954,10 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
     ident_cur = binary_identity(args.nose, args.build_ref)
     print(f"current binary: {ident_cur['binary_path']}  {ident_cur['version']}", file=sys.stderr)
+    print("  HoF value-graph budget smoke ...", file=sys.stderr)
+    hof_smoke = run_hof_budget_smoke(args.nose)
+    for failure in hof_smoke["failures"]:
+        print(f"  HOF BUDGET FAIL: {failure}", file=sys.stderr)
 
     results: list[dict] = []
     skipped: list[str] = []
@@ -769,13 +971,15 @@ def cmd_compare(args: argparse.Namespace) -> int:
         canon, runtime = measure_repo(args.nose, repo, cfg_scan, repeats)
         results.append(compare_repo(repo_id, base_rec, {"output": canon, "runtime": runtime}))
 
-    summary = render_summary(baseline["binary"], ident_cur, results, skipped)
+    summary = render_summary(baseline["binary"], ident_cur, results, skipped, hof_smoke)
     Path(args.summary).write_text(summary)
     print(summary)
     print(f"wrote {args.summary}", file=sys.stderr)
 
     flagged = [r for r in results if r["triggers"]]
     if flagged and args.strict:
+        return 1
+    if hof_smoke["failures"]:
         return 1
     return 0
 
@@ -1123,6 +1327,32 @@ def cmd_selftest(_args: argparse.Namespace) -> int:
         raise AssertionError(
             f"family-local fragment metadata drift was not reported: {result['triggers']}"
         )
+
+    hof_summary = render_summary(
+        {"version": "base", "sha256": "a", "source_git_describe": "base", "build_ref": "base"},
+        {"version": "cur", "sha256": "b", "source_git_describe": "cur", "build_ref": "cur"},
+        [],
+        [],
+        {
+            "runtime": {
+                "features_wall_ms": 12.0,
+                "scan_wall_ms": 34.0,
+                "budgets": HOF_RUNTIME_BUDGETS,
+                "scan_total_families": 1,
+            },
+            "cases": {
+                "deep_hof_chain_budget": {
+                    "token_count": 10,
+                    "value_fingerprint_nodes": 5,
+                    "return_fingerprint_nodes": 1,
+                    "budgets": HOF_CASE_BUDGETS["deep_hof_chain_budget"],
+                }
+            },
+            "failures": [],
+        },
+    )
+    if "HoF Value-Graph Budget Smoke" not in hof_summary:
+        raise AssertionError("HoF budget smoke summary section missing")
 
     print("selftest OK")
     return 0

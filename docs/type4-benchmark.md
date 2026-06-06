@@ -301,7 +301,7 @@ The seed lives in `bench/type4/`:
 - `scan_regression/` — the repeatable product-scan runtime/output-drift harness
   (`nose scan --mode semantic --format json --top 0`), with its own subset, recorded
   baseline, fragment/reason-code/surface bucket drift, enclosing-unit recovery metrics,
-  and threshold docs; see
+  generated HoF value-graph budget smoke, and threshold docs; see
   `bench/type4/scan_regression/README.md`;
 - `adversarial/` — the agent-facing coverage matrix, rule registry, adversarial case
   handles, and next-task scripts; see

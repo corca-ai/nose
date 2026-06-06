@@ -142,6 +142,11 @@ static imports from class `Map.of` fields, and Rust `use` imports of const entry
 consumed by `HashMap::from`/`BTreeMap::from`. Provider mutation, importer mutation,
 duplicate providers, shadowing, unresolved imports, unsupported coordinates, and changed
 receiver maps remain fail-closed hard negatives or successor work.
+For HoF value-graph performance, `scan_regression compare` now runs a corpus-free
+generated smoke before real-repo scans. It records `nose features` and semantic `nose scan`
+wall time plus token, value-fingerprint-node, and return-fingerprint-node budgets for
+deep and wide filter/map/reduce chains. Budget failures are hard compare failures; the
+ordinary real-repo drift triggers remain investigation prompts unless `--strict` is used.
 
 ## Adversarial Cases
 
@@ -158,7 +163,8 @@ attack exactly the proof invariant a rule needs:
 - Java stream `flatMap` vs `map` returning streams;
 - FlatMap aggregate seed/predicate changes and nested-list aggregation;
 - effectful callback where a pure HoF rule would be unsound;
-- representation growth that makes a coverage win too expensive.
+- deep/wide generated HoF chains where representation growth or scan time makes a
+  coverage win too expensive.
 
 ## Relationship To Existing Type-4 Tools
 
