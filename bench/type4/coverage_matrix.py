@@ -28,16 +28,21 @@ import coverage_taxonomy as tax
 
 HERE = Path(__file__).resolve().parent
 REAL_FRONTIER = HERE / "real_frontier.v1.json"
+SWEEP_EVIDENCE = HERE / "coverage_evidence.v1.json"
 OUT_JSON = HERE / "coverage_matrix.v1.json"
 
-# Best-status precedence when a cell has several evidence rows.
-STATUS_RANK = ["closed", "already-covered", "hard-negative", "real-miss", "unsupported"]
+# Best-status precedence when a cell has several evidence rows (lower index wins).
+STATUS_RANK = ["false-merge", "closed", "already-covered", "hard-negative", "real-miss",
+               "unsupported"]
 COVERED = {"closed", "already-covered"}
+# coverage_sweep.py status -> matrix status vocabulary.
+SWEEP_MAP = {"covered": "closed", "gap": "unsupported", "partial": "real-miss",
+             "false-merge": "false-merge"}
 FEAS_W = {"fixable": 100, "partial": 70, "landed": 50, "research": 25}
 FAMILY_BONUS = {"structural": 30, "soundness": 20, "algebraic": 10, "idiom": 0}
 GLYPH = {
     "covered": "✓", "hard-negative": "⊘", "real-miss": "M", "unsupported": "U",
-    "none": "·", "n/a": " ", "out": "x",
+    "false-merge": "✗", "none": "·", "n/a": " ", "out": "x",
 }
 
 
@@ -46,12 +51,16 @@ def canon(axis_field: str) -> str:
 
 
 def load_evidence():
-    """(axis_id_or_canon, language) -> best status."""
-    items = json.loads(REAL_FRONTIER.read_text()).get("items", [])
+    """(axis_id_or_canon, language) -> best status, merging real_frontier + the live sweep."""
     raw = defaultdict(list)
-    for it in items:
+    for it in json.loads(REAL_FRONTIER.read_text()).get("items", []):
         raw[(canon(it["candidate_axis"]), it["language"])].append(it["status"])
         raw[(it["candidate_axis"], it["language"])].append(it["status"])  # full string too
+    if SWEEP_EVIDENCE.exists():
+        for e in json.loads(SWEEP_EVIDENCE.read_text()).get("evidence", []):
+            st = SWEEP_MAP.get(e["status"])
+            if st:  # 'no-positive' carries no recall signal
+                raw[(e["axis"], e["language"])].append(st)
     best = {}
     for key, statuses in raw.items():
         best[key] = min(statuses, key=lambda s: STATUS_RANK.index(s) if s in STATUS_RANK else 99)

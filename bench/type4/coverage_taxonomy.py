@@ -163,7 +163,30 @@ _OUT_OF_SCOPE = [
           "proofs a type-free tool lacks (§BA)."),
 ]
 
-AXES = _IDIOM + _STRUCTURAL + _SOUNDNESS + _OUT_OF_SCOPE
+# --- Language-specific landed axes (a genuine invariant that only one surface expresses) ---
+_LANG_SPECIFIC = [
+    _axis("java_integer_low_bit_toggle", "Java int low-bit toggle (x^1)", "algebraic",
+          "recall", "within", "landed", ["java"],
+          "x%2==0 ? x+1 : x-1 ≡ x^1 on Java primitive int (overflow-safe at extremes)."),
+    _axis("java_statically_false_loop", "Java statically-false loop entry guard", "structural",
+          "recall", "within", "landed", ["java"],
+          "proven-true local makes `while(!local && rhs)` body unreachable."),
+    _axis("class_literal_equality", "Class-literal equality", "idiom", "recall", "within",
+          "partial", ["java"], "Class<?> token equality; java currently unsupported."),
+    _axis("c_u16_be_byte_pack", "C u16 big-endian byte pack", "idiom", "recall", "within",
+          "landed", ["c"], "(a[0]<<8)+a[1] ≡ (a[0]<<8)|a[1] under a byte-array proof."),
+    _axis("c_u32_be_byte_pack", "C u32 big-endian byte pack", "idiom", "recall", "within",
+          "landed", ["c"], "u32 lane pack; requires an explicit unsigned 32-bit cast proof."),
+    _axis("python_docstring_noop", "Python docstring is a no-op", "idiom", "recall", "within",
+          "landed", ["python"], "leading static docstring is metadata, not behavior."),
+    _axis("immutable_binding", "Immutable binding identity", "idiom", "recall", "both",
+          "landed", "all", "single immutable binding folds to its value."),
+    _axis("proven_callee_identity", "Proven callee identity", "idiom", "recall", "both",
+          "landed", "all", "a unique/immutable/unambiguous callee binding resolves to its "
+          "definition (module-binding folding)."),
+]
+
+AXES = _IDIOM + _LANG_SPECIFIC + _STRUCTURAL + _SOUNDNESS + _OUT_OF_SCOPE
 
 
 def axis_index():
