@@ -143,6 +143,10 @@ It ranks candidate axes by real-code frequency, repo/language spread, estimated 
 soundness risk, scope, and coverage status. It chooses what to investigate next — it is not
 label evidence; the generator/verifier/evaluator loop still decides which items become cases.
 
+For a corpus-*balanced* view of the same question — ranked by presence breadth rather than
+raw frequency, with the regex queue signal kept separate from human-verified evidence — see
+the [frontier-platform](frontier-platform.md) companion (`frontier_platform.py`).
+
 ## Hard-negative siblings
 
 Every positive family needs nearby negatives — exact Type-4 progress is unsafe unless the

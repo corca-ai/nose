@@ -193,6 +193,33 @@ few milliseconds in normalize/extract or candidate paths. Two notes should remai
 - Exact fragment expansion can increase reported families without much scan-time cost, but
   output noise and ranking pressure need monitoring separately from raw runtime.
 
+## Frontier Evidence Platform (issue #44)
+
+Added `frontier_platform.py`, a presence-based companion to `prioritize_frontier.py` (left
+byte-stable). It ranks the eight prevalence axes by repo/language breadth and dev→held-out
+generalization across the pinned 105-repo corpus (dev 58 / held-out 47), keeps the regex
+queue signal separate from human-verified `real_frontier.v1.json` evidence (read-only
+cross-reference; no auto-finalized status), and carries curated controlled-vocabulary
+fields (`implementation_cost` / `soundness_risk` / `substrate_required` / `evidence_tier`).
+Output (`frontier_platform.v1.json` + markdown) is deterministic and records corpus commit
+digest, candidate signature, build ref, and tool version.
+
+Audit conclusion for the current axis set: **no implementation-ready batch.**
+
+- Presence ranking refuses raw-count bias: `null_option_presence` has the largest raw
+  occurrence (~126k) yet ranks below `membership_contains`, which spreads to more repos.
+- The two highest-breadth axes (`membership_contains`, `collection_empty_check`) are already
+  `frontier-recorded` (human evidence: unsupported / closed); `map_default_lookup` likewise.
+  High prevalence is not next work — the #36 lesson, now visible via `evidence_tier`.
+- All eight axes report 100% broad-probe coverage and zero uncovered forms (consistent with
+  `prioritize_frontier`), so there is no uncovered-gap signal to promote.
+- A future real-miss needs a NEW wide-breadth axis whose broad probe surfaces uncovered
+  forms and whose equivalence a human can pin to a narrow proof invariant with a concrete
+  hard-negative sibling, recorded in `real_frontier.v1.json` — not inferred from prevalence.
+
+No new `real_frontier.v1.json` records or statuses were added: this pass produced no
+human-proven miss, and forcing one is disallowed (#36 decision 4).
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
