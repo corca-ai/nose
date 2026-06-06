@@ -220,6 +220,30 @@ Audit conclusion for the current axis set: **no implementation-ready batch.**
 No new `real_frontier.v1.json` records or statuses were added: this pass produced no
 human-proven miss, and forcing one is disallowed (#36 decision 4).
 
+## Frontier Target Packets (issue #50, Team B)
+
+Extended the frontier platform from queue-signal triage to **implementation-ready target
+packets**. New corpus-driven axes now live in `frontier_axes.py` (`EXTRA_CANDIDATES`),
+unioned in by `frontier_platform.py` while `prioritize_frontier.py` stays byte-stable; a
+`union_signature` + `validate_union` guard the combined set separately from the #44
+eight-axis conclusion.
+
+The tool-assisted manual audit produced **one implementation-ready packet**: `numeric_clamp`.
+
+- `min(max(x,lo),hi)` / `max(min(x,hi),lo)` / two-comparison clamp are equivalent for
+  `lo ≤ hi`, but the value graph converges none of them — unlike the structurally-similar
+  abs idiom, which it DOES canonicalize. Confirmed on the current binary: a controlled scan
+  merges `absTern`/`absBuilt` but not `clampTern`/`clampBuilt`, and boltons `clamp` (min(max))
+  and fzf `Constrain` (max(min)) do not merge across files.
+- Broad and generalizing: present in 26 repos across all 7 primary languages on both splits
+  (dev 14 / held-out 12). The identity and its hard negatives (swapped bound order, wrong
+  nesting, the `lo ≤ hi` precondition) are machine-checked in `formal/Clamp.lean`.
+- Recorded as a `real-miss` in `real_frontier.v1.json` (existing schema/status) and linked by
+  a target packet routed to `team-a-detector` (#49) — a value-graph clamp canonicalization
+  over already-proven scalar min/max facts (not blocked, not proof-fact-prerequisite). Team A
+  owns the recognizer and soundness gates; the packet's contract ends at the proof invariant
+  and target evidence.
+
 ## Current Next Work
 
 - Continue the real-corpus frontier loop in small batches: pick one proof invariant,
