@@ -34,7 +34,16 @@ pub struct EffectSite {
 
 impl EffectSite {
     /// An effect whose observability carries no receiver-identity obligation (append/index).
+    ///
+    /// The effect/place split is an invariant of the model, not just a soundness check: a
+    /// receiver-bearing effect (a field write) must record its [`Place`] via [`Self::at`], and
+    /// an observable effect must not carry one. Enforced at construction so a malformed
+    /// contract is caught the moment it is built, before [`FragmentContract::writes_proven`].
     pub fn observable(effect: Effect) -> Self {
+        debug_assert!(
+            !effect.requires_proven_place(),
+            "observable() is for effects with no receiver obligation, not {effect:?}"
+        );
         EffectSite {
             effect,
             place: None,
@@ -43,6 +52,10 @@ impl EffectSite {
 
     /// A receiver-bearing effect (a field write) over a resolved [`Place`].
     pub fn at(effect: Effect, place: Place) -> Self {
+        debug_assert!(
+            effect.requires_proven_place(),
+            "at() is for receiver-bearing effects, not {effect:?}"
+        );
         EffectSite {
             effect,
             place: Some(place),

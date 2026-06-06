@@ -73,8 +73,7 @@ pub(crate) fn recognize_contract(
                 FragmentKind::ExprEffect,
                 il,
                 node,
-                effect,
-                None,
+                EffectSite::observable(effect),
             ))
         }
         _ => None,
@@ -95,13 +94,15 @@ fn recognize_assignment_effect(
     let target = kids[0];
     if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) && il.kind(target) == NodeKind::Index
     {
-        let place = resolve_place(il, interner, target);
+        // An index write is observable in the effect trace (key and value are recorded), so
+        // it carries no receiver-identity obligation and records no `Place` on the contract.
+        // The write target is identity, not proof; surfacing it is a separate diagnostic
+        // concern, deliberately kept out of the contract model.
         return Some(effect_contract(
             FragmentKind::IndexAssignEffect,
             il,
             node,
-            Effect::IndexWrite,
-            Some(place),
+            EffectSite::observable(Effect::IndexWrite),
         ));
     }
     if il.meta.lang == Lang::Java && exact_java_this_field(il, interner, target) {
@@ -117,8 +118,7 @@ fn recognize_assignment_effect(
             FragmentKind::SelfFieldAssign,
             il,
             node,
-            Effect::FieldWrite,
-            Some(place),
+            EffectSite::at(Effect::FieldWrite, place),
         ));
     }
     None
@@ -148,15 +148,9 @@ fn effect_contract(
     kind: FragmentKind,
     il: &Il,
     node: NodeId,
-    effect: Effect,
-    place: Option<Place>,
+    site: EffectSite,
 ) -> FragmentContract {
-    FragmentContract::single_effect(
-        kind,
-        node,
-        free_input_cids(il, node),
-        EffectSite { effect, place },
-    )
+    FragmentContract::single_effect(kind, node, free_input_cids(il, node), site)
 }
 
 /// Resolve a write target's [`Place`] receiver identity, fail-closed to [`Place::Unknown`].
@@ -386,10 +380,9 @@ mod tests {
             "a proven self-field write must pass writes_proven"
         );
 
-        // Java `a[i] = v` → IndexWrite over an index place. The base here is an instance
-        // field accessed bare, so it resolves to a fail-closed `Unknown` receiver — yet the
-        // write stays exact-safe because an index write is observable in the effect trace
-        // and so does not require a proven receiver.
+        // Java `a[i] = v` → IndexWrite, observable in the effect trace, so it carries no
+        // receiver-identity obligation and records no place on the contract (place is reserved
+        // for receiver-bearing effects like field writes).
         let (il, parents, interner) = norm(
             "class C { int[] a; void f(int i, int v){ a[i] = v; } }",
             Lang::Java,
@@ -399,9 +392,11 @@ mod tests {
         assert_eq!(c.effects.len(), 1);
         let site = &c.effects[0];
         assert_eq!(site.effect, Effect::IndexWrite);
-        assert!(matches!(site.place, Some(Place::Index(_, _))));
+        assert_eq!(
+            site.place, None,
+            "index writes carry no receiver-proof obligation"
+        );
         assert!(!site.effect.requires_proven_place());
-        // An index write needs no proven receiver, so it passes regardless of the Unknown base.
         assert!(c.writes_proven());
 
         // JS `xs.push(v)` → Append effect, no heap place.
