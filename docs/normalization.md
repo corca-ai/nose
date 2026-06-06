@@ -94,6 +94,9 @@ Guiding constraints for every pass:
   Java `Arrays.asList(values).contains(x)` also carries the array domain when `values` is
   a proven array parameter, keeping element membership distinct from singleton-list
   membership such as `List.of(values).contains(x)` or `Arrays.asList(listParam).contains(x)`.
+  Module-binding facts respect alpha's per-function cid spaces: top-level assignment cids may
+  resolve back to module symbols, but cids inside functions and lambdas are local and never
+  prove or shadow a module binding by table index alone.
   The oracle also propagates `Err` through append receivers (including computed and
   field receivers) and arguments, so list-building effects do not silently absorb failed
   target or item computations; binary left operands and index bases fail before later
