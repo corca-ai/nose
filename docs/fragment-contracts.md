@@ -26,10 +26,11 @@ functions. The substrate replaces the implicit predicate web with three explicit
 Every accepted fragment carries a `FragmentKind` (direct return/throw, index-assign effect,
 self-field assign, expression effect, conditional guard, loop effect, self-field body) and a
 stable kebab-case **reason code** (`exact-direct-return`, `exact-loop-effect`, …). The reason
-code is part of the external contract (issue #11): it names *why* a fragment is an exact
-clone, so reporting and ranking can separate proof fragments from actionable refactors
-without re-reading the recognizer. The recognizer returns a `FragmentKind` instead of a bare
-`bool`; `ProofFacts` records what was established at acceptance time (context-safety, exit).
+code names the exact proof shape that made the fragment safe; it is not the broader
+family/actionability reason code tracked in issue #11. Reporting and ranking can separate
+proof fragments from actionable refactors without re-reading the recognizer. The recognizer
+returns a `FragmentKind` instead of a bare `bool`; `ProofFacts` records what was established
+at acceptance time (context-safety, exit).
 
 ### 2. The contract — `FragmentContract`
 

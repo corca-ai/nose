@@ -417,26 +417,72 @@ pub struct Loc {
     pub enclosing_unit: Option<EnclosingUnit>,
 }
 
-impl Loc {
-    pub fn new(
-        file: String,
-        start_line: u32,
-        end_line: u32,
-        lang: String,
-        kind: nose_il::UnitKind,
-        name: Option<String>,
-        sem: usize,
-        span_tokens: usize,
-    ) -> Self {
-        Loc {
-            file,
+/// Inclusive source-line range used to construct a [`Loc`].
+#[derive(Clone, Copy)]
+pub struct LineSpan {
+    /// First 1-based source line included in the location.
+    pub start_line: u32,
+    /// Last 1-based source line included in the location.
+    pub end_line: u32,
+}
+
+impl LineSpan {
+    /// Build an inclusive source-line range.
+    pub fn new(start_line: u32, end_line: u32) -> Self {
+        Self {
             start_line,
             end_line,
+        }
+    }
+
+    /// Inclusive line count, saturating for malformed ranges.
+    pub fn line_count(self) -> u32 {
+        self.end_line.saturating_sub(self.start_line) + 1
+    }
+}
+
+/// Constructor input for [`Loc`].
+///
+/// Keeping this as a named struct makes location metadata additions explicit at call sites
+/// without widening a positional constructor.
+#[derive(Clone)]
+pub struct LocInit {
+    /// Source file path as reported to users.
+    pub file: String,
+    /// Inclusive source-line range.
+    pub source_span: LineSpan,
+    /// Normalized language name.
+    pub lang: String,
+    /// Syntactic unit kind at this location.
+    pub kind: nose_il::UnitKind,
+    /// Optional function/method/class name.
+    pub name: Option<String>,
+    /// Value-graph size for this location.
+    pub sem: usize,
+    /// Normalized-token span used by detector size gates.
+    pub span_tokens: usize,
+}
+
+impl Loc {
+    pub fn new(init: LocInit) -> Self {
+        let LocInit {
+            file,
+            source_span,
             lang,
             kind,
             name,
             sem,
-            span_lines: line_span(start_line, end_line),
+            span_tokens,
+        } = init;
+        Loc {
+            file,
+            start_line: source_span.start_line,
+            end_line: source_span.end_line,
+            lang,
+            kind,
+            name,
+            sem,
+            span_lines: source_span.line_count(),
             span_tokens,
             is_fragment: false,
             fragment_kind: None,
@@ -481,25 +527,20 @@ pub struct Report {
 
 fn loc_of(u: &UnitFeat, enclosing_unit: Option<EnclosingUnit>) -> Loc {
     let fragment_kind = u.fragment_kind;
-    Loc {
+    let mut loc = Loc::new(LocInit {
         file: u.path.clone(),
-        start_line: u.start_line,
-        end_line: u.end_line,
+        source_span: LineSpan::new(u.start_line, u.end_line),
         lang: u.lang.name().to_string(),
         kind: u.kind,
         name: u.name.clone(),
         sem: u.value.len(),
-        span_lines: line_span(u.start_line, u.end_line),
         span_tokens: u.token_count,
-        is_fragment: fragment_kind.is_some(),
-        fragment_kind,
-        reason_code: fragment_kind.map(FragmentKind::reason_code),
-        enclosing_unit,
-    }
-}
-
-fn line_span(start_line: u32, end_line: u32) -> u32 {
-    end_line.saturating_sub(start_line) + 1
+    });
+    loc.is_fragment = fragment_kind.is_some();
+    loc.fragment_kind = fragment_kind;
+    loc.reason_code = fragment_kind.map(FragmentKind::reason_code);
+    loc.enclosing_unit = enclosing_unit;
+    loc
 }
 
 fn unit_kind_name(kind: nose_il::UnitKind) -> &'static str {
@@ -571,7 +612,7 @@ fn enclosing_units(units: &[UnitFeat]) -> Vec<Option<EnclosingUnit>> {
             .collect();
         parents.sort_by_key(|&idx| {
             (
-                line_span(units[idx].start_line, units[idx].end_line),
+                LineSpan::new(units[idx].start_line, units[idx].end_line).line_count(),
                 units[idx].start_line,
                 units[idx].end_line,
             )

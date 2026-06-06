@@ -57,9 +57,9 @@ pub enum FragmentKind {
 impl FragmentKind {
     /// A stable, user-facing kebab-case identifier for this fragment shape.
     ///
-    /// Reason codes are part of the detector's external contract (issue #11): they name
-    /// *why* a fragment is an exact semantic clone. They must stay stable across releases,
-    /// so changing one is a breaking change to consumers that key on it.
+    /// Fragment reason codes name the exact proof shape, such as a direct return or
+    /// conditional guard, that made a sub-function fragment exact-safe. They are not
+    /// the broader family/actionability reason codes tracked in issue #11.
     pub fn reason_code(self) -> &'static str {
         match self {
             FragmentKind::DirectReturn => "exact-direct-return",

@@ -3565,7 +3565,7 @@ fn cmd_il(path: PathBuf, format: Format, normalized: bool, no_cfg_norm: bool) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_detect::{Loc, RefactorFamily};
+    use nose_detect::{LineSpan, Loc, LocInit, RefactorFamily};
 
     fn fam(langs: usize, modules: usize, names: &[Option<&str>]) -> RefactorFamily {
         fam_kind(langs, modules, names, nose_il::UnitKind::Function)
@@ -3581,16 +3581,15 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, n)| {
-                Loc::new(
-                    format!("m{i}/f.rs"),
-                    1,
-                    10,
-                    "rust".into(),
+                Loc::new(LocInit {
+                    file: format!("m{i}/f.rs"),
+                    source_span: LineSpan::new(1, 10),
+                    lang: "rust".into(),
                     kind,
-                    n.map(|s| s.to_string()),
-                    50,
-                    50,
-                )
+                    name: n.map(|s| s.to_string()),
+                    sem: 50,
+                    span_tokens: 50,
+                })
             })
             .collect();
         RefactorFamily {
@@ -3634,16 +3633,15 @@ mod tests {
         let missing = dir.join("missing.rs").to_string_lossy().to_string();
 
         let mk = |file: String| {
-            Loc::new(
+            Loc::new(LocInit {
                 file,
-                1,
-                3,
-                "rust".into(),
-                nose_il::UnitKind::Function,
-                None,
-                50,
-                50,
-            )
+                source_span: LineSpan::new(1, 3),
+                lang: "rust".into(),
+                kind: nose_il::UnitKind::Function,
+                name: None,
+                sem: 50,
+                span_tokens: 50,
+            })
         };
         // locs[1] (the first compared pair) is unreadable; locs[2] reads and differs
         // from the representative by one parameter line.

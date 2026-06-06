@@ -507,15 +507,31 @@ fn subsumes(outer: &RefactorFamily, inner: &RefactorFamily) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Metrics, Report};
+    use crate::{LineSpan, LocInit, Metrics, Report};
     use nose_il::UnitKind::{Class, Function};
 
     fn loc(file: &str, s: u32, e: u32, lang: &str) -> Loc {
-        Loc::new(file.into(), s, e, lang.into(), Function, None, 50, 50)
+        Loc::new(LocInit {
+            file: file.into(),
+            source_span: LineSpan::new(s, e),
+            lang: lang.into(),
+            kind: Function,
+            name: None,
+            sem: 50,
+            span_tokens: 50,
+        })
     }
     /// A site with explicit kind / value-graph size / name (for discount tests).
     fn loc_k(file: &str, s: u32, e: u32, kind: nose_il::UnitKind, sem: usize) -> Loc {
-        Loc::new(file.into(), s, e, "rust".into(), kind, None, sem, sem)
+        Loc::new(LocInit {
+            file: file.into(),
+            source_span: LineSpan::new(s, e),
+            lang: "rust".into(),
+            kind,
+            name: None,
+            sem,
+            span_tokens: sem,
+        })
     }
 
     fn fragment_loc(file: &str, s: u32, e: u32) -> Loc {
@@ -523,16 +539,15 @@ mod tests {
             is_fragment: true,
             fragment_kind: Some(crate::FragmentKind::ConditionalGuard),
             reason_code: Some(crate::FragmentKind::ConditionalGuard.reason_code()),
-            ..Loc::new(
-                file.into(),
-                s,
-                e,
-                "rust".into(),
-                nose_il::UnitKind::Block,
-                None,
-                50,
-                50,
-            )
+            ..Loc::new(LocInit {
+                file: file.into(),
+                source_span: LineSpan::new(s, e),
+                lang: "rust".into(),
+                kind: nose_il::UnitKind::Block,
+                name: None,
+                sem: 50,
+                span_tokens: 50,
+            })
         }
     }
     /// A family with the given locations and metrics, other fields at neutral values.
