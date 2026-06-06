@@ -209,6 +209,28 @@ hard negatives, and batch assignment. Use `already-covered`, `real-miss`, `hard-
 `unsupported`, and `closed` as the audit states so prioritizer frequency, real evidence,
 and detector progress stay separate.
 
+## Frontier evidence platform
+
+`frontier_platform.py` is a companion to the prioritizer that ranks axes by **presence
+breadth** (not raw occurrence), keeps the regex queue signal separate from human-verified
+evidence, and records reproducibility identity. The prioritizer and its
+`FRONTIER_PRIORITIES.md` are left untouched; this tool emits its own artifacts:
+
+```sh
+python3 bench/type4/frontier_platform.py \
+  --repos-root /path/to/bench/repos \
+  --json-out bench/type4/frontier_platform.v1.json \
+  --markdown-out bench/type4/frontier_platform.md
+```
+
+The headline rank is repo/language breadth plus dev→held-out generalization; raw counts are
+reported but never drive the ranking. Curated controlled-vocabulary fields
+(`implementation_cost`, `soundness_risk`, `substrate_required`, `evidence_tier`) and the
+recommendation categories are platform-only and never change `real_frontier.v1.json`'s
+schema. A "no implementation-ready batch" conclusion is a valid result. See
+[`docs/frontier-platform.md`](../../docs/frontier-platform.md) for the two-layer model, the
+audit template, and how fields route to #43/#45/#37. `--selftest` runs corpus-free checks.
+
 ## CI smoke
 
 Run the Type-4 smoke gate locally:
