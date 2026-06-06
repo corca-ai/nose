@@ -2374,7 +2374,10 @@ pub(crate) fn detect_families(
         contiguous_min_lines: min_lines,
         structural: channels.structural(),
         contiguous: channels.syntax,
-        value_candidates: channels.semantic,
+        // Near also generates VALUE candidates so behaviorally-convergent but shape-divergent
+        // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
+        // they share no shape band, so shape-LSH alone would never propose them.
+        value_candidates: channels.semantic || channels.near,
         shape_candidates: channels.near,
         shape_features: channels.near,
         ..Default::default()
@@ -2498,7 +2501,10 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         contiguous_min_lines: min_lines,
         structural: channels.structural(),
         contiguous: channels.syntax,
-        value_candidates: channels.semantic,
+        // Near also generates VALUE candidates so behaviorally-convergent but shape-divergent
+        // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
+        // they share no shape band, so shape-LSH alone would never propose them.
+        value_candidates: channels.semantic || channels.near,
         shape_candidates: channels.near,
         shape_features: channels.near,
         ..Default::default()

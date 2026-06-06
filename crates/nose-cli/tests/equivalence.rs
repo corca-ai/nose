@@ -576,6 +576,29 @@ fn go_functional_append_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn promise_then_chain_converges_with_await_sequential_code() {
+    // `p.then(r => body)` is a Promise continuation ≡ `const r = await p; body`. Beta-reducing
+    // the callback with the receiver makes a `.then`-chain's value fingerprint identical to the
+    // equivalent await/sequential code (the #1 real-world async Type-4 gap). A different
+    // continuation expression stays distinct.
+    let i = Interner::new();
+    let await_form = "function f(id) {\n  const r = await db.get(id);\n  return r.x + 1;\n}\n";
+    let then_form = "function f(id) {\n  return db.get(id).then(r => r.x + 1);\n}\n";
+    let then_diff = "function f(id) {\n  return db.get(id).then(r => r.y - 1);\n}\n";
+    let av = value_fp(&i, await_form, Lang::TypeScript);
+    assert_eq!(
+        av,
+        value_fp(&i, then_form, Lang::TypeScript),
+        "a `.then` continuation must converge with the equivalent await/sequential code"
+    );
+    assert_ne!(
+        av,
+        value_fp(&i, then_diff, Lang::TypeScript),
+        "a different continuation expression must stay distinct"
+    );
+}
+
+#[test]
 fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
     // A Go slice literal `[]int{1,2,3}` is an ordered sequence — it converges with a Python
     // list / JS array. A Go STRUCT literal `Point{1,2,3}` is a record, NOT a collection, and

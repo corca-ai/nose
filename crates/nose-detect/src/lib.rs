@@ -250,6 +250,20 @@ impl Detector for StructuralDetector {
         let (wv, ws, wr) = score_weights(self.candidate_mode);
         let vj = align::multiset_jaccard(&a.value, &b.value);
         let sj = align::multiset_jaccard(&a.shapes, &b.shapes);
+        // Candidate mode trusts the value graph: a near-identical value fingerprint — produced
+        // AFTER semantic canonicalization (a `.then`-chain ≡ await code, a loop ≡ a
+        // comprehension) — is the strongest refactoring signal there is, even when the
+        // syntactic shapes diverge and the unit is NOT exact-safe (impure: async, I/O, opaque
+        // calls). The shape-dominant blend below would miss these, so accept a very-high `vj`
+        // directly. Impure units never reach the exact channel, so this is the only place such
+        // behaviorally-convergent pairs can surface. Tight threshold + size floor keep it precise.
+        if self.candidate_mode
+            && a.value.len() >= EXACT_VALUE_MIN
+            && b.value.len() >= EXACT_VALUE_MIN
+            && vj >= candidate_value_accept()
+        {
+            return vj;
+        }
         if 0.6 * vj + 0.4 * sj < 0.15 {
             return 0.6 * vj + 0.4 * sj; // prefilter: not worth the alignment DP
         }
@@ -294,6 +308,15 @@ impl Detector for StructuralDetector {
         }
         score
     }
+}
+
+/// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone
+/// (behaviorally convergent despite shape divergence — e.g. async `.then` ≡ await). Deliberately
+/// high so it only fires on near-identical post-canonicalization fingerprints. Env-overridable.
+fn candidate_value_accept() -> f64 {
+    use std::sync::OnceLock;
+    static V: OnceLock<f64> = OnceLock::new();
+    *V.get_or_init(|| env_or("NOSE_CAND_VJ", 0.90))
 }
 
 /// Final-score weights (vj, sj, ransac). Env-overridable for parameter search.

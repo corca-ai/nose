@@ -6239,6 +6239,41 @@ impl<'a> Builder<'a> {
     /// Evaluate a lambda's body with its positional parameters bound to `params`,
     /// returning the value of its first `return` (intermediate assignments update the
     /// local env). Used to unfold a `map`/`reduce` lambda over a canonical `Elem`.
+    /// `p.then(λr. body)` ≡ `const r = await p; body`. With `await` already stripped, beta-reduce
+    /// the single-argument continuation callback with the receiver promise's value, so a
+    /// `.then`-chain converges with the equivalent `await`/sequential form. Only the one-argument
+    /// `.then(λr. …)` shape is reduced: `.then(fnRef)` (no lambda body to inline), the
+    /// two-argument `.then(onOk, onErr)`, and `.catch`/`.finally` (error/cleanup continuations
+    /// whose parameter is the error, not the resolved value) are left opaque. Promises wrap
+    /// external async values, so this is a NEAR-channel recall extension, never an exact merge.
+    fn eval_promise_then(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let kids = self.il.children(expr).to_vec();
+        if kids.len() != 2 {
+            return None;
+        }
+        let callee = kids[0];
+        if self.il.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(s) = self.il.node(callee).payload else {
+            return None;
+        };
+        if self.interner.resolve(s) != "then" {
+            return None;
+        }
+        let cb = kids[1];
+        if self.il.kind(cb) != NodeKind::Lambda {
+            return None;
+        }
+        let &recv = self.il.children(callee).first()?;
+        let recv_v = self.eval(recv, env);
+        self.eval_lambda_body(cb, &[recv_v], env)
+    }
+
     fn eval_lambda_body(
         &mut self,
         lambda: NodeId,
@@ -6757,6 +6792,14 @@ impl<'a> Builder<'a> {
             }
             NodeKind::Call => {
                 let kids = self.il.children(expr).to_vec();
+                // `p.then(λr. body)` is a Promise continuation ≡ `const r = await p; body`.
+                // Since `await` is already stripped to its operand, beta-reduce the callback
+                // with the receiver's value so a `.then`-chain converges with the equivalent
+                // await / sequential code (the #1 real-world async Type-4 gap). Chains reduce
+                // recursively (evaluating the receiver triggers the inner `.then`).
+                if let Some(v) = self.eval_promise_then(expr, env) {
+                    return v;
+                }
                 // Reduction builtins fold a collection to one value — canonicalize to
                 // the same `Reduce(op, init, per-element contrib)` a loop produces, so
                 // `sum(x*x for x in xs)` / `reduce(λa,x. a+x*x, xs, 0)` converge with
