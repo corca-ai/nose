@@ -1837,6 +1837,17 @@ fn collect_exact_statement_fragment_units(
         return;
     }
     if let Some(kind) = exact_statement_fragment_root(il, node, parents, interner) {
+        // The predicate path is the production authority; for kinds that have migrated
+        // onto the contract substrate, the independent contract recognizer must agree
+        // (issue #33 differential gate). The corpus-level set-equality check lives in
+        // `fragment::recognize`; this asserts the forward direction on every accepted
+        // fragment, including real scans in debug builds.
+        debug_assert!(
+            !crate::fragment::recognize::MIGRATED.contains(&kind)
+                || crate::fragment::recognize::recognize_contract(il, node, parents, interner)
+                    .is_some_and(|contract| contract.kind == kind),
+            "contract path must agree with predicate path on migrated fragment kind {kind:?}"
+        );
         push_or_upgrade_exact_fragment_root(out, node, kind);
     }
     for &c in il.children(node) {
@@ -1867,7 +1878,7 @@ fn push_or_upgrade_exact_fragment_root(
 /// accepted (`true`); the [`FragmentKind`] names which recognizer branch matched. This
 /// is the single dispatch that lowers the standalone shape predicates into the fragment
 /// substrate (issue #33, step 1).
-fn exact_statement_fragment_root(
+pub(crate) fn exact_statement_fragment_root(
     il: &Il,
     node: NodeId,
     parents: &[Option<NodeId>],
@@ -3141,7 +3152,7 @@ fn index_assignment_effect_depends_on_iter(
         || node_mentions_any_cid(il, kids[1], iter_cids)
 }
 
-fn top_level_statement_fragment_context_safe(
+pub(crate) fn top_level_statement_fragment_context_safe(
     il: &Il,
     node: NodeId,
     parents: &[Option<NodeId>],
@@ -3292,7 +3303,7 @@ fn parent_of(parents: &[Option<NodeId>], node: NodeId) -> Option<NodeId> {
     parents.get(node.0 as usize).copied().flatten()
 }
 
-fn build_parent_index(il: &Il) -> Vec<Option<NodeId>> {
+pub(crate) fn build_parent_index(il: &Il) -> Vec<Option<NodeId>> {
     let mut parents = vec![None; il.nodes.len()];
     for idx in 0..il.nodes.len() {
         let parent = NodeId(idx as u32);
@@ -3305,7 +3316,7 @@ fn build_parent_index(il: &Il) -> Vec<Option<NodeId>> {
     parents
 }
 
-fn subtree_spans_within(il: &Il, node: NodeId, span: nose_il::Span) -> bool {
+pub(crate) fn subtree_spans_within(il: &Il, node: NodeId, span: nose_il::Span) -> bool {
     let node_span = il.node(node).span;
     if node_span.file != span.file
         || node_span.start_line < span.start_line
