@@ -1621,6 +1621,47 @@ fn list_builder_loop_converges_with_comprehension() {
     assert_ne!(comp, fcomp, "unfiltered and filtered must stay distinct");
 }
 
+/// Multi-clause comprehensions are flat maps, not nested maps. They should converge with
+/// an equivalent nested append loop and JS `.flatMap(... .map(...))`, while staying
+/// distinct from a nested list comprehension.
+#[test]
+fn multi_clause_comprehension_converges_as_flat_map() {
+    let i = Interner::new();
+    let comp = value_fp(
+        &i,
+        "def f(xs, ys):\n    return [x + y for x in xs for y in ys]\n",
+        Lang::Python,
+    );
+    let loop_py = value_fp(
+        &i,
+        "def g(xs, ys):\n    r = []\n    for x in xs:\n        for y in ys:\n            r.append(x + y)\n    return r\n",
+        Lang::Python,
+    );
+    let flat_map_js = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.flatMap(x => ys.map(y => x + y)); }",
+        Lang::JavaScript,
+    );
+    let nested_list = value_fp(
+        &i,
+        "def h(xs, ys):\n    return [[x + y for y in ys] for x in xs]\n",
+        Lang::Python,
+    );
+
+    assert_eq!(
+        comp, loop_py,
+        "flat comprehension should match nested append loop"
+    );
+    assert_eq!(
+        comp, flat_map_js,
+        "flat comprehension should match JS flatMap/map"
+    );
+    assert_ne!(
+        comp, nested_list,
+        "flat-map and nested-list comprehensions differ"
+    );
+}
+
 /// Cross-language `any`/`all` predicate reductions converge to one fingerprint: Python
 /// `any(p(x) for x in xs)`, JS `xs.some(p)`, Rust `xs.iter().any(p)` — and likewise
 /// `all`/`every`. `any` and `all` stay DISTINCT (different short-circuit behavior).

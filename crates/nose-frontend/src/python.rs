@@ -963,9 +963,8 @@ fn comp_lambda(lo: &mut Lowering, pattern: Option<TsNode>, body: NodeId, bspan: 
 /// `… if cond` wraps the collection in `HoF(Filter)[xs, λx. cond]`, so a filtered
 /// comprehension converges with a guarded loop (`if cond: …`) — see §AI.
 ///
-/// A *multi-clause* comprehension (`[body for a in A for b in B]`) is a flat-map
-/// nesting with no first-class IL primitive yet, so it is lowered fail-closed —
-/// see [`lower_multi_clause_comprehension`].
+/// A *multi-clause* comprehension (`[body for a in A for b in B]`) lowers to a
+/// first-class flat-map nesting — see [`lower_multi_clause_comprehension`].
 fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let body_node = node.named_child(0);
@@ -1019,18 +1018,10 @@ fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 /// Lower a comprehension with more than one `for` clause. `[body for a in A for
 /// b in B]` is Python sugar for nested iteration that *flattens* — equivalent to
-/// `A.flatMap(a => B.map(b => body))`. nose has no `FlatMap` HoF primitive, so a
-/// naive `Map[A, λa. Map[B, λb. body]]` would be byte-identical to the genuinely
-/// different *nested* comprehension `[[body for b in B] for a in A]` (a list of
-/// lists) — an unsound false merge.
-///
-/// Until flat-map is modeled (tracked separately), this lowers fail-closed: it
-/// builds the nested `Map`/`Filter` structure (so every clause's collection and
-/// target is preserved and bound) and wraps the whole thing in an opaque `Raw`
-/// node. The value graph keys `Raw` by full subtree content, so two flat-maps
-/// converge only when structurally identical and never collide with a nested
-/// comprehension, a single-clause `Map`, or any other construct. Convergence with
-/// the equivalent explicit nested loop is deferred to the flat-map work.
+/// `A.flatMap(a => B.map(b => body))`. The innermost clause maps to produced
+/// elements; each outer clause flat-maps the list produced by the next inner
+/// layer. This stays distinct from the genuinely different nested comprehension
+/// `[[body for b in B] for a in A]`, which lowers to `Map[A, λa. Map[B, ...]]`.
 fn lower_multi_clause_comprehension(
     lo: &mut Lowering,
     node: TsNode,
@@ -1051,13 +1042,13 @@ fn lower_multi_clause_comprehension(
         }
     }
 
-    // Build inside-out: the body is the innermost produced element; each `for`
-    // clause (outer→inner in source, so iterated in reverse) wraps it in a `Map`
-    // over its (optionally filtered) collection, binding that clause's target.
+    // Build inside-out: the body is the innermost produced element. The innermost
+    // `for` maps to elements; every outer `for` flat-maps the list produced by the
+    // inner layer.
     let mut inner = body_node
         .map(|b| lower_expr(lo, b))
         .unwrap_or_else(|| lo.empty_block(span));
-    for (forc, ifs) in groups.iter().rev() {
+    for (idx, (forc, ifs)) in groups.iter().rev().enumerate() {
         let pattern = forc
             .child_by_field_name("left")
             .or_else(|| forc.named_child(0));
@@ -1080,16 +1071,20 @@ fn lower_multi_clause_comprehension(
             }
         }
         let lam = comp_lambda(lo, pattern, inner, span);
+        let hof_kind = if idx == 0 {
+            HoFKind::Map
+        } else {
+            HoFKind::FlatMap
+        };
         inner = lo.add(
             NodeKind::HoF,
-            Payload::HoF(HoFKind::Map),
+            Payload::HoF(hof_kind),
             span,
             &[collection, lam],
         );
     }
 
-    // Fail-closed: an opaque wrapper that cannot be confused with a nested `Map`.
-    lo.raw("comprehension", span, &[inner])
+    inner
 }
 
 /// Emit `Param` nodes for a comprehension/loop target (identifier or tuple).
@@ -1380,6 +1375,49 @@ mod tests {
         assert!(
             names.contains(&"ys"),
             "second clause `for b in ys` was dropped; names = {names:?}"
+        );
+    }
+
+    #[test]
+    fn multi_clause_comprehension_lowers_to_flat_map_without_raw() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(A, B):\n    return [a + b for a in A for b in B]\n",
+            &interner,
+        )
+        .expect("lower");
+
+        let hof_kinds: Vec<_> = il
+            .nodes
+            .iter()
+            .filter_map(|node| match node.payload {
+                Payload::HoF(kind) => Some(kind),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            hof_kinds.contains(&HoFKind::FlatMap),
+            "multi-clause comprehension should contain a FlatMap HoF: {hof_kinds:?}"
+        );
+        assert!(
+            hof_kinds.contains(&HoFKind::Map),
+            "multi-clause comprehension should keep the innermost Map: {hof_kinds:?}"
+        );
+
+        let raw: Vec<_> = il
+            .nodes
+            .iter()
+            .filter(|node| node.kind == NodeKind::Raw)
+            .filter_map(|node| match node.payload {
+                Payload::Name(sym) => Some(interner.resolve(sym)),
+                _ => None,
+            })
+            .collect();
+        assert!(
+            !raw.contains(&"comprehension"),
+            "flat-map comprehension should no longer use Raw fallback: {raw:?}"
         );
     }
 

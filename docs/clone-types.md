@@ -53,9 +53,11 @@ This is nose's distinguishing capability, but it is **bounded, not total** — a
 semantic equivalence is undecidable. nose converges the equivalence classes its IL, value
 graph, and canonicalizations actually model:
 
-- loop ↔ `reduce`/`sum` ↔ comprehension ↔ `.append`/`.map` builder loop; an `any`/`all` loop
-  ↔ the functional form; a `reduce`-lambda min/max ↔ `max`/`min`; `len([… if p]) ↔ Σ(p?1:0)`;
-  a dict-building loop `d={}; for x: d[k]=v` ↔ the dict comprehension `{k: v for x in xs}`;
+- loop ↔ `reduce`/`sum` ↔ comprehension ↔ `.append`/`.map` builder loop; nested list
+  builders ↔ Python multi-clause comprehensions ↔ `.flatMap(... .map(...))`; an `any`/`all`
+  loop ↔ the functional form; a `reduce`-lambda min/max ↔ `max`/`min`;
+  `len([… if p]) ↔ Σ(p?1:0)`; a dict-building loop `d={}; for x: d[k]=v` ↔ the dict
+  comprehension `{k: v for x in xs}`;
 - literal map-default lookup through proven map/key/fallback coordinates, including
   Python `dict.get(key, fallback)` and Ruby literal `Hash#fetch(key, fallback)` or
   zero-arg pure fallback blocks such as `Hash#fetch(key) { fallback }`;
@@ -76,6 +78,10 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
 - **Different algorithms with the same result** — e.g. bubble sort vs quicksort, or two
   different primality tests — are **not** recognized. Only the modeled transformations
   converge; nose does not search for arbitrary input/output equivalence.
+- **General collection flattening** — depth-parameterized flattening such as
+  `Array.prototype.flat(depth)` is not canonicalized. The modeled flattening is the
+  one-level flat-map shape (`FlatMap[A, λa. Map[B, λb. e]]`) used by Python multi-clause
+  comprehensions, JS `.flatMap`, and equivalent nested builder loops.
 - **Recursion ↔ iteration** is partially modeled — a bounded subset converges (see
   [normalization](normalization.md)); general recursion↔iteration remains out of scope.
 - The behavioral *proof* (`nose verify`) covers only interpretable (≈ pure) units; detection
@@ -109,11 +115,6 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   boundaries. Multiple statement-level effects are ordered through control-flow-aware
   sink tags; swapping appends/emits on one execution path is a behavior change, not a
   Type-4 clone.
-- **Multi-clause (flat-map) comprehensions** — a Python `[e for a in A for b in B]`
-  flattens (`A.flatMap(a => B.map(b => e))`), and nose has no `FlatMap` IL primitive yet,
-  so these lower fail-closed (an opaque node) rather than converging with the equivalent
-  nested loop. Single-clause comprehensions converge as above. Tracked in issue #57.
-
 Exact fragment proof is not the same thing as user-facing refactorability. The
 [fragment output audit](fragment-output-audit.md) classifies current real-corpus fragment
 output into refactor-worthy, review-hazard, proof-only/noise, and metadata-ambiguous

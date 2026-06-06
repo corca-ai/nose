@@ -75,8 +75,8 @@ pub enum NodeKind {
     Lambda,
     /// An array/tuple/set/map literal. Children: the elements.
     Seq,
-    /// A canonical higher-order operation (comprehension / map / filter /
-    /// reduce). Payload: `HoF`. Children: `[collection, fn]`.
+    /// A canonical higher-order operation (comprehension / map / flat-map /
+    /// filter / reduce). Payload: `HoF`. Children: `[collection, fn]`.
     HoF,
 
     /// Escape hatch for surface constructs a frontend does not yet lower. Payload
@@ -294,6 +294,7 @@ pub enum HoFKind {
     Map,
     Filter,
     Reduce,
+    FlatMap,
 }
 
 /// One IL node. Children are stored out-of-line in [`crate::Il::edges`] as a

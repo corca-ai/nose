@@ -17,8 +17,8 @@ pub(crate) enum CallCanon {
         op: Builtin,
         arg_olds: Vec<NodeId>,
     },
-    /// `xs.map(f)` / `.filter(f)` / `.reduce(f)` → `HoF[xs, f]`, converging with
-    /// Python comprehensions.
+    /// `xs.map(f)` / `.flatMap(f)` / `.filter(f)` / `.reduce(f)` → `HoF[xs, f]`,
+    /// converging with Python comprehensions.
     HoF {
         kind: HoFKind,
         collection_old: NodeId,
@@ -358,13 +358,13 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: vec![coll, args[0]],
                         };
                     }
-                    "map" | "collect" | "filter" | "select"
+                    "map" | "collect" | "flatMap" | "flat_map" | "filter" | "select"
                         if base.is_some() && !args.is_empty() =>
                     {
-                        let kind = if matches!(fname, "map" | "collect") {
-                            HoFKind::Map
-                        } else {
-                            HoFKind::Filter
+                        let kind = match fname {
+                            "map" | "collect" => HoFKind::Map,
+                            "flatMap" | "flat_map" => HoFKind::FlatMap,
+                            _ => HoFKind::Filter,
                         };
                         return CallCanon::HoF {
                             kind,

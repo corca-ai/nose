@@ -3113,7 +3113,7 @@ impl<'a> Builder<'a> {
         if self.il.kind(expr) == NodeKind::HoF
             && matches!(
                 self.il.node(expr).payload,
-                Payload::HoF(HoFKind::Map | HoFKind::Filter)
+                Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter)
             )
         {
             let kids = self.il.children(expr).to_vec();
@@ -3805,6 +3805,9 @@ impl<'a> Builder<'a> {
         // Finalize list builders: `r = []; for x: r.append(f(x))` → `r = Map(elem, f(x))`,
         // converging the loop with the comprehension `[f(x) for x in xs]` / `.map`. A
         // guarded append (`if cond: r.append(f(x))`) becomes the filtered map `Map(_, pred)`.
+        // If the append happens inside a nested loop, the inner loop has already produced a
+        // `Map`/`FlatMap`; wrap that per-outer-iteration collection in a `FlatMap` so
+        // `for x: for y: r.append(f(x,y))` converges with `[f(x,y) for x in xs for y in ys]`.
         for &c in &builder_cands {
             if let Some(Some((mut contrib, guard))) = self.building.remove(&c) {
                 let map = if !index_vals.is_empty() {
@@ -3824,6 +3827,11 @@ impl<'a> Builder<'a> {
                     }
                 };
                 env.insert(c, map);
+            } else if let Some(&nested) = body_env.get(&c) {
+                if let Some(flat) = self.flat_map_builder_value(nested, &pattern_bindings) {
+                    env.insert(c, flat);
+                }
+                self.building.remove(&c);
             } else {
                 self.building.remove(&c);
             }
@@ -3920,6 +3928,21 @@ impl<'a> Builder<'a> {
         } else {
             let pred = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
             Some(self.mk(ValOp::Reduce(REDUCE_ALL), vec![pred]))
+        }
+    }
+
+    fn flat_map_builder_value(
+        &mut self,
+        value: ValueId,
+        pattern_bindings: &[(u32, ValueId)],
+    ) -> Option<ValueId> {
+        let outer_elem = pattern_bindings.first()?.1;
+        let op = self.nodes[value as usize].op.clone();
+        match op {
+            ValOp::Hof(k) if k == HoFKind::Map as u32 || k == HoFKind::FlatMap as u32 => {
+                Some(self.mk(ValOp::Hof(HoFKind::FlatMap as u32), vec![outer_elem, value]))
+            }
+            _ => None,
         }
     }
 
@@ -4963,11 +4986,11 @@ impl<'a> Builder<'a> {
                     (n.op.clone(), n.args.clone())
                 };
                 let contrib = match op {
-                    ValOp::Hof(_) if args.len() >= 2 => {
+                    ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
                         let zero = self.int_const(0);
                         self.mk(ValOp::Phi, vec![args[1], args[0], zero])
                     }
-                    ValOp::Hof(_) if args.len() == 1 => args[0],
+                    ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
                     _ => self.elem(av),
                 };
                 let init = self.int_const(0);
@@ -4981,7 +5004,7 @@ impl<'a> Builder<'a> {
                 let (elems, guard) = if let Some((source, predicate)) = filtered {
                     let coll = self.eval(source, env);
                     let elem = self.elem(coll);
-                    let guard = self.eval_lambda_body(predicate, &[elem])?;
+                    let guard = self.eval_lambda_body(predicate, &[elem], env)?;
                     (vec![elem], Some(guard))
                 } else {
                     (self.elem_bindings(kids.get(1).copied(), env), None)
@@ -4990,7 +5013,7 @@ impl<'a> Builder<'a> {
                 let mut params = Vec::with_capacity(elems.len() + 1);
                 params.push(acc);
                 params.extend(elems);
-                let body = self.eval_lambda_body(kids[0], &params)?;
+                let body = self.eval_lambda_body(kids[0], &params, env)?;
                 let (op, contrib) = self.as_reduction(body, acc)?;
                 let contrib = if let Some(guard) = guard {
                     let ident = self.int_const(identity_of(op)?);
@@ -5029,7 +5052,7 @@ impl<'a> Builder<'a> {
                     (n.op.clone(), n.args.clone())
                 };
                 let contrib = match op {
-                    ValOp::Hof(_) if !args.is_empty() => args[0],
+                    ValOp::Hof(k) if k == HoFKind::Map as u32 && !args.is_empty() => args[0],
                     _ => self.elem(av),
                 };
                 Some(self.mk(ValOp::Reduce(reduce_code), vec![contrib]))
@@ -5047,7 +5070,7 @@ impl<'a> Builder<'a> {
                 let contrib = if kids.len() >= 2 && self.il.kind(kids[1]) == NodeKind::Lambda {
                     let coll = self.eval(kids[0], env);
                     let elem = self.elem(coll);
-                    let pred = self.eval_lambda_body(kids[1], &[elem])?;
+                    let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
                     if code == REDUCE_ANY && self.is_static_non_float_collection_expr(kids[0]) {
                         if let Some((element, collection)) =
                             self.static_literal_membership_predicate(pred)
@@ -5074,12 +5097,12 @@ impl<'a> Builder<'a> {
                         (n.op.clone(), n.args.clone())
                     };
                     match op {
-                        ValOp::Hof(_) if args.len() >= 2 => {
+                        ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
                             let ident =
                                 self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
                             self.mk(ValOp::Phi, vec![args[1], args[0], ident])
                         }
-                        ValOp::Hof(_) if args.len() == 1 => args[0],
+                        ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
                         _ => self.elem(av),
                     }
                 };
@@ -5191,7 +5214,7 @@ impl<'a> Builder<'a> {
         }
         let collection = self.eval(source, env);
         let elem = self.elem(collection);
-        let pred = self.eval_lambda_body(predicate, &[elem])?;
+        let pred = self.eval_lambda_body(predicate, &[elem], env)?;
         self.static_literal_membership_predicate(pred)
     }
 
@@ -5276,7 +5299,7 @@ impl<'a> Builder<'a> {
         if method == "findIndex" && self.il.kind(kids[1]) == NodeKind::Lambda {
             let collection = self.eval(receiver, env);
             let elem = self.elem(collection);
-            let pred = self.eval_lambda_body(kids[1], &[elem])?;
+            let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
             return self.static_literal_membership_predicate(pred);
         }
         None
@@ -5666,7 +5689,7 @@ impl<'a> Builder<'a> {
     ) -> Option<ValueId> {
         let coll = self.eval(source, env);
         let elem = self.elem(coll);
-        let pred = self.eval_lambda_body(predicate, &[elem])?;
+        let pred = self.eval_lambda_body(predicate, &[elem], env)?;
         let one = self.int_const(1);
         let zero = self.int_const(0);
         let contrib = self.mk(ValOp::Phi, vec![pred, one, zero]);
@@ -5729,11 +5752,11 @@ impl<'a> Builder<'a> {
             (n.op.clone(), n.args.clone())
         };
         let contrib = match op {
-            ValOp::Hof(_) if args.len() >= 2 => {
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
                 let one = self.int_const(1);
                 self.mk(ValOp::Phi, vec![args[1], args[0], one])
             }
-            ValOp::Hof(_) if args.len() == 1 => args[0],
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
             _ => self.elem(coll),
         };
         let init = kids
@@ -5809,12 +5832,17 @@ impl<'a> Builder<'a> {
     /// Evaluate a lambda's body with its positional parameters bound to `params`,
     /// returning the value of its first `return` (intermediate assignments update the
     /// local env). Used to unfold a `map`/`reduce` lambda over a canonical `Elem`.
-    fn eval_lambda_body(&mut self, lambda: NodeId, params: &[ValueId]) -> Option<ValueId> {
+    fn eval_lambda_body(
+        &mut self,
+        lambda: NodeId,
+        params: &[ValueId],
+        parent_env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
         if self.il.kind(lambda) != NodeKind::Lambda {
             return None;
         }
         let kids = self.il.children(lambda).to_vec();
-        let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
+        let mut env = parent_env.clone();
         let mut pi = 0;
         for &k in &kids {
             if self.il.kind(k) == NodeKind::Param {
@@ -6245,13 +6273,31 @@ impl<'a> Builder<'a> {
                             .copied()
                             .unwrap_or_else(|| self.fresh_opaque());
                         let contrib = match kids.get(1) {
-                            Some(&l) => self.eval_lambda_body(l, &elems).unwrap_or(fallback),
+                            Some(&l) => self.eval_lambda_body(l, &elems, env).unwrap_or(fallback),
                             None => fallback,
                         };
                         match carried_pred {
                             Some(p) => self.mk(ValOp::Hof(kind as u32), vec![contrib, p]),
                             None => self.mk(ValOp::Hof(kind as u32), vec![contrib]),
                         }
+                    }
+                    HoFKind::FlatMap => {
+                        let (elems, carried_pred) = self.map_source(kids.first().copied(), env);
+                        let outer_elem = elems
+                            .first()
+                            .copied()
+                            .unwrap_or_else(|| self.fresh_opaque());
+                        let inner = match kids.get(1) {
+                            Some(&l) => self
+                                .eval_lambda_body(l, &elems, env)
+                                .unwrap_or_else(|| self.fresh_opaque()),
+                            None => self.fresh_opaque(),
+                        };
+                        let mut args = vec![outer_elem, inner];
+                        if let Some(p) = carried_pred {
+                            args.push(p);
+                        }
+                        self.mk(ValOp::Hof(kind as u32), args)
                     }
                     HoFKind::Filter => {
                         // `filter(p, coll)` ≡ the *identity map with a predicate*:
@@ -6269,7 +6315,9 @@ impl<'a> Builder<'a> {
                             .first()
                             .copied()
                             .unwrap_or_else(|| self.fresh_opaque());
-                        let own_pred = kids.get(1).and_then(|&l| self.eval_lambda_body(l, &elems));
+                        let own_pred = kids
+                            .get(1)
+                            .and_then(|&l| self.eval_lambda_body(l, &elems, env));
                         match self.and_preds(own_pred, carried_pred) {
                             Some(p) => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem, p]),
                             None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem]),
