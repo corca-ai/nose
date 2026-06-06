@@ -453,6 +453,35 @@ fn java_stream_flat_map_converges_with_python_comprehension() {
 }
 
 #[test]
+fn flatmap_identity_converges_with_inner_map_and_flatten_loop() {
+    // `xss.flatMap(xs => xs)` (identity inner) is `flatten`, equal to the explicit
+    // inner-identity-map `xss.flatMap(xs => xs.map(y => y))` and to the nested builder loop —
+    // the monad law `flatMap id = join` (`map id = id` on each sublist, so every emitted
+    // element is unchanged). A changed inner element stays a hard negative.
+    let i = Interner::new();
+    let identity = "function f(xss){ return xss.flatMap(xs => xs); }";
+    let inner_map = "function f(xss){ return xss.flatMap(xs => xs.map(y => y)); }";
+    let builder = "function f(xss){ const out = []; for (const xs of xss) { for (const y of xs) { out.push(y); } } return out; }";
+    let changed = "function f(xss){ return xss.flatMap(xs => xs.map(y => y + 1)); }";
+    let id_fp = value_fp(&i, identity, Lang::JavaScript);
+    assert_eq!(
+        id_fp,
+        value_fp(&i, inner_map, Lang::JavaScript),
+        "flatMap(id) must converge with flatMap(x => x.map(y => y))"
+    );
+    assert_eq!(
+        id_fp,
+        value_fp(&i, builder, Lang::JavaScript),
+        "flatMap(id) must converge with the nested builder loop (flatten)"
+    );
+    assert_ne!(
+        id_fp,
+        value_fp(&i, changed, Lang::JavaScript),
+        "a changed inner element (y + 1) must stay distinct (hard negative)"
+    );
+}
+
+#[test]
 fn ruby_select_reduce_converges_with_guarded_loop() {
     // Ruby `select { p }.reduce(init) { |a, x| ... }` is the same filtered fold as
     // a guarded `each` accumulator loop. The changed seed remains a hard negative.

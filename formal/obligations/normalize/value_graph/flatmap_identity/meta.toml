@@ -1,0 +1,17 @@
+id = "normalize.value_graph.flatmap_identity"
+status = "proven"
+kind = "soundness"
+summary = "Identity flat-map (flatMap id) canonicalizes to flatten; the modeled inner-identity-map form has the same List denotation, so identity flat-map converges with the nested builder loop."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs"]
+symbols = ["HoFKind::FlatMap"]
+markers = ["normalize.value_graph.flatmap_identity"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFlatMapIdentity.lmap_id",
+  "NoseFlatMapIdentity.flatMap_id",
+  "NoseFlatMapIdentity.flatMap_inner_mapId_eq",
+]

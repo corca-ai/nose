@@ -21,7 +21,10 @@
 > `Some(value)`/`None` callbacks and guarded `Vec::new()`/`push` builders, first-class
 > **flat-map** modeling for Python
 > multi-clause comprehensions, JS `.flatMap`, pure Java `Arrays.stream(...).flatMap(...map...)`,
-> equivalent nested list-builder loops, and pure inner-Map aggregate consumers such as
+> equivalent nested list-builder loops, **identity flat-map `flatMap(λx. x)` canonicalized to
+> the modeled element-stream inner (the monad law `flatMap id = join`; proven in
+> `normalize.value_graph.flatmap_identity`), so it converges with the nested builder loop and
+> the explicit inner-identity-map form**, and pure inner-Map aggregate consumers such as
 > sum/max/any over flat-map streams versus nested reduction loops when the contribution
 > uses the outer element (kept distinct from nested-list comprehensions, Java stream
 > `map` returning streams, wrong reduction seeds, outer-cardinality-only cases, and

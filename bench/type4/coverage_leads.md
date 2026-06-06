@@ -55,12 +55,19 @@ reduce_minmax_anyall/java/pos   # pos 0/1 — stream side exact_safe=False
 reduce_minmax_anyall/{python,javascript,rust}/pos  # covered 1/1
 ```
 
-## L4 — recall extension: `.flatMap(x => x)` (identity) ≡ flatten
+## L4 — recall extension: `.flatMap(x => x)` (identity) ≡ flatten — ✅ RESOLVED
 
-`xss.flatMap(xs => xs)` is behaviorally `flatten`, equal to the nested builder loop, but is
-not the modeled `FlatMap[A, λa. Map[B, λb. e]]` shape (no inner map), so it does not converge.
-A sound recall extension would model identity flat-map as flatten. (Not a bug; the modeled
-inner-map shape converges, incl. cross-language JS↔Python.)
+`xss.flatMap(xs => xs)` is behaviorally `flatten`, equal to the nested builder loop, but was
+not the modeled `FlatMap[A, λa. Map[B, λb. e]]` shape (no inner map), so it did not converge.
+
+**Implemented** (value_graph.rs `HoFKind::FlatMap` arm): when the inner lambda is identity
+(`inner == outer_elem`), canonicalize it to the modeled element-stream inner `Map[Elem(x)]` —
+the monad law `flatMap id = join`. Proven in
+`formal/obligations/normalize/value_graph/flatmap_identity/` (`flatMap_id`, `lmap_id`,
+`flatMap_inner_mapId_eq`); reproducer test `flatmap_identity_converges_with_inner_map_and_flatten_loop`
+in `crates/nose-cli/tests/equivalence.rs` (positive + changed-element hard negative). Validated:
+oracle SOUND on the case, broad cross=all oracle violation count unchanged (delta 0), full
+test suite + clippy + Lean gate green. js/ts/python flat-map identity now converge.
 
 ---
 

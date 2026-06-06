@@ -6805,6 +6805,21 @@ impl<'a> Builder<'a> {
                                 .unwrap_or_else(|| self.fresh_opaque()),
                             None => self.fresh_opaque(),
                         };
+                        // proof-obligation: normalize.value_graph.flatmap_identity
+                        // `flatMap(λx. x)` (identity inner: the lambda returns the outer
+                        // element unchanged) ≡ `flatMap(λx. map(λy. y, x))` ≡ flatten — the
+                        // monad law `flatMap id = join` / `concatMap id = concat`. Canonicalize
+                        // the identity inner to the modeled element-stream inner `Map[Elem(x)]`
+                        // so it converges with the nested builder loop and the explicit
+                        // inner-identity-map form. Sound: `map id = id` on the sublist, so every
+                        // emitted element is unchanged. A non-identity inner (`x.map(y=>y+1)`,
+                        // changed element) does not equal `outer_elem`, so it is left intact.
+                        let inner = if inner == outer_elem {
+                            let elem = self.elem(outer_elem);
+                            self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem])
+                        } else {
+                            inner
+                        };
                         let mut args = vec![outer_elem, inner];
                         if let Some(p) = carried_pred {
                             args.push(p);
