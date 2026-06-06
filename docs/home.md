@@ -39,6 +39,7 @@ of nose's machine-readable output.
 
 You want to *change* nose or understand how it works inside.
 
+- [design & direction](../design.md) — the *why* behind the roadmap: the sound core as the moat, the two (non-human) consumers, and what that decides. **Check roadmap calls against this.**
 - [architecture](architecture.md) — the crates and the lower → normalize → detect → rank pipeline.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.
