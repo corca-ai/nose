@@ -13,19 +13,13 @@
 //! recognizer described a fragment the oracle cannot vouch for — fail closed.
 
 use super::contract::FragmentContract;
-use nose_il::{
-    FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Span, Unit, UnitKind,
-};
+use nose_il::{FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Span, Unit, UnitKind};
 use nose_normalize::{run_unit, Behavior, Value};
 
 /// Run the fragment described by `contract` on `args` (bound to its inputs in order) and
 /// return its observable [`Behavior`], or `None` if the wrapper cannot be synthesized or
 /// the interpreter cannot model the fragment.
-pub fn fragment_behavior(
-    il: &Il,
-    contract: &FragmentContract,
-    args: &[Value],
-) -> Option<Behavior> {
+pub fn fragment_behavior(il: &Il, contract: &FragmentContract, args: &[Value]) -> Option<Behavior> {
     let (synth, func) = synthesize_wrapper(il, contract)?;
     run_unit(&synth, func, args)
 }

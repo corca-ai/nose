@@ -47,9 +47,8 @@ pub(crate) fn recognize_contract(
         return None;
     }
     let kids = il.children(node);
-    let computed_unary = || {
-        kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
-    };
+    let computed_unary =
+        || kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit);
     match il.kind(node) {
         NodeKind::Return if computed_unary() => Some(FragmentContract::value_sink(
             FragmentKind::DirectReturn,
@@ -180,9 +179,10 @@ fn resolve_place(il: &Il, interner: &Interner, node: NodeId) -> Place {
             let base = il.children(node).first().copied();
             let receiver = base.map_or(Place::Unknown, |b| resolve_place(il, interner, b));
             match il.node(node).payload {
-                Payload::Name(sym) => {
-                    Place::Field(Box::new(receiver), stable_symbol_hash(interner.resolve(sym)))
-                }
+                Payload::Name(sym) => Place::Field(
+                    Box::new(receiver),
+                    stable_symbol_hash(interner.resolve(sym)),
+                ),
                 _ => Place::Unknown,
             }
         }
@@ -257,11 +257,12 @@ mod tests {
         let il = normalize(&raw, &interner, &NormalizeOptions::default());
         let parents = build_parent_index(&il);
 
-        let mut predicate: Vec<(Span, FragmentKind)> =
-            index(&il, &|node| exact_statement_fragment_root(&il, node, &parents, &interner))
-                .into_iter()
-                .filter(|(_, kind)| MIGRATED.contains(kind))
-                .collect();
+        let mut predicate: Vec<(Span, FragmentKind)> = index(&il, &|node| {
+            exact_statement_fragment_root(&il, node, &parents, &interner)
+        })
+        .into_iter()
+        .filter(|(_, kind)| MIGRATED.contains(kind))
+        .collect();
         let mut contract: Vec<(Span, FragmentKind)> = index(&il, &|node| {
             recognize_contract(&il, node, &parents, &interner).map(|c| c.kind)
         });
@@ -279,10 +280,7 @@ mod tests {
         // Accepted: top-level computed return / throw.
         assert_paths_agree("function g(b){ return b*b + 1; }", Lang::JavaScript);
         assert_paths_agree("function f(a){ throw a + 1; }", Lang::JavaScript);
-        assert_paths_agree(
-            "def h(a, c):\n    return a * a + c\n",
-            Lang::Python,
-        );
+        assert_paths_agree("def h(a, c):\n    return a * a + c\n", Lang::Python);
     }
 
     #[test]
@@ -293,7 +291,10 @@ mod tests {
         assert_paths_agree("function f(a){ return 1; }", Lang::JavaScript);
         // A preceding reassignment of the returned input invalidates context safety;
         // both paths must reject the return.
-        assert_paths_agree("function f(a){ a = a + 1; return a * a; }", Lang::JavaScript);
+        assert_paths_agree(
+            "function f(a){ a = a + 1; return a * a; }",
+            Lang::JavaScript,
+        );
     }
 
     #[test]
@@ -313,10 +314,7 @@ mod tests {
             Lang::Java,
         );
         // Expression-statement effect: an append/push call.
-        assert_paths_agree(
-            "function f(xs, v){ xs.push(v + 1); }",
-            Lang::JavaScript,
-        );
+        assert_paths_agree("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
         assert_paths_agree("def f(xs, v):\n    xs.append(v + 1)\n", Lang::Python);
     }
 
@@ -346,7 +344,11 @@ mod tests {
     }
 
     /// The first contract the contract path produces for `src`, walking pre-order.
-    fn first_contract(il: &Il, parents: &[Option<NodeId>], interner: &Interner) -> FragmentContract {
+    fn first_contract(
+        il: &Il,
+        parents: &[Option<NodeId>],
+        interner: &Interner,
+    ) -> FragmentContract {
         fn walk(
             il: &Il,
             node: NodeId,
@@ -369,7 +371,10 @@ mod tests {
     #[test]
     fn resolves_place_and_effect_for_write_shapes() {
         // Java `this.x = …` → FieldWrite over a proven This.field place (fail-closed safe).
-        let (il, parents, interner) = norm("class C { int x; void s(int v){ this.x = v + 1; } }", Lang::Java);
+        let (il, parents, interner) = norm(
+            "class C { int x; void s(int v){ this.x = v + 1; } }",
+            Lang::Java,
+        );
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::SelfFieldAssign);
         assert_eq!(c.effect, Some(Effect::FieldWrite));
@@ -381,8 +386,10 @@ mod tests {
         // field accessed bare, so it resolves to a fail-closed `Unknown` receiver — yet the
         // write stays exact-safe because an index write is observable in the effect trace
         // and so does not require a proven receiver.
-        let (il, parents, interner) =
-            norm("class C { int[] a; void f(int i, int v){ a[i] = v; } }", Lang::Java);
+        let (il, parents, interner) = norm(
+            "class C { int[] a; void f(int i, int v){ a[i] = v; } }",
+            Lang::Java,
+        );
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::IndexAssignEffect);
         assert_eq!(c.effect, Some(Effect::IndexWrite));
@@ -390,7 +397,8 @@ mod tests {
         assert!(!c.effect.unwrap().requires_proven_place());
 
         // JS `xs.push(v)` → Append effect, no heap place.
-        let (il, parents, interner) = norm("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
+        let (il, parents, interner) =
+            norm("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::ExprEffect);
         assert_eq!(c.effect, Some(Effect::Append));
@@ -401,7 +409,10 @@ mod tests {
     fn effect_as_output_preserved_through_wrapper() {
         // An append effect must survive wrapper synthesis as observable behavior: appending
         // to a parameter list is a caller-visible mutation, recorded in the effect trace.
-        let battery = [vec![Value::List(vec![])], vec![Value::List(vec![Value::Int(9)])]];
+        let battery = [
+            vec![Value::List(vec![])],
+            vec![Value::List(vec![Value::Int(9)])],
+        ];
 
         let run = |src: &str| -> Vec<nose_normalize::Behavior> {
             let (il, parents, interner) = norm(src, Lang::JavaScript);
@@ -426,6 +437,9 @@ mod tests {
         );
         // Equivalent effect fragments agree; a different appended value diverges.
         assert_eq!(f, g, "identical append effects must agree on the battery");
-        assert_ne!(f, h, "appending a different value must diverge in observable behavior");
+        assert_ne!(
+            f, h,
+            "appending a different value must diverge in observable behavior"
+        );
     }
 }

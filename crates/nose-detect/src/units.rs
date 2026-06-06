@@ -1855,11 +1855,7 @@ fn collect_exact_statement_fragment_units(
     }
 }
 
-fn push_or_upgrade_exact_fragment_root(
-    out: &mut Vec<UnitRoot>,
-    root: NodeId,
-    kind: FragmentKind,
-) {
+fn push_or_upgrade_exact_fragment_root(out: &mut Vec<UnitRoot>, root: NodeId, kind: FragmentKind) {
     if let Some(existing) = out.iter_mut().find(|candidate| candidate.root == root) {
         existing.fragment_kind = Some(kind);
     } else {
@@ -1907,8 +1903,9 @@ pub(crate) fn exact_statement_fragment_root(
         }
         NodeKind::If => exact_conditional_fragment_root(il, interner, node)
             .then_some(FragmentKind::ConditionalGuard),
-        NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, node)
-            .then_some(FragmentKind::LoopEffect),
+        NodeKind::Loop => {
+            exact_loop_effect_fragment_root(il, interner, node).then_some(FragmentKind::LoopEffect)
+        }
         _ => None,
     }
 }
