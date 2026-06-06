@@ -807,6 +807,47 @@
         "conclusion": "The literal-Hash batch is sound and intact. The custom-receiver real frontier stays unsupported (no receiver provenance for cookies/static_register/req.headers/Rails.cache)."
       },
       "notes": "Selected after the user raised Java-skew concerns. This is a non-Java soundness/completeness micro-batch, but the real custom-receiver frontier remains unsupported until receiver provenance facts exist. Re-verified 2026-06-06: literal-Hash convergence holds and all five hard-negative classes stay distinct; a function-local immutable Hash binding receiver is recorded as a sound deferred lead (see reverify.deferred_sound_lead)."
+    },
+    {
+      "case_id": "numeric-clamp-minmax-ternary-real-miss",
+      "status": "real-miss",
+      "candidate_axis": "numeric_clamp / clamp_minmax_composition",
+      "repo": "boltons",
+      "language": "python",
+      "locations": [
+        {
+          "path": "boltons/mathutils.py",
+          "span": "40-69",
+          "snippet": "def clamp(x, lower, upper): if upper < lower: raise ValueError; return min(max(x, lower), upper)"
+        },
+        {
+          "path": "src/util/util.go",
+          "span": "63-65",
+          "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }  -- fzf (heldout, go): the max(min) canonical form"
+        }
+      ],
+      "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
+      "evidence": "formal/Clamp.lean machine-checks the identity and its hard negatives (self-contained Lean 4, no Mathlib). A 196-case integer battery confirms min(max)==max(min)==ternary for every lo<=hi. A controlled semantic scan shows the abs idiom DOES merge (absTern/absBuilt, 1 family) while the clamp idiom does NOT (clampTern/clampBuilt, 0 clamp family); boltons `clamp` and fzf `Constrain` do not merge across files. The idiom appears in 26 repos across all 7 primary languages on both splits (frontier_platform breadth).",
+      "detector": {
+        "current_detector_miss": true,
+        "binary_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/target/release/nose",
+        "nose_version": "nose 0.5.0",
+        "build_ref": "c941c4094b608335f8b378224a17cea63ad84640",
+        "baseline_command": "nose scan <two-form file with abs control + clamp> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
+        "baseline_result": "abs control merges (1 family: absTern, absBuilt); the clamp forms (clampTern, clampBuilt) are NOT merged.",
+        "semantic_scan_result": "nose scan boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic --format json --top 0 --min-size 1 --min-lines 1: the clamp pair is not merged across files.",
+        "default_scan_result": "Cross-language pair; the value graph does not canonicalize clamp, so syntax/semantic default does not merge them either."
+      },
+      "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/Clamp.lean.",
+      "hard_negative_siblings": [
+        "swapped bound order min(max(x, hi), lo) -- Clamp.lean swapped_bounds_not_clamp",
+        "wrong nesting max(min(x, lo), hi) -- Clamp.lean wrong_nesting_not_clamp",
+        "lo > hi precondition violation: the two compositions diverge -- Clamp.lean precondition_required",
+        "float NaN inputs where min/max builtins and comparison chains can return different values depending on language NaN semantics"
+      ],
+      "batch": null,
+      "reverify": "Re-run the controlled abs-vs-clamp semantic scan and the boltons/fzf cross-file scan; re-check formal/Clamp.lean type-checks. Reclassify if a future value-graph clamp canonicalization lands (then status -> closed).",
+      "notes": "Issue #50 Team B target packet evidence (linked by frontier_target_packets). A real, machine-checked semantic under-merge; owner route team-a-detector (#49) as a value-graph clamp canonicalization, not blocked (composes already-proven scalar min/max facts)."
     }
   ]
 }

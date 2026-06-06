@@ -797,6 +797,163 @@
     },
     {
       "breadth": {
+        "dev_breadth": 0.2414,
+        "dev_presence": 14,
+        "gap_repo_presence": 0,
+        "generalization": "both-splits",
+        "heldout_breadth": 0.2553,
+        "heldout_presence": 12,
+        "primary_language_breadth": 1.0,
+        "primary_language_presence": 7,
+        "primary_languages": [
+          "C",
+          "Go",
+          "Java",
+          "Python",
+          "Ruby",
+          "Rust",
+          "TypeScript"
+        ],
+        "raw_occurrences": 161,
+        "repo_breadth": 0.2476,
+        "repo_presence": 26,
+        "source_language_breadth": 1.0,
+        "source_language_presence": 8,
+        "source_languages": [
+          "c",
+          "go",
+          "java",
+          "javascript",
+          "python",
+          "ruby",
+          "rust",
+          "typescript"
+        ]
+      },
+      "candidate_id": "numeric_clamp",
+      "curated": {
+        "implementation_cost": "medium",
+        "rationale": "A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/Clamp.lean).",
+        "soundness_risk": "medium",
+        "substrate_required": "none"
+      },
+      "detector_suggested": null,
+      "evidence_tier": "frontier-recorded",
+      "gap_samples": [],
+      "human_evidence": {
+        "count": 1,
+        "records": [
+          {
+            "candidate_axis": "numeric_clamp / clamp_minmax_composition",
+            "case_id": "numeric-clamp-minmax-ternary-real-miss",
+            "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/Clamp.lean.",
+            "status": "real-miss"
+          }
+        ],
+        "statuses": [
+          "real-miss"
+        ]
+      },
+      "presence_rank": 6,
+      "prioritizer_status": "open",
+      "recommendation_category": "all-language",
+      "routing": {
+        "issue_37_subset_repos": [
+          "alacritty",
+          "boltons",
+          "click",
+          "delve",
+          "fastlane",
+          "fzf",
+          "graphhopper",
+          "guava",
+          "image",
+          "libgdx",
+          "liquid",
+          "meilisearch"
+        ],
+        "issue_43_substrate_target": false,
+        "issue_45_product_noise": false
+      },
+      "samples": [
+        {
+          "language": "rust",
+          "line": 166,
+          "path": "alacritty_terminal/src/grid/mod.rs",
+          "pattern_id": "rust_clamp_nested",
+          "repo": "alacritty",
+          "snippet": "min(max((self.display_offset as i32) + count, 0) as usize, self.history_size())",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 604,
+          "path": "alacritty/src/config/ui_config.rs",
+          "pattern_id": "rust_clamp_method",
+          "repo": "alacritty",
+          "snippet": "Percentage(value.clamp(0., 1.))",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 468,
+          "path": "alacritty/src/input/mod.rs",
+          "pattern_id": "rust_clamp_method",
+          "repo": "alacritty",
+          "snippet": "let x = x.clamp(0, size_info.width() as i32 - 1) as usize;",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 469,
+          "path": "alacritty/src/input/mod.rs",
+          "pattern_id": "rust_clamp_method",
+          "repo": "alacritty",
+          "snippet": "let y = y.clamp(0, size_info.height() as i32 - 1) as usize;",
+          "split": "dev"
+        },
+        {
+          "language": "rust",
+          "line": 130,
+          "path": "alacritty/src/display/damage.rs",
+          "pattern_id": "rust_clamp_method",
+          "repo": "alacritty",
+          "snippet": "let end = (selection.end.line.0 + display_offset).clamp(0, last_visible_line) as usize;",
+          "split": "dev"
+        },
+        {
+          "language": "python",
+          "line": 69,
+          "path": "boltons/mathutils.py",
+          "pattern_id": "py_clamp_nested",
+          "repo": "boltons",
+          "snippet": "return min(max(x, lower), upper)",
+          "split": "heldout"
+        },
+        {
+          "language": "python",
+          "line": 141,
+          "path": "src/click/formatting.py",
+          "pattern_id": "py_clamp_nested",
+          "repo": "click",
+          "snippet": "width = max(min(shutil.get_terminal_size().columns, max_width) - 2, 50)",
+          "split": "dev"
+        },
+        {
+          "language": "go",
+          "line": 3674,
+          "path": "service/dap/server.go",
+          "pattern_id": "go_clamp_nested",
+          "repo": "delve",
+          "snippet": "startRead := min(max(int64(args.Offset), 0), ref.size)",
+          "split": "dev"
+        }
+      ],
+      "scope": "all-language",
+      "title": "Scalar clamp (bounded min/max composition)"
+    },
+    {
+      "breadth": {
         "dev_breadth": 0.2586,
         "dev_presence": 15,
         "gap_repo_presence": 0,
@@ -838,7 +995,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 6,
+      "presence_rank": 7,
       "prioritizer_status": "covered-current",
       "recommendation_category": "language-family",
       "routing": {
@@ -979,7 +1136,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 7,
+      "presence_rank": 8,
       "prioritizer_status": "covered-current",
       "recommendation_category": "language-family",
       "routing": {
@@ -1114,7 +1271,7 @@
         "records": [],
         "statuses": []
       },
-      "presence_rank": 8,
+      "presence_rank": 9,
       "prioritizer_status": "covered-current",
       "recommendation_category": "all-language",
       "routing": {
@@ -1214,11 +1371,11 @@
     }
   ],
   "identity": {
-    "build_ref": "cb265958afcfa0319059905e4e7f7eec9fa71df6",
+    "build_ref": "c941c4094b608335f8b378224a17cea63ad84640",
     "candidate_signature": "86f9f9b8fae022499af23274e5f248d0eed707d916d6fd1ade6ae7a0aa773a35",
     "corpus": {
       "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
-      "corpus_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-44-frontier-platform/bench/goldens/corpus.json",
+      "corpus_path": "/Users/ak/prjs/cc/nose/.claude/worktrees/issue-50-frontier-target-packets/bench/goldens/corpus.json",
       "corpus_schema_version": "0.1.0",
       "repo_count": 105
     },
@@ -1249,7 +1406,19 @@
       "dev": 58,
       "heldout": 47
     },
-    "tool_version": "frontier-platform/1"
+    "tool_version": "frontier-platform/1",
+    "union_axes": [
+      "collection_empty_check",
+      "map_default_lookup",
+      "membership_contains",
+      "null_option_presence",
+      "numeric_clamp",
+      "numeric_minmax_abs",
+      "own_property_guard",
+      "property_type_guard",
+      "string_prefix_suffix"
+    ],
+    "union_signature": "35fa3e15355ae0691ad39f36815c680b6161caea7ff81a750a899574dd5cc598"
   },
   "primary_languages": [
     "C",

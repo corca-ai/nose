@@ -778,6 +778,200 @@ def build(
 
 
 # ---------------------------------------------------------------------------
+# Target packets (issue #50): implementation-ready selections that LINK human-verified
+# `real_frontier.v1.json` evidence and add routing. Kept in a separate artifact from the
+# evidence store (decision 2). owner_route is team-based, never an issue number (decision 3).
+# ---------------------------------------------------------------------------
+OWNER_ROUTE = {"team-a-detector", "team-c-product", "proof-fact-prerequisite"}
+
+# Curated routing/selection only (the human judgment). Evidence fields (semantic_claim,
+# proof_invariant, hard_negative_siblings, detector result) are PULLED from the linked
+# real_frontier record so the evidence store stays the single source of truth.
+TARGET_PACKETS = [
+    {
+        "packet_id": "numeric-clamp-2026-06-06",
+        "candidate_axis": "numeric_clamp",
+        "evidence_case_ids": ["numeric-clamp-minmax-ternary-real-miss"],
+        "owner_route": "team-a-detector",
+        "owner_issue": "#49",
+        "why_now": "A genuine machine-checked semantic under-merge (formal/Clamp.lean) that is "
+        "broad and generalizing — present in all 7 corpus primary languages on both the dev and "
+        "held-out splits — and composes already-proven scalar min/max facts, so the proof "
+        "invariant is narrow. Two real canonical forms (boltons `clamp` = min(max), fzf "
+        "`Constrain` = max(min)) do not converge today.",
+        "blocked_by": [],
+        "notes": "Value-graph clamp canonicalization. NOT proof-fact-prerequisite: the required "
+        "scalar min/max facts already exist (numeric_minmax_abs is covered). Team A owns the "
+        "recognizer/soundness gates; this packet's contract ends at the proof invariant and "
+        "target evidence.",
+        # Representative corpus locations (repo-explicit; split/primary-language enriched below).
+        "locations": [
+            {"repo": "boltons", "path": "boltons/mathutils.py", "span": "40-69",
+             "snippet": "def clamp(x, lower, upper): if upper < lower: raise ValueError; return min(max(x, lower), upper)"},
+            {"repo": "fzf", "path": "src/util/util.go", "span": "63-65",
+             "snippet": "func Constrain[T cmp.Ordered](val, minimum, maximum T) T { return max(min(val, maximum), minimum) }"},
+        ],
+    },
+]
+
+
+def _corpus_repo_meta(corpus_path: Path) -> dict[str, dict]:
+    doc = json.loads(corpus_path.read_text())
+    return {
+        r["id"]: {"split": r.get("split", "unknown"), "primary_language": r.get("primary_language", "")}
+        for r in doc.get("repositories", [])
+    }
+
+
+def build_packets(platform_result: dict, real_frontier: Path, corpus_path: Path) -> dict:
+    """Assemble target packets: curated routing + evidence pulled from linked real_frontier
+    records + platform breadth/evidence_tier/curated. Validates the #50 decision-6 schema,
+    the owner_route enum, and that every linked evidence case_id exists."""
+    rf = json.loads(real_frontier.read_text()) if real_frontier.exists() else {"items": []}
+    by_case = {it["case_id"]: it for it in rf.get("items", [])}
+    by_axis = {c["candidate_id"]: c for c in platform_result["candidates"]}
+    repo_meta = _corpus_repo_meta(corpus_path)
+    union_axes = set(platform_result["identity"]["union_axes"])
+
+    packets = []
+    for spec in TARGET_PACKETS:
+        assert spec["owner_route"] in OWNER_ROUTE, spec["packet_id"]
+        assert spec["candidate_axis"] in union_axes, spec["candidate_axis"]
+        cases = []
+        for cid in spec["evidence_case_ids"]:
+            assert cid in by_case, f"packet {spec['packet_id']} links unknown case_id {cid}"
+            cases.append(by_case[cid])
+        primary = cases[0]  # the primary evidence record
+        axis = by_axis.get(spec["candidate_axis"], {})
+        locations = [
+            {
+                "repo": loc["repo"],
+                "split": repo_meta.get(loc["repo"], {}).get("split", "unknown"),
+                "primary_language": repo_meta.get(loc["repo"], {}).get("primary_language", ""),
+                "path": loc["path"],
+                "span": loc["span"],
+                "snippet": loc["snippet"],
+            }
+            for loc in spec["locations"]
+        ]
+        packets.append(
+            {
+                "packet_id": spec["packet_id"],
+                "candidate_axis": spec["candidate_axis"],
+                # Evidence pulled from the linked record (single source of truth).
+                "semantic_claim": primary["semantic_claim"],
+                "proof_invariant": primary["proof_invariant"],
+                "hard_negative_siblings": primary["hard_negative_siblings"],
+                "current_detector_result": primary["detector"],
+                "locations": locations,
+                # Routing/selection (curated).
+                "owner_route": spec["owner_route"],
+                "owner_issue": spec["owner_issue"],
+                "evidence_case_ids": spec["evidence_case_ids"],
+                "why_now": spec["why_now"],
+                "blocked_by": spec["blocked_by"],
+                "notes": spec["notes"],
+                # Platform context.
+                "breadth": axis.get("breadth"),
+                "evidence_tier": axis.get("evidence_tier"),
+                "curated": axis.get("curated"),
+            }
+        )
+    validate_packets(packets)
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "tool_version": TOOL_VERSION,
+        "identity": {
+            "build_ref": platform_result["identity"]["build_ref"],
+            "union_signature": platform_result["identity"]["union_signature"],
+            "corpus": platform_result["identity"]["corpus"],
+            "real_frontier": str(real_frontier),
+        },
+        "owner_route_vocabulary": sorted(OWNER_ROUTE),
+        "packet_count": len(packets),
+        "packets": packets,
+    }
+
+
+REQUIRED_PACKET_FIELDS = (
+    "packet_id", "candidate_axis", "semantic_claim", "locations",
+    "current_detector_result", "proof_invariant", "hard_negative_siblings",
+    "owner_route", "owner_issue", "evidence_case_ids", "breadth", "evidence_tier",
+    "curated", "why_now", "blocked_by", "notes",
+)
+
+
+def validate_packets(packets: list[dict]) -> None:
+    """Fail loud if any packet is missing a #50 decision-6 field or has an invalid route."""
+    for p in packets:
+        missing = [f for f in REQUIRED_PACKET_FIELDS if f not in p]
+        assert not missing, f"packet {p.get('packet_id')} missing fields: {missing}"
+        assert p["owner_route"] in OWNER_ROUTE
+        assert isinstance(p["evidence_case_ids"], list) and p["evidence_case_ids"]
+        for loc in p["locations"]:
+            for f in ("repo", "split", "primary_language", "path", "span", "snippet"):
+                assert f in loc, f"packet {p['packet_id']} location missing {f}"
+
+
+def packets_markdown(packet_doc: dict) -> str:
+    idy = packet_doc["identity"]
+    lines = [
+        "# Type-4 frontier target packets",
+        "",
+        "Implementation-ready selections from the corpus-balanced frontier evidence platform.",
+        "Each packet LINKS human-verified `real_frontier.v1.json` evidence (it never restates a",
+        "status) and adds team routing. See [frontier-platform](../../docs/frontier-platform.md).",
+        "",
+        f"- build ref: `{idy['build_ref']}` · union signature `{idy['union_signature'][:16]}…`",
+        f"- corpus: {idy['corpus']['repo_count']} repos · commit digest `{idy['corpus']['commit_digest'][:16]}…`",
+        f"- owner routes: {', '.join(packet_doc['owner_route_vocabulary'])}",
+        f"- packets: {packet_doc['packet_count']}",
+        "",
+    ]
+    if not packet_doc["packets"]:
+        lines.append("_No implementation-ready packet this pass — see the platform audit conclusion._")
+        return "\n".join(lines) + "\n"
+    for p in packet_doc["packets"]:
+        b = p["breadth"] or {}
+        lines += [
+            f"## `{p['packet_id']}` — axis `{p['candidate_axis']}`",
+            "",
+            f"- **owner route**: `{p['owner_route']}` ({p['owner_issue']}) · evidence tier: "
+            f"`{p['evidence_tier']}` · cost `{p['curated']['implementation_cost']}` · risk "
+            f"`{p['curated']['soundness_risk']}` · substrate `{p['curated']['substrate_required']}`",
+            f"- **breadth**: repo {b.get('repo_breadth', 0):.0%} · primary-language "
+            f"{b.get('primary_language_breadth', 0):.0%} ({b.get('primary_language_presence', 0)}/"
+            f"{len(b.get('primary_languages', []) or [])}) · dev {b.get('dev_presence', 0)} · "
+            f"held-out {b.get('heldout_presence', 0)} · {b.get('generalization', '?')}",
+            f"- **semantic claim**: {p['semantic_claim']}",
+            f"- **proof invariant**: {p['proof_invariant']}",
+            "- **hard negatives**:",
+        ]
+        lines += [f"  - {h}" for h in p["hard_negative_siblings"]]
+        lines += [
+            f"- **evidence**: {', '.join('`'+c+'`' for c in p['evidence_case_ids'])} "
+            "(`real_frontier.v1.json`)",
+            "- **representative locations**:",
+        ]
+        lines += [
+            f"  - `{loc['repo']}` ({loc['split']}, {loc['primary_language']}) "
+            f"`{loc['path']}:{loc['span']}`"
+            for loc in p["locations"]
+        ]
+        det = p["current_detector_result"]
+        lines += [
+            f"- **current detector result**: miss={det.get('current_detector_miss')} · "
+            f"`{det.get('nose_version')}` @ `{(det.get('build_ref') or '')[:12]}` — "
+            f"{det.get('baseline_result', '')}",
+            f"- **why now**: {p['why_now']}",
+            f"- **blocked by**: {', '.join(p['blocked_by']) if p['blocked_by'] else 'nothing'}",
+            f"- **notes**: {p['notes']}",
+            "",
+        ]
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
 # Markdown report (same data as the JSON).
 # ---------------------------------------------------------------------------
 def markdown_report(result: dict) -> str:
@@ -955,6 +1149,30 @@ def selftest() -> int:
     for key in ("verdict", "summary", "evidence_pointers", "hard_negative_ideas",
                 "what_a_future_batch_would_need"):
         assert AUDIT_CONCLUSION.get(key), key
+
+    # Union staleness guard: the platform must know about exactly the union axis set.
+    validate_union()
+    assert {c.candidate_id for c in fa.EXTRA_CANDIDATES} <= set(EXPECTED_UNION_AXES)
+
+    # Target packets: every curated packet routes validly and links real evidence.
+    for spec in TARGET_PACKETS:
+        assert spec["owner_route"] in OWNER_ROUTE, spec["packet_id"]
+        assert spec["candidate_axis"] in EXPECTED_UNION_AXES, spec["candidate_axis"]
+        assert spec["evidence_case_ids"], spec["packet_id"]
+        for loc in spec["locations"]:
+            assert {"repo", "path", "span", "snippet"} <= set(loc), spec["packet_id"]
+    # The packet output schema validator rejects a missing field.
+    good = {f: "x" for f in REQUIRED_PACKET_FIELDS}
+    good["owner_route"] = "team-a-detector"
+    good["evidence_case_ids"] = ["c"]
+    good["locations"] = [{"repo": "r", "split": "dev", "primary_language": "go",
+                          "path": "p", "span": "1-2", "snippet": "s"}]
+    validate_packets([good])
+    try:
+        validate_packets([{k: v for k, v in good.items() if k != "proof_invariant"}])
+        raise SystemExit("validate_packets failed to catch a missing field")
+    except AssertionError:
+        pass
     print("selftest OK")
     return 0
 
@@ -979,6 +1197,8 @@ def main() -> int:
     ap.add_argument("--build-ref", default=None)
     ap.add_argument("--json-out", type=Path, default=None)
     ap.add_argument("--markdown-out", type=Path, default=None)
+    ap.add_argument("--packets-json-out", type=Path, default=None)
+    ap.add_argument("--packets-md-out", type=Path, default=None)
     args = ap.parse_args()
 
     if args.selftest:
@@ -1004,10 +1224,18 @@ def main() -> int:
     text = json.dumps(result, indent=2, sort_keys=True) + "\n"
     if args.json_out:
         args.json_out.write_text(text)
-    else:
+    elif not args.packets_json_out:
         sys.stdout.write(text)
     if args.markdown_out:
         args.markdown_out.write_text(markdown_report(result))
+
+    if args.packets_json_out or args.packets_md_out:
+        packet_doc = build_packets(result, args.real_frontier, args.corpus)
+        ptext = json.dumps(packet_doc, indent=2, sort_keys=True) + "\n"
+        if args.packets_json_out:
+            args.packets_json_out.write_text(ptext)
+        if args.packets_md_out:
+            args.packets_md_out.write_text(packets_markdown(packet_doc))
     return 0
 
 
