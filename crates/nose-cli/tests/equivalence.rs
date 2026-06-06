@@ -1944,9 +1944,24 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         "function f(xs){ return xs.filter(x => x > 0).map(x => x * 2); }",
         Lang::JavaScript,
     );
+    let filtered_ts = value_fp(
+        &i,
+        "function f(xs: number[]): number[] { return xs.filter((x) => x > 0).map((x) => x * 2); }",
+        Lang::TypeScript,
+    );
     let filter_map_rs = value_fp(
         &i,
         "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let match_option_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| match x { _ if x > 0 => Some(x * 2), _ => None }).collect() }",
+        Lang::Rust,
+    );
+    let and_then_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| Some(x).and_then(|value| if value > 0 { Some(value * 2) } else { None })).collect() }",
         Lang::Rust,
     );
     let guarded_builder_rs = value_fp(
@@ -1969,9 +1984,19 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         "def f(xs):\n    return [0 for x in xs if x > 0]\n",
         Lang::Python,
     );
+    let filtered_none_py = value_fp(
+        &i,
+        "def f(xs):\n    return [None for x in xs if x > 0]\n",
+        Lang::Python,
+    );
     let falsey_rs = value_fp(
         &i,
         "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let wrapped_none_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<Option<i32>> { xs.iter().copied().filter_map(|x| if x > 0 { Some(None) } else { None }).collect() }",
         Lang::Rust,
     );
     let dropped_falsey_rs = value_fp(
@@ -1982,8 +2007,20 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
 
     assert_eq!(filtered_py, filtered_js, "filter+map surfaces should agree");
     assert_eq!(
+        filtered_py, filtered_ts,
+        "TypeScript filter+map surface should agree"
+    );
+    assert_eq!(
         filtered_py, filter_map_rs,
         "Rust filter_map Some/None should become the same filtered-map value"
+    );
+    assert_eq!(
+        filtered_py, match_option_rs,
+        "Rust filter_map match guards should become the same filtered-map value"
+    );
+    assert_eq!(
+        filtered_py, and_then_rs,
+        "Rust filter_map pure Option::and_then chains should become the same filtered-map value"
     );
     assert_eq!(
         filtered_py, guarded_builder_rs,
@@ -2000,6 +2037,14 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
     assert_eq!(
         falsey_py, falsey_rs,
         "Some(0) is an emitted value, not an absence sentinel"
+    );
+    assert_eq!(
+        filtered_none_py, wrapped_none_rs,
+        "Some(None) is an emitted Null payload, not a dropped item"
+    );
+    assert_ne!(
+        filtered_py, wrapped_none_rs,
+        "emitting None payloads must stay distinct from emitting mapped values"
     );
     assert_ne!(
         falsey_rs, dropped_falsey_rs,

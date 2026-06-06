@@ -109,12 +109,14 @@ rule should declare:
 When two cells need the same proof invariant or value-graph representation, extend
 one registry rule instead of adding parallel language-specific exceptions.
 For option-producing iterator rules, record the absence/value boundary explicitly:
-the current oracle `FilterMap` model treats `Null` as absence, propagates `Err`,
-and emits every other value, including falsey values such as `0`. The covered engine
-slice recognizes direct Rust `if p { Some(v) } else { None }` filter-map callbacks and
-guarded `Vec::new()`/`push` builders as filtered maps; mapped `None` payloads, changed
-`Some` values, truthy filtering after `Some(0)`, richer match/and_then shapes, and
-effectful callbacks stay hard-negative or successor work.
+the current oracle `FilterMap` model treats callback-level `Null` as absence,
+propagates `Err`, and emits every other value, including falsey values such as `0`.
+The covered engine slice recognizes direct Rust `if p { Some(v) } else { None }`
+filter-map callbacks, match-guard option callbacks, pure `Some(x).and_then(...)`
+helper chains, and guarded `Vec::new()`/`push` builders as filtered maps; mapped
+`None` payloads, wrapped `Some(None)` emitted payloads, changed `Some` values,
+truthy filtering after `Some(0)`, and effectful callbacks stay hard-negative or
+fail-closed boundaries.
 For Java stream rules, keep the registry scoped to the proven pure subset:
 `Arrays.stream(...).flatMap(...map...)` can share the FlatMap HoF only while
 `map`-returning-stream siblings stay nested and callback effects remain observable
