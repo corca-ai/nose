@@ -946,12 +946,7 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// Build a lambda `λ<pattern>. <Block[Return[body]]>` over a comprehension's
 /// iteration pattern (the `for x in …` target), so the body converges with a JS
 /// `x => body` arrow.
-fn comp_lambda(
-    lo: &mut Lowering,
-    pattern: Option<TsNode>,
-    body: NodeId,
-    bspan: Span,
-) -> NodeId {
+fn comp_lambda(lo: &mut Lowering, pattern: Option<TsNode>, body: NodeId, bspan: Span) -> NodeId {
     let mut kids = Vec::new();
     if let Some(p) = pattern {
         push_pattern_params(lo, p, &mut kids);
@@ -1431,5 +1426,3 @@ mod tests {
         );
     }
 }
-
-
