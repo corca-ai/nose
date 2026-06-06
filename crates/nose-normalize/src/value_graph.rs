@@ -316,6 +316,11 @@ struct Builder<'a> {
     /// so `if c {return A} else {return B}` and the branch-swapped `if c {return B}
     /// else {return A}` produce *different* fingerprints (path-sensitive returns).
     path: Vec<ValueId>,
+    /// Active facts of the form `lo <= hi` established by dominating guard clauses.
+    /// These are scoped like `path`: a fact learned from `if hi < lo { throw ... }`
+    /// applies only to the fallthrough suffix of that block, and is truncated when the
+    /// block returns to its caller. Literal integer bounds are proved on demand instead.
+    bound_order_facts: Vec<(ValueId, ValueId)>,
     /// Ordered statement-effect slot for the current control-flow path. Alternative
     /// `if` branches start from the same slot, then join at the max consumed slot, so
     /// branch-source order does not matter while sequential effects still do.
@@ -345,6 +350,11 @@ struct Builder<'a> {
     /// fires where the value graph actually used the contract (it cannot mask a non-contract
     /// false merge). Sorted+deduped on read for determinism.
     contracts: Vec<(u32, u32)>,
+    /// Internal proof-fact probe for the future clamp canonicalization rule. It deliberately
+    /// does not alter fingerprints today: it only records whether a min/max clamp-shaped
+    /// return had the bound-order and integer-domain facts that a later rule must require.
+    clamp_candidate_count: usize,
+    clamp_proof_backed_candidate_count: usize,
 }
 
 #[derive(Clone)]
@@ -384,12 +394,15 @@ impl<'a> Builder<'a> {
             param_ty: Vec::new(),
             param_semantic: FxHashMap::default(),
             path: Vec::new(),
+            bound_order_facts: Vec::new(),
             effect_slot: 0,
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
             loop_recurrence: None,
             next_loop_key_base: 0,
             contracts: Vec::new(),
+            clamp_candidate_count: 0,
+            clamp_proof_backed_candidate_count: 0,
         }
     }
 
@@ -641,7 +654,7 @@ impl<'a> Builder<'a> {
     fn is_number_param_expr(&self, expr: NodeId) -> bool {
         matches!(
             self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Number)
+            Some(ParamSemantic::Integer | ParamSemantic::Number)
         )
     }
 
@@ -1558,8 +1571,19 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+        self.record_clamp_candidate_proof(v);
         let g = self.guarded(v);
         self.sinks.push(Sink::new(SinkKind::Return, g));
+    }
+
+    fn record_clamp_candidate_proof(&mut self, value: ValueId) {
+        if self.clamp_minmax_candidates(value).is_empty() {
+            return;
+        }
+        self.clamp_candidate_count += 1;
+        if self.has_clamp_candidate_proofs(value) {
+            self.clamp_proof_backed_candidate_count += 1;
+        }
     }
 
     fn guarded(&mut self, v: ValueId) -> ValueId {
@@ -2026,7 +2050,10 @@ impl<'a> Builder<'a> {
                 for &k in &kids {
                     if self.il.kind(k) == NodeKind::Param {
                         if let Payload::Cid(c) = self.il.node(k).payload {
-                            if matches!(self.param_semantic.get(&c), Some(ParamSemantic::Number)) {
+                            if matches!(
+                                self.param_semantic.get(&c),
+                                Some(ParamSemantic::Integer | ParamSemantic::Number)
+                            ) {
                                 let pos_idx = pos as usize;
                                 if self.param_ty.len() <= pos_idx {
                                     self.param_ty.resize(pos_idx + 1, Ty::Unknown);
@@ -2784,6 +2811,7 @@ impl<'a> Builder<'a> {
 
     fn process_block(&mut self, block: NodeId, env: &mut FxHashMap<u32, ValueId>) {
         let path_base = self.path.len();
+        let bound_order_base = self.bound_order_facts.len();
         for s in self.il.children(block).to_vec() {
             self.process_stmt(s, env);
             // GUARD-CLAUSE normalization: an `if c { …terminates… }` with no else means
@@ -2793,6 +2821,7 @@ impl<'a> Builder<'a> {
             // {return b}`) — converging the two writings of the same function (e.g. sympy
             // `symmetric_residue` vs `gf_int`). Cascades for stacked guards.
             if let Some(ncond) = self.guard_clause_negation(s, env) {
+                self.record_bound_order_fact(ncond);
                 self.path.push(ncond);
                 continue;
             }
@@ -2808,6 +2837,7 @@ impl<'a> Builder<'a> {
                 break;
             }
         }
+        self.bound_order_facts.truncate(bound_order_base);
         self.path.truncate(path_base);
     }
 
@@ -2828,6 +2858,86 @@ impl<'a> Builder<'a> {
         }
         let cond = self.eval(kids[0], env);
         Some(self.mk(ValOp::Un(Op::Not as u32), vec![cond]))
+    }
+
+    fn record_bound_order_fact(&mut self, cond: ValueId) {
+        if let Some((lo, hi)) = self.bound_order_from_condition(cond) {
+            self.bound_order_facts.push((lo, hi));
+        }
+    }
+
+    fn bound_order_from_condition(&self, cond: ValueId) -> Option<(ValueId, ValueId)> {
+        match &self.nodes[cond as usize] {
+            ValNode {
+                op: ValOp::Bin(op),
+                args,
+            } if *op == Op::Le as u32 && args.len() == 2 => Some((args[0], args[1])),
+            _ => None,
+        }
+    }
+
+    fn has_bound_order_fact(&self, lo: ValueId, hi: ValueId) -> bool {
+        if let (Some(lo_value), Some(hi_value)) =
+            (self.int_const_value(lo), self.int_const_value(hi))
+        {
+            return lo_value <= hi_value;
+        }
+        self.bound_order_facts
+            .iter()
+            .any(|&(fact_lo, fact_hi)| fact_lo == lo && fact_hi == hi)
+    }
+
+    fn is_integer_param_value(&self, value: ValueId) -> bool {
+        let ValOp::Input(cid) = self.nodes[value as usize].op else {
+            return false;
+        };
+        matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Integer))
+    }
+
+    fn is_safe_clamp_integer_value(&self, value: ValueId) -> bool {
+        self.int_const_value(value).is_some() || self.is_integer_param_value(value)
+    }
+
+    fn has_clamp_candidate_proofs(&self, value: ValueId) -> bool {
+        self.clamp_minmax_candidates(value)
+            .into_iter()
+            .any(|(x, lo, hi)| {
+                self.is_safe_clamp_integer_value(x)
+                    && self.is_safe_clamp_integer_value(lo)
+                    && self.is_safe_clamp_integer_value(hi)
+                    && self.has_bound_order_fact(lo, hi)
+            })
+    }
+
+    fn clamp_minmax_candidates(&self, value: ValueId) -> Vec<(ValueId, ValueId, ValueId)> {
+        let mut out = Vec::new();
+        if let Some((outer_a, outer_b)) = self.bin_args(value, MIN_CODE) {
+            for (inner, hi) in [(outer_a, outer_b), (outer_b, outer_a)] {
+                if let Some((inner_a, inner_b)) = self.bin_args(inner, MAX_CODE) {
+                    out.push((inner_a, inner_b, hi));
+                    out.push((inner_b, inner_a, hi));
+                }
+            }
+        }
+        if let Some((outer_a, outer_b)) = self.bin_args(value, MAX_CODE) {
+            for (inner, lo) in [(outer_a, outer_b), (outer_b, outer_a)] {
+                if let Some((inner_a, inner_b)) = self.bin_args(inner, MIN_CODE) {
+                    out.push((inner_a, lo, inner_b));
+                    out.push((inner_b, lo, inner_a));
+                }
+            }
+        }
+        out
+    }
+
+    fn bin_args(&self, value: ValueId, want: u32) -> Option<(ValueId, ValueId)> {
+        match &self.nodes[value as usize] {
+            ValNode {
+                op: ValOp::Bin(op),
+                args,
+            } if *op == want && args.len() == 2 => Some((args[0], args[1])),
+            _ => None,
+        }
     }
 
     /// Does this branch unconditionally exit its enclosing block (return / throw / break /
@@ -6583,4 +6693,213 @@ fn stable_string_const_key(value: &str) -> u32 {
 fn stable_float_const_key(value: &str) -> u32 {
     let normalized = value.trim().trim_end_matches(['f', 'F', 'd', 'D']);
     0x4000_0000u32.wrapping_add(stable_symbol_hash(normalized) as u32)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, ParamTypeFact, Span, Unit, UnitKind};
+
+    fn sp(line: u32) -> Span {
+        Span::new(FileId(0), line, line, line, line)
+    }
+
+    #[derive(Clone, Copy)]
+    enum ClampShape {
+        MinMax,
+        SwappedBounds,
+        WrongNesting,
+    }
+
+    #[derive(Clone, Copy)]
+    enum GuardShape {
+        None,
+        Exiting,
+        NonExiting,
+    }
+
+    fn param(b: &mut IlBuilder, cid: u32, line: u32) -> NodeId {
+        b.add(NodeKind::Param, Payload::Cid(cid), sp(line), &[])
+    }
+
+    fn var(b: &mut IlBuilder, cid: u32) -> NodeId {
+        b.add(NodeKind::Var, Payload::Cid(cid), sp(10 + cid), &[])
+    }
+
+    fn int_lit(b: &mut IlBuilder, value: i64) -> NodeId {
+        b.add(NodeKind::Lit, Payload::LitInt(value), sp(20), &[])
+    }
+
+    fn builtin(b: &mut IlBuilder, op: Builtin, args: &[NodeId]) -> NodeId {
+        b.add(NodeKind::Call, Payload::Builtin(op), sp(30), args)
+    }
+
+    fn clamp_expr(
+        b: &mut IlBuilder,
+        shape: ClampShape,
+        x: NodeId,
+        lo: NodeId,
+        hi: NodeId,
+    ) -> NodeId {
+        match shape {
+            ClampShape::MinMax => {
+                let inner = builtin(b, Builtin::Max, &[x, lo]);
+                builtin(b, Builtin::Min, &[inner, hi])
+            }
+            ClampShape::SwappedBounds => {
+                let inner = builtin(b, Builtin::Max, &[x, hi]);
+                builtin(b, Builtin::Min, &[inner, lo])
+            }
+            ClampShape::WrongNesting => {
+                let inner = builtin(b, Builtin::Min, &[x, lo]);
+                builtin(b, Builtin::Max, &[inner, hi])
+            }
+        }
+    }
+
+    fn guarded_function(
+        guard: GuardShape,
+        shape: ClampShape,
+        semantics: [Option<ParamSemantic>; 3],
+    ) -> (usize, usize) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let px = param(&mut b, 0, 1);
+        let plo = param(&mut b, 1, 2);
+        let phi = param(&mut b, 2, 3);
+        let mut stmts = Vec::new();
+        if !matches!(guard, GuardShape::None) {
+            let hi_guard = var(&mut b, 2);
+            let lo_guard = var(&mut b, 1);
+            let cond = b.add(
+                NodeKind::BinOp,
+                Payload::Op(Op::Lt),
+                sp(4),
+                &[hi_guard, lo_guard],
+            );
+            let then_stmt = match guard {
+                GuardShape::Exiting => {
+                    let err = int_lit(&mut b, 0);
+                    b.add(NodeKind::Throw, Payload::None, sp(5), &[err])
+                }
+                GuardShape::NonExiting => {
+                    let err = int_lit(&mut b, 0);
+                    b.add(NodeKind::ExprStmt, Payload::None, sp(5), &[err])
+                }
+                GuardShape::None => unreachable!(),
+            };
+            let then_block = b.add(NodeKind::Block, Payload::None, sp(5), &[then_stmt]);
+            stmts.push(b.add(NodeKind::If, Payload::None, sp(4), &[cond, then_block]));
+        }
+        let x = var(&mut b, 0);
+        let lo = var(&mut b, 1);
+        let hi = var(&mut b, 2);
+        let expr = clamp_expr(&mut b, shape, x, lo, hi);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(6), &[expr]);
+        stmts.push(ret);
+        let body = b.add(NodeKind::Block, Payload::None, sp(4), &stmts);
+        let func = b.add(NodeKind::Func, Payload::None, sp(1), &[px, plo, phi, body]);
+        let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
+        let mut il = b.finish(
+            module,
+            FileMeta {
+                path: "t.java".to_string(),
+                lang: Lang::Java,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Function,
+                name: None,
+            }],
+            Vec::new(),
+        );
+        for (idx, semantic) in semantics.into_iter().enumerate() {
+            if let Some(semantic) = semantic {
+                il.param_type_facts.push(ParamTypeFact {
+                    span: sp(idx as u32 + 1),
+                    semantic,
+                });
+            }
+        }
+        let mut builder = Builder::new(&il, &interner);
+        builder.build_unit(func);
+        (
+            builder.clamp_candidate_count,
+            builder.clamp_proof_backed_candidate_count,
+        )
+    }
+
+    fn literal_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (usize, usize) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let x = int_lit(&mut b, 5);
+        let lo = int_lit(&mut b, lo_value);
+        let hi = int_lit(&mut b, hi_value);
+        let expr = clamp_expr(&mut b, shape, x, lo, hi);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(1), &[expr]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(1), &[ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp(1), &[body]);
+        let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
+        let il = b.finish(
+            module,
+            FileMeta {
+                path: "t.java".to_string(),
+                lang: Lang::Java,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Function,
+                name: None,
+            }],
+            Vec::new(),
+        );
+        let mut builder = Builder::new(&il, &interner);
+        builder.build_unit(func);
+        (
+            builder.clamp_candidate_count,
+            builder.clamp_proof_backed_candidate_count,
+        )
+    }
+
+    #[test]
+    fn clamp_literal_bound_order_is_proof_backed_only_when_ordered() {
+        assert_eq!(literal_function(ClampShape::MinMax, 1, 10), (1, 1));
+        assert_eq!(literal_function(ClampShape::MinMax, 10, 1), (1, 0));
+    }
+
+    #[test]
+    fn clamp_guarded_bound_order_requires_exiting_inverse_guard() {
+        let integer = Some(ParamSemantic::Integer);
+        assert_eq!(
+            guarded_function(GuardShape::Exiting, ClampShape::MinMax, [integer; 3]),
+            (1, 1)
+        );
+        assert_eq!(
+            guarded_function(GuardShape::NonExiting, ClampShape::MinMax, [integer; 3]),
+            (1, 0)
+        );
+        assert_eq!(
+            guarded_function(GuardShape::None, ClampShape::MinMax, [integer; 3]),
+            (1, 0)
+        );
+    }
+
+    #[test]
+    fn clamp_proof_rejects_floatish_number_and_wrong_shapes() {
+        let integer = Some(ParamSemantic::Integer);
+        let number = Some(ParamSemantic::Number);
+        assert_eq!(
+            guarded_function(GuardShape::Exiting, ClampShape::MinMax, [number; 3]),
+            (1, 0),
+            "float-sensitive Number params need a separate NaN/domain proof"
+        );
+        assert_eq!(
+            guarded_function(GuardShape::Exiting, ClampShape::SwappedBounds, [integer; 3]),
+            (1, 0)
+        );
+        assert_eq!(
+            guarded_function(GuardShape::Exiting, ClampShape::WrongNesting, [integer; 3]),
+            (1, 0)
+        );
+    }
 }

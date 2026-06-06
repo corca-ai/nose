@@ -249,6 +249,21 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
   source-proves `lower <= upper` via an explicit guard — the narrow slice such a proof fact
   would target.
 
+## Numeric Clamp Proof Fact Prerequisite (issue #58)
+
+Added the prerequisite only, not clamp canonicalization:
+
+- The frontend now distinguishes integer parameter facts from float-sensitive `Number`.
+- The value graph records active `lo <= hi` facts from exact integer literal bounds and
+  dominating inverse guard clauses whose failing branch exits.
+- Future clamp canonicalization can query only integer-domain, bound-proven min/max clamp
+  candidates.
+- Hard negatives remain unbacked: swapped bounds, wrong nesting, missing or non-exiting
+  guards, float/`Number`/NaN-sensitive domains, and name-only evidence.
+
+The `numeric_clamp` packet therefore remains an implementation follow-up. This change makes a
+narrow proof-backed slice visible internally without merging clamp forms.
+
 ## Contract-Migration Expansion (issue #55)
 
 The first detector-expanding step after `LoopEffect`, `SelfFieldBody`, and
