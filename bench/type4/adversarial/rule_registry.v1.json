@@ -36,8 +36,8 @@
       "summary": "Canonicalize option-producing filter-map forms to a shared representation.",
       "implementation": ["crates/nose-normalize/src/idioms.rs", "crates/nose-normalize/src/value_graph.rs"],
       "positive_cases": ["filter_map_filter_map_equiv"],
-      "hard_negatives": ["filter_map_none_boundary", "filter_map_value_change"],
-      "boundaries": ["Must distinguish dropped None values from mapped Some values.", "Do not assume arbitrary callbacks are pure."],
+      "hard_negatives": ["filter_map_none_boundary", "filter_map_value_change", "filter_map_falsey_value_boundary"],
+      "boundaries": ["Must distinguish dropped None values from mapped Some values.", "Falsey emitted values such as 0 must not be treated as absence.", "Do not assume arbitrary callbacks are pure."],
       "docs": ["docs/type4-adversarial-coverage.md"]
     },
     {
@@ -76,13 +76,13 @@
     {
       "id": "oracle.option_iterator",
       "kind": "oracle",
-      "status": "proposed",
-      "summary": "Interpreter support for option-producing iterator adapters used by filter_map-like idioms.",
-      "implementation": ["crates/nose-normalize/src/interp.rs"],
-      "positive_cases": ["filter_map_filter_map_equiv"],
-      "hard_negatives": ["filter_map_none_boundary"],
-      "boundaries": ["Must preserve Err/None/Some distinctions."],
-      "docs": ["docs/type4-adversarial-coverage.md"]
+      "status": "landed",
+      "summary": "Interpreter executes FilterMap-style HoF nodes: Err propagates, Null drops an item, and every other value is emitted.",
+      "implementation": ["crates/nose-il/src/node.rs", "crates/nose-normalize/src/interp.rs"],
+      "positive_cases": ["hof_error_propagation", "filter_map_filter_map_equiv"],
+      "hard_negatives": ["filter_map_none_boundary", "filter_map_falsey_value_boundary", "hof_effectful_lambda"],
+      "boundaries": ["Null is the current absence sentinel; wrapped Some(None)-style payloads remain outside the modeled subset.", "Must preserve Err/Null/value distinctions before any engine filter_map canon is accepted."],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
     },
     {
       "id": "numeric.clamp_composition",

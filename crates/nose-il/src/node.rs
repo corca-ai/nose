@@ -295,6 +295,9 @@ pub enum HoFKind {
     Filter,
     Reduce,
     FlatMap,
+    /// Option/null-producing map: `Null` drops the item, `Err` propagates, every
+    /// other value is emitted.
+    FilterMap,
 }
 
 /// One IL node. Children are stored out-of-line in [`crate::Il::edges`] as a

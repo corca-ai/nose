@@ -53,6 +53,14 @@
       "evidence": "Required value-boundary sibling."
     },
     {
+      "id": "filter_map_falsey_value_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "hof.filter_map",
+      "claim": "filter_map keeps falsey Some-like values; only Null/None absence drops an item.",
+      "mutation": "coerce the callback result through truthiness before deciding whether to emit it",
+      "evidence": "Interpreter FilterMap tests keep Int(0) while dropping Null."
+    },
+    {
       "id": "sum_flat_map_nested_loop",
       "kind": "positive",
       "semantic_family": "hof.flat_map",
@@ -146,10 +154,14 @@
     },
     {
       "id": "hof_error_propagation",
-      "kind": "oracle-gap",
+      "kind": "positive",
       "semantic_family": "oracle",
       "claim": "HoF oracle behavior must preserve lambda error propagation and empty-collection behavior.",
-      "evidence": "FlatMap has interpreter tests; future HoF adapters need the same coverage."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_oracle/hof_error.py",
+        "bench/type4/adversarial/cases/hof_oracle/hof_error.js"
+      ],
+      "evidence": "Interpreter tests cover Map/Filter/FlatMap/FilterMap lambda errors, empty collections, and FilterMap capture/null behavior; the focused HoF oracle corpus verifies with zero false merges."
     },
     {
       "id": "hof_non_list_flat_map",
@@ -157,7 +169,10 @@
       "semantic_family": "oracle",
       "claim": "FlatMap callback results must be lists; non-list callback results are Err in the oracle.",
       "mutation": "callback returns scalar",
-      "evidence": "Boundary for FlatMap interpreter support."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_oracle/hof_error.js"
+      ],
+      "evidence": "Interpreter tests assert scalar FlatMap lambda results are Err; the focused corpus carries a scalar flatMap fixture."
     },
     {
       "id": "hof_effectful_lambda",
@@ -165,7 +180,7 @@
       "semantic_family": "oracle",
       "claim": "Effectful callbacks cannot be folded into pure value-graph HoF facts without effect modeling.",
       "mutation": "callback emits or mutates",
-      "evidence": "General HoF purity boundary."
+      "evidence": "Interpreter tests assert FilterMap callback print effects remain observable and ordered."
     },
     {
       "id": "deep_hof_chain_budget",

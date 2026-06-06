@@ -108,6 +108,9 @@ rule should declare:
 
 When two cells need the same proof invariant or value-graph representation, extend
 one registry rule instead of adding parallel language-specific exceptions.
+For option-producing iterator rules, record the absence/value boundary explicitly:
+the current oracle `FilterMap` model treats `Null` as absence, propagates `Err`,
+and emits every other value, including falsey values such as `0`.
 
 ## Adversarial Cases
 
@@ -120,6 +123,7 @@ attack exactly the proof invariant a rule needs:
 - changed predicate or mapped value;
 - wrong collection/key/default coordinate;
 - missing type/provenance/order proof;
+- filter-map absence vs emitted falsey value;
 - effectful callback where a pure HoF rule would be unsound;
 - representation growth that makes a coverage win too expensive.
 
