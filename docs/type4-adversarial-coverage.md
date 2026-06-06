@@ -115,6 +115,9 @@ For Java stream rules, keep the registry scoped to the proven pure subset:
 `Arrays.stream(...).flatMap(...map...)` can share the FlatMap HoF only while
 `map`-returning-stream siblings stay nested and callback effects remain observable
 oracle evidence instead of purity assumptions.
+For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
+name-only lower/upper conventions, non-exiting checks, swapped bounds, and float
+domains must stay hard negatives.
 
 ## Adversarial Cases
 

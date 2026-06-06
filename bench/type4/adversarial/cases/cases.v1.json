@@ -119,7 +119,8 @@
       "kind": "positive",
       "semantic_family": "numeric.clamp",
       "claim": "Clamp-shaped min/max compositions converge when numeric lo<=hi is proven.",
-      "evidence": "Frontier platform records numeric_clamp as a real miss; proof facts are partial."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py"],
+      "evidence": "Proof-backed integer min/max compositions now converge through Clamp when an exiting inverse guard or ordered literal bounds prove lo<=hi. Focused smoke: numeric_clamp positive recall 1/1."
     },
     {
       "id": "clamp_unordered_bounds",
@@ -127,7 +128,8 @@
       "semantic_family": "numeric.clamp",
       "claim": "Clamp composition is not sound when lo<=hi is not proven.",
       "mutation": "remove or invert the bound-order proof",
-      "evidence": "Required for any clamp canon."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py"],
+      "evidence": "Focused tests reject missing and non-exiting guards, swapped bounds, and wrong nesting; numeric_clamp smoke reports 0/4 hard-negative false merges."
     },
     {
       "id": "clamp_float_nan_boundary",
@@ -135,7 +137,22 @@
       "semantic_family": "numeric.clamp",
       "claim": "Floating-point NaN/min/max behavior is not covered by integer clamp facts.",
       "mutation": "numeric domain becomes floatish",
-      "evidence": "Boundary recorded in normalization docs and clamp proof-fact tests."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py"],
+      "evidence": "Float-annotated clamp min/max compositions remain outside the integer Clamp canon; numeric_clamp smoke includes a float boundary hard negative."
+    },
+    {
+      "id": "clamp_ternary_minmax_bridge",
+      "kind": "positive",
+      "semantic_family": "numeric.clamp",
+      "claim": "A two-comparison clamp can converge with proof-backed min/max clamp composition under the same integer lo<=hi proof.",
+      "evidence": "Successor candidate; the min/max Clamp value is landed, but two-comparison return/path handling still needs focused source fixtures."
+    },
+    {
+      "id": "clamp_library_method_bridge",
+      "kind": "positive",
+      "semantic_family": "numeric.clamp",
+      "claim": "Language library clamp forms can converge with proof-backed min/max clamp composition when the same integer bound proof is available.",
+      "evidence": "Successor candidate for Rust/Ruby/library clamp surfaces; method names alone are not proof of bound order or numeric domain."
     },
     {
       "id": "map_default_imported_literal",

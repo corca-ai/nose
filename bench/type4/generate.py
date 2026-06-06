@@ -243,6 +243,22 @@ AXIS_PROPOSALS = {
         "axis": "numeric_minmax_abs",
         "why": "A Rust custom `.max()` method is not a numeric intrinsic and must stay outside strict scalar normalization.",
     },
+    "axis_numeric_clamp_guarded_minmax_identity": {
+        "axis": "numeric_clamp",
+        "why": "Guarded integer min(max(x, lo), hi) and max(min(x, hi), lo) should converge only when the source proves lo <= hi.",
+    },
+    "axis_numeric_clamp_unproven_boundary": {
+        "axis": "numeric_clamp",
+        "why": "Clamp min/max compositions over parameter bounds must not merge without a bound-order proof.",
+    },
+    "axis_numeric_clamp_swapped_bounds_boundary": {
+        "axis": "numeric_clamp",
+        "why": "Swapping lower and upper bounds changes clamp behavior even when the valid-order guard exists.",
+    },
+    "axis_numeric_clamp_float_boundary": {
+        "axis": "numeric_clamp",
+        "why": "Float/NaN-sensitive clamp surfaces need a separate domain proof and must not use the integer clamp canon.",
+    },
     "axis_total_order_compare_guard_order_identity": {
         "axis": "total_order_compare",
         "why": "Two strict total-order guard returns commute when each branch exits and the fallback is equality.",
@@ -2038,6 +2054,40 @@ def scalar_abs_axis_supported(surface: Surface, proposal_id: str) -> bool:
         "svelte",
         "html",
     }
+
+
+def numeric_clamp_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return surface.key == "python"
+
+
+def axis_numeric_clamp_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key != "python":
+        raise ValueError(f"unsupported surface for numeric clamp axis: {surface.key}")
+    name = "build_case" if right else "axis_case"
+    annotation = "float" if proposal_id == "axis_numeric_clamp_float_boundary" else "int"
+    guarded = proposal_id not in {"axis_numeric_clamp_unproven_boundary"}
+    if proposal_id == "axis_numeric_clamp_swapped_bounds_boundary" and right:
+        expr = "min(max(x, hi), lo)"
+    elif proposal_id == "axis_numeric_clamp_float_boundary" and right:
+        expr = "max(min(x, hi), lo)"
+    elif proposal_id == "axis_numeric_clamp_unproven_boundary" and right:
+        expr = "max(min(x, hi), lo)"
+    elif right and not negative:
+        expr = "max(min(x, hi), lo)"
+    elif right and negative:
+        expr = "min(max(x, hi), lo)"
+    else:
+        expr = "min(max(x, lo), hi)"
+    guard = "    if hi < lo:\n        raise 0\n" if guarded else ""
+    src = f"""def {name}(x: {annotation}, lo: {annotation}, hi: {annotation}):
+{guard}    return {expr}
+"""
+    return Variant("axis", src, name)
 
 
 def axis_scalar_abs_variant(
@@ -7550,6 +7600,11 @@ def axis_variants(
             axis_scalar_abs_variant(surface, proposal_id, False, False),
             axis_scalar_abs_variant(surface, proposal_id, negative, True),
         )
+    if axis == "numeric_clamp":
+        return (
+            axis_numeric_clamp_variant(surface, proposal_id, False, False),
+            axis_numeric_clamp_variant(surface, proposal_id, negative, True),
+        )
     if axis == "total_order_compare":
         return (
             axis_total_order_compare_variant(surface, proposal_id, False, False),
@@ -7617,6 +7672,7 @@ def axis_data_shape(axis: str) -> str:
         "map_default_lookup": "map<string,int>+key+fallback",
         "null_presence_predicate": "nullable<T>+alternate",
         "nullish_default": "nullable<int>+fallback",
+        "numeric_clamp": "scalar<int>+bounds",
         "numeric_minmax_abs": "scalar<int>+alternate",
         "projection_identity": "record<today:int,tomorrow:int>",
         "python_docstring_noop": "python-callable",
@@ -7839,6 +7895,19 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                 "level": "E1",
                 "kind": f"same-spec-{axis}",
                 "property_inputs": property_inputs,
+                "outputs": [],
+            }
+        if axis == "numeric_clamp":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": [
+                    {"x": -5, "lo": 0, "hi": 10},
+                    {"x": 4, "lo": 0, "hi": 10},
+                    {"x": 15, "lo": 0, "hi": 10},
+                    {"x": 5, "lo": 10, "hi": 0},
+                ],
+                "claim": "The exiting invalid-bound guard proves lo <= hi on the return path.",
                 "outputs": [],
             }
         if axis == "string_prefix_suffix":
@@ -8308,6 +8377,30 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "kind": f"counterexample-{axis}",
             "counterexample": counterexample,
         }
+    elif axis == "numeric_clamp":
+        if proposal_id == "axis_numeric_clamp_unproven_boundary":
+            counterexample = {
+                "input": {"x": 5, "lo": 10, "hi": 0},
+                "left": 0,
+                "right": 10,
+            }
+        elif proposal_id == "axis_numeric_clamp_float_boundary":
+            counterexample = {
+                "input": {"x": "NaN", "lo": 0.0, "hi": 10.0},
+                "left": "NaN-sensitive min/max result",
+                "right": "requires separate float-domain proof",
+            }
+        else:
+            counterexample = {
+                "input": {"x": 5, "lo": 0, "hi": 10},
+                "left": 5,
+                "right": 0,
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
     elif axis == "total_order_compare":
         if proposal_id == "axis_total_order_compare_equal_boundary":
             counterexample = {
@@ -8469,6 +8562,10 @@ def generate_axis_items(
             if proposal_id.startswith("axis_scalar_") and not scalar_abs_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith("axis_scalar_rust_"):
+                continue
+            if proposal_id.startswith(
+                "axis_numeric_clamp_"
+            ) and not numeric_clamp_axis_supported(surface, proposal_id):
                 continue
             if proposal_id.startswith(
                 "axis_total_order_compare_"
@@ -8871,6 +8968,23 @@ def generate_axis_items(
                         "not_equivalent",
                         "heldout",
                         "numeric-abs-boundary",
+                    )
+                )
+                continue
+            if proposal_id in {
+                "axis_numeric_clamp_unproven_boundary",
+                "axis_numeric_clamp_swapped_bounds_boundary",
+                "axis_numeric_clamp_float_boundary",
+            }:
+                items.append(
+                    make_axis_item(
+                        out_dir,
+                        capabilities,
+                        proposal_id,
+                        surface,
+                        "not_equivalent",
+                        "heldout",
+                        "numeric-clamp-boundary",
                     )
                 )
                 continue

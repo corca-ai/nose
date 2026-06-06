@@ -760,6 +760,40 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
 }
 
 #[test]
+fn numeric_clamp_minmax_compositions_require_bound_proof() {
+    let i = Interner::new();
+    let minmax_guarded = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n";
+    let maxmin_guarded = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return max(min(x, hi), lo)\n";
+    let minmax_unproven = "def f(x: int, lo: int, hi: int):\n    return min(max(x, lo), hi)\n";
+    let maxmin_unproven = "def f(x: int, lo: int, hi: int):\n    return max(min(x, hi), lo)\n";
+    let swapped_bounds = "def f(x: int, lo: int, hi: int):\n    if hi < lo:\n        raise 0\n    return min(max(x, hi), lo)\n";
+    let float_minmax = "def f(x: float, lo: float, hi: float):\n    if hi < lo:\n        raise 0\n    return min(max(x, lo), hi)\n";
+    let float_maxmin = "def f(x: float, lo: float, hi: float):\n    if hi < lo:\n        raise 0\n    return max(min(x, hi), lo)\n";
+
+    let guarded_fp = value_fp(&i, minmax_guarded, Lang::Python);
+    assert_eq!(
+        guarded_fp,
+        value_fp(&i, maxmin_guarded, Lang::Python),
+        "proof-backed integer clamp min/max compositions should converge"
+    );
+    assert_ne!(
+        value_fp(&i, minmax_unproven, Lang::Python),
+        value_fp(&i, maxmin_unproven, Lang::Python),
+        "unproven parameter bound order must not canonicalize"
+    );
+    assert_ne!(
+        guarded_fp,
+        value_fp(&i, swapped_bounds, Lang::Python),
+        "swapped bounds are not the same clamp"
+    );
+    assert_ne!(
+        value_fp(&i, float_minmax, Lang::Python),
+        value_fp(&i, float_maxmin, Lang::Python),
+        "float/NaN-sensitive Number domains need a separate proof"
+    );
+}
+
+#[test]
 fn conditional_abs_reduction_converges_with_aggregate() {
     // A branch in the per-element contribution is still a single reduction:
     // `total += (x < 0 ? -x : x)` must converge with aggregate `sum(abs(x))`.

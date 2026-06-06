@@ -236,6 +236,7 @@ enum ValOp {
     Index,           // base[index]
     Call(u32),       // 0 = opaque callee; otherwise builtin discriminant + 1
     Hof(u32),        // higher-order op kind
+    Clamp,           // numeric clamp over proven integer bounds: args = [x, lo, hi]
     Seq(u64),        // aggregate literal, keyed by lowered sequence kind
     CollectionParam, // proven collection parameter, distinct from map-like key membership
     ArrayParam,      // proven array parameter, distinct from receiver-provided collections
@@ -372,9 +373,8 @@ struct Builder<'a> {
     /// fires where the value graph actually used the contract (it cannot mask a non-contract
     /// false merge). Sorted+deduped on read for determinism.
     contracts: Vec<(u32, u32)>,
-    /// Internal proof-fact probe for the future clamp canonicalization rule. It deliberately
-    /// does not alter fingerprints today: it only records whether a min/max clamp-shaped
-    /// return had the bound-order and integer-domain facts that a later rule must require.
+    /// Internal test counters for clamp canonicalization. They record clamp-shaped min/max
+    /// nodes seen by `mk`, and the subset with a unique integer-domain `lo <= hi` proof.
     clamp_candidate_count: usize,
     clamp_proof_backed_candidate_count: usize,
 }
@@ -495,6 +495,7 @@ impl<'a> Builder<'a> {
                 }
             }
             ValOp::Seq(_) | ValOp::CollectionParam | ValOp::ArrayParam => Ty::List,
+            ValOp::Clamp => Ty::Num,
             ValOp::StringParam => Ty::Str,
             ValOp::Call(tag)
                 if matches!(
@@ -1594,19 +1595,8 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        self.record_clamp_candidate_proof(v);
         let g = self.guarded(v);
         self.sinks.push(Sink::new(SinkKind::Return, g));
-    }
-
-    fn record_clamp_candidate_proof(&mut self, value: ValueId) {
-        if self.clamp_minmax_candidates(value).is_empty() {
-            return;
-        }
-        self.clamp_candidate_count += 1;
-        if self.has_clamp_candidate_proofs(value) {
-            self.clamp_proof_backed_candidate_count += 1;
-        }
     }
 
     fn guarded(&mut self, v: ValueId) -> ValueId {
@@ -1855,7 +1845,8 @@ impl<'a> Builder<'a> {
                 }
             }
         }
-        self.intern_node(op, args)
+        let id = self.intern_node(op, args);
+        self.canonicalize_proof_backed_clamp(id).unwrap_or(id)
     }
 
     /// Intern a value node by `(op, args)` (hash-consing), computing its structural hash
@@ -2911,15 +2902,33 @@ impl<'a> Builder<'a> {
         self.int_const_value(value).is_some() || self.is_integer_param_value(value)
     }
 
-    fn has_clamp_candidate_proofs(&self, value: ValueId) -> bool {
-        self.clamp_minmax_candidates(value)
+    fn canonicalize_proof_backed_clamp(&mut self, value: ValueId) -> Option<ValueId> {
+        if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == MIN_CODE || o == MAX_CODE)
+        {
+            return None;
+        }
+        let candidates = self.clamp_minmax_candidates(value);
+        if candidates.is_empty() {
+            return None;
+        }
+        self.clamp_candidate_count += 1;
+        let mut proven: Vec<_> = candidates
             .into_iter()
-            .any(|(x, lo, hi)| {
+            .filter(|&(x, lo, hi)| {
                 self.is_safe_clamp_integer_value(x)
                     && self.is_safe_clamp_integer_value(lo)
                     && self.is_safe_clamp_integer_value(hi)
                     && self.has_bound_order_fact(lo, hi)
             })
+            .collect();
+        proven.sort_unstable();
+        proven.dedup();
+        if proven.len() != 1 {
+            return None;
+        }
+        self.clamp_proof_backed_candidate_count += 1;
+        let (x, lo, hi) = proven[0];
+        Some(self.mk(ValOp::Clamp, vec![x, lo, hi]))
     }
 
     fn clamp_minmax_candidates(&self, value: ValueId) -> Vec<(ValueId, ValueId, ValueId)> {
@@ -6731,6 +6740,7 @@ fn op_tag(op: &ValOp) -> u64 {
         ValOp::Index => (6, 0),
         ValOp::Call(t) => (7, *t as u64),
         ValOp::Hof(h) => (8, *h as u64),
+        ValOp::Clamp => (20, 0),
         ValOp::Seq(t) => (9, *t),
         ValOp::CollectionParam => (17, 0),
         ValOp::ArrayParam => (18, 0),
@@ -6891,18 +6901,19 @@ mod tests {
         )
     }
 
-    fn literal_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (usize, usize) {
+    fn literal_bound_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (usize, usize) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
-        let x = int_lit(&mut b, 5);
+        let px = param(&mut b, 0, 1);
+        let x = var(&mut b, 0);
         let lo = int_lit(&mut b, lo_value);
         let hi = int_lit(&mut b, hi_value);
         let expr = clamp_expr(&mut b, shape, x, lo, hi);
         let ret = b.add(NodeKind::Return, Payload::None, sp(1), &[expr]);
         let body = b.add(NodeKind::Block, Payload::None, sp(1), &[ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp(1), &[body]);
+        let func = b.add(NodeKind::Func, Payload::None, sp(1), &[px, body]);
         let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
-        let il = b.finish(
+        let mut il = b.finish(
             module,
             FileMeta {
                 path: "t.java".to_string(),
@@ -6915,6 +6926,10 @@ mod tests {
             }],
             Vec::new(),
         );
+        il.param_type_facts.push(ParamTypeFact {
+            span: sp(1),
+            semantic: ParamSemantic::Integer,
+        });
         let mut builder = Builder::new(&il, &interner);
         builder.build_unit(func);
         (
@@ -6925,8 +6940,8 @@ mod tests {
 
     #[test]
     fn clamp_literal_bound_order_is_proof_backed_only_when_ordered() {
-        assert_eq!(literal_function(ClampShape::MinMax, 1, 10), (1, 1));
-        assert_eq!(literal_function(ClampShape::MinMax, 10, 1), (1, 0));
+        assert_eq!(literal_bound_function(ClampShape::MinMax, 1, 10), (1, 1));
+        assert_eq!(literal_bound_function(ClampShape::MinMax, 10, 1), (1, 0));
     }
 
     #[test]

@@ -87,23 +87,34 @@
     {
       "id": "numeric.clamp_composition",
       "kind": "engine",
-      "status": "proposed",
-      "summary": "Canonicalize clamp-shaped min/max compositions when numeric bounds are proven ordered.",
+      "status": "landed",
+      "summary": "Canonicalize proof-backed integer min/max clamp compositions to a shared Clamp value.",
       "implementation": ["crates/nose-normalize/src/value_graph.rs"],
       "positive_cases": ["clamp_minmax_guarded_bounds"],
       "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
-      "boundaries": ["Requires numeric domain and lo<=hi proof; float/NaN behavior remains a boundary."],
-      "docs": ["docs/frontier-platform.md", "docs/normalization.md"]
+      "boundaries": ["Requires a unique x/lo/hi candidate, integer-domain facts, and a lo<=hi proof.", "Missing or non-exiting guards, swapped bounds, wrong nesting, and float/NaN-sensitive domains stay fail-closed.", "Two-comparison ternary and library clamp forms are tracked separately by numeric.clamp_surface_bridge."],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
+    },
+    {
+      "id": "numeric.clamp_surface_bridge",
+      "kind": "engine",
+      "status": "proposed",
+      "summary": "Bridge two-comparison and language library clamp forms to the shared Clamp value.",
+      "implementation": ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"],
+      "positive_cases": ["clamp_ternary_minmax_bridge", "clamp_library_method_bridge"],
+      "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
+      "boundaries": ["Must reuse the same integer-domain and lo<=hi proof as numeric.clamp_composition.", "Do not treat method names or bound parameter names as proof."],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
     },
     {
       "id": "proof.bound_order",
       "kind": "proof-fact",
       "status": "partial",
-      "summary": "Recover conservative facts that prove lower bound order for clamp-like canons.",
+      "summary": "Recover conservative facts that prove lower bound order for clamp-like canons from literal bounds and exiting inverse guards.",
       "implementation": ["crates/nose-normalize/src/value_graph.rs", "formal/obligations/normalize/value_graph/clamp"],
       "positive_cases": ["clamp_minmax_guarded_bounds"],
       "hard_negatives": ["clamp_unordered_bounds"],
-      "boundaries": ["No order fact means no clamp canon."],
+      "boundaries": ["No order fact means no clamp canon.", "Non-exiting checks and name-only lower/upper conventions are not proof."],
       "docs": ["docs/formal-soundness.md", "docs/normalization.md"]
     },
     {

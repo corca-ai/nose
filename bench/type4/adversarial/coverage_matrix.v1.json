@@ -89,22 +89,45 @@
       "id": "numeric.clamp.minmax_composition",
       "semantic_family": "numeric.clamp",
       "title": "Clamp-shaped min/max compositions converge under proven bounds",
-      "status": "proof-fact-blocked",
-      "next_action": "proof-facts",
-      "priority": 67,
+      "status": "covered",
+      "next_action": "monitor",
+      "priority": 0,
       "languages": ["c", "go", "java", "javascript", "python", "ruby", "rust", "typescript"],
-      "representations": ["minmax_composition", "guarded_ternary", "library_clamp"],
+      "representations": ["minmax_composition"],
       "rule_ids": ["numeric.clamp_composition", "proof.bound_order"],
       "positive_cases": ["clamp_minmax_guarded_bounds"],
       "adversarial_cases": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
-      "evidence": "The frontier platform records numeric_clamp as a real miss; bound-order proof facts exist but canonicalization remains gated on sound preconditions.",
-      "agent_task": "Audit current bound-order facts against clamp hard negatives, then land the smallest value-graph clamp composition rule only where lo<=hi and numeric-domain facts are proven.",
+      "evidence": "Proof-backed integer min/max clamp compositions now canonicalize to a Clamp value only when a unique x/lo/hi candidate has integer-domain facts and a lo <= hi proof. Focused tests cover exiting inverse guards, ordered literal bounds, missing/non-exiting guards, swapped bounds, wrong nesting, and float domains. Successor audit: two-comparison ternary and library clamp bridge forms remain a separate candidate cell.",
+      "agent_task": "Monitor the landed min/max composition slice. Broader two-comparison or library clamp work belongs to numeric.clamp.ternary_library_bridge.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item numeric.clamp.minmax_composition",
         "cargo test -p nose-cli --test equivalence clamp",
+        "cargo test -p nose-normalize clamp",
+        "cargo run -p nose-cli -- verify --max-violations 0 bench/type4/adversarial/cases/numeric_clamp",
         "GATE=focused AXIS=numeric_clamp scripts/type4-smoke.sh"
       ],
-      "docs": ["docs/frontier-platform.md", "docs/normalization.md"]
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
+    },
+    {
+      "id": "numeric.clamp.ternary_library_bridge",
+      "semantic_family": "numeric.clamp",
+      "title": "Two-comparison and library clamp forms bridge to proven Clamp values",
+      "status": "candidate",
+      "next_action": "survey",
+      "priority": 64,
+      "languages": ["python", "rust", "ruby", "java", "javascript", "typescript", "go", "c"],
+      "representations": ["guarded_ternary", "library_clamp", "minmax_composition"],
+      "rule_ids": ["numeric.clamp_surface_bridge", "numeric.clamp_composition", "proof.bound_order"],
+      "positive_cases": ["clamp_ternary_minmax_bridge", "clamp_library_method_bridge"],
+      "adversarial_cases": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
+      "evidence": "Successor audit for numeric.clamp.minmax_composition: proof-backed min/max compositions now converge, but two-comparison clamp and language library clamp forms were intentionally left out of the first safe slice.",
+      "agent_task": "Survey source-level two-comparison and library clamp forms against the landed Clamp value node. Add focused positives and hard negatives before broadening beyond nested min/max compositions.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item numeric.clamp.ternary_library_bridge",
+        "cargo test -p nose-cli --test equivalence clamp",
+        "cargo run -p nose-cli -- verify --max-violations 0 <focused-clamp-bridge-corpus>"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
     },
     {
       "id": "map_default.cross_file_binding",
