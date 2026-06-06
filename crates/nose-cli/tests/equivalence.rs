@@ -1854,6 +1854,46 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def h(xs, ys):\n    return sum(y for y in ys)\n",
         Lang::Python,
     );
+    let filtered_sum_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return sum(x + y for x in xs if x > 0 for y in ys if y < 10)\n",
+        Lang::Python,
+    );
+    let filtered_sum_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    total = 0\n    for x in xs:\n        if x > 0:\n            for y in ys:\n                if y < 10:\n                    total = total + x + y\n    return total\n",
+        Lang::Python,
+    );
+    let filtered_sum_js = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).reduce((a, v) => a + v, 0); }",
+        Lang::JavaScript,
+    );
+    let filtered_sum_outer_changed = value_fp(
+        &i,
+        "def bad(xs, ys):\n    return sum(x + y for x in xs if False for y in ys if y < 10)\n",
+        Lang::Python,
+    );
+    let filtered_sum_inner_changed = value_fp(
+        &i,
+        "def bad(xs, ys):\n    return sum(x + y for x in xs if x > 0 for y in ys if False)\n",
+        Lang::Python,
+    );
+    let filtered_any_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return any(x + y > 0 for x in xs if x > 0 for y in ys if y < 10)\n",
+        Lang::Python,
+    );
+    let filtered_any_js = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => v > 0); }",
+        Lang::JavaScript,
+    );
+    let filtered_any_terminal_changed = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => false); }",
+        Lang::JavaScript,
+    );
 
     assert_eq!(
         sum_gen, sum_loop,
@@ -1890,6 +1930,30 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     assert_ne!(
         outer_independent_loop, direct_inner_sum,
         "a nested loop that ignores the outer value still depends on outer cardinality"
+    );
+    assert_eq!(
+        filtered_sum_gen, filtered_sum_loop,
+        "filtered flat-map sums should match equivalent nested guarded reductions"
+    );
+    assert_eq!(
+        filtered_sum_gen, filtered_sum_js,
+        "filtered flatMap().reduce() should preserve carried outer and inner predicates"
+    );
+    assert_ne!(
+        filtered_sum_gen, filtered_sum_outer_changed,
+        "changing the outer flat-map aggregate predicate changes behavior"
+    );
+    assert_ne!(
+        filtered_sum_gen, filtered_sum_inner_changed,
+        "changing the inner flat-map aggregate predicate changes behavior"
+    );
+    assert_eq!(
+        filtered_any_gen, filtered_any_js,
+        "method terminal predicates over filtered flatMap should preserve carried predicates"
+    );
+    assert_ne!(
+        filtered_any_gen, filtered_any_terminal_changed,
+        "changing the terminal method predicate changes behavior"
     );
 }
 

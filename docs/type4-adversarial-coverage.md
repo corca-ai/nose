@@ -127,7 +127,9 @@ layout: pure `FlatMap[outer, Map[contrib]]` streams and equivalent nested inner
 element, but the bridge must not read FlatMap's `[outer, inner]` arguments as
 filtered Map's `[contrib, pred]`. Wrong sum seeds, nested-list aggregation,
 outer-cardinality-only cases, and changed flattened predicates remain hard
-negatives; filtered/carry-predicate FlatMap aggregates are successor work.
+negatives; filtered Sum/Reduce FlatMap aggregates and method-terminal Any/All
+predicates preserve carried outer/inner predicates, while filtered nested
+early-return any/all loops remain successor work.
 For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
 proof-backed min/max compositions, two-comparison ternaries, and proven numeric
 library clamp methods share `Clamp(x, lo, hi)`. Name-only lower/upper conventions,

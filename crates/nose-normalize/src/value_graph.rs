@@ -1848,6 +1848,10 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.value_default_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
+                if let Some(v) = self.flatten_nested_guarded_identity_phi(args[0], args[1], args[2])
+                {
+                    return v;
+                }
             }
         }
         // Full ASSOCIATIVE-COMMUTATIVE canonicalization: flatten a `+`/`*`/`&`/`|`/`^`
@@ -1899,6 +1903,23 @@ impl<'a> Builder<'a> {
         self.vty.push(ty);
         self.intern.insert(key, id);
         id
+    }
+
+    fn flatten_nested_guarded_identity_phi(
+        &mut self,
+        cond: ValueId,
+        then_v: ValueId,
+        else_v: ValueId,
+    ) -> Option<ValueId> {
+        let inner_args = {
+            let inner = &self.nodes[then_v as usize];
+            if !matches!(inner.op, ValOp::Phi) || inner.args.len() != 3 || inner.args[2] != else_v {
+                return None;
+            }
+            inner.args.clone()
+        };
+        let both = self.mk(ValOp::Bin(Op::And as u32), vec![cond, inner_args[0]]);
+        Some(self.mk(ValOp::Phi, vec![both, inner_args[1], else_v]))
     }
 
     fn intern_ac_chain(&mut self, opc: u32, operands: &[ValueId]) -> ValueId {
@@ -4391,7 +4412,10 @@ impl<'a> Builder<'a> {
             let args = self.nodes[val as usize].args.clone();
             if args.len() == 3 && args[2] == loopv {
                 // (a) guarded accumulation: `if cond { acc = acc ⊕ contrib }`.
-                if let Some((op, contrib)) = self.as_reduction_cached(args[1], loopv, cache) {
+                if let Some((op, contrib)) = self
+                    .as_reduction_cached(args[1], loopv, cache)
+                    .or_else(|| self.nested_reduce_step(args[1], loopv, cache))
+                {
                     if let Some(id) = identity_of(op) {
                         let ident = self.int_const(id);
                         let guarded = self.mk(ValOp::Phi, vec![args[0], contrib, ident]);
@@ -4415,7 +4439,10 @@ impl<'a> Builder<'a> {
             // it with the negated guard so it converges with the loop form `if v>0:
             // acc+=v` (whose single-branch guard stays positive).
             if args.len() == 3 && args[1] == loopv {
-                if let Some((op, contrib)) = self.as_reduction_cached(args[2], loopv, cache) {
+                if let Some((op, contrib)) = self
+                    .as_reduction_cached(args[2], loopv, cache)
+                    .or_else(|| self.nested_reduce_step(args[2], loopv, cache))
+                {
                     if let Some(id) = identity_of(op) {
                         let ident = self.int_const(id);
                         let ncond = self.negate_guard(args[0]);
@@ -4490,6 +4517,22 @@ impl<'a> Builder<'a> {
             acc = self.mk(ValOp::Bin(op), vec![acc, o]);
         }
         Some((op, acc))
+    }
+
+    fn nested_reduce_step(
+        &mut self,
+        val: ValueId,
+        loopv: ValueId,
+        cache: &mut ReductionCache,
+    ) -> Option<(u32, ValueId)> {
+        let ValOp::Reduce(op) = self.nodes[val as usize].op else {
+            return None;
+        };
+        let args = self.nodes[val as usize].args.clone();
+        if args.len() == 2 && args[0] == loopv && !self.references_cached(args[1], loopv, cache) {
+            return Some((op, args[1]));
+        }
+        None
     }
 
     /// The canonical negation of a guard value: a comparison flips to its complement
@@ -5017,10 +5060,26 @@ impl<'a> Builder<'a> {
         if let Some(value) = self.hof_emitted_elem(coll) {
             return value;
         }
-        self.mk(ValOp::Elem(self.vhash[coll as usize]), vec![coll])
+        self.raw_elem(coll)
     }
 
     fn hof_emitted_elem(&mut self, coll: ValueId) -> Option<ValueId> {
+        let (emitted, predicate) = self.hof_emitted_elem_with_pred(coll)?;
+        predicate.is_none().then_some(emitted)
+    }
+
+    fn raw_elem(&mut self, coll: ValueId) -> ValueId {
+        self.mk(ValOp::Elem(self.vhash[coll as usize]), vec![coll])
+    }
+
+    fn collection_elem_with_pred(&mut self, coll: ValueId) -> (ValueId, Option<ValueId>) {
+        if let Some(parts) = self.hof_emitted_elem_with_pred(coll) {
+            return parts;
+        }
+        (self.raw_elem(coll), None)
+    }
+
+    fn hof_emitted_elem_with_pred(&mut self, coll: ValueId) -> Option<(ValueId, Option<ValueId>)> {
         // FUNCTOR LAW / map fusion: an element drawn from `map(f, c)` is `f` applied to an
         // element of `c`, and a pure Map node's `contrib` (args[0]) already *is* that
         // per-element value. So `Elem(Map(f, c)) -> contrib`, which fuses nested maps:
@@ -5037,10 +5096,23 @@ impl<'a> Builder<'a> {
             (n.op.clone(), n.args.clone())
         };
         match op {
-            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => Some(args[0]),
-            ValOp::Hof(k) if k == HoFKind::FlatMap as u32 && args.len() == 2 => self
-                .hof_emitted_elem(args[1])
-                .filter(|&emitted| self.references(emitted, args[0])),
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => Some((args[0], None)),
+            ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 2 => {
+                Some((args[0], Some(args[1])))
+            }
+            ValOp::Hof(k)
+                if k == HoFKind::FlatMap as u32 && (args.len() == 2 || args.len() == 3) =>
+            {
+                let outer = args[0];
+                let inner = args[1];
+                let outer_predicate = args.get(2).copied();
+                let (emitted, inner_predicate) = self.hof_emitted_elem_with_pred(inner)?;
+                if !self.references(emitted, outer) {
+                    return None;
+                }
+                let predicate = self.and_preds(outer_predicate, inner_predicate);
+                Some((emitted, predicate))
+            }
             _ => None,
         }
     }
@@ -5133,20 +5205,16 @@ impl<'a> Builder<'a> {
             }
             Builtin::Sum => {
                 let av = self.eval(*kids.first()?, env);
-                // `sum(map)` → the mapped stream's per-element contribution; a *filtered*
-                // map `Hof(Map, [contrib, pred])` → `pred ? contrib : 0`, matching a
-                // guarded loop `if pred: acc += contrib`; `sum(xs)` → the raw element.
-                let (op, args) = {
-                    let n = &self.nodes[av as usize];
-                    (n.op.clone(), n.args.clone())
-                };
-                let contrib = match op {
-                    ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
-                        let zero = self.int_const(0);
-                        self.mk(ValOp::Phi, vec![args[1], args[0], zero])
-                    }
-                    ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
-                    _ => self.elem(av),
+                // `sum(map)` → the mapped stream's per-element contribution; a filtered
+                // map/flat-map carries a predicate and becomes `pred ? contrib : 0`,
+                // matching a guarded loop `if pred: acc += contrib`; `sum(xs)` → the raw
+                // element.
+                let zero = self.int_const(0);
+                let (contrib, predicate) = self.collection_elem_with_pred(av);
+                let contrib = if let Some(predicate) = predicate {
+                    self.mk(ValOp::Phi, vec![predicate, contrib, zero])
+                } else {
+                    contrib
                 };
                 let init = self.int_const(0);
                 Some(self.mk(ValOp::Reduce(Op::Add as u32), vec![init, contrib]))
@@ -5162,7 +5230,7 @@ impl<'a> Builder<'a> {
                     let guard = self.eval_lambda_body(predicate, &[elem], env)?;
                     (vec![elem], Some(guard))
                 } else {
-                    (self.elem_bindings(kids.get(1).copied(), env), None)
+                    self.elem_bindings_with_pred(kids.get(1).copied(), env)
                 };
                 let acc = self.fresh_opaque();
                 let mut params = Vec::with_capacity(elems.len() + 1);
@@ -5224,9 +5292,12 @@ impl<'a> Builder<'a> {
                 // predicate, guarded by the OR/AND identity (false for any, true for all).
                 let contrib = if kids.len() >= 2 && self.il.kind(kids[1]) == NodeKind::Lambda {
                     let coll = self.eval(kids[0], env);
-                    let elem = self.elem(coll);
+                    let (elem, carried_guard) = self.collection_elem_with_pred(coll);
                     let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
-                    if code == REDUCE_ANY && self.is_static_non_float_collection_expr(kids[0]) {
+                    if carried_guard.is_none()
+                        && code == REDUCE_ANY
+                        && self.is_static_non_float_collection_expr(kids[0])
+                    {
                         if let Some((element, collection)) =
                             self.static_literal_membership_predicate(pred)
                         {
@@ -5235,7 +5306,10 @@ impl<'a> Builder<'a> {
                             );
                         }
                     }
-                    if code == REDUCE_ALL && self.is_static_non_float_collection_expr(kids[0]) {
+                    if carried_guard.is_none()
+                        && code == REDUCE_ALL
+                        && self.is_static_non_float_collection_expr(kids[0])
+                    {
                         if let Some((element, collection)) =
                             self.static_literal_absence_predicate(pred)
                         {
@@ -5244,21 +5318,20 @@ impl<'a> Builder<'a> {
                             return Some(self.mk(ValOp::Un(Op::Not as u32), vec![membership]));
                         }
                     }
-                    pred
+                    if let Some(carried_guard) = carried_guard {
+                        let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                        self.mk(ValOp::Phi, vec![carried_guard, pred, ident])
+                    } else {
+                        pred
+                    }
                 } else {
                     let av = self.eval(*kids.first()?, env);
-                    let (op, args) = {
-                        let n = &self.nodes[av as usize];
-                        (n.op.clone(), n.args.clone())
-                    };
-                    match op {
-                        ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
-                            let ident =
-                                self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
-                            self.mk(ValOp::Phi, vec![args[1], args[0], ident])
-                        }
-                        ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() == 1 => args[0],
-                        _ => self.elem(av),
+                    let (contrib, predicate) = self.collection_elem_with_pred(av);
+                    if let Some(predicate) = predicate {
+                        let ident = self.mk(ValOp::Const(0x3000_0001 + code - REDUCE_ANY), vec![]);
+                        self.mk(ValOp::Phi, vec![predicate, contrib, ident])
+                    } else {
+                        contrib
                     }
                 };
                 Some(self.mk(ValOp::Reduce(code), vec![contrib]))
@@ -5967,8 +6040,16 @@ impl<'a> Builder<'a> {
         coll_node: Option<NodeId>,
         env: &FxHashMap<u32, ValueId>,
     ) -> Vec<ValueId> {
+        self.elem_bindings_with_pred(coll_node, env).0
+    }
+
+    fn elem_bindings_with_pred(
+        &mut self,
+        coll_node: Option<NodeId>,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> (Vec<ValueId>, Option<ValueId>) {
         let Some(c) = coll_node else {
-            return Vec::new();
+            return (Vec::new(), None);
         };
         if self.il.kind(c) == NodeKind::Call
             && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
@@ -5978,10 +6059,11 @@ impl<'a> Builder<'a> {
                 let v = self.eval(k, env);
                 out.push(self.elem(v));
             }
-            return out;
+            return (out, None);
         }
         let cv = self.eval(c, env);
-        vec![self.elem(cv)]
+        let (elem, predicate) = self.collection_elem_with_pred(cv);
+        (vec![elem], predicate)
     }
 
     /// Evaluate a lambda's body with its positional parameters bound to `params`,
