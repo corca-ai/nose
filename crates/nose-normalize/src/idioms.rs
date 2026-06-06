@@ -358,12 +358,14 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                             arg_olds: vec![coll, args[0]],
                         };
                     }
-                    "map" | "collect" | "flatMap" | "flat_map" | "filter" | "select"
+                    "map" | "collect" | "flatMap" | "flat_map" | "filter_map" | "filter"
+                    | "select"
                         if base.is_some() && !args.is_empty() =>
                     {
                         let kind = match fname {
                             "map" | "collect" => HoFKind::Map,
                             "flatMap" | "flat_map" => HoFKind::FlatMap,
+                            "filter_map" => HoFKind::FilterMap,
                             _ => HoFKind::Filter,
                         };
                         return CallCanon::HoF {

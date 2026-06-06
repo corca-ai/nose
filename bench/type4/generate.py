@@ -259,6 +259,22 @@ AXIS_PROPOSALS = {
         "axis": "numeric_clamp",
         "why": "Float/NaN-sensitive clamp surfaces need a separate domain proof and must not use the integer clamp canon.",
     },
+    "axis_hof_filter_map_identity": {
+        "axis": "hof_filter_map",
+        "why": "Option-producing filter_map callbacks should prove the same filtered map as explicit filter+map and guarded builders.",
+    },
+    "axis_hof_filter_map_none_boundary": {
+        "axis": "hof_filter_map",
+        "why": "Dropping None is not the same as mapping None as an emitted value.",
+    },
+    "axis_hof_filter_map_value_boundary": {
+        "axis": "hof_filter_map",
+        "why": "The filter_map proof fixes the emitted Some value coordinate.",
+    },
+    "axis_hof_filter_map_falsey_boundary": {
+        "axis": "hof_filter_map",
+        "why": "Falsey Some-like values such as 0 are emitted; only None/Null absence drops an item.",
+    },
     "axis_total_order_compare_guard_order_identity": {
         "axis": "total_order_compare",
         "why": "Two strict total-order guard returns commute when each branch exits and the fallback is equality.",
@@ -2060,6 +2076,10 @@ def numeric_clamp_axis_supported(surface: Surface, proposal_id: str) -> bool:
     return surface.key == "python"
 
 
+def hof_filter_map_axis_supported(surface: Surface, proposal_id: str) -> bool:
+    return surface.key in {"python", "javascript", "rust"}
+
+
 def axis_numeric_clamp_variant(
     surface: Surface,
     proposal_id: str,
@@ -2088,6 +2108,64 @@ def axis_numeric_clamp_variant(
 {guard}    return {expr}
 """
     return Variant("axis", src, name)
+
+
+def axis_hof_filter_map_variant(
+    surface: Surface,
+    proposal_id: str,
+    negative: bool,
+    right: bool,
+) -> Variant:
+    if surface.key not in {"python", "javascript", "rust"}:
+        raise ValueError(f"unsupported surface for filter-map axis: {surface.key}")
+    name = "build_case" if right else "axis_case"
+
+    if surface.key == "python":
+        if proposal_id == "axis_hof_filter_map_falsey_boundary":
+            expr = "0"
+        else:
+            expr = "x * 2"
+        src = f"""def {name}(xs):
+    return [{expr} for x in xs if x > 0]
+"""
+        return Variant("filtered_comprehension", src, name)
+
+    if surface.key == "javascript":
+        if proposal_id == "axis_hof_filter_map_falsey_boundary":
+            expr = "0"
+        else:
+            expr = "x * 2"
+        src = f"""function {name}(xs) {{
+  return xs.filter((x) => x > 0).map((x) => {expr});
+}}
+"""
+        return Variant("filter_map_chain", src, name)
+
+    if proposal_id == "axis_hof_filter_map_none_boundary" and right and negative:
+        src = f"""fn {name}(xs: &[i32]) -> Vec<Option<i32>> {{
+    xs.iter().copied().map(|x| if x > 0 {{ Some(x * 2) }} else {{ None }}).collect()
+}}
+"""
+        return Variant("option_value_map", src, name)
+
+    if right and negative and proposal_id in {
+        "axis_hof_filter_map_identity",
+        "axis_hof_filter_map_value_boundary",
+    }:
+        some_expr = "x * 3"
+    elif proposal_id == "axis_hof_filter_map_falsey_boundary":
+        some_expr = "0"
+    else:
+        some_expr = "x * 2"
+
+    chain = f"xs.iter().copied().filter_map(|x| if x > 0 {{ Some({some_expr}) }} else {{ None }})"
+    if proposal_id == "axis_hof_filter_map_falsey_boundary" and right and negative:
+        chain = f"{chain}.filter(|x| *x != 0)"
+    src = f"""fn {name}(xs: &[i32]) -> Vec<i32> {{
+    {chain}.collect()
+}}
+"""
+    return Variant("rust_filter_map", src, name)
 
 
 def axis_scalar_abs_variant(
@@ -7605,6 +7683,11 @@ def axis_variants(
             axis_numeric_clamp_variant(surface, proposal_id, False, False),
             axis_numeric_clamp_variant(surface, proposal_id, negative, True),
         )
+    if axis == "hof_filter_map":
+        return (
+            axis_hof_filter_map_variant(surface, proposal_id, False, False),
+            axis_hof_filter_map_variant(surface, proposal_id, negative, True),
+        )
     if axis == "total_order_compare":
         return (
             axis_total_order_compare_variant(surface, proposal_id, False, False),
@@ -7671,6 +7754,7 @@ def axis_data_shape(axis: str) -> str:
         "literal_map_default_lookup": "map<string,int>+key",
         "map_default_lookup": "map<string,int>+key+fallback",
         "null_presence_predicate": "nullable<T>+alternate",
+        "hof_filter_map": "list<int>+optional-emission",
         "nullish_default": "nullable<int>+fallback",
         "numeric_clamp": "scalar<int>+bounds",
         "numeric_minmax_abs": "scalar<int>+alternate",
@@ -7908,6 +7992,14 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
                     {"x": 5, "lo": 10, "hi": 0},
                 ],
                 "claim": "The exiting invalid-bound guard proves lo <= hi on the return path.",
+                "outputs": [],
+            }
+        if axis == "hof_filter_map":
+            return {
+                "level": "E1",
+                "kind": f"same-spec-{axis}",
+                "property_inputs": PROPERTY_INPUTS,
+                "claim": "Rust filter_map emits Some(value), drops None, and matches explicit filter+map for the same predicate and emitted value.",
                 "outputs": [],
             }
         if axis == "string_prefix_suffix":
@@ -8401,6 +8493,30 @@ def axis_evidence(axis: str, status: str, negative: bool, proposal_id: str | Non
             "kind": f"counterexample-{axis}",
             "counterexample": counterexample,
         }
+    elif axis == "hof_filter_map":
+        if proposal_id == "axis_hof_filter_map_none_boundary":
+            counterexample = {
+                "input": {"xs": [-1, 2]},
+                "left": [4],
+                "right": [None, 4],
+            }
+        elif proposal_id == "axis_hof_filter_map_value_boundary":
+            counterexample = {
+                "input": {"xs": [2]},
+                "left": [4],
+                "right": [6],
+            }
+        else:
+            counterexample = {
+                "input": {"xs": [2]},
+                "left": [0],
+                "right": [],
+            }
+        return {
+            "level": "E2",
+            "kind": f"counterexample-{axis}",
+            "counterexample": counterexample,
+        }
     elif axis == "total_order_compare":
         if proposal_id == "axis_total_order_compare_equal_boundary":
             counterexample = {
@@ -8566,6 +8682,8 @@ def generate_axis_items(
             if proposal_id.startswith(
                 "axis_numeric_clamp_"
             ) and not numeric_clamp_axis_supported(surface, proposal_id):
+                continue
+            if proposal_id.startswith("axis_hof_filter_map_"):
                 continue
             if proposal_id.startswith(
                 "axis_total_order_compare_"
@@ -9199,6 +9317,65 @@ def make_axis_cross_item(
             },
         },
     }
+
+
+def generate_hof_filter_map_cross_items(
+    out_dir: Path,
+    capabilities: dict,
+    generation_filter: GenerationFilter,
+) -> list[dict]:
+    if not generation_filter.include_axis("hof_filter_map"):
+        return []
+    surface_by_key = {surface.key: surface for surface in SURFACES}
+    rust = surface_by_key["rust"]
+    reference_surfaces = [surface_by_key["python"], surface_by_key["javascript"]]
+    items: list[dict] = []
+    if generation_filter.include_proposal("axis_hof_filter_map_identity"):
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_hof_filter_map_identity",
+                    left_surface,
+                    rust,
+                    "equivalent",
+                    "heldout",
+                )
+            )
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    "axis_hof_filter_map_identity",
+                    left_surface,
+                    rust,
+                    "not_equivalent",
+                    "heldout",
+                    "hof-filter-map-semantic-mutation",
+                )
+            )
+    for proposal_id in (
+        "axis_hof_filter_map_none_boundary",
+        "axis_hof_filter_map_value_boundary",
+        "axis_hof_filter_map_falsey_boundary",
+    ):
+        if not generation_filter.include_proposal(proposal_id):
+            continue
+        for left_surface in reference_surfaces:
+            items.append(
+                make_axis_cross_item(
+                    out_dir,
+                    capabilities,
+                    proposal_id,
+                    left_surface,
+                    rust,
+                    "not_equivalent",
+                    "heldout",
+                    "hof-filter-map-boundary",
+                )
+            )
+    return items
 
 
 def generate_string_prefix_cross_items(
@@ -11651,6 +11828,7 @@ def generate(
                 )
             )
     items.extend(generate_axis_items(out_dir, capabilities, generation_filter))
+    items.extend(generate_hof_filter_map_cross_items(out_dir, capabilities, generation_filter))
     items.extend(
         generate_string_prefix_cross_items(out_dir, capabilities, cross_mode, generation_filter)
     )
