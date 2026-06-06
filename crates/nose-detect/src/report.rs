@@ -123,19 +123,27 @@ impl RefactorFamily {
     /// present in `--top 0` JSON even when their default ranking is dampened.
     pub fn recommended_surface(&self) -> &'static str {
         let fragment_sites = self.locations.iter().filter(|l| l.is_fragment).count();
+        let all_generated = self.locations.iter().all(is_generated_loc);
+        let high_fanout = self.members >= 8;
+        if all_generated
+            || self.mean_lines <= 1
+            || (fragment_sites > 0 && high_fanout && self.mean_lines <= 3)
+        {
+            return "hidden";
+        }
         if fragment_sites == 0 {
             return "default";
         }
         // Mixed whole-unit + fragment families stay default: the enclosing unit is already a
         // product-sized candidate, and the fragment locations serve as supporting evidence.
+        // The tiny/high-fanout proof-only cases above are deliberately not promoted by
+        // this escape hatch.
         if fragment_sites < self.locations.len() {
             return "default";
         }
 
-        let all_generated = self.locations.iter().all(is_generated_loc);
         let all_test = self.locations.iter().all(is_test_loc);
         let all_have_enclosing = self.locations.iter().all(|l| l.enclosing_unit.is_some());
-        let high_fanout = self.members >= 8;
         let has_effect_or_body = self.locations.iter().any(|l| {
             matches!(
                 l.fragment_kind,
@@ -158,7 +166,7 @@ impl RefactorFamily {
             )
         });
 
-        if all_generated || self.mean_lines <= 1 || (high_fanout && self.mean_lines <= 3) {
+        if high_fanout && self.mean_lines <= 3 {
             "hidden"
         } else if has_effect_or_body {
             // Receiver/effect-bearing fragments are usually synchronization hazards first.
@@ -1066,6 +1074,27 @@ mod tests {
         assert!(
             fragment.extractability() < whole.extractability(),
             "tiny exact fragments remain present but should not outrank whole-unit candidates"
+        );
+    }
+
+    #[test]
+    fn tiny_mixed_fragment_family_is_hidden() {
+        let mixed = fam(
+            10.0,
+            1,
+            0,
+            0,
+            vec![
+                loc("src/a.rs", 1, 3, "rust"),
+                fragment_loc_k("src/b.rs", 9, 9, crate::FragmentKind::ExprEffect),
+                fragment_loc_k("src/c.rs", 12, 12, crate::FragmentKind::ExprEffect),
+            ],
+        );
+
+        assert_eq!(
+            mixed.recommended_surface(),
+            "hidden",
+            "one whole-unit site must not promote a one-line proof fragment family"
         );
     }
 

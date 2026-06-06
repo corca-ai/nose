@@ -37,6 +37,10 @@ nose scan path/to/project
 How to read the resulting report — the `scanned …` scope line, the per-family
 breakdown, scope tags, and the `→` hint — is covered in
 [getting-started → How to read the report](getting-started.md#how-to-read-the-report).
+The default human, Markdown, SARIF, and `--fail-on` surfaces show only
+action-oriented findings. Tiny proof-only fragments, review-only fragments, and
+families wholly inside files with generated-code headers are omitted with a short
+count line; `--format json --top 0` keeps the full diagnostic family set.
 
 ### Flags
 

@@ -2620,10 +2620,27 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         }
         families = active;
     }
+    let needs_default_surface =
+        !matches!(args.format, ReportFormat::Json) || args.fail_on.is_some();
+    let generated_sources = if needs_default_surface && !families.is_empty() {
+        generated_source_index(&refs, &exclude)
+    } else {
+        std::collections::HashSet::new()
+    };
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
     let limit = if top == 0 { usize::MAX } else { top };
     let shown = families.iter().take(limit).collect::<Vec<_>>();
+    let reportable_families = families
+        .iter()
+        .filter(|f| is_default_report_family(f, &generated_sources))
+        .collect::<Vec<_>>();
+    let shown_reportable = reportable_families
+        .iter()
+        .take(limit)
+        .copied()
+        .collect::<Vec<_>>();
+    let omitted_note = surface_omission_note(&families, &generated_sources);
 
     match args.format {
         ReportFormat::Json => {
@@ -2644,12 +2661,13 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
             println!("{}\n", scope.summary());
             print_refactor_markdown(
-                &families,
-                &shown,
+                &reportable_families,
+                &shown_reportable,
                 channels,
                 baseline_comparison.as_ref(),
                 ignore_set.as_ref(),
                 ignored_families.len(),
+                omitted_note.as_deref(),
             );
         }
         ReportFormat::Human => {
@@ -2661,30 +2679,34 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
                 println!("{}", ignore_set.summary(ignored_families.len()).line());
             }
             print_refactor_human(
-                &families,
-                &shown,
+                &reportable_families,
+                &shown_reportable,
                 sort,
                 channels,
                 args.show.contains(&ShowView::Diff),
                 args.show.contains(&ShowView::Proposal),
+                omitted_note.as_deref(),
             )
         }
-        ReportFormat::Sarif => println!("{}", refactor_sarif(&shown, families.len())?),
+        ReportFormat::Sarif => println!(
+            "{}",
+            refactor_sarif(&shown_reportable, reportable_families.len())?
+        ),
     }
     if args.show.contains(&ShowView::Hotspots)
         && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown)
     {
-        print_hotspots(&families);
+        print_hotspots_refs(&reportable_families);
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
     // failure when --fail is set.
     if let (true, Some(comparison)) = (
-        matches!(args.fail_on, Some(FailOn::New)) && !families.is_empty(),
+        matches!(args.fail_on, Some(FailOn::New)) && !reportable_families.is_empty(),
         baseline_comparison.as_ref(),
     ) {
         let mut new_families = 0usize;
         let mut changed_families = 0usize;
-        for family in &families {
+        for family in &reportable_families {
             match comparison.statuses.get(&baseline::family_key(family)) {
                 Some(BaselineStatus::Changed) => changed_families += 1,
                 Some(BaselineStatus::New) => new_families += 1,
@@ -2700,24 +2722,18 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         );
         std::process::exit(1);
     }
-    if matches!(args.fail_on, Some(FailOn::Any)) && !families.is_empty() {
+    if matches!(args.fail_on, Some(FailOn::Any)) && !reportable_families.is_empty() {
         eprintln!(
             "\nnose: {} {} found (--fail)",
-            families.len(),
-            channels.report_label(families.len())
+            reportable_families.len(),
+            channels.report_label(reportable_families.len())
         );
         std::process::exit(1);
     }
     Ok(())
 }
 
-/// Duplication hotspots: directories/modules ranked by how many of *their own*
-/// lines participate in a clone family. Each family site contributes its span to
-/// the module it physically lives in (and each distinct family touching the module
-/// is tallied), so a module's score reflects the duplicated code actually sitting
-/// there — not a family-wide figure smeared across every directory it spans. An
-/// architecture-level view of *where* the duplication concentrates.
-fn print_hotspots(families: &[nose_detect::RefactorFamily]) {
+fn print_hotspots_refs(families: &[&nose_detect::RefactorFamily]) {
     use std::collections::{HashMap, HashSet};
     // module -> (lines residing here that are in a family, distinct families touching it)
     let mut lines: HashMap<&str, u32> = HashMap::new();
@@ -2765,8 +2781,115 @@ fn time_lower<T>(f: impl FnOnce() -> T) -> T {
     out
 }
 
-fn total_dup_lines(fs: &[nose_detect::RefactorFamily]) -> u32 {
+fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
     fs.iter().map(|f| f.dup_lines).sum()
+}
+
+fn is_default_report_family(
+    family: &nose_detect::RefactorFamily,
+    generated_sources: &std::collections::HashSet<String>,
+) -> bool {
+    family.recommended_surface() == "default"
+        && !family_all_generated_source(family, generated_sources)
+}
+
+fn family_all_generated_source(
+    family: &nose_detect::RefactorFamily,
+    generated_sources: &std::collections::HashSet<String>,
+) -> bool {
+    !family.locations.is_empty()
+        && family
+            .locations
+            .iter()
+            .all(|loc| generated_sources.contains(&loc.file))
+}
+
+fn surface_omission_note(
+    families: &[nose_detect::RefactorFamily],
+    generated_sources: &std::collections::HashSet<String>,
+) -> Option<String> {
+    let generated = families
+        .iter()
+        .filter(|f| {
+            f.recommended_surface() == "default"
+                && family_all_generated_source(f, generated_sources)
+        })
+        .count();
+    let review = families
+        .iter()
+        .filter(|f| f.recommended_surface() == "review")
+        .count();
+    let hidden = families
+        .iter()
+        .filter(|f| f.recommended_surface() == "hidden")
+        .count();
+    let debug = families
+        .iter()
+        .filter(|f| f.recommended_surface() == "debug")
+        .count();
+    let omitted = generated + review + hidden + debug;
+    if omitted == 0 {
+        return None;
+    }
+    if generated == 0 && review == 0 && hidden == 1 && debug == 0 {
+        return Some("omitted 1 hidden proof-only family from default output".to_string());
+    }
+    let mut parts = Vec::new();
+    if generated > 0 {
+        parts.push(format!("{generated} generated-code"));
+    }
+    if review > 0 {
+        parts.push(format!("{review} review"));
+    }
+    if hidden > 0 {
+        parts.push(format!("{hidden} hidden"));
+    }
+    if debug > 0 {
+        parts.push(format!("{debug} debug"));
+    }
+    let family_word = if omitted == 1 { "family" } else { "families" };
+    Some(format!(
+        "omitted {omitted} {family_word} from default output ({})",
+        parts.join(", ")
+    ))
+}
+
+fn generated_source_index(
+    refs: &[&std::path::Path],
+    exclude: &[String],
+) -> std::collections::HashSet<String> {
+    let cwd = std::env::current_dir().ok();
+    let mut generated = std::collections::HashSet::new();
+    for root in refs {
+        for (path, _lang) in nose_frontend::discover_paths(root, exclude) {
+            if !source_has_generated_header(&path) {
+                continue;
+            }
+            generated.insert(path.clone());
+            if let Some(cwd) = &cwd {
+                generated.insert(relativize(&path, cwd));
+            }
+        }
+    }
+    generated
+}
+
+fn source_has_generated_header(file: &str) -> bool {
+    let Some(lines) = std::fs::read_to_string(file).ok() else {
+        return false;
+    };
+    lines.lines().take(8).any(is_generated_header_line)
+}
+
+fn is_generated_header_line(line: &str) -> bool {
+    let line = line.trim().to_ascii_lowercase();
+    line.contains("@generated")
+        || line.contains("generated by")
+        || line.contains("code generated")
+        || line.contains("automatically generated")
+        || line.contains("auto-generated")
+        || line.contains("autogenerated")
+        || (line.contains("generated") && line.contains("do not edit"))
 }
 
 /// Build a SARIF 2.1.0 document — one result per family, every member site a
@@ -2904,21 +3027,25 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
 }
 
 fn print_refactor_human(
-    all: &[nose_detect::RefactorFamily],
+    all: &[&nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
     sort: SortKey,
     mode: ScanChannels,
     diff: bool,
     proposal: bool,
+    omitted_note: Option<&str>,
 ) {
     println!(
         "{} {}, ranked by {}  ·  ~{} duplicated lines  (showing {})",
         all.len(),
         mode.report_label(all.len()),
         sort_name(sort),
-        total_dup_lines(all),
+        total_dup_lines_refs(all),
         shown.len()
     );
+    if let Some(note) = omitted_note {
+        println!("{note}");
+    }
     // Every site is listed (you can't act on a clone you can't see); only pathological
     // fanout is capped, with a pointer to the full machine-readable list.
     const SITE_CAP: usize = 30;
@@ -3276,20 +3403,24 @@ fn line_diff(a: &[&str], b: &[&str]) -> Vec<(char, String)> {
 }
 
 fn print_refactor_markdown(
-    all: &[nose_detect::RefactorFamily],
+    all: &[&nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
     mode: ScanChannels,
     baseline: Option<&BaselineComparison>,
     ignore_set: Option<&ignores::IgnoreSet>,
     ignored_families: usize,
+    omitted_note: Option<&str>,
 ) {
     println!("# {}\n", mode.markdown_title());
     println!(
         "{} families · ~{} duplicated lines · showing top {}\n",
         all.len(),
-        total_dup_lines(all),
+        total_dup_lines_refs(all),
         shown.len()
     );
+    if let Some(note) = omitted_note {
+        println!("{note}\n");
+    }
     if let Some(comparison) = baseline {
         println!("{}\n", comparison.summary.line());
     }
