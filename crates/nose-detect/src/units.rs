@@ -49,6 +49,12 @@ pub struct UnitFeat {
     /// clones return the same computed values; used to demote near-identical units
     /// that differ only in their result (`<` vs `<=`, an extra effect).
     pub returns: Vec<u64>,
+    /// Sorted, deduped hashes of the unit's heavy sub-DAG ANCHORS (sub-computations of
+    /// ≥ `ANCHOR_MIN_WEIGHT` value-nodes). Two units sharing a rare anchor share an
+    /// extractable common sub-computation — a partial / sub-DAG clone that whole-unit
+    /// Jaccard misses. Used by the candidate (`near`) channel's anchor pairing.
+    #[serde(default)]
+    pub anchors: Vec<u64>,
     /// Whether the value fingerprint is safe to use as a strict semantic proof.
     ///
     /// `semantic` mode must not report units whose fingerprint passed through lossy
@@ -450,10 +456,10 @@ pub(crate) fn extract(
         // literal-only multiset for data-table detection. Computed before the size
         // gate so the gate can consult semantic richness (below).
         let value_start = unit_timer.start();
-        let (value, lits, returns) = if let Some(context) = &value_context {
-            nose_normalize::value_fingerprint_lits_with_context(il, root, interner, context)
+        let (value, lits, returns, anchors) = if let Some(context) = &value_context {
+            nose_normalize::value_fingerprint_lits_anchors_with_context(il, root, interner, context)
         } else {
-            nose_normalize::value_fingerprint_lits(il, root, interner)
+            nose_normalize::value_fingerprint_lits_anchors(il, root, interner)
         };
         let value_ms = UnitTimer::elapsed(value_start);
 
@@ -569,6 +575,7 @@ pub(crate) fn extract(
             linear,
             lits,
             returns,
+            anchors,
             exact_safe,
             fragment_kind,
             proof_facts,

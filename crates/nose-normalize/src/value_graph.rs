@@ -74,6 +74,46 @@ pub fn value_fingerprint_lits(
     b.fingerprint_lits()
 }
 
+/// The default minimum sub-computation size (in value-nodes) for a node to be an extractable
+/// anchor. Below this a shared sub-DAG is a common idiom (`x+1`, `len(xs)`), not a refactor.
+pub const ANCHOR_MIN_WEIGHT: u32 = 20;
+
+/// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
+/// anchor share an extractable sub-computation: a partial / sub-DAG clone.
+pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Vec<u64> {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    b.anchors(ANCHOR_MIN_WEIGHT)
+}
+
+/// `value_fingerprint_lits` plus the unit's heavy sub-DAG anchors, all from ONE value-graph
+/// build (anchors share the build, so adding them is free vs. fingerprinting alone).
+pub fn value_fingerprint_lits_anchors(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
+/// Context-shared variant of [`value_fingerprint_lits_anchors`].
+pub fn value_fingerprint_lits_anchors_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&context.subtree_hashes);
+    b.build_unit_with_context(root, Some(context));
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
 /// File-level facts that are independent of the unit currently being fingerprinted.
 ///
 /// `units::extract` may fingerprint hundreds of block units from the same large file.
@@ -7094,6 +7134,55 @@ impl<'a> Builder<'a> {
     /// Multiset of value-node hashes reachable from the unit's sinks, plus the
     /// sink-tagged hashes themselves, and (separately) just the literal `Const`
     /// hashes. Sorted for a canonical, order-independent fingerprint.
+    /// Heavy sub-DAG ANCHORS: the structural hashes of reachable value-nodes whose
+    /// sub-computation is at least `min_weight` nodes. Two units that share an anchor hash
+    /// compute the *exact same* sub-value (hash-consed) — so a shared, large, rare anchor is a
+    /// partial clone: an extractable common sub-computation, even when the units differ
+    /// elsewhere (the case whole-unit Jaccard misses). `Const`/`Input`/`Elem` leaves are never
+    /// anchors (no computation to extract). Weight is the memoized subtree size (args precede
+    /// their parent in id order); capped so a deeply-shared DAG can't blow it up.
+    fn anchors(&self, min_weight: u32) -> Vec<u64> {
+        const WEIGHT_CAP: u32 = 1 << 20;
+        let n = self.nodes.len();
+        let mut reachable = vec![false; n];
+        let mut stack: Vec<ValueId> = self.sinks.iter().map(|s| s.value).collect();
+        while let Some(v) = stack.pop() {
+            let vi = v as usize;
+            if reachable[vi] {
+                continue;
+            }
+            reachable[vi] = true;
+            for &a in &self.nodes[vi].args {
+                if !reachable[a as usize] {
+                    stack.push(a);
+                }
+            }
+        }
+        let mut weight = vec![0u32; n];
+        for i in 0..n {
+            let mut w: u32 = 1;
+            for &a in &self.nodes[i].args {
+                w = w.saturating_add(weight[a as usize]);
+            }
+            weight[i] = w.min(WEIGHT_CAP);
+        }
+        let mut out = Vec::new();
+        for i in 0..n {
+            if reachable[i]
+                && weight[i] >= min_weight
+                && !matches!(
+                    self.nodes[i].op,
+                    ValOp::Const(_) | ValOp::Input(_) | ValOp::Elem(_)
+                )
+            {
+                out.push(self.vhash[i]);
+            }
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
     fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
         let h = &self.vhash; // structural hashes, maintained during construction
                              // reachable from sinks

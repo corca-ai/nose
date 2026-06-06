@@ -576,6 +576,31 @@ fn go_functional_append_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn sub_dag_anchor_shared_when_units_share_a_heavy_computation() {
+    // Two functions that share a large sub-computation (subtotal/tax/shipping/grand) but differ
+    // elsewhere are a PARTIAL / sub-DAG clone — they share a heavy anchor (an extractable common
+    // computation) even though whole-unit fingerprints differ. If the shared computation itself
+    // diverges (different shipping rule / sign), no anchor is shared.
+    let i = Interner::new();
+    let a = "function a(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  renderInvoice(grand);\n  return grand;\n}\n";
+    let b = "function b(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  saveOrder(grand);\n  notify(grand);\n}\n";
+    let c = "function c(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 200 ? 0 : 25;\n  const grand = subtotal - tax + ship;\n  saveOrder(grand);\n  notify(grand);\n}\n";
+    let aa = value_anchors(&i, a, Lang::TypeScript);
+    assert!(
+        !aa.is_empty(),
+        "a heavy shared computation must yield an anchor"
+    );
+    assert!(
+        shares_any(&aa, &value_anchors(&i, b, Lang::TypeScript)),
+        "units sharing a heavy computation must share an anchor (partial clone)"
+    );
+    assert!(
+        !shares_any(&aa, &value_anchors(&i, c, Lang::TypeScript)),
+        "when the shared computation diverges, no anchor is shared"
+    );
+}
+
+#[test]
 fn promise_then_chain_converges_with_await_sequential_code() {
     // `p.then(r => body)` is a Promise continuation ≡ `const r = await p; body`. Beta-reducing
     // the callback with the receiver makes a `.then`-chain's value fingerprint identical to the
@@ -2432,6 +2457,16 @@ fn value_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
     let n = normalize(&il, interner, &NormalizeOptions::default());
     nose_normalize::value_fingerprint(&n, first_func(&n), interner)
+}
+
+fn value_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    nose_normalize::value_anchors(&n, first_func(&n), interner)
+}
+
+fn shares_any(a: &[u64], b: &[u64]) -> bool {
+    a.iter().any(|x| b.contains(x))
 }
 
 fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {
