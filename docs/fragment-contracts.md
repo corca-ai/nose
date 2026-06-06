@@ -90,13 +90,14 @@ special case, but a consequence of the algebra.
 
 ## Place — receiver identity, fail-closed
 
-A write target resolves to a `Place`: `This`, `Param(cid)`, `LocalAlloc(id)`, a `Field` or
-`Index` path over another place, or `Unknown`. The cardinal rule is that **`Unknown` is the
-default**: any receiver that does not resolve to a proven place is `Unknown`, and a write that
-*requires* a proven place (a field write) through an `Unknown` receiver is rejected, never
-merged. An index write whose base is unproven (e.g. a Java instance field) still resolves —
-to `Index(Unknown, …)` — and stays safe, because an index write is observable in the effect
-trace and so carries no receiver-identity obligation.
+A receiver-bearing write resolves its target to a `Place`: `This`, `Param(cid)`,
+`LocalAlloc(id)`, a `Field` or `Index` path over another place, or `Unknown`. The cardinal
+rule is that **`Unknown` is the default**: any receiver that does not resolve to a proven place
+is `Unknown`, and a field write through an `Unknown` receiver is rejected, never merged. A
+`Place` is recorded on the contract *only* for effects that need this proof — i.e. field
+writes. An index write carries no place at all: it is observable in the effect trace (key and
+value are recorded), so its receiver identity is irrelevant to soundness, and conflating its
+target into the contract would mix proof with diagnostics.
 
 This folds the former Java `this.field` special case into the general model: `this.x = v`
 resolves to `Field(This, …)`, and the recognizer asserts the place is exact-safe.
