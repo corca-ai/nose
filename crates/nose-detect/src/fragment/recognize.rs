@@ -16,12 +16,19 @@
 use super::contract::FragmentContract;
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Il, Interner, NodeId, NodeKind};
+use crate::units::exact_java_this_field;
+use nose_il::{Il, Interner, Lang, NodeId, NodeKind};
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
 /// is still owned solely by the [`crate::units`] predicates.
-pub(crate) const MIGRATED: &[FragmentKind] = &[FragmentKind::DirectReturn, FragmentKind::DirectThrow];
+pub(crate) const MIGRATED: &[FragmentKind] = &[
+    FragmentKind::DirectReturn,
+    FragmentKind::DirectThrow,
+    FragmentKind::IndexAssignEffect,
+    FragmentKind::SelfFieldAssign,
+    FragmentKind::ExprEffect,
+];
 
 /// Recognize `node` as a migrated exact-fragment shape by building its contract directly,
 /// independently of [`crate::units::exact_statement_fragment_root`]. Returns `None` for
@@ -50,8 +57,49 @@ pub(crate) fn recognize_contract(
         NodeKind::Throw if computed_unary() => {
             Some(contract(FragmentKind::DirectThrow, Exit::Throw, il, node))
         }
+        NodeKind::Assign => recognize_assignment_effect(il, interner, node),
+        NodeKind::ExprStmt if expr_effect_shape(il, kids) => {
+            Some(contract(FragmentKind::ExprEffect, Exit::Normal, il, node))
+        }
         _ => None,
     }
+}
+
+/// Classify an assignment-effect fragment: a non-overloadable index write (C/Go/Java) or a
+/// Java fixed-receiver `this.field` write. The two shapes are structurally disjoint.
+fn recognize_assignment_effect(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<FragmentContract> {
+    let kids = il.children(node);
+    if kids.len() != 2 {
+        return None;
+    }
+    if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java)
+        && il.kind(kids[0]) == NodeKind::Index
+    {
+        return Some(contract(FragmentKind::IndexAssignEffect, Exit::Normal, il, node));
+    }
+    if il.meta.lang == Lang::Java && exact_java_this_field(il, interner, kids[0]) {
+        return Some(contract(FragmentKind::SelfFieldAssign, Exit::Normal, il, node));
+    }
+    None
+}
+
+/// An expression statement evaluated for its side effect: a single child that is not a
+/// control sink, bare variable, or bare literal (those carry no observable effect).
+fn expr_effect_shape(il: &Il, kids: &[NodeId]) -> bool {
+    kids.len() == 1
+        && !matches!(
+            il.kind(kids[0]),
+            NodeKind::Return
+                | NodeKind::Throw
+                | NodeKind::Break
+                | NodeKind::Continue
+                | NodeKind::Var
+                | NodeKind::Lit
+        )
 }
 
 fn contract(kind: FragmentKind, exit: Exit, il: &Il, node: NodeId) -> FragmentContract {
@@ -146,6 +194,30 @@ mod tests {
         // A preceding reassignment of the returned input invalidates context safety;
         // both paths must reject the return.
         assert_paths_agree("function f(a){ a = a + 1; return a * a; }", Lang::JavaScript);
+    }
+
+    #[test]
+    fn differential_index_self_field_and_expr_effects() {
+        // Index-assignment effect (Go): a top-level `m[k] = v`.
+        assert_paths_agree(
+            "package p\nfunc f(m map[string]int, k string, v int) {\n\tm[k] = v\n}\n",
+            Lang::Go,
+        );
+        // Java index-assignment and `this.field` write.
+        assert_paths_agree(
+            "class C { int[] a; void f(int i, int v){ a[i] = v; } }",
+            Lang::Java,
+        );
+        assert_paths_agree(
+            "class C { int x; void set(int v){ this.x = v + 1; } }",
+            Lang::Java,
+        );
+        // Expression-statement effect: an append/push call.
+        assert_paths_agree(
+            "function f(xs, v){ xs.push(v + 1); }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree("def f(xs, v):\n    xs.append(v + 1)\n", Lang::Python);
     }
 
     #[test]

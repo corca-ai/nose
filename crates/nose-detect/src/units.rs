@@ -2586,7 +2586,7 @@ fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node:
     kids.len() == 2 && exact_java_this_field(il, interner, kids[0])
 }
 
-fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
+pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Field {
         return false;
     }
