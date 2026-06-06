@@ -10,7 +10,7 @@ Everything a fresh worker needs is in this directory:
 
 | file | what it is |
 |---|---|
-| `scan_regression.py` | the harness (`baseline`, `compare`, `cache` subcommands) |
+| `scan_regression.py` | the harness (`baseline`, `compare`, `cache`, `selftest` subcommands) |
 | `subset.json` | the small, language-diverse repo subset to measure |
 | `baseline.v1.json` | the recorded reference snapshot (binary identity + per-repo canonical output + runtime medians) |
 | `compare-summary.md` | the latest `compare` markdown report (regenerated each run) |
@@ -60,6 +60,12 @@ python3 bench/type4/scan_regression/scan_regression.py compare \
 fire** — triggers are investigation prompts, not merge blockers (see below). Pass
 `--strict` to make any trigger non-zero once the thresholds are calibrated.
 
+Run the corpus-free unit checks for the canonicalization/gate logic:
+
+```sh
+python3 bench/type4/scan_regression/scan_regression.py selftest
+```
+
 ## What gets compared (output drift)
 
 The `--top 0` full JSON is canonicalized so **family order and ranking tie-breaks are
@@ -73,15 +79,39 @@ main worktree or any other path you pass to `--repos-root`. Per repo we record a
 - `product_json_bytes` — payload byte size with the volatile `tool_version` removed
 - `kind_counts` — unit kinds across all locations (`Block`, `Function`, `Method`, …)
 - `span_buckets` — families bucketed by `mean_lines` (`1`, `2-3`, `4-10`, `11-30`, `31+`)
+- `recommended_surface_counts` — family product placement counts for `default`,
+  `review`, `hidden`, and reserved `debug`
+- `family_shape_counts` — whole-only, all-fragment, and mixed family counts
 - per family — **keyed by the normalized location set, not `family_id`** (the product
   `family_id` is not unique; distinct families can share one id, so keying on it would
   silently drop a family): `family_id` (kept as an attribute and a drift signal),
-  `members`, `location_count`, `mean_lines`, per-kind counts, and the sorted locations.
-  `distinct_location_sets` is recorded so a true location-set collision would surface
-  rather than collapse silently.
+  `members`, `location_count`, `mean_lines`, `recommended_surface`, family shape,
+  fragment count, per-kind counts, family-local fragment kind/reason-code counts,
+  family-local kind/reason-by-surface counts, fragment-only span buckets,
+  enclosing-unit recovery, and the sorted locations. `distinct_location_sets` is
+  recorded so a true location-set collision would surface rather than collapse silently.
 - `fragment_kind_counts` / `reason_code_counts` — exact-fragment metadata buckets from
   product scan JSON. #45 makes these live for current output, so fragment/reason drift is
   visible separately from generic `Block` counts.
+- `fragment_kind_surface_counts` / `reason_code_surface_counts` — exact-fragment proof
+  buckets crossed with `recommended_surface`, so calibration drift is visible before it
+  changes detector output.
+- `fragment_line_span_buckets` / `fragment_token_span_buckets` — fragment-location span
+  distributions. Line spans use the same buckets as family `mean_lines`; token spans use
+  `0`, `1-8`, `9-23`, `24-49`, `50-99`, and `100+`.
+- `enclosing_unit_recovery_counts` — recovered vs missing exact enclosing unit metadata
+  across fragment locations.
+
+These #51 C1 metrics are computed by the harness from stable scan JSON. They do not add
+new scan JSON fields and do not change detector acceptance, ranking, or `--top 0`
+visibility.
+
+Family-local fragment metadata is intentional. Global fragment/reason buckets catch
+overall distribution drift, but they cannot catch a balanced swap where two families keep
+the same `recommended_surface` and the repo-wide buckets stay identical while each
+family's exact proof shape changes. The per-family records therefore include
+`fragment_kind_counts`, `reason_code_counts`, `fragment_kind_surface_counts`, and
+`reason_code_surface_counts`, and `compare` treats those as family drift.
 
 `baseline` runs each repo `runtime_repeats` times and asserts the canonical output is
 **identical across runs** on one binary — a determinism guard. A mismatch aborts before
@@ -102,6 +132,16 @@ baseline, the summary says so explicitly and any delta is environment noise. The
 committed `baseline.v1.json` runtime numbers are a snapshot from one machine; the
 **output drift** in it is portable, the **runtime** is not.
 
+## Compare summary identity
+
+`compare-summary.md` is a committed generated report. Its `current` `source_git_describe`
+and `build_ref` identify the checkout and binary that generated the report, not
+necessarily the later commit that stores the markdown. This avoids a self-referential
+hash: if the report recorded the artifact commit itself, committing the report would
+change the commit hash it claims to contain. For committed summaries, use an explicit
+generator label such as `issue-51-generator@<sha>` or `main@<sha>` and treat that as the
+reproducible input identity.
+
 Cache performance is a **separate** mode that never feeds the baseline:
 
 ```sh
@@ -118,10 +158,10 @@ for a human to look at, not to gate:
 
 | signal | trigger |
 |---|---|
-| family set | any added/removed `family_id`, or a family changing shape (members/locations/mean_lines/kinds) |
+| family set | any added/removed location set, or a family changing shape (members/locations/mean_lines/kinds/surface/fragment metadata) |
 | `total_families` | any change |
 | `product_json_bytes` | > 5% change |
-| kind / span / fragment / reason-code buckets | any count change |
+| kind / span / fragment / reason-code / surface / enclosing-unit buckets | any count change |
 | runtime (per-phase + wall median) | > 25% growth **and** > 5 ms absolute (loose + floored because it's noisy) |
 
 The thresholds live in `THRESHOLDS` at the top of `scan_regression.py`. Tune them there
