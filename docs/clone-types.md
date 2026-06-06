@@ -110,6 +110,12 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   sink tags; swapping appends/emits on one execution path is a behavior change, not a
   Type-4 clone.
 
+Exact fragment proof is not the same thing as user-facing refactorability. The
+[fragment output audit](fragment-output-audit.md) classifies current real-corpus fragment
+output into refactor-worthy, review-hazard, proof-only/noise, and metadata-ambiguous
+buckets, and records the ranking/grouping metadata needed before small fragments should be
+promoted in default reports.
+
 ## Scan modes, and cross-language
 
 Each type maps to a detection channel: **Type-1/2 → `syntax`**, **Type-3 → `near`**

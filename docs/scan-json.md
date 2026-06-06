@@ -154,6 +154,17 @@ Each `locations[]` item has:
 | `name` | string, optional | Symbol name when the frontend can recover one. |
 | `sem` | integer | Value-graph size for the site. |
 
+### Fragment metadata gap
+
+Current schema v1 reports sub-function exact fragments as ordinary locations, usually with
+`locations[].kind == "Block"`. That is enough for compatibility, but not enough to explain
+whether a small exact fragment is a guarded return, ordered effect sequence, Java self-field
+body, proof-only guard, or review-hazard fragment. The
+[fragment output audit](fragment-output-audit.md) records the current pre-fragment-metadata
+behavior and recommends future stable fields such as `is_fragment`, `FragmentKind`,
+`reason_code`, enclosing unit metadata, and diagnostic `proof_facts`. Those fields would be
+additive to schema v1 unless their types or required meanings force a later schema version.
+
 ## Compatibility
 
 Consumers should branch on `schema_version` before parsing. In version 1, new
