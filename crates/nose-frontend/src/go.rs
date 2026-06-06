@@ -647,7 +647,21 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     .collect(),
                 None => Vec::new(),
             };
-            let tag = lo.sym("composite_literal");
+            // Tag the literal by its TYPE so the kinds stay semantically distinct (the old
+            // blanket `composite_literal` tag collapsed slice ≡ map ≡ struct to one value):
+            //   • slice/array  → `array`  — an ordered sequence; converges with `[1,2]` / JS.
+            //   • map          → `composite_literal` — preserves go-map handling
+            //                    (`proven_go_literal_zero_map_seq`, which keys on this tag).
+            //   • struct/named → `go_struct` — a record, NOT a collection; a distinct value so
+            //                    `Point{1,2}` no longer value-merges with `[1,2]`.
+            // Named-type aliases default to `go_struct` (conservative: distinct, never a false
+            // sequence merge — at worst a missed convergence for a named slice alias).
+            let tag_str = match node.child_by_field_name("type").map(|t| t.kind()) {
+                Some("slice_type" | "array_type") => "array",
+                Some("map_type") => "composite_literal",
+                _ => "go_struct",
+            };
+            let tag = lo.sym(tag_str);
             lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
         "literal_element" | "keyed_element" => {

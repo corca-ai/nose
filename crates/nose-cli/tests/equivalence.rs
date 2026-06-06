@@ -506,6 +506,30 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
+    // A Go slice literal `[]int{1,2,3}` is an ordered sequence — it converges with a Python
+    // list / JS array. A Go STRUCT literal `Point{1,2,3}` is a record, NOT a collection, and
+    // must stay distinct (no `Point{1,2,3}` ≡ `[1,2,3]` false merge). Tagging composite
+    // literals by type (slice/array → `array`, map → `composite_literal`, struct → `go_struct`)
+    // removes the old blanket tag that collapsed all three to one value.
+    let i = Interner::new();
+    let py_list = "def f():\n    return [1, 2, 3]\n";
+    let go_slice = "package p\nfunc f() []int { return []int{1, 2, 3} }\n";
+    let go_struct = "package p\ntype Point struct{ x, y, z int }\nfunc f() Point { return Point{1, 2, 3} }\n";
+    let list_fp = value_fp(&i, py_list, Lang::Python);
+    assert_eq!(
+        list_fp,
+        value_fp(&i, go_slice, Lang::Go),
+        "go slice literal must converge with the python list literal"
+    );
+    assert_ne!(
+        list_fp,
+        value_fp(&i, go_struct, Lang::Go),
+        "a go struct literal must stay distinct from a list (it is a record, not a collection)"
+    );
+}
+
+#[test]
 fn pure_method_recursion_converges_with_iteration() {
     // Ruby `def` and Java methods are admitted to the recursion→iteration canon when their
     // body has no receiver/field access (a pure numeric fold), so `fac(n) = n*fac(n-1)`
