@@ -16,7 +16,9 @@
 > Later additions on the value graph: a purpose-fit **type inference** (`types.rs`, now a
 > fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
-> so nested filters fuse to `p∧q`), full **AC flatten+sort in the value graph itself** (not
+> so nested filters fuse to `p∧q`), first-class **flat-map** modeling for Python
+> multi-clause comprehensions, JS `.flatMap`, and equivalent nested list-builder loops
+> (kept distinct from nested-list comprehensions), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),

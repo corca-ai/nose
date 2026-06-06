@@ -880,6 +880,17 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
+            HoFKind::FlatMap => {
+                let mut out = Vec::new();
+                for x in coll {
+                    match self.apply(f, &[x], env)? {
+                        Value::Err => return Ok(Value::Err),
+                        Value::List(items) => out.extend(items),
+                        _ => return Ok(Value::Err),
+                    }
+                }
+                Ok(Value::List(out))
+            }
             HoFKind::Filter => {
                 let mut out = Vec::new();
                 for x in coll {
@@ -1944,6 +1955,56 @@ mod tests {
     #[test]
     fn hof_filter_propagates_lambda_errors() {
         assert_eq!(hof_with_error_lambda(HoFKind::Filter), Value::Err);
+    }
+
+    #[test]
+    fn hof_flat_map_propagates_lambda_errors() {
+        assert_eq!(hof_with_error_lambda(HoFKind::FlatMap), Value::Err);
+    }
+
+    fn hof_flat_map_value() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let var = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let pair = b.add(NodeKind::Seq, Payload::None, sp, &[var, var]);
+        let lambda_ret = b.add(NodeKind::Return, Payload::None, sp, &[pair]);
+        let lambda_body = b.add(NodeKind::Block, Payload::None, sp, &[lambda_ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp, &[param, lambda_body]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp, &[one, two]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::FlatMap),
+            sp,
+            &[coll, lambda],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[hof]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("run_unit").ret
+    }
+
+    #[test]
+    fn hof_flat_map_flattens_lambda_lists() {
+        assert_eq!(
+            hof_flat_map_value(),
+            Value::List(vec![
+                Value::Int(1),
+                Value::Int(1),
+                Value::Int(2),
+                Value::Int(2)
+            ])
+        );
     }
 
     fn print_with_error_arg_then_return() -> Value {
