@@ -119,6 +119,13 @@ For Java stream rules, keep the registry scoped to the proven pure subset:
 `Arrays.stream(...).flatMap(...map...)` can share the FlatMap HoF only while
 `map`-returning-stream siblings stay nested and callback effects remain observable
 oracle evidence instead of purity assumptions.
+For FlatMap aggregate rules, keep the aggregate consumer explicit about the HoF
+layout: pure `FlatMap[outer, Map[contrib]]` streams and equivalent nested inner
+`Reduce` loops can share sum/max/any fingerprints when `contrib` uses the outer
+element, but the bridge must not read FlatMap's `[outer, inner]` arguments as
+filtered Map's `[contrib, pred]`. Wrong sum seeds, nested-list aggregation,
+outer-cardinality-only cases, and changed flattened predicates remain hard
+negatives; filtered/carry-predicate FlatMap aggregates are successor work.
 For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
 name-only lower/upper conventions, non-exiting checks, swapped bounds, and float
 domains must stay hard negatives.
@@ -140,6 +147,7 @@ attack exactly the proof invariant a rule needs:
 - missing type/provenance/order proof;
 - filter-map absence vs emitted falsey value;
 - Java stream `flatMap` vs `map` returning streams;
+- FlatMap aggregate seed/predicate changes and nested-list aggregation;
 - effectful callback where a pure HoF rule would be unsound;
 - representation growth that makes a coverage win too expensive.
 

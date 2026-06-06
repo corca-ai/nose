@@ -20,8 +20,12 @@
 > `Some(value)`/`None` callbacks and guarded `Vec::new()`/`push` builders, first-class
 > **flat-map** modeling for Python
 > multi-clause comprehensions, JS `.flatMap`, pure Java `Arrays.stream(...).flatMap(...map...)`,
-> and equivalent nested list-builder loops (kept distinct from nested-list comprehensions
-> and Java stream `map` returning streams), full **AC flatten+sort in the value graph itself** (not
+> equivalent nested list-builder loops, and pure inner-Map aggregate consumers such as
+> sum/max/any over flat-map streams versus nested reduction loops when the contribution
+> uses the outer element (kept distinct from nested-list comprehensions, Java stream
+> `map` returning streams, wrong reduction seeds, outer-cardinality-only cases, and
+> changed flattened predicates; filtered/carry-predicate FlatMap aggregates remain
+> successor work), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
