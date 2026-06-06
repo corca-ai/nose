@@ -57,21 +57,7 @@ run_formal_obligations_lint() {
 }
 
 run_formal_lean() {
-    local toolchain
-    toolchain="$(cat lean-toolchain 2>/dev/null || printf 'leanprover/lean4:v4.30.0')"
-    if command -v elan >/dev/null 2>&1; then
-        while IFS= read -r f; do
-            echo "checking $f"
-            elan run "$toolchain" lean --error=warning "$f"
-        done < <(find formal -name '*.lean' -print | sort)
-        return
-    fi
-
-    need_cmd lean
-    while IFS= read -r f; do
-        echo "checking $f"
-        lean --error=warning "$f"
-    done < <(find formal -name '*.lean' -print | sort)
+    ./scripts/check-lean-proofs.sh
 }
 
 run_msrv_check() {
@@ -134,7 +120,7 @@ run_docs_wiki_lint
 step "formal obligation registry"
 run_formal_obligations_lint
 
-step "Lean proofs (value-graph soundness)"
+step "Lean proofs (formal soundness)"
 run_formal_lean
 
 printf '\n\033[1;32mFull local CI gates passed.\033[0m\n'

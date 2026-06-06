@@ -3,9 +3,10 @@
 Back to [home](home.md). The runtime soundness check is described in
 [benchmark](benchmark.md); the rewrite pipeline is in [normalization](normalization.md).
 
-nose uses Lean 4 as a proof-obligation registry for semantic rewrites whose soundness should
-not depend only on corpus coverage. The registry lives under
-[`formal/obligations`](../formal/obligations), and each obligation directory contains:
+nose uses Lean 4 as a proof-obligation registry for semantic contracts whose soundness
+should not depend only on corpus coverage. The registry lives under
+[`formal/obligations`](../formal/obligations). Reusable Lean models live under
+[`formal/lib`](../formal/lib), and each obligation directory contains:
 
 - `meta.toml` — the id, status, related Rust files/symbols, theorem names, assumptions, and
   optional counterexample theorem names.
@@ -16,6 +17,22 @@ not depend only on corpus coverage. The registry lives under
 The obligation id must match its path. For example,
 `formal/obligations/normalize/value_graph/factor_distribute/meta.toml` declares
 `normalize.value_graph.factor_distribute`.
+
+## Semantic namespaces
+
+The obligation path names the product contract, not the Rust source path. Use semantic
+namespaces such as:
+
+- `il.arena.*` — structural IL invariants such as arena bounds and deep-copy validity.
+- `normalize.*` — behavior-preserving canonicalizations, including value-graph and
+  recursion-to-iteration rewrites.
+- `detect.fragment.*` — exact-fragment contracts, effect/place proof boundaries, free
+  inputs, and wrapper synthesis.
+- `oracle.*` — behavioral-oracle independence contracts such as the normalization cutoff.
+
+The linter has a required-surface list for proof-sensitive areas whose omission would be
+easy to miss. Those obligations must list the expected Rust files and symbols in
+`meta.toml`; otherwise CI fails even if a Lean file exists somewhere else.
 
 ## Named rule modules
 
@@ -44,10 +61,8 @@ a new named semantic rule cannot be added without registering its proof state.
 ```sh
 python3 scripts/check-formal-obligations.py --self-test
 python3 scripts/check-formal-obligations.py
-while IFS= read -r f; do
-  lean --error=warning "$f"
-done < <(find formal -name '*.lean' -print | sort)
+./scripts/check-lean-proofs.sh
 ```
 
-The full local CI mirror runs both checks. Lean warnings are errors, so `sorry` and unused
-proof hints fail the gate.
+The proof script builds shared Lean modules into `target/lean` and then checks every
+obligation proof with warnings as errors, so `sorry` and unused proof hints fail the gate.

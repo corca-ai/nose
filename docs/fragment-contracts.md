@@ -87,7 +87,12 @@ obligation — it does not treat every mutation as append-like:
 A field write is the one case where the interpreter does **not** observe the receiver (the
 field-state map is keyed by name), so a field write is exact-safe only when its receiver is a
 proven place. This is exactly why a fixed `this` is the only admitted field receiver — not a
-special case, but a consequence of the algebra.
+special case, but a consequence of the algebra. The boundary is registered as
+[`detect.fragment.effect_place`](../formal/obligations/detect/fragment/effect_place/Proof.lean);
+free-input extraction and wrapper synthesis are tracked by
+[`detect.fragment.free_inputs`](../formal/obligations/detect/fragment/free_inputs/Proof.lean)
+and
+[`detect.fragment.wrapper_synthesis`](../formal/obligations/detect/fragment/wrapper_synthesis/Proof.lean).
 
 ## Place — receiver identity, fail-closed
 

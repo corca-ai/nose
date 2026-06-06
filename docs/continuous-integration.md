@@ -64,7 +64,8 @@ Before merge or release-sensitive work, run the full local CI mirror:
 
 The full gate mirrors the GitHub Actions jobs: format, clippy, rustdoc warnings,
 release build/tests, the self-hosted duplication gate, MSRV check, supply-chain
-checks, docs wiki connectivity, the formal obligation registry, and Lean soundness proofs.
+checks, docs wiki connectivity, the formal obligation registry, and Lean soundness proofs
+via [`check-lean-proofs.sh`](../scripts/check-lean-proofs.sh).
 
 ## Baselines — incremental adoption
 

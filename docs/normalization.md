@@ -199,7 +199,12 @@ flow through dataflow / cfg-norm / the value graph and converge with hand-writte
   excluded: their early-exit skips later `HEAD`s the accumulator loop still evaluates.
 
 Both schemes require exactly one self-call (a same-named call inside a standalone function);
-anything else is left untouched. **Soundness** is checked, not assumed: the interpreter
+anything else is left untouched. The proof obligations
+[`normalize.recursion.tail`](../formal/obligations/normalize/recursion/tail/Proof.lean)
+and
+[`normalize.recursion.structural_fold`](../formal/obligations/normalize/recursion/structural_fold/Proof.lean)
+record the tail-loop equivalence and the numeric `+`/`*` fold laws. **Soundness** is checked,
+not assumed: the interpreter
 ([`interp`](../crates/nose-normalize/src/interp.rs)) now executes self-recursion, so
 `nose verify` interprets the original recursion *and* the rewritten loop and flags any
 behavioral difference (when the recursion terminates on the input battery — a guard like

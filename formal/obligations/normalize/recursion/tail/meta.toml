@@ -1,0 +1,12 @@
+id = "normalize.recursion.tail"
+status = "proven"
+kind = "soundness"
+summary = "Tail-recursive self calls and their emitted while loop reach the same final state before returning."
+
+[rust]
+files = ["crates/nose-normalize/src/recursion.rs"]
+symbols = ["Tail", "ordered_updates", "while_loop"]
+
+[lean]
+proof = "Proof.lean"
+theorems = ["NoseRecursionTail.tail_recursion_loop_sound"]

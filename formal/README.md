@@ -2,11 +2,14 @@
 
 nose's soundness contract is *fingerprint-equal => behavior-equal*. The interpreter oracle
 (`nose verify`) checks that contract empirically against the pinned corpus; this directory
-adds a machine-checked Lean 4 layer for the proof-sensitive rewrite rules.
+adds a machine-checked Lean 4 layer for proof-sensitive semantic contracts.
 
 The registry is directory-shaped:
 
 ```text
+formal/lib/
+  *.lean                    # shared models used by obligations
+
 formal/obligations/<area>/<subsystem>/<rule>/
   meta.toml
   Proof.lean
@@ -26,6 +29,10 @@ obligation directory above, and `meta.toml` must set `rust.rule_module = true`. 
 checks this pairing mechanically, so a new named semantic rule cannot land without a
 registered proof obligation.
 
+Some semantic surfaces are required even when they are not one-file rule modules. The linter
+currently requires obligations for IL arena validity/deep-copy, recursion rewrites, exact
+fragment effect/place and wrapper contracts, and the oracle cutoff.
+
 ## Registered proof families
 
 - `normalize.value_graph.algebra` — associative-commutative numeric algebra,
@@ -44,15 +51,25 @@ registered proof obligation.
 - `normalize.value_graph.clamp` — clamp equivalences plus boundary counterexamples.
 - `normalize.value_graph.field_writes` — final field-state semantics, last-write-wins,
   distinct-field commutativity, and same-field order counterexample.
+- `normalize.recursion.tail` — tail-recursive self-call elimination into a while loop.
+- `normalize.recursion.structural_fold` — numeric structural recursion as an accumulator
+  fold for `+` and `*`.
+- `detect.fragment.effect_place` — append/index effects need no receiver proof; field
+  writes require an exact-safe place and reject `Unknown`.
+- `detect.fragment.free_inputs` — wrapper parameters are reads minus fragment-local
+  bindings.
+- `detect.fragment.wrapper_synthesis` — wrapper arity and synthesized body arena bounds.
+- `il.arena.validity` / `il.arena.deep_copy` — structural IL bounds invariants used by
+  validation and wrapper deep-copying.
+- `oracle.cutoff` — oracle-mode normalization stops before semantic canonicalizations.
 
 ## Check
 
 ```sh
 python3 scripts/check-formal-obligations.py
-while IFS= read -r f; do
-  lean --error=warning "$f"
-done < <(find formal -name '*.lean' -print | sort)
+./scripts/check-lean-proofs.sh
 ```
 
 `--error=warning` makes `sorry`, unused proof hints, and similar Lean warnings fail the
-gate. The root `lean-toolchain` pins the Lean version used by CI and local checks.
+gate. Shared `formal/lib` modules are compiled into `target/lean`; the root
+`lean-toolchain` pins the Lean version used by CI and local checks.

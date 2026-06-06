@@ -97,9 +97,11 @@ A Cargo workspace; data flows left-to-right through them.
   *pre-canonicalization* core IL, not the fully-normalized IL it fingerprints, so a
   behavior-changing canonicalization cannot mask itself (§AX). (2) A **canon-preservation**
   check requires each unit's core-IL behavior to equal its full-IL behavior — catching a
-  bad canon even with no colliding twin. The core algebraic/control canonicalizations are
-  additionally **machine-checked in Lean** (`formal/`). Both checks currently report zero
-  violations; the fuzziness a clone detector needs lives in the *candidate* axis and its
-  scoring, never in the behavioral base (the two-axis principle, §AH).
+  bad canon even with no colliding twin. The core algebraic/control canonicalizations,
+  recursion templates, IL arena invariants, fragment contracts, and oracle cutoff are
+  additionally **machine-checked in Lean** ([formal-soundness](formal-soundness.md)).
+  Both checks currently report zero violations; the fuzziness a clone detector needs lives
+  in the *candidate* axis and its scoring, never in the behavioral base (the two-axis
+  principle, §AH).
 
 For *why* the normalization passes look the way they do, read [normalization](normalization.md).
