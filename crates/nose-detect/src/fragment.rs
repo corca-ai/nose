@@ -20,6 +20,7 @@
 //! [`reason_code`]: FragmentKind::reason_code
 
 mod contract;
+mod loop_effect;
 mod oracle;
 pub(crate) mod recognize;
 

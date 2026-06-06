@@ -125,16 +125,22 @@ and adding it to that gate — it does **not** change production output.
 |---|---|
 | `DirectReturn`, `DirectThrow` | yes — value/control sinks |
 | `IndexAssignEffect`, `SelfFieldAssign`, `ExprEffect` | yes — single-effect writes |
+| `LoopEffect` | yes — for-each iteration-dependent effect body |
 | `ConditionalGuard` | not yet — predicate-owned |
-| `LoopEffect` | not yet — predicate-owned |
 | `SelfFieldBody` | not yet — predicate-owned |
 
-The remaining three need substrate the migrated single-statement shapes did not: binding-aware
-free inputs (loop variables, branch-local temps), an ordered multi-effect sequence, and
-multi-statement wrapper lowering. Those capabilities are now in place (described above); the
-kinds migrate onto them one at a time, each behind the differential gate, in follow-up work.
-The interim "branch-local temp" and "ordered multi-effect" shapes are proof mechanisms *inside*
-those three kinds, not new `FragmentKind` variants or reason codes.
+`LoopEffect` is the first multi-statement-body migration: its independent recognizer lives in
+`fragment/loop_effect.rs` and re-expresses the for-each acceptance (an iteration-dependent
+append/index effect, possibly through one or two local temps or nested `if` branches) on the
+binding-aware free-input + multi-statement-lowering substrate, with no reuse of the predicate's
+acceptance helpers.
+
+The remaining two need the same treatment: `ConditionalGuard` re-expresses its full recursive
+branch admissibility independently, and `SelfFieldBody` reproduces the body-level acceptance
+boundary that bypasses the top-level context gate (proving self-containment through the fixed
+`this` receiver instead). Both migrate behind the differential gate in follow-up work. The
+interim "branch-local temp" and "ordered multi-effect" shapes are proof mechanisms *inside*
+these kinds, not new `FragmentKind` variants or reason codes.
 
 ## What stays closed
 
