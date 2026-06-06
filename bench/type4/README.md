@@ -227,9 +227,22 @@ The headline rank is repo/language breadth plus dev→held-out generalization; r
 reported but never drive the ranking. Curated controlled-vocabulary fields
 (`implementation_cost`, `soundness_risk`, `substrate_required`, `evidence_tier`) and the
 recommendation categories are platform-only and never change `real_frontier.v1.json`'s
-schema. A "no implementation-ready batch" conclusion is a valid result. See
-[`docs/frontier-platform.md`](../../docs/frontier-platform.md) for the two-layer model, the
-audit template, and how fields route to #43/#45/#37. `--selftest` runs corpus-free checks.
+schema. A "no implementation-ready batch" conclusion is a valid result. `--selftest` runs
+corpus-free checks.
+
+New corpus-driven axes live in `frontier_axes.py` (`EXTRA_CANDIDATES`), unioned in by the
+platform so `prioritize_frontier.py` stays frozen; a `union_signature` + `validate_union`
+guard the combined set. Implementation-ready candidates become **target packets** in a
+separate artifact that links `real_frontier.v1.json` evidence and adds team routing:
+
+```sh
+python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
+  --packets-json-out bench/type4/frontier_target_packets.v1.json \
+  --packets-md-out bench/type4/frontier_target_packets.md
+```
+
+See [`docs/frontier-platform.md`](../../docs/frontier-platform.md) for the two-layer model,
+the new-axis/packet workflow, `owner_route`, and the audit template.
 
 ## CI smoke
 

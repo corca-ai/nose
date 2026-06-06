@@ -70,13 +70,54 @@ Categories are **not** frontier statuses; they live only in the platform output:
 `product-noise-ranking-only`. The last two are reserved routing categories
 (`product-noise-ranking-only` → [#45]).
 
+## New axes (`frontier_axes.py`)
+
+New corpus-driven candidate axes do **not** go into `prioritize_frontier.py` (frozen so its
+`FRONTIER_PRIORITIES.md` stays reproducible). They live in `bench/type4/frontier_axes.py` as
+`EXTRA_CANDIDATES`, and `frontier_platform.py` unions them with the prioritizer axes for
+scanning, ranking, and validation. Each new axis must be a genuine *semantic invariant*
+(never a language-specific API spelling) and carry controlled-vocabulary `EXTRA_CURATED`
+metadata. Two staleness guards run on every build and `--selftest`: the #44
+`validate_conclusion` stays scoped to the eight prevalence axes, and a separate
+`validate_union` (plus a recorded `union_signature`) covers the combined set, so a packet or
+conclusion cannot silently drift when an axis is added or removed.
+
+The first extra axis is `numeric_clamp` — `min(max(x, lo), hi)` clamp composition, a real
+under-merge whose identity and hard negatives are machine-checked in
+[`formal/Clamp.lean`](../formal/Clamp.lean).
+
+## Target packets (`frontier_target_packets.v1.json`)
+
+An *implementation-ready* candidate becomes a **target packet** in a separate artifact —
+never mixed into the `real_frontier.v1.json` evidence store. A packet LINKS one or more
+`real_frontier` `case_id`s (the human-verified evidence) and adds the routing the consuming
+team needs:
+
+- `owner_route` ∈ `team-a-detector` · `team-c-product` · `proof-fact-prerequisite`. The
+  team's issue number is a *separate* `owner_issue` field, never baked into the route value.
+  `proof-fact-prerequisite` means "a proof fact is needed first" — **not** something Team A
+  can implement now.
+- the assembled schema (`packet_id`, `semantic_claim`, `locations` with repo/split/primary
+  language, `current_detector_result`, `proof_invariant`, `hard_negative_siblings`, breadth,
+  `evidence_tier`, `curated`, `why_now`, `blocked_by`, `notes`) is validated on emit.
+
+A packet's contract ends at the proof invariant and target evidence; it never writes a
+detector implementation plan for Team A/C. Generate alongside the platform run:
+
+```sh
+python3 bench/type4/frontier_platform.py --repos-root /path/to/bench/repos \
+  --packets-json-out bench/type4/frontier_target_packets.v1.json \
+  --packets-md-out bench/type4/frontier_target_packets.md
+```
+
 ## Reproducibility
 
 Each run records its identity: a corpus **commit digest** (computed from `corpus.json`'s
 per-repo id/split/language/commit, so it is mtime-independent and reproduces across
-machines), the candidate signature, the tool version, the build ref, and — when the
-detector probe runs — the nose binary path/version/sha256. Output is deterministic
-(byte-identical across runs). Regenerate with:
+machines), the candidate signature, the **union signature** (over all axis ids + patterns +
+probes), the tool version, the build ref, and — when the detector probe runs — the nose
+binary path/version/sha256. Output is deterministic (byte-identical across runs). Regenerate
+with:
 
 ```sh
 python3 bench/type4/frontier_platform.py \
