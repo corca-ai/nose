@@ -453,6 +453,29 @@ fn java_stream_flat_map_converges_with_python_comprehension() {
 }
 
 #[test]
+fn rust_vec_new_builder_loop_converges_with_flat_map() {
+    // `out = Vec::new()`-seeded builder loops now enter the exact channel like `[]`-seeded
+    // ones: `Vec::new()` is the empty vector (the value graph already models it as an empty
+    // Seq), so the exact-safe gate recognizes it. A nested flatten builder loop converges with
+    // `.flat_map(|xs| xs.iter().map(...))`; a changed inner element stays a hard negative.
+    let i = Interner::new();
+    let builder = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { let mut out = Vec::new(); for xs in xss { for y in xs { out.push(*y); } } out }";
+    let flat = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { xss.iter().flat_map(|xs| xs.iter().map(|y| *y)).collect() }";
+    let changed = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { xss.iter().flat_map(|xs| xs.iter().map(|y| y + 1)).collect() }";
+    let bfp = value_fp(&i, builder, Lang::Rust);
+    assert_eq!(
+        bfp,
+        value_fp(&i, flat, Lang::Rust),
+        "rust Vec::new() builder loop must converge with flat_map"
+    );
+    assert_ne!(
+        bfp,
+        value_fp(&i, changed, Lang::Rust),
+        "a changed inner element (y + 1) stays a hard negative"
+    );
+}
+
+#[test]
 fn rust_recursion_converges_with_iteration_via_return_unwrap() {
     // Numeric structural recursion `fac(n) = n*fac(n-1)` (base 1) converges with its
     // accumulator loop — now in Rust too. Rust lowers `return e;` wrapped in `ExprStmt`, which

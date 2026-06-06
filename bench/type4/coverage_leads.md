@@ -38,16 +38,19 @@ no receiver/field effects (a method-purity gate) — relying on `as_self_call`'s
 bare-name check to keep `self.m()` out. Needs the purity gate + the real-corpus `nose verify`
 0-violation gate; not rushed.
 
-## L2 — `exact_safe`: rust builder loop (`for … for … push`)
+## L2 — `exact_safe`: rust builder loop (`for … for … push`) — ✅ RESOLVED
 
-A nested builder loop converges with `.flat_map(|xs| xs.iter().map(...)).collect()` in
-**javascript** (builder loop `exact_safe=True`) but NOT in **rust** (builder loop
-`exact_safe=False`).
+A nested builder loop did not converge with `.flat_map(...).collect()` in **rust** (builder
+loop `exact_safe=False`) though it did in python/js. Root cause: the loop is seeded with
+`out = Vec::new()` (python/js use `out = []`). `Vec::new()` is a non-builtin call the
+exact-safe gate didn't recognize, even though the value graph already models it as an empty
+`Seq` (identical to `[]`, via `value_graph::is_rust_vec_new_call`).
 
-```
-flat_map/rust/pos     # pos 0/1 — rust builder-loop side exact_safe=False
-flat_map/{python,javascript}/pos  # covered 1/1
-```
+**Fix:** `strict_exact_rust_vec_new_safe` (units.rs) admits `Vec::new()` (no args) to the
+exact channel — mirroring the value graph (a constant empty collection, no inputs/effects).
+rust builder-loop now `exact_safe=True`; rust flat_map converges. Validated: test
+`rust_vec_new_builder_loop_converges_with_flat_map`, full suite + clippy, real-corpus scan
+behavior-invariance (0 detection lost; only new convergences) + `nose verify` 0-violation gate.
 
 ## L3 — `exact_safe`: java stream `.reduce(seed, lambda)`
 

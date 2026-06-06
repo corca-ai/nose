@@ -1017,6 +1017,9 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     if strict_exact_rust_std_collection_factory_safe(il, interner, facts, node) {
         return true;
     }
+    if strict_exact_rust_vec_new_safe(il, interner, node) {
+        return true;
+    }
     if strict_exact_java_collection_factory_safe(il, interner, facts, node) {
         return true;
     }
@@ -1440,6 +1443,26 @@ fn strict_exact_rust_vec_macro_collection_safe(
             .iter()
             .skip(1)
             .all(|&kid| strict_exact_safe_tree(il, interner, facts, kid))
+}
+
+/// `Vec::new()` (no args) is always the empty vector — the value graph already models it as
+/// an empty `Seq`, identical to a `[]` literal (`value_graph::is_rust_vec_new_call`). Mirror
+/// that in the exact-safe gate so a Rust builder loop seeded with `out = Vec::new()` enters
+/// the exact channel like the `out = []` builder loops in Python/JS. Sound: it is a constant
+/// empty collection, no inputs or effects.
+fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.meta.lang != Lang::Rust || il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    if kids.len() != 1 || il.kind(kids[0]) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Name(name) = il.node(kids[0]).payload else {
+        return false;
+    };
+    let text = interner.resolve(name);
+    text == "Vec::new" || text.ends_with("::Vec::new")
 }
 
 fn strict_exact_rust_std_collection_factory_safe(

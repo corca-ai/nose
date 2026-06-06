@@ -87,7 +87,7 @@
       "javascript": "covered",
       "python": "covered",
       "ruby": "unsupported",
-      "rust": "unsupported",
+      "rust": "covered",
       "typescript": "covered"
     },
     "identity_value_soundness": {
@@ -388,7 +388,7 @@
     },
     "rust": {
       "applicable": 25,
-      "covered": 12
+      "covered": 13
     },
     "typescript": {
       "applicable": 27,
