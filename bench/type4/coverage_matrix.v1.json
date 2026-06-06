@@ -273,10 +273,10 @@
     "recursion_tail_numeric": {
       "c": "none",
       "go": "covered",
-      "java": "unsupported",
+      "java": "covered",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "unsupported",
+      "ruby": "covered",
       "rust": "covered",
       "typescript": "covered"
     },
@@ -372,7 +372,7 @@
     },
     "java": {
       "applicable": 27,
-      "covered": 12
+      "covered": 13
     },
     "javascript": {
       "applicable": 27,
@@ -384,7 +384,7 @@
     },
     "ruby": {
       "applicable": 24,
-      "covered": 11
+      "covered": 12
     },
     "rust": {
       "applicable": 25,

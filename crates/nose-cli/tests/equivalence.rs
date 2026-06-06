@@ -506,6 +506,34 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn pure_method_recursion_converges_with_iteration() {
+    // Ruby `def` and Java methods are admitted to the recursion→iteration canon when their
+    // body has no receiver/field access (a pure numeric fold), so `fac(n) = n*fac(n-1)`
+    // converges cross-language with the accumulator loop. The sum monoid stays a hard negative.
+    let i = Interner::new();
+    let py_loop = "def fac(n):\n    acc = 1\n    while n != 0:\n        acc = acc * n\n        n = n - 1\n    return acc\n";
+    let java_rec = "class C { static int fac(int n) { if (n == 0) { return 1; } return n * fac(n - 1); } }";
+    let ruby_rec = "def fac(n)\n  return 1 if n == 0\n  n * fac(n - 1)\nend\n";
+    let sum_loop = "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + n\n        n = n - 1\n    return acc\n";
+    let fold = value_fp(&i, py_loop, Lang::Python);
+    assert_eq!(
+        fold,
+        value_fp_named(&i, java_rec, Lang::Java, "fac"),
+        "java pure method recursion must converge with the accumulator loop"
+    );
+    assert_eq!(
+        fold,
+        value_fp_named(&i, ruby_rec, Lang::Ruby, "fac"),
+        "ruby method recursion must converge with the accumulator loop"
+    );
+    assert_ne!(
+        fold,
+        value_fp(&i, sum_loop, Lang::Python),
+        "the sum monoid (acc + n, base 0) must stay a hard negative"
+    );
+}
+
+#[test]
 fn flatmap_identity_converges_with_inner_map_and_flatten_loop() {
     // `xss.flatMap(xs => xs)` (identity inner) is `flatten`, equal to the explicit
     // inner-identity-map `xss.flatMap(xs => xs.map(y => y))` and to the nested builder loop —

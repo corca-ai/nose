@@ -27,16 +27,25 @@ loop; sum-monoid hard negative stays separate; full suite + clippy green; corpus
 behavior-invariance diff (only new recursion convergences, nothing else changed). Test:
 `rust_recursion_converges_with_iteration_via_return_unwrap`.
 
-### L1b — ruby / java method recursion (deferred)
+### L1b — ruby / java method recursion — ✅ RESOLVED
 
-ruby `def fac` and java methods are classified `UnitKind::Method`, and `recursion::run`
-filters to `UnitKind::Function` only (methods are excluded because `self.m()` self-calls lower
-through a `Field` callee, and a method may carry receiver/field effects). ruby's `fac(n-1)` is
-a *bare-name* self-call (not `self.fac`), so it is a false exclusion; java's may be a `Field`
-call. Proper fix: admit a method to the canon when its self-call is bare-name AND the body has
-no receiver/field effects (a method-purity gate) — relying on `as_self_call`'s existing
-bare-name check to keep `self.m()` out. Needs the purity gate + the real-corpus `nose verify`
-0-violation gate; not rushed.
+ruby `def fac` and java methods are `UnitKind::Method`; `recursion::run` filtered to
+`UnitKind::Function` only. Both languages' self-call `fac(n-1)` is in fact a *bare-name* call
+(`(call (var "fac"))`), so the exclusion was too broad.
+
+**Fix:** admit a `Method` unit to the recursion canon when `method_recursion_safe` holds — its
+body has NO `Field` node (no `self.x`, no `.method()` — so no receiver/field state the fold
+rewrite could drop). A `self.m()` self-call lowers through a `Field` callee and is excluded by
+both the no-field gate and `as_self_call`'s bare-name test. Pure numeric recursion qualifies.
+Conservative: false negatives only, never an unsound rewrite; the recursion interpreter oracle
+also validates each rewrite.
+
+Validated: `recursion_tail_numeric` now covered in ALL 7 languages (java/ruby flipped); test
+`pure_method_recursion_converges_with_iteration`; full suite + clippy green; real-corpus
+`nose verify` on the affected repos (netty/antlr4/commons-lang) **byte-identical to baseline**
+(0 false merges, same 20 canon-changed). The full-corpus scan diff's family reshuffling is the
+Lean-proven recursion canon correctly remapping coincidental matches — 0 detection genuinely
+lost (members stay detected), 0 new false merges.
 
 ## L2 — `exact_safe`: rust builder loop (`for … for … push`) — ✅ RESOLVED
 

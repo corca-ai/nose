@@ -40,14 +40,26 @@ mod structural_fold;
 mod tail;
 
 pub(crate) fn run(old: &Il) -> Il {
-    // A same-named call inside a standalone function is its self-call. Methods are excluded:
-    // `self.m()` lowers through a `Field` callee (so it never matches the bare-name test
-    // below anyway), and a bare-name call inside a method is more likely a free function.
+    // A same-named call inside a standalone function is its self-call. Methods (Ruby `def`,
+    // Java methods) are admitted ONLY when their body has no receiver/field access or effects:
+    // then a bare-name `fac(n-1)` self-call carries no instance state the fold rewrite could
+    // drop, so it is as sound as a free function. `self.m()` / `this.m()` self-calls lower
+    // through a `Field` callee and so never match the bare-name `as_self_call` test anyway;
+    // the no-field gate also keeps such method bodies out entirely. The rewrite is still
+    // checked by the interpreter oracle (`nose verify`) — a misidentified callee shows up as a
+    // canon-preservation failure.
     let func_name: FxHashMap<u32, Symbol> = old
         .units
         .iter()
-        .filter(|u| u.kind == UnitKind::Function)
-        .filter_map(|u| u.name.map(|n| (u.root.0, n)))
+        .filter_map(|u| {
+            let name = u.name?;
+            let admit = match u.kind {
+                UnitKind::Function => true,
+                UnitKind::Method => method_recursion_safe(old, u.root),
+                _ => false,
+            };
+            admit.then_some((u.root.0, name))
+        })
         .collect();
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
@@ -60,6 +72,20 @@ pub(crate) fn run(old: &Il) -> Il {
     let new_root = rb.go(old.root);
 
     crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
+}
+
+/// A method is safe to admit to the recursion canon only if its body touches no receiver/field
+/// state: no `Field` node anywhere (field reads, `self.x`, and method calls all lower through
+/// `Field`). Then the bare-name self-recursion is a pure fold over the parameters, identical to
+/// a free function — no instance state the accumulator rewrite could silently drop. Numeric
+/// recursion (`fac(n) = n*fac(n-1)`) qualifies; anything with `self.field` / `.method()` does
+/// not. Conservative by design: false negatives only (less recall), never an unsound rewrite.
+fn method_recursion_safe(old: &Il, root: NodeId) -> bool {
+    fn pure(old: &Il, n: NodeId) -> bool {
+        old.kind(n) != NodeKind::Field
+            && old.children(n).iter().all(|&c| pure(old, c))
+    }
+    pure(old, root)
 }
 
 struct Rebuilder<'a> {
