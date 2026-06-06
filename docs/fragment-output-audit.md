@@ -17,7 +17,7 @@ contracts:
 - [#23](https://github.com/corca-ai/nose/issues/23) should consume review-hazard
   metadata without treating every exact fragment as a direct extraction.
 
-## Scope
+## Pre-#33 Observable Audit
 
 Baseline command shape:
 
@@ -38,6 +38,8 @@ observable facts are limited to `locations[].kind`, source span, language,
 family size, scope, and the source shape visible at the reported span. Current
 JSON does not say whether a `Block` is a return fragment, guarded exit, ordered
 effect sequence, foreach effect, Java self-field body, or proof-only fragment.
+Because true semantic fragment shape is not observable before #33, this audit
+uses source shape plus location-kind distribution as the numeric proxy for shape.
 
 ## Corpus Sweep
 
@@ -155,6 +157,11 @@ manually because current JSON does not serialize parent units:
 | `libuv:src/win/fs.c:894-898` and `1102-1106` | `fs__read` `846-929`; `fs__write` `1056-1131` |
 | `sqlite:ext/fts3/fts3_hash.c:254-258` and `src/hash.c:193-197` | hash removal helpers around `249-280` and `188-216` |
 
+One-line proof-only rows that are not listed here intentionally omit enclosing
+spans: their actionability decision comes from their one-line guard/assert/setup
+shape plus path role, not from a specific parent size. They are exactly the cases
+that need future `enclosing_unit` metadata if they ever move out of debug output.
+
 | bucket | evidence | language/kind | context/action | recommended surface |
 |---|---|---|---|---|
 | refactor-worthy | `libuv:src/unix/core.c:859-868` and `src/unix/os390-syscalls.c:94-103` | C `Function`, 10 lines | Duplicate `next_power_of_two`; extract or share a small utility. | default |
@@ -239,7 +246,7 @@ manually because current JSON does not serialize parent units:
    fixture input/output pairs should be explainable as distinct roles even when
    the exact fingerprint matches.
 
-## Metadata Requirements
+## Post-#33 Metadata Requirements
 
 These requirements are split between stable public fields and diagnostic facts.
 Per the issue decision, `proof_facts` should not become a public contract until
