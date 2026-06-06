@@ -7,9 +7,11 @@ renamed or restructured enough that grep and your IDE can't find them. `review` 
 siblings for you and asks: *should this change have gone there too?*
 
 Where [`scan`](usage.md) is stateless (point it at any source, no history), `review` needs
-a **git repository** — it compares the working tree to a ref. For settings and detection
-modes it shares everything with `scan`; for the standard clone taxonomy see
-[clone-types](clone-types.md). Back to [home](home.md).
+a **git repository** — it compares the working tree to a ref. It shares scan's detection
+channels, size gates, excludes, and config loading; scan-only config/report shaping such as
+`sort`, `min-value`, `min-members`, baselines, config `top`, and config `ignore-file` does
+not carry over. For the standard clone taxonomy see [clone-types](clone-types.md). Back to
+[home](home.md).
 
 ## Quick start
 
@@ -55,12 +57,13 @@ touched, not that the change definitely belongs there. Review each flagged sibli
 ## Flags
 
 `review` shares the detection flags with [`scan`](usage.md): `--mode`
-(`syntax`/`semantic`/`near[:T]`), `--min-size`, `--exclude`, `--config`.
+(`syntax`/`semantic`/`near[:T]`), `--min-size`, advanced `--min-lines`, `--exclude`,
+`--config`.
 
 | flag | effect |
 |---|---|
 | `--base <ref>` | compare the working tree against this git ref (default `HEAD` = uncommitted changes; `origin/main` for a PR branch) |
-| `--format human\|json\|sarif` | output format (default `human`) |
+| `--format human\|json\|markdown\|sarif` | output format (default `human`; `markdown` is accepted but currently uses the human-readable review report) |
 | `--fail` | exit non-zero if any family changed inconsistently (CI gate) |
 | `--ignore-file <file>` | suppress accepted divergences (auto-reads `nose.ignore.json`) |
 | `--top N` | show at most N findings (`0` = all; default 30) |
@@ -86,7 +89,8 @@ exact proof shape, not the broader family/actionability reasons planned in #11.
 Some clones are *meant* to diverge (a fast path vs a clear path, a sync vs async variant).
 So a true fork doesn't re-fail every PR, `review` honors the same
 [structured ignores](structured-ignores.md) as `scan`: copy a finding's `family_id` (from
-`--format json`) into `nose.ignore.json`, with a reason. nose auto-reads that file, and the
+`--format json`) into `nose.ignore.json`, with a reason. nose auto-reads that file from the
+current working directory, and the
 suppressed family no longer trips `--fail`.
 
 ## In CI

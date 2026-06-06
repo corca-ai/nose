@@ -47,7 +47,7 @@ files, ignored M" notice would build trust.
 1. **Relative paths in output.** Reports should print paths relative to the
    scanned root or current directory so CI logs and review comments are portable.
 2. **Baseline / incremental adoption.** Existing codebases often show many
-   families; a `--fail` gate is unusable until accepted duplication can be
+   families; a fail-on-any gate is unusable until accepted duplication can be
    recorded and only *new* duplication is reported.
 3. **Config file** (`nose.toml`). Real use needs committed settings for
    excludes, thresholds, `min-value`, and `min-members`.
@@ -86,12 +86,12 @@ Most workflow items above have since landed:
 - `--baseline` and `--write-baseline`;
 - `nose.toml` config;
 - improved Go lowering;
-- `--diff`;
+- `--show diff`;
 - large-file extraction improvements;
 - cross-family dedup;
 - `--format sarif`;
 - inline `// nose-ignore`;
-- `--fail` CI gate;
+- `--fail-on any|new` CI gate;
 - `--cache-dir` incremental cache.
 
 ### Ranking reworked -- extractability is the default
@@ -128,11 +128,11 @@ This shipped as a ranking-time policy layer (experiments §U):
 1. Each family is tagged `scope = prod | test | mixed` by a conservative path +
    unit-name heuristic (`test/`, `tests/`, `__tests__/`, `*_test.go`, `*.spec.*`,
    `*.test.*`, `conftest.py`, ...; see `is_test_loc` in `nose-detect/src/report.rs`).
-2. All-`test` families are down-weighted (×0.2); **`mixed` test↔prod is not
-   discounted** — logic that crosses the test boundary is a real smell.
-3. Nothing is dropped: the scope is shown in the report (`· test`, `· test↔prod`)
-   and serialized, so a reviewer can still see test-only duplication.
+2. Test-only families are **not** value-discounted anymore. That early discount hid real
+   repeated test helpers, so it was reverted in [experiments](experiments.md) §U.1.
+3. Nothing is dropped: the scope is shown in the report (`· in test code`,
+   `· same code in tests and prod`) and serialized, so a reviewer can still separate
+   test-only duplication from production/test leaks.
 
-The discount lives on the `scan` ranking path only (the `detect`/`eval` gold path
-is untouched), and can be disabled for A/B with `NOSE_NO_REFACTOR_DISCOUNT=1`. See
-[usage](usage.md) for the scope tags.
+The remaining refactor-worthiness discount targets generated-looking and computation-poor
+type-definition families, not test scope. See [usage](usage.md) for the scope tags.

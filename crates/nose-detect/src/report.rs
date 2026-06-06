@@ -219,8 +219,8 @@ impl RefactorFamily {
     ///   - `invisibility` (+) — `1 − tightness`: copies that share little *text* despite
     ///     being a matched (semantically equivalent) family are the ones a developer can't
     ///     see, so won't update. This is the **inverse** of extractability's `tightness`
-    ///     term, and is the top signal for cross-language (Type-4) families. Identical
-    ///     copies still carry some hazard, so it floors at 0.3 rather than 0.
+    ///     term. Identical copies still carry some hazard, so it floors at 0.3 rather
+    ///     than 0.
     ///   - `scope_weight` — a divergence in prod is costlier than in tests.
     ///
     /// (`mean_sem`, `members`, and `params` were tested and dropped — anti-predictive,

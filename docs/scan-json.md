@@ -147,7 +147,7 @@ schema version 1:
 | `mean_sem` | number | Mean value-graph size across members. |
 | `scope` | string | `prod`, `test`, or `mixed` test/production classification. |
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
-| `recommended_surface` | string | Product placement hint: `default`, `review`, `hidden`, or `debug`. This is ranking/presentation policy, not detector exactness. |
+| `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling. This is ranking/presentation policy, not detector exactness. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 
 Each `locations[]` item has:

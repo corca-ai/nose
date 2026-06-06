@@ -102,8 +102,8 @@ pub fn lower_corpus_many(roots: &[&Path]) -> Corpus {
     lower_corpus_filtered(roots, &[])
 }
 
-/// Like [`lower_corpus_many`] but drops any discovered file whose path contains one
-/// of the `exclude` substrings (e.g. `tests`, `vendor`, `generated`).
+/// Like [`lower_corpus_many`] but applies gitignore-syntax `exclude` globs during
+/// discovery (e.g. `tests`, `vendor/**`, `**/*.generated.ts`).
 pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
     let timing = std::env::var_os("NOSE_TIME").is_some();
     let t0 = std::time::Instant::now();

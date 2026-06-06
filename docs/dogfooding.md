@@ -7,10 +7,15 @@ Goal: honestly assess whether `nose scan crates` produces *real* design-level
 refactoring opportunities on its own codebase, act on the genuine ones, and record
 where the tool is weak.
 
-Command: `nose scan crates --exclude tests` (6 Rust crates, 8-language frontends).
-Result at the start of this review: 34 candidate families, ~662 duplicated lines (the
-arc below took it to 23 / ~411). The numbers are a dated snapshot of *this* review pass;
-re-running on today's larger codebase reports more, since the crates have since grown.
+Original review command: `nose scan crates --exclude tests` (6 Rust crates, 8-language
+frontends). Result at the start of this review: 34 candidate families, ~662 duplicated
+lines (the arc below took it to 23 / ~411). The numbers are a dated snapshot of *this*
+review pass; re-running on today's larger codebase reports more, since the crates have
+since grown.
+
+The current CI gate is [`scripts/check-duplication.sh`](../scripts/check-duplication.sh):
+it runs `nose scan crates --exclude tests --mode near --min-value 40` and compares the
+substantial near-duplicate count with the accepted budget recorded in that script.
 
 ## Verdict by candidate (critically)
 
@@ -41,23 +46,17 @@ in `normalize` the dce/dataflow scope walk→`collect_scope`. The dogfood report
 families / ~662 duplicated lines to 23 / ~411, and two latent inconsistencies were fixed in the
 process (Python's `lower_binop` name; go/py/js's wrong `Add` fallback for unknown operators).
 Each was reviewer-confirmed and left the IL byte-identical. Alongside them are families where
-the right answer is "leave it" — the `generic` node-copy (Rust's borrow checker makes extraction
-*uglier*) and `lower_unary` (a per-grammar field-name would leak into the abstraction). That
-human-in-the-loop judgment is the point: surfacing candidates is the tool's job, deciding is the
-reviewer's.
+the right answer is "leave it" — for example, `lower_unary`, where a per-grammar field-name
+would leak into the abstraction, and the remaining per-grammar frontend parallelism that is
+clearer than a forced shared helper. That human-in-the-loop judgment is the point: surfacing
+candidates is the tool's job, deciding is the reviewer's.
 
 **Known weakness — type-definition false positives.** The top family by value was a
 cluster of unrelated `enum`/`struct` definitions that merely share a "block of field
 declarations" shape. These are *not* refactoring candidates (they're distinct types
-with no shared behavior). The tool over-values structural shape for data-type
-definitions because they have no call/control/value-graph signal to differentiate
-them — only field shape. 
-
-*Improvement idea (tracked):* down-weight families whose members are pure type
-definitions (a `Class` unit that is all field-declarations, no methods/logic), or
-expose a `--kind fn|type|all` filter so a user hunting behavioral duplication can
-exclude data-type shape matches. This is a real, measurable refactor-precision lever
-for the candidate mode, distinct from the behavioral-clone gates.
+with no shared behavior). A ranking-time discount for computation-poor type-definition
+families has landed; a future `--kind fn|type|all` filter would make this easier to
+control explicitly when a user is hunting only behavioral duplication.
 
 ## Conclusion
 

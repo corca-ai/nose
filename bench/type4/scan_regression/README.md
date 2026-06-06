@@ -146,6 +146,21 @@ chains, then records:
 Those HoF smoke budgets live in `HOF_RUNTIME_BUDGETS` and `HOF_CASE_BUDGETS`. Unlike the
 real-repo runtime drift thresholds, they are hard compare failures.
 
+For deeper profiling, measure the current checkout instead of resuming from an old hotspot
+list:
+
+```sh
+NOSE_TIME=1 NOSE_TIME_UNITS=1 NOSE_TIME_UNIT_SUMMARY=1 \
+  target/release/nose scan <repo> --mode semantic --format json --top 0 \
+  > /tmp/nose-profile.json 2> /tmp/nose-profile.err
+```
+
+`NOSE_TIME_UNITS=1` prints individual units above the internal unit threshold, while
+`NOSE_TIME_UNIT_SUMMARY=1` prints per-file/per-kind aggregates. Use both to distinguish a
+many-file fixed cost from a single-unit value-DAG problem or candidate/scoring work. Keep
+durable conclusions in this README, `compare-summary.md`, or `../ITERATIONS.md`; `/tmp`
+outputs are scratch.
+
 ## Compare summary identity
 
 `compare-summary.md` is a committed generated report. Its `current` `source_git_describe`

@@ -5,10 +5,11 @@
 > leave-one-repo-out AUC 0.64 on the G1 label) but, on an LLM-built **gold harm label**,
 > it ranks actual *harm* no better than chance (AUC ~0.51). So it is **not yet a
 > validated harm ranker**; the default stays `extractability`. The honest evaluation
-> trail (G1 → retracted G2 → gold) is in [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md)
-> and [experiments §BG](experiments.md). Building a real harm ranker (git-history Phase 2,
-> a larger gold, better clone precision) is the active work. Parked
-> cognitive-complexity sub-idea: [issue #23](https://github.com/corca-ai/nose/issues/23).
+> trail (G1 → retracted G2 → gold → git-history/cognitive-complexity rounds) is in
+> [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and [experiments §BG](experiments.md).
+> Those follow-up rounds found a weak pre-divergence harm ceiling around AUC ~0.60 and a
+> better post-divergence signal around ~0.65 when the actual edit is known. The active work
+> is therefore a realized-divergence review surface, not making static `hazard()` the default.
 
 nose's default ranking, [extractability](usage.md#ranking), answers *"how cleanly
 does this duplication fold into one helper?"* — a **fixability** axis. This page
@@ -100,10 +101,11 @@ from a static snapshot today; "Phase 2" = needs git history.
 | **Realized divergence (DIVp)** | siblings *already* edited apart | Barbour (DIVp = headline); Mondal/Roy (SPCP) | git: per-copy last-edit commit | 2 |
 | **Unintentional proxy (RESYNC)** | divergence later re-synced ⇒ was accidental | Mondal/Roy (re-synchronizing change) | git history | 2 |
 
-Deliberately **excluded**: a cognitive-complexity per-copy edit-surface metric (no
-evidence for clone hazard — parked in [#23](https://github.com/corca-ai/nose/issues/23));
-the strict clone-type total order (refuted); heavyweight ML embeddings (product
-mismatch).
+Deliberately **excluded from the static Phase-1 formula**: a cognitive-complexity
+per-copy edit-surface metric; the later [#23](https://github.com/corca-ai/nose/issues/23)
+round found a weak pre-divergence prior and a useful post-divergence signal, but not a
+reason to reweight `hazard()` itself. Also excluded: the strict clone-type total order
+(refuted) and heavyweight ML embeddings (product mismatch).
 
 ## Score design
 
@@ -117,8 +119,8 @@ LLM-judge audit found it only ~11% precise — so the validation rests on the cl
 label, not G2.)
 
 **Phase 1 — static hazard, from fields nose already computes** — `hazard()` beside
-`extractability()` in `crates/nose-detect/src/report.rs`, plus `SortKey::Hazard` (now
-the default). No new detection logic. Measured formula (leave-one-repo-out AUC:
+`extractability()` in `crates/nose-detect/src/report.rs`, plus opt-in
+`SortKey::Hazard`. No new detection logic. Measured formula (leave-one-repo-out AUC:
 G1 0.644 vs 0.609 for the size-led design it replaces, 0.611 value-baseline, ~0.49 random):
 
 ```
@@ -139,17 +141,29 @@ mislabel — true cross-language clones are structurally rare, 37 of 15,199 fami
 the signal is general, not cross-language-specific. See
 [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md).)
 
-This is **the default sort**. The weights are calibrated on divergence *propensity*
-(the clean **G1** label, leave-one-repo-out AUC 0.644 over the 12-repo corpus — beating
-the former size-led/extractability default at 0.609, the value baseline at 0.611, and
-random at ~0.49). `--sort extractability` remains for the fixability axis. Still open
-before the weights are considered final: a *real* bug-linked gold set — the automatic
-"G2" label proved only ~11% precise under audit, so a true harm-validated set must be
-LLM/human-labeled — and the git-history Phase 2.
+This is implemented as **opt-in `--sort hazard`**, not the default. The weights are
+calibrated on divergence *propensity* (the clean **G1** label, leave-one-repo-out AUC
+0.644 over the 12-repo corpus — beating the former size-led design at 0.609, the value
+baseline at 0.611, and random at ~0.49). The default remains `extractability` because
+gold-harm audits and later git-history / cognitive-complexity rounds found that static
+pre-divergence signals rank actual harm only weakly, around the ~0.60 AUC ceiling.
 
-**Phase 2 — git-history realized divergence (the high-precision payload).** Because
-nose matches Type-4, it can link siblings across revisions where textual tools
-(NiCad/CCFinder/iClones) lose them. Two steps:
+**Phase 2 — git-history and post-divergence harm signals.** Because nose matches Type-4,
+it can link siblings across revisions where textual tools (NiCad/CCFinder/iClones) lose
+them. The pipeline now exists in [`eval/hazard`](../eval/hazard/) and is summarized in
+[RESULTS.md](../eval/hazard/RESULTS.md):
+
+- the original automatic G2 bug-linked label was audited and rejected as only ~11% precise;
+- a larger LLM-gold harm set plus git-history features still capped pre-divergence ranking
+  near AUC ~0.60;
+- cognitive complexity moved the best **post-divergence** signal to ~0.65 when the actual
+  small edit inside complex logic is known.
+
+So Phase 2 did not justify promoting static `hazard()` to a harm ranker. Its useful product
+shape is a realized-divergence review workflow — *this clone already diverged; rank whether
+the edit likely should have propagated*.
+
+The measured building blocks are:
 
 - **2a (cheap):** at scan time, compare each copy's `git blame` last-edit commit /
   time. Copies last touched in *different* commits = maintenance attention has
@@ -167,7 +181,7 @@ later converged was probably unintended), and let users dismiss false positives 
 
 ## Implementation plan
 
-**Phase 1 — static hazard score. ✅ Done (shipped as the default).**
+**Phase 1 — static hazard score. ✅ Done (implemented as opt-in).**
 
 1. ✅ `hazard()` on `RefactorFamily` in `crates/nose-detect/src/report.rs`,
    implementing the calibrated formula above. Reuses `spread()`; `invisibility`
@@ -177,23 +191,21 @@ later converged was probably unintended), and let users dismiss false positives 
    softly demotes the tiny dense functions the `min-size` gate cannot, see
    [normalization](normalization.md)).
 2. ✅ `SortKey::Hazard` in `crates/nose-cli/src/main.rs`, wired into `score()`,
-   `sort_name()`, the `--sort` value list, and `capabilities` — and made **the
-   default**.
+   `sort_name()`, the `--sort` value list, and `capabilities`. It remains opt-in via
+   `--sort hazard`; `extractability` is the default.
 3. ✅ Tier-0 contract unit tests in `report.rs` (divergent > tight under hazard and the
    reverse under extractability; cross-language ranks high; test scope demoted).
 4. ✅ Docs: [usage](usage.md#ranking) ranking table, scan-json, capabilities, README.
 
 No change to detection, normalization, or the value graph.
 
-**Phase 2 — git-history realized divergence + calibration.**
+**Phase 2 — git-history realized divergence + calibration. ✅ Measured, not promoted.**
 
-6. **2a (cheap):** read each copy's `git blame` last-edit commit/time; flag families
-   whose copies were last touched in different commits (a DIVp proxy) without full
-   genealogy.
-7. **2b (full):** the Tier-1 pipeline below — track families across revisions, label
-   realized divergence, and **calibrate** the Phase-1 constants (`scope_weight`, the
-   size-vs-invisibility balance, whether to add the `params` term). Until this runs,
-   Phase-1 weights are provisional.
+The mining, gold-label, git-history, and cognitive-complexity rounds are recorded in
+[`eval/hazard/RESULTS.md`](../eval/hazard/RESULTS.md). They did not produce a static harm
+ranker strong enough to replace `extractability` or reweight `hazard()`. Keep `hazard()`
+as an opt-in divergence-propensity sort; build future harm work around realized diffs and
+review-oriented post-divergence features.
 
 ## Evaluating ranking quality
 
@@ -273,8 +285,8 @@ results land in [experiments](experiments.md).
   score is calibrated against.
 - [hazard-release-checklist](hazard-release-checklist.md) — what to do for this score on
   every new nose release.
-- [usage](usage.md#ranking) — the user-facing ranking keys (`hazard` default,
-  `extractability`, `value`, `sites`).
+- [usage](usage.md#ranking) — the user-facing ranking keys (`extractability` default,
+  opt-in `hazard`, `value`, `sites`).
 - [field-evaluation](field-evaluation.md) — why extractability replaced raw value
   as the default (the fixability axis this page complements).
 - [architecture](architecture.md) — the lower → normalize → detect → rank pipeline

@@ -1,16 +1,19 @@
 # Hazard benchmark (evaluation criteria + dataset)
 
-> Status: **specification.** This page defines *how we measure whether
-> [hazard ranking](hazard-ranking.md) is good* and how the labeled dataset is
-> built. The dataset and pipeline are not yet built; this is the criteria to build
-> them against. Measured results land in [experiments](experiments.md).
+> Status: **criteria plus measured v1 limits.** This page defines *how we measure whether
+> [hazard ranking](hazard-ranking.md) is good* and how the labeled dataset is built. The
+> first mining/gold-label pipeline now lives in [`eval/hazard`](../eval/hazard/), with
+> measured results in [eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md) and
+> [experiments §BG](experiments.md). The original automatic G2 label was rejected after
+> audit; current claims distinguish divergence propensity from actual harm.
 
 A hazard score is only as trustworthy as the yardstick it is tuned against. The
 weights in `hazard()` are **not** fixed by the literature — they must be calibrated
-and validated against ground truth. This benchmark *is* that ground truth: a large,
-graded, multi-language dataset of clone families labeled by whether they were later
-edited inconsistently and caused a bug. Building it well is the highest-leverage
-task in this effort, so it comes first.
+and validated against ground truth. This benchmark is the yardstick for that work: a
+versioned, graded dataset of clone families labeled by later inconsistent edits and,
+where the evidence is strong enough, actual should-propagate harm. The first pass showed
+an important boundary: divergence propensity is measurable, but the automatic
+bug-linked G2 proxy was too noisy to be a harm gold label.
 
 ## What we measure
 
@@ -80,6 +83,9 @@ For a G1 divergence to become **G2**, link the catch-up edit to a fault:
 
 All three are heuristics with known noise; their agreement is the gold-label
 confidence (see [Quality controls](#dataset-quality-controls)).
+The v1 mining script implements only the first proxy directly: bug-fix message
+heuristics plus function-level `git -L` history around clone families. Full SZZ/SPCP
+agreement remains the stronger gold criterion, not the current automated label.
 
 ## Separating accidental from intentional
 
@@ -264,13 +270,20 @@ multiple _T_ samples bound the last.
 
 ## Build phases
 
-- **A. This spec** — criteria, label schema, metrics, corpus policy. *(here)*
-- **B. Mining pipeline** — nose as cross-revision linker: per-revision detect →
-  fingerprint genealogy → split detection → bug-fix linking.
-- **C. Corpus run** — execute on the balanced S/X corpus → large graded dataset.
-- **D. Gold audit** — human-check a sample; estimate label precision; LLM-assist for
-  latent cases, anchored per [Tier 2](hazard-ranking.md#evaluating-ranking-quality).
-- **E. Freeze v1** — versioned artifact + statistics + threats.
+- **A. Criteria** — label schema, metrics, corpus policy. *(this page)*
+- **B. Mining pipeline. ✅ Done for v1 proxy labels** — nose as cross-revision linker:
+  per-revision detect → fingerprint genealogy → split detection → function-level
+  bug-fix-message proxy (`eval/hazard/mine.py`, `run_corpus.sh`). Full SZZ/SPCP-style
+  harm linking remains a stronger gold-label criterion.
+- **C. Corpus run. ✅ Done for v1** — monthly snapshots across 12 repos / 8 languages;
+  see [RESULTS.md](../eval/hazard/RESULTS.md).
+- **D. Gold audit. ✅ Done, with a negative result** — the automatic G2 label was only
+  ~11% precise and was retracted as a harm gold label.
+- **E. Larger harm gold + follow-up signals. ✅ Done** — LLM-gold, git-history, and
+  cognitive-complexity rounds found a weak pre-divergence ceiling and a more useful
+  post-divergence signal.
+- **F. Productization. Open** — keep static `hazard()` opt-in; route actual harm work
+  toward realized-divergence review features rather than a default static ranker.
 
 ## See also
 

@@ -813,22 +813,21 @@ TARGET_PACKETS = [
         "owner_issue": None,
         "why_now": "A genuine machine-checked semantic under-merge (formal/obligations/normalize/value_graph/clamp/Proof.lean) that is "
         "broad and generalizing — present in all 7 corpus primary languages on both the dev and "
-        "held-out splits. It is NOT directly implementable: the merge is sound only under "
-        "`lo <= hi`, and no existing proof fact establishes bound ordering. This packet's value "
-        "is identifying the next proof fact to pursue, with a machine-checked target invariant.",
+        "held-out splits. The initial proof-backed min/max slice is implemented; the remaining "
+        "value is identifying the next real-corpus bound-order proof and surface-bridge work "
+        "without weakening the hard-negative boundary.",
         "blocked_by": [
-            "bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves "
-            "the precondition is required; existing scalar min/max facts do not prove it, and "
-            "parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
+            "real-corpus bound-order / guarded-range proof fact that `lo <= hi` (formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves "
+            "the precondition is required; the current proof-backed slice handles literal bounds "
+            "and exiting inverse guards, but parameter naming such as fzf `Constrain(val, minimum, maximum)` is not a proof)",
             "float-NaN domain exclusion (min/max builtins vs comparison chains can diverge on "
             "NaN, by language)",
         ],
-        "notes": "Value-graph clamp canonicalization, blocked on a bound-order proof fact. "
-        "Routed proof-fact-prerequisite per #50 decision 3: it must NOT be handed to a Team A "
-        "implementation batch until the precondition is provable, or it would merge clamps "
-        "without rejecting the swapped/inverted-bound hard negatives. boltons `clamp` source-"
-        "proves `lower <= upper` via an explicit `raise ValueError` guard — the narrow slice a "
-        "future guarded-range proof fact would target; fzf `Constrain` only names its bounds.",
+        "notes": "The initial proof-backed integer min/max Clamp canon has landed for sources "
+        "with literal or exiting-guard bound-order evidence. The remaining packet is still routed "
+        "proof-fact-prerequisite / successor bridge work: parameter naming such as fzf "
+        "`Constrain(val, minimum, maximum)` is not a proof, and two-comparison/library bridge "
+        "forms are not part of the landed slice.",
         # Representative corpus locations (repo-explicit; split/primary-language enriched below).
         "locations": [
             {"repo": "boltons", "path": "boltons/mathutils.py", "span": "40-69",

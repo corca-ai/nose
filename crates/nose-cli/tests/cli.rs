@@ -9044,7 +9044,7 @@ fn near_scan_mode_accepts_similarity_threshold() {
         .expect("run nose");
     assert!(
         out.status.success(),
-        "near mode should accept --threshold: {}",
+        "near mode should accept inline near:T thresholds: {}",
         String::from_utf8_lossy(&out.stderr)
     );
     let _ = fs::remove_dir_all(&dir);
@@ -9850,7 +9850,7 @@ fn sarif_records_and_notes_top_truncation() {
 
 #[test]
 fn diff_shows_the_differing_line() {
-    // Two near-identical functions differing in one line → --diff marks it +/-.
+    // Two near-identical functions differing in one line -> --show diff marks it +/-.
     let dir = std::env::temp_dir().join(format!("nose_diff_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("a")).unwrap();
@@ -9962,7 +9962,7 @@ fn broken_pipe_exits_cleanly() {
     // now-readerless pipe gets EPIPE.
     let dir = std::env::temp_dir().join(format!("nose_pipe_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
-    // A handful of large, distinct clone families → plenty of `--diff` output, so the
+    // A handful of large, distinct clone families -> plenty of `--show diff` output, so the
     // child keeps writing past any buffering and reliably hits the dead pipe.
     for i in 0..40 {
         let body = |delta: &str| {

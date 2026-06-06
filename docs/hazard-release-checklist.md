@@ -13,10 +13,10 @@ from git history and are version-independent — see
 for the full coupling model. This checklist makes the re-calibration step impossible to
 miss.
 
-> Status: `hazard()` is calibrated ([eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md))
-> but **not yet implemented in Rust** (Phase 1 — see [hazard-ranking › Implementation
-> plan](hazard-ranking.md#implementation-plan)). Until it ships, only steps 1–5 (data +
-> tuning) apply; steps 6–7 (code) start once `hazard()` lands.
+> Status: `hazard()` is implemented as opt-in `--sort hazard` and calibrated as a
+> divergence-propensity signal ([eval/hazard/RESULTS.md](../eval/hazard/RESULTS.md)).
+> It is **not** the default and is **not** a validated harm ranker; see
+> [hazard-ranking](hazard-ranking.md).
 
 ## TL;DR — does this release change detection *output*?
 

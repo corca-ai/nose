@@ -94,8 +94,8 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 - category: **all-language** · evidence tier: **frontier-recorded** · prioritizer status: `open`
 - presence: 26 repos / 7 primary langs (C, Go, Java, Python, Ruby, Rust, TypeScript) · source langs c, go, java, javascript, python, ruby, rust, typescript · dev 14 · heldout 12 · both-splits
 - curated: cost `medium` · risk `medium` · substrate `none`
-  - rationale: A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean).
-  - human evidence: `numeric-clamp-minmax-ternary-real-miss` → **real-miss** (numeric_clamp / clamp_minmax_composition)
+  - rationale: A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). The first proof-backed min/max slice has landed; real-corpus bound proof and surface bridges remain.
+  - human evidence: `numeric-clamp-minmax-ternary-real-miss` → **real-miss** (numeric_clamp / clamp_surface_bridge)
 
 ### `own_property_guard` — Own-property guard forms
 
@@ -117,4 +117,3 @@ Breadth is the headline; raw occurrence is shown but never drives the rank.
 - presence: 15 repos / 1 primary langs (Rust) · source langs rust · dev 8 · heldout 7 · both-splits
 - curated: cost `low` · risk `low` · substrate `none`
   - rationale: Scalar min/max/abs are value-graph numeric facts.
-

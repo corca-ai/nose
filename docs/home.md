@@ -19,9 +19,9 @@ what you're here to do.
 
 You want to *run* nose on a codebase and act on what it finds.
 
-- [usage](usage.md) — the complete command and flag reference (`scan`, `stats`, `il`), the ranking keys, and the scan modes.
+- [usage](usage.md) — the complete command and flag reference (`scan`, `review`, `stats`, `il`, `capabilities`), the ranking keys, and the scan modes.
 - [review](review.md) — `nose review`: flag clones changed inconsistently in a diff (a copy fixed, its siblings missed) — a PR/CI check on top of git.
-- [configuration](configuration.md) — the `nose.toml` file: excludes, thresholds, baselines, caching, inline `// nose-ignore`.
+- [configuration](configuration.md) — the `nose.toml` file: excludes, modes, ranking, thresholds, and structured-ignore defaults.
 - [continuous-integration](continuous-integration.md) — the `--fail-on any` gate, baseline-driven incremental adoption, SARIF, and fast re-runs.
 - [structured-ignores](structured-ignores.md) — suppress reviewed findings with reason, owner, expiry, and machine-readable ignored-family output.
 - [clone-types](clone-types.md) — what nose covers across the standard Type-1/2/3/4 taxonomy, with its honest limits.
@@ -51,7 +51,6 @@ You want to *change* nose or understand how it works inside.
 - [type4-benchmark](type4-benchmark.md) — the evidence-carrying synthetic Type-4 benchmark factory.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — the agent-facing Type-4 coverage matrix, adversarial cases, rule registry, and next-task workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.
-- [fragment-output-audit](fragment-output-audit.md) — exact semantic fragment output quality, ranking/grouping recommendations, and metadata requirements for default/review/debug surfaces.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
 - [dogfooding](dogfooding.md) — nose run on its own source, and what its findings taught us.
 

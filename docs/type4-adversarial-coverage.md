@@ -43,8 +43,11 @@ Run the basic harness check:
 bench/type4/adversarial/scripts/type4-check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
-bench/type4/adversarial/scripts/type4-ingest-leads /tmp/leads.json --draft-json
 ```
+
+Only run `type4-ingest-leads <leads.json> --draft-json` after `nose verify --leads` has
+produced a leads file; it reads that positional JSON and emits draft matrix cells for
+manual curation.
 
 ## Status Model
 
@@ -78,7 +81,9 @@ For a selected task card:
    - `oracle`: interpreter behavior and `nose verify` coverage;
    - `proof-facts`: type/provenance/order facts that make a canon safe;
    - `performance`: compact representation, runtime guard, or scan-regression harness;
-   - `soundness`: remove or gate a false merge.
+   - `soundness`: remove or gate a false merge;
+   - `survey`: reproduce/classify candidate evidence before engine work;
+   - `monitor`: covered-cell follow-up only.
 5. Run the cell's focused gates, then the normal project gate.
 6. Update the matrix, registry, cases, and docs in the same PR.
 

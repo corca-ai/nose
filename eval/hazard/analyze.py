@@ -12,7 +12,7 @@ import json, sys, math, statistics
 from collections import defaultdict
 
 
-# --- scoring functions mirroring the proposed Rust hazard()/extractability() shape ---
+# --- scoring functions mirroring the shipped Rust hazard()/extractability() shape ---
 def eff_copies(m):
     c = max(m - 1, 0)
     return c if c <= 6 else 6 + math.sqrt(c - 6)
@@ -34,7 +34,7 @@ def scope_w(s):
 
 def hazard(f):
     inv = 0.3 + 0.7 * (1.0 - tightness(f))
-    return (f["mean_sem"] * eff_copies(f["members"])
+    return (f["mean_lines"]
             * spread(f["files"], f["modules"], f["languages"])
             * inv * scope_w(f["scope"]))
 

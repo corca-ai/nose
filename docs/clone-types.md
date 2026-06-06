@@ -55,7 +55,8 @@ graph, and canonicalizations actually model:
 
 - loop ↔ `reduce`/`sum` ↔ comprehension ↔ `.append`/`.map` builder loop; nested list
   builders ↔ Python multi-clause comprehensions ↔ `.flatMap(... .map(...))`; an `any`/`all`
-  loop ↔ the functional form; a `reduce`-lambda min/max ↔ `max`/`min`;
+  loop ↔ the functional form; pure aggregate consumers over flat-map streams ↔ nested
+  reduction loops; a `reduce`-lambda min/max ↔ `max`/`min`;
   `len([… if p]) ↔ Σ(p?1:0)`; a dict-building loop `d={}; for x: d[k]=v` ↔ the dict
   comprehension `{k: v for x in xs}`;
 - literal map-default lookup through proven map/key/fallback coordinates, including
@@ -66,8 +67,10 @@ graph, and canonicalizations actually model:
   `use` imports of const entry arrays consumed by `HashMap::from`/`BTreeMap::from` when
   the provider binding is unique, immutable, and unambiguous;
 - `filter q (filter p) ↔ filter (p∧q)` (and the filtered comprehension / `.filter().filter()`
-  chain / filtered builder loop);
-- guard-clause ↔ nested-if, ternary ↔ early-return, min/max idioms, commutativity +
+  chain / filtered builder loop), plus the direct Rust `filter_map` / guarded-builder slice
+  where `None` means absence and emitted falsey values remain values;
+- guard-clause ↔ nested-if, ternary ↔ early-return, min/max and proof-backed integer clamp
+  idioms, commutativity +
   associativity (AC-canonical operands), distribution `a·c + b·c ≡ (a+b)·c` (numeric),
   `a − b ≡ a + (−b)`, De Morgan, short-circuit `and`/`or`;
 - the same algorithm written in a **different language** (incl. Rust `it.iter().filter(p).sum()`
@@ -119,18 +122,20 @@ Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
   boundaries. Multiple statement-level effects are ordered through control-flow-aware
   sink tags; swapping appends/emits on one execution path is a behavior change, not a
   Type-4 clone.
-Exact fragment proof is not the same thing as user-facing refactorability. The
-[fragment output audit](fragment-output-audit.md) classifies current real-corpus fragment
-output into refactor-worthy, review-hazard, proof-only/noise, and metadata-ambiguous
-buckets, and records the ranking/grouping metadata needed before small fragments should be
-promoted in default reports.
+Exact fragment proof is not the same thing as user-facing refactorability. Fragment
+locations carry stable proof metadata (`is_fragment`, `fragment_kind`, `reason_code`,
+span size, and `enclosing_unit` when recoverable), but product placement is decided
+separately with `recommended_surface`: default, review, or hidden. See
+[fragment-contracts](fragment-contracts.md) for the exact-fragment contract and
+[scan-json](scan-json.md#fragment-metadata) for the stable output fields.
 
 ## Scan modes, and cross-language
 
-Each type maps to a detection channel: **Type-1/2 → `syntax`**, **Type-3 → `near`**
-(fuzzy; the threshold rides on the mode, `near:0.8`), **Type-4 → `semantic`** (exact).
-The default is `syntax,semantic`; see [usage → Scan modes](usage.md#scan-modes) for the
-full table and how to compose channels.
+Each type maps to a detection channel by evidence surface: **Type-1 and token-level
+copy floors → `syntax`**, identifier/type-normalized **Type-2 → `semantic` or `near`**,
+literal-varied Type-2 and **Type-3 → `near`** (fuzzy; the threshold rides on the mode,
+`near:0.8`), and exact **Type-4 → `semantic`**. The default is `syntax,semantic`; see
+[usage → Scan modes](usage.md#scan-modes) for the full table and how to compose channels.
 
 The taxonomy is usually stated within a single language; because every language lowers to
 one shared IL, nose applies Type-1–4 **across languages** as well — though in practice

@@ -301,7 +301,7 @@ identical to worthy duplication under every cheap signal.
 The durable reframe: rank by how clean the shared *abstraction* is, not raw duplication
 volume — anti-unify two members into a template with `struct_holes`/`value_holes`, where
 `value_holes` catch the zod-locale polluter (the holes *are* the content, not a parameter).
-The reframe ships later as `--proposal` (§AF) and informs `extractability` (§AZ). The
+The reframe ships later as `--show proposal` (§AF) and informs `extractability` (§AZ). The
 simulated **+8pp** precision gain, however, was validated only on the small v1 set and **did
 not replicate** on larger labelsets (next sections).
 
@@ -323,12 +323,12 @@ lowering walk on rayon's ~2MB worker stacks. Fix: 1 GiB stacks for the workers a
 command thread; regression test `deeply_nested_file_does_not_overflow` (depth 40,000). A clone
 detector must never crash on real input.
 
-## AF. Extraction-proposal output (`--proposal`)
+## AF. Extraction-proposal output (`--show proposal`)
 
-Shipped the §Y reframe as the user-facing `--proposal`: line-granularity anti-unification of
-two representatives (reusing the `--diff` LCS) — shared lines become the helper body, differing
-runs become `⟨param N⟩`. Output: "extract a shared helper · K shared lines · N parameter(s)
-vary." Line-level is the pragmatic granularity (sharp on function-level near-dups, coarse on
+Shipped the §Y reframe as the user-facing proposal view: line-granularity anti-unification
+of two representatives (reusing the diff-view LCS) — shared lines become the helper body,
+differing runs become `⟨param N⟩`. The current CLI exposes it as `--show proposal`.
+Line-level is the pragmatic granularity (sharp on function-level near-dups, coarse on
 whole-file clones).
 
 ## AG. Lowering closure — every language to non-ERROR Raw ≤ 0.5%
@@ -702,8 +702,8 @@ not the weights, so we mined ground truth before implementing.
   large-tail artifact). Source-**line** span is the real magnitude signal.
 - **BG-formula.** `hazard = mean_lines × spread(files,modules,languages) × invisibility ×
   scope_weight` — leave-one-repo-out AUC **G1 0.644** vs **0.609** size-led draft, 0.611
-  value-baseline, ~0.49 random. **Shipped as nose's default sort** (`SortKey::Hazard`);
-  `--sort extractability` keeps the fixability axis. The param-dampening term tested
+  value-baseline, ~0.49 random. **Implemented as opt-in `--sort hazard`**;
+  `extractability` stays the default fixability axis. The param-dampening term tested
   earlier was dropped (sign-unstable weight).
   `invisibility` (1−tightness) is a modest, stable general signal (+0.14). **Correction:**
   a first draft claimed it was "the top signal in the cross-language stratum (0.67)" —
@@ -728,8 +728,8 @@ not the weights, so we mined ground truth before implementing.
   harm** — propensity ≠ harm, and static features cap ~0.6 (harm depends on whether a
   change *applies to the sibling*, a semantic question). Also: 50% of candidates are not
   real clones (near@0.70 precision). → `hazard` reverted to opt-in (default stays
-  `extractability`); a real harm ranker needs git-history + a larger gold + better clone
-  precision.
+  `extractability`); subsequent rounds test whether git-history, larger gold, and better
+  clone precision can move the ceiling.
 - **BG-gold2 — the structural+history ceiling is ~0.60 (definitive).** Did all three:
   a clone-quality gate (`shared_weight≥4`), a larger gold (2,296 labeled, 51 confirmed
   harm positives, usable CIs), and a git-history feature (blame: were the changed vs
@@ -751,8 +751,7 @@ not the weights, so we mined ground truth before implementing.
   complexity × change locality is the signal. Combos still do not lift (logistic 0.595 on
   51 positives). Revised view: harm is best assessed *after* a divergence (it is a
   property of the realized edit), where #23 reaches ~0.65 — a usable **post-divergence**
-  ranker. Untried/likely-additive: IL-based cognitive complexity (vs the text proxy) and a
-  larger gold. Pre-divergence ranking still caps ~0.61.
+  ranker. Pre-divergence ranking still caps ~0.61.
 - **BG-gold4 — does the IL obscure cognitive complexity? No (tested).** Worry: cog is a
   surface property, the IL normalizes for equivalence. `il_cog.py` computed cog from
   `nose il --normalized` (If/Loop + nesting + And/Or) vs the source-text proxy on the gold

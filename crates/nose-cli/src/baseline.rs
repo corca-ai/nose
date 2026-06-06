@@ -1,5 +1,5 @@
 //! Baseline support for incremental adoption: record the duplication a codebase
-//! already has, so later runs (and the `--fail` gate) flag only *new* families.
+//! already has, so later runs (and the `--fail-on` gate) flag only *new* families.
 //!
 //! A family's identity must survive ordinary edits. Line numbers shift constantly,
 //! so the key is a hash over the family's members' `(file, symbol-name)` pairs,

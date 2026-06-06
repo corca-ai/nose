@@ -243,8 +243,6 @@ pre-divergence prior (~0.60) and a usable post-divergence ranker (~0.65).
 
 ## Gold-label audit (LLM-judge)
 
-## Gold-label audit (LLM-judge)
-
 An LLM judge (standing in for the human auditor) reviewed **all 181 G2 events** blind
 (`audit_sample.py` reconstructs the two clone members' code + the bug-fix commit; verdict
 schema in `g2-audit-result.json`). Result:

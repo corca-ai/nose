@@ -336,7 +336,7 @@ def load_repos(corpus_path: Path, repos_root: Path) -> list[dict]:
 
 
 def iter_source_files(repo_path: Path, max_bytes: int) -> Iterable[tuple[Path, str]]:
-    for path in repo_path.rglob("*"):
+    for path in sorted(repo_path.rglob("*")):
         if not path.is_file():
             continue
         if any(part in SKIP_DIRS for part in path.parts):

@@ -35,11 +35,11 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    Frontends also tag syntactic unit boundaries (function/method/class/block),
    which gives detection accurate boundaries for free.
 2. **Normalize** ([normalization](normalization.md)): a fixed sequence of passes canonicalizes
-   the IL — desugaring (with idiom canonicalization), alpha-renaming, dataflow propagation,
-   control-flow normalization, algebraic and operator canonicalization, and a hash-consed
-   **value graph** (GVN) that captures *what the code computes*, invariant to temporaries,
-   statement order, and common subexpressions. See [normalization](normalization.md) for the
-   exact pass order.
+   the IL — desugaring (with idiom canonicalization), alpha-renaming, an oracle cutoff,
+   recursion-to-iteration normalization, dataflow propagation, control-flow normalization,
+   algebraic and operator canonicalization, and a hash-consed **value graph** (GVN) that
+   captures *what the code computes*, invariant to temporaries, statement order, and common
+   subexpressions. See [normalization](normalization.md) for the exact pass order.
 3. **Extract units & features**: frontend units are augmented with bounded
    sub-function units: control-flow blocks (`loop` / statement `if` / `try`) and
    exact-safe statement fragments whose whole value subtree stays inside the reported
@@ -49,12 +49,13 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    for alignment, a MinHash signature, plus literal- and return-value multisets used by
    the strict precision gates.
 4. **Candidate generation**: the selected scan channels decide which candidates exist.
-   `semantic` uses value-fingerprint MinHash signatures, `near` uses shape MinHash
-   signatures, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
-5. **Accept / score**: `semantic` accepts exact value-fingerprint equality, `near`
+   `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
+   uses shape MinHash signatures, and `syntax` bypasses unit LSH with a Rabin-Karp
+   token-stream pass.
+5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
-   Jaccard and accepts above `--threshold`, and `syntax` emits duplicated runs above
-   the line/token floors.
+   Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
+   `syntax` emits duplicated runs above the line/token floors.
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the

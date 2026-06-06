@@ -70,14 +70,14 @@ prefers empty/under-covered cells over more complex variants of already-covered 
 
 | axis | examples |
 |---|---|
-| computation | `sum`, `count`, `min`, `max`, `any`, `all`, `map`, `filter`, `lookup`, `string-build` |
+| computation | `sum`, `count`, `min`, `max`, `clamp`, `any`, `all`, `map`, `filter`, `filter-map`, `lookup`, `string-build` |
 | representation | `for-loop`, `while-index-loop`, `iterator-loop`, `reduce`, `comprehension`, `builder`, `builtin`, `recursion` |
 | control variation | `guard`, `ternary`, `early-return`, `continue`, `break`, `nested-if` |
 | data shape | `int`, `bool`, `string`, `list`, `record`, `field-write` |
-| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, literal map-default fallback including Ruby zero-arg `fetch` blocks, ordered append-effect branch, ordered foreach-effect branch, ordered mixed-effect branch, ordered conditional-effect branch, ordered conditional-mixed branch, ordered loop-conditional branch, ordered loop-conditional-mixed branch, ordered index-assignment branch, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, C u16/u32 byte-pack, Java low-bit toggle, unsafe boundary |
+| proof fact | immutable binding, proven callee identity, table-key identity, static import/projection, nullish default, literal map-default fallback including Ruby zero-arg `fetch` blocks, ordered append-effect branch, ordered foreach-effect branch, ordered mixed-effect branch, ordered conditional-effect branch, ordered conditional-mixed branch, ordered loop-conditional branch, ordered loop-conditional-mixed branch, ordered index-assignment branch, own-property guard, record-shape guard, equality-chain membership, flag+break reduction, ordered string-builder, statically-false loop guard, total-order comparator, C u16/u32 byte-pack, Java low-bit toggle, proof-backed integer clamp bounds, HOF filter-map optional emission, unsafe boundary |
 | language relation | same-language, cross-language, embedded script |
 | label status | positive, hard-negative |
-| evidence | `E1` same-spec/property, `E2` counterexample, future interpreter/symbolic/proof |
+| evidence | `E0` unproven/unsafe boundary, `E1` same-spec/property, `E2` counterexample, reserved `E3` stronger future interpreter/symbolic/proof evidence |
 
 The detector should not grow as a pile of language-specific exceptions: each frontend emits
 the thinnest facts it can prove (single-assignment bindings, callee/receiver identity,
@@ -175,6 +175,8 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 | indexed loop | skipped first or last element, wrong collection indexed |
 | C pointer-length contract | skipped first element, stride greater than one, non-contract bound |
 | C byte-pack | swapped byte order, overlapping shift, wrong byte coordinate, unproven byte alias, non-byte receiver, uncasted 32-bit high-lane shift, unproven unsigned cast alias |
+| numeric clamp | unproven bound order, swapped bounds, float/NaN-sensitive domain |
+| HOF filter-map | emitted `None`/`null`, wrong emitted value coordinate, falsey value dropped instead of emitted |
 | total-order comparator | descending sign, equality-boundary sign, wrong returned sign value, overloadable receiver comparison |
 | statically-false loop guard | wrong reachable return, false initial value, positive guard, reassigned guard |
 | Java low-bit toggle | reversed +/- branches, `^ 2`, `% 2 == 1` with negative odds, wrong branch delta |
@@ -256,7 +258,8 @@ transform classes, generator templates, language pairs, and negative mutations â
 detector can't merely learn the generator's surface grammar. The executable generator marks
 same-surface `loop -> aggregate` positives as `dev` and places cross-language positives,
 indexed-loop positives, and all hard-negatives in `heldout`; the evaluator reports
-split-level recall and false merges, grouping negatives by `negative_tag`.
+split-level recall and false merges over every `expected_exact_detect=false` item,
+including `E0` unproven/unsafe boundaries, grouping negatives by `negative_tag`.
 
 Routine work uses three gate tiers so the inner loop doesn't scan the whole corpus every
 iteration:

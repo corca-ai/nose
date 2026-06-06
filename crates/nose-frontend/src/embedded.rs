@@ -11,7 +11,8 @@
 use nose_il::{FileId, Il, Interner, Lang};
 
 /// Lower an embedded-script file: extract its `<script>` blocks, parse them as
-/// JS/TS in place, and tag the result with the container language for reporting.
+/// JS/TS in place, and tag the IL with the script language. The path still preserves
+/// the container file provenance for reporting.
 pub(crate) fn lower(
     file: FileId,
     path: &str,

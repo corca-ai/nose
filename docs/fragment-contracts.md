@@ -119,6 +119,25 @@ contract path accept **exactly the same `(span, kind)` set** for migrated kinds,
 across the whole fixture corpus. A migration step that changes which fragments are accepted
 fails the gate — that is what keeps the re-expression behavior-invariant.
 
+## Output surfaces
+
+Exactness is not the same as refactorability. A fragment can be a proven semantic match and
+still be poor default output: one-line guards, common assertions, fixture setup, or tiny
+effect snippets are often better as review context or diagnostic evidence than as top-level
+refactoring candidates.
+
+`scan` and `review` therefore keep two facts separate:
+
+- fragment proof metadata (`is_fragment`, `fragment_kind`, `reason_code`, span size, and
+  `enclosing_unit` when recoverable) explains why the sub-function region is exact-safe;
+- family placement (`recommended_surface`) says whether the finding belongs on the default
+  action-oriented surface, the review-hazard surface, or hidden/debug output.
+
+The default human, Markdown, SARIF, and `--fail-on` scan surfaces show action-oriented
+families. Full scan JSON keeps diagnostic fragment families available for tooling and audits;
+see [scan-json](scan-json.md#fragment-metadata). `nose review` uses review-surface fragments
+when changed-line context makes a small exact region useful as an un-propagated-change hint.
+
 ## Migrated kinds
 
 The predicate path in `units.rs` is still the **production authority**: it decides which

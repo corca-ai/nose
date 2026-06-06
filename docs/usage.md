@@ -44,8 +44,8 @@ count line; `--format json --top 0` keeps the full diagnostic family set.
 
 ### Flags
 
-Grouped by what they do. Anything here can also be set in
-[configuration](configuration.md).
+Grouped by what they do. Config-backed scan defaults are listed in
+[configuration](configuration.md); workflow and output flags stay CLI-only.
 
 **Filter & shape the report**
 
@@ -178,10 +178,10 @@ nose capabilities
 ```
 
 The command emits JSON only. It reports the tool version, platform, stable
-commands, supported scan modes and output formats, JSON schema versions, config
-keys, and scan capability flags such as baselines, caching, SARIF, and
-structured ignores. Do not scrape `nose --help`; help text is for humans and may
-change to improve readability. The stable contract is documented in
+commands, supported scan modes and output formats such as SARIF, JSON schema
+versions, config keys, and scan capability flags such as baselines, caching,
+and structured ignores. Do not scrape `nose --help`; help text is for humans
+and may change to improve readability. The stable contract is documented in
 [capabilities](capabilities.md).
 
 ## Other commands
@@ -198,7 +198,9 @@ change to improve readability. The stable contract is documented in
   [normalization](normalization.md) passes). A debugging tool for understanding why two
   snippets do or don't converge; see [architecture](architecture.md).
 
-A `detect` command (raw clone pairs/groups) and `eval` / `ceiling` (scoring
-predictions against a gold set) also exist as the strict/research surface. They are
-hidden from `--help` because `scan` is the command for everyday use; the
-[benchmark](benchmark.md) page documents them.
+`nose behavioral-gate` is a visible experimental Type-4 benchmark command, not a stable
+integration surface; do not build automation around it without checking the current binary.
+
+Hidden `detect`, `verify`, `features`, `eval`, and `ceiling` commands exist for
+strict/research workflows. They are hidden from `--help` because `scan` is the command for
+everyday use; the [benchmark](benchmark.md) page documents them.

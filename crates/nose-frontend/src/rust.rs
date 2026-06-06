@@ -106,7 +106,7 @@ fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -> NodeId {
     // Only `impl`/`trait` blocks (which carry behavior) are detection units. Pure
     // data-type definitions (struct/enum/union) are NOT unit-ified: they have no
     // call/control/value signal, so any two same-arity types look "similar" and
-    // flood the candidate report with false positives (see docs/Dogfooding.md).
+    // flood the candidate report with false positives (see docs/dogfooding.md).
     if methods {
         lo.push_unit(block, UnitKind::Class, name);
     }

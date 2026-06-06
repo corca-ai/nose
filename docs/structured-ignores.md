@@ -13,7 +13,7 @@ nose has two ways to say "this clone is fine"; they serve different needs, so pi
 
 | | inline `// nose-ignore` | structured `nose.ignore.json` |
 |---|---|---|
-| Lives | next to the code, travels with it | one file at the repo root |
+| Lives | next to the code, travels with it | one file in the scan working directory |
 | Carries | nothing — just "skip this site" | reason, owner, expiry, note |
 | Audit | invisible in reports | listed under `ignored_families` in JSON |
 | Best for | a quick, local, self-evident exception | team-level, reviewable, expiring debt |
@@ -31,7 +31,8 @@ Run a scan and copy the family ID from the human, markdown, or JSON report:
 nose scan src --format json --top 0
 ```
 
-Create `nose.ignore.json` at the repository root:
+Create `nose.ignore.json` in the directory where you invoke nose, or pass an explicit
+path with `--ignore-file`:
 
 ```json
 {
@@ -47,7 +48,7 @@ Create `nose.ignore.json` at the repository root:
 }
 ```
 
-Then run `nose scan` from that root. nose automatically reads
+Then run `nose scan` from that directory. nose automatically reads
 `nose.ignore.json` when it exists. Use `--ignore-file <file>` or
 `ignore-file = "path/to/file.json"` in [configuration](configuration.md) when the
 file lives elsewhere.

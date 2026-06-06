@@ -811,7 +811,7 @@
     {
       "case_id": "numeric-clamp-minmax-ternary-real-miss",
       "status": "real-miss",
-      "candidate_axis": "numeric_clamp / clamp_minmax_composition",
+      "candidate_axis": "numeric_clamp / clamp_surface_bridge",
       "repo": "boltons",
       "language": "python",
       "locations": [
@@ -827,7 +827,7 @@
         }
       ],
       "semantic_claim": "min(max(x,lo),hi), max(min(x,hi),lo), and (x<lo ? lo : (x>hi ? hi : x)) all denote the same clamp for a totally-ordered numeric domain with lo <= hi. The boltons `clamp` and the fzf `Constrain` are the two canonical min/max compositions, in different languages, and should converge.",
-      "evidence": "the clamp obligation machine-checks the identity and its hard negatives (self-contained Lean 4, no Mathlib). A 196-case integer battery confirms min(max)==max(min)==ternary for every lo<=hi. A controlled semantic scan shows the abs idiom DOES merge (absTern/absBuilt, 1 family) while the clamp idiom does NOT (clampTern/clampBuilt, 0 clamp family); boltons `clamp` and fzf `Constrain` do not merge across files. The idiom appears in 26 repos across all 7 primary languages on both splits (frontier_platform breadth).",
+      "evidence": "the clamp obligation machine-checks the identity and its hard negatives (self-contained Lean 4, no Mathlib). A 196-case integer battery confirms min(max)==max(min)==ternary for every lo<=hi. The first proof-backed min/max composition slice now canonicalizes when the source proves integer lo<=hi by literal bounds or an exiting inverse guard. This real frontier item remains open because broader surface bridges and real-corpus bound-order evidence are still incomplete: the controlled ternary/library clamp forms do not yet bridge to the proven Clamp value, and fzf `Constrain` only names its bounds rather than proving their order. The idiom appears in 26 repos across all 7 primary languages on both splits (frontier_platform breadth).",
       "detector": {
         "current_detector_miss": true,
         "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
@@ -836,7 +836,7 @@
         "baseline_command": "nose scan <two-form file with abs control + clamp> --mode semantic --format json --top 0 --min-size 1 --min-lines 1",
         "baseline_result": "abs control merges (1 family: absTern, absBuilt); the clamp forms (clampTern, clampBuilt) are NOT merged.",
         "semantic_scan_result": "nose scan boltons/boltons/mathutils.py fzf/src/util/util.go --mode semantic --format json --top 0 --min-size 1 --min-lines 1: the clamp pair is not merged across files.",
-        "default_scan_result": "Cross-language pair; the value graph does not canonicalize clamp, so syntax/semantic default does not merge them either."
+        "default_scan_result": "The value graph now has a proof-backed integer min/max Clamp canon for sources that prove lo<=hi, but this real cross-language pair still lacks a shared proven bound-order fact on both sides; default syntax/semantic scan does not merge it. Two-comparison and library clamp bridge forms remain successor work."
       },
       "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
       "hard_negative_siblings": [
@@ -846,8 +846,8 @@
         "float NaN inputs where min/max builtins and comparison chains can return different values depending on language NaN semantics"
       ],
       "batch": null,
-      "reverify": "Re-run the controlled abs-vs-clamp semantic scan and the boltons/fzf cross-file scan; re-check formal/obligations/normalize/value_graph/clamp/Proof.lean type-checks. Reclassify if a future value-graph clamp canonicalization lands (then status -> closed).",
-      "notes": "Issue #50 Team B target packet evidence (linked by frontier_target_packets). A real, machine-checked semantic under-merge. Routed proof-fact-prerequisite, NOT directly implementable: formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the lo<=hi precondition is required, and no existing scalar min/max fact proves bound ordering — parameter naming (e.g. fzf Constrain(val, minimum, maximum)) is not a proof. A new bound-order / guarded-range proof fact (and a float-NaN domain exclusion) is the prerequisite before any detector batch."
+      "reverify": "Re-run the controlled clamp semantic scan and the boltons/fzf cross-file scan; re-check formal/obligations/normalize/value_graph/clamp/Proof.lean type-checks. Reclassify only when the real-corpus pair and the controlled ternary/library bridge forms merge while the swapped-bound, wrong-nesting, lo>hi, and float-domain hard negatives stay split.",
+      "notes": "Issue #50 Team B target packet evidence (linked by frontier_target_packets). The initial proof-backed integer min/max Clamp canon has landed for sources with literal or exiting-guard bound-order evidence. The remaining packet is still routed proof-fact-prerequisite / successor bridge work: formal/obligations/normalize/value_graph/clamp/Counterexamples.lean proves the lo<=hi precondition is required, and parameter naming (e.g. fzf Constrain(val, minimum, maximum)) is not a proof. Broader detector work must first establish real-corpus bound order and keep float-NaN and swapped/inverted-bound hard negatives split."
     }
   ]
 }

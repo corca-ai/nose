@@ -833,7 +833,7 @@
       "candidate_id": "numeric_clamp",
       "curated": {
         "implementation_cost": "medium",
-        "rationale": "A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean).",
+        "rationale": "A value-graph clamp canonicalization over already-proven scalar min/max facts; lo<=hi precondition and float NaN are the soundness boundaries (machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean). The first proof-backed min/max slice has landed; real-corpus bound proof and surface bridges remain.",
         "soundness_risk": "medium",
         "substrate_required": "none"
       },
@@ -844,7 +844,7 @@
         "count": 1,
         "records": [
           {
-            "candidate_axis": "numeric_clamp / clamp_minmax_composition",
+            "candidate_axis": "numeric_clamp / clamp_surface_bridge",
             "case_id": "numeric-clamp-minmax-ternary-real-miss",
             "proof_invariant": "Recognize clamp as min(max(x,lo),hi) = max(min(x,hi),lo) = two-comparison form ONLY with proven scalar min/max facts and a lo <= hi precondition; reject swapped bound order min(max(x,hi),lo), wrong nesting max(min(x,lo),hi), the lo>hi precondition violation, and float NaN (where min/max builtins vs comparison chains can diverge by language). Machine-checked in formal/obligations/normalize/value_graph/clamp/Proof.lean.",
             "status": "real-miss"

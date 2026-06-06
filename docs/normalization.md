@@ -11,7 +11,8 @@
 > (`algebra.rs`: assoc/comm flatten, comparison-direction, De Morgan;
 > value-independent). Track 3 — CFG normalization (`cfg_norm.rs` `structure()`:
 > conjoined-guard merge, continue-guard unwrap). Pipeline: desugar → alpha →
-> dataflow → [dce] → cfg_norm::structure → algebra → cfg_norm::run; value graph on top.
+> oracle cutoff → recursion→iteration → dataflow → [dce] → cfg_norm::structure →
+> algebra → cfg_norm::run; value graph on top.
 > (`dce.rs` dead-code/dead-assignment elimination is an optional pass, off by default.)
 > Later additions on the value graph: a purpose-fit **type inference** (`types.rs`, now a
 > fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
@@ -131,10 +132,10 @@ Guiding constraints for every pass:
   numbers, tolerating structural difference — lives in the **candidate axis** and its
   scoring, never in the behavioral base. Never nondeterministic, either way.
 - **Termination**: bounded rewriting (no infinite saturation).
-- **Composition order**: desugar → alpha → **dataflow** → [dce] → **cfg_norm::structure**
-  → **algebra** → **cfg_norm::run** → (later) value-graph (matching the status block above;
-  CFG normalization straddles algebra — `structure()` runs before it, `run()` after). Each
-  documented below.
+- **Composition order**: desugar → alpha → oracle cutoff → **recursion→iteration** →
+  **dataflow** → [dce] → **cfg_norm::structure** → **algebra** → **cfg_norm::run** →
+  (later) value-graph (matching the status block above; CFG normalization straddles
+  algebra — `structure()` runs before it, `run()` after). Each documented below.
 
 ---
 

@@ -124,7 +124,8 @@ enum Cmd {
         #[arg(long)]
         min_value: Option<f64>,
         /// Rank families by: `extractability` (how cleanly it folds into one helper —
-        /// the default), `value` (raw duplicated volume), or `sites` (most copies).
+        /// the default), `value` (raw duplicated volume), `sites` (most copies), or
+        /// `hazard` (experimental divergent-edit propensity).
         #[arg(long)]
         sort: Option<SortKey>,
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
@@ -159,8 +160,8 @@ enum Cmd {
         #[arg(long, value_name = "WHAT")]
         fail_on: Option<FailOn>,
         /// Baseline file of already-accepted families. Families recorded here are
-        /// hidden from the report and don't trip `--fail`, so a run flags only *new*
-        /// duplication — the way to adopt on a codebase that already has clones.
+        /// hidden from the report and don't trip `--fail-on`, so a run flags only
+        /// *new* duplication — the way to adopt on a codebase that already has clones.
         #[arg(long, value_name = "FILE")]
         baseline: Option<PathBuf>,
         /// Structured ignore file for intentionally suppressed families. Defaults
@@ -2450,7 +2451,7 @@ fn warn_no_files(paths: &[PathBuf]) {
         .join(", ");
     eprintln!(
         "warning: no supported source files found under: {joined}\n  \
-         (supported extensions: py, js, ts/tsx, go, rs, java, c/h, rb)"
+         (supported extensions: py/pyi, js/jsx/mjs/cjs, ts/tsx/mts/cts, go, rs, java, c/h, rb, vue/svelte/html/htm)"
     );
 }
 
@@ -2546,7 +2547,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // source access; the detector deals only in IL.
     //
     // `shared_lines` (displayed) is the count of *all* lines invariant across the family
-    // — including boilerplate, so it matches what `--proposal` shows. For *ranking*
+    // — including boilerplate, so it matches what `--show proposal` shows. For *ranking*
     // (`shared_weight`) we separate signal from noise: sum the IDF weight of the
     // substantive lines (non-trivial, and rare across the corpus — a `if err != nil {`
     // that appears in most files contributes ~0), then use that as a **gate** on the
@@ -2699,7 +2700,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         print_hotspots_refs(&reportable_families);
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
-    // failure when --fail is set.
+    // failure when --fail-on is set.
     if let (true, Some(comparison)) = (
         matches!(args.fail_on, Some(FailOn::New)) && !reportable_families.is_empty(),
         baseline_comparison.as_ref(),
@@ -2724,7 +2725,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     }
     if matches!(args.fail_on, Some(FailOn::Any)) && !reportable_families.is_empty() {
         eprintln!(
-            "\nnose: {} {} found (--fail)",
+            "\nnose: {} {} found (--fail-on any)",
             reportable_families.len(),
             channels.report_label(reportable_families.len())
         );
@@ -3138,7 +3139,7 @@ fn print_member_proposal(a: &nose_detect::Loc, b: &nose_detect::Loc, members: us
 /// body of the extracted helper, and each maximal run of differing lines collapses to
 /// one `⟨param N⟩` placeholder (a candidate parameter). Returns the skeleton, the
 /// count of shared (invariant) lines, and the parameter count. Shared by the
-/// `--proposal` view and by extractability ranking / honest shared-line reporting.
+/// `--show proposal` view and by extractability ranking / honest shared-line reporting.
 fn anti_unify(a: &[&str], b: &[&str]) -> (Vec<String>, u32, u32) {
     let diff = line_diff(a, b);
     let mut skeleton: Vec<String> = Vec::new();

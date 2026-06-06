@@ -39,11 +39,11 @@ def scope_w(x): return {"prod": 1.0, "mixed": 0.5, "test": 0.25}.get(x["scope"],
 def pdamp(x): return 1.0 / (1.0 + 0.5 * x["params"])  # params is anti-predictive -> dampen
 
 CANDIDATES = {
-    "v1_size_led (current)": lambda x: x["mean_sem"] * eff_copies(x["members"]) * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x),
+    "v1_size_led_original": lambda x: x["mean_sem"] * eff_copies(x["members"]) * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x),
     "v2_no_size":            lambda x: eff_copies(x["members"]) * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x),
     "v3_dispersion_copies":  lambda x: spread(x["files"], x["modules"], x["languages"]) * eff_copies(x["members"]),
     "v4_modules_x_members":  lambda x: (1 + x["modules"]) * (1 + x["members"]),
-    "v5_lines_led":          lambda x: x["mean_lines"] * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x),
+    "v5_lines_led_shipped":  lambda x: x["mean_lines"] * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x),
     "v6_lines_mod_invis":    lambda x: x["mean_lines"] * (1 + x["modules"]) * invis(x),
     "v7_v5_param_damp":      lambda x: x["mean_lines"] * spread(x["files"], x["modules"], x["languages"]) * invis(x) * scope_w(x) * pdamp(x),
     "modules_only":          lambda x: x["modules"],

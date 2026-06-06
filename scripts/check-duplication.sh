@@ -3,17 +3,17 @@
 #
 # Fails when the number of *substantial* duplicate families on nose's own source
 # (refactoring value >= MIN_VALUE) exceeds BUDGET. This is a ratchet: the current
-# accepted families are all reviewed and recorded in docs/Dogfooding.md (e.g. the
-# borrow-blocked `generic` node-copy). To accept a genuinely new one, either dedupe
-# it or raise BUDGET in this file with a one-line justification in the PR.
+# accepted families are all reviewed and recorded in docs/dogfooding.md (mostly
+# intentional per-grammar frontend parallelism). To accept a genuinely new one,
+# either dedupe it or raise BUDGET in this file with a one-line justification in the PR.
 #
 # Runs only the `near` channel: this gate is about *design-level* Type-3 duplication
 # (families worth extracting), not the syntax copy-paste floor — which always surfaces
-# the reviewed-and-accepted per-grammar frontend parallelism (see docs/Dogfooding.md).
+# the reviewed-and-accepted per-grammar frontend parallelism (see docs/dogfooding.md).
 set -euo pipefail
 
 MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial families
-BUDGET=6       # accepted substantial families today (see docs/Dogfooding.md)
+BUDGET=6       # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 

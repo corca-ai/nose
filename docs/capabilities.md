@@ -39,7 +39,7 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "scan", "stats"]
+    "stable": ["capabilities", "il", "review", "scan", "stats"]
   },
   "schemas": {
     "capabilities": [1],
@@ -50,9 +50,26 @@ nose capabilities
     "default_modes": ["syntax", "semantic"],
     "output_formats": ["human", "json", "markdown", "sarif"],
     "sort_keys": ["extractability", "value", "sites", "hazard"],
-    "config_keys": ["exclude", "ignore-file", "min-lines"],
+    "config_keys": [
+      "exclude",
+      "ignore-file",
+      "min-lines",
+      "min-members",
+      "min-size",
+      "min-value",
+      "mode",
+      "sort",
+      "top"
+    ],
     "capabilities": {
       "baseline": true,
+      "baseline_changed_detection": true,
+      "cache": true,
+      "ci_fail_gate": true,
+      "diff": true,
+      "hotspots": true,
+      "inline_suppression": true,
+      "proposal": true,
       "structured_ignores": true
     }
   },
@@ -67,10 +84,9 @@ nose capabilities
 }
 ```
 
-The real `config_keys` and `scan.capabilities` objects may contain more entries
-than this shortened example. `tool.version` is shown as the `<version>` placeholder
-because the field always reports the installed binary's own version (`nose --version`);
-the example deliberately does not pin a release so it can't drift.
+`tool.version` is shown as the `<version>` placeholder because the field always reports the
+installed binary's own version (`nose --version`); the example deliberately does not pin a
+release so it can't drift.
 
 ## Version 1 fields
 

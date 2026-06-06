@@ -2,9 +2,11 @@
 # Clone + mine a balanced corpus of repos in parallel. Writes per-repo JSONL events
 # to $WORK and a combined all-events.jsonl. Incremental: skips repos already mined.
 # See docs/hazard-benchmark.md and docs/hazard-release-checklist.md.
-set -u
-NOSE="${NOSE:-/Users/ak/prjs/cc/nose/target/release/nose}"
-MINE="${MINE:-/Users/ak/prjs/cc/nose-worktrees/hazard-ranking/eval/hazard/mine.py}"
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+NOSE="${NOSE:-$REPO_ROOT/target/release/nose}"
+MINE="${MINE:-$SCRIPT_DIR/mine.py}"
 WORK="${WORK:-/tmp/hazard-mine}"
 MONTHS="${MONTHS:-60}"
 mkdir -p "$WORK"
@@ -46,6 +48,7 @@ mine_one() {
     --max-months "$MONTHS" --out "$WORK/$name-events.jsonl" \
     --g1-evidence "$WORK/$name-g1ev.jsonl" \
     > "$WORK/$name.mine.log" 2>&1
+  [ -f "$WORK/$name-events.jsonl" ] || { echo "[mine FAIL] $name (no events file)"; return 1; }
   python3 - "$WORK/$name-events.jsonl" "$stratum" <<'PY'
 import json,sys,os
 path,strat=sys.argv[1],sys.argv[2]
@@ -58,12 +61,14 @@ PY
 }
 
 echo "=== cloning (parallel; skips already-mined) ==="
-for spec in "${REPOS[@]}"; do IFS='|' read -r name url stratum subdir <<< "$spec"; clone_one "$name" "$url" & done
-wait
+pids=()
+for spec in "${REPOS[@]}"; do IFS='|' read -r name url stratum subdir <<< "$spec"; clone_one "$name" "$url" & pids+=("$!"); done
+for pid in "${pids[@]}"; do wait "$pid"; done
 
 echo "=== mining (parallel; months=$MONTHS) ==="
-for spec in "${REPOS[@]}"; do IFS='|' read -r name url stratum subdir <<< "$spec"; mine_one "$name" "$stratum" "$subdir" & done
-wait
+pids=()
+for spec in "${REPOS[@]}"; do IFS='|' read -r name url stratum subdir <<< "$spec"; mine_one "$name" "$stratum" "$subdir" & pids+=("$!"); done
+for pid in "${pids[@]}"; do wait "$pid"; done
 
 cat "$WORK"/*-events.jsonl > "$WORK/all-events.jsonl" 2>/dev/null
 echo "=== corpus totals ==="

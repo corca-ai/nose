@@ -71,5 +71,9 @@ enable `near` explicitly. The benchmark also uses a hidden research surface:
 - `nose eval` / `nose ceiling` — score predictions against a gold set / split recall across
   the extraction and candidate-generation stages.
 
+`nose behavioral-gate` is a visible experimental Type-4 benchmark command for measuring a
+behavioral-equivalence acceptance gate against a generated manifest; it is not a stable
+integration surface.
+
 These exercise the same engine described in [architecture](architecture.md); the qualitative
 counterpart — running nose on real third-party code — is [field-evaluation](field-evaluation.md).

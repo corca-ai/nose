@@ -25,8 +25,14 @@ It is deliberately small and mostly data-driven:
 bench/type4/adversarial/scripts/type4-check
 bench/type4/adversarial/scripts/type4-next --limit 3
 bench/type4/adversarial/scripts/type4-report
-bench/type4/adversarial/scripts/type4-ingest-leads /tmp/leads.json --draft-json
 ```
+
+This directory is the durable resume point for Type-4 coverage work. After any pause,
+rerun the commands above on the current checkout and let the matrix choose the next task;
+candidate notes are actionable only after they have a cell, cases, boundaries, and gates.
+When `nose verify --leads` has produced a leads JSON file, run
+`scripts/type4-ingest-leads <leads.json> --draft-json` separately to draft new cells for
+manual curation.
 
 For a selected task, the agent should:
 

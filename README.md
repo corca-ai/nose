@@ -131,12 +131,12 @@ scanned 3 files · go 1 · python 1 · typescript 1
 
 #1  id b658f483dcc2b097 · 6 copies · same logic in 3 languages (go, python, typescript) · ~30 lines removable
     → local duplication — extract a helper (cross-language)
-    examples/sum.go:3-9    SumFor
+    examples/sum.go:3-9  SumFor
     examples/sum.go:11-17  SumRange
-    examples/sum.py:1-7    sum_while
+    examples/sum.py:1-7  sum_while
+    examples/sum.ts:1-7  sumFor
+    examples/sum.ts:9-15  sumOf
     examples/sum.py:10-14  sum_for
-    examples/sum.ts:1-7    sumFor
-    examples/sum.ts:9-15   sumOf
 ```
 
 (Runs on the repo's own `examples/` — six tiny sum routines across three languages and
@@ -175,11 +175,11 @@ and [docs/normalization.md](docs/normalization.md). **Detection** (`nose-detect`
 runs three selectable channels feeding one ranking:
 
 - *Syntax* — a Rabin-Karp scan over each file's IL token stream that finds duplicated
-    runs regardless of unit boundaries: the jscpd-style Type-1/2 floor.
-  - *Semantic* — exact value-fingerprint matches: modeled Type-4 equivalence with the
-    fingerprint-equal ⇒ behavior-equal contract.
-  - *Near* — shape-candidate Type-3 near-duplicates scored by structural/value overlap
-    and RANSAC alignment; opt in with `--mode near` or a comma-list containing `near`.
+  runs regardless of unit boundaries: the jscpd-style Type-1/2 floor.
+- *Semantic* — exact value-fingerprint matches: modeled Type-4 equivalence with the
+  fingerprint-equal ⇒ behavior-equal contract.
+- *Near* — shape-candidate Type-3 near-duplicates scored by structural/value overlap
+  and RANSAC alignment; opt in with `--mode near` or a comma-list containing `near`.
 
 ## CLI
 
@@ -204,10 +204,13 @@ runs three selectable channels feeding one ranking:
   [docs/review.md](docs/review.md).
 - `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — inspect the IL.
 - `nose stats <paths…>` — IL lowering coverage per language.
+- `nose capabilities` — JSON contract for integrations that need supported commands,
+  formats, config keys, and scan capability flags.
 
-A `detect` command (raw clone pairs/groups) and `eval`/`ceiling` (benchmark
-scoring against a gold set) also exist as the strict/research surface; they're
-hidden from `--help` because `scan` is the command for everyday use.
+`nose behavioral-gate` is a visible experimental Type-4 benchmark command, not a
+stable integration surface. Hidden `detect`, `verify`, `features`, `eval`, and
+`ceiling` commands exist for strict/research workflows; `scan` is the command for
+everyday use.
 
 ## Documentation
 

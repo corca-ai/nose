@@ -11,8 +11,9 @@ The factory is evidence-carrying by design:
   language surface;
 - positives carry same-spec/spec-interpreter evidence;
 - negatives carry concrete counterexamples;
-- evidence is level-tagged (`E1` same-spec/property evidence, `E2` concrete
-  counterexample evidence in the current synthetic slice);
+- evidence is level-tagged (`E0` unproven/unsafe boundary, `E1` same-spec/property
+  evidence, `E2` concrete counterexample evidence in the current synthetic slice; the
+  schema also reserves `E3` for stronger future proof/oracle evidence);
 - generated source paths and metadata are written into a manifest.
 
 The generated manifest is a candidate benchmark artifact. A case becomes gold only after it
@@ -41,8 +42,9 @@ By default the generator emits:
   null/none/nil/option presence predicates including Rust
   option-pattern predicates, scalar absolute-value and min/max idioms, and
   C total-order three-way comparator guard/ternary forms, C byte-buffer u16/u32
-  big-endian packing, and Java statically-false loop-entry guard and low-bit toggle forms, plus
-  unsafe/unproven binding boundaries;
+  big-endian packing, Java statically-false loop-entry guard and low-bit toggle forms,
+  proof-backed integer numeric clamp min/max compositions, and HOF filter-map optional
+  emission forms, plus unsafe/unproven binding boundaries;
 - a ring of cross-language positive pairs and cross-template hard negatives so every
   supported surface participates in cross-language coverage without exploding the seed size.
 
@@ -56,8 +58,10 @@ python3 bench/type4/eval_manifest.py /tmp/nose-type4-seed/manifest.json
 ```
 
 The evaluator runs `nose scan --mode semantic` over the generated sources and reports
-positive recall plus hard-negative false merges. Use `--fail-on-false-merge` when this
-becomes a CI gate.
+positive recall plus false merges among every `expected_exact_detect=false` item. The
+summary line keeps the historic "hard-negative false merges" label, but the denominator
+also includes `E0` unproven/unsafe boundary cases that exact semantic detection must not
+merge. Use `--fail-on-false-merge` when this becomes a CI gate.
 
 `eval_manifest.py` and `frontier.py` accept both the current versioned
 `nose scan --format json` object and the older raw `families` array when `--scan-json`
@@ -94,31 +98,31 @@ misses or remove baseline false merges.
 Current smoke result with the default ring cross-surface set:
 
 ```text
-items: 3127
-positive recall: 1098/1098
-hard-negative false merges: 0/2029
+items: 3189
+positive recall: 1116/1116
+hard-negative false merges: 0/2073
 ```
 
 With `--cross none`, same-surface coverage alone currently reports:
 
 ```text
-items: 1940
-positive recall: 682/682
-hard-negative false merges: 0/1258
+items: 2002
+positive recall: 700/700
+hard-negative false merges: 0/1302
 ```
 
-With `--cross all`, the dense corpus now has 6728 items. The routine dense smoke uses
+With `--cross all`, the dense corpus now has 6765 items. The routine dense smoke uses
 coverage-preserving compaction before evaluation:
 
 ```text
-selected items: 1859/6728
-positive recall: 626/626
-hard-negative false merges: 0/1233
+selected items: 1895/6765
+positive recall: 637/637
+hard-negative false merges: 0/1258
 ```
 
 These are not product-quality scores. They are frontier measurements for the exact semantic
-channel: missed positives are under-merge work items, while hard-negative false merges are
-soundness bugs.
+channel: missed positives are under-merge work items, while false merges on hard negatives
+or `E0` boundary cases are soundness bugs.
 
 The coverage-expansion iterations and detector co-evolution loops are recorded in
 `ITERATIONS.md`.
@@ -219,13 +223,21 @@ to repeatable coding-agent tasks:
 bench/type4/adversarial/scripts/type4-check
 bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
-bench/type4/adversarial/scripts/type4-ingest-leads /tmp/leads.json --draft-json
 ```
+
+When `nose verify --leads` has produced a leads JSON file, use
+`bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --draft-json` as the
+manual curation starting point for new matrix cells.
 
 The matrix separates `under-merged`, `oracle-blocked`, `proof-fact-blocked`,
 `perf-blocked`, and `false-merged` states so the next PR improves the right actor. See
 [`docs/type4-adversarial-coverage.md`](../../docs/type4-adversarial-coverage.md) for the
 workflow and status model.
+
+Use the matrix, not stale narrative notes, as the resume point after a pause. Run
+`type4-check`, `type4-report`, and `type4-next` on the current checkout, then update the
+matrix, registry, cases, and relevant docs in the same PR. Session-local observations that
+matter later should be recorded in those durable artifacts or in `ITERATIONS.md`.
 
 ## Frontier evidence platform
 

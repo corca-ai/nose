@@ -1,9 +1,10 @@
 # Configuration
 
-Real projects shouldn't carry 200-character command lines. Commit a `nose.toml`
-(or `.nose.toml`) at the repo root and nose reads it automatically. CLI flags
-from [usage](usage.md) always win; the config supplies defaults; anything unset falls
-back to the built-in default. Back to [home](home.md).
+Real projects shouldn't carry 200-character command lines. Put a `nose.toml`
+(or `.nose.toml`) in the directory where you invoke nose and it is read
+automatically. CLI flags from [usage](usage.md) always win; the config supplies
+defaults for supported scan settings; anything unset falls back to the built-in
+default. Back to [home](home.md).
 
 ## `nose.toml`
 

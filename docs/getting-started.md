@@ -35,22 +35,25 @@ nose scan path/to/project
 ```
 
 ```
-$ nose scan bench/repos/radash
-scanned 23 files · typescript 19 · javascript 4
-148 clone families, ranked by extractability (cleanest to fold into one helper)  ·  ~5826 duplicated lines  (showing 30)
+$ nose scan examples --min-size 8
+scanned 3 files · go 1 · python 1 · typescript 1
+1 clone family, ranked by extractability (cleanest to fold into one helper)  ·  ~30 duplicated lines  (showing 1)
 
-#1  3 copies · same logic in 2 languages (javascript, typescript) · ~134 lines removable
-    → consolidate `series` — 3 copies (cross-language)
-    bench/repos/radash/src/series.ts:7-97        series
-    bench/repos/radash/cdn/radash.esm.js:823-877 series
-    bench/repos/radash/cdn/radash.js:826-880     series
+#1  id b658f483dcc2b097 · 6 copies · same logic in 3 languages (go, python, typescript) · ~30 lines removable
+    → local duplication — extract a helper (cross-language)
+    examples/sum.go:3-9  SumFor
+    examples/sum.go:11-17  SumRange
+    examples/sum.py:1-7  sum_while
+    examples/sum.ts:1-7  sumFor
+    examples/sum.ts:9-15  sumOf
+    examples/sum.py:10-14  sum_for
 ```
 
 That's the whole loop: scan, look at `#1`, decide whether to extract it, move on.
 
 ## How to read the report
 
-**The first line — `scanned 23 files · typescript 19 · javascript 4`** — is what
+**The first line — for example, `scanned 3 files · go 1 · python 1 · typescript 1`** — is what
 nose actually analyzed. If `.gitignore` or `--exclude` pruned vendored deps or
 build output, this count will be far smaller than the files on disk. Glance at it
 to confirm nose looked where you expected. (The *ignored* count is deliberately
@@ -76,8 +79,8 @@ shared helper, base class, or data table). Read it left to right:
 - Then **every site is listed** with its exact `file:line-range` — you can't act on
   a clone you can't see.
 
-**Scope tags.** A family may end with `· test` (all copies in test code) or
-`· test↔prod` (the same logic in a test *and* in production). These are context
+**Scope tags.** A family may end with `· in test code` (all copies in test code) or
+`· same code in tests and prod` (the same logic in a test *and* in production). These are context
 for *where* to refactor, not a penalty — duplication in tests is still a smell.
 
 ### See more per family
