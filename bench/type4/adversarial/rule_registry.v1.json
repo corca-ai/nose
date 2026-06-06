@@ -92,18 +92,18 @@
       "implementation": ["crates/nose-normalize/src/value_graph.rs"],
       "positive_cases": ["clamp_minmax_guarded_bounds"],
       "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
-      "boundaries": ["Requires a unique x/lo/hi candidate, integer-domain facts, and a lo<=hi proof.", "Missing or non-exiting guards, swapped bounds, wrong nesting, and float/NaN-sensitive domains stay fail-closed.", "Two-comparison ternary and library clamp forms are tracked separately by numeric.clamp_surface_bridge."],
+      "boundaries": ["Requires a unique x/lo/hi candidate, integer-domain facts, and a lo<=hi proof.", "Missing or non-exiting guards, swapped bounds, wrong nesting, and float/NaN-sensitive domains stay fail-closed.", "Two-comparison ternary and library clamp forms are handled by numeric.clamp_surface_bridge."],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
     },
     {
       "id": "numeric.clamp_surface_bridge",
       "kind": "engine",
-      "status": "proposed",
-      "summary": "Bridge two-comparison and language library clamp forms to the shared Clamp value.",
-      "implementation": ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"],
+      "status": "landed",
+      "summary": "Bridge two-comparison ternary and proven numeric library clamp forms to the shared Clamp value.",
+      "implementation": ["crates/nose-normalize/src/value_graph.rs", "crates/nose-frontend/src/rust.rs"],
       "positive_cases": ["clamp_ternary_minmax_bridge", "clamp_library_method_bridge"],
-      "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
-      "boundaries": ["Must reuse the same integer-domain and lo<=hi proof as numeric.clamp_composition.", "Do not treat method names or bound parameter names as proof."],
+      "hard_negatives": ["clamp_unordered_bounds", "clamp_float_nan_boundary", "clamp_method_name_only_boundary"],
+      "boundaries": ["Must reuse the same integer-domain and lo<=hi proof as numeric.clamp_composition.", "Do not treat method names or bound parameter names as proof.", "Rust panic guards may supply the exiting inverse guard, but exception payload differences are not erased across languages."],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/frontier-platform.md", "docs/normalization.md"]
     },
     {

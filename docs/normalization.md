@@ -41,8 +41,8 @@
 > guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
 > conservative integer-only bound-order facts for clamp canonicalization
 > (literal `lo <= hi`, or a dominating inverse guard such as `if hi < lo { throw ... }`);
-> proof-backed min/max clamp compositions canonicalize to a shared `Clamp(x, lo, hi)` value,
-> while two-comparison and library clamp bridge forms remain separate successor work,
+> proof-backed min/max clamp compositions, two-comparison ternaries, and proven numeric
+> library clamp methods canonicalize to a shared `Clamp(x, lo, hi)` value,
 > control-flow-aware ordering for statement-level effects (so `append(a); append(b)` does not
 > merge with `append(b); append(a)`),
 > C byte-buffer `u16`/`u32` big-endian packing (`(a[0]<<8)+a[1]` ≡ `(a[0]<<8)|a[1]`

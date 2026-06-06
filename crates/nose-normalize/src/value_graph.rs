@@ -476,6 +476,7 @@ impl<'a> Builder<'a> {
                         || x == Op::Mod as u32 || x == Op::Pow as u32 || x == Op::BitAnd as u32
                         || x == Op::BitOr as u32 || x == Op::BitXor as u32
                         || x == Op::Shl as u32 || x == Op::Shr as u32
+                        || x == MIN_CODE || x == MAX_CODE
                 ) {
                     Ty::Num
                 } else if matches!(
@@ -1517,6 +1518,14 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
+        #[derive(Clone, Copy)]
+        enum NumericMethod {
+            Abs,
+            Min(NodeId),
+            Max(NodeId),
+            Clamp(NodeId, NodeId),
+        }
+
         let &callee = kids.first()?;
         if self.il.kind(callee) != NodeKind::Field {
             return None;
@@ -1526,20 +1535,29 @@ impl<'a> Builder<'a> {
         };
         let method = self.interner.resolve(name);
         let numeric_op = match (method, kids.len()) {
-            ("abs", 1) => Some((ABS_CODE, None)),
-            ("min", 2) => Some((MIN_CODE, kids.get(1).copied())),
-            ("max", 2) => Some((MAX_CODE, kids.get(1).copied())),
+            ("abs", 1) => Some(NumericMethod::Abs),
+            ("min", 2) => kids.get(1).copied().map(NumericMethod::Min),
+            ("max", 2) => kids.get(1).copied().map(NumericMethod::Max),
+            ("clamp", 3) => Some(NumericMethod::Clamp(kids[1], kids[2])),
             _ => None,
         }?;
         let receiver = self.il.children(callee).first().copied()?;
         let receiver_value = self.eval_proven_numeric_expr(receiver, env)?;
         match numeric_op {
-            (ABS_CODE, None) => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
-            (code, Some(rhs)) => {
+            NumericMethod::Abs => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
+            NumericMethod::Min(rhs) => {
                 let rhs = self.eval(rhs, env);
-                Some(self.mk(ValOp::Bin(code), vec![receiver_value, rhs]))
+                Some(self.mk(ValOp::Bin(MIN_CODE), vec![receiver_value, rhs]))
             }
-            _ => None,
+            NumericMethod::Max(rhs) => {
+                let rhs = self.eval(rhs, env);
+                Some(self.mk(ValOp::Bin(MAX_CODE), vec![receiver_value, rhs]))
+            }
+            NumericMethod::Clamp(lo, hi) => {
+                let lo = self.eval(lo, env);
+                let hi = self.eval(hi, env);
+                self.proof_backed_clamp_value(receiver_value, lo, hi)
+            }
         }
     }
 
@@ -1816,6 +1834,9 @@ impl<'a> Builder<'a> {
                     return v;
                 }
                 if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
+                    return v;
+                }
+                if let Some(v) = self.clamp_ternary_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
                 if let Some(v) = self.low_bit_toggle_pattern(args[0], args[1], args[2]) {
@@ -2911,6 +2932,23 @@ impl<'a> Builder<'a> {
         self.int_const_value(value).is_some() || self.is_integer_param_value(value)
     }
 
+    fn proof_backed_clamp_value(
+        &mut self,
+        x: ValueId,
+        lo: ValueId,
+        hi: ValueId,
+    ) -> Option<ValueId> {
+        if self.is_safe_clamp_integer_value(x)
+            && self.is_safe_clamp_integer_value(lo)
+            && self.is_safe_clamp_integer_value(hi)
+            && self.has_bound_order_fact(lo, hi)
+        {
+            Some(self.mk(ValOp::Clamp, vec![x, lo, hi]))
+        } else {
+            None
+        }
+    }
+
     fn canonicalize_proof_backed_clamp(&mut self, value: ValueId) -> Option<ValueId> {
         if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == MIN_CODE || o == MAX_CODE)
         {
@@ -2937,7 +2975,7 @@ impl<'a> Builder<'a> {
         }
         self.clamp_proof_backed_candidate_count += 1;
         let (x, lo, hi) = proven[0];
-        Some(self.mk(ValOp::Clamp, vec![x, lo, hi]))
+        self.proof_backed_clamp_value(x, lo, hi)
     }
 
     fn clamp_minmax_candidates(&self, value: ValueId) -> Vec<(ValueId, ValueId, ValueId)> {
@@ -2971,12 +3009,29 @@ impl<'a> Builder<'a> {
         }
     }
 
+    fn bin_other_arg(&self, value: ValueId, want: u32, known: ValueId) -> Option<ValueId> {
+        let (left, right) = self.bin_args(value, want)?;
+        if left == known {
+            Some(right)
+        } else if right == known {
+            Some(left)
+        } else {
+            None
+        }
+    }
+
     /// Does this branch unconditionally exit its enclosing block (return / throw / break /
     /// continue on every path)? Conservative: a block exits iff its last statement does;
     /// an `if` exits iff both arms do.
     fn branch_exits(&self, node: NodeId) -> bool {
         match self.il.kind(node) {
             NodeKind::Return | NodeKind::Throw | NodeKind::Break | NodeKind::Continue => true,
+            NodeKind::ExprStmt => self.il.children(node).first().is_some_and(|&expr| {
+                matches!(
+                    self.il.kind(expr),
+                    NodeKind::Return | NodeKind::Throw | NodeKind::Break | NodeKind::Continue
+                )
+            }),
             NodeKind::Block => self
                 .il
                 .children(node)
@@ -3009,11 +3064,16 @@ impl<'a> Builder<'a> {
     fn is_effect_free_throw_body(&self, node: NodeId) -> bool {
         match self.il.kind(node) {
             NodeKind::Throw => true,
+            NodeKind::ExprStmt => self
+                .il
+                .children(node)
+                .first()
+                .is_some_and(|&expr| self.il.kind(expr) == NodeKind::Throw),
             NodeKind::Block => {
                 let Some((&last, prefix)) = self.il.children(node).split_last() else {
                     return false;
                 };
-                self.il.kind(last) == NodeKind::Throw
+                self.is_effect_free_throw_body(last)
                     && prefix
                         .iter()
                         .all(|&stmt| self.is_effect_free_throw_prefix(stmt))
@@ -4544,6 +4604,37 @@ impl<'a> Builder<'a> {
         } else {
             None
         }
+    }
+
+    /// Recognize the two-comparison integer clamp surface after the inner ternary has already
+    /// become a `Min`/`Max`: `lo if x < lo else min(x, hi)` or
+    /// `hi if hi < x else max(x, lo)`. It still requires the same bound-order proof as nested
+    /// min/max clamp composition, so unproven parameter bounds and float domains stay separate.
+    fn clamp_ternary_pattern(
+        &mut self,
+        cond: ValueId,
+        then: ValueId,
+        els: ValueId,
+    ) -> Option<ValueId> {
+        let cn = &self.nodes[cond as usize];
+        let opc = match cn.op {
+            ValOp::Bin(o) => o,
+            _ => return None,
+        };
+        if !(opc == Op::Lt as u32 || opc == Op::Le as u32) || cn.args.len() != 2 {
+            return None;
+        }
+        let (left, right) = (cn.args[0], cn.args[1]);
+
+        if then == right {
+            let hi = self.bin_other_arg(els, MIN_CODE, left)?;
+            return self.proof_backed_clamp_value(left, right, hi);
+        }
+        if then == left {
+            let lo = self.bin_other_arg(els, MAX_CODE, right)?;
+            return self.proof_backed_clamp_value(right, lo, left);
+        }
+        None
     }
 
     /// Java integer low-bit toggle: `x % 2 == 0 ? x + 1 : x - 1` (and the

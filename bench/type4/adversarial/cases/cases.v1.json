@@ -221,8 +221,8 @@
       "semantic_family": "numeric.clamp",
       "claim": "Clamp composition is not sound when lo<=hi is not proven.",
       "mutation": "remove or invert the bound-order proof",
-      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py"],
-      "evidence": "Focused tests reject missing and non-exiting guards, swapped bounds, and wrong nesting; numeric_clamp smoke reports 0/4 hard-negative false merges."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "evidence": "Focused tests reject missing and non-exiting guards, swapped bounds, wrong nesting, unproven ternary clamps, and unproven Rust .clamp(lo, hi); numeric_clamp smoke reports 0/4 hard-negative false merges and the bridge corpus verifies with 0 false merges."
     },
     {
       "id": "clamp_float_nan_boundary",
@@ -230,22 +230,33 @@
       "semantic_family": "numeric.clamp",
       "claim": "Floating-point NaN/min/max behavior is not covered by integer clamp facts.",
       "mutation": "numeric domain becomes floatish",
-      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py"],
-      "evidence": "Float-annotated clamp min/max compositions remain outside the integer Clamp canon; numeric_clamp smoke includes a float boundary hard negative."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp/clamp.py", "bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py"],
+      "evidence": "Float-annotated clamp min/max and ternary forms remain outside the integer Clamp canon; numeric_clamp smoke includes a float boundary hard negative and the bridge corpus verifies with 0 false merges."
     },
     {
       "id": "clamp_ternary_minmax_bridge",
       "kind": "positive",
       "semantic_family": "numeric.clamp",
       "claim": "A two-comparison clamp can converge with proof-backed min/max clamp composition under the same integer lo<=hi proof.",
-      "evidence": "Successor candidate; the min/max Clamp value is landed, but two-comparison return/path handling still needs focused source fixtures."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.py"],
+      "evidence": "Focused equivalence tests and the bridge corpus show guarded lower-first and upper-first Python ternary clamps converging with proof-backed min/max Clamp while unproven, swapped-bound, and float ternaries stay split."
     },
     {
       "id": "clamp_library_method_bridge",
       "kind": "positive",
       "semantic_family": "numeric.clamp",
       "claim": "Language library clamp forms can converge with proof-backed min/max clamp composition when the same integer bound proof is available.",
-      "evidence": "Successor candidate for Rust/Ruby/library clamp surfaces; method names alone are not proof of bound order or numeric domain."
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "evidence": "Rust numeric .clamp now converges with literal ordered min/max clamps and with guarded Rust x.max(lo).min(hi) under the same lo<=hi proof. The bridge corpus verifies with 0 false merges."
+    },
+    {
+      "id": "clamp_method_name_only_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "numeric.clamp",
+      "claim": "A method named clamp is not a numeric library clamp without a proven numeric receiver and bound-order proof.",
+      "mutation": "custom receiver method or parameter bounds without lo<=hi proof",
+      "fixtures": ["bench/type4/adversarial/cases/numeric_clamp_bridge/clamp_bridge.rs"],
+      "evidence": "Focused equivalence tests keep unproven Rust x.clamp(lo, hi) and custom Wrap::clamp forms split from literal/proof-backed Clamp values; the bridge corpus verifies with 0 false merges."
     },
     {
       "id": "map_default_imported_literal",

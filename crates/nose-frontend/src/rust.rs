@@ -696,9 +696,17 @@ fn lower_method_call(lo: &mut Lowering, node: TsNode) -> NodeId {
 /// parse as expressions fall back to Raw children).
 fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let name = node
-        .child_by_field_name("macro")
-        .map(|m| lo.sym(lo.text(m)));
+    let macro_name = node.child_by_field_name("macro").map(|m| lo.text(m));
+    let name = macro_name.map(|name| lo.sym(name));
+    let mut args = Vec::new();
+    for c in Lowering::named_children(node) {
+        if c.kind() == "token_tree" {
+            collect_macro_atoms(lo, c, &mut args);
+        }
+    }
+    if macro_name.is_some_and(|name| name.trim_end_matches('!') == "panic") {
+        return lo.add(NodeKind::Throw, Payload::None, span, &args);
+    }
     let callee = lo.add(
         NodeKind::Var,
         name.map(Payload::Name).unwrap_or(Payload::None),
@@ -706,11 +714,7 @@ fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
         &[],
     );
     let mut kids = vec![callee];
-    for c in Lowering::named_children(node) {
-        if c.kind() == "token_tree" {
-            collect_macro_atoms(lo, c, &mut kids);
-        }
-    }
+    kids.extend(args);
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 
@@ -1204,6 +1208,17 @@ mod tests {
             Payload::Name(sym) => interner.resolve(sym) == "ok",
             _ => false,
         }));
+    }
+
+    #[test]
+    fn panic_macro_lowers_to_throw() {
+        let src = "fn f(x: i32) -> i32 { if x < 0 { panic!(); } x }";
+        let (_, il) = lower_rust(src);
+
+        assert!(
+            il.nodes.iter().any(|node| node.kind == NodeKind::Throw),
+            "panic! should lower to a Throw node so guard clauses are path-narrowing exits"
+        );
     }
 
     #[test]
