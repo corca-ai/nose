@@ -172,7 +172,11 @@ _LANG_SPECIFIC = [
           "recall", "within", "landed", ["java"],
           "proven-true local makes `while(!local && rhs)` body unreachable."),
     _axis("class_literal_equality", "Class-literal equality", "idiom", "recall", "within",
-          "partial", ["java"], "Class<?> token equality; java currently unsupported."),
+          "research", ["java"],
+          "Class<?> token equality over reflection chains (getClass()/getType()). Semantic "
+          "mode CORRECTLY ABSTAINS today (opaque library receiver chain); the real duplicate "
+          "is a Type-1/2 clone syntax/near already reports. Needs shared proof facts for Java "
+          "reflection/JUnit APIs before it is a sound semantic target — not a detector bug."),
     _axis("c_u16_be_byte_pack", "C u16 big-endian byte pack", "idiom", "recall", "within",
           "landed", ["c"], "(a[0]<<8)+a[1] ≡ (a[0]<<8)|a[1] under a byte-array proof."),
     _axis("c_u32_be_byte_pack", "C u32 big-endian byte pack", "idiom", "recall", "within",

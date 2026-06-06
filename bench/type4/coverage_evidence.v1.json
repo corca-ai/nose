@@ -399,6 +399,28 @@
     },
     {
       "axis": "map_default_lookup",
+      "gen_axis": "literal_map_default_lookup",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 4,
+      "source": "sweep"
+    },
+    {
+      "axis": "map_default_lookup",
+      "gen_axis": "literal_map_default_lookup",
+      "language": "ruby",
+      "status": "covered",
+      "pos_hit": 7,
+      "pos": 7,
+      "false_merges": 0,
+      "neg": 10,
+      "source": "sweep"
+    },
+    {
+      "axis": "map_default_lookup",
       "gen_axis": "map_default_lookup",
       "language": "go",
       "status": "covered",
@@ -421,6 +443,17 @@
     },
     {
       "axis": "map_default_lookup",
+      "gen_axis": "map_default_lookup",
+      "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 4,
+      "source": "sweep"
+    },
+    {
+      "axis": "map_default_lookup",
       "gen_axis": "table_access",
       "language": "javascript",
       "status": "covered",
@@ -432,17 +465,6 @@
     },
     {
       "axis": "map_default_lookup",
-      "gen_axis": "literal_map_default_lookup",
-      "language": "python",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
-      "source": "sweep"
-    },
-    {
-      "axis": "map_default_lookup",
       "gen_axis": "table_access",
       "language": "python",
       "status": "covered",
@@ -454,17 +476,6 @@
     },
     {
       "axis": "map_default_lookup",
-      "gen_axis": "literal_map_default_lookup",
-      "language": "ruby",
-      "status": "covered",
-      "pos_hit": 7,
-      "pos": 7,
-      "false_merges": 0,
-      "neg": 10,
-      "source": "sweep"
-    },
-    {
-      "axis": "map_default_lookup",
       "gen_axis": "table_access",
       "language": "ruby",
       "status": "covered",
@@ -472,17 +483,6 @@
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
-      "source": "sweep"
-    },
-    {
-      "axis": "map_default_lookup",
-      "gen_axis": "map_default_lookup",
-      "language": "rust",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
       "source": "sweep"
     },
     {
@@ -509,17 +509,6 @@
     },
     {
       "axis": "membership_contains",
-      "gen_axis": "map_key_membership",
-      "language": "go",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
-      "source": "sweep"
-    },
-    {
-      "axis": "membership_contains",
       "gen_axis": "literal_collection_membership",
       "language": "java",
       "status": "covered",
@@ -527,17 +516,6 @@
       "pos": 2,
       "false_merges": 0,
       "neg": 5,
-      "source": "sweep"
-    },
-    {
-      "axis": "membership_contains",
-      "gen_axis": "map_key_membership",
-      "language": "java",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
       "source": "sweep"
     },
     {
@@ -564,29 +542,7 @@
     },
     {
       "axis": "membership_contains",
-      "gen_axis": "map_key_membership",
-      "language": "python",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
-      "source": "sweep"
-    },
-    {
-      "axis": "membership_contains",
       "gen_axis": "literal_collection_membership",
-      "language": "ruby",
-      "status": "covered",
-      "pos_hit": 1,
-      "pos": 1,
-      "false_merges": 0,
-      "neg": 4,
-      "source": "sweep"
-    },
-    {
-      "axis": "membership_contains",
-      "gen_axis": "map_key_membership",
       "language": "ruby",
       "status": "covered",
       "pos_hit": 1,
@@ -608,8 +564,19 @@
     },
     {
       "axis": "membership_contains",
+      "gen_axis": "literal_collection_membership",
+      "language": "typescript",
+      "status": "covered",
+      "pos_hit": 2,
+      "pos": 2,
+      "false_merges": 0,
+      "neg": 8,
+      "source": "sweep"
+    },
+    {
+      "axis": "membership_contains",
       "gen_axis": "map_key_membership",
-      "language": "rust",
+      "language": "go",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -619,13 +586,46 @@
     },
     {
       "axis": "membership_contains",
-      "gen_axis": "literal_collection_membership",
-      "language": "typescript",
+      "gen_axis": "map_key_membership",
+      "language": "java",
       "status": "covered",
-      "pos_hit": 2,
-      "pos": 2,
+      "pos_hit": 1,
+      "pos": 1,
       "false_merges": 0,
-      "neg": 8,
+      "neg": 4,
+      "source": "sweep"
+    },
+    {
+      "axis": "membership_contains",
+      "gen_axis": "map_key_membership",
+      "language": "python",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 4,
+      "source": "sweep"
+    },
+    {
+      "axis": "membership_contains",
+      "gen_axis": "map_key_membership",
+      "language": "ruby",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 4,
+      "source": "sweep"
+    },
+    {
+      "axis": "membership_contains",
+      "gen_axis": "map_key_membership",
+      "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 4,
       "source": "sweep"
     },
     {
@@ -685,17 +685,6 @@
     },
     {
       "axis": "null_option_presence",
-      "gen_axis": "nullish_default",
-      "language": "javascript",
-      "status": "covered",
-      "pos_hit": 8,
-      "pos": 8,
-      "false_merges": 0,
-      "neg": 12,
-      "source": "sweep"
-    },
-    {
-      "axis": "null_option_presence",
       "gen_axis": "null_presence_predicate",
       "language": "python",
       "status": "covered",
@@ -729,17 +718,6 @@
     },
     {
       "axis": "null_option_presence",
-      "gen_axis": "nullish_default",
-      "language": "rust",
-      "status": "covered",
-      "pos_hit": 3,
-      "pos": 3,
-      "false_merges": 0,
-      "neg": 5,
-      "source": "sweep"
-    },
-    {
-      "axis": "null_option_presence",
       "gen_axis": "null_presence_predicate",
       "language": "typescript",
       "status": "covered",
@@ -747,6 +725,28 @@
       "pos": 1,
       "false_merges": 0,
       "neg": 3,
+      "source": "sweep"
+    },
+    {
+      "axis": "null_option_presence",
+      "gen_axis": "nullish_default",
+      "language": "javascript",
+      "status": "covered",
+      "pos_hit": 8,
+      "pos": 8,
+      "false_merges": 0,
+      "neg": 12,
+      "source": "sweep"
+    },
+    {
+      "axis": "null_option_presence",
+      "gen_axis": "nullish_default",
+      "language": "rust",
+      "status": "covered",
+      "pos_hit": 3,
+      "pos": 3,
+      "false_merges": 0,
+      "neg": 5,
       "source": "sweep"
     },
     {
@@ -916,17 +916,6 @@
     },
     {
       "axis": "property_type_guard",
-      "gen_axis": "record_shape_guard",
-      "language": "javascript",
-      "status": "covered",
-      "pos_hit": 8,
-      "pos": 8,
-      "false_merges": 0,
-      "neg": 16,
-      "source": "sweep"
-    },
-    {
-      "axis": "property_type_guard",
       "gen_axis": "projection_identity",
       "language": "python",
       "status": "covered",
@@ -967,6 +956,17 @@
       "pos": 5,
       "false_merges": 0,
       "neg": 7,
+      "source": "sweep"
+    },
+    {
+      "axis": "property_type_guard",
+      "gen_axis": "record_shape_guard",
+      "language": "javascript",
+      "status": "covered",
+      "pos_hit": 8,
+      "pos": 8,
+      "false_merges": 0,
+      "neg": 16,
       "source": "sweep"
     },
     {

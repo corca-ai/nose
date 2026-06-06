@@ -152,9 +152,16 @@ def main() -> int:
                 print(f"{tax_axis:26s} {lang:11s} {status:12s} "
                       f"{row['pos_hit']}/{row['pos']:<4d} {row['neg_hit']}/{row['neg']:<4d}{flag}")
 
-    EVIDENCE.write_text(
-        json.dumps({"schema_version": 1, "evidence": sorted(
-            evidence, key=lambda e: (e["axis"], e["language"]))}, indent=2) + "\n")
+    # Merge into existing evidence: a filtered run (--axis) updates only the cells it swept,
+    # never clobbering the rest of the matrix.
+    merged: dict[tuple, dict] = {}
+    if EVIDENCE.exists():
+        for e in json.loads(EVIDENCE.read_text()).get("evidence", []):
+            merged[(e["gen_axis"], e["language"])] = e
+    for e in evidence:
+        merged[(e["gen_axis"], e["language"])] = e
+    rows = sorted(merged.values(), key=lambda e: (e["axis"], e["gen_axis"], e["language"]))
+    EVIDENCE.write_text(json.dumps({"schema_version": 1, "evidence": rows}, indent=2) + "\n")
     covered = sum(1 for e in evidence if e["status"] == "covered")
     gaps = [e for e in evidence if e["status"] in ("gap", "partial")]
     fm = [e for e in evidence if e["status"] == "false-merge"]
