@@ -1,0 +1,750 @@
+#!/usr/bin/env python3
+"""Corpus-balanced Type-4 frontier evidence platform (issue #44).
+
+This is a *companion* to ``prioritize_frontier.py``. It reuses that tool's candidate
+and probe definitions (the single source of truth for what each semantic axis matches)
+but answers a different question: **which semantic invariants can we trust as the next
+Type-4 expansion target, and which must we NOT trust yet** — recorded reproducibly, with
+language/repo bias removed.
+
+It deliberately keeps two layers apart (issue #44 / #36 decision):
+
+* **Queue signal** — regex *presence* of an axis across the pinned 105-repo corpus. This
+  is prevalence, not proof. It can SUGGEST "covered / likely miss / needs audit" but it
+  NEVER finalizes a structured frontier status.
+* **Evidence layer** — ``real_frontier.v1.json`` records, which are human-verified with a
+  detector run and a proof invariant. This tool only *reads* that layer (to mark which
+  axes already carry human evidence); it never writes status into it.
+
+Design choices that follow the #44 final decision:
+
+* **Presence-based normalization.** Ranking is driven by *breadth* — how many repos and
+  languages exhibit an axis, and whether it generalizes from the dev split to held-out —
+  NOT by raw occurrence count (which over-represents idioms frequent in one language or a
+  large repo). Raw/weighted counts are reported but never drive the ranking.
+* **dev = ranking/triage, held-out = generalization check.** A dev-only axis is marked as
+  weaker evidence; an axis that also spreads to held-out is preferred.
+* **Curated, not estimated.** ``implementation_cost`` / ``soundness_risk`` /
+  ``substrate_required`` are a controlled vocabulary curated per axis (seeded from
+  ``prioritize_frontier``'s reviewed constants) — never auto-estimated into fake numbers.
+* **Stable existing artifacts.** ``prioritize_frontier.py`` and ``FRONTIER_PRIORITIES.md``
+  are untouched; this tool emits its own ``frontier_platform.v1.json`` + markdown.
+
+Outputs (``--json-out`` / ``--markdown-out``) describe the same data. The JSON records
+reproducibility identity (corpus commit digest, candidate signature, tool version, build
+ref, and — when the detector probe runs — the nose binary identity).
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+sys.path.insert(0, str(HERE))
+
+import prioritize_frontier as pf  # noqa: E402  (reuse candidate/probe defs + scan helpers)
+
+TOOL_VERSION = "frontier-platform/1"
+SCHEMA_VERSION = 1
+
+# The corpus is balanced at 15 repos per language across 7 languages, so "larger language
+# dominates by raw count" is an OCCURRENCE-frequency bias, not a corpus-imbalance one. The
+# platform answers it by ranking on presence breadth across these languages.
+ALL_LANGUAGES = ("c", "go", "java", "javascript", "python", "ruby", "rust", "typescript")
+
+# ---------------------------------------------------------------------------
+# Controlled vocabulary (issue #44 final decision, point 5/7).
+# ---------------------------------------------------------------------------
+IMPLEMENTATION_COST = {"low", "medium", "high", "unknown"}
+SOUNDNESS_RISK = {"low", "medium", "high", "unknown"}
+SUBSTRATE_REQUIRED = {
+    "none",
+    "fragment-contract",
+    "receiver-place",
+    "effect-algebra",
+    "oracle",
+    "unknown",
+}
+EVIDENCE_TIER = {
+    "pattern-signal",
+    "detector-suggested",
+    "manually-audited",
+    "frontier-recorded",
+}
+RECOMMENDATION_CATEGORY = {
+    "all-language",
+    "multi-language",
+    "language-family",
+    "single-language",
+    "soundness-fix",
+    "product-noise-ranking-only",
+}
+
+# Curated per-axis metadata. These are NOT auto-estimated: they are reviewed judgments,
+# seeded from prioritize_frontier's reviewed `implementation_cost`/`soundness_risk`
+# integers and re-expressed in the decision's controlled vocabulary, plus the
+# `substrate_required` routing for #43 and a short rationale. Any axis absent here falls
+# back to `unknown` (fail-loud, never fabricated).
+#
+# `substrate_required` note: all eight current prevalence axes are value-graph / type-fact
+# semantic invariants over whole expressions — they are NOT sub-function fragment shapes,
+# so none of them are #33 fragment-substrate (#43) targets. `#43` migrates the *fragment*
+# shapes (ConditionalGuard / LoopEffect / SelfFieldBody, …), which are not in this set.
+CURATED: dict[str, dict] = {
+    "collection_empty_check": {
+        "implementation_cost": "low",
+        "soundness_risk": "low",
+        "substrate_required": "none",
+        "rationale": "Emptiness predicates lower to a value-graph length/size fact; no "
+        "fragment substrate or receiver-place proof is involved.",
+    },
+    "string_prefix_suffix": {
+        "implementation_cost": "low",
+        "soundness_risk": "low",
+        "substrate_required": "none",
+        "rationale": "Prefix/suffix predicates are pure string-builtin value facts.",
+    },
+    "membership_contains": {
+        "implementation_cost": "medium",
+        "soundness_risk": "medium",
+        "substrate_required": "none",
+        "rationale": "Remaining work is dynamic-receiver/element provenance and type "
+        "facts (import/immutability), not the #33 fragment substrate.",
+    },
+    "null_option_presence": {
+        "implementation_cost": "medium",
+        "soundness_risk": "medium",
+        "substrate_required": "none",
+        "rationale": "Presence/defaulting is a value-graph option fact; alias/effect "
+        "guard variants need pointer-alias facts, still not a fragment shape.",
+    },
+    "map_default_lookup": {
+        "implementation_cost": "high",
+        "soundness_risk": "high",
+        "substrate_required": "none",
+        "rationale": "Open work is receiver/key/default provenance + whole-file mutation "
+        "exclusion (type/provenance facts), not the fragment substrate.",
+    },
+    "numeric_minmax_abs": {
+        "implementation_cost": "low",
+        "soundness_risk": "low",
+        "substrate_required": "none",
+        "rationale": "Scalar min/max/abs are value-graph numeric facts.",
+    },
+    "property_type_guard": {
+        "implementation_cost": "low",
+        "soundness_risk": "medium",
+        "substrate_required": "none",
+        "rationale": "typeof property guards are value-graph type-tag facts.",
+    },
+    "own_property_guard": {
+        "implementation_cost": "low",
+        "soundness_risk": "medium",
+        "substrate_required": "none",
+        "rationale": "Own-property guards are value-graph key-presence facts.",
+    },
+}
+
+# Platform recommendation categories are NOT frontier statuses. They derive from the axis
+# language scope; `soundness-fix` and `product-noise-ranking-only` are reserved curated
+# overrides (none of the current axes are either) that route to #43-adjacent soundness work
+# and to #45 product-noise/ranking work respectively.
+SCOPE_TO_CATEGORY = {
+    "all-language": "all-language",
+    "multi-language": "multi-language",
+    "language-family": "language-family",
+    "single-language": "single-language",
+}
+
+
+def curated_for(candidate_id: str) -> dict:
+    meta = CURATED.get(candidate_id)
+    if meta is None:
+        return {
+            "implementation_cost": "unknown",
+            "soundness_risk": "unknown",
+            "substrate_required": "unknown",
+            "rationale": "No curated review recorded for this axis.",
+        }
+    return meta
+
+
+def validate_vocab() -> None:
+    """Fail loud if any curated value escapes the controlled vocabulary."""
+    for cid, meta in CURATED.items():
+        assert meta["implementation_cost"] in IMPLEMENTATION_COST, cid
+        assert meta["soundness_risk"] in SOUNDNESS_RISK, cid
+        assert meta["substrate_required"] in SUBSTRATE_REQUIRED, cid
+
+
+# ---------------------------------------------------------------------------
+# Presence-based corpus scan (queue signal layer).
+# ---------------------------------------------------------------------------
+def presence_scan(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
+    """Accumulate per-axis REPO PRESENCE (binary per repo) plus uncovered-probe gaps.
+
+    Unlike ``prioritize_frontier.analyze`` (which sums occurrences), this records the SET
+    of repos / languages / splits where each axis appears, so breadth can be normalized
+    independently of how often an idiom recurs inside any one repo or language.
+    """
+    buckets = {
+        c.candidate_id: {
+            "repos": {},  # repo_id -> {split, primary_language, langs:set, raw}
+            "languages": set(),
+            "gap_repos": set(),  # repos with an uncovered broad-probe hit
+            "gap_samples": [],
+            "samples": [],
+        }
+        for c in pf.CANDIDATES
+    }
+
+    for repo in repos:
+        repo_path = repo["path"]
+        split = repo.get("split") or "unknown"
+        for path, lang in pf.iter_source_files(repo_path, max_bytes):
+            try:
+                text = path.read_text(errors="ignore")
+            except OSError:
+                continue
+            rel = str(path.relative_to(repo_path))
+            for candidate in pf.CANDIDATES:
+                specs = [s for s in candidate.patterns if s.lang == lang]
+                probes = [
+                    s
+                    for s in pf.PROBES_BY_CANDIDATE.get(candidate.candidate_id, ())
+                    if s.lang == lang
+                ]
+                if not specs and not probes:
+                    continue
+                bucket = buckets[candidate.candidate_id]
+                extracted_spans = []
+                raw_for_file = 0
+                for spec in specs:
+                    for match in spec.regex.finditer(text):
+                        if pf.is_comment_only_line(text, match.start(), lang):
+                            continue
+                        if pf.match_filter_reason(candidate.candidate_id, lang, match):
+                            continue
+                        raw_for_file += 1
+                        extracted_spans.append((match.start(), match.end()))
+                        if len(bucket["samples"]) < sample_limit:
+                            sample = pf.make_sample(
+                                repo, rel, lang, text, match.start(), match.end()
+                            )
+                            sample["pattern_id"] = spec.pattern_id
+                            bucket["samples"].append(sample)
+                if raw_for_file:
+                    rstat = bucket["repos"].setdefault(
+                        repo["id"],
+                        {
+                            "split": split,
+                            "primary_language": repo.get("primary_language") or "",
+                            "langs": set(),
+                            "raw": 0,
+                        },
+                    )
+                    rstat["langs"].add(lang)
+                    rstat["raw"] += raw_for_file
+                    bucket["languages"].add(lang)
+                # Broad-probe gap: a probe hit not covered by any extraction span is a
+                # real-code form the current detector may not capture — an AUDIT cue only.
+                for probe_spec in probes:
+                    for match in probe_spec.regex.finditer(text):
+                        if pf.is_comment_only_line(text, match.start(), lang):
+                            continue
+                        if pf.match_filter_reason(candidate.candidate_id, lang, match):
+                            continue
+                        span = (match.start(), match.end())
+                        if any(pf.spans_overlap(span, e) for e in extracted_spans):
+                            continue
+                        bucket["gap_repos"].add(repo["id"])
+                        if len(bucket["gap_samples"]) < sample_limit:
+                            sample = pf.make_sample(
+                                repo, rel, lang, text, match.start(), match.end()
+                            )
+                            sample["probe_id"] = probe_spec.probe_id
+                            bucket["gap_samples"].append(sample)
+    return buckets
+
+
+# ---------------------------------------------------------------------------
+# Normalized breadth metrics.
+# ---------------------------------------------------------------------------
+def _fraction(n: int, d: int) -> float:
+    return round(n / d, 4) if d else 0.0
+
+
+def breadth_metrics(bucket: dict, split_totals: dict[str, int]) -> dict:
+    repos = bucket["repos"]
+    dev_repos = sorted(r for r, s in repos.items() if s["split"] == "dev")
+    heldout_repos = sorted(r for r, s in repos.items() if s["split"] == "heldout")
+    total_repos = sum(split_totals.values())
+    langs = sorted(bucket["languages"])
+    dev_breadth = _fraction(len(dev_repos), split_totals.get("dev", 0))
+    heldout_breadth = _fraction(len(heldout_repos), split_totals.get("heldout", 0))
+    # Generalization: an axis present on dev but absent on held-out is weaker evidence.
+    if not dev_repos and not heldout_repos:
+        generalization = "absent"
+    elif dev_repos and not heldout_repos:
+        generalization = "dev-only"
+    elif heldout_repos and not dev_repos:
+        generalization = "heldout-only"
+    else:
+        generalization = "both-splits"
+    return {
+        "repo_breadth": _fraction(len(repos), total_repos),
+        "repo_presence": len(repos),
+        "language_breadth": _fraction(len(langs), len(ALL_LANGUAGES)),
+        "language_presence": len(langs),
+        "languages": langs,
+        "dev_breadth": dev_breadth,
+        "dev_presence": len(dev_repos),
+        "heldout_breadth": heldout_breadth,
+        "heldout_presence": len(heldout_repos),
+        "generalization": generalization,
+        "gap_repo_presence": len(bucket["gap_repos"]),
+        "raw_occurrences": sum(r["raw"] for r in repos.values()),
+    }
+
+
+def presence_rank_key(metrics: dict) -> tuple:
+    """Presence-first ordering. Breadth dominates; raw occurrence is the last tiebreak so
+    it can never reorder axes that differ on breadth (issue #44 decision 3)."""
+    return (
+        metrics["repo_breadth"],
+        metrics["language_breadth"],
+        # Reward generalization to held-out over dev-only prevalence.
+        1 if metrics["generalization"] == "both-splits" else 0,
+        metrics["heldout_breadth"],
+        metrics["raw_occurrences"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Evidence layer cross-reference (read-only) + detector-suggested probe.
+# ---------------------------------------------------------------------------
+def load_frontier_evidence(path: Path) -> dict[str, list[dict]]:
+    """Map prevalence candidate_id -> human-recorded real_frontier items (by axis prefix).
+
+    Read-only: this never writes or finalizes a status. It only surfaces that an axis
+    already carries human-verified evidence (and which statuses)."""
+    by_axis: dict[str, list[dict]] = {}
+    if not path.exists():
+        return by_axis
+    doc = json.loads(path.read_text())
+    for item in doc.get("items", []):
+        axis = str(item.get("candidate_axis", ""))
+        head = axis.split("/")[0].strip()
+        by_axis.setdefault(head, []).append(
+            {
+                "case_id": item.get("case_id"),
+                "status": item.get("status"),
+                "candidate_axis": axis,
+                "proof_invariant": item.get("proof_invariant"),
+            }
+        )
+    return by_axis
+
+
+def detector_suggest(
+    nose_binary: Path, repos_root: Path, samples: list[dict], limit: int
+) -> dict:
+    """Run `nose scan --mode semantic` on the files of up to `limit` gap samples and
+    SUGGEST whether each axis location is already covered by a reported semantic family.
+
+    This is a *suggestion* tier only (evidence_tier=detector-suggested). It never sets a
+    structured frontier status; a human still confirms semantic equivalence and proof.
+    """
+    suggestions = []
+    seen_files: set[tuple[str, str]] = set()
+    for sample in samples:
+        if len(suggestions) >= limit:
+            break
+        repo = sample["repo"]
+        rel = sample["path"]
+        key = (repo, rel)
+        if key in seen_files:
+            continue
+        seen_files.add(key)
+        target = repos_root / repo / rel
+        if not target.is_file():
+            continue
+        cmd = [
+            str(nose_binary),
+            "scan",
+            str(target),
+            "--mode",
+            "semantic",
+            "--format",
+            "json",
+            "--top",
+            "0",
+            "--min-size",
+            "1",
+            "--min-lines",
+            "1",
+        ]
+        try:
+            proc = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=120, cwd=repos_root
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            suggestions.append({**_sample_ref(sample), "suggestion": "error", "detail": str(exc)})
+            continue
+        families = _families_on_line(proc.stdout, rel, sample.get("line"))
+        suggestions.append(
+            {
+                **_sample_ref(sample),
+                # A reported family overlapping the probe line => the product output
+                # likely already surfaces this location; absence => candidate miss to AUDIT.
+                "suggestion": "likely-covered" if families else "likely-miss",
+                "families_on_line": families,
+            }
+        )
+    return {
+        "probed": len(suggestions),
+        "likely_covered": sum(1 for s in suggestions if s["suggestion"] == "likely-covered"),
+        "likely_miss": sum(1 for s in suggestions if s["suggestion"] == "likely-miss"),
+        "errors": sum(1 for s in suggestions if s["suggestion"] == "error"),
+        "samples": suggestions,
+    }
+
+
+def _sample_ref(sample: dict) -> dict:
+    return {
+        "repo": sample["repo"],
+        "path": sample["path"],
+        "line": sample.get("line"),
+        "language": sample.get("language"),
+        "probe_id": sample.get("probe_id"),
+    }
+
+
+def _families_on_line(stdout: str, rel: str, line: int | None) -> int:
+    if line is None or not stdout.strip():
+        return 0
+    try:
+        report = json.loads(stdout)
+    except json.JSONDecodeError:
+        return 0
+    count = 0
+    for fam in report.get("families", []):
+        for loc in fam.get("locations", []):
+            lf = loc.get("file", "")
+            if not (lf == rel or lf.endswith("/" + rel) or lf.endswith(rel)):
+                continue
+            if loc.get("start_line", 0) <= line <= loc.get("end_line", 0):
+                count += 1
+                break
+    return count
+
+
+# ---------------------------------------------------------------------------
+# Reproducibility identity.
+# ---------------------------------------------------------------------------
+def corpus_identity(corpus_path: Path) -> dict:
+    """Stable corpus identity from corpus.json (id/split/language/commit) — independent of
+    file mtimes, so it reproduces across machines and checkouts."""
+    doc = json.loads(corpus_path.read_text())
+    repos = doc.get("repositories", [])
+    h = hashlib.sha256()
+    for repo in sorted(repos, key=lambda r: r["id"]):
+        for field in ("id", "split", "primary_language", "commit"):
+            h.update(str(repo.get(field, "")).encode())
+            h.update(b"\x00")
+    return {
+        "corpus_path": str(corpus_path),
+        "corpus_schema_version": doc.get("schema_version"),
+        "repo_count": len(repos),
+        "commit_digest": h.hexdigest(),
+    }
+
+
+def nose_identity(nose_binary: Path) -> dict:
+    out = {"binary_path": str(nose_binary)}
+    try:
+        out["version"] = subprocess.run(
+            [str(nose_binary), "--version"], capture_output=True, text=True, timeout=30
+        ).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        out["version"] = None
+    try:
+        out["sha256"] = hashlib.sha256(nose_binary.read_bytes()).hexdigest()
+        out["size_bytes"] = nose_binary.stat().st_size
+    except OSError:
+        out["sha256"] = None
+    return out
+
+
+def git_build_ref(explicit: str | None) -> str | None:
+    if explicit:
+        return explicit
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, timeout=30
+        ).stdout.strip() or None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Build the platform result.
+# ---------------------------------------------------------------------------
+def build(
+    corpus_path: Path,
+    repos_root: Path,
+    max_bytes: int,
+    sample_limit: int,
+    real_frontier: Path,
+    nose_binary: Path | None,
+    detector_probe_limit: int,
+    build_ref: str | None,
+) -> dict:
+    validate_vocab()
+    repos = pf.load_repos(corpus_path, repos_root)
+    split_totals: dict[str, int] = {}
+    for repo in repos:
+        split_totals[repo.get("split") or "unknown"] = (
+            split_totals.get(repo.get("split") or "unknown", 0) + 1
+        )
+    buckets = presence_scan(repos, max_bytes, sample_limit)
+    evidence = load_frontier_evidence(real_frontier)
+
+    candidates_out = []
+    for candidate in pf.CANDIDATES:
+        bucket = buckets[candidate.candidate_id]
+        metrics = breadth_metrics(bucket, split_totals)
+        curated = curated_for(candidate.candidate_id)
+        records = evidence.get(candidate.candidate_id, [])
+        # evidence_tier: pattern-signal by default; upgrade if human evidence exists.
+        # (detector-suggested is attached separately below when the probe runs.)
+        tier = "frontier-recorded" if records else "pattern-signal"
+        category = SCOPE_TO_CATEGORY.get(candidate.scope, candidate.scope)
+        detector = None
+        if nose_binary is not None and detector_probe_limit > 0:
+            detector = detector_suggest(
+                nose_binary, repos_root, bucket["gap_samples"], detector_probe_limit
+            )
+            if detector["probed"] and tier == "pattern-signal":
+                tier = "detector-suggested"
+        candidates_out.append(
+            {
+                "candidate_id": candidate.candidate_id,
+                "title": candidate.title,
+                "scope": candidate.scope,
+                "prioritizer_status": candidate.status,
+                "recommendation_category": category,
+                "evidence_tier": tier,
+                "curated": {
+                    "implementation_cost": curated["implementation_cost"],
+                    "soundness_risk": curated["soundness_risk"],
+                    "substrate_required": curated["substrate_required"],
+                    "rationale": curated["rationale"],
+                },
+                "routing": {
+                    # Fields that let downstream issues consume without re-deriving.
+                    "issue_43_substrate_target": curated["substrate_required"] != "none",
+                    "issue_45_product_noise": category == "product-noise-ranking-only",
+                    "issue_37_subset_repos": sorted(bucket["repos"].keys())[:12],
+                },
+                "breadth": metrics,
+                "human_evidence": {
+                    "count": len(records),
+                    "statuses": sorted({r["status"] for r in records}),
+                    "records": records,
+                },
+                "detector_suggested": detector,
+                "samples": bucket["samples"][:sample_limit],
+                "gap_samples": bucket["gap_samples"][:sample_limit],
+            }
+        )
+
+    candidates_out.sort(key=lambda c: presence_rank_key(c["breadth"]), reverse=True)
+    for rank, c in enumerate(candidates_out, start=1):
+        c["presence_rank"] = rank
+
+    identity = {
+        "tool_version": TOOL_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "build_ref": git_build_ref(build_ref),
+        "candidate_signature": pf.candidate_signature(),
+        "corpus": corpus_identity(corpus_path),
+        "split_totals": dict(sorted(split_totals.items())),
+        "repos_root": str(repos_root),
+        "max_bytes_per_file": max_bytes,
+        "nose_binary": nose_identity(nose_binary) if nose_binary is not None else None,
+    }
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "tool_version": TOOL_VERSION,
+        "identity": identity,
+        "languages": list(ALL_LANGUAGES),
+        "candidates": candidates_out,
+        "vocabulary": {
+            "implementation_cost": sorted(IMPLEMENTATION_COST),
+            "soundness_risk": sorted(SOUNDNESS_RISK),
+            "substrate_required": sorted(SUBSTRATE_REQUIRED),
+            "evidence_tier": sorted(EVIDENCE_TIER),
+            "recommendation_category": sorted(RECOMMENDATION_CATEGORY),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Markdown report (same data as the JSON).
+# ---------------------------------------------------------------------------
+def markdown_report(result: dict) -> str:
+    idy = result["identity"]
+    lines = [
+        "# Type-4 frontier evidence platform",
+        "",
+        "Companion to `prioritize_frontier.py`. Ranks candidate semantic invariants by",
+        "**presence breadth** across the pinned corpus (not raw occurrence), separates the",
+        "regex **queue signal** from human-verified **evidence**, and records reproducibility",
+        "identity. Generated by `bench/type4/frontier_platform.py`; see",
+        "[frontier-platform](../../docs/frontier-platform.md).",
+        "",
+        "## Reproducibility identity",
+        "",
+        f"- tool: `{idy['tool_version']}` · schema `{result['schema_version']}`",
+        f"- build ref: `{idy['build_ref']}`",
+        f"- corpus: {idy['corpus']['repo_count']} repos · commit digest "
+        f"`{idy['corpus']['commit_digest'][:16]}…` · splits {idy['split_totals']}",
+        f"- candidate signature: `{idy['candidate_signature'][:16]}…`",
+    ]
+    if idy.get("nose_binary"):
+        nb = idy["nose_binary"]
+        lines.append(
+            f"- nose binary: `{nb.get('version')}` · sha256 "
+            f"`{(nb.get('sha256') or '')[:16]}…`"
+        )
+    else:
+        lines.append("- nose binary: not probed (pattern-signal only)")
+    lines += [
+        "",
+        "## Presence-ranked candidates",
+        "",
+        "Breadth is the headline; raw occurrence is shown but never drives the rank.",
+        "",
+        "| rank | axis | category | evidence tier | repo breadth | lang breadth | dev | heldout | generalization | cost | risk | substrate | human evidence | raw occ |",
+        "|---:|---|---|---|---:|---:|---:|---:|---|---|---|---|---|---:|",
+    ]
+    for c in result["candidates"]:
+        b = c["breadth"]
+        cur = c["curated"]
+        he = c["human_evidence"]
+        he_txt = f"{he['count']} ({', '.join(he['statuses'])})" if he["count"] else "—"
+        lines.append(
+            "| {rank} | `{axis}` | {cat} | {tier} | {rb:.0%} ({rp}) | {lb:.0%} ({lp}) | "
+            "{db:.0%} ({dp}) | {hb:.0%} ({hp}) | {gen} | {cost} | {risk} | {sub} | {he} | {raw} |".format(
+                rank=c["presence_rank"],
+                axis=c["candidate_id"],
+                cat=c["recommendation_category"],
+                tier=c["evidence_tier"],
+                rb=b["repo_breadth"],
+                rp=b["repo_presence"],
+                lb=b["language_breadth"],
+                lp=b["language_presence"],
+                db=b["dev_breadth"],
+                dp=b["dev_presence"],
+                hb=b["heldout_breadth"],
+                hp=b["heldout_presence"],
+                gen=b["generalization"],
+                cost=cur["implementation_cost"],
+                risk=cur["soundness_risk"],
+                sub=cur["substrate_required"],
+                he=he_txt,
+                raw=b["raw_occurrences"],
+            )
+        )
+    lines += ["", "## Per-axis detail", ""]
+    for c in result["candidates"]:
+        b = c["breadth"]
+        lines.append(f"### `{c['candidate_id']}` — {c['title']}")
+        lines.append("")
+        lines.append(
+            f"- category: **{c['recommendation_category']}** · evidence tier: "
+            f"**{c['evidence_tier']}** · prioritizer status: `{c['prioritizer_status']}`"
+        )
+        lines.append(
+            f"- presence: {b['repo_presence']} repos / {b['language_presence']} langs · "
+            f"dev {b['dev_presence']} · heldout {b['heldout_presence']} · {b['generalization']}"
+        )
+        lines.append(
+            f"- curated: cost `{c['curated']['implementation_cost']}` · risk "
+            f"`{c['curated']['soundness_risk']}` · substrate `{c['curated']['substrate_required']}`"
+        )
+        lines.append(f"  - rationale: {c['curated']['rationale']}")
+        if c["human_evidence"]["count"]:
+            for r in c["human_evidence"]["records"]:
+                lines.append(
+                    f"  - human evidence: `{r['case_id']}` → **{r['status']}** "
+                    f"({r['candidate_axis']})"
+                )
+        if c.get("detector_suggested"):
+            d = c["detector_suggested"]
+            lines.append(
+                f"  - detector-suggested: probed {d['probed']} gap loc(s) → "
+                f"{d['likely_covered']} likely-covered, {d['likely_miss']} likely-miss "
+                "(suggestion only; not a finalized status)"
+            )
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--corpus", type=Path, default=pf.DEFAULT_CORPUS)
+    ap.add_argument("--repos-root", type=Path, default=pf.DEFAULT_REPOS_ROOT)
+    ap.add_argument("--max-bytes", type=int, default=512_000)
+    ap.add_argument("--sample-limit", type=int, default=8)
+    ap.add_argument(
+        "--real-frontier", type=Path, default=HERE / "real_frontier.v1.json"
+    )
+    ap.add_argument("--nose-binary", type=Path, default=None)
+    ap.add_argument(
+        "--with-detector-probe",
+        action="store_true",
+        help="run `nose scan` on gap samples to SUGGEST covered/miss (needs --nose-binary)",
+    )
+    ap.add_argument("--detector-probe-limit", type=int, default=6)
+    ap.add_argument("--build-ref", default=None)
+    ap.add_argument("--json-out", type=Path, default=None)
+    ap.add_argument("--markdown-out", type=Path, default=None)
+    args = ap.parse_args()
+
+    nose_binary = None
+    if args.with_detector_probe:
+        if args.nose_binary is None:
+            ap.error("--with-detector-probe requires --nose-binary")
+        nose_binary = args.nose_binary
+
+    result = build(
+        corpus_path=args.corpus,
+        repos_root=args.repos_root,
+        max_bytes=args.max_bytes,
+        sample_limit=args.sample_limit,
+        real_frontier=args.real_frontier,
+        nose_binary=nose_binary,
+        detector_probe_limit=args.detector_probe_limit if nose_binary else 0,
+        build_ref=args.build_ref,
+    )
+
+    text = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    if args.json_out:
+        args.json_out.write_text(text)
+    else:
+        sys.stdout.write(text)
+    if args.markdown_out:
+        args.markdown_out.write_text(markdown_report(result))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
