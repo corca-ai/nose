@@ -3625,6 +3625,151 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
 }
 
 #[test]
+fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_imported_non_python_map_default_{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(
+        dir.join("local.py"),
+        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_tables.js"),
+        "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_imported.js"),
+        "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_mutated_tables.js"),
+        "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\nLOOKUP.set(\"red\", 9);\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_imported_mutated_provider.js"),
+        "import { LOOKUP } from './js_mutated_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_imported_mutated_receiver.js"),
+        "import { LOOKUP } from './js_tables';\nLOOKUP.set(\"red\", 9);\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("js_wrong_map.js"),
+        "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return new Map([[\"red\", 9], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("ts_tables.ts"),
+        "export const LOOKUP = new Map<string, number>([[\"red\", 1], [\"blue\", 2]]);\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("ts_imported.ts"),
+        "import { LOOKUP } from './ts_tables';\nexport function lookup(key: string, other: string): number {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("Tables.java"),
+        "import java.util.Map;\n\nclass Tables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("JavaImported.java"),
+        "import static Tables.LOOKUP;\n\nclass JavaImported {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("WrongTables.java"),
+        "import java.util.Map;\n\nclass WrongTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 9, \"blue\", 2);\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("JavaImportedWrongMap.java"),
+        "import static WrongTables.LOOKUP;\n\nclass JavaImportedWrongMap {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("tables.rs"),
+        "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 1), (\"blue\", 2)];\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("rust_imported.rs"),
+        "use tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("wrong_tables.rs"),
+        "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 9), (\"blue\", 2)];\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("rust_imported_wrong_map.rs"),
+        "use wrong_tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+    )
+    .unwrap();
+
+    let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
+    let local = corpus_value_fp(&corpus, "local.py", "lookup");
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "js_imported.js", "lookup"),
+        "JS named import should prove the same literal map/default coordinates"
+    );
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "ts_imported.ts", "lookup"),
+        "TS named import should prove the same literal map/default coordinates"
+    );
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "JavaImported.java", "lookup"),
+        "Java static import should prove the same literal map/default coordinates"
+    );
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
+        "Rust use-imported const entries should prove the same map/default coordinates"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "js_imported_mutated_provider.js", "lookup"),
+        "provider mutation must block JS imported map provenance"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "js_imported_mutated_receiver.js", "lookup"),
+        "importer mutation must keep JS imported receiver distinct"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "js_wrong_map.js", "lookup"),
+        "different JS map contents must stay distinct"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "JavaImportedWrongMap.java", "lookup"),
+        "different Java imported map contents must stay distinct"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported_wrong_map.rs", "lookup"),
+        "different Rust imported map contents must stay distinct"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn literal_map_default_lookup_converges_with_js_object_own_property_boundaries() {
     let i = Interner::new();
     let py_literal = "def f(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n";

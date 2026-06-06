@@ -131,10 +131,13 @@ proof-backed min/max compositions, two-comparison ternaries, and proven numeric
 library clamp methods share `Clamp(x, lo, hi)`. Name-only lower/upper conventions,
 method names without numeric receiver proof, non-exiting checks, swapped bounds,
 and float domains must stay hard negatives.
-For map-default import rules, resolve only unambiguous Python sibling-module literal
-exports today: the provider must have one immutable literal binding, and provider mutation,
-importer mutation, duplicate providers, shadowing, unresolved imports, and non-Python
-module bridges remain hard-negative or successor work.
+For map-default import rules, resolve only unambiguous static imported bindings whose
+provider has one safe immutable literal or proven map-factory binding. The covered import
+slice includes Python sibling literals, JS/TS named imports from sibling map exports, Java
+static imports from class `Map.of` fields, and Rust `use` imports of const entry arrays
+consumed by `HashMap::from`/`BTreeMap::from`. Provider mutation, importer mutation,
+duplicate providers, shadowing, unresolved imports, unsupported coordinates, and changed
+receiver maps remain fail-closed hard negatives or successor work.
 
 ## Adversarial Cases
 

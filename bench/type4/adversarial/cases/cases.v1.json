@@ -279,9 +279,12 @@
       "fixtures": [
         "bench/type4/adversarial/cases/map_default_cross_file/mutated_tables.py",
         "bench/type4/adversarial/cases/map_default_cross_file/imported_mutated_provider.py",
-        "bench/type4/adversarial/cases/map_default_cross_file/imported_mutated_receiver.py"
+        "bench/type4/adversarial/cases/map_default_cross_file/imported_mutated_receiver.py",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_mutated_tables.js",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_imported_mutated_provider.js",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_imported_mutated_receiver.js"
       ],
-      "evidence": "Provider and importer mutation fixtures stay out of the imported/local semantic family."
+      "evidence": "Provider and importer mutation fixtures stay out of the imported/local semantic family across Python and JS imports."
     },
     {
       "id": "map_default_wrong_map",
@@ -289,22 +292,53 @@
       "semantic_family": "map_default_lookup",
       "claim": "Looking up the same key/default on a different map is behaviorally different.",
       "mutation": "receiver map coordinate changes",
-      "fixtures": ["bench/type4/adversarial/cases/map_default_cross_file/wrong_map.py"],
-      "evidence": "Existing map-default tests and the cross-file wrong_map fixture keep changed present-key values split."
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_cross_file/wrong_map.py",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_wrong_map.js",
+        "bench/type4/adversarial/cases/map_default_non_python_import/WrongTables.java",
+        "bench/type4/adversarial/cases/map_default_non_python_import/JavaImportedWrongMap.java",
+        "bench/type4/adversarial/cases/map_default_non_python_import/wrong_tables.rs",
+        "bench/type4/adversarial/cases/map_default_non_python_import/rust_imported_wrong_map.rs"
+      ],
+      "evidence": "Existing map-default tests plus cross-file Python, JS, Java, and Rust wrong-map fixtures keep changed present-key values split."
     },
     {
       "id": "map_default_imported_js_ts_literal",
       "kind": "positive",
       "semantic_family": "map_default_lookup",
       "claim": "Imported JavaScript/TypeScript literal map exports can converge with local map-default forms when module/export provenance is proven.",
-      "evidence": "Successor candidate; current generator lacks focused multi-file JS/TS import fixtures."
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_non_python_import/local.py",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_tables.js",
+        "bench/type4/adversarial/cases/map_default_non_python_import/js_imported.js",
+        "bench/type4/adversarial/cases/map_default_non_python_import/ts_tables.ts",
+        "bench/type4/adversarial/cases/map_default_non_python_import/ts_imported.ts"
+      ],
+      "evidence": "Focused equivalence tests and the map_default_non_python_import corpus prove JS/TS named imports from unmutated sibling map exports converge with local literal map-default lookup."
     },
     {
       "id": "map_default_imported_java_static_literal",
       "kind": "positive",
       "semantic_family": "map_default_lookup",
       "claim": "Imported Java static literal map bindings can converge with local map-default forms when static import provenance is proven.",
-      "evidence": "Successor candidate; current slice intentionally stops at Python sibling imports."
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_non_python_import/local.py",
+        "bench/type4/adversarial/cases/map_default_non_python_import/Tables.java",
+        "bench/type4/adversarial/cases/map_default_non_python_import/JavaImported.java"
+      ],
+      "evidence": "Focused equivalence tests and the map_default_non_python_import corpus prove Java static imports from unmutated class Map.of fields converge with local literal map-default lookup."
+    },
+    {
+      "id": "map_default_imported_rust_const_literal",
+      "kind": "positive",
+      "semantic_family": "map_default_lookup",
+      "claim": "Imported Rust const map-entry arrays can converge with local map-default forms when module/export provenance is proven.",
+      "fixtures": [
+        "bench/type4/adversarial/cases/map_default_non_python_import/local.py",
+        "bench/type4/adversarial/cases/map_default_non_python_import/tables.rs",
+        "bench/type4/adversarial/cases/map_default_non_python_import/rust_imported.rs"
+      ],
+      "evidence": "Focused equivalence tests and the map_default_non_python_import corpus prove Rust use-imported const entry arrays consumed by HashMap::from converge with local literal map-default lookup."
     },
     {
       "id": "hof_error_propagation",

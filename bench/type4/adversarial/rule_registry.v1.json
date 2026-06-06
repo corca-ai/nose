@@ -121,11 +121,11 @@
       "id": "proof.collection_provenance",
       "kind": "proof-fact",
       "status": "partial",
-      "summary": "Prove receiver/key/default identity for collection and map-default idioms across local/module/import boundaries, including unambiguous Python sibling literal imports.",
+      "summary": "Prove receiver/key/default identity for collection and map-default idioms across local/module/import boundaries, including unambiguous Python sibling literal imports, JS/TS imported map exports, Java static imported map fields, and Rust imported const entry arrays.",
       "implementation": ["crates/nose-frontend/src/module_imports.rs", "crates/nose-normalize/src/module_facts.rs", "crates/nose-normalize/src/value_graph.rs"],
-      "positive_cases": ["map_default_imported_literal", "map_default_imported_js_ts_literal", "map_default_imported_java_static_literal"],
+      "positive_cases": ["map_default_imported_literal", "map_default_imported_js_ts_literal", "map_default_imported_java_static_literal", "map_default_imported_rust_const_literal"],
       "hard_negatives": ["map_default_mutated_receiver", "map_default_wrong_map"],
-      "boundaries": ["Python sibling import resolution requires one safe literal provider binding and an unambiguous module/export coordinate.", "Provider mutation, importer mutation, duplicate providers, shadowing, unresolved imports, and non-Python imported module bridges stay fail-closed."],
+      "boundaries": ["Import resolution requires one safe literal/factory provider binding and an unambiguous module/export coordinate.", "Supported non-Python coordinates are JS/TS path imports, Java class/static imports, and Rust module use imports; unsupported coordinates remain fail-closed.", "Provider mutation, importer mutation, duplicate providers, shadowing, and unresolved imports stay fail-closed."],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/clone-types.md"]
     },
     {
@@ -134,7 +134,7 @@
       "status": "partial",
       "summary": "Canonicalize proven map/dict lookup-with-default idioms.",
       "implementation": ["crates/nose-normalize/src/idioms.rs", "crates/nose-normalize/src/value_graph.rs"],
-      "positive_cases": ["map_default_imported_literal", "map_default_imported_js_ts_literal", "map_default_imported_java_static_literal"],
+      "positive_cases": ["map_default_imported_literal", "map_default_imported_js_ts_literal", "map_default_imported_java_static_literal", "map_default_imported_rust_const_literal"],
       "hard_negatives": ["map_default_mutated_receiver", "map_default_wrong_map"],
       "boundaries": ["Requires proven receiver/key/default coordinates.", "Cross-file import facts are proof inputs only when collection provenance has resolved the imported value."],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/clone-types.md"]

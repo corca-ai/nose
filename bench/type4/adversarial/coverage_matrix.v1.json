@@ -186,8 +186,8 @@
       "rule_ids": ["proof.collection_provenance", "idiom.map_default_lookup"],
       "positive_cases": ["map_default_imported_literal"],
       "adversarial_cases": ["map_default_mutated_receiver", "map_default_wrong_map"],
-      "evidence": "Python sibling `from module import LOOKUP` facts now resolve to a cloned literal RHS only when the provider has one safe unmutated literal binding and the import is unambiguous. Focused tests and fixtures prove imported/local map-default convergence while wrong-map, provider mutation, and importer mutation stay split. Successor audit: JS/TS/Java/Rust cross-file import/factory bridges and generated multi-file axis support remain separate work.",
-      "agent_task": "Monitor the landed Python sibling-import slice. Broader non-Python imported module/factory resolution belongs to map_default.non_python_import_bridge.",
+      "evidence": "Python sibling `from module import LOOKUP` facts resolve to a cloned literal RHS only when the provider has one safe unmutated literal binding and the import is unambiguous. Focused tests and fixtures prove imported/local map-default convergence while wrong-map, provider mutation, and importer mutation stay split. The earlier JS/TS/Java/Rust successor is now covered by map_default.non_python_import_bridge.",
+      "agent_task": "Monitor the landed Python sibling-import slice. Broader non-Python imported module/factory resolution is covered by map_default.non_python_import_bridge.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item map_default.cross_file_binding",
         "cargo test -p nose-cli --test equivalence map_default",
@@ -201,20 +201,20 @@
       "id": "map_default.non_python_import_bridge",
       "semantic_family": "map_default_lookup",
       "title": "Non-Python imported module map-default bindings converge when provenance is proven",
-      "status": "candidate",
-      "next_action": "survey",
-      "priority": 62,
+      "status": "covered",
+      "next_action": "monitor",
+      "priority": 0,
       "languages": ["javascript", "typescript", "java", "rust"],
       "representations": ["imported_binding", "module_binding", "literal_factory", "method_default"],
       "rule_ids": ["proof.collection_provenance", "idiom.map_default_lookup"],
-      "positive_cases": ["map_default_imported_js_ts_literal", "map_default_imported_java_static_literal"],
+      "positive_cases": ["map_default_imported_js_ts_literal", "map_default_imported_java_static_literal", "map_default_imported_rust_const_literal"],
       "adversarial_cases": ["map_default_mutated_receiver", "map_default_wrong_map"],
-      "evidence": "Successor audit for map_default.cross_file_binding: Python sibling literal imports are covered, but non-Python import/module coordinates and generated multi-file corpus items still need focused reproduction before broadening.",
-      "agent_task": "Survey JS/TS imported map exports, Java static imports, and Rust module constants with explicit provider/importer mutation hard negatives. Add multi-file generator support or focused fixtures before changing more provenance rules.",
+      "evidence": "JS/TS named imports from unambiguous sibling map exports, Java static imports from class static Map.of fields, and Rust use-imported const entry arrays now resolve to safe cloned provider RHS values. Focused tests and map_default_non_python_import fixtures prove convergence with local literal map-default lookup while JS provider/importer mutation and JS/Java/Rust wrong-map imports stay split. Successor audit: the closed gap was non-Python imported map-default provenance; the newly surfaced Rust const-entry fixture need is recorded as map_default_imported_rust_const_literal, and no extra successor cell was added because unsupported coordinates still fail closed under proof.collection_provenance.",
+      "agent_task": "Monitor the landed non-Python import bridge. New map-default import gaps should first test unambiguous provider identity, mutation, shadowing, and wrong-map boundaries before adding another cell.",
       "required_gates": [
         "bench/type4/adversarial/scripts/type4-check --item map_default.non_python_import_bridge",
         "cargo test -p nose-cli --test equivalence map_default",
-        "cargo run -p nose-cli -- verify --max-violations 0 <focused-non-python-map-default-import-corpus>"
+        "cargo run -p nose-cli -- verify --max-violations 0 bench/type4/adversarial/cases/map_default_non_python_import"
       ],
       "docs": ["docs/type4-adversarial-coverage.md", "docs/clone-types.md"]
     },
