@@ -91,3 +91,13 @@ from the JSON contract change.
 The gate budget is therefore refreshed to 6 for the current accepted state. Future PRs should
 still treat any count above 6 as a ratchet failure: either remove the new duplication or record
 why it is intentionally accepted.
+
+## PR #82 — budget re-baselined 6 → 20 (stronger `near` detection)
+
+PR #82 added value-fingerprint candidate generation + high-`vj` acceptance for impure code
+(async/IO/opaque-call) and sub-DAG anchor pairing to the `near` channel. The detector therefore
+now surfaces 14 additional **pre-existing** substantial near-duplicate families in nose's own
+source — chiefly the per-grammar frontend helpers and the `proven_*` value-graph collection/map
+factories (genuinely parallel functions, like the frontend parallelism already accepted here).
+These are dedup candidates, not duplication introduced by the PR. The gate budget is re-baselined
+to 20 so it keeps ratcheting against NEW duplication on top of the stronger detector.

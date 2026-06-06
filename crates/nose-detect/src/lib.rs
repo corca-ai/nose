@@ -250,6 +250,27 @@ impl Detector for StructuralDetector {
         let (wv, ws, wr) = score_weights(self.candidate_mode);
         let vj = align::multiset_jaccard(&a.value, &b.value);
         let sj = align::multiset_jaccard(&a.shapes, &b.shapes);
+        // Candidate mode trusts the value graph: a near-identical value fingerprint — produced
+        // AFTER semantic canonicalization (a `.then`-chain ≡ await code, a loop ≡ a
+        // comprehension) — is the strongest refactoring signal there is, even when the
+        // syntactic shapes diverge and the unit is NOT exact-safe (impure: async, I/O, opaque
+        // calls). The shape-dominant blend below would miss these, so accept a very-high `vj`
+        // directly. Impure units never reach the exact channel, so this is the only place such
+        // behaviorally-convergent pairs can surface. Tight threshold + size floor keep it precise.
+        if self.candidate_mode
+            && a.value.len() >= EXACT_VALUE_MIN
+            && b.value.len() >= EXACT_VALUE_MIN
+            && vj >= candidate_value_accept()
+        {
+            return vj;
+        }
+        // Partial / sub-DAG clone: the units share a rare heavy anchor (an extractable common
+        // sub-computation) even though the whole-unit blend is low. Surface it for review at a
+        // score above the near floor but below a full clone — it's a real refactor lead (pull
+        // the shared computation into a helper), just a partial one. Keep the higher of the two.
+        if self.candidate_mode && shares_anchor(&a.anchors, &b.anchors) {
+            return (wv * vj + ws * sj).max(anchor_partial_score());
+        }
         if 0.6 * vj + 0.4 * sj < 0.15 {
             return 0.6 * vj + 0.4 * sj; // prefilter: not worth the alignment DP
         }
@@ -294,6 +315,23 @@ impl Detector for StructuralDetector {
         }
         score
     }
+}
+
+/// Surfacing score for a partial / sub-DAG clone (units sharing a rare heavy anchor). Above the
+/// default near floor (0.70) so it appears, below a full clone. Env-overridable.
+fn anchor_partial_score() -> f64 {
+    use std::sync::OnceLock;
+    static S: OnceLock<f64> = OnceLock::new();
+    *S.get_or_init(|| env_or("NOSE_ANCHOR_SCORE", 0.72))
+}
+
+/// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone
+/// (behaviorally convergent despite shape divergence — e.g. async `.then` ≡ await). Deliberately
+/// high so it only fires on near-identical post-canonicalization fingerprints. Env-overridable.
+fn candidate_value_accept() -> f64 {
+    use std::sync::OnceLock;
+    static V: OnceLock<f64> = OnceLock::new();
+    *V.get_or_init(|| env_or("NOSE_CAND_VJ", 0.90))
 }
 
 /// Final-score weights (vj, sj, ransac). Env-overridable for parameter search.
@@ -818,6 +856,10 @@ pub fn detect_from_units(
                 |i| units[i].shape_minhash.as_slice(),
                 opts.bands,
             ));
+            // Partial / sub-DAG clones: pair units that share a rare heavy anchor (an
+            // extractable common sub-computation). They share no shape band, so shape-LSH
+            // alone never proposes them — this is the candidate channel's sub-DAG path.
+            candidates.extend(anchor_candidates(&units));
         }
         candidates.sort_unstable();
         candidates.dedup();
@@ -974,6 +1016,61 @@ fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
         }
     }
     out
+}
+
+/// An anchor present in more than this many units is boilerplate (a common idiom), not a
+/// specific extractable sub-computation — skip it. Env-overridable.
+fn anchor_max_df() -> usize {
+    use std::sync::OnceLock;
+    static D: OnceLock<usize> = OnceLock::new();
+    *D.get_or_init(|| env_or("NOSE_ANCHOR_MAX_DF", 6.0) as usize)
+}
+
+const ANCHOR_PAIR_CAP: usize = 64;
+
+/// Partial / sub-DAG clone candidates: units that share a RARE heavy anchor — an extractable
+/// common sub-computation that whole-unit Jaccard misses. Index anchor → units; for anchors
+/// present in `2..=anchor_max_df` units, emit their pairs (capped per bucket). Common anchors
+/// (boilerplate above the df ceiling) are skipped so this stays specific.
+fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
+    let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
+    for (idx, unit) in units.iter().enumerate() {
+        for &a in &unit.anchors {
+            buckets.entry(a).or_default().push(idx);
+        }
+    }
+    let max_df = anchor_max_df();
+    let mut out = Vec::new();
+    for members in buckets.values() {
+        if members.len() < 2 || members.len() > max_df {
+            continue;
+        }
+        let mut count = 0;
+        'pairs: for a in 0..members.len() {
+            for b in (a + 1)..members.len() {
+                out.push(ordered_pair(members[a], members[b]));
+                count += 1;
+                if count >= ANCHOR_PAIR_CAP {
+                    break 'pairs;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Do two sorted anchor-hash lists share any element? (A shared heavy anchor ⇒ a shared
+/// extractable sub-computation.)
+fn shares_anchor(a: &[u64], b: &[u64]) -> bool {
+    let (mut i, mut j) = (0, 0);
+    while i < a.len() && j < b.len() {
+        match a[i].cmp(&b[j]) {
+            std::cmp::Ordering::Less => i += 1,
+            std::cmp::Ordering::Greater => j += 1,
+            std::cmp::Ordering::Equal => return true,
+        }
+    }
+    false
 }
 
 #[inline]

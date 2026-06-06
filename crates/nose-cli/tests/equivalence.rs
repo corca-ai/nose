@@ -576,6 +576,77 @@ fn go_functional_append_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn interprocedural_pure_inline_converges_extract_method() {
+    // A function whose body inlines a computation converges with one that calls a PURE extracted
+    // helper for it — `f(args)` is β-reduced to the helper's body (interprocedural summary), the
+    // extract-method equivalence. An EFFECTFUL helper (a field write the value-only inline would
+    // drop) is NOT inlined, so its caller stays distinct from the effect-free version.
+    let i = Interner::new();
+    let inline = "def price(item):\n    return item.price * item.qty * (1 + 0.1)\n";
+    let helper = "def base(item):\n    return item.price * item.qty\n\ndef price(item):\n    return base(item) * (1 + 0.1)\n";
+    assert_eq!(
+        value_fp_named(&i, inline, Lang::Python, "price"),
+        value_fp_named(&i, helper, Lang::Python, "price"),
+        "calling a pure extracted helper must converge with the inlined computation"
+    );
+    let eff_helper = "def bump(box, x):\n    box.count = box.count + 1\n    return x * 2\n\ndef use(box, x):\n    return bump(box, x) + 5\n";
+    let eff_free = "def use(box, x):\n    return x * 2 + 5\n";
+    assert_ne!(
+        value_fp_named(&i, eff_helper, Lang::Python, "use"),
+        value_fp_named(&i, eff_free, Lang::Python, "use"),
+        "an effectful (field-writing) helper must not be inlined — its effect can't be dropped"
+    );
+}
+
+#[test]
+fn sub_dag_anchor_shared_when_units_share_a_heavy_computation() {
+    // Two functions that share a large sub-computation (subtotal/tax/shipping/grand) but differ
+    // elsewhere are a PARTIAL / sub-DAG clone — they share a heavy anchor (an extractable common
+    // computation) even though whole-unit fingerprints differ. If the shared computation itself
+    // diverges (different shipping rule / sign), no anchor is shared.
+    let i = Interner::new();
+    let a = "function a(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  renderInvoice(grand);\n  return grand;\n}\n";
+    let b = "function b(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  saveOrder(grand);\n  notify(grand);\n}\n";
+    let c = "function c(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 200 ? 0 : 25;\n  const grand = subtotal - tax + ship;\n  saveOrder(grand);\n  notify(grand);\n}\n";
+    let aa = value_anchors(&i, a, Lang::TypeScript);
+    assert!(
+        !aa.is_empty(),
+        "a heavy shared computation must yield an anchor"
+    );
+    assert!(
+        shares_any(&aa, &value_anchors(&i, b, Lang::TypeScript)),
+        "units sharing a heavy computation must share an anchor (partial clone)"
+    );
+    assert!(
+        !shares_any(&aa, &value_anchors(&i, c, Lang::TypeScript)),
+        "when the shared computation diverges, no anchor is shared"
+    );
+}
+
+#[test]
+fn promise_then_chain_converges_with_await_sequential_code() {
+    // `p.then(r => body)` is a Promise continuation ≡ `const r = await p; body`. Beta-reducing
+    // the callback with the receiver makes a `.then`-chain's value fingerprint identical to the
+    // equivalent await/sequential code (the #1 real-world async Type-4 gap). A different
+    // continuation expression stays distinct.
+    let i = Interner::new();
+    let await_form = "function f(id) {\n  const r = await db.get(id);\n  return r.x + 1;\n}\n";
+    let then_form = "function f(id) {\n  return db.get(id).then(r => r.x + 1);\n}\n";
+    let then_diff = "function f(id) {\n  return db.get(id).then(r => r.y - 1);\n}\n";
+    let av = value_fp(&i, await_form, Lang::TypeScript);
+    assert_eq!(
+        av,
+        value_fp(&i, then_form, Lang::TypeScript),
+        "a `.then` continuation must converge with the equivalent await/sequential code"
+    );
+    assert_ne!(
+        av,
+        value_fp(&i, then_diff, Lang::TypeScript),
+        "a different continuation expression must stay distinct"
+    );
+}
+
+#[test]
 fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
     // A Go slice literal `[]int{1,2,3}` is an ordered sequence — it converges with a Python
     // list / JS array. A Go STRUCT literal `Point{1,2,3}` is a record, NOT a collection, and
@@ -2409,6 +2480,16 @@ fn value_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
     let n = normalize(&il, interner, &NormalizeOptions::default());
     nose_normalize::value_fingerprint(&n, first_func(&n), interner)
+}
+
+fn value_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    nose_normalize::value_anchors(&n, first_func(&n), interner)
+}
+
+fn shares_any(a: &[u64], b: &[u64]) -> bool {
+    a.iter().any(|x| b.contains(x))
 }
 
 fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {

@@ -13,7 +13,13 @@
 set -euo pipefail
 
 MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial families
-BUDGET=6       # accepted substantial families today (see docs/dogfooding.md)
+# Re-baselined 6 → 20 in PR #82: that PR STRENGTHENS the `near` channel (value-fingerprint
+# candidates + high-vj acceptance for impure code, and sub-DAG anchor pairing), so nose now
+# detects 14 additional PRE-EXISTING near-duplicate families in its own source — the cross-grammar
+# frontend helpers and the `proven_*` value-graph factories — not new code introduced here. They
+# are dedup candidates (see docs/dogfooding.md); the gate stays a ratchet against NEW duplication
+# on top of this stronger detector.
+BUDGET=20      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 

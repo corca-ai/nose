@@ -74,6 +74,46 @@ pub fn value_fingerprint_lits(
     b.fingerprint_lits()
 }
 
+/// The default minimum sub-computation size (in value-nodes) for a node to be an extractable
+/// anchor. Below this a shared sub-DAG is a common idiom (`x+1`, `len(xs)`), not a refactor.
+pub const ANCHOR_MIN_WEIGHT: u32 = 20;
+
+/// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
+/// anchor share an extractable sub-computation: a partial / sub-DAG clone.
+pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Vec<u64> {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    b.anchors(ANCHOR_MIN_WEIGHT)
+}
+
+/// `value_fingerprint_lits` plus the unit's heavy sub-DAG anchors, all from ONE value-graph
+/// build (anchors share the build, so adding them is free vs. fingerprinting alone).
+pub fn value_fingerprint_lits_anchors(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
+/// Context-shared variant of [`value_fingerprint_lits_anchors`].
+pub fn value_fingerprint_lits_anchors_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&context.subtree_hashes);
+    b.build_unit_with_context(root, Some(context));
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
 /// File-level facts that are independent of the unit currently being fingerprinted.
 ///
 /// `units::extract` may fingerprint hundreds of block units from the same large file.
@@ -356,6 +396,13 @@ struct Builder<'a> {
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
     /// data (`const table = {...}`) to free uses inside the function.
     global_env: FxHashMap<Symbol, ValueId>,
+    /// Interprocedural inline registry: `name → (param cids, body)` for PURE, file-local,
+    /// uniquely-named functions (`function_binding_safe`: no effects, loops, throws, lambdas, or
+    /// user calls). A call to such a function is inlined to its body's value (β-reduction over a
+    /// pure function — sound), so `f(args)` ≡ the extracted helper's body. Built once per unit
+    /// build (after binding seeding, before body eval). Pure bodies have no user calls, so an
+    /// inlined body never triggers further inlining — single-level, no cycles, no depth bound.
+    inline_fns: FxHashMap<Symbol, (Vec<u32>, NodeId)>,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
     local_scope_nodes: Vec<bool>,
@@ -429,6 +476,7 @@ impl<'a> Builder<'a> {
             effect_slot: 0,
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
+            inline_fns: FxHashMap::default(),
             local_scope_nodes: local_scope_nodes(il),
             loop_recurrence: None,
             next_loop_key_base: 0,
@@ -2144,6 +2192,7 @@ impl<'a> Builder<'a> {
         self.param_semantic.clear();
         self.seed_param_semantics(root);
         self.seed_immutable_bindings(root, context);
+        self.build_inline_registry(root);
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         match self.il.kind(root) {
             NodeKind::Func => {
@@ -2455,6 +2504,96 @@ impl<'a> Builder<'a> {
                 .iter()
                 .all(|&c| self.immutable_binding_safe(c, env)),
         }
+    }
+
+    /// Build the interprocedural inline registry (see the `inline_fns` field): pure,
+    /// uniquely-named, file-local functions/methods that can be inlined to their body's value.
+    /// Excludes the unit currently being built (`root`) so a function is never inlined into
+    /// itself, and drops any name shared by two definitions (ambiguous → not resolvable).
+    fn build_inline_registry(&mut self, root: NodeId) {
+        if !self.inline_fns.is_empty() {
+            return;
+        }
+        let mut ambiguous: FxHashSet<Symbol> = FxHashSet::default();
+        for unit in self.il.units.clone() {
+            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) || unit.root == root {
+                continue;
+            }
+            let Some(name) = unit.name else { continue };
+            if ambiguous.contains(&name) {
+                continue;
+            }
+            if self.inline_fns.contains_key(&name) {
+                self.inline_fns.remove(&name);
+                ambiguous.insert(name);
+                continue;
+            }
+            if !self.function_binding_safe(unit.root, unit.root) {
+                continue;
+            }
+            // SOUNDNESS: only inline a function whose body is a single `return <expr>` — a pure
+            // value with NO statement effects. `function_binding_safe` alone is too weak here: it
+            // admits field/index writes (an effect the value-only inline would silently drop,
+            // which the oracle — blind to cross-function calls — could not catch). A lone return
+            // has no other statements, so there is nothing to drop.
+            let Some(ret_expr) = self.single_return_expr(unit.root) else {
+                continue;
+            };
+            let kids = self.il.children(unit.root);
+            let params: Vec<u32> = kids
+                .iter()
+                .filter_map(|&p| match self.il.node(p).payload {
+                    Payload::Cid(c) if self.il.kind(p) == NodeKind::Param => Some(c),
+                    _ => None,
+                })
+                .collect();
+            self.inline_fns.insert(name, (params, ret_expr));
+        }
+    }
+
+    /// Inline a call to a PURE registered function: bind its parameters to the (caller-evaluated)
+    /// argument values and evaluate its body to a single value — β-reduction over an effect-free
+    /// function, so `f(args)` ≡ the function's body with `args` substituted (the extract-method /
+    /// interprocedural-summary equivalence). Returns `None` for non-direct calls, unknown/
+    /// ambiguous callees, or arity mismatch — leaving the opaque-call fallback to run.
+    fn eval_inlined_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let &callee = kids.first()?;
+        if self.il.kind(callee) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(fname) = self.il.node(callee).payload else {
+            return None;
+        };
+        let (params, ret_expr) = self.inline_fns.get(&fname)?.clone();
+        if params.len() != kids.len() - 1 {
+            return None;
+        }
+        let mut fenv: FxHashMap<u32, ValueId> = FxHashMap::default();
+        for (pi, &pc) in params.iter().enumerate() {
+            let av = self.eval(kids[pi + 1], env);
+            fenv.insert(pc, av);
+        }
+        Some(self.eval(ret_expr, &fenv))
+    }
+
+    /// The single `return <expr>` of a function body, or `None` if the body is anything else
+    /// (locals, multiple statements, effects, control flow) — so only an effect-free pure value
+    /// qualifies for value-only inlining. Accepts `{ return e; }` and a bare `return e`.
+    fn single_return_expr(&self, root: NodeId) -> Option<NodeId> {
+        let &body = self.il.children(root).last()?;
+        let ret = match self.il.kind(body) {
+            NodeKind::Return => body,
+            NodeKind::Block => match self.il.children(body) {
+                [only] if self.il.kind(*only) == NodeKind::Return => *only,
+                _ => return None,
+            },
+            _ => return None,
+        };
+        self.il.children(ret).first().copied()
     }
 
     fn function_binding_safe(&self, root: NodeId, node: NodeId) -> bool {
@@ -6239,6 +6378,41 @@ impl<'a> Builder<'a> {
     /// Evaluate a lambda's body with its positional parameters bound to `params`,
     /// returning the value of its first `return` (intermediate assignments update the
     /// local env). Used to unfold a `map`/`reduce` lambda over a canonical `Elem`.
+    /// `p.then(λr. body)` ≡ `const r = await p; body`. With `await` already stripped, beta-reduce
+    /// the single-argument continuation callback with the receiver promise's value, so a
+    /// `.then`-chain converges with the equivalent `await`/sequential form. Only the one-argument
+    /// `.then(λr. …)` shape is reduced: `.then(fnRef)` (no lambda body to inline), the
+    /// two-argument `.then(onOk, onErr)`, and `.catch`/`.finally` (error/cleanup continuations
+    /// whose parameter is the error, not the resolved value) are left opaque. Promises wrap
+    /// external async values, so this is a NEAR-channel recall extension, never an exact merge.
+    fn eval_promise_then(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let kids = self.il.children(expr).to_vec();
+        if kids.len() != 2 {
+            return None;
+        }
+        let callee = kids[0];
+        if self.il.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(s) = self.il.node(callee).payload else {
+            return None;
+        };
+        if self.interner.resolve(s) != "then" {
+            return None;
+        }
+        let cb = kids[1];
+        if self.il.kind(cb) != NodeKind::Lambda {
+            return None;
+        }
+        let &recv = self.il.children(callee).first()?;
+        let recv_v = self.eval(recv, env);
+        self.eval_lambda_body(cb, &[recv_v], env)
+    }
+
     fn eval_lambda_body(
         &mut self,
         lambda: NodeId,
@@ -6757,6 +6931,14 @@ impl<'a> Builder<'a> {
             }
             NodeKind::Call => {
                 let kids = self.il.children(expr).to_vec();
+                // `p.then(λr. body)` is a Promise continuation ≡ `const r = await p; body`.
+                // Since `await` is already stripped to its operand, beta-reduce the callback
+                // with the receiver's value so a `.then`-chain converges with the equivalent
+                // await / sequential code (the #1 real-world async Type-4 gap). Chains reduce
+                // recursively (evaluating the receiver triggers the inner `.then`).
+                if let Some(v) = self.eval_promise_then(expr, env) {
+                    return v;
+                }
                 // Reduction builtins fold a collection to one value — canonicalize to
                 // the same `Reduce(op, init, per-element contrib)` a loop produces, so
                 // `sum(x*x for x in xs)` / `reduce(λa,x. a+x*x, xs, 0)` converge with
@@ -6884,6 +7066,12 @@ impl<'a> Builder<'a> {
                 if self.is_unproven_membership_like_call(expr, &kids) {
                     let salt = self.source_salted_hash(expr, 0x4D45_4D42_4552);
                     return self.mk(ValOp::Opaque(salt), vec![]);
+                }
+                // Interprocedural pure inline: `f(args)` to a pure file-local function ≡ its body
+                // with `args` substituted — converges with the same logic written inline / with
+                // a different extracted helper. Sound (β-reduction of an effect-free function).
+                if let Some(v) = self.eval_inlined_call(&kids, env) {
+                    return v;
                 }
                 let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 let tag = match node.payload {
@@ -7051,6 +7239,55 @@ impl<'a> Builder<'a> {
     /// Multiset of value-node hashes reachable from the unit's sinks, plus the
     /// sink-tagged hashes themselves, and (separately) just the literal `Const`
     /// hashes. Sorted for a canonical, order-independent fingerprint.
+    /// Heavy sub-DAG ANCHORS: the structural hashes of reachable value-nodes whose
+    /// sub-computation is at least `min_weight` nodes. Two units that share an anchor hash
+    /// compute the *exact same* sub-value (hash-consed) — so a shared, large, rare anchor is a
+    /// partial clone: an extractable common sub-computation, even when the units differ
+    /// elsewhere (the case whole-unit Jaccard misses). `Const`/`Input`/`Elem` leaves are never
+    /// anchors (no computation to extract). Weight is the memoized subtree size (args precede
+    /// their parent in id order); capped so a deeply-shared DAG can't blow it up.
+    fn anchors(&self, min_weight: u32) -> Vec<u64> {
+        const WEIGHT_CAP: u32 = 1 << 20;
+        let n = self.nodes.len();
+        let mut reachable = vec![false; n];
+        let mut stack: Vec<ValueId> = self.sinks.iter().map(|s| s.value).collect();
+        while let Some(v) = stack.pop() {
+            let vi = v as usize;
+            if reachable[vi] {
+                continue;
+            }
+            reachable[vi] = true;
+            for &a in &self.nodes[vi].args {
+                if !reachable[a as usize] {
+                    stack.push(a);
+                }
+            }
+        }
+        let mut weight = vec![0u32; n];
+        for i in 0..n {
+            let mut w: u32 = 1;
+            for &a in &self.nodes[i].args {
+                w = w.saturating_add(weight[a as usize]);
+            }
+            weight[i] = w.min(WEIGHT_CAP);
+        }
+        let mut out = Vec::new();
+        for i in 0..n {
+            if reachable[i]
+                && weight[i] >= min_weight
+                && !matches!(
+                    self.nodes[i].op,
+                    ValOp::Const(_) | ValOp::Input(_) | ValOp::Elem(_)
+                )
+            {
+                out.push(self.vhash[i]);
+            }
+        }
+        out.sort_unstable();
+        out.dedup();
+        out
+    }
+
     fn fingerprint_lits(&self) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
         let h = &self.vhash; // structural hashes, maintained during construction
                              // reachable from sinks
