@@ -13,7 +13,7 @@
 //! recognizer described a fragment the oracle cannot vouch for — fail closed.
 
 use super::contract::FragmentContract;
-use nose_il::{FileMeta, Il, IlBuilder, NodeId, NodeKind, Payload, Span, Unit, UnitKind};
+use nose_il::{FileMeta, Il, IlBuilder, LoopKind, NodeId, NodeKind, Payload, Span, Unit, UnitKind};
 use nose_normalize::{run_unit, Behavior, Value};
 
 /// Run the fragment described by `contract` on `args` (bound to its inputs in order) and
@@ -41,9 +41,21 @@ pub fn synthesize_wrapper(il: &Il, contract: &FragmentContract) -> Option<(Il, N
         .map(|&cid| b.add(NodeKind::Param, Payload::Cid(cid), syn, &[]))
         .collect();
 
-    // Body: a deep copy of the fragment statement, wrapped in a Block.
-    let body_stmt = copy_subtree(il, contract.root, &mut b);
-    let body = b.add(NodeKind::Block, Payload::None, syn, &[body_stmt]);
+    // Body: deep-copy the fragment into the wrapper's body block. A block-rooted fragment
+    // (a conditional branch, a loop or ordered-effect body) is spliced statement-by-statement
+    // so the wrapper body stays flat rather than a `Block` nested in a `Block`; a single
+    // statement becomes the lone body statement. Either way the interpreter executes the same
+    // statements in the same order.
+    let body_stmts: Vec<NodeId> = if il.kind(contract.root) == NodeKind::Block {
+        il.children(contract.root)
+            .to_vec()
+            .iter()
+            .map(|&s| copy_subtree(il, s, &mut b))
+            .collect()
+    } else {
+        vec![copy_subtree(il, contract.root, &mut b)]
+    };
+    let body = b.add(NodeKind::Block, Payload::None, syn, &body_stmts);
     children.push(body);
 
     let func = b.add(NodeKind::Func, Payload::None, syn, &children);
@@ -79,15 +91,34 @@ fn copy_subtree(src: &Il, node: NodeId, b: &mut IlBuilder) -> NodeId {
 }
 
 /// Collect the free canonical ids read in the subtree rooted at `node`, in ascending
-/// (canonical) order. Only `Var` references count; this is correct for fragment shapes
-/// with no internal bindings (e.g. a direct `return <expr>`). Shapes that introduce locals
-/// (loop variables, temps) need binding-aware input inference, added when they migrate.
+/// (canonical) order — the cids the fragment reads from its enclosing scope. These become the
+/// synthesized wrapper's parameters.
+///
+/// "Free" excludes cids *bound within* the fragment: a local assigned before use, a `for-each`
+/// loop variable, a nested lambda parameter. The interpreter binds those as the wrapper runs
+/// (assignment targets and loop patterns enter `env`), so making them parameters would inflate
+/// the arity and feed a battery value the fragment immediately overwrites — the loop-variable
+/// hazard that previously made loop/temp shapes unmodelable. The binding model mirrors the one
+/// alpha-renaming uses (see `nose_normalize::alpha`): assignment targets and `for-each`
+/// patterns — a `Var`, or each `Var` in a destructuring `Seq` — plus nested `Param`s.
+///
+/// Soundness: omitting a *genuine* outer input can only under-report, and an unbound `Var`
+/// read makes the wrapper uninterpretable (`run_unit` returns `None`) — fail-closed, never a
+/// false merge. Index/field stores mutate an existing receiver (which stays a free input) and
+/// bind nothing, so they are deliberately not treated as bindings.
 pub fn free_input_cids(il: &Il, node: NodeId) -> Vec<u32> {
-    let mut out = Vec::new();
-    collect_var_cids(il, node, &mut out);
-    out.sort_unstable();
-    out.dedup();
-    out
+    let mut reads = Vec::new();
+    collect_var_cids(il, node, &mut reads);
+    reads.sort_unstable();
+    reads.dedup();
+
+    let mut bound = Vec::new();
+    collect_bound_cids(il, node, &mut bound);
+    bound.sort_unstable();
+    bound.dedup();
+
+    reads.retain(|c| bound.binary_search(c).is_err());
+    reads
 }
 
 fn collect_var_cids(il: &Il, node: NodeId, out: &mut Vec<u32>) {
@@ -101,10 +132,56 @@ fn collect_var_cids(il: &Il, node: NodeId, out: &mut Vec<u32>) {
     }
 }
 
+/// Collect cids *bound within* the subtree: assignment targets, `for-each` loop patterns, and
+/// nested `Param`s. Mirrors the binding model alpha-renaming uses, so "free" here means the
+/// same thing it does after renaming.
+fn collect_bound_cids(il: &Il, node: NodeId, out: &mut Vec<u32>) {
+    match il.kind(node) {
+        NodeKind::Param => {
+            if let Payload::Cid(c) = il.node(node).payload {
+                out.push(c);
+            }
+        }
+        NodeKind::Assign => {
+            if let Some(&lhs) = il.children(node).first() {
+                collect_binding_targets(il, lhs, out);
+            }
+        }
+        NodeKind::Loop if matches!(il.node(node).payload, Payload::Loop(LoopKind::ForEach)) => {
+            if let Some(&pat) = il.children(node).first() {
+                collect_binding_targets(il, pat, out);
+            }
+        }
+        _ => {}
+    }
+    for &k in il.children(node) {
+        collect_bound_cids(il, k, out);
+    }
+}
+
+/// Assignment / `for`-pattern binding targets: a `Var` cid, or each `Var` in a destructuring
+/// `Seq`. Only plain `Var`/`Seq` targets bind a fresh cid; an `Index`/`Field` store target
+/// mutates an existing receiver and binds nothing.
+fn collect_binding_targets(il: &Il, node: NodeId, out: &mut Vec<u32>) {
+    match il.kind(node) {
+        NodeKind::Var => {
+            if let Payload::Cid(c) = il.node(node).payload {
+                out.push(c);
+            }
+        }
+        NodeKind::Seq => {
+            for &c in il.children(node) {
+                collect_binding_targets(il, c, out);
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fragment::{Exit, FragmentKind};
+    use crate::fragment::{Effect, EffectSite, Exit, FragmentKind};
     use nose_il::{FileId, Interner, Lang};
     use nose_normalize::{normalize, NormalizeOptions};
 
@@ -203,5 +280,134 @@ mod tests {
             behavior_vector(&h, &ch, &battery),
             "behaviorally distinct fragments must diverge on the battery"
         );
+    }
+
+    // ---- binding-aware free-input inference --------------------------------------------
+
+    fn find<P: Fn(&Il, NodeId) -> bool>(il: &Il, node: NodeId, pred: &P) -> Option<NodeId> {
+        if pred(il, node) {
+            return Some(node);
+        }
+        il.children(node).iter().find_map(|&c| find(il, c, pred))
+    }
+
+    fn first_foreach(il: &Il) -> NodeId {
+        find(il, il.root, &|il, n| {
+            il.kind(n) == NodeKind::Loop
+                && matches!(il.node(n).payload, Payload::Loop(LoopKind::ForEach))
+        })
+        .expect("a for-each loop")
+    }
+
+    /// The body `Block` of the first `Func` — the multi-statement fragment body.
+    fn first_func_body(il: &Il) -> NodeId {
+        let func = find(il, il.root, &|il, n| il.kind(n) == NodeKind::Func).expect("a func");
+        *il.children(func).last().expect("func has a body block")
+    }
+
+    #[test]
+    fn free_inputs_exclude_the_foreach_loop_variable() {
+        // The loop variable `x` is bound by the for-each pattern, not read from outside; only
+        // the appended-to list `out` and the iterable `xs` are genuine free inputs. Without
+        // binding-aware inference this would be arity 3 and the wrapper would misbind `x`.
+        let i = Interner::new();
+        let il = norm(
+            &i,
+            "function f(out, xs){ for (const x of xs){ out.push(x); } }",
+            Lang::JavaScript,
+        );
+        let loop_node = first_foreach(&il);
+        let inputs = free_input_cids(&il, loop_node);
+        assert_eq!(
+            inputs.len(),
+            2,
+            "only `out` and `xs` are free; the loop variable `x` must be excluded, got {inputs:?}"
+        );
+    }
+
+    #[test]
+    fn free_inputs_exclude_a_local_temp() {
+        // `t` is assigned then read inside the fragment, so it is a local, not a free input.
+        let i = Interner::new();
+        let il = norm(
+            &i,
+            "function f(a){ let t = a * a; return t + 1; }",
+            Lang::JavaScript,
+        );
+        let body = first_func_body(&il);
+        let inputs = free_input_cids(&il, body);
+        assert_eq!(
+            inputs.len(),
+            1,
+            "only `a` is free; the temp `t` must be excluded, got {inputs:?}"
+        );
+    }
+
+    #[test]
+    fn equivalent_foreach_loops_agree_through_the_oracle() {
+        // Two for-each append loops with the same spec must agree; a different appended value
+        // must diverge — exercising binding-aware inputs + multi-statement loop lowering.
+        let battery = || {
+            vec![vec![
+                Value::List(vec![]),
+                Value::List(vec![Value::Int(2), Value::Int(5)]),
+            ]]
+        };
+        let run = |src: &str| -> Vec<Behavior> {
+            let i = Interner::new();
+            let il = norm(&i, src, Lang::JavaScript);
+            let loop_node = first_foreach(&il);
+            let c = FragmentContract::single_effect(
+                FragmentKind::LoopEffect,
+                loop_node,
+                free_input_cids(&il, loop_node),
+                EffectSite::observable(Effect::Append),
+            );
+            assert_eq!(c.arity(), 2, "loop var excluded → arity 2");
+            battery()
+                .iter()
+                .map(|row| fragment_behavior(&il, &c, row).expect("loop fragment interpretable"))
+                .collect()
+        };
+        let f = run("function f(out, xs){ for (const x of xs){ out.push(x); } }");
+        let g = run("function g(acc, ys){ for (const y of ys){ acc.push(y); } }");
+        let h = run("function h(out, xs){ for (const x of xs){ out.push(x * 2); } }");
+        assert!(
+            f.iter().all(|b| !b.effects.is_empty()),
+            "loop append surfaces as effects"
+        );
+        assert_eq!(f, g, "equivalent for-each append loops must agree");
+        assert_ne!(f, h, "appending a different value must diverge");
+    }
+
+    // ---- ordered multi-effect, multi-statement body -----------------------------------
+
+    #[test]
+    fn ordered_multi_effect_body_observes_statement_order() {
+        // A two-append body lowered as an ordered-effect contract: the effect order is
+        // observable, so swapping the two appends diverges while an identical body agrees.
+        let run = |src: &str| -> Behavior {
+            let i = Interner::new();
+            let il = norm(&i, src, Lang::JavaScript);
+            let body = first_func_body(&il);
+            let c = FragmentContract::ordered_effects(
+                FragmentKind::ExprEffect,
+                body,
+                free_input_cids(&il, body),
+                Exit::Normal,
+                vec![
+                    EffectSite::observable(Effect::Append),
+                    EffectSite::observable(Effect::Append),
+                ],
+            );
+            assert_eq!(c.arity(), 1, "only `out` is free (literals are not inputs)");
+            fragment_behavior(&il, &c, &[Value::List(vec![])]).expect("interpretable")
+        };
+        let fwd = run("function f(out){ out.push(1); out.push(2); }");
+        let fwd2 = run("function h(out){ out.push(1); out.push(2); }");
+        let rev = run("function g(out){ out.push(2); out.push(1); }");
+        assert_eq!(fwd.effects.len(), 2, "both appends are recorded in order");
+        assert_eq!(fwd, fwd2, "identical ordered bodies must agree");
+        assert_ne!(fwd, rev, "swapping the append order must be observable");
     }
 }
