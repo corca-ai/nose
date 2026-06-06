@@ -6,31 +6,37 @@ the frontier discipline: a documented lead with a reproducer, to be promoted to 
 packet + sound implementation (with adjacent hard negatives + oracle gate) — not patched
 blind.
 
-## L1 — `exact_safe` language asymmetry: recursive functions (rust, java)
+## L1 — recursion→iteration not firing for return-wrapping languages — ✅ RESOLVED (rust); ruby/java methods → L1b
 
-A numeric structural recursion (`fac(n) = n*fac(n-1)`, base 1) converges with its accumulator
-loop in **python and javascript** (both sides `exact_safe=True`), but NOT in **rust or java**:
-the recursive function is `exact_safe=False` there, so it never enters the exact channel.
+A numeric structural recursion (`fac(n) = n*fac(n-1)`, base 1) converged with its accumulator
+loop in **python/js/go** but not **rust** (and not ruby/java).
 
-```
-recursion_tail_numeric/{rust,java}/pos   # pos 0/1 — recursive side exact_safe=False
-recursion_tail_numeric/{python,javascript}/pos  # covered 1/1
-```
-Root cause (narrowed): NOT the self-call IL (identical `(call (var "fac") …)` in python and
-rust) and NOT the return style (explicit `return n*fac(n-1);` is still `exact_safe=False` in
-rust). The whole recursive *function* is `exact_safe=False` in rust/java but `True` in
-python/js. **Exact root cause:** the self-call `fac` is a free `Name` node, so
-`strict_exact_safe_var` requires `facts.proven_name("fac")` (units.rs). A python `def`
-registers `fac` as a proven module binding; rust `pub fn` / java methods are NOT registered as
-proven names → `proven_name` is false → the recursive fn is excluded from the exact channel.
-Confirmed by language: **python / js / go recursion DO converge; rust / java do not.**
+**True root cause** (the earlier `proven_name` hypothesis was a red herring): the
+recursion→iteration canon `recursion::recognize` matches a *bare* `NodeKind::Return` for the
+function's last statement and guard arms. Languages whose `return`/`throw` are expressions
+(Rust) lower them wrapped as `ExprStmt(Return)`, so `recognize` returned `None` and the canon
+never fired — leaving the self-call opaque (rust fac value graph was vlen 15 vs python's 7).
+The value graph already treats `ExprStmt(Return) ≡ Return` (a simple `return x+1` converges
+rust↔python), so only the *syntactic* recognizer was affected.
 
-This is therefore a change to `proven_name` / module-binding folding — a **cross-cutting
-soundness gate** (it governs every name-callee admission, not just recursion), so loosening it
-blind risks false merges elsewhere. It must ship with the real-corpus `nose verify` gate
-(0 violations) + Lean, not patched here. The recursion→iteration canon (recursion.rs) is
-language-general, so once the recursive fn is admitted the convergence follows. Hard negatives
-(sum vs product monoid) already stay un-merged — the guard is in place.
+**Fix (fundamental, not a workaround):** `desugar::emit_stmt` now unwraps
+`ExprStmt(Return|Throw)` to the bare statement, making return/throw representation
+language-uniform at the IL source for *every* syntactic pass. Validated: rust fac now
+`exact_safe=True`, vlen 7; converges with the rust loop AND cross-language with the python
+loop; sum-monoid hard negative stays separate; full suite + clippy green; corpus
+behavior-invariance diff (only new recursion convergences, nothing else changed). Test:
+`rust_recursion_converges_with_iteration_via_return_unwrap`.
+
+### L1b — ruby / java method recursion (deferred)
+
+ruby `def fac` and java methods are classified `UnitKind::Method`, and `recursion::run`
+filters to `UnitKind::Function` only (methods are excluded because `self.m()` self-calls lower
+through a `Field` callee, and a method may carry receiver/field effects). ruby's `fac(n-1)` is
+a *bare-name* self-call (not `self.fac`), so it is a false exclusion; java's may be a `Field`
+call. Proper fix: admit a method to the canon when its self-call is bare-name AND the body has
+no receiver/field effects (a method-purity gate) — relying on `as_self_call`'s existing
+bare-name check to keep `self.m()` out. Needs the purity gate + the real-corpus `nose verify`
+0-violation gate; not rushed.
 
 ## L2 — `exact_safe`: rust builder loop (`for … for … push`)
 

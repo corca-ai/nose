@@ -84,6 +84,21 @@ impl Rebuilder<'_> {
             }
             NodeKind::Loop => self.emit_loop(old_id, out),
             NodeKind::If if self.opts.cfg_norm => self.emit_if(old_id, out),
+            // Canonicalize `ExprStmt(Return|Throw)` to the bare statement. Languages whose
+            // `return`/`throw` are expressions (Rust, …) lower them wrapped in an `ExprStmt`;
+            // others (Python) emit the bare statement. The value graph already treats the two
+            // as equal, but the syntactic recognizers (e.g. recursion::recognize) match on a
+            // bare `Return`, so the wrapper silently disabled them for the wrapping languages.
+            // Unwrapping here makes return/throw representation language-uniform at the source.
+            NodeKind::ExprStmt
+                if matches!(
+                    self.old.children(old_id),
+                    [inner] if matches!(self.old.kind(*inner), NodeKind::Return | NodeKind::Throw)
+                ) =>
+            {
+                let inner = self.old.children(old_id)[0];
+                self.emit_stmt(inner, out);
+            }
             _ => out.push(self.go(old_id)),
         }
     }

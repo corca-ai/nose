@@ -277,7 +277,7 @@
       "javascript": "covered",
       "python": "covered",
       "ruby": "unsupported",
-      "rust": "unsupported",
+      "rust": "covered",
       "typescript": "covered"
     },
     "reduce_minmax_anyall": {
@@ -388,7 +388,7 @@
     },
     "rust": {
       "applicable": 25,
-      "covered": 11
+      "covered": 12
     },
     "typescript": {
       "applicable": 27,

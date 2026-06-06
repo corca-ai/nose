@@ -453,6 +453,36 @@ fn java_stream_flat_map_converges_with_python_comprehension() {
 }
 
 #[test]
+fn rust_recursion_converges_with_iteration_via_return_unwrap() {
+    // Numeric structural recursion `fac(n) = n*fac(n-1)` (base 1) converges with its
+    // accumulator loop — now in Rust too. Rust lowers `return e;` wrapped in `ExprStmt`, which
+    // used to hide the bare-`Return` shape `recursion::recognize` matches on; desugar now
+    // unwraps `ExprStmt(Return|Throw)`, so the recursion→iteration canon fires uniformly and
+    // converges cross-language with the Python loop. The sum monoid stays a hard negative.
+    let i = Interner::new();
+    let py_loop = "def fac(n):\n    acc = 1\n    while n != 0:\n        acc = acc * n\n        n = n - 1\n    return acc\n";
+    let rust_rec = "pub fn fac(n: i64) -> i64 { if n == 0 { return 1; } return n * fac(n - 1); }";
+    let rust_loop = "pub fn fac(mut n: i64) -> i64 { let mut acc = 1; while n != 0 { acc = acc * n; n = n - 1; } return acc; }";
+    let sum_loop = "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + n\n        n = n - 1\n    return acc\n";
+    let fold_fp = value_fp(&i, py_loop, Lang::Python);
+    assert_eq!(
+        fold_fp,
+        value_fp(&i, rust_rec, Lang::Rust),
+        "rust recursion must converge cross-language with the python accumulator loop"
+    );
+    assert_eq!(
+        value_fp(&i, rust_rec, Lang::Rust),
+        value_fp(&i, rust_loop, Lang::Rust),
+        "rust recursion must converge with the rust accumulator loop"
+    );
+    assert_ne!(
+        fold_fp,
+        value_fp(&i, sum_loop, Lang::Python),
+        "the sum monoid (acc + n, base 0) must stay a hard negative"
+    );
+}
+
+#[test]
 fn flatmap_identity_converges_with_inner_map_and_flatten_loop() {
     // `xss.flatMap(xs => xs)` (identity inner) is `flatten`, equal to the explicit
     // inner-identity-map `xss.flatMap(xs => xs.map(y => y))` and to the nested builder loop —

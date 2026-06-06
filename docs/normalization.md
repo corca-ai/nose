@@ -63,6 +63,10 @@
 > (commutative + associative; identities `0`/`1`) with the base returning that identity
 > literal; the interpreter now executes self-recursion so `nose verify` interprets the
 > pre-canon recursive form and validates the rewrite (see *Recursion → iteration* below).
+> `desugar` unwraps `ExprStmt(Return|Throw)` to the bare statement, so languages whose
+> `return`/`throw` are expressions (Rust, …) present the same bare-`Return` shape the
+> recognizer matches — recursion→iteration now fires uniformly for standalone functions in
+> those languages too (it previously fired only where returns were already bare, e.g. Python).
 > Soundness enforced by the independent interpreter oracle + canon-preservation check
 > (`nose verify`) and Lean proof obligations (`formal/obligations`, incl.
 > `NoseAlgebra.distrib_sound`, `NoseFunctor.filter_fusion`,
