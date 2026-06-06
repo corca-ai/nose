@@ -53,10 +53,11 @@ import prioritize_frontier as pf  # noqa: E402  (reuse candidate/probe defs + sc
 TOOL_VERSION = "frontier-platform/1"
 SCHEMA_VERSION = 1
 
-# The corpus is balanced at 15 repos per language across 7 languages, so "larger language
-# dominates by raw count" is an OCCURRENCE-frequency bias, not a corpus-imbalance one. The
-# platform answers it by ranking on presence breadth across these languages.
-ALL_LANGUAGES = ("c", "go", "java", "javascript", "python", "ruby", "rust", "typescript")
+# The corpus is balanced per primary language, so "larger language dominates by raw count"
+# is an OCCURRENCE-frequency bias, not a corpus-imbalance one. The platform answers it by
+# ranking on presence breadth. Both language universes used for breadth are DERIVED — the
+# ranking denominator from the corpus's `primary_language` set, the diagnostic denominator
+# from the source-file languages actually observed — never a hard-coded list (issue #44).
 
 # ---------------------------------------------------------------------------
 # Controlled vocabulary (issue #44 final decision, point 5/7).
@@ -156,8 +157,22 @@ CURATED: dict[str, dict] = {
 # and hard-negative ideas"). This is a HUMAN judgment, not auto-derived — it is recorded
 # here so the structured output is self-contained for the next team. It must be revisited
 # when a new candidate axis is added or the prioritizer's coverage changes.
+# The exact candidate-id set this human judgment was made against. `validate_conclusion`
+# fails build/selftest if prioritize_frontier's axes drift from this set, so a new or
+# removed axis cannot silently inherit a stale "no-batch" verdict.
+AUDIT_CONCLUSION_CANDIDATES = [
+    "collection_empty_check",
+    "map_default_lookup",
+    "membership_contains",
+    "null_option_presence",
+    "numeric_minmax_abs",
+    "own_property_guard",
+    "property_type_guard",
+    "string_prefix_suffix",
+]
 AUDIT_CONCLUSION = {
     "verdict": "no-implementation-ready-batch",
+    "applies_to_candidates": AUDIT_CONCLUSION_CANDIDATES,
     "generated_against": "the eight prevalence axes currently defined in prioritize_frontier.py",
     "summary": (
         "No implementation-ready real-miss batch is supported by this pass. Every "
@@ -218,11 +233,26 @@ def curated_for(candidate_id: str) -> dict:
 
 
 def validate_vocab() -> None:
-    """Fail loud if any curated value escapes the controlled vocabulary."""
+    """Fail loud if any curated value escapes the controlled vocabulary, or if any current
+    prioritizer axis has no curated review (a silent `unknown` fallback would violate the
+    'curated, not estimated' principle — issue #44 decision 5)."""
     for cid, meta in CURATED.items():
         assert meta["implementation_cost"] in IMPLEMENTATION_COST, cid
         assert meta["soundness_risk"] in SOUNDNESS_RISK, cid
         assert meta["substrate_required"] in SUBSTRATE_REQUIRED, cid
+    missing = sorted(c.candidate_id for c in pf.CANDIDATES if c.candidate_id not in CURATED)
+    assert not missing, f"axes missing curated metadata (add to CURATED): {missing}"
+
+
+def validate_conclusion() -> None:
+    """Fail loud if the prioritizer's axis set drifts from the set the curated audit
+    conclusion was written against, so a stale 'no-batch' verdict cannot be reused after a
+    new axis is added or removed (issue #44 decision 2)."""
+    current = sorted(c.candidate_id for c in pf.CANDIDATES)
+    assert current == sorted(AUDIT_CONCLUSION_CANDIDATES), (
+        "candidate axis set changed since the audit conclusion was written; revisit "
+        f"AUDIT_CONCLUSION. expected {sorted(AUDIT_CONCLUSION_CANDIDATES)}, got {current}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -245,11 +275,15 @@ def presence_scan(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
         }
         for c in pf.CANDIDATES
     }
+    # The corpus source-language universe (file-extension languages actually present), so
+    # the diagnostic source-language breadth denominator is derived, not hard-coded.
+    corpus_source_languages: set[str] = set()
 
     for repo in repos:
         repo_path = repo["path"]
         split = repo.get("split") or "unknown"
         for path, lang in pf.iter_source_files(repo_path, max_bytes):
+            corpus_source_languages.add(lang)
             try:
                 text = path.read_text(errors="ignore")
             except OSError:
@@ -312,7 +346,7 @@ def presence_scan(repos: list[dict], max_bytes: int, sample_limit: int) -> dict:
                             )
                             sample["probe_id"] = probe_spec.probe_id
                             bucket["gap_samples"].append(sample)
-    return buckets
+    return buckets, sorted(corpus_source_languages)
 
 
 # ---------------------------------------------------------------------------
@@ -322,14 +356,28 @@ def _fraction(n: int, d: int) -> float:
     return round(n / d, 4) if d else 0.0
 
 
-def breadth_metrics(bucket: dict, split_totals: dict[str, int]) -> dict:
+def breadth_metrics(
+    bucket: dict,
+    split_totals: dict[str, int],
+    corpus_primary_languages: list[str],
+    corpus_source_languages: list[str],
+) -> dict:
     repos = bucket["repos"]
     dev_repos = sorted(r for r, s in repos.items() if s["split"] == "dev")
     heldout_repos = sorted(r for r, s in repos.items() if s["split"] == "heldout")
     total_repos = sum(split_totals.values())
-    langs = sorted(bucket["languages"])
     dev_breadth = _fraction(len(dev_repos), split_totals.get("dev", 0))
     heldout_breadth = _fraction(len(heldout_repos), split_totals.get("heldout", 0))
+    # RANKING breadth: distinct *corpus primary languages* of the repos where the axis
+    # appears, over the corpus's own primary-language set (derived, not hard-coded). This is
+    # the balanced-corpus definition: a `.js` file inside a TypeScript repo does not invent a
+    # new corpus language.
+    primary_present = sorted(
+        {s["primary_language"] for s in repos.values() if s.get("primary_language")}
+    )
+    # DIAGNOSTIC: file-extension source languages where the axis matched, over the
+    # corpus-observed source-language universe. Reported, never used for ranking.
+    source_langs = sorted(bucket["languages"])
     # Generalization: an axis present on dev but absent on held-out is weaker evidence.
     if not dev_repos and not heldout_repos:
         generalization = "absent"
@@ -342,9 +390,16 @@ def breadth_metrics(bucket: dict, split_totals: dict[str, int]) -> dict:
     return {
         "repo_breadth": _fraction(len(repos), total_repos),
         "repo_presence": len(repos),
-        "language_breadth": _fraction(len(langs), len(ALL_LANGUAGES)),
-        "language_presence": len(langs),
-        "languages": langs,
+        "primary_language_breadth": _fraction(
+            len(primary_present), len(corpus_primary_languages)
+        ),
+        "primary_language_presence": len(primary_present),
+        "primary_languages": primary_present,
+        "source_language_breadth": _fraction(
+            len(source_langs), len(corpus_source_languages)
+        ),
+        "source_language_presence": len(source_langs),
+        "source_languages": source_langs,
         "dev_breadth": dev_breadth,
         "dev_presence": len(dev_repos),
         "heldout_breadth": heldout_breadth,
@@ -356,11 +411,12 @@ def breadth_metrics(bucket: dict, split_totals: dict[str, int]) -> dict:
 
 
 def presence_rank_key(metrics: dict) -> tuple:
-    """Presence-first ordering. Breadth dominates; raw occurrence is the last tiebreak so
-    it can never reorder axes that differ on breadth (issue #44 decision 3)."""
+    """Presence-first ordering. Breadth (repo + corpus primary-language) dominates; raw
+    occurrence is the last tiebreak so it can never reorder axes that differ on breadth
+    (issue #44 decision 3)."""
     return (
         metrics["repo_breadth"],
-        metrics["language_breadth"],
+        metrics["primary_language_breadth"],
         # Reward generalization to held-out over dev-only prevalence.
         1 if metrics["generalization"] == "both-splits" else 0,
         metrics["heldout_breadth"],
@@ -439,14 +495,10 @@ def detector_suggest(
         except (OSError, subprocess.TimeoutExpired) as exc:
             suggestions.append({**_sample_ref(sample), "suggestion": "error", "detail": str(exc)})
             continue
-        families = _families_on_line(proc.stdout, rel, sample.get("line"))
         suggestions.append(
             {
                 **_sample_ref(sample),
-                # A reported family overlapping the probe line => the product output
-                # likely already surfaces this location; absence => candidate miss to AUDIT.
-                "suggestion": "likely-covered" if families else "likely-miss",
-                "families_on_line": families,
+                **classify_probe(proc.returncode, proc.stdout, proc.stderr, rel, sample.get("line")),
             }
         )
     return {
@@ -465,6 +517,23 @@ def _sample_ref(sample: dict) -> dict:
         "line": sample.get("line"),
         "language": sample.get("language"),
         "probe_id": sample.get("probe_id"),
+    }
+
+
+def classify_probe(
+    returncode: int, stdout: str, stderr: str, rel: str, line: int | None
+) -> dict:
+    """Classify one scan result as a detector suggestion. A non-zero exit is a detector/CLI
+    failure, NOT a miss — recording it as `likely-miss` would pollute the triage queue with
+    crashes — so it maps to `error`. Otherwise a reported family overlapping the probe line
+    suggests the product output already surfaces it (`likely-covered`); absence is a
+    candidate miss to AUDIT (`likely-miss`). Never a finalized status."""
+    if returncode != 0:
+        return {"suggestion": "error", "detail": f"exit {returncode}: {stderr.strip()[:200]}"}
+    families = _families_on_line(stdout, rel, line)
+    return {
+        "suggestion": "likely-covered" if families else "likely-miss",
+        "families_on_line": families,
     }
 
 
@@ -549,19 +618,27 @@ def build(
     build_ref: str | None,
 ) -> dict:
     validate_vocab()
+    validate_conclusion()
     repos = pf.load_repos(corpus_path, repos_root)
     split_totals: dict[str, int] = {}
     for repo in repos:
         split_totals[repo.get("split") or "unknown"] = (
             split_totals.get(repo.get("split") or "unknown", 0) + 1
         )
-    buckets = presence_scan(repos, max_bytes, sample_limit)
+    # The corpus's own primary-language set (derived, not hard-coded) is the ranking
+    # language-breadth denominator.
+    corpus_primary_languages = sorted(
+        {r["primary_language"] for r in repos if r.get("primary_language")}
+    )
+    buckets, corpus_source_languages = presence_scan(repos, max_bytes, sample_limit)
     evidence = load_frontier_evidence(real_frontier)
 
     candidates_out = []
     for candidate in pf.CANDIDATES:
         bucket = buckets[candidate.candidate_id]
-        metrics = breadth_metrics(bucket, split_totals)
+        metrics = breadth_metrics(
+            bucket, split_totals, corpus_primary_languages, corpus_source_languages
+        )
         curated = curated_for(candidate.candidate_id)
         records = evidence.get(candidate.candidate_id, [])
         # evidence_tier: pattern-signal by default; upgrade if human evidence exists.
@@ -618,6 +695,8 @@ def build(
         "candidate_signature": pf.candidate_signature(),
         "corpus": corpus_identity(corpus_path),
         "split_totals": dict(sorted(split_totals.items())),
+        "corpus_primary_languages": corpus_primary_languages,
+        "corpus_source_languages": corpus_source_languages,
         "repos_root": str(repos_root),
         "max_bytes_per_file": max_bytes,
         "nose_binary": nose_identity(nose_binary) if nose_binary is not None else None,
@@ -626,7 +705,8 @@ def build(
         "schema_version": SCHEMA_VERSION,
         "tool_version": TOOL_VERSION,
         "identity": identity,
-        "languages": list(ALL_LANGUAGES),
+        "primary_languages": corpus_primary_languages,
+        "source_languages": corpus_source_languages,
         "audit_conclusion": AUDIT_CONCLUSION,
         "candidates": candidates_out,
         "vocabulary": {
@@ -688,7 +768,7 @@ def markdown_report(result: dict) -> str:
         "",
         "Breadth is the headline; raw occurrence is shown but never drives the rank.",
         "",
-        "| rank | axis | category | evidence tier | repo breadth | lang breadth | dev | heldout | generalization | cost | risk | substrate | human evidence | raw occ |",
+        "| rank | axis | category | evidence tier | repo breadth | primary-lang breadth | dev | heldout | generalization | cost | risk | substrate | human evidence | raw occ |",
         "|---:|---|---|---|---:|---:|---:|---:|---|---|---|---|---|---:|",
     ]
     for c in result["candidates"]:
@@ -705,8 +785,8 @@ def markdown_report(result: dict) -> str:
                 tier=c["evidence_tier"],
                 rb=b["repo_breadth"],
                 rp=b["repo_presence"],
-                lb=b["language_breadth"],
-                lp=b["language_presence"],
+                lb=b["primary_language_breadth"],
+                lp=b["primary_language_presence"],
                 db=b["dev_breadth"],
                 dp=b["dev_presence"],
                 hb=b["heldout_breadth"],
@@ -729,7 +809,9 @@ def markdown_report(result: dict) -> str:
             f"**{c['evidence_tier']}** · prioritizer status: `{c['prioritizer_status']}`"
         )
         lines.append(
-            f"- presence: {b['repo_presence']} repos / {b['language_presence']} langs · "
+            f"- presence: {b['repo_presence']} repos / {b['primary_language_presence']} "
+            f"primary langs ({', '.join(b['primary_languages'])}) · "
+            f"source langs {', '.join(b['source_languages'])} · "
             f"dev {b['dev_presence']} · heldout {b['heldout_presence']} · {b['generalization']}"
         )
         lines.append(
@@ -758,7 +840,8 @@ def selftest() -> int:
     """Corpus-free correctness checks. The live detector probe legitimately finds zero
     gaps on the current mature axes, so the gap/family logic is proven here on synthetic
     inputs instead."""
-    validate_vocab()
+    validate_vocab()  # also asserts every current axis is curated (no silent `unknown`)
+    validate_conclusion()  # asserts the axis set matches the curated conclusion
     # Every curated axis routes a recommendation category and a known substrate value.
     for c in pf.CANDIDATES:
         assert SCOPE_TO_CATEGORY.get(c.scope, c.scope) in RECOMMENDATION_CATEGORY, c.candidate_id
@@ -766,24 +849,33 @@ def selftest() -> int:
 
     # Presence ranking: breadth dominates raw occurrence. A wide-breadth/low-raw axis must
     # outrank a narrow-breadth/huge-raw axis.
-    wide = {"repo_breadth": 0.9, "language_breadth": 0.8, "generalization": "both-splits",
+    wide = {"repo_breadth": 0.9, "primary_language_breadth": 0.8, "generalization": "both-splits",
             "heldout_breadth": 0.9, "raw_occurrences": 10}
-    narrow = {"repo_breadth": 0.2, "language_breadth": 0.2, "generalization": "dev-only",
+    narrow = {"repo_breadth": 0.2, "primary_language_breadth": 0.2, "generalization": "dev-only",
               "heldout_breadth": 0.0, "raw_occurrences": 10_000_000}
     assert presence_rank_key(wide) > presence_rank_key(narrow), "breadth must beat raw count"
 
-    # Generalization classification.
+    # Breadth metrics: corpus-derived primary-language denominator, source-language is a
+    # separate diagnostic, and generalization classification.
     totals = {"dev": 2, "heldout": 2}
+    primary = ["go", "java", "python", "rust"]  # 4 corpus primary languages
+    source = ["go", "java", "javascript", "python", "rust", "typescript"]
+    # A Go-primary repo whose axis also matched .js/.ts source files: primary breadth counts
+    # ONE primary language (go), NOT the source-file languages.
     dev_only = breadth_metrics(
-        {"repos": {"a": {"split": "dev", "langs": {"go"}, "raw": 1}}, "languages": {"go"},
-         "gap_repos": set()}, totals)
+        {"repos": {"a": {"split": "dev", "primary_language": "go", "langs": {"go"}, "raw": 1}},
+         "languages": {"go", "javascript"}, "gap_repos": set()}, totals, primary, source)
     assert dev_only["generalization"] == "dev-only", dev_only["generalization"]
+    assert dev_only["primary_language_presence"] == 1, "one primary language (go)"
+    assert dev_only["primary_language_breadth"] == round(1 / 4, 4), "denominator = corpus primaries"
+    assert dev_only["source_language_presence"] == 2, "source langs are a separate diagnostic"
     both = breadth_metrics(
-        {"repos": {"a": {"split": "dev", "langs": {"go"}, "raw": 1},
-                   "b": {"split": "heldout", "langs": {"go"}, "raw": 1}},
-         "languages": {"go"}, "gap_repos": set()}, totals)
+        {"repos": {"a": {"split": "dev", "primary_language": "go", "langs": {"go"}, "raw": 1},
+                   "b": {"split": "heldout", "primary_language": "java", "langs": {"java"}, "raw": 1}},
+         "languages": {"go", "java"}, "gap_repos": set()}, totals, primary, source)
     assert both["generalization"] == "both-splits"
     assert both["dev_breadth"] == 0.5 and both["heldout_breadth"] == 0.5
+    assert both["primary_language_presence"] == 2
 
     # Family-on-line detection (the detector-suggested probe's covered/miss kernel).
     report = json.dumps({"families": [{"locations": [
@@ -792,6 +884,13 @@ def selftest() -> int:
     assert _families_on_line(report, "src/x.go", 99) == 0, "non-overlapping line => miss"
     assert _families_on_line("", "src/x.go", 11) == 0, "no families => miss"
     assert _families_on_line("not json", "src/x.go", 11) == 0, "bad json => miss, no crash"
+
+    # Probe classification: a non-zero exit is `error`, never `likely-miss` (must not
+    # pollute the triage queue with detector crashes).
+    assert classify_probe(0, report, "", "src/x.go", 11)["suggestion"] == "likely-covered"
+    assert classify_probe(0, "", "", "src/x.go", 11)["suggestion"] == "likely-miss"
+    assert classify_probe(3, "", "boom", "src/x.go", 11)["suggestion"] == "error"
+    assert classify_probe(101, "partial", "panic", "src/x.go", 11)["suggestion"] == "error"
 
     # The audit conclusion is self-contained for the next team.
     for key in ("verdict", "summary", "evidence_pointers", "hard_negative_ideas",

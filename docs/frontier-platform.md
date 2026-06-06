@@ -33,7 +33,11 @@ is therefore **breadth**, and raw occurrence is reported but is only the last ti
 it can never reorder axes that differ on breadth:
 
 - **repo presence breadth** — how many of the 105 repos exhibit the axis;
-- **language breadth** — how many languages exhibit it;
+- **primary-language breadth** — how many of the corpus's primary languages exhibit it. The
+  denominator is **derived** from `corpus.json`'s `primary_language` set (7 languages), not
+  a hard-coded list — so a `.js` file inside a TypeScript repo cannot invent a new corpus
+  language. The file-extension `source_language_breadth` is kept as a separate *diagnostic*
+  (denominator = the source languages actually observed) and never drives the ranking;
 - **dev vs held-out generalization** — the 58/47 dev/held-out split is reported separately;
   `dev` drives ranking/triage, held-out is a generalization check, and a `dev-only` axis is
   marked as weaker evidence.
