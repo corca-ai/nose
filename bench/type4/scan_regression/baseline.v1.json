@@ -1,0 +1,4394 @@
+{
+  "binary": {
+    "binary_path": "/Users/ak/prjs/cc/nose/target/release/nose",
+    "build_ref": "main@0b57dd2",
+    "sha256": "c675b831b24dfed2942f64ca58764cf8e83d11a5e9139877aa30ea7988bb11f3",
+    "size_bytes": 13510272,
+    "source_dirty": true,
+    "source_git_describe": "v0.5.0-160-g0b57dd2",
+    "source_git_sha": "0b57dd25a0e6cdb6f2742abad82585ca8c517e38",
+    "version": "nose 0.5.0"
+  },
+  "generated_by": "bench/type4/scan_regression/scan_regression.py baseline",
+  "repos": {
+    "boltons": {
+      "output": {
+        "families": {
+          "035ced71b6f8ba13": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/urlutils.py:797-798:Method",
+              "boltons/urlutils.py:800-801:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "03d2d8fa69cdba93": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "boltons/dictutils.py:370-372:Method",
+              "boltons/setutils.py:376-378:Method",
+              "boltons/urlutils.py:1276-1278:Method"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "09122b30575e2943": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/excutils.py:185-186:Method",
+              "boltons/tbutils.py:194-195:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "1359d9d1ebbe4382": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:183-190:Method",
+              "boltons/urlutils.py:1089-1096:Method"
+            ],
+            "mean_lines": 8,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "154f9b8d2e6622d0": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:270-274:Method",
+              "boltons/urlutils.py:1176-1180:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "169fc2751f7cbb83": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/strutils.py:196-197:Block",
+              "boltons/timeutils.py:188-189:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "1afd83f1d3028c11": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/setutils.py:345-346:Block",
+              "boltons/tableutils.py:279-280:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "25404dd563cb525d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_ioutils.py:198-198:Block",
+              "tests/test_ioutils.py:287-287:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "2b181a376aafb15d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_mathutils.py:58-58:Block",
+              "tests/test_mathutils.py:60-60:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "2d288a112d0381e5": {
+            "files": 1,
+            "kinds": {
+              "Block": 16
+            },
+            "languages": 1,
+            "location_count": 16,
+            "locations": [
+              "tests/test_ioutils.py:104-104:Block",
+              "tests/test_ioutils.py:111-111:Block",
+              "tests/test_ioutils.py:119-119:Block",
+              "tests/test_ioutils.py:124-124:Block",
+              "tests/test_ioutils.py:262-262:Block",
+              "tests/test_ioutils.py:268-268:Block",
+              "tests/test_ioutils.py:279-279:Block",
+              "tests/test_ioutils.py:30-30:Block",
+              "tests/test_ioutils.py:347-347:Block",
+              "tests/test_ioutils.py:35-35:Block",
+              "tests/test_ioutils.py:352-352:Block",
+              "tests/test_ioutils.py:362-362:Block",
+              "tests/test_ioutils.py:379-379:Block",
+              "tests/test_ioutils.py:393-393:Block",
+              "tests/test_ioutils.py:89-89:Block",
+              "tests/test_ioutils.py:96-96:Block"
+            ],
+            "mean_lines": 1,
+            "members": 16,
+            "span_bucket": "1"
+          },
+          "3a2a6ffa1e3c0583": {
+            "files": 3,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "boltons/cacheutils.py:314-315:Block",
+              "boltons/dictutils.py:339-340:Block",
+              "boltons/urlutils.py:1245-1246:Block"
+            ],
+            "mean_lines": 2,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "3bdb77ca7bbc9da2": {
+            "files": 1,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_funcutils_fb_py3.py:34-35:Function",
+              "tests/test_funcutils_fb_py3.py:43-44:Function"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "40d88f278be4151a": {
+            "files": 2,
+            "kinds": {
+              "Function": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "tests/test_funcutils_fb.py:115-116:Function",
+              "tests/test_funcutils_fb.py:16-17:Function",
+              "tests/test_funcutils_fb.py:20-21:Function",
+              "tests/test_funcutils_fb_py3.py:12-13:Function",
+              "tests/test_funcutils_fb_py3.py:16-17:Function"
+            ],
+            "mean_lines": 2,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "4e9bee3933d56cc0": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:179-181:Method",
+              "boltons/urlutils.py:1085-1087:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "593d6754bfbf39a9": {
+            "files": 2,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_funcutils_fb.py:49-50:Function",
+              "tests/test_funcutils_fb_py3.py:53-54:Function"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "5b9496b72cc39b98": {
+            "files": 2,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "boltons/cacheutils.py:248-253:Method",
+              "boltons/cacheutils.py:287-294:Method",
+              "boltons/cacheutils.py:790-795:Method",
+              "boltons/dictutils.py:920-924:Method"
+            ],
+            "mean_lines": 6,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "60688b6f70d6a2cf": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/iterutils.py:524-528:Block",
+              "boltons/iterutils.py:551-555:Block"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "6c464dc939c4688a": {
+            "files": 4,
+            "kinds": {
+              "Block": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "boltons/cacheutils.py:505-506:Block",
+              "boltons/cacheutils.py:631-632:Block",
+              "boltons/fileutils.py:123-124:Block",
+              "boltons/statsutils.py:145-146:Block",
+              "boltons/urlutils.py:408-409:Block"
+            ],
+            "mean_lines": 2,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "71b8c3c1a4d7f129": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_funcutils.py:86-86:Block",
+              "tests/test_funcutils.py:87-87:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "769b4d666f1ff64f": {
+            "files": 1,
+            "kinds": {
+              "Block": 18
+            },
+            "languages": 1,
+            "location_count": 18,
+            "locations": [
+              "boltons/ioutils.py:107-107:Block",
+              "boltons/ioutils.py:147-147:Block",
+              "boltons/ioutils.py:151-151:Block",
+              "boltons/ioutils.py:178-178:Block",
+              "boltons/ioutils.py:194-194:Block",
+              "boltons/ioutils.py:211-211:Block",
+              "boltons/ioutils.py:228-228:Block",
+              "boltons/ioutils.py:232-232:Block",
+              "boltons/ioutils.py:299-299:Block",
+              "boltons/ioutils.py:303-303:Block",
+              "boltons/ioutils.py:314-314:Block",
+              "boltons/ioutils.py:318-318:Block",
+              "boltons/ioutils.py:363-363:Block",
+              "boltons/ioutils.py:390-390:Block",
+              "boltons/ioutils.py:396-396:Block",
+              "boltons/ioutils.py:435-435:Block",
+              "boltons/ioutils.py:458-458:Block",
+              "boltons/ioutils.py:493-493:Block"
+            ],
+            "mean_lines": 1,
+            "members": 18,
+            "span_bucket": "1"
+          },
+          "89ad4866b293d864": {
+            "files": 3,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "boltons/listutils.py:220-221:Method",
+              "boltons/mathutils.py:224-225:Method",
+              "boltons/mathutils.py:228-229:Method",
+              "boltons/setutils.py:229-231:Method"
+            ],
+            "mean_lines": 2,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "8ad614c6b9423a4a": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/cacheutils.py:630-634:Method",
+              "boltons/urlutils.py:407-411:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "8b47deb4ad53deb5": {
+            "files": 4,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "boltons/cacheutils.py:322-323:Method",
+              "boltons/dictutils.py:367-368:Method",
+              "boltons/tbutils.py:197-198:Method",
+              "boltons/urlutils.py:1273-1274:Method",
+              "boltons/urlutils.py:809-810:Method"
+            ],
+            "mean_lines": 2,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "8df3bc9063daf33e": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/statsutils.py:189-190:Method",
+              "boltons/statsutils.py:227-235:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "8ef1a07e9701d76d": {
+            "files": 1,
+            "kinds": {
+              "Block": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "tests/test_ioutils.py:197-197:Block",
+              "tests/test_ioutils.py:286-286:Block",
+              "tests/test_ioutils.py:296-296:Block",
+              "tests/test_ioutils.py:427-427:Block",
+              "tests/test_ioutils.py:435-435:Block",
+              "tests/test_ioutils.py:441-441:Block"
+            ],
+            "mean_lines": 1,
+            "members": 6,
+            "span_bucket": "1"
+          },
+          "96f1b3fe9118e3d5": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_dictutils.py:342-342:Block",
+              "tests/test_dictutils.py:347-347:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "9880e73fe2bed29c": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:253-253:Block",
+              "boltons/urlutils.py:1159-1159:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "9a906bf70b34f489": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/ioutils.py:227-229:Method",
+              "boltons/ioutils.py:231-233:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "b37823b37eb2ac9c": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:609-610:Method",
+              "boltons/urlutils.py:1515-1516:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "b922c72600fe2699": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "tests/test_ioutils.py:373-373:Block",
+              "tests/test_ioutils.py:409-409:Block",
+              "tests/test_ioutils.py:419-419:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "ba38e413ef4741f1": {
+            "files": 1,
+            "kinds": {
+              "Block": 7
+            },
+            "languages": 1,
+            "location_count": 7,
+            "locations": [
+              "tests/test_dictutils.py:336-336:Block",
+              "tests/test_dictutils.py:344-344:Block",
+              "tests/test_dictutils.py:349-349:Block",
+              "tests/test_dictutils.py:353-353:Block",
+              "tests/test_dictutils.py:356-356:Block",
+              "tests/test_dictutils.py:359-359:Block",
+              "tests/test_dictutils.py:366-366:Block"
+            ],
+            "mean_lines": 1,
+            "members": 7,
+            "span_bucket": "1"
+          },
+          "bd0529f848af4fbf": {
+            "files": 2,
+            "kinds": {
+              "Block": 1,
+              "Function": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/iterutils.py:1043-1045:Function",
+              "tests/test_iterutils.py:161-161:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "c5aa52547243ddd3": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "tests/test_funcutils.py:100-100:Block",
+              "tests/test_funcutils.py:101-101:Block",
+              "tests/test_funcutils.py:99-99:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "c903bc32180a6800": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:265-267:Method",
+              "boltons/urlutils.py:1171-1173:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "c95f50ab8afe4b3b": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_cacheutils.py:311-312:Method",
+              "tests/test_cacheutils.py:372-373:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "d27928b053725f80": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:475-482:Method",
+              "boltons/urlutils.py:1381-1388:Method"
+            ],
+            "mean_lines": 8,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "d887328f7d9b1297": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/ecoutils.py:421-454:Block",
+              "boltons/strutils.py:836-869:Block"
+            ],
+            "mean_lines": 34,
+            "members": 2,
+            "span_bucket": "31+"
+          },
+          "e184feb66f864701": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/cacheutils.py:236-243:Block",
+              "boltons/cacheutils.py:368-375:Block"
+            ],
+            "mean_lines": 8,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "f346c4229c5a16c8": {
+            "files": 1,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/test_funcutils_fb_py3.py:239-240:Function",
+              "tests/test_funcutils_fb_py3.py:242-243:Function"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "f779e38bda4e7308": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "boltons/dictutils.py:564-579:Method",
+              "boltons/urlutils.py:1470-1485:Method"
+            ],
+            "mean_lines": 16,
+            "members": 2,
+            "span_bucket": "11-30"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 94,
+          "Function": 12,
+          "Method": 42
+        },
+        "languages": {
+          "javascript": 1,
+          "python": 64
+        },
+        "product_json_bytes": 34278,
+        "reason_code_counts": {},
+        "scope_files": 65,
+        "shown_families": 45,
+        "span_buckets": {
+          "1": 13,
+          "11-30": 1,
+          "2-3": 21,
+          "31+": 1,
+          "4-10": 9
+        },
+        "total_families": 45
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 2.1,
+          "cluster": 0.1,
+          "contiguous": 0.0,
+          "discover": 3.4,
+          "groups": 0.1,
+          "lower": 12.6,
+          "normalize+extract": 9.1,
+          "parse+lower": 9.3,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 36.31,
+        "wall_ms_min": 35.64
+      }
+    },
+    "chi": {
+      "output": {
+        "families": {
+          "ca51bb0562429ee1": {
+            "files": 4,
+            "kinds": {
+              "Block": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "middleware/content_charset_test.go:114-114:Block",
+              "middleware/content_charset_test.go:12-12:Block",
+              "middleware/content_charset_test.go:95-95:Block",
+              "middleware/content_encoding_test.go:13-13:Block",
+              "middleware/content_type_test.go:13-13:Block",
+              "mux_test.go:735-735:Block"
+            ],
+            "mean_lines": 1,
+            "members": 6,
+            "span_bucket": "1"
+          },
+          "e06bd5073ff3165d": {
+            "files": 2,
+            "kinds": {
+              "Block": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "middleware/client_ip_test.go:705-705:Block",
+              "middleware/client_ip_test.go:721-721:Block",
+              "middleware/middleware_test.go:136-136:Block",
+              "middleware/middleware_test.go:143-143:Block",
+              "middleware/middleware_test.go:150-150:Block"
+            ],
+            "mean_lines": 1,
+            "members": 5,
+            "span_bucket": "1"
+          },
+          "f4b302b0431dda7e": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "middleware/throttle_test.go:325-325:Block",
+              "tree_test.go:503-503:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 15
+        },
+        "languages": {
+          "go": 78
+        },
+        "product_json_bytes": 3331,
+        "reason_code_counts": {},
+        "scope_files": 78,
+        "shown_families": 4,
+        "span_buckets": {
+          "1": 4
+        },
+        "total_families": 4
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 1.0,
+          "cluster": 0.0,
+          "contiguous": 0.0,
+          "discover": 3.4,
+          "groups": 0.0,
+          "lower": 13.5,
+          "normalize+extract": 7.7,
+          "parse+lower": 10.0,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 32.59,
+        "wall_ms_min": 30.96
+      }
+    },
+    "cmark": {
+      "output": {
+        "families": {
+          "07ff5a2e5559b61d": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/inlines.c:886-888:Block",
+              "src/references.c:29-30:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "14532204e017ad89": {
+            "files": 1,
+            "kinds": {
+              "Block": 17
+            },
+            "languages": 1,
+            "location_count": 17,
+            "locations": [
+              "src/node.c:296-298:Block",
+              "src/node.c:324-326:Block",
+              "src/node.c:345-347:Block",
+              "src/node.c:394-396:Block",
+              "src/node.c:423-425:Block",
+              "src/node.c:436-438:Block",
+              "src/node.c:461-463:Block",
+              "src/node.c:473-475:Block",
+              "src/node.c:498-500:Block",
+              "src/node.c:527-529:Block",
+              "src/node.c:560-562:Block",
+              "src/node.c:593-595:Block",
+              "src/node.c:626-628:Block",
+              "src/node.c:643-645:Block",
+              "src/node.c:650-652:Block",
+              "src/node.c:657-659:Block",
+              "src/node.c:664-666:Block"
+            ],
+            "mean_lines": 3,
+            "members": 17,
+            "span_bucket": "2-3"
+          },
+          "3ed904d78dc62ac4": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "src/scanners.c:107-131:Block",
+              "src/scanners.c:853-877:Block",
+              "src/scanners.c:887-911:Block"
+            ],
+            "mean_lines": 25,
+            "members": 3,
+            "span_bucket": "11-30"
+          },
+          "56f2afdc54bbc0eb": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/scanners.c:56-78:Block",
+              "src/scanners.c:802-824:Block"
+            ],
+            "mean_lines": 23,
+            "members": 2,
+            "span_bucket": "11-30"
+          },
+          "6e52f597aa678c5d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/commonmark.c:102-112:Block",
+              "src/commonmark.c:81-91:Block"
+            ],
+            "mean_lines": 11,
+            "members": 2,
+            "span_bucket": "11-30"
+          },
+          "81828b85512614ef": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "test/normalize.py:81-83:Method",
+              "test/normalize.py:84-86:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "8c8751b63144e449": {
+            "files": 1,
+            "kinds": {
+              "Block": 60
+            },
+            "languages": 1,
+            "location_count": 60,
+            "locations": [
+              "src/scanners.c:1642-1669:Block",
+              "src/scanners.c:1749-1776:Block",
+              "src/scanners.c:1800-1827:Block",
+              "src/scanners.c:1851-1878:Block",
+              "src/scanners.c:1902-1929:Block",
+              "src/scanners.c:1953-1980:Block",
+              "src/scanners.c:2004-2031:Block",
+              "src/scanners.c:2055-2082:Block",
+              "src/scanners.c:2106-2133:Block",
+              "src/scanners.c:2157-2184:Block",
+              "src/scanners.c:2208-2235:Block",
+              "src/scanners.c:2259-2286:Block",
+              "src/scanners.c:2310-2337:Block",
+              "src/scanners.c:2361-2388:Block",
+              "src/scanners.c:2412-2439:Block",
+              "src/scanners.c:2463-2490:Block",
+              "src/scanners.c:2514-2541:Block",
+              "src/scanners.c:2565-2592:Block",
+              "src/scanners.c:2616-2643:Block",
+              "src/scanners.c:2667-2694:Block",
+              "src/scanners.c:2718-2745:Block",
+              "src/scanners.c:2769-2796:Block",
+              "src/scanners.c:2820-2847:Block",
+              "src/scanners.c:2871-2898:Block",
+              "src/scanners.c:2922-2949:Block",
+              "src/scanners.c:2973-3000:Block",
+              "src/scanners.c:3024-3051:Block",
+              "src/scanners.c:3075-3102:Block",
+              "src/scanners.c:3126-3153:Block",
+              "src/scanners.c:3177-3204:Block",
+              "src/scanners.c:3228-3255:Block",
+              "src/scanners.c:3279-3306:Block",
+              "src/scanners.c:3330-3357:Block",
+              "src/scanners.c:3381-3408:Block",
+              "src/scanners.c:3432-3459:Block",
+              "src/scanners.c:3483-3510:Block",
+              "src/scanners.c:3534-3561:Block",
+              "src/scanners.c:3585-3612:Block",
+              "src/scanners.c:3636-3663:Block",
+              "src/scanners.c:3687-3714:Block",
+              "src/scanners.c:3738-3765:Block",
+              "src/scanners.c:3789-3816:Block",
+              "src/scanners.c:3840-3867:Block",
+              "src/scanners.c:3891-3918:Block",
+              "src/scanners.c:3942-3969:Block",
+              "src/scanners.c:3993-4020:Block",
+              "src/scanners.c:4044-4071:Block",
+              "src/scanners.c:4095-4122:Block",
+              "src/scanners.c:4146-4173:Block",
+              "src/scanners.c:4197-4224:Block",
+              "src/scanners.c:4248-4275:Block",
+              "src/scanners.c:4299-4326:Block",
+              "src/scanners.c:4350-4377:Block",
+              "src/scanners.c:4401-4428:Block",
+              "src/scanners.c:4452-4479:Block",
+              "src/scanners.c:4503-4530:Block",
+              "src/scanners.c:4554-4581:Block",
+              "src/scanners.c:4605-4632:Block",
+              "src/scanners.c:4656-4683:Block",
+              "src/scanners.c:4707-4734:Block"
+            ],
+            "mean_lines": 28,
+            "members": 60,
+            "span_bucket": "11-30"
+          },
+          "999f58baedd99259": {
+            "files": 2,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/blocks.c:58-60:Function",
+              "src/inlines.c:73-75:Function"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "aed2e20ae6bb1b77": {
+            "files": 2,
+            "kinds": {
+              "Block": 13
+            },
+            "languages": 1,
+            "location_count": 13,
+            "locations": [
+              "src/iterator.c:16-18:Block",
+              "src/node.c:228-230:Block",
+              "src/node.c:236-238:Block",
+              "src/node.c:244-246:Block",
+              "src/node.c:252-254:Block",
+              "src/node.c:260-262:Block",
+              "src/node.c:288-290:Block",
+              "src/node.c:304-306:Block",
+              "src/node.c:486-488:Block",
+              "src/node.c:511-513:Block",
+              "src/node.c:544-546:Block",
+              "src/node.c:577-579:Block",
+              "src/node.c:610-612:Block"
+            ],
+            "mean_lines": 3,
+            "members": 13,
+            "span_bucket": "2-3"
+          },
+          "c0b9100e89691498": {
+            "files": 1,
+            "kinds": {
+              "Block": 55
+            },
+            "languages": 1,
+            "location_count": 55,
+            "locations": [
+              "src/scanners.c:1007-1027:Block",
+              "src/scanners.c:1029-1049:Block",
+              "src/scanners.c:1051-1071:Block",
+              "src/scanners.c:1073-1093:Block",
+              "src/scanners.c:1095-1115:Block",
+              "src/scanners.c:1117-1137:Block",
+              "src/scanners.c:1139-1159:Block",
+              "src/scanners.c:1161-1181:Block",
+              "src/scanners.c:1183-1203:Block",
+              "src/scanners.c:1205-1225:Block",
+              "src/scanners.c:1227-1247:Block",
+              "src/scanners.c:1249-1269:Block",
+              "src/scanners.c:1271-1291:Block",
+              "src/scanners.c:1293-1313:Block",
+              "src/scanners.c:1315-1335:Block",
+              "src/scanners.c:1337-1357:Block",
+              "src/scanners.c:1359-1379:Block",
+              "src/scanners.c:1381-1401:Block",
+              "src/scanners.c:139-159:Block",
+              "src/scanners.c:1403-1423:Block",
+              "src/scanners.c:1425-1445:Block",
+              "src/scanners.c:1447-1467:Block",
+              "src/scanners.c:1469-1489:Block",
+              "src/scanners.c:1491-1511:Block",
+              "src/scanners.c:161-181:Block",
+              "src/scanners.c:183-203:Block",
+              "src/scanners.c:205-225:Block",
+              "src/scanners.c:227-247:Block",
+              "src/scanners.c:249-269:Block",
+              "src/scanners.c:271-291:Block",
+              "src/scanners.c:293-313:Block",
+              "src/scanners.c:315-335:Block",
+              "src/scanners.c:337-357:Block",
+              "src/scanners.c:359-379:Block",
+              "src/scanners.c:381-401:Block",
+              "src/scanners.c:403-423:Block",
+              "src/scanners.c:425-445:Block",
+              "src/scanners.c:447-467:Block",
+              "src/scanners.c:469-489:Block",
+              "src/scanners.c:491-511:Block",
+              "src/scanners.c:513-533:Block",
+              "src/scanners.c:535-555:Block",
+              "src/scanners.c:557-577:Block",
+              "src/scanners.c:579-599:Block",
+              "src/scanners.c:601-621:Block",
+              "src/scanners.c:623-643:Block",
+              "src/scanners.c:645-665:Block",
+              "src/scanners.c:667-687:Block",
+              "src/scanners.c:689-709:Block",
+              "src/scanners.c:711-731:Block",
+              "src/scanners.c:733-753:Block",
+              "src/scanners.c:919-939:Block",
+              "src/scanners.c:941-961:Block",
+              "src/scanners.c:963-983:Block",
+              "src/scanners.c:985-1005:Block"
+            ],
+            "mean_lines": 21,
+            "members": 55,
+            "span_bucket": "11-30"
+          },
+          "e2b22ec2f4a3d261": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "src/node.c:10-12:Block",
+              "src/node.c:18-20:Block",
+              "src/node.c:26-28:Block"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "edad5a96b53b3d55": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/buffer.c:149-150:Block",
+              "src/buffer.c:165-166:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "eed545bcba0b160d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/node.c:161-161:Block",
+              "src/node.c:696-696:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "eeda5a70bb167c05": {
+            "files": 3,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "src/iterator.c:91-93:Block",
+              "src/node.c:672-674:Block",
+              "src/node.c:826-828:Block",
+              "src/references.c:152-153:Block"
+            ],
+            "mean_lines": 2,
+            "members": 4,
+            "span_bucket": "2-3"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 171,
+          "Function": 2,
+          "Method": 2
+        },
+        "languages": {
+          "c": 38,
+          "python": 12,
+          "ruby": 1
+        },
+        "product_json_bytes": 28070,
+        "reason_code_counts": {},
+        "scope_files": 51,
+        "shown_families": 17,
+        "span_buckets": {
+          "1": 1,
+          "11-30": 6,
+          "2-3": 10
+        },
+        "total_families": 17
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 1.4,
+          "cluster": 0.1,
+          "contiguous": 0.0,
+          "discover": 3.5,
+          "groups": 0.1,
+          "lower": 22.1,
+          "normalize+extract": 21.4,
+          "parse+lower": 17.3,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 56.63,
+        "wall_ms_min": 55.11
+      }
+    },
+    "gin": {
+      "output": {
+        "families": {
+          "9e2d5843f9815bab": {
+            "files": 4,
+            "kinds": {
+              "Block": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "benchmarks_test.go:155-155:Block",
+              "binding/default_validator_benchmark_test.go:20-20:Block",
+              "path_test.go:138-138:Block",
+              "path_test.go:95-95:Block",
+              "recovery_test.go:365-365:Block"
+            ],
+            "mean_lines": 1,
+            "members": 5,
+            "span_bucket": "1"
+          },
+          "d320a8d17ac1444d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "binding/form_mapping_benchmark_test.go:40-40:Block",
+              "binding/form_mapping_benchmark_test.go:63-63:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "f1f06e0a3e1f4bd5": {
+            "files": 2,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "binding/binding.go:122-127:Function",
+              "binding/binding_nomsgpack.go:116-121:Function"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 7,
+          "Function": 2
+        },
+        "languages": {
+          "go": 98
+        },
+        "product_json_bytes": 2259,
+        "reason_code_counts": {},
+        "scope_files": 98,
+        "shown_families": 3,
+        "span_buckets": {
+          "1": 2,
+          "4-10": 1
+        },
+        "total_families": 3
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 1.8,
+          "cluster": 0.1,
+          "contiguous": 0.0,
+          "discover": 4.9,
+          "groups": 0.0,
+          "lower": 19.5,
+          "normalize+extract": 14.1,
+          "parse+lower": 15.0,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 48.33,
+        "wall_ms_min": 46.19
+      }
+    },
+    "junit5": {
+      "output": {
+        "families": {
+          "0061affc2b1634aa": {
+            "files": 2,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/Validatable.java:41-41:Block",
+              "junit-vintage-engine/src/test/java/org/junit/vintage/engine/VintageLauncherIntegrationTests.java:161-161:Block",
+              "junit-vintage-engine/src/test/java/org/junit/vintage/engine/VintageLauncherIntegrationTests.java:182-182:Block",
+              "junit-vintage-engine/src/test/java/org/junit/vintage/engine/VintageLauncherIntegrationTests.java:204-204:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "00e4854a5da8c886": {
+            "files": 4,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedTestCase.java:37-40:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedTimingTestCase.java:63-66:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithAfterParamFailureTestCase.java:44-47:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithBeforeParamFailureTestCase.java:44-47:Method"
+            ],
+            "mean_lines": 4,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "04893465a08b8d2f": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertTrueAssertionsTests.java:31-31:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertTrueAssertionsTests.java:41-44:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "04ac27633df94afe": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:511-515:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:517-521:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:523-528:Method"
+            ],
+            "mean_lines": 5,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "0533a93cf66403dd": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/MediaType.java:104-106:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/MediaType.java:97-99:Method",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/core/LauncherDiscoveryResult.java:105-108:Method"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "05397bdd7e4795f1": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/OrderedMethodTests.java:445-449:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/OrderedMethodTests.java:493-497:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/OrderedMethodTests.java:648-652:Method"
+            ],
+            "mean_lines": 5,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "05c8eb7c0759118a": {
+            "files": 4,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4TestCaseWithAssumptionFailureInBeforeClass.java:29-32:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4TestCaseWithErrorInBeforeClass.java:28-31:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/MalformedJUnit4TestCase.java:22-26:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithFiveTestMethods.java:45-50:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithFiveTestMethods.java:52-57:Method"
+            ],
+            "mean_lines": 5,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "05f810d780f53209": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/ParallelExecutionIntegrationTests.java:1051-1051:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/ParallelExecutionIntegrationTests.java:1060-1060:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "067dd79aa87ff4b0": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "documentation/src/tools/java/org/junit/api/tools/AsciidocApiReportWriter.java:46-49:Method",
+              "documentation/src/tools/java/org/junit/api/tools/MarkdownApiReportWriter.java:47-50:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:297-299:Method"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "0754452f80eeb805": {
+            "files": 3,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-platform-console/src/main/java/org/junit/platform/console/command/BaseCommand.java:102-102:Block",
+              "junit-platform-console/src/main/java/org/junit/platform/console/command/ConsoleTestExecutor.java:123-123:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/listeners/MutableTestExecutionSummary.java:196-196:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "08121be41aed3cb7": {
+            "files": 16,
+            "kinds": {
+              "Block": 1,
+              "Method": 17
+            },
+            "languages": 1,
+            "location_count": 18,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/discovery/ClassSelectorResolver.java:325-327:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/execution/ExtensionContextSupplier.java:38-38:Block",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/provider/CsvFileArgumentsProvider.java:102-105:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/io/Resource.java:43-45:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/support/scanning/ClassFilter.java:47-49:Method",
+              "junit-platform-console/src/main/java/org/junit/platform/console/command/CommandResult.java:29-31:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/DiscoverySelectorIdentifier.java:45-47:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/FilePosition.java:66-68:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/reporting/FileEntry.java:45-47:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClassSource.java:75-77:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClassSource.java:95-97:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClasspathResourceSource.java:83-85:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/FilePosition.java:61-63:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/FileSource.java:59-61:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/MethodSource.java:105-108:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/MethodSource.java:51-53:Method",
+              "junit-vintage-engine/src/main/java/org/junit/vintage/engine/discovery/MethodSelectorResolver.java:80-82:Method",
+              "platform-tests/src/processStarter/java/org/junit/platform/tests/process/ProcessStarter.java:116-118:Method"
+            ],
+            "mean_lines": 3,
+            "members": 18,
+            "span_bucket": "2-3"
+          },
+          "08d8db921161f889": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:368-371:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:175-179:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "09f018cbd2a4c077": {
+            "files": 1,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1589-1593:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1595-1599:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1601-1605:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1607-1611:Method"
+            ],
+            "mean_lines": 5,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "0b8de7aff00a5c23": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNullAssertionsTests.java:36-36:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNullAssertionsTests.java:39-42:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "0f76ca51728b0319": {
+            "files": 3,
+            "kinds": {
+              "Method": 26
+            },
+            "languages": 1,
+            "location_count": 26,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/ExecutionCancellationTests.java:128-132:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1366-1369:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1393-1396:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1402-1405:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1415-1418:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1674-1677:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1689-1692:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1703-1706:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1721-1724:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1739-1742:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1849-1852:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1854-1857:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1864-1867:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1869-1872:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1879-1882:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1884-1887:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1899-1902:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1957-1960:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2185-2188:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2190-2193:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2200-2203:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2205-2208:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2215-2218:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2220-2223:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testcases/ErroneousTestCase.java:20-24:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testcases/ErroneousTestCase.java:26-29:Method"
+            ],
+            "mean_lines": 4,
+            "members": 26,
+            "span_bucket": "4-10"
+          },
+          "10004868ff30fc90": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:80-80:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:81-81:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:93-93:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "127c5a7d82b1b478": {
+            "files": 3,
+            "kinds": {
+              "Block": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:40-40:Block",
+              "documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:43-43:Block",
+              "documentation/src/tools/java/org/junit/api/tools/AsciidocApiReportWriter.java:61-61:Block",
+              "junit-platform-console/src/main/java/org/junit/platform/console/command/BaseCommand.java:101-101:Block",
+              "junit-platform-console/src/main/java/org/junit/platform/console/command/BaseCommand.java:94-94:Block"
+            ],
+            "mean_lines": 1,
+            "members": 5,
+            "span_bucket": "1"
+          },
+          "14dc519c43dc7bcf": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/tools/java/org/junit/api/tools/AsciidocApiReportWriter.java:59-59:Block",
+              "documentation/src/tools/java/org/junit/api/tools/AsciidocApiReportWriter.java:72-75:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "17b337f38ac0e1e4": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:167-171:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:208-212:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "18958ee5a4fc5e40": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/ExecutionRequest.java:86-91:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/MethodSource.java:64-66:Method",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/core/LauncherDiscoveryResult.java:110-113:Method"
+            ],
+            "mean_lines": 4,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "1abfe7aa491fb791": {
+            "files": 2,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/LifecycleMethodOverridingTests.java:163-166:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/LifecycleMethodOverridingTests.java:176-179:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/LifecycleMethodOverridingTests.java:189-192:Method",
+              "platform-tests/src/test/java/org/junit/platform/console/subpackage/FailingTestCase.java:19-22:Method",
+              "platform-tests/src/test/java/org/junit/platform/console/subpackage/FailingTestCase.java:24-27:Method"
+            ],
+            "mean_lines": 4,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "1b9ce283cd22d6d9": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1229-1232:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1266-1269:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "1cb7ba4e6a7352e9": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedClassDemo.java:147-149:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:641-647:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "1fb6c34f51f85692": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:58-62:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:62-66:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "1fde6ed24179a710": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-console/src/main/java/org/junit/platform/console/output/FlatPrintingListener.java:36-39:Block",
+              "junit-platform-console/src/main/java/org/junit/platform/console/output/TestFeedPrintingListener.java:40-43:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "2554d4ba368a03cb": {
+            "files": 1,
+            "kinds": {
+              "Block": 2,
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1913-1917:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1928-1928:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2132-2136:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2147-2147:Block"
+            ],
+            "mean_lines": 3,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "274f61b67eaa248e": {
+            "files": 21,
+            "kinds": {
+              "Block": 1,
+              "Method": 20
+            },
+            "languages": 1,
+            "location_count": 21,
+            "locations": [
+              "documentation/src/main/java/example/domain/Person.java:32-32:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ExtensionConfigurationException.java:37-39:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ExtensionContextException.java:40-43:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/TestInstantiationException.java:36-38:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/execution/ConditionEvaluationException.java:30-32:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/aggregator/ArgumentAccessException.java:38-40:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/aggregator/ArgumentsAggregationException.java:38-40:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/converter/ArgumentConversionException.java:39-41:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/provider/CsvParsingException.java:37-39:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/JUnitException.java:37-39:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/PreconditionViolationException.java:35-37:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/support/conversion/ConversionException.java:37-39:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/EngineDescriptor.java:38-40:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java:262-264:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/store/NamespacedHierarchicalStoreException.java:35-37:Method",
+              "junit-platform-engine/src/testFixtures/java/org/junit/platform/fakes/TestDescriptorStub.java:21-23:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/AbstractTestRuleAdapterTests.java:62-64:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/converter/TypedArgumentConverterTests.java:214-216:Method",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/NodeTreeWalkerIntegrationTests.java:322-324:Method",
+              "platform-tests/src/test/java/org/junit/platform/launcher/DiscoveryFilterStub.java:28-30:Method",
+              "platform-tests/src/test/java/org/junit/platform/launcher/PostDiscoveryFilterStub.java:28-30:Method"
+            ],
+            "mean_lines": 2,
+            "members": 21,
+            "span_bucket": "2-3"
+          },
+          "29956fdae3514f3e": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/TestReporter.java:86-89:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ExtensionContext.java:398-401:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "2d7e6dc228552757": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:1507-1507:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:1509-1509:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "2d9eb1fa31d96c03": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/util/StringUtils.java:170-172:Block",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/util/StringUtils.java:234-236:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "302482a5e86b0259": {
+            "files": 1,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:762-762:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:763-763:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:765-765:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:766-766:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "35310e129f016f61": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/parallel/ResourceLocksProviderTests.java:250-250:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/parallel/ResourceLocksProviderTests.java:299-299:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "3ba9d4749b8ac089": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4ParallelClassesTestCase.java:49-49:Block",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4ParallelMethodsTestCase.java:59-59:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "3c04e37ebb0b8f03": {
+            "files": 4,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClassSource.java:141-143:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClassSource.java:150-152:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/ClasspathResourceSource.java:119-121:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/FileSource.java:67-69:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/store/NamespacedHierarchicalStore.java:73-75:Method"
+            ],
+            "mean_lines": 3,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "3c0d4c7d1c48c2af": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/JupiterEngineDescriptor.java:65-68:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/JupiterTestDescriptor.java:248-251:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "3e0ddfc1f7418767": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertTrueAssertionsTests.java:38-38:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertTrueAssertionsTests.java:46-49:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "3ff3c2c0f029eeff": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/NestedMethodSelector.java:81-81:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/NestedMethodSelector.java:90-90:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/NestedMethodSelector.java:95-95:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "405e8ea2b4c2c031": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2460-2465:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2473-2477:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "44f30a60041ab585": {
+            "files": 5,
+            "kinds": {
+              "Block": 10
+            },
+            "languages": 1,
+            "location_count": 10,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/EnableRuleMigrationSupportWithBothRuleTypesTests.java:84-86:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/EnableRuleMigrationSupportWithBothRuleTypesTests.java:87-89:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForDifferentDeclaredReturnTypesRulesTests.java:61-63:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForDifferentDeclaredReturnTypesRulesTests.java:64-66:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:66-68:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:69-71:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:70-72:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:73-75:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/VerifierSupportForMixedMethodAndFieldRulesTests.java:57-59:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/VerifierSupportForMixedMethodAndFieldRulesTests.java:60-62:Block"
+            ],
+            "mean_lines": 3,
+            "members": 10,
+            "span_bucket": "2-3"
+          },
+          "452c35c9bf0d1435": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/io/TempDirDeletionStrategy.java:396-398:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/TestDescriptor.java:234-236:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "453041dfb88bee75": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1927-1930:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1964-1964:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "4a5c0557b8a926b7": {
+            "files": 2,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "documentation/src/test/java/example/extensions/ParameterResolverCustomAnnotationDemo.java:32-32:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:148-148:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:158-158:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:169-169:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "50c918fd3c551399": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/commons/util/PreconditionsTests.java:139-139:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/PreconditionsTests.java:150-150:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "51a096fcefe0f478": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:151-151:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:185-189:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "5291e3a84d5fb19a": {
+            "files": 2,
+            "kinds": {
+              "Block": 2,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "documentation/src/test/java/example/ClassTemplateDemo.java:43-46:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1117-1117:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1134-1134:Block"
+            ],
+            "mean_lines": 2,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "5358c410090980b3": {
+            "files": 5,
+            "kinds": {
+              "Block": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "documentation/src/main/java/example/domain/Person.java:67-69:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/TestTag.java:85-87:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/AbstractTestDescriptor.java:217-219:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/listeners/discovery/AbortOnFailureLauncherDiscoveryListener.java:34-36:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/listeners/discovery/LoggingLauncherDiscoveryListener.java:98-100:Block"
+            ],
+            "mean_lines": 3,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "53935b96aa3ac3a0": {
+            "files": 2,
+            "kinds": {
+              "Block": 2,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:197-202:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:158-158:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:247-247:Block"
+            ],
+            "mean_lines": 2,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "53b857d2e9c9f883": {
+            "files": 1,
+            "kinds": {
+              "Method": 13
+            },
+            "languages": 1,
+            "location_count": 13,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:108-110:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:127-129:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:146-148:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:165-167:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:184-186:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:203-205:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:222-224:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:241-243:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:260-262:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:279-281:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:298-300:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:317-320:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/discovery/SelectorResolver.java:89-91:Method"
+            ],
+            "mean_lines": 3,
+            "members": 13,
+            "span_bucket": "2-3"
+          },
+          "543ea5fcf6b53c11": {
+            "files": 1,
+            "kinds": {
+              "Method": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1654-1658:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1660-1664:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1828-1832:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1834-1838:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1840-1844:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1846-1850:Method"
+            ],
+            "mean_lines": 5,
+            "members": 6,
+            "span_bucket": "4-10"
+          },
+          "55c16a0412193335": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ExecutableInvoker.java:37-39:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ExecutableInvoker.java:57-59:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "58129723aeb0b971": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/console/ConsoleDetailsTests.java:170-173:Method",
+              "platform-tests/src/test/java/org/junit/platform/console/ConsoleDetailsTests.java:177-177:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "581bcf4994f22851": {
+            "files": 2,
+            "kinds": {
+              "Class": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithAfterParamFailureTestCase.java:28-49:Class",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithBeforeParamFailureTestCase.java:28-49:Class"
+            ],
+            "mean_lines": 22,
+            "members": 2,
+            "span_bucket": "11-30"
+          },
+          "5a8394694deae297": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertLinesMatchAssertionsTests.java:49-53:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertLinesMatchAssertionsTests.java:55-60:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "5d2bed9748f1f1a6": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotNullAssertionsTests.java:32-32:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotNullAssertionsTests.java:35-38:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "5d697a3cb3f008b4": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/RecordTests.java:33-36:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/SealedClassTests.java:33-36:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "5e4d18b1cc4f30ba": {
+            "files": 1,
+            "kinds": {
+              "Block": 19
+            },
+            "languages": 1,
+            "location_count": 19,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:157-157:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:158-158:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:159-159:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:160-160:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:161-161:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:170-170:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:171-171:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:172-172:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:173-173:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:181-181:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:182-182:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:183-183:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:184-184:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:192-192:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:193-193:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:194-194:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:201-201:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:202-202:Block",
+              "platform-tests/src/test/java/org/junit/platform/commons/util/ReflectionUtilsTests.java:208-208:Block"
+            ],
+            "mean_lines": 1,
+            "members": 19,
+            "span_bucket": "1"
+          },
+          "6276138aebffc346": {
+            "files": 1,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:197-204:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:252-259:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:32-39:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:87-94:Method"
+            ],
+            "mean_lines": 8,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "65b702fa80025480": {
+            "files": 7,
+            "kinds": {
+              "Block": 14,
+              "Method": 25
+            },
+            "languages": 1,
+            "location_count": 39,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:130-134:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:138-142:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:187-191:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:199-203:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:323-323:Block",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:333-333:Block",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:340-340:Block",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:347-347:Block",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:353-357:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:372-376:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:624-630:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:1025-1029:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:1060-1060:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:741-745:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:772-776:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:787-791:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:793-797:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:816-820:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:828-832:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:884-888:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:896-900:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:910-914:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:947-951:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestInstanceLifecycleTests.java:988-992:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/bridge/AbstractNumberTests.java:28-28:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/bridge/NumberTestGroup.java:36-36:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/bridge/NumberTestGroup.java:55-55:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:326-329:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:336-339:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:341-344:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:353-356:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:360-360:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:471-471:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:479-479:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:489-489:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:498-498:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TempDirectoryTests.java:671-673:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2093-2096:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2815-2815:Block"
+            ],
+            "mean_lines": 3,
+            "members": 39,
+            "span_bucket": "2-3"
+          },
+          "66111b19a42c1df7": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-engine/src/testFixtures/java/org/junit/platform/engine/support/hierarchical/DemoHierarchicalEngineDescriptor.java:35-38:Block",
+              "junit-platform-engine/src/testFixtures/java/org/junit/platform/engine/support/hierarchical/DemoHierarchicalTestDescriptor.java:51-54:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "674ff44a2bc82c72": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/parallel/ResourceLocksProviderTests.java:193-193:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/parallel/ResourceLocksProviderTests.java:244-244:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/parallel/ResourceLocksProviderTests.java:293-293:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "68d11d2ad6a6a680": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/extension/TestInfoParameterResolver.java:55-55:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/jfr/FlightRecordingExecutionListener.java:163-163:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "6a5aea48e3deba10": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/ResolverFacade.java:397-399:Block",
+              "platform-tests/src/processStarter/java/org/junit/platform/tests/process/WatchedProcess.java:60-62:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "6b1290830f6e5ac5": {
+            "files": 4,
+            "kinds": {
+              "Method": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/parallel/ResourceLocksProvider.java:126-128:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/parallel/ResourceLocksProvider.java:59-61:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/parallel/ResourceLocksProvider.java:91-93:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/ClassTemplateInvocationTestDescriptor.java:123-127:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestTemplateInvocationTestDescriptor.java:69-73:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/Node.java:181-184:Method"
+            ],
+            "mean_lines": 3,
+            "members": 6,
+            "span_bucket": "2-3"
+          },
+          "6d32bae60e15ae75": {
+            "files": 5,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/ClassTestDescriptor.java:54-57:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/NestedClassTestDescriptor.java:58-61:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/ParameterizedClassInvocationContext.java:31-34:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/ParameterizedTestInvocationContext.java:25-28:Method",
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/JUnitException.java:44-48:Method"
+            ],
+            "mean_lines": 4,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "6d33b84d676bc6dd": {
+            "files": 6,
+            "kinds": {
+              "Block": 7,
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 9,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/DynamicTestTestDescriptor.java:45-45:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestFactoryTestDescriptor.java:69-69:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestFactoryTestDescriptor.java:75-75:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestMethodTestDescriptor.java:80-80:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestMethodTestDescriptor.java:91-91:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestTemplateTestDescriptor.java:48-48:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestTemplateTestDescriptor.java:54-54:Block",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/AfterParameterizedClassInvocationMethodInvoker.java:22-26:Method",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/BeforeParameterizedClassInvocationMethodInvoker.java:22-26:Method"
+            ],
+            "mean_lines": 1,
+            "members": 9,
+            "span_bucket": "1"
+          },
+          "6df22568c551fd79": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:358-362:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:467-473:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:475-481:Method"
+            ],
+            "mean_lines": 6,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "6f19dbfd101865cb": {
+            "files": 2,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/ClassTemplateInvocationTests.java:1490-1493:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1932-1935:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1968-1971:Method"
+            ],
+            "mean_lines": 4,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "6f420ebc5db0ca2d": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:106-112:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:120-125:Method"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "74ff55d74877cab9": {
+            "files": 1,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ProgrammaticExtensionRegistrationTests.java:737-741:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ProgrammaticExtensionRegistrationTests.java:743-747:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ProgrammaticExtensionRegistrationTests.java:754-758:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ProgrammaticExtensionRegistrationTests.java:760-764:Method"
+            ],
+            "mean_lines": 5,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "79b37312c44bf3a6": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:395-400:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertNotEqualsAssertionsTests.java:517-522:Method"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "7a0d51aa7d40d7c9": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertTimeout.java:39-44:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertTimeout.java:46-51:Method"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "7a227af82757b465": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:85-85:Block",
+              "documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:88-88:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "7b0231260745373e": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/console/ConsoleDetailsTests.java:159-162:Method",
+              "platform-tests/src/test/java/org/junit/platform/console/ConsoleDetailsTests.java:166-166:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "7de1ad73440b9538": {
+            "files": 2,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:152-152:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:195-199:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "7e67177fed3a1da9": {
+            "files": 2,
+            "kinds": {
+              "Block": 1,
+              "Method": 34
+            },
+            "languages": 1,
+            "location_count": 35,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:490-494:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1518-1522:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1524-1528:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1565-1569:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1907-1911:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1931-1935:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1985-1989:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1991-1995:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2150-2154:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2204-2208:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2253-2257:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2264-2269:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2281-2285:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2291-2295:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2297-2301:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2303-2307:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2309-2313:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2319-2323:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2328-2332:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2334-2338:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2340-2344:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2346-2350:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2410-2410:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2441-2446:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2454-2458:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2490-2495:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2503-2507:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2517-2522:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2530-2534:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2539-2544:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2552-2556:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2558-2566:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2568-2575:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2577-2582:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2590-2594:Method"
+            ],
+            "mean_lines": 5,
+            "members": 35,
+            "span_bucket": "4-10"
+          },
+          "803ac721b1f5ad31": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1907-1910:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1942-1942:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "834cd0adfaab9c77": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1882-1886:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1888-1892:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "834ed698d8b96e77": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:489-492:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/converter/TypedArgumentConverterTests.java:218-221:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "84b46071d6b72812": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/WrongExtendWithForVerifierFieldTests.java:41-46:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/WrongExtendWithForVerifierMethodTests.java:45-50:Method"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "86d30183b7fa709b": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "documentation/src/main/java/example/util/Calculator.java:15-17:Method",
+              "platform-tooling-support-tests/projects/graalvm-starter/src/main/java/com/example/project/Calculator.java:15-17:Method",
+              "platform-tooling-support-tests/projects/jupiter-starter/src/main/java/com/example/project/Calculator.java:15-17:Method"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "86fc000e4deffed5": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:328-328:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:442-442:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "875b1a22ddecfd42": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/BeforeAndAfterTestExecutionCallbackTests.java:197-197:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/BeforeAndAfterTestExecutionCallbackTests.java:226-226:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/BeforeAndAfterTestExecutionCallbackTests.java:251-251:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "8b2f4a4ed3321eae": {
+            "files": 2,
+            "kinds": {
+              "Block": 12
+            },
+            "languages": 1,
+            "location_count": 12,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:187-189:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:208-210:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:230-232:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:252-254:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:274-276:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:296-298:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:318-320:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:341-343:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:363-365:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:386-388:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertArrayEquals.java:408-410:Block",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertIterableEquals.java:62-64:Block"
+            ],
+            "mean_lines": 3,
+            "members": 12,
+            "span_bucket": "2-3"
+          },
+          "90782c89024f549e": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/extension/support/TypeBasedParameterResolverTests.java:129-133:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/execution/injection/sample/MapOfListsTypeBasedParameterResolver.java:25-30:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "94b28b965bfb9b8e": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/AssertionFailureBuilder.java:101-104:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/DefaultDiscoveryIssue.java:112-115:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "98e487007c4aa9eb": {
+            "files": 1,
+            "kinds": {
+              "Block": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:306-306:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:307-307:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:308-308:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:309-309:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:310-310:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/discovery/DiscoverySelectorsTests.java:311-311:Block"
+            ],
+            "mean_lines": 1,
+            "members": 6,
+            "span_bucket": "1"
+          },
+          "9944a89860609e2b": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/util/ReflectionUtils.java:1931-1933:Method",
+              "junit-vintage-engine/src/main/java/org/junit/vintage/engine/discovery/DefensiveAllDefaultPossibilitiesBuilder.java:68-70:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "99b41a76dab85ead": {
+            "files": 3,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:156-159:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:91-95:Method",
+              "platform-tests/src/test/java/org/junit/platform/launcher/TestLauncherInterceptor1.java:32-35:Method",
+              "platform-tests/src/test/java/org/junit/platform/launcher/TestLauncherInterceptor2.java:17-26:Method"
+            ],
+            "mean_lines": 5,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "a0a14d65bd4106c1": {
+            "files": 5,
+            "kinds": {
+              "Block": 5,
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 7,
+            "locations": [
+              "documentation/src/test/java/example/extensions/ParameterResolverConflictDemo.java:27-34:Method",
+              "documentation/src/test/java/example/extensions/ParameterResolverCustomAnnotationDemo.java:31-31:Block",
+              "documentation/src/test/java/example/extensions/ParameterResolverCustomTypeDemo.java:27-27:Block",
+              "documentation/src/test/java/example/extensions/ParameterResolverNoConflictDemo.java:24-28:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:147-147:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:157-157:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:168-168:Block"
+            ],
+            "mean_lines": 2,
+            "members": 7,
+            "span_bucket": "2-3"
+          },
+          "a158cfd49fbe4705": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/EnableRuleMigrationSupportWithBothRuleTypesTests.java:82-82:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/EnableRuleMigrationSupportWithBothRuleTypesTests.java:83-83:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "a1822b0df9fc0794": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/tagexpression/ShuntingYard.java:123-123:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/tagexpression/ShuntingYard.java:150-150:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/tagexpression/ShuntingYard.java:84-84:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "a651ed4f5cc03051": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/store/NamespacedHierarchicalStore.java:573-576:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/store/NamespacedHierarchicalStore.java:612-615:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "a86930f3e2660e10": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:472-476:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:478-482:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "a92023f887951693": {
+            "files": 1,
+            "kinds": {
+              "Block": 3,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2133-2136:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2146-2146:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2158-2158:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:2165-2165:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "a9367e1882f70fee": {
+            "files": 1,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:137-142:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:182-187:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:31-38:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertEqualsAssertionsTests.java:84-91:Method"
+            ],
+            "mean_lines": 7,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "a9e30667261b7305": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:269-272:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:308-311:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "aa8ef46758c21ff3": {
+            "files": 6,
+            "kinds": {
+              "Method": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ClassTemplateInvocationContext.java:65-67:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/TestTemplateInvocationContext.java:66-68:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/ClassTestDescriptor.java:77-80:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/DynamicExtensionContext.java:47-50:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/JupiterEngineExtensionContext.java:50-53:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/NopLock.java:31-34:Method"
+            ],
+            "mean_lines": 3,
+            "members": 6,
+            "span_bucket": "2-3"
+          },
+          "aae314ee00f3c40d": {
+            "files": 1,
+            "kinds": {
+              "Block": 8
+            },
+            "languages": 1,
+            "location_count": 8,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:1254-1254:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:189-189:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:331-331:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:46-46:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:474-474:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:617-617:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:763-763:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertArrayEqualsAssertionsTests.java:907-907:Block"
+            ],
+            "mean_lines": 1,
+            "members": 8,
+            "span_bucket": "1"
+          },
+          "ad4202028afa0426": {
+            "files": 4,
+            "kinds": {
+              "Block": 1,
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertTrueAssertionsTests.java:29-29:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/RecordTests.java:28-31:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/SealedClassTests.java:28-31:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/ParameterResolverTests.java:348-351:Method"
+            ],
+            "mean_lines": 3,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "af7ace37216b013c": {
+            "files": 3,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestClassInheritanceTests.java:198-201:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:219-222:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:243-246:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:275-278:Method",
+              "platform-tests/src/test/java/org/junit/platform/testkit/engine/ExecutionsIntegrationTests.java:109-112:Method"
+            ],
+            "mean_lines": 4,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "b25a23201c41c921": {
+            "files": 5,
+            "kinds": {
+              "Method": 7
+            },
+            "languages": 1,
+            "location_count": 7,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/EnclosedJUnit4TestCase.java:30-34:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4ParameterizedTestCase.java:36-39:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4ParameterizedTestCase.java:41-44:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/JUnit4ParameterizedTestCase.java:46-49:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithFiveTestMethods.java:39-43:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithSingleTestWhichFails.java:22-25:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithTwoTestMethods.java:27-30:Method"
+            ],
+            "mean_lines": 4,
+            "members": 7,
+            "span_bucket": "4-10"
+          },
+          "b646be40378105c3": {
+            "files": 2,
+            "kinds": {
+              "Class": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfIntegrationTests.java:24-97:Class",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfIntegrationTests.java:24-97:Class"
+            ],
+            "mean_lines": 74,
+            "members": 2,
+            "span_bucket": "31+"
+          },
+          "b68582c1552fba92": {
+            "files": 1,
+            "kinds": {
+              "Block": 2,
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:869-869:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:876-876:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:919-923:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:925-929:Method"
+            ],
+            "mean_lines": 3,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "b8332c4cdf487c30": {
+            "files": 5,
+            "kinds": {
+              "Method": 17
+            },
+            "languages": 1,
+            "location_count": 17,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfEnvironmentVariableIntegrationTests.java:56-60:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfEnvironmentVariableIntegrationTests.java:62-67:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfEnvironmentVariableIntegrationTests.java:69-73:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfSystemPropertyIntegrationTests.java:45-50:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfSystemPropertyIntegrationTests.java:52-57:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfSystemPropertyIntegrationTests.java:59-63:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfSystemPropertyIntegrationTests.java:65-70:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledIfSystemPropertyIntegrationTests.java:72-76:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledOnOsIntegrationTests.java:59-64:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfEnvironmentVariableIntegrationTests.java:76-80:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfEnvironmentVariableIntegrationTests.java:82-87:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfEnvironmentVariableIntegrationTests.java:89-93:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfSystemPropertyIntegrationTests.java:43-48:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfSystemPropertyIntegrationTests.java:50-55:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfSystemPropertyIntegrationTests.java:77-81:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfSystemPropertyIntegrationTests.java:83-88:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledIfSystemPropertyIntegrationTests.java:90-94:Method"
+            ],
+            "mean_lines": 5,
+            "members": 17,
+            "span_bucket": "4-10"
+          },
+          "b988a230c8d5b1df": {
+            "files": 1,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:315-325:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:330-335:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:337-342:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:344-349:Method"
+            ],
+            "mean_lines": 7,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "b9ed0e412e022f65": {
+            "files": 4,
+            "kinds": {
+              "Block": 1,
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/CancellingTestCase.java:29-32:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/CancellingTestCase.java:34-37:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithAfterParamFailureTestCase.java:31-34:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithBeforeParamFailureTestCase.java:31-34:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithLifecycleMethods.java:45-45:Block"
+            ],
+            "mean_lines": 3,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "bcbd5abb4374813a": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:214-217:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:238-241:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestWatcherTests.java:270-273:Method"
+            ],
+            "mean_lines": 4,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "bed04eb24268c936": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestInstancePreConstructCallbackTests.java:561-564:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestInstancePreConstructCallbackTests.java:572-575:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TestInstancePreConstructCallbackTests.java:583-586:Method"
+            ],
+            "mean_lines": 4,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "c1a1004d845e0cea": {
+            "files": 2,
+            "kinds": {
+              "Method": 30
+            },
+            "languages": 1,
+            "location_count": 30,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:106-111:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:113-118:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:120-125:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:127-132:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:134-139:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:141-146:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:41-46:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:48-54:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:56-61:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:63-68:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:70-75:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:77-83:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:85-90:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:92-97:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledForJreRangeIntegrationTests.java:99-104:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:106-111:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:113-118:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:120-125:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:127-132:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:134-139:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:141-146:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:148-153:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:48-53:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:55-61:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:63-68:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:70-75:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:77-82:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:84-90:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:92-97:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/EnabledForJreRangeIntegrationTests.java:99-104:Method"
+            ],
+            "mean_lines": 6,
+            "members": 30,
+            "span_bucket": "4-10"
+          },
+          "c557a192b05b9611": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/tools/java/org/junit/api/tools/AsciidocApiReportWriter.java:51-54:Method",
+              "documentation/src/tools/java/org/junit/api/tools/MarkdownApiReportWriter.java:52-55:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "c74cc0bc276623b0": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:789-791:Method",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:802-804:Method",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:822-824:Method"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "cce9ed5e9272a588": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:224-230:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:298-304:Method"
+            ],
+            "mean_lines": 7,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "cdacdfff75680f6a": {
+            "files": 4,
+            "kinds": {
+              "Block": 5,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/EnableRuleMigrationSupportWithBothRuleTypesTests.java:75-78:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:60-60:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:61-61:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:64-64:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:65-65:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestExtensionTests.java:101-101:Block"
+            ],
+            "mean_lines": 1,
+            "members": 6,
+            "span_bucket": "1"
+          },
+          "cdfc1c63a38775d0": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-testkit/src/main/java/org/junit/platform/testkit/engine/EngineTestKit.java:557-560:Method",
+              "junit-platform-testkit/src/main/java/org/junit/platform/testkit/engine/EngineTestKit.java:562-565:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "ced92ad5ed979176": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1870-1874:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1876-1880:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "d2fba5ede18b09ce": {
+            "files": 1,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2616-2620:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2622-2627:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2629-2634:Method"
+            ],
+            "mean_lines": 5,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "d3e8bdea3fa6026a": {
+            "files": 4,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/EnclosedJUnit4TestCase.java:36-39:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithFiveTestMethods.java:59-62:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/PlainJUnit4TestCaseWithTwoTestMethods.java:32-36:Method",
+              "platform-tooling-support-tests/projects/standalone/src/standalone/VintageIntegration.java:30-33:Method"
+            ],
+            "mean_lines": 4,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "d623d440a567b509": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/DisplayNameGenerationTests.java:343-346:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/DisplayNameGenerationTests.java:356-359:Method"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "d755d4d2988ece54": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1912-1915:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1948-1948:Block"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "d927937c320aa52c": {
+            "files": 4,
+            "kinds": {
+              "Block": 3,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/MediaType.java:114-116:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/JupiterTestDescriptor.java:78-78:Block",
+              "junit-platform-engine/src/testFixtures/java/org/junit/platform/engine/support/hierarchical/DemoHierarchicalContainerDescriptor.java:30-30:Block",
+              "junit-platform-engine/src/testFixtures/java/org/junit/platform/engine/support/hierarchical/DemoHierarchicalTestDescriptor.java:42-42:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "db079956d3548633": {
+            "files": 5,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/IgnoredParameterizedTestCase.java:28-31:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedTestCase.java:29-32:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedTimingTestCase.java:55-58:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithAfterParamFailureTestCase.java:36-39:Method",
+              "junit-vintage-engine/src/testFixtures/java/org/junit/vintage/engine/samples/junit4/ParameterizedWithBeforeParamFailureTestCase.java:36-39:Method"
+            ],
+            "mean_lines": 4,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "db9799a8bf8ce5fc": {
+            "files": 1,
+            "kinds": {
+              "Block": 2,
+              "Method": 6
+            },
+            "languages": 1,
+            "location_count": 8,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:169-169:Block",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:178-181:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:188-191:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:198-201:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:210-210:Block",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:219-222:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:229-232:Method",
+              "platform-tests/src/test/java/org/junit/platform/suite/engine/testsuites/LifecycleMethodsSuites.java:239-242:Method"
+            ],
+            "mean_lines": 3,
+            "members": 8,
+            "span_bucket": "2-3"
+          },
+          "dc6e7f563e96c86e": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "documentation/src/test/java/example/ParameterizedRecordDemo.java:41-43:Method",
+              "documentation/src/test/java/example/ParameterizedTestDemo.java:292-294:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "dce911aa29d6f806": {
+            "files": 1,
+            "kinds": {
+              "Method": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:453-457:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:459-464:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:466-470:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:484-488:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/TestTemplateInvocationTests.java:575-579:Method"
+            ],
+            "mean_lines": 5,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "de7233699e984885": {
+            "files": 1,
+            "kinds": {
+              "Method": 7
+            },
+            "languages": 1,
+            "location_count": 7,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:107-110:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:122-125:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:137-140:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:171-174:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:186-190:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:202-205:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/InvocationInterceptor.java:217-220:Method"
+            ],
+            "mean_lines": 4,
+            "members": 7,
+            "span_bucket": "4-10"
+          },
+          "e047c2108c71ec11": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/AbstractTestDescriptor.java:85-87:Method",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/descriptor/MethodSource.java:119-121:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "e08c1d95ff9fc547": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1788-1795:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedClassIntegrationTests.java:1825-1832:Method"
+            ],
+            "mean_lines": 8,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "e095c9f722eb9287": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1857-1861:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1866-1866:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "e2b0ba7d67fd50ed": {
+            "files": 3,
+            "kinds": {
+              "Method": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TempDirectoryTests.java:634-637:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1571-1575:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/aggregator/AggregatorIntegrationTests.java:346-350:Method"
+            ],
+            "mean_lines": 4,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "e33c08aa8df60a8c": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2672-2676:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2678-2682:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "e465021054359893": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/ClassTemplateInvocationContext.java:48-50:Method",
+              "junit-jupiter-api/src/main/java/org/junit/jupiter/api/extension/TestTemplateInvocationContext.java:49-51:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "e46e73426ab04177": {
+            "files": 1,
+            "kinds": {
+              "Block": 23
+            },
+            "languages": 1,
+            "location_count": 23,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:103-103:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:124-124:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:147-147:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:170-170:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:192-192:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:215-215:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:242-242:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:268-268:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:294-294:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:313-313:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:338-338:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:364-364:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:389-389:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:415-415:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:445-445:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:472-472:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:510-510:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:660-660:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:684-684:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:709-709:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:728-728:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:747-747:Block",
+              "platform-tests/src/test/java/org/junit/platform/engine/support/hierarchical/HierarchicalTestExecutorTests.java:767-767:Block"
+            ],
+            "mean_lines": 1,
+            "members": 23,
+            "span_bucket": "1"
+          },
+          "e4ff6d3bfe812765": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1925-1929:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2144-2148:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "e51b8e3bd4aa72c6": {
+            "files": 3,
+            "kinds": {
+              "Block": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/discovery/ClassSelectorResolver.java:109-109:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/discovery/ClassSelectorResolver.java:134-134:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/discovery/ClassSelectorResolver.java:177-177:Block",
+              "junit-platform-suite-engine/src/main/java/org/junit/platform/suite/engine/ClassSelectorResolver.java:73-73:Block",
+              "junit-vintage-engine/src/main/java/org/junit/vintage/engine/discovery/ClassSelectorResolver.java:49-49:Block",
+              "junit-vintage-engine/src/main/java/org/junit/vintage/engine/discovery/ClassSelectorResolver.java:63-63:Block"
+            ],
+            "mean_lines": 1,
+            "members": 6,
+            "span_bucket": "1"
+          },
+          "e5de450772df183d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/NestedMethodSelector.java:66-66:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/discovery/NestedMethodSelector.java:75-75:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "e82371bc53f8db13": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertFalseAssertionsTests.java:31-31:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertFalseAssertionsTests.java:41-44:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "e976e294b745e9d0": {
+            "files": 2,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-platform-commons/src/main/java/org/junit/platform/commons/util/CollectionUtils.java:205-207:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java:192-194:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java:341-343:Block",
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/support/hierarchical/WorkerThreadPoolHierarchicalTestExecutorService.java:457-459:Block"
+            ],
+            "mean_lines": 3,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "ee3bee9ca40301fe": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledOnOsIntegrationTests.java:84-88:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/condition/DisabledOnOsIntegrationTests.java:90-94:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "f1db40d757e0cc98": {
+            "files": 2,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "platform-tests/src/test/java/org/junit/platform/commons/support/ReflectionSupportTests.java:513-519:Method",
+              "platform-tests/src/test/java/org/junit/platform/commons/support/ResourceSupportTests.java:216-222:Method"
+            ],
+            "mean_lines": 7,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "f257a1542a88142c": {
+            "files": 4,
+            "kinds": {
+              "Method": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForDifferentDeclaredReturnTypesRulesTests.java:59-67:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleFieldRulesTests.java:64-72:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/ExternalResourceSupportForMultipleMethodRulesTests.java:68-76:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/migrationsupport/rules/VerifierSupportForMixedMethodAndFieldRulesTests.java:55-63:Method"
+            ],
+            "mean_lines": 9,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "f5a2905c8692d77f": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Method": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertFalseAssertionsTests.java:38-38:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/api/AssertFalseAssertionsTests.java:46-49:Method"
+            ],
+            "mean_lines": 2,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "f5f9f10d64b28fb2": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "junit-platform-engine/src/main/java/org/junit/platform/engine/SelectorResolutionResult.java:93-96:Block",
+              "junit-platform-launcher/src/main/java/org/junit/platform/launcher/EngineDiscoveryResult.java:78-81:Block"
+            ],
+            "mean_lines": 4,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "f86927fa2a8e10b2": {
+            "files": 4,
+            "kinds": {
+              "Block": 2,
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/ClassTemplateInvocationExtensionContext.java:33-37:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/DynamicExtensionContext.java:31-35:Method",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/MethodExtensionContext.java:43-43:Block",
+              "junit-jupiter-engine/src/main/java/org/junit/jupiter/engine/descriptor/TestTemplateExtensionContext.java:40-40:Block"
+            ],
+            "mean_lines": 3,
+            "members": 4,
+            "span_bucket": "2-3"
+          },
+          "fcda05e4b9ea0e84": {
+            "files": 1,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TempDirectoryTests.java:1547-1547:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TempDirectoryTests.java:1558-1558:Block",
+              "jupiter-tests/src/test/java/org/junit/jupiter/engine/extension/TempDirectoryTests.java:1569-1569:Block"
+            ],
+            "mean_lines": 1,
+            "members": 3,
+            "span_bucket": "1"
+          },
+          "fd670344a90333ac": {
+            "files": 3,
+            "kinds": {
+              "Block": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/BeforeClassTemplateInvocationFieldInjector.java:24-29:Block",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/InstancePostProcessingClassTemplateFieldInjector.java:24-29:Block",
+              "junit-jupiter-params/src/main/java/org/junit/jupiter/params/ParameterizedInvocationParameterResolver.java:32-38:Block"
+            ],
+            "mean_lines": 6,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "fdacb46474b036ae": {
+            "files": 1,
+            "kinds": {
+              "Method": 6
+            },
+            "languages": 1,
+            "location_count": 6,
+            "locations": [
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1937-1941:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1943-1947:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:1973-1977:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2156-2160:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2162-2166:Method",
+              "jupiter-tests/src/test/java/org/junit/jupiter/params/ParameterizedTestIntegrationTests.java:2192-2196:Method"
+            ],
+            "mean_lines": 5,
+            "members": 6,
+            "span_bucket": "4-10"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 312,
+          "Class": 4,
+          "Method": 443
+        },
+        "languages": {
+          "java": 1724,
+          "javascript": 1
+        },
+        "product_json_bytes": 222176,
+        "reason_code_counts": {},
+        "scope_files": 1725,
+        "shown_families": 172,
+        "span_buckets": {
+          "1": 54,
+          "11-30": 1,
+          "2-3": 47,
+          "31+": 1,
+          "4-10": 69
+        },
+        "total_families": 172
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 7.4,
+          "cluster": 0.5,
+          "contiguous": 0.0,
+          "discover": 10.9,
+          "groups": 0.6,
+          "lower": 54.1,
+          "normalize+extract": 42.7,
+          "parse+lower": 43.5,
+          "score": 0.3
+        },
+        "repeats": 5,
+        "wall_ms_median": 196.07,
+        "wall_ms_min": 176.72
+      }
+    },
+    "ky": {
+      "output": {
+        "families": {
+          "19bc21592ad21705": {
+            "files": 1,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "test/hooks.ts:2580-2586:Block",
+              "test/hooks.ts:2761-2765:Block",
+              "test/hooks.ts:2845-2851:Block",
+              "test/hooks.ts:2884-2888:Block"
+            ],
+            "mean_lines": 6,
+            "members": 4,
+            "span_bucket": "4-10"
+          },
+          "4292f9ba87a1ff55": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "test/hooks.ts:3386-3390:Block",
+              "test/hooks.ts:3434-3438:Block"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "9fa405e7a5983645": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "test/stream.ts:47-56:Block",
+              "test/stream.ts:884-893:Block"
+            ],
+            "mean_lines": 10,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "bf0c98fd953b2a6d": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "source/utils/body.ts:100-102:Block",
+              "source/utils/body.ts:80-82:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 10
+        },
+        "languages": {
+          "typescript": 52
+        },
+        "product_json_bytes": 2597,
+        "reason_code_counts": {},
+        "scope_files": 52,
+        "shown_families": 4,
+        "span_buckets": {
+          "2-3": 1,
+          "4-10": 3
+        },
+        "total_families": 4
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 0.7,
+          "cluster": 0.0,
+          "contiguous": 0.0,
+          "discover": 3.4,
+          "groups": 0.0,
+          "lower": 15.4,
+          "normalize+extract": 7.6,
+          "parse+lower": 11.7,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 35.19,
+        "wall_ms_min": 33.74
+      }
+    },
+    "liquid": {
+      "output": {
+        "families": {
+          "068e330a94ed3dd9": {
+            "files": 1,
+            "kinds": {
+              "Block": 4
+            },
+            "languages": 1,
+            "location_count": 4,
+            "locations": [
+              "lib/liquid/standardfilters.rb:147-147:Block",
+              "lib/liquid/standardfilters.rb:246-246:Block",
+              "lib/liquid/standardfilters.rb:273-273:Block",
+              "lib/liquid/standardfilters.rb:313-313:Block"
+            ],
+            "mean_lines": 1,
+            "members": 4,
+            "span_bucket": "1"
+          },
+          "0da1fe753130f54b": {
+            "files": 1,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "performance/shopify/money_filter.rb:10-10:Block",
+              "performance/shopify/money_filter.rb:5-5:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "866b8d243989c623": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "test/integration/drop_test.rb:84-88:Method",
+              "test/integration/drop_test.rb:98-102:Method"
+            ],
+            "mean_lines": 5,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "a0c22cbe4c8bae61": {
+            "files": 1,
+            "kinds": {
+              "Method": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "test/integration/context_test.rb:167-169:Method",
+              "test/integration/context_test.rb:185-187:Method"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 6,
+          "Method": 4
+        },
+        "languages": {
+          "ruby": 153
+        },
+        "product_json_bytes": 2760,
+        "reason_code_counts": {},
+        "scope_files": 153,
+        "shown_families": 4,
+        "span_buckets": {
+          "1": 2,
+          "2-3": 1,
+          "4-10": 1
+        },
+        "total_families": 4
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 1.7,
+          "cluster": 0.1,
+          "contiguous": 0.0,
+          "discover": 3.4,
+          "groups": 0.0,
+          "lower": 14.4,
+          "normalize+extract": 11.3,
+          "parse+lower": 11.0,
+          "score": 0.2
+        },
+        "repeats": 5,
+        "wall_ms_median": 40.85,
+        "wall_ms_min": 38.21
+      }
+    },
+    "serde_json": {
+      "output": {
+        "families": {
+          "108376e13b163ddd": {
+            "files": 3,
+            "kinds": {
+              "Function": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "tests/ui/missing_colon.rs:3-5:Function",
+              "tests/ui/missing_value.rs:3-5:Function",
+              "tests/ui/parse_expr.rs:3-5:Function"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "1184b7edf46d754f": {
+            "files": 1,
+            "kinds": {
+              "Function": 5
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "src/map.rs:1051-1055:Function",
+              "src/map.rs:1077-1081:Function",
+              "src/map.rs:1103-1107:Function",
+              "src/map.rs:303-307:Function",
+              "src/map.rs:311-315:Function"
+            ],
+            "mean_lines": 5,
+            "members": 5,
+            "span_bucket": "4-10"
+          },
+          "12db02c90f08bdf0": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Function": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/ser.rs:1822-1827:Function",
+              "src/ser.rs:1981-1981:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "1cb43dc2b2dce3f1": {
+            "files": 1,
+            "kinds": {
+              "Function": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "src/ser.rs:1727-1732:Function",
+              "src/ser.rs:1757-1762:Function",
+              "src/ser.rs:1929-1934:Function"
+            ],
+            "mean_lines": 6,
+            "members": 3,
+            "span_bucket": "4-10"
+          },
+          "30b9dfed9d4cedba": {
+            "files": 1,
+            "kinds": {
+              "Function": 3
+            },
+            "languages": 1,
+            "location_count": 3,
+            "locations": [
+              "src/raw.rs:384-386:Function",
+              "src/raw.rs:421-423:Function",
+              "src/raw.rs:449-451:Function"
+            ],
+            "mean_lines": 3,
+            "members": 3,
+            "span_bucket": "2-3"
+          },
+          "43f4236c836f4c14": {
+            "files": 2,
+            "kinds": {
+              "Block": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/lexical/rounding.rs:225-225:Block",
+              "tests/lexical/float.rs:188-188:Block"
+            ],
+            "mean_lines": 1,
+            "members": 2,
+            "span_bucket": "1"
+          },
+          "8a26675b652ebfe1": {
+            "files": 1,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/value/de.rs:1168-1173:Function",
+              "src/value/de.rs:660-665:Function"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          },
+          "b942f1242c351db5": {
+            "files": 1,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/error.rs:435-437:Function",
+              "src/error.rs:460-462:Function"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "bd3600653738a5ee": {
+            "files": 1,
+            "kinds": {
+              "Block": 1,
+              "Function": 1
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/ser.rs:1865-1870:Function",
+              "src/ser.rs:2024-2024:Block"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "cc02fbfaf1e79348": {
+            "files": 2,
+            "kinds": {
+              "Block": 3,
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 5,
+            "locations": [
+              "src/de.rs:1915-1915:Block",
+              "src/value/de.rs:1032-1037:Function",
+              "src/value/de.rs:272-272:Block",
+              "src/value/de.rs:510-510:Block",
+              "src/value/de.rs:803-808:Function"
+            ],
+            "mean_lines": 3,
+            "members": 5,
+            "span_bucket": "2-3"
+          },
+          "e7cf583a0cdc112d": {
+            "files": 2,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "tests/ui/unexpected_after_array_element.rs:3-5:Function",
+              "tests/ui/unexpected_colon.rs:3-5:Function"
+            ],
+            "mean_lines": 3,
+            "members": 2,
+            "span_bucket": "2-3"
+          },
+          "f97e9ea8fccba1d1": {
+            "files": 1,
+            "kinds": {
+              "Function": 2
+            },
+            "languages": 1,
+            "location_count": 2,
+            "locations": [
+              "src/ser.rs:1737-1742:Function",
+              "src/ser.rs:1747-1752:Function"
+            ],
+            "mean_lines": 6,
+            "members": 2,
+            "span_bucket": "4-10"
+          }
+        },
+        "fragment_kind_counts": {},
+        "kind_counts": {
+          "Block": 7,
+          "Function": 26
+        },
+        "languages": {
+          "rust": 71
+        },
+        "product_json_bytes": 8462,
+        "reason_code_counts": {},
+        "scope_files": 71,
+        "shown_families": 12,
+        "span_buckets": {
+          "1": 1,
+          "2-3": 7,
+          "4-10": 4
+        },
+        "total_families": 12
+      },
+      "runtime": {
+        "phase_ms_median": {
+          "candidates": 2.2,
+          "cluster": 0.1,
+          "contiguous": 0.0,
+          "discover": 3.4,
+          "groups": 0.0,
+          "lower": 15.9,
+          "normalize+extract": 11.4,
+          "parse+lower": 12.5,
+          "score": 0.3
+        },
+        "repeats": 5,
+        "wall_ms_median": 43.27,
+        "wall_ms_min": 41.68
+      }
+    }
+  },
+  "scan_command": "nose scan <repo> --mode semantic --format json --top 0",
+  "schema_version": 1,
+  "subset": {
+    "missing": [],
+    "repos": [
+      "chi",
+      "gin",
+      "boltons",
+      "ky",
+      "cmark",
+      "serde_json",
+      "liquid",
+      "junit5"
+    ],
+    "repos_root": "bench/repos"
+  }
+}

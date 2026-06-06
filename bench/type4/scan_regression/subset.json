@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "description": "Small, language-diverse semantic-scan regression subset (issue #37). Repos are pinned corpus ids under repos_root (populated by bench/setup_repos.sh). Kept small and fast so the runtime baseline can be repeated many times without cache; swap in #36's recommended repos by editing `repos`.",
+  "repos_root": "bench/repos",
+  "scan": {
+    "mode": "semantic",
+    "format": "json",
+    "top": 0
+  },
+  "runtime_repeats": 5,
+  "repos": [
+    "chi",
+    "gin",
+    "boltons",
+    "ky",
+    "cmark",
+    "serde_json",
+    "liquid",
+    "junit5"
+  ],
+  "source": {
+    "selection": "one repo per supported language (go, python, typescript, c, rust, ruby, java) plus a second small Go repo for cross-file families; all single-pass semantic scans are sub-second so the no-cache repeats stay cheap.",
+    "frontier_link": "liquid (ruby) and junit5 (java) are repos that appear in bench/type4/real_frontier.v1.json (#36), so this subset already overlaps the live Type-4 frontier; replace or extend `repos` with #36's next batch as it lands."
+  }
+}
