@@ -16,7 +16,9 @@
 > Later additions on the value graph: a purpose-fit **type inference** (`types.rs`, now a
 > fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
-> so nested filters fuse to `p∧q`), first-class **flat-map** modeling for Python
+> so nested filters fuse to `p∧q`), Rust **filter-map** selection for direct
+> `Some(value)`/`None` callbacks and guarded `Vec::new()`/`push` builders, first-class
+> **flat-map** modeling for Python
 > multi-clause comprehensions, JS `.flatMap`, pure Java `Arrays.stream(...).flatMap(...map...)`,
 > and equivalent nested list-builder loops (kept distinct from nested-list comprehensions
 > and Java stream `map` returning streams), full **AC flatten+sort in the value graph itself** (not
@@ -114,8 +116,10 @@ Guiding constraints for every pass:
   into `false`. Java stream expression-body lambdas are evaluated as callback expressions,
   while block/effectful callbacks still execute through the statement path and preserve
   their effect trace. The filter-map oracle model treats `Null` as absence, propagates `Err`,
-  and emits every other value, including falsey values such as `0`; richer wrapped
-  `Some(None)`-style payloads remain outside the modeled option subset.
+  and emits every other value, including falsey values such as `0`; the engine mirrors only
+  the direct Rust `if p { Some(v) } else { None }` / guarded-builder subset today, while
+  richer match/and_then forms and wrapped `Some(None)`-style payloads remain outside the
+  modeled option subset.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its

@@ -398,6 +398,15 @@ struct ReductionCache {
     references: FxHashMap<(ValueId, ValueId), bool>,
 }
 
+#[derive(Clone, Copy)]
+enum FilterMapResult {
+    Emit {
+        value: ValueId,
+        predicate: Option<ValueId>,
+    },
+    Drop,
+}
+
 impl<'a> Builder<'a> {
     fn new(il: &'a Il, interner: &'a Interner) -> Self {
         Builder {
@@ -5868,6 +5877,172 @@ impl<'a> Builder<'a> {
         self.eval_block_return(body, &mut env)
     }
 
+    fn eval_filter_map_lambda_body(
+        &mut self,
+        lambda: NodeId,
+        params: &[ValueId],
+        parent_env: &FxHashMap<u32, ValueId>,
+    ) -> Option<(ValueId, Option<ValueId>)> {
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return None;
+        }
+        let kids = self.il.children(lambda).to_vec();
+        let mut env = parent_env.clone();
+        let mut pi = 0;
+        for &k in &kids {
+            if self.il.kind(k) == NodeKind::Param {
+                if let Payload::Cid(c) = self.il.node(k).payload {
+                    if let Some(&v) = params.get(pi) {
+                        env.insert(c, v);
+                    }
+                    pi += 1;
+                }
+            }
+        }
+        match self.eval_filter_map_output(*kids.last()?, &mut env)? {
+            FilterMapResult::Emit { value, predicate } => Some((value, predicate)),
+            FilterMapResult::Drop => None,
+        }
+    }
+
+    fn eval_filter_map_output(
+        &mut self,
+        node: NodeId,
+        env: &mut FxHashMap<u32, ValueId>,
+    ) -> Option<FilterMapResult> {
+        match self.il.kind(node) {
+            NodeKind::Block => {
+                let kids = self.il.children(node).to_vec();
+                let n = kids.len();
+                for (i, &stmt) in kids.iter().enumerate() {
+                    if self.il.kind(stmt) == NodeKind::Assign {
+                        self.eval_filter_map_assignment(stmt, env);
+                        continue;
+                    }
+                    if self.il.kind(stmt) == NodeKind::Return || i + 1 == n {
+                        return self.eval_filter_map_output(stmt, env);
+                    }
+                    if !matches!(self.il.kind(stmt), NodeKind::ExprStmt) {
+                        continue;
+                    }
+                    return None;
+                }
+                None
+            }
+            NodeKind::Return | NodeKind::ExprStmt => self
+                .il
+                .children(node)
+                .first()
+                .and_then(|&expr| self.eval_filter_map_output(expr, env)),
+            NodeKind::Assign => {
+                self.eval_filter_map_assignment(node, env);
+                None
+            }
+            NodeKind::If => self.eval_filter_map_if(node, env),
+            NodeKind::Lit if self.is_null_literal(node) => Some(FilterMapResult::Drop),
+            NodeKind::Call => {
+                let value = self
+                    .rust_some_call_arg(node)
+                    .map(|value| self.eval(value, env))?;
+                Some(FilterMapResult::Emit {
+                    value,
+                    predicate: None,
+                })
+            }
+            _ => None,
+        }
+    }
+
+    fn eval_filter_map_assignment(&mut self, node: NodeId, env: &mut FxHashMap<u32, ValueId>) {
+        let kids = self.il.children(node).to_vec();
+        if kids.len() == 2 && self.il.kind(kids[0]) == NodeKind::Var {
+            if let Payload::Cid(c) = self.il.node(kids[0]).payload {
+                let rhs = self.eval(kids[1], env);
+                env.insert(c, rhs);
+            }
+        }
+    }
+
+    fn eval_filter_map_if(
+        &mut self,
+        node: NodeId,
+        env: &mut FxHashMap<u32, ValueId>,
+    ) -> Option<FilterMapResult> {
+        let kids = self.il.children(node).to_vec();
+        let cond_node = *kids.first()?;
+        let then_node = *kids.get(1)?;
+        let else_node = *kids.get(2)?;
+        let cond = self.eval(cond_node, env);
+        let mut then_env = env.clone();
+        let then_result = self.eval_filter_map_output(then_node, &mut then_env)?;
+        let mut else_env = env.clone();
+        let else_result = self.eval_filter_map_output(else_node, &mut else_env)?;
+        match (then_result, else_result) {
+            (FilterMapResult::Emit { value, predicate }, FilterMapResult::Drop) => {
+                Some(FilterMapResult::Emit {
+                    value,
+                    predicate: self.and_preds(Some(cond), predicate),
+                })
+            }
+            (FilterMapResult::Drop, FilterMapResult::Emit { value, predicate }) => {
+                let not_cond = self.mk(ValOp::Un(Op::Not as u32), vec![cond]);
+                Some(FilterMapResult::Emit {
+                    value,
+                    predicate: self.and_preds(Some(not_cond), predicate),
+                })
+            }
+            (
+                FilterMapResult::Emit {
+                    value: then_value,
+                    predicate: None,
+                },
+                FilterMapResult::Emit {
+                    value: else_value,
+                    predicate: None,
+                },
+            ) => Some(FilterMapResult::Emit {
+                value: self.mk(ValOp::Phi, vec![cond, then_value, else_value]),
+                predicate: None,
+            }),
+            _ => None,
+        }
+    }
+
+    fn rust_some_call_arg(&self, node: NodeId) -> Option<NodeId> {
+        if self.il.kind(node) != NodeKind::Call {
+            return None;
+        }
+        let kids = self.il.children(node);
+        if kids.len() != 2 {
+            return None;
+        }
+        let callee = kids[0];
+        let (NodeKind::Var, Payload::Name(name)) =
+            (self.il.kind(callee), self.il.node(callee).payload)
+        else {
+            return None;
+        };
+        let text = self.interner.resolve(name);
+        (text == "Some" || text.ends_with("::Some")).then_some(kids[1])
+    }
+
+    fn is_rust_vec_new_call(&self, callee: NodeId) -> bool {
+        let (NodeKind::Var, Payload::Name(name)) =
+            (self.il.kind(callee), self.il.node(callee).payload)
+        else {
+            return false;
+        };
+        let text = self.interner.resolve(name);
+        text == "Vec::new" || text.ends_with("::Vec::new")
+    }
+
+    fn is_null_literal(&self, node: NodeId) -> bool {
+        matches!(
+            (self.il.kind(node), self.il.node(node).payload),
+            (NodeKind::Lit, Payload::Lit(nose_il::LitClass::Null))
+        )
+    }
+
     /// Walk a (possibly nested) block, applying assignments to `env`, and return the
     /// value of the first `return` expression reached.
     fn eval_block_return(
@@ -6199,6 +6374,9 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_proven_numeric_method_call(&kids, env) {
                     return r;
                 }
+                if kids.len() == 1 && self.is_rust_vec_new_call(kids[0]) {
+                    return self.mk(ValOp::Seq(1), vec![]);
+                }
                 // Iteration-identity adapters: `xs.iter()` / `.into_iter()` / `.collect()`
                 // / `.to_vec()` / `.copied()` / `.cloned()` don't change *what* is iterated
                 // or produced, so peel them — `xs.iter().map(f).collect()` (Rust) converges
@@ -6308,6 +6486,20 @@ impl<'a> Builder<'a> {
                             args.push(p);
                         }
                         self.mk(ValOp::Hof(kind as u32), args)
+                    }
+                    HoFKind::FilterMap => {
+                        let (elems, carried_pred) = self.map_source(kids.first().copied(), env);
+                        let Some((contrib, own_pred)) = kids
+                            .get(1)
+                            .and_then(|&l| self.eval_filter_map_lambda_body(l, &elems, env))
+                        else {
+                            let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                            return self.mk(ValOp::Hof(kind as u32), a);
+                        };
+                        match self.and_preds(own_pred, carried_pred) {
+                            Some(p) => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib, p]),
+                            None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![contrib]),
+                        }
                     }
                     HoFKind::Filter => {
                         // `filter(p, coll)` ≡ the *identity map with a predicate*:

@@ -34,7 +34,13 @@
       "kind": "positive",
       "semantic_family": "hof.filter_map",
       "claim": "filter_map-style option-producing callbacks can converge with explicit filter+map where None drops elements.",
-      "evidence": "Candidate; first task must add focused source fixtures and classify current behavior."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_filter_map/filtered.py",
+        "bench/type4/adversarial/cases/hof_filter_map/filtered.js",
+        "bench/type4/adversarial/cases/hof_filter_map/filter_map.rs",
+        "bench/type4/adversarial/cases/hof_filter_map/guarded_builder.rs"
+      ],
+      "evidence": "Focused equivalence test and hof_filter_map smoke converge Python filtered comprehension, JS filter().map(), Rust filter_map Some/None, and Rust guarded Vec::new()/push builder."
     },
     {
       "id": "filter_map_none_boundary",
@@ -42,7 +48,8 @@
       "semantic_family": "hof.filter_map",
       "claim": "Dropping None differs from mapping None as a value.",
       "mutation": "filter_map callback returns None where map keeps a sentinel value",
-      "evidence": "Must be counterexample-backed before filter_map is promoted."
+      "fixtures": ["bench/type4/adversarial/cases/hof_filter_map/mapped_none.rs"],
+      "evidence": "Focused equivalence test rejects a Rust map that emits Option payloads instead of dropping None."
     },
     {
       "id": "filter_map_value_change",
@@ -50,7 +57,8 @@
       "semantic_family": "hof.filter_map",
       "claim": "Changing the mapped Some value changes behavior even when the predicate stays the same.",
       "mutation": "Some(x) -> Some(x + 1)",
-      "evidence": "Required value-boundary sibling."
+      "fixtures": ["bench/type4/adversarial/cases/hof_filter_map/changed_value.rs"],
+      "evidence": "Focused equivalence test rejects Some(x * 3) against the covered Some(x * 2) value coordinate."
     },
     {
       "id": "filter_map_falsey_value_boundary",
@@ -58,7 +66,27 @@
       "semantic_family": "hof.filter_map",
       "claim": "filter_map keeps falsey Some-like values; only Null/None absence drops an item.",
       "mutation": "coerce the callback result through truthiness before deciding whether to emit it",
-      "evidence": "Interpreter FilterMap tests keep Int(0) while dropping Null."
+      "fixtures": [
+        "bench/type4/adversarial/cases/hof_filter_map/falsey.py",
+        "bench/type4/adversarial/cases/hof_filter_map/falsey_filter_map.rs",
+        "bench/type4/adversarial/cases/hof_filter_map/dropped_falsey.rs"
+      ],
+      "evidence": "Interpreter FilterMap tests keep Int(0), and focused equivalence test converges Some(0) with a filtered zero map while rejecting a later truthy zero filter."
+    },
+    {
+      "id": "filter_map_match_option_equiv",
+      "kind": "positive",
+      "semantic_family": "hof.filter_map",
+      "claim": "Richer option-producing match/and_then forms may converge with explicit filter+map when they preserve the same absence and emitted-value coordinates.",
+      "evidence": "Successor candidate; not covered by the current direct Some/None if-expression rule."
+    },
+    {
+      "id": "filter_map_wrapped_none_payload",
+      "kind": "hard-negative",
+      "semantic_family": "hof.filter_map",
+      "claim": "A wrapped None payload is an emitted value in richer option domains, not the current Null absence sentinel.",
+      "mutation": "Some(None)-style payload vs None absence",
+      "evidence": "Successor boundary for hof.filter_map.rich_option_shapes and the oracle.option_iterator Null-only absence model."
     },
     {
       "id": "sum_flat_map_nested_loop",

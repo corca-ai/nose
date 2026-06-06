@@ -32,13 +32,13 @@
     {
       "id": "hof.filter_map",
       "kind": "engine",
-      "status": "proposed",
-      "summary": "Canonicalize option-producing filter-map forms to a shared representation.",
+      "status": "landed",
+      "summary": "Canonicalize proven option-producing filter-map forms and guarded builders to the shared filtered Map representation.",
       "implementation": ["crates/nose-normalize/src/idioms.rs", "crates/nose-normalize/src/value_graph.rs"],
-      "positive_cases": ["filter_map_filter_map_equiv"],
-      "hard_negatives": ["filter_map_none_boundary", "filter_map_value_change", "filter_map_falsey_value_boundary"],
-      "boundaries": ["Must distinguish dropped None values from mapped Some values.", "Falsey emitted values such as 0 must not be treated as absence.", "Do not assume arbitrary callbacks are pure."],
-      "docs": ["docs/type4-adversarial-coverage.md"]
+      "positive_cases": ["filter_map_filter_map_equiv", "filter_map_match_option_equiv"],
+      "hard_negatives": ["filter_map_none_boundary", "filter_map_value_change", "filter_map_falsey_value_boundary", "filter_map_wrapped_none_payload"],
+      "boundaries": ["Only direct Rust Some(value)/None if-expression callbacks and Vec::new()/push guarded builders are covered today.", "Mapped None payloads, changed Some values, and falsey emitted values such as 0 stay behavior-defining.", "Match expressions, and_then chains, wrapped Some(None)-style payloads, and effectful callbacks remain fail-closed successor work."],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
     },
     {
       "id": "hof.aggregate_bridge",

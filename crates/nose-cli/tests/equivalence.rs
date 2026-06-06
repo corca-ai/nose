@@ -1760,6 +1760,82 @@ fn cross_language_any_all_converges() {
     assert!(!any_py.is_empty());
 }
 
+#[test]
+fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
+    let i = Interner::new();
+    let filtered_py = value_fp(
+        &i,
+        "def f(xs):\n    return [x * 2 for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let filtered_js = value_fp(
+        &i,
+        "function f(xs){ return xs.filter(x => x > 0).map(x => x * 2); }",
+        Lang::JavaScript,
+    );
+    let filter_map_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let guarded_builder_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
+        Lang::Rust,
+    );
+    let mapped_none_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<Option<i32>> { xs.iter().copied().map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let changed_value_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 3) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let falsey_py = value_fp(
+        &i,
+        "def f(xs):\n    return [0 for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let falsey_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let dropped_falsey_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).filter(|x| *x != 0).collect() }",
+        Lang::Rust,
+    );
+
+    assert_eq!(filtered_py, filtered_js, "filter+map surfaces should agree");
+    assert_eq!(
+        filtered_py, filter_map_rs,
+        "Rust filter_map Some/None should become the same filtered-map value"
+    );
+    assert_eq!(
+        filtered_py, guarded_builder_rs,
+        "Rust guarded Vec::new/push builder should use the same filtered-map value"
+    );
+    assert_ne!(
+        filtered_py, mapped_none_rs,
+        "mapping None as a value is not the same as dropping it"
+    );
+    assert_ne!(
+        filtered_py, changed_value_rs,
+        "changing the emitted Some value must stay distinct"
+    );
+    assert_eq!(
+        falsey_py, falsey_rs,
+        "Some(0) is an emitted value, not an absence sentinel"
+    );
+    assert_ne!(
+        falsey_rs, dropped_falsey_rs,
+        "truthy filtering after emitting 0 must stay distinct"
+    );
+}
+
 /// Value-graph fingerprint of the first function unit.
 fn value_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
