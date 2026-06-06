@@ -82,8 +82,7 @@ pub(crate) fn run(old: &Il) -> Il {
 /// not. Conservative by design: false negatives only (less recall), never an unsound rewrite.
 fn method_recursion_safe(old: &Il, root: NodeId) -> bool {
     fn pure(old: &Il, n: NodeId) -> bool {
-        old.kind(n) != NodeKind::Field
-            && old.children(n).iter().all(|&c| pure(old, c))
+        old.kind(n) != NodeKind::Field && old.children(n).iter().all(|&c| pure(old, c))
     }
     pure(old, root)
 }

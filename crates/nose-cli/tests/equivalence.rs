@@ -585,7 +585,8 @@ fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
     let i = Interner::new();
     let py_list = "def f():\n    return [1, 2, 3]\n";
     let go_slice = "package p\nfunc f() []int { return []int{1, 2, 3} }\n";
-    let go_struct = "package p\ntype Point struct{ x, y, z int }\nfunc f() Point { return Point{1, 2, 3} }\n";
+    let go_struct =
+        "package p\ntype Point struct{ x, y, z int }\nfunc f() Point { return Point{1, 2, 3} }\n";
     let list_fp = value_fp(&i, py_list, Lang::Python);
     assert_eq!(
         list_fp,
@@ -606,7 +607,8 @@ fn pure_method_recursion_converges_with_iteration() {
     // converges cross-language with the accumulator loop. The sum monoid stays a hard negative.
     let i = Interner::new();
     let py_loop = "def fac(n):\n    acc = 1\n    while n != 0:\n        acc = acc * n\n        n = n - 1\n    return acc\n";
-    let java_rec = "class C { static int fac(int n) { if (n == 0) { return 1; } return n * fac(n - 1); } }";
+    let java_rec =
+        "class C { static int fac(int n) { if (n == 0) { return 1; } return n * fac(n - 1); } }";
     let ruby_rec = "def fac(n)\n  return 1 if n == 0\n  n * fac(n - 1)\nend\n";
     let sum_loop = "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + n\n        n = n - 1\n    return acc\n";
     let fold = value_fp(&i, py_loop, Lang::Python);

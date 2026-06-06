@@ -2830,7 +2830,8 @@ impl<'a> Builder<'a> {
         let kids = self.il.children(e).to_vec();
         let &first = kids.first()?;
         if matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append)) {
-            let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(first), self.il.node(first).payload)
+            let (NodeKind::Var, Payload::Cid(c)) =
+                (self.il.kind(first), self.il.node(first).payload)
             else {
                 return None;
             };
@@ -2930,7 +2931,10 @@ impl<'a> Builder<'a> {
                         (self.il.kind(*tgt), self.il.node(*tgt).payload)
                     {
                         if self.il.kind(*rhs) == NodeKind::Call
-                            && matches!(self.il.node(*rhs).payload, Payload::Builtin(Builtin::Append))
+                            && matches!(
+                                self.il.node(*rhs).payload,
+                                Payload::Builtin(Builtin::Append)
+                            )
                         {
                             let rk = self.il.children(*rhs);
                             let same = rk.first().is_some_and(|&f| {
