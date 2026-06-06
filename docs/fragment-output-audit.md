@@ -304,13 +304,15 @@ share a field with exact-fragment proof reasons.
 | unsupported/ambiguous | no unless stable metadata explains the proof | yes when stable metadata gives enough context for changed regions | yes |
 
 The current product implementation keeps exact fragments visible in full
-machine-readable output while using `recommended_surface` and default ranking
-damping so proof fragments do not automatically read as first-class refactoring
-candidates. The placement policy uses fragment shape, span, scope, spread, fanout,
-generated-looking paths, and enclosing context: tiny/high-fanout proof fragments stay
-hidden, medium effect/body fragments usually feed review, and substantial cross-file
-production fragments can still remain default candidates. The important product decision
-remains: exact semantic fragments are evidence, not automatically refactoring candidates.
+machine-readable JSON while the default human, Markdown, SARIF, and `--fail-on`
+surfaces show only action-oriented findings. The placement policy uses fragment
+shape, span, scope, spread, fanout, generated-looking paths, and enclosing context:
+tiny/high-fanout proof fragments stay hidden, medium effect/body fragments usually
+feed review, and substantial cross-file production fragments can still remain
+default candidates. The CLI also omits families wholly inside files with
+generated-code headers from the default output, while preserving them in JSON for
+audit/debug work. The important product decision remains: exact semantic fragments
+are evidence, not automatically refactoring candidates.
 
 The scan-regression harness measures that placement policy without expanding the
 stable scan JSON schema. Its canonical output tracks `recommended_surface`

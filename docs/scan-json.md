@@ -45,10 +45,17 @@ placeholder: it always reports the installed binary's own version, so the exampl
 pin a release.
 
 > **`--top` truncates machine output too.** `families` contains only the top `--top`
-> families (default 30), exactly like the human report — it is *not* the full set by
+> families (default 30) from the active ranked set, so it is *not* the full set by
 > default. `ranking.total_families` vs `ranking.shown_families` (and `ranking.limit`) make
 > any truncation explicit; pass **`--top 0`** to emit every family. `ranking.total_families`
 > is always the complete post-filter count regardless of `--top`.
+
+The JSON report intentionally keeps diagnostic families that the default human,
+Markdown, SARIF, and `--fail-on` surfaces omit: hidden proof-only fragments,
+review-surface fragments, and families wholly inside files with generated-code
+headers. Consumers that want the same first-screen surface as humans should filter
+for `recommended_surface == "default"` and drop generated-header files according
+to their own source metadata.
 
 ## Top-level fields
 
@@ -64,7 +71,7 @@ pin a release.
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
 | `ignore` | object, optional | Structured ignore summary when an ignore file was read. |
-| `families` | array | Active ranked clone families in display order. Empty means no family survived the filters, baseline, and structured ignores. |
+| `families` | array | Active ranked clone families in JSON order, including diagnostic review/hidden families. Empty means no family survived the filters, baseline, and structured ignores. |
 | `ignored_families` | array, optional | Suppressed families with the same family fields plus nested ignore metadata. Present when at least one current family was ignored. |
 
 When `--baseline` is active, `families` contains only reportable current families:
