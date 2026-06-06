@@ -19,11 +19,17 @@ recursion_tail_numeric/{python,javascript}/pos  # covered 1/1
 Root cause (narrowed): NOT the self-call IL (identical `(call (var "fac") …)` in python and
 rust) and NOT the return style (explicit `return n*fac(n-1);` is still `exact_safe=False` in
 rust). The whole recursive *function* is `exact_safe=False` in rust/java but `True` in
-python/js — the divergence lives in `strict_exact_safe_var` / `StrictFacts` handling of the
-self-reference per language, in `crates/nose-detect/src/units.rs`. This is a static-gate
-change (a soundness boundary), so it must be done with the real-corpus `nose verify` gate, not
-loosened blind. The recursion→iteration canon (recursion.rs) is language-general, so once the
-recursive fn is admitted to the exact channel the convergence should follow. Hard negatives
+python/js. **Exact root cause:** the self-call `fac` is a free `Name` node, so
+`strict_exact_safe_var` requires `facts.proven_name("fac")` (units.rs). A python `def`
+registers `fac` as a proven module binding; rust `pub fn` / java methods are NOT registered as
+proven names → `proven_name` is false → the recursive fn is excluded from the exact channel.
+Confirmed by language: **python / js / go recursion DO converge; rust / java do not.**
+
+This is therefore a change to `proven_name` / module-binding folding — a **cross-cutting
+soundness gate** (it governs every name-callee admission, not just recursion), so loosening it
+blind risks false merges elsewhere. It must ship with the real-corpus `nose verify` gate
+(0 violations) + Lean, not patched here. The recursion→iteration canon (recursion.rs) is
+language-general, so once the recursive fn is admitted the convergence follows. Hard negatives
 (sum vs product monoid) already stay un-merged — the guard is in place.
 
 ## L2 — `exact_safe`: rust builder loop (`for … for … push`)
