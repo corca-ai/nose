@@ -131,6 +131,7 @@ pub enum ParamSemantic {
     Array,
     ByteArray,
     Collection,
+    Integer,
     Map,
     Number,
     String,

@@ -30,6 +30,9 @@
 > statically-false loop entry guards (a proven-true local boolean makes a left
 > short-circuit `!local && ...` guard unreachable), primitive total-order comparator
 > guard absorption (`x<y ∧ x≤y` keeps `x<y` for non-overloadable ordered comparisons),
+> conservative integer-only bound-order facts for future clamp canonicalization
+> (literal `lo <= hi`, or a dominating inverse guard such as `if hi < lo { throw ... }`);
+> clamp-shaped min/max returns are only probed today, not canonicalized,
 > control-flow-aware ordering for statement-level effects (so `append(a); append(b)` does not
 > merge with `append(b); append(a)`),
 > C byte-buffer `u16`/`u32` big-endian packing (`(a[0]<<8)+a[1]` ≡ `(a[0]<<8)|a[1]`
