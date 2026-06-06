@@ -484,7 +484,10 @@ impl<'a> Builder<'a> {
                     x if x == Op::Lt as u32 || x == Op::Le as u32 || x == Op::Gt as u32
                         || x == Op::Ge as u32 || x == Op::Eq as u32 || x == Op::Ne as u32
                         || x == Op::In as u32
-                ) {
+                ) || ((o == Op::And as u32 || o == Op::Or as u32)
+                    && at(0) == Ty::Bool
+                    && at(1) == Ty::Bool)
+                {
                     Ty::Bool
                 } else {
                     Ty::Unknown
@@ -1830,6 +1833,9 @@ impl<'a> Builder<'a> {
                 {
                     return self.mk(ValOp::Un(Op::Not as u32), vec![args[0]]);
                 }
+                if let Some(v) = self.boolean_guarded_identity_phi(args[0], args[1], args[2]) {
+                    return v;
+                }
                 if let Some(v) = self.abs_pattern(args[0], args[1], args[2]) {
                     return v;
                 }
@@ -1854,6 +1860,21 @@ impl<'a> Builder<'a> {
                 }
             }
         }
+        // Boolean logical `and`/`or` is associative and commutative only when both sides are
+        // proven Bool. Flattening that narrow shape lets `guard && (p && q)` converge with
+        // `(guard && p) && q` without reviving value-short-circuit false merges for unknowns.
+        if let ValOp::Bin(o) = op {
+            if args.len() == 2 && (o == Op::And as u32 || o == Op::Or as u32) {
+                let mut leaves = Vec::new();
+                self.flatten_into(args[0], o, &mut leaves);
+                self.flatten_into(args[1], o, &mut leaves);
+                if leaves.len() > 2 && leaves.iter().all(|&v| self.vty(v) == Ty::Bool) {
+                    leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
+                    return self.intern_ac_chain(o, &leaves);
+                }
+            }
+        }
+
         // Full ASSOCIATIVE-COMMUTATIVE canonicalization: flatten a `+`/`*`/`&`/`|`/`^`
         // chain to its leaves, sort them by structural hash, and rebuild one canonical
         // left-leaning chain — so `(a+b)+c`, `a+(b+c)`, and a factored `(a+b)+d` (from
@@ -1903,6 +1924,26 @@ impl<'a> Builder<'a> {
         self.vty.push(ty);
         self.intern.insert(key, id);
         id
+    }
+
+    fn boolean_guarded_identity_phi(
+        &mut self,
+        cond: ValueId,
+        then_v: ValueId,
+        else_v: ValueId,
+    ) -> Option<ValueId> {
+        if self.vty(cond) != Ty::Bool || self.vty(then_v) != Ty::Bool {
+            return None;
+        }
+        match self.bool_const(else_v) {
+            Some(false) => Some(self.mk(ValOp::Bin(Op::And as u32), vec![cond, then_v])),
+            Some(true) => {
+                let not_then = self.mk(ValOp::Un(Op::Not as u32), vec![then_v]);
+                let failure = self.mk(ValOp::Bin(Op::And as u32), vec![cond, not_then]);
+                Some(self.mk(ValOp::Un(Op::Not as u32), vec![failure]))
+            }
+            None => None,
+        }
     }
 
     fn flatten_nested_guarded_identity_phi(

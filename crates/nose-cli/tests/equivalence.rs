@@ -1889,9 +1889,34 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => v > 0); }",
         Lang::JavaScript,
     );
+    let filtered_any_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    for x in xs:\n        if x > 0:\n            for y in ys:\n                if y < 10 and x + y > 0:\n                    return True\n    return False\n",
+        Lang::Python,
+    );
     let filtered_any_terminal_changed = value_fp(
         &i,
         "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => false); }",
+        Lang::JavaScript,
+    );
+    let filtered_all_gen = value_fp(
+        &i,
+        "def f(xs, ys):\n    return all(x + y > 0 for x in xs if x > 0 for y in ys if y < 10)\n",
+        Lang::Python,
+    );
+    let filtered_all_js = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => v > 0); }",
+        Lang::JavaScript,
+    );
+    let filtered_all_loop = value_fp(
+        &i,
+        "def g(xs, ys):\n    for x in xs:\n        if x > 0:\n            for y in ys:\n                if y < 10 and not (x + y > 0):\n                    return False\n    return True\n",
+        Lang::Python,
+    );
+    let filtered_all_terminal_changed = value_fp(
+        &i,
+        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => false); }",
         Lang::JavaScript,
     );
 
@@ -1951,9 +1976,25 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         filtered_any_gen, filtered_any_js,
         "method terminal predicates over filtered flatMap should preserve carried predicates"
     );
+    assert_eq!(
+        filtered_any_gen, filtered_any_loop,
+        "filtered flat-map any should match the equivalent nested guarded early-return loop"
+    );
     assert_ne!(
         filtered_any_gen, filtered_any_terminal_changed,
         "changing the terminal method predicate changes behavior"
+    );
+    assert_eq!(
+        filtered_all_gen, filtered_all_js,
+        "method universal predicates over filtered flatMap should preserve carried predicates"
+    );
+    assert_eq!(
+        filtered_all_gen, filtered_all_loop,
+        "filtered flat-map all should match the equivalent nested guarded early-return loop"
+    );
+    assert_ne!(
+        filtered_all_gen, filtered_all_terminal_changed,
+        "changing the terminal universal predicate changes behavior"
     );
 }
 

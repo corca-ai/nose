@@ -181,9 +181,11 @@
         "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_loop.py",
         "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered.js",
         "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_flat.py",
-        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered.js"
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered.js",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered_flat.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered.js"
       ],
-      "evidence": "Focused equivalence test converges Python filtered flat-map sum, Python nested guarded sum loop, JS filtered flatMap().reduce(), and JS method-terminal .some() with the equivalent Python filtered any generator."
+      "evidence": "Focused equivalence test converges Python filtered flat-map sum, Python nested guarded sum loop, JS filtered flatMap().reduce(), and JS method-terminal .some()/.every() with the equivalent Python filtered any/all generators."
     },
     {
       "id": "flat_map_aggregate_filter_predicate_change",
@@ -194,7 +196,8 @@
       "fixtures": [
         "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_outer_changed.py",
         "bench/type4/adversarial/cases/flat_map_aggregate/sum_filtered_inner_changed.py",
-        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_terminal_changed.js"
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_terminal_changed.js",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered_terminal_changed.js"
       ],
       "evidence": "Focused equivalence test keeps static-false outer predicates, inner predicates, and method-terminal predicates distinct from the covered filtered FlatMap aggregate."
     },
@@ -202,13 +205,16 @@
       "id": "any_filtered_flat_map_early_return_loop",
       "kind": "positive",
       "semantic_family": "hof.flat_map",
-      "claim": "A filtered FlatMap any/existence aggregate may converge with the equivalent nested guarded early-return loop.",
+      "claim": "A filtered FlatMap any/all existence or universal aggregate may converge with the equivalent nested guarded early-return loop.",
       "fixtures": [
         "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_flat.py",
         "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered.js",
-        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_loop.py"
+        "bench/type4/adversarial/cases/flat_map_aggregate/any_filtered_loop.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered_flat.py",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered.js",
+        "bench/type4/adversarial/cases/flat_map_aggregate/all_filtered_loop.py"
       ],
-      "evidence": "Successor audit from hof.flat_map.filtered_aggregate_bridge: Python filtered any generator and JS filtered flatMap().some() converge, but the equivalent nested guarded early-return loop remains under-merged."
+      "evidence": "Focused equivalence test converges Python filtered any/all generators, JS filtered flatMap().some()/every(), and equivalent Python nested guarded early-return loops."
     },
     {
       "id": "java_stream_flat_map_py_comp",

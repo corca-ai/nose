@@ -24,9 +24,9 @@
 > sum/max/any over flat-map streams versus nested reduction loops when the contribution
 > uses the outer element (kept distinct from nested-list comprehensions, Java stream
 > `map` returning streams, wrong reduction seeds, outer-cardinality-only cases, and
-> changed flattened predicates; filtered Sum/Reduce FlatMap aggregates and method-terminal
-> Any/All predicates preserve carried outer/inner predicates, while filtered nested
-> early-return any/all loops remain successor work), full **AC flatten+sort in the value graph itself** (not
+> changed flattened predicates; filtered Sum/Reduce FlatMap aggregates, method-terminal
+> Any/All predicates, and filtered nested early-return any/all loops preserve carried
+> outer/inner predicates), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
