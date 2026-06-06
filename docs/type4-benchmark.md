@@ -186,10 +186,10 @@ benchmark also proves what must *not* merge. Each negative carries a concrete co
 ## Detector co-evolution loop
 
 The factory is useful only if it changes the **detector**, not just the benchmark. Each
-accepted iteration leaves four artifacts: a proposal card / matrix cell; generated positives
-and hard-negatives with evidence; a detector change that makes a previously-missed exact
-positive converge; and a regression check proving the nearby hard-negatives still don't
-merge. The loop:
+accepted iteration leaves four artifacts: a proposal card or target packet; generated
+positives and hard-negatives with evidence; a detector change that makes a previously-missed
+exact positive converge; and a regression check proving the nearby hard-negatives still
+don't merge. The loop:
 
 ```text
 generate a benchmark slice  →  scan with semantic mode
@@ -306,11 +306,12 @@ The seed lives in `bench/type4/`:
   baseline, fragment/reason-code/surface bucket drift, enclosing-unit recovery metrics,
   generated HoF value-graph budget smoke, and threshold docs; see
   `bench/type4/scan_regression/README.md`;
-- `adversarial/` — the agent-facing coverage matrix, rule registry, adversarial case
-  handles, and next-task scripts; see
+- `adversarial/` — focused Type-4 case handles, verifier-lead draft tooling, and target
+  packet task scripts; see
   [type4-adversarial-coverage](type4-adversarial-coverage.md);
 - `README.md` — commands and current smoke numbers.
 
 The long-term direction is an adversarial semantic test factory: the generator creates
 frontier cases, the verifier proves or refutes them, detector failures become minimal
-regressions, and the coverage matrix decides where the next breadth-first expansion goes.
+regressions, and frontier evidence plus target packets decide where the next
+breadth-first expansion goes.

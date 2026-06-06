@@ -1,43 +1,35 @@
-# Type-4 adversarial coverage
+# Type-4 focused cases
 
-Back to [home](home.md). This page is the operating guide for the agent-facing
-Type-4 coverage loop. It complements the synthetic [type4-benchmark](type4-benchmark.md)
-and the real-corpus [frontier-platform](frontier-platform.md).
+Back to [home](home.md). This page describes the small focused-case library that supports
+the Type-4 target-packet workflow.
 
-## Purpose
+## Current role
 
-Type-4 coverage should grow by co-evolution, not by a pile of ad hoc canons. The
-engine, oracle, proof facts, adversarial cases, and performance guards should
-pressure each other:
+The active Type-4 planning path is now:
 
 ```text
-generator/cases attack -> engine tries to converge positives
-  -> hard negatives and oracle refute unsafe merges
-  -> proof/type facts gate risky generalization
-  -> performance guards reject expensive representations
-  -> matrix records the state
-  -> the next agent task is selected from the matrix
+frontier_platform.py
+  -> real_frontier.v1.json evidence
+  -> frontier_target_packets.v1.json implementation-ready target packets
+  -> scripts/type4-smoke.sh / nose verify / focused tests
 ```
 
-The harness is intentionally not a fully automatic optimizer. It gives a coding
-agent enough structure to choose the next item, reproduce the current state, make
-the smallest correct engine/oracle/proof/perf change, and record the result.
+`bench/type4/adversarial` is no longer the source of truth for next work. The former
+adversarial ledger was retired after each entry had a current gate in tests, `type4-smoke`,
+`nose verify`, or `scan_regression`.
 
-## Files
-
-The control plane lives in [`bench/type4/adversarial`](../bench/type4/adversarial/):
+What remains is intentionally smaller:
 
 | file | role |
 |---|---|
-| `coverage_matrix.v1.json` | semantic-family cells, status, next actor, cases, gates, docs |
-| `rule_registry.v1.json` | engine/oracle/proof/perf rules and their boundaries |
-| `cases/cases.v1.json` | positive, hard-negative, oracle-gap, and perf case handles |
-| `scripts/type4-next` | print the next actionable task cards |
-| `scripts/type4-check` | validate matrix/registry/case consistency |
-| `scripts/type4-report` | summarize backlog by status, action, and family |
-| `scripts/type4-ingest-leads` | summarize `nose verify --leads` output and emit draft matrix cells |
+| `cases/cases.v1.json` | focused positive and hard-negative case handles |
+| `cases/**` | small fixture corpora used by focused `scan` / `verify` gates |
+| `scripts/type4-check` | validate target packets, real-frontier links, and focused cases |
+| `scripts/type4-next` | print next task cards from `frontier_target_packets.v1.json` |
+| `scripts/type4-report` | summarize target packets and focused case coverage |
+| `scripts/type4-ingest-leads` | turn `nose verify --leads` JSON into draft target packets |
 
-Run the basic harness check:
+Run the basic checks:
 
 ```sh
 bench/type4/adversarial/scripts/type4-check
@@ -45,120 +37,36 @@ bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
 
-Only run `type4-ingest-leads <leads.json> --draft-json` after `nose verify --leads` has
-produced a leads file; it reads that positional JSON and emits draft matrix cells for
-manual curation.
+## Target packets
 
-## Status Model
+The next-work queue is `bench/type4/frontier_target_packets.v1.json`, not a separate
+ledger. A packet links human evidence in `real_frontier.v1.json`, names the proof invariant,
+records hard-negative siblings, and routes the work with `owner_route`.
 
-Each matrix cell has one status. The status says which actor should move next:
-
-| status | next work |
-|---|---|
-| `covered` | monitor only; positives converge, hard negatives split, gates passed |
-| `candidate` | add focused reproductions and classify the cell |
-| `under-merged` | engine/value graph/idiom work: behavior-equal positives split |
-| `false-merged` | soundness bug hunt: oracle refuted a fingerprint-equal pair |
-| `oracle-blocked` | interpreter/oracle must learn enough behavior before engine work is safe |
-| `proof-fact-blocked` | type/provenance/order facts are missing |
-| `perf-blocked` | semantics are plausible but representation/runtime cost is too high |
-| `unsafe` | semantics are too broad or edge cases are unresolved |
-| `not-applicable` | intentionally out of scope |
-
-`type4-next` scores actionable cells. Soundness bugs rank first, then
-under-merged engine work, then oracle/proof-fact blockers, then survey
-candidates and performance blockers.
-
-## Agent Loop
-
-For a selected task card:
-
-1. Read the matrix cell, referenced rules, referenced cases, and docs.
-2. Add or confirm focused positive cases and adjacent hard negatives.
-3. Reproduce the current status. Do not implement a canon from speculation.
-4. Fix the actor named by `next_action`:
-   - `engine`: frontend lowering, idiom canonicalization, value graph, or shared representation;
-   - `oracle`: interpreter behavior and `nose verify` coverage;
-   - `proof-facts`: type/provenance/order facts that make a canon safe;
-   - `performance`: compact representation, runtime guard, or scan-regression harness;
-   - `soundness`: remove or gate a false merge;
-   - `survey`: reproduce/classify candidate evidence before engine work;
-   - `monitor`: covered-cell follow-up only.
-5. Run the cell's focused gates, then the normal project gate.
-6. Update the matrix, registry, cases, and docs in the same PR.
-
-The ordinary PR/push gate remains:
+`type4-next` is a thin reader over those packets. It does not infer work from raw prevalence
+or from the retired ledger:
 
 ```sh
-./scripts/check-ci-local.sh --fast
+bench/type4/adversarial/scripts/type4-next
+bench/type4/adversarial/scripts/type4-next --route proof-fact-prerequisite --json
 ```
 
-For Type-4 cells, also run the focused command listed in the cell. When a cell
-has a generated benchmark axis, prefer:
+## Focused cases
 
-```sh
-GATE=focused AXIS=<axis> scripts/type4-smoke.sh
-```
+Every positive family needs adjacent negatives. The case library stores handles, not a
+parallel rule catalog. A case can point to checked-in fixtures, generated manifest items, or
+real frontier evidence. Important cases should be promoted into an automatic gate:
 
-## Rule Registry
+- Rust or CLI equivalence tests for stable semantic rules;
+- `scripts/type4-smoke.sh` focused gates for generated positives and hard negatives;
+- `nose verify --max-violations 0 <focused-corpus>` for oracle-backed behavior checks;
+- `scan_regression compare` for product output/runtime and HoF value-graph budget checks;
+- formal obligations where a proof precondition is the boundary.
 
-The registry is the anti-duplication mechanism for the semantic engine. Every new
-rule should declare:
+If a focused case is not used by a gate and does not clarify a target packet boundary, it is
+only historical context and should be deleted instead of preserved.
 
-- whether it is engine, oracle, proof-fact, or performance work;
-- implementation files;
-- positive cases and hard negatives;
-- boundaries where the rule must fail closed;
-- docs that explain the rule.
-
-When two cells need the same proof invariant or value-graph representation, extend
-one registry rule instead of adding parallel language-specific exceptions.
-For option-producing iterator rules, record the absence/value boundary explicitly:
-the current oracle `FilterMap` model treats callback-level `Null` as absence,
-propagates `Err`, and emits every other value, including falsey values such as `0`.
-The covered engine slice recognizes direct Rust `if p { Some(v) } else { None }`
-filter-map callbacks, match-guard option callbacks, pure `Some(x).and_then(...)`
-helper chains, and guarded `Vec::new()`/`push` builders as filtered maps; mapped
-`None` payloads, wrapped `Some(None)` emitted payloads, changed `Some` values,
-truthy filtering after `Some(0)`, and effectful callbacks stay hard-negative or
-fail-closed boundaries.
-For Java stream rules, keep the registry scoped to the proven pure subset:
-`Arrays.stream(...).flatMap(...map...)` can share the FlatMap HoF only while
-`map`-returning-stream siblings stay nested and callback effects remain observable
-oracle evidence instead of purity assumptions.
-For FlatMap aggregate rules, keep the aggregate consumer explicit about the HoF
-layout: pure `FlatMap[outer, Map[contrib]]` streams and equivalent nested inner
-`Reduce` loops can share sum/max/any fingerprints when `contrib` uses the outer
-element, but the bridge must not read FlatMap's `[outer, inner]` arguments as
-filtered Map's `[contrib, pred]`. Wrong sum seeds, nested-list aggregation,
-outer-cardinality-only cases, and changed flattened predicates remain hard
-negatives; filtered Sum/Reduce FlatMap aggregates, method-terminal Any/All
-predicates, and filtered nested early-return any/all loops preserve carried
-outer/inner predicates.
-For numeric clamp rules, require a concrete integer-domain and `lo <= hi` proof;
-proof-backed min/max compositions, two-comparison ternaries, and proven numeric
-library clamp methods share `Clamp(x, lo, hi)`. Name-only lower/upper conventions,
-method names without numeric receiver proof, non-exiting checks, swapped bounds,
-and float domains must stay hard negatives.
-For map-default import rules, resolve only unambiguous static imported bindings whose
-provider has one safe immutable literal or proven map-factory binding. The covered import
-slice includes Python sibling literals, JS/TS named imports from sibling map exports, Java
-static imports from class `Map.of` fields, and Rust `use` imports of const entry arrays
-consumed by `HashMap::from`/`BTreeMap::from`. Provider mutation, importer mutation,
-duplicate providers, shadowing, unresolved imports, unsupported coordinates, and changed
-receiver maps remain fail-closed hard negatives or successor work.
-For HoF value-graph performance, `scan_regression compare` now runs a corpus-free
-generated smoke before real-repo scans. It records `nose features` and semantic `nose scan`
-wall time plus token, value-fingerprint-node, and return-fingerprint-node budgets for
-deep and wide filter/map/reduce chains. Budget failures are hard compare failures; the
-ordinary real-repo drift triggers remain investigation prompts unless `--strict` is used.
-
-## Adversarial Cases
-
-Every positive family needs adjacent negatives. The case library stores handles,
-not necessarily full generated source. A case can point to existing fixtures,
-future generated manifest items, or a real frontier packet. Good hard negatives
-attack exactly the proof invariant a rule needs:
+Good hard negatives attack exactly the proof invariant a rule needs:
 
 - flattened list vs nested list;
 - changed predicate or mapped value;
@@ -168,20 +76,30 @@ attack exactly the proof invariant a rule needs:
 - Java stream `flatMap` vs `map` returning streams;
 - FlatMap aggregate seed/predicate changes and nested-list aggregation;
 - effectful callback where a pure HoF rule would be unsound;
-- deep/wide generated HoF chains where representation growth or scan time makes a
-  coverage win too expensive.
+- deep/wide generated HoF chains where representation growth or scan time makes a coverage
+  win too expensive.
+
+## Verifier leads
+
+`nose verify --leads <file>` exports under-merged behavior-equal pairs. These are not target
+packets yet. Use:
+
+```sh
+bench/type4/adversarial/scripts/type4-ingest-leads leads.json --axis <axis> --draft-json
+```
+
+The output is a draft packet skeleton for manual curation. Before committing it, add or link
+human evidence in `real_frontier.v1.json`, classify the proof invariant, record adjacent hard
+negatives, and add a focused gate.
 
 ## Relationship To Existing Type-4 Tools
 
 - `bench/type4/generate.py` creates evidence-carrying synthetic pairs.
-- `scripts/type4-smoke.sh` runs generated positives, hard negatives, verifier leads,
-  stats, and frontier summaries.
-- `bench/type4/frontier_platform.py` ranks real-corpus axes by breadth and evidence.
-- The adversarial harness turns those signals into agent task cards and a durable
-  coverage ledger.
-
-The loop should normally start from `type4-next`, but real-code evidence from the
-frontier platform or `nose verify --leads` can add or update matrix cells. Use
-`type4-ingest-leads` to turn verifier lead output into draft cells, then manually
-classify the semantic family, positives, hard negatives, and gates before committing
-the matrix update.
+- `scripts/type4-smoke.sh` runs generated positives, hard negatives, verifier leads, stats,
+  and frontier summaries.
+- `bench/type4/frontier_platform.py` ranks real-corpus axes by breadth and evidence, then
+  emits implementation-ready target packets.
+- `bench/type4/scan_regression/` guards product semantic scan output, runtime, fragment
+  buckets, and HoF value-graph budgets.
+- `bench/type4/adversarial/cases` keeps small focused fixtures only when they support those
+  gates or target packets.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Case handles used by the adversarial coverage matrix. These are task anchors, not a generated manifest.",
+  "description": "Focused Type-4 positive and hard-negative case handles used by target packets, smoke gates, verifier runs, and regression tests.",
   "cases": [
     {
       "id": "flat_map_py_loop_js",

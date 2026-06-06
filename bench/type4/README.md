@@ -213,11 +213,13 @@ hard negatives, and batch assignment. Use `already-covered`, `real-miss`, `hard-
 `unsupported`, and `closed` as the audit states so prioritizer frequency, real evidence,
 and detector progress stay separate.
 
-## Adversarial coverage matrix
+## Focused cases and target packets
 
-The agent-facing coverage ledger lives in `bench/type4/adversarial/`. It is not a
-replacement for the generator, evaluator, or frontier platform. It connects their signals
-to repeatable coding-agent tasks:
+The next-work queue lives in `frontier_target_packets.v1.json`. The queue is built from
+frontier evidence and ranks implementation-ready packets by owner route, evidence tier, and
+real-corpus breadth. `bench/type4/adversarial/` is now a small focused-case library and
+script surface around that queue; it is not a replacement for the generator, evaluator, or
+frontier platform.
 
 ```sh
 bench/type4/adversarial/scripts/type4-check
@@ -225,19 +227,19 @@ bench/type4/adversarial/scripts/type4-report
 bench/type4/adversarial/scripts/type4-next --limit 3
 ```
 
+`type4-check` validates target packets, real-frontier evidence links, and focused fixture
+paths. `type4-report` summarizes packet and focused-case coverage. `type4-next` prints task
+cards directly from `frontier_target_packets.v1.json`.
+
 When `nose verify --leads` has produced a leads JSON file, use
-`bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --draft-json` as the
-manual curation starting point for new matrix cells.
+`bench/type4/adversarial/scripts/type4-ingest-leads <leads.json> --axis <axis> --draft-json`
+as the manual curation starting point for draft target packets. Promote a draft only after
+linking real-frontier evidence, adding adjacent hard negatives, and wiring a focused gate.
 
-The matrix separates `under-merged`, `oracle-blocked`, `proof-fact-blocked`,
-`perf-blocked`, and `false-merged` states so the next PR improves the right actor. See
+Use `frontier_target_packets.v1.json`, `real_frontier.v1.json`, focused cases, and
+`ITERATIONS.md` as durable resume points after a pause. See
 [`docs/type4-adversarial-coverage.md`](../../docs/type4-adversarial-coverage.md) for the
-workflow and status model.
-
-Use the matrix, not stale narrative notes, as the resume point after a pause. Run
-`type4-check`, `type4-report`, and `type4-next` on the current checkout, then update the
-matrix, registry, cases, and relevant docs in the same PR. Session-local observations that
-matter later should be recorded in those durable artifacts or in `ITERATIONS.md`.
+current workflow.
 
 ## Frontier evidence platform
 

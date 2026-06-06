@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Summarize Type-4 adversarial coverage matrix state."""
+"""Summarize Type-4 target packets and focused cases."""
 
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
+from collections import Counter
 
-from _type4_adversarial import ACTIONABLE_STATUSES, cell_score, load_all, validate_all
+from _type4_adversarial import case_items, load_all, packet_items, packet_score, validate_all
 
 
 def print_counter(title: str, counter: Counter[str]) -> None:
@@ -20,44 +20,33 @@ def main() -> int:
     parser.add_argument("--limit", default=10, type=int)
     args = parser.parse_args()
 
-    matrix, registry, cases = load_all()
-    errors = validate_all(matrix, registry, cases)
+    packet_doc, cases, real_frontier = load_all()
+    errors = validate_all(packet_doc, cases, real_frontier)
     if errors:
         for error in errors:
             print(f"error: {error}")
         return 1
 
-    cells = matrix.get("cells", [])
-    by_status = Counter(cell["status"] for cell in cells)
-    by_action = Counter(cell["next_action"] for cell in cells)
-    by_family = Counter(cell["semantic_family"] for cell in cells)
-    by_family_status: dict[str, Counter[str]] = defaultdict(Counter)
-    for cell in cells:
-        by_family_status[cell["semantic_family"]][cell["status"]] += 1
+    packets = packet_items(packet_doc)
+    focused_cases = case_items(cases)
+    print(f"target packets: {len(packets)}")
+    print(f"focused cases: {len(focused_cases)}")
+    print(f"real-frontier items: {len(real_frontier.get('items', []))}")
 
-    print(f"cells: {len(cells)}")
-    print(f"rules: {len(registry.get('rules', []))}")
-    print(f"cases: {len(cases.get('cases', []))}")
-    print_counter("by status", by_status)
-    print_counter("by action", by_action)
-    print_counter("by semantic family", by_family)
+    print_counter("packets by route", Counter(packet["owner_route"] for packet in packets))
+    print_counter("packets by axis", Counter(packet["candidate_axis"] for packet in packets))
+    print_counter("packets by evidence tier", Counter(packet["evidence_tier"] for packet in packets))
+    print_counter("focused cases by kind", Counter(case["kind"] for case in focused_cases))
+    print_counter("focused cases by semantic family", Counter(case["semantic_family"] for case in focused_cases))
 
-    print("\nfamily/status:")
-    for family in sorted(by_family_status):
-        parts = ", ".join(
-            f"{status}={count}" for status, count in sorted(by_family_status[family].items())
-        )
-        print(f"  {family}: {parts}")
-
-    backlog = [
-        cell for cell in cells if cell["status"] in ACTIONABLE_STATUSES
-    ]
-    backlog = sorted(backlog, key=lambda cell: (-cell_score(cell), cell["id"]))
-    print("\nnext backlog:")
-    for cell in backlog[: args.limit]:
+    print("\nnext packets:")
+    for packet in sorted(packets, key=lambda packet: (-packet_score(packet), packet["packet_id"]))[
+        : args.limit
+    ]:
+        issue = f" {packet['owner_issue']}" if packet.get("owner_issue") else ""
         print(
-            f"  {cell_score(cell):4d}  {cell['id']}  "
-            f"[{cell['status']} / {cell['next_action']}]"
+            f"  {packet_score(packet):4d}  {packet['packet_id']}  "
+            f"[{packet['owner_route']}{issue}]"
         )
     return 0
 
