@@ -1371,7 +1371,7 @@
     }
   ],
   "identity": {
-    "build_ref": "c941c4094b608335f8b378224a17cea63ad84640",
+    "build_ref": "ffdecc62b82a1c8acafe50fbead3ae1af7d7f358",
     "candidate_signature": "86f9f9b8fae022499af23274e5f248d0eed707d916d6fd1ade6ae7a0aa773a35",
     "corpus": {
       "commit_digest": "278b5b6b7c2e0a9af51383615488b71473161a5721c7d510bd7c212da06078a0",
@@ -1441,6 +1441,13 @@
     "typescript"
   ],
   "tool_version": "frontier-platform/1",
+  "union_outcome": {
+    "extra_axes_with_packets": [
+      "numeric_clamp"
+    ],
+    "prevalence_axes": "no-implementation-ready-batch (see audit_conclusion)",
+    "target_packets_artifact": "frontier_target_packets.v1.json"
+  },
   "vocabulary": {
     "evidence_tier": [
       "detector-suggested",

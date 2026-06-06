@@ -4,7 +4,7 @@ Implementation-ready selections from the corpus-balanced frontier evidence platf
 Each packet LINKS human-verified `real_frontier.v1.json` evidence (it never restates a
 status) and adds team routing. See [frontier-platform](../../docs/frontier-platform.md).
 
-- build ref: `c941c4094b608335f8b378224a17cea63ad84640` · union signature `35fa3e15355ae069…`
+- build ref: `ffdecc62b82a1c8acafe50fbead3ae1af7d7f358` · union signature `35fa3e15355ae069…`
 - corpus: 105 repos · commit digest `278b5b6b7c2e0a9a…`
 - owner routes: proof-fact-prerequisite, team-a-detector, team-c-product
 - packets: 1

@@ -766,6 +766,15 @@ def build(
         "primary_languages": corpus_primary_languages,
         "source_languages": corpus_source_languages,
         "audit_conclusion": AUDIT_CONCLUSION,
+        # The #44 audit_conclusion is scoped to the eight prevalence axes (decision 1). The
+        # union may carry additional axes promoted to target packets in a separate artifact.
+        "union_outcome": {
+            "prevalence_axes": "no-implementation-ready-batch (see audit_conclusion)",
+            "extra_axes_with_packets": sorted(
+                {p["candidate_axis"] for p in TARGET_PACKETS}
+            ),
+            "target_packets_artifact": "frontier_target_packets.v1.json",
+        },
         "candidates": candidates_out,
         "vocabulary": {
             "implementation_cost": sorted(IMPLEMENTATION_COST),
@@ -1002,9 +1011,14 @@ def markdown_report(result: dict) -> str:
     else:
         lines.append("- nose binary: not probed (pattern-signal only)")
     ac = result["audit_conclusion"]
+    uo = result.get("union_outcome", {})
     lines += [
         "",
         "## Audit conclusion (curated)",
+        "",
+        "_Scoped to the eight prevalence axes. Extra axes promoted to target packets — "
+        f"{', '.join('`'+a+'`' for a in uo.get('extra_axes_with_packets', [])) or 'none'} — "
+        f"are in `{uo.get('target_packets_artifact', 'frontier_target_packets.v1.json')}`._",
         "",
         f"**Verdict: {ac['verdict']}.** {ac['summary']}",
         "",
