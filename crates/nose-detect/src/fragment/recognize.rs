@@ -13,11 +13,11 @@
 //! changes which nodes are accepted fails this test. As [`MIGRATED`] grows, the gate keeps
 //! the two paths in lockstep until every shape is contract-expressed.
 
-use super::contract::FragmentContract;
+use super::contract::{Effect, FragmentContract};
 use super::oracle::free_input_cids;
-use super::{Exit, FragmentKind};
-use crate::units::exact_java_this_field;
-use nose_il::{Il, Interner, Lang, NodeId, NodeKind};
+use super::{Exit, FragmentKind, Place};
+use crate::units::{exact_java_this_field, exact_java_this_var};
+use nose_il::{stable_symbol_hash, Builtin, Il, Interner, Lang, NodeId, NodeKind, Payload};
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
@@ -51,15 +51,32 @@ pub(crate) fn recognize_contract(
         kids.len() == 1 && !matches!(il.kind(kids[0]), NodeKind::Var | NodeKind::Lit)
     };
     match il.kind(node) {
-        NodeKind::Return if computed_unary() => {
-            Some(contract(FragmentKind::DirectReturn, Exit::Return, il, node))
-        }
-        NodeKind::Throw if computed_unary() => {
-            Some(contract(FragmentKind::DirectThrow, Exit::Throw, il, node))
-        }
+        NodeKind::Return if computed_unary() => Some(FragmentContract::value_sink(
+            FragmentKind::DirectReturn,
+            node,
+            free_input_cids(il, node),
+            Exit::Return,
+        )),
+        NodeKind::Throw if computed_unary() => Some(FragmentContract::value_sink(
+            FragmentKind::DirectThrow,
+            node,
+            free_input_cids(il, node),
+            Exit::Throw,
+        )),
         NodeKind::Assign => recognize_assignment_effect(il, interner, node),
         NodeKind::ExprStmt if expr_effect_shape(il, kids) => {
-            Some(contract(FragmentKind::ExprEffect, Exit::Normal, il, node))
+            let effect = if is_append_call(il, kids[0]) {
+                Effect::Append
+            } else {
+                Effect::Other
+            };
+            Some(effect_contract(
+                FragmentKind::ExprEffect,
+                il,
+                node,
+                effect,
+                None,
+            ))
         }
         _ => None,
     }
@@ -76,13 +93,34 @@ fn recognize_assignment_effect(
     if kids.len() != 2 {
         return None;
     }
-    if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java)
-        && il.kind(kids[0]) == NodeKind::Index
+    let target = kids[0];
+    if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) && il.kind(target) == NodeKind::Index
     {
-        return Some(contract(FragmentKind::IndexAssignEffect, Exit::Normal, il, node));
+        let place = resolve_place(il, interner, target);
+        return Some(effect_contract(
+            FragmentKind::IndexAssignEffect,
+            il,
+            node,
+            Effect::IndexWrite,
+            Some(place),
+        ));
     }
-    if il.meta.lang == Lang::Java && exact_java_this_field(il, interner, kids[0]) {
-        return Some(contract(FragmentKind::SelfFieldAssign, Exit::Normal, il, node));
+    if il.meta.lang == Lang::Java && exact_java_this_field(il, interner, target) {
+        let place = resolve_place(il, interner, target);
+        // Field writes do not observe their receiver in the oracle (the field-state map is
+        // keyed by name only), so the write is exact-safe only with a proven receiver. The
+        // `this.field` recognizer guarantees this; assert the invariant fail-closed.
+        debug_assert!(
+            place.is_exact_safe(),
+            "self-field write must resolve to a proven place, got {place:?}"
+        );
+        return Some(effect_contract(
+            FragmentKind::SelfFieldAssign,
+            il,
+            node,
+            Effect::FieldWrite,
+            Some(place),
+        ));
     }
     None
 }
@@ -102,21 +140,83 @@ fn expr_effect_shape(il: &Il, kids: &[NodeId]) -> bool {
         )
 }
 
-fn contract(kind: FragmentKind, exit: Exit, il: &Il, node: NodeId) -> FragmentContract {
+fn is_append_call(il: &Il, node: NodeId) -> bool {
+    il.kind(node) == NodeKind::Call
+        && matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
+}
+
+fn effect_contract(
+    kind: FragmentKind,
+    il: &Il,
+    node: NodeId,
+    effect: Effect,
+    place: Option<Place>,
+) -> FragmentContract {
     FragmentContract {
         kind,
         root: node,
         inputs: free_input_cids(il, node),
-        exit,
+        exit: Exit::Normal,
+        effect: Some(effect),
+        place,
+    }
+}
+
+/// Resolve a write target's [`Place`] receiver identity, fail-closed to [`Place::Unknown`].
+///
+/// - `this` (Java) → [`Place::This`]
+/// - a free variable → [`Place::Param`] (its canonical id)
+/// - `base.field` → [`Place::Field`] over the resolved base, keyed by field-name hash
+/// - `base[key]` → [`Place::Index`] over the resolved base, keyed by a coarse key hash
+/// - anything else (a call result, an unresolved receiver) → [`Place::Unknown`]
+fn resolve_place(il: &Il, interner: &Interner, node: NodeId) -> Place {
+    match il.kind(node) {
+        NodeKind::Var if exact_java_this_var(il, interner, node) => Place::This,
+        NodeKind::Var => match il.node(node).payload {
+            Payload::Cid(c) => Place::Param(c),
+            _ => Place::Unknown,
+        },
+        NodeKind::Field => {
+            let base = il.children(node).first().copied();
+            let receiver = base.map_or(Place::Unknown, |b| resolve_place(il, interner, b));
+            match il.node(node).payload {
+                Payload::Name(sym) => {
+                    Place::Field(Box::new(receiver), stable_symbol_hash(interner.resolve(sym)))
+                }
+                _ => Place::Unknown,
+            }
+        }
+        NodeKind::Index => {
+            let kids = il.children(node);
+            let receiver = kids
+                .first()
+                .map_or(Place::Unknown, |&b| resolve_place(il, interner, b));
+            let key = kids.get(1).map_or(0, |&k| place_key_hash(il, interner, k));
+            Place::Index(Box::new(receiver), key)
+        }
+        _ => Place::Unknown,
+    }
+}
+
+/// A coarse, stable identity for an index/key expression — enough to distinguish constant
+/// keys and variable keys in a [`Place`], without modeling arbitrary key expressions.
+fn place_key_hash(il: &Il, interner: &Interner, node: NodeId) -> u64 {
+    match il.node(node).payload {
+        Payload::Cid(c) => 0x01_0000_0000 | u64::from(c),
+        Payload::Name(sym) => stable_symbol_hash(interner.resolve(sym)),
+        Payload::LitInt(v) => 0x02_0000_0000 ^ (v as u64),
+        Payload::LitStr(h) | Payload::LitFloat(h) => h,
+        _ => u64::from(il.kind(node) as u8),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fragment::{fragment_behavior, Place};
     use crate::units::{build_parent_index, exact_statement_fragment_root};
     use nose_il::{FileId, Lang, Span};
-    use nose_normalize::{normalize, NormalizeOptions};
+    use nose_normalize::{normalize, NormalizeOptions, Value};
 
     /// Walk `il` exactly as the real fragment collector does (skipping `Lambda` subtrees),
     /// applying `classify` to each node and collecting the accepted `(span, kind)` pairs.
@@ -233,5 +333,99 @@ mod tests {
             "def k(xs):\n    out = []\n    for x in xs:\n        out.append(x + 1)\n    return out\n",
             Lang::Python,
         );
+    }
+
+    /// Lower + normalize `src`, returning the IL and its parent index.
+    fn norm(src: &str, lang: Lang) -> (Il, Vec<Option<NodeId>>, Interner) {
+        let interner = Interner::new();
+        let raw = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, &interner)
+            .expect("lowering should succeed");
+        let il = normalize(&raw, &interner, &NormalizeOptions::default());
+        let parents = build_parent_index(&il);
+        (il, parents, interner)
+    }
+
+    /// The first contract the contract path produces for `src`, walking pre-order.
+    fn first_contract(il: &Il, parents: &[Option<NodeId>], interner: &Interner) -> FragmentContract {
+        fn walk(
+            il: &Il,
+            node: NodeId,
+            parents: &[Option<NodeId>],
+            interner: &Interner,
+        ) -> Option<FragmentContract> {
+            if il.kind(node) == NodeKind::Lambda {
+                return None;
+            }
+            if let Some(c) = recognize_contract(il, node, parents, interner) {
+                return Some(c);
+            }
+            il.children(node)
+                .iter()
+                .find_map(|&c| walk(il, c, parents, interner))
+        }
+        walk(il, il.root, parents, interner).expect("a contract for the migrated shape")
+    }
+
+    #[test]
+    fn resolves_place_and_effect_for_write_shapes() {
+        // Java `this.x = …` → FieldWrite over a proven This.field place (fail-closed safe).
+        let (il, parents, interner) = norm("class C { int x; void s(int v){ this.x = v + 1; } }", Lang::Java);
+        let c = first_contract(&il, &parents, &interner);
+        assert_eq!(c.kind, FragmentKind::SelfFieldAssign);
+        assert_eq!(c.effect, Some(Effect::FieldWrite));
+        assert!(matches!(c.place, Some(Place::Field(ref base, _)) if **base == Place::This));
+        assert!(c.place.as_ref().unwrap().is_exact_safe());
+        assert!(c.effect.unwrap().requires_proven_place());
+
+        // Java `a[i] = v` → IndexWrite over an index place. The base here is an instance
+        // field accessed bare, so it resolves to a fail-closed `Unknown` receiver — yet the
+        // write stays exact-safe because an index write is observable in the effect trace
+        // and so does not require a proven receiver.
+        let (il, parents, interner) =
+            norm("class C { int[] a; void f(int i, int v){ a[i] = v; } }", Lang::Java);
+        let c = first_contract(&il, &parents, &interner);
+        assert_eq!(c.kind, FragmentKind::IndexAssignEffect);
+        assert_eq!(c.effect, Some(Effect::IndexWrite));
+        assert!(matches!(c.place, Some(Place::Index(_, _))));
+        assert!(!c.effect.unwrap().requires_proven_place());
+
+        // JS `xs.push(v)` → Append effect, no heap place.
+        let (il, parents, interner) = norm("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
+        let c = first_contract(&il, &parents, &interner);
+        assert_eq!(c.kind, FragmentKind::ExprEffect);
+        assert_eq!(c.effect, Some(Effect::Append));
+        assert_eq!(c.place, None);
+    }
+
+    #[test]
+    fn effect_as_output_preserved_through_wrapper() {
+        // An append effect must survive wrapper synthesis as observable behavior: appending
+        // to a parameter list is a caller-visible mutation, recorded in the effect trace.
+        let battery = [vec![Value::List(vec![])], vec![Value::List(vec![Value::Int(9)])]];
+
+        let run = |src: &str| -> Vec<nose_normalize::Behavior> {
+            let (il, parents, interner) = norm(src, Lang::JavaScript);
+            let c = first_contract(&il, &parents, &interner);
+            assert_eq!(c.effect, Some(Effect::Append));
+            battery
+                .iter()
+                .map(|row| {
+                    fragment_behavior(&il, &c, row).expect("append fragment is interpretable")
+                })
+                .collect()
+        };
+
+        let f = run("function f(xs){ xs.push(1); }");
+        let g = run("function g(ys){ ys.push(1); }");
+        let h = run("function h(zs){ zs.push(2); }");
+
+        // The effect is actually observed (not silently dropped).
+        assert!(
+            f.iter().all(|b| !b.effects.is_empty()),
+            "append must surface as a non-empty effect trace"
+        );
+        // Equivalent effect fragments agree; a different appended value diverges.
+        assert_eq!(f, g, "identical append effects must agree on the battery");
+        assert_ne!(f, h, "appending a different value must diverge in observable behavior");
     }
 }

@@ -2599,7 +2599,7 @@ pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) 
     exact_java_this_var(il, interner, receiver)
 }
 
-fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
+pub(crate) fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
     il.meta.lang == Lang::Java
         && il.kind(node) == NodeKind::Var
         && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")

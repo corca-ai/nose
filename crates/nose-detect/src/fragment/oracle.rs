@@ -139,12 +139,12 @@ mod tests {
     }
 
     fn direct_return_contract(il: &Il, root: NodeId) -> FragmentContract {
-        FragmentContract {
-            kind: FragmentKind::DirectReturn,
+        FragmentContract::value_sink(
+            FragmentKind::DirectReturn,
             root,
-            inputs: free_input_cids(il, root),
-            exit: Exit::Return,
-        }
+            free_input_cids(il, root),
+            Exit::Return,
+        )
     }
 
     /// A small single-argument battery — enough to separate the spike's fragments.
