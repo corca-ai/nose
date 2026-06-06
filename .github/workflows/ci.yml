@@ -82,9 +82,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # The formal obligation registry maps proof-sensitive rewrite modules to Lean proof
-      # files and counterexamples. The proofs are standalone Lean 4 files (no Mathlib);
-      # each must type-check with warnings promoted to errors. See formal/README.md.
+      # The formal obligation registry maps proof-sensitive semantic surfaces to Lean
+      # proof files and counterexamples. Shared Lean models are compiled under target/lean;
+      # each proof must type-check with warnings promoted to errors. See formal/README.md.
       - name: install elan (lean toolchain)
         run: |
           toolchain="$(cat lean-toolchain)"
@@ -96,9 +96,4 @@ jobs:
           python3 scripts/check-formal-obligations.py --self-test
           python3 scripts/check-formal-obligations.py
       - name: check proofs
-        run: |
-          set -e
-          while IFS= read -r f; do
-            echo "checking $f"
-            lean --error=warning "$f"
-          done < <(find formal -name '*.lean' -print | sort)
+        run: ./scripts/check-lean-proofs.sh

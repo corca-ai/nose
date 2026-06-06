@@ -1,0 +1,17 @@
+id = "oracle.cutoff"
+status = "proven"
+kind = "soundness-boundary"
+summary = "Oracle-mode normalization stops after desugar and alpha, excluding semantic canonicalizations from the behavioral ground truth."
+
+[rust]
+files = ["crates/nose-normalize/src/lib.rs"]
+symbols = ["NormalizeOptions", "oracle", "recursion::run"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseOracleCutoff.oracle_core_contains_only_structural_phases",
+  "NoseOracleCutoff.oracle_cutoff_excludes_semantic_canons",
+  "NoseOracleCutoff.oracle_cutoff_excludes_recursion",
+  "NoseOracleCutoff.oracle_cutoff_excludes_algebra",
+]

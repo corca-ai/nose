@@ -1,0 +1,16 @@
+id = "detect.fragment.wrapper_synthesis"
+status = "proven"
+kind = "structural-invariant"
+summary = "A fragment wrapper exposes one parameter per free input and keeps the synthesized body root in bounds."
+
+[rust]
+files = ["crates/nose-detect/src/fragment/oracle.rs"]
+symbols = ["fragment_behavior", "synthesize_wrapper", "run_unit"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFragmentWrapper.wrapper_arity_matches_free_inputs",
+  "NoseFragmentWrapper.wrapper_body_root_in_bounds",
+  "NoseFragmentWrapper.wrapper_preserves_existing_bounds",
+]

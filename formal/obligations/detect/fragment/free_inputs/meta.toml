@@ -1,0 +1,16 @@
+id = "detect.fragment.free_inputs"
+status = "proven"
+kind = "soundness-boundary"
+summary = "Fragment wrapper inputs are exactly reads from the enclosing scope with fragment-local bindings removed."
+
+[rust]
+files = ["crates/nose-detect/src/fragment/oracle.rs"]
+symbols = ["free_input_cids", "collect_bound_cids", "collect_binding_targets"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFragmentFreeInputs.free_inputs_are_reads_not_bound",
+  "NoseFragmentFreeInputs.free_input_reads_subset",
+  "NoseFragmentFreeInputs.bound_cids_are_removed",
+]

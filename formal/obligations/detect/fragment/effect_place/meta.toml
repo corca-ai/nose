@@ -1,0 +1,18 @@
+id = "detect.fragment.effect_place"
+status = "proven"
+kind = "soundness-boundary"
+summary = "Append and index effects are directly observed; field writes require an exact-safe receiver place and reject Unknown."
+
+[rust]
+files = ["crates/nose-detect/src/fragment/contract.rs"]
+symbols = ["Effect", "Place", "writes_proven"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseFragmentEffectPlace.append_carries_no_receiver_obligation",
+  "NoseFragmentEffectPlace.index_carries_no_receiver_obligation",
+  "NoseFragmentEffectPlace.field_write_requires_proven_place",
+  "NoseFragmentEffectPlace.unknown_receiver_is_rejected",
+  "NoseFragmentEffectPlace.nested_unknown_receiver_is_rejected",
+]

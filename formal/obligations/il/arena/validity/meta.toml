@@ -1,0 +1,16 @@
+id = "il.arena.validity"
+status = "proven"
+kind = "structural-invariant"
+summary = "IL validation requires root, unit roots, and child edges to stay inside the node arena."
+
+[rust]
+files = ["crates/nose-il/src/lib.rs"]
+symbols = ["validate", "IlBuilder"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseIlArenaValidity.validate_root_in_bounds",
+  "NoseIlArenaValidity.validate_unit_in_bounds",
+  "NoseIlArenaValidity.validate_child_in_bounds",
+]

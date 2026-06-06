@@ -1,0 +1,15 @@
+id = "il.arena.deep_copy"
+status = "proven"
+kind = "structural-invariant"
+summary = "Deep-copying a subtree into a fresh IL builder keeps old ids valid and gives the copied root an in-bounds id."
+
+[rust]
+files = ["crates/nose-detect/src/fragment/oracle.rs"]
+symbols = ["copy_subtree", "synthesize_wrapper"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NoseIlArenaDeepCopy.copy_preserves_existing_bounds",
+  "NoseIlArenaDeepCopy.copied_root_is_in_bounds",
+]

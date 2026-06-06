@@ -6,6 +6,9 @@ The registry is directory-shaped: every obligation lives at
 Proof-sensitive Rust rule modules are also directory-shaped; for example
 `crates/nose-normalize/src/value_graph/rules/factor_distribute.rs` must have a
 matching `formal/obligations/normalize/value_graph/factor_distribute/meta.toml`.
+Other proof-sensitive surfaces are registered below as required obligations so that
+IL, fragment-oracle, recursion, and oracle-cutoff contracts cannot silently lose
+their Lean evidence.
 """
 
 from __future__ import annotations
@@ -47,6 +50,57 @@ class Obligation:
     id: str
     path: Path
     meta: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RequiredObligation:
+    id: str
+    rust_files: tuple[str, ...]
+    rust_symbols: tuple[str, ...]
+
+
+REQUIRED_OBLIGATIONS = (
+    RequiredObligation(
+        "il.arena.validity",
+        ("crates/nose-il/src/lib.rs",),
+        ("validate", "IlBuilder"),
+    ),
+    RequiredObligation(
+        "il.arena.deep_copy",
+        ("crates/nose-detect/src/fragment/oracle.rs",),
+        ("copy_subtree", "synthesize_wrapper"),
+    ),
+    RequiredObligation(
+        "normalize.recursion.tail",
+        ("crates/nose-normalize/src/recursion.rs",),
+        ("Tail", "ordered_updates", "while_loop"),
+    ),
+    RequiredObligation(
+        "normalize.recursion.structural_fold",
+        ("crates/nose-normalize/src/recursion.rs",),
+        ("Structural", "result_ty", "is_int_literal"),
+    ),
+    RequiredObligation(
+        "detect.fragment.effect_place",
+        ("crates/nose-detect/src/fragment/contract.rs",),
+        ("Effect", "Place", "writes_proven"),
+    ),
+    RequiredObligation(
+        "detect.fragment.free_inputs",
+        ("crates/nose-detect/src/fragment/oracle.rs",),
+        ("free_input_cids", "collect_bound_cids", "collect_binding_targets"),
+    ),
+    RequiredObligation(
+        "detect.fragment.wrapper_synthesis",
+        ("crates/nose-detect/src/fragment/oracle.rs",),
+        ("fragment_behavior", "synthesize_wrapper", "run_unit"),
+    ),
+    RequiredObligation(
+        "oracle.cutoff",
+        ("crates/nose-normalize/src/lib.rs",),
+        ("NormalizeOptions", "oracle", "recursion::run"),
+    ),
+)
 
 
 def error(errors: list[str], message: str) -> None:
@@ -306,6 +360,42 @@ def lint_rule_modules(obligations: dict[str, Obligation], errors: list[str]) -> 
                 )
 
 
+def lint_required_obligations(
+    obligations: dict[str, Obligation],
+    errors: list[str],
+    required: tuple[RequiredObligation, ...] = REQUIRED_OBLIGATIONS,
+) -> None:
+    for item in required:
+        if item.id not in obligations:
+            error(
+                errors,
+                f"required proof-sensitive surface `{item.id}` is missing "
+                f"`formal/obligations/{'/'.join(item.id.split('.'))}/meta.toml`",
+            )
+            continue
+
+        obligation = obligations[item.id]
+        where = str(obligation.path.relative_to(ROOT) / "meta.toml")
+        rust = obligation.meta.get("rust", {})
+        if not isinstance(rust, dict):
+            error(errors, f"{where}: `[rust]` must be a table")
+            continue
+
+        rust_files = rust.get("files", [])
+        if not isinstance(rust_files, list):
+            rust_files = []
+        rust_symbols = rust.get("symbols", [])
+        if not isinstance(rust_symbols, list):
+            rust_symbols = []
+
+        for rust_file in item.rust_files:
+            if rust_file not in rust_files:
+                error(errors, f"{where}: required surface must list rust file `{rust_file}`")
+        for symbol in item.rust_symbols:
+            if symbol not in rust_symbols:
+                error(errors, f"{where}: required surface must list rust symbol `{symbol}`")
+
+
 def lint_lean_layout(errors: list[str]) -> None:
     for lean_file in sorted(OBLIGATION_ROOT.rglob("*.lean")):
         if lean_file.name not in {"Proof.lean", "Counterexamples.lean"}:
@@ -340,6 +430,21 @@ def run_self_tests() -> int:
         def lint(meta: dict[str, Any], all_ids: set[str] | None = None) -> list[str]:
             errors: list[str] = []
             lint_meta(Obligation("self_test", obligation_path, meta), all_ids or {"self_test"}, errors)
+            return errors
+
+        def required_lint(obligations: dict[str, Obligation]) -> list[str]:
+            errors: list[str] = []
+            lint_required_obligations(
+                obligations,
+                errors,
+                (
+                    RequiredObligation(
+                        "self_test",
+                        ("required.rs",),
+                        ("required_symbol",),
+                    ),
+                ),
+            )
             return errors
 
         cases = [
@@ -379,6 +484,44 @@ def run_self_tests() -> int:
             ),
         ]
 
+        required_cases = [
+            (
+                "missing required obligation",
+                {},
+                "required proof-sensitive surface `self_test` is missing",
+            ),
+            (
+                "required obligation missing rust file",
+                {
+                    "self_test": Obligation(
+                        "self_test",
+                        obligation_path,
+                        {
+                            **base_meta("proven"),
+                            "rust": {"files": [], "symbols": ["required_symbol"]},
+                            "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                        },
+                    )
+                },
+                "required surface must list rust file `required.rs`",
+            ),
+            (
+                "required obligation missing rust symbol",
+                {
+                    "self_test": Obligation(
+                        "self_test",
+                        obligation_path,
+                        {
+                            **base_meta("proven"),
+                            "rust": {"files": ["required.rs"], "symbols": []},
+                            "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                        },
+                    )
+                },
+                "required surface must list rust symbol `required_symbol`",
+            ),
+        ]
+
         failures = []
         for name, meta, should_fail, expected in cases:
             errors = lint(meta)
@@ -387,6 +530,11 @@ def run_self_tests() -> int:
                 failures.append(f"{name}: expected `{expected}`, got {errors}")
             elif not should_fail and errors:
                 failures.append(f"{name}: expected no errors, got {errors}")
+        for name, obligations, expected in required_cases:
+            errors = required_lint(obligations)
+            joined = "\n".join(errors)
+            if expected not in joined:
+                failures.append(f"{name}: expected `{expected}`, got {errors}")
 
     if failures:
         print("formal obligation self-test failed:", file=sys.stderr)
@@ -410,6 +558,7 @@ def main() -> int:
     for obligation in obligations.values():
         lint_meta(obligation, all_ids, errors)
     lint_rule_modules(obligations, errors)
+    lint_required_obligations(obligations, errors)
     lint_lean_layout(errors)
 
     if errors:
