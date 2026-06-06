@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "description": "Agent-facing Type-4 adversarial coverage matrix. It selects co-evolution work across engine, oracle, proof facts, and performance.",
+  "cells": [
+    {
+      "id": "hof.flat_map.python_js_loop",
+      "semantic_family": "hof.flat_map",
+      "title": "Python multi-clause comprehension equals nested builder loop and JS flatMap/map",
+      "status": "covered",
+      "next_action": "monitor",
+      "priority": 0,
+      "languages": ["python", "javascript"],
+      "representations": ["multi_clause_comprehension", "nested_builder_loop", "method_chain"],
+      "rule_ids": ["hof.flat_map", "oracle.hof.flat_map"],
+      "positive_cases": ["flat_map_py_loop_js"],
+      "adversarial_cases": ["flat_map_vs_nested_list", "flat_map_vs_map"],
+      "evidence": "PR #66 added HoFKind::FlatMap, removed the Python Raw fallback, and verified the focused flat-map corpus with zero false merges.",
+      "required_gates": [
+        "cargo test -p nose-cli --test equivalence multi_clause_comprehension_converges_as_flat_map",
+        "cargo run -p nose-cli -- verify --max-violations 0 crates/nose-cli/tests/fixtures/issue57_flatmap.py crates/nose-cli/tests/fixtures/issue57_flatmap.js"
+      ],
+      "docs": ["docs/clone-types.md", "docs/normalization.md"]
+    },
+    {
+      "id": "hof.filter_map.rust_iterator",
+      "semantic_family": "hof.filter_map",
+      "title": "Rust filter_map converges with filter+map and option-producing loops",
+      "status": "candidate",
+      "next_action": "survey",
+      "priority": 74,
+      "languages": ["rust", "python", "javascript"],
+      "representations": ["iterator_chain", "filtered_comprehension", "guarded_builder_loop"],
+      "rule_ids": ["hof.filter_map", "oracle.option_iterator"],
+      "positive_cases": ["filter_map_filter_map_equiv"],
+      "adversarial_cases": ["filter_map_none_boundary", "filter_map_value_change"],
+      "evidence": "Plausible high-leverage HoF family after FlatMap; first task is to add focused reproductions and classify as under-merged or already covered.",
+      "agent_task": "Create a minimal Rust filter_map vs Python/JS filter+map positive, plus None/predicate/value hard negatives. If it under-merges and the oracle can judge it, add the shared HoF representation instead of a Rust-only exception.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item hof.filter_map.rust_iterator",
+        "cargo test -p nose-cli --test equivalence filter_map",
+        "GATE=focused AXIS=hof_filter_map scripts/type4-smoke.sh"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
+    },
+    {
+      "id": "hof.flat_map.aggregate_bridge",
+      "semantic_family": "hof.flat_map",
+      "title": "Aggregates over flat-map streams converge with nested reduction loops",
+      "status": "candidate",
+      "next_action": "survey",
+      "priority": 69,
+      "languages": ["python", "javascript", "rust"],
+      "representations": ["flat_map_chain", "nested_reduction_loop", "sum_generator"],
+      "rule_ids": ["hof.flat_map", "hof.aggregate_bridge", "oracle.hof.flat_map"],
+      "positive_cases": ["sum_flat_map_nested_loop"],
+      "adversarial_cases": ["sum_flat_map_wrong_seed", "sum_flat_map_nested_list"],
+      "evidence": "FlatMap now exists, but aggregate consumers must be audited so reductions do not accidentally treat FlatMap args as filtered Map args.",
+      "agent_task": "Reproduce sum/max/any over flatMap against equivalent nested loops, then either mark covered or add a Map-only/FlatMap-aware aggregate bridge with hard negatives.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item hof.flat_map.aggregate_bridge",
+        "cargo test -p nose-cli --test equivalence flat_map",
+        "cargo run -p nose-cli -- verify --max-violations 0 <focused-flatmap-aggregate-corpus>"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
+    },
+    {
+      "id": "iterator.java_stream.flat_map",
+      "semantic_family": "hof.flat_map",
+      "title": "Java Stream.flatMap converges with shared FlatMap HoF",
+      "status": "oracle-blocked",
+      "next_action": "oracle",
+      "priority": 30,
+      "languages": ["java", "python"],
+      "representations": ["java_stream", "multi_clause_comprehension", "nested_builder_loop"],
+      "rule_ids": ["hof.flat_map", "idiom.java_stream", "oracle.java_stream"],
+      "positive_cases": ["java_stream_flat_map_py_comp"],
+      "adversarial_cases": ["java_stream_map_not_flat_map", "java_stream_effectful_lambda"],
+      "evidence": "The idiom family is likely valuable, but acceptance needs oracle support for enough Java stream/lambda behavior to reject hard negatives.",
+      "agent_task": "Start with oracle capability: determine which Java stream flatMap examples are interpretable. Extend oracle only for pure, bounded forms before adding idiom canonicalization.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item iterator.java_stream.flat_map",
+        "cargo test -p nose-normalize java_stream",
+        "cargo run -p nose-cli -- verify --max-violations 0 <focused-java-stream-corpus>"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
+    },
+    {
+      "id": "numeric.clamp.minmax_composition",
+      "semantic_family": "numeric.clamp",
+      "title": "Clamp-shaped min/max compositions converge under proven bounds",
+      "status": "proof-fact-blocked",
+      "next_action": "proof-facts",
+      "priority": 67,
+      "languages": ["c", "go", "java", "javascript", "python", "ruby", "rust", "typescript"],
+      "representations": ["minmax_composition", "guarded_ternary", "library_clamp"],
+      "rule_ids": ["numeric.clamp_composition", "proof.bound_order"],
+      "positive_cases": ["clamp_minmax_guarded_bounds"],
+      "adversarial_cases": ["clamp_unordered_bounds", "clamp_float_nan_boundary"],
+      "evidence": "The frontier platform records numeric_clamp as a real miss; bound-order proof facts exist but canonicalization remains gated on sound preconditions.",
+      "agent_task": "Audit current bound-order facts against clamp hard negatives, then land the smallest value-graph clamp composition rule only where lo<=hi and numeric-domain facts are proven.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item numeric.clamp.minmax_composition",
+        "cargo test -p nose-cli --test equivalence clamp",
+        "GATE=focused AXIS=numeric_clamp scripts/type4-smoke.sh"
+      ],
+      "docs": ["docs/frontier-platform.md", "docs/normalization.md"]
+    },
+    {
+      "id": "map_default.cross_file_binding",
+      "semantic_family": "map_default_lookup",
+      "title": "Cross-file immutable map/default lookup facts",
+      "status": "proof-fact-blocked",
+      "next_action": "proof-facts",
+      "priority": 55,
+      "languages": ["python", "javascript", "typescript", "java", "go", "rust", "ruby"],
+      "representations": ["module_binding", "imported_binding", "literal_factory", "method_default"],
+      "rule_ids": ["proof.collection_provenance", "idiom.map_default_lookup"],
+      "positive_cases": ["map_default_imported_literal"],
+      "adversarial_cases": ["map_default_mutated_receiver", "map_default_wrong_map"],
+      "evidence": "Existing map-default lookup coverage is strong for inline/local/same-file facts; cross-file provenance remains an explicit proof-fact backlog.",
+      "agent_task": "Do not broaden map default idioms directly. First add provenance facts that prove receiver/key/default identity across imports while rejecting mutation and shadowing siblings.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item map_default.cross_file_binding",
+        "cargo test -p nose-cli --test equivalence map_default",
+        "GATE=focused AXIS=map_default_lookup scripts/type4-smoke.sh"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/clone-types.md"]
+    },
+    {
+      "id": "oracle.hof.error_semantics",
+      "semantic_family": "oracle",
+      "title": "Oracle keeps HoF and iterator error semantics in step with engine canons",
+      "status": "oracle-blocked",
+      "next_action": "oracle",
+      "priority": 78,
+      "languages": ["python", "javascript", "rust", "java"],
+      "representations": ["hof", "iterator_chain", "lambda", "closure"],
+      "rule_ids": ["oracle.hof.flat_map", "oracle.option_iterator"],
+      "positive_cases": ["hof_error_propagation"],
+      "adversarial_cases": ["hof_non_list_flat_map", "hof_effectful_lambda"],
+      "evidence": "Every new HoF canon should force an oracle audit. FlatMap is covered; filter_map and richer iterator chains are not yet classified.",
+      "agent_task": "Before adding broad iterator canons, add oracle tests for lambda capture, error propagation, empty collection behavior, and non-list flatMap/filterMap boundaries.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item oracle.hof.error_semantics",
+        "cargo test -p nose-normalize interp::tests::hof",
+        "cargo run -p nose-cli -- verify --max-violations 0 <focused-hof-oracle-corpus>"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/normalization.md"]
+    },
+    {
+      "id": "perf.value_graph.hof_budget",
+      "semantic_family": "performance",
+      "title": "HoF value-graph growth stays bounded as iterator coverage expands",
+      "status": "perf-blocked",
+      "next_action": "performance",
+      "priority": 43,
+      "languages": ["all"],
+      "representations": ["value_graph", "hof_chain", "generated_corpus"],
+      "rule_ids": ["perf.value_graph_budget"],
+      "positive_cases": ["deep_hof_chain_budget"],
+      "adversarial_cases": ["wide_hof_chain_budget"],
+      "evidence": "Iterator/HOF coverage can increase fingerprint DAG size. A reusable smoke budget should exist before accepting broad chain-fusion work.",
+      "agent_task": "Add a compact perf smoke that records runtime and value-node/fingerprint-size budgets for representative HoF chains; use it before broadening iterator fusion.",
+      "required_gates": [
+        "bench/type4/adversarial/scripts/type4-check --item perf.value_graph.hof_budget",
+        "cargo test -p nose-cli --test equivalence large_generated",
+        "python3 bench/type4/scan_regression/scan_regression.py compare --nose ./target/release/nose"
+      ],
+      "docs": ["docs/type4-adversarial-coverage.md", "docs/type4-benchmark.md"]
+    }
+  ]
+}

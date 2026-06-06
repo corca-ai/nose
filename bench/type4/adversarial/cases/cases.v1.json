@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "description": "Case handles used by the adversarial coverage matrix. These are task anchors, not a generated manifest.",
+  "cases": [
+    {
+      "id": "flat_map_py_loop_js",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "Python multi-clause comprehension, nested append loop, and JS flatMap/map compute the same flattened list.",
+      "fixtures": [
+        "crates/nose-cli/tests/fixtures/issue57_flatmap.py",
+        "crates/nose-cli/tests/fixtures/issue57_flatmap.js"
+      ],
+      "evidence": "Focused verify corpus after PR #66: no false merges and complete behavior-equal convergence."
+    },
+    {
+      "id": "flat_map_vs_nested_list",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "A flattened list is not a nested list of lists.",
+      "mutation": "FlatMap[A, lambda a. Map[B, lambda b. e]] -> Map[A, lambda a. Map[B, lambda b. e]]",
+      "evidence": "The #57 equivalence test asserts flat-map and nested-list fingerprints differ."
+    },
+    {
+      "id": "flat_map_vs_map",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Mapping to a list without flattening is not one-level flat-map.",
+      "mutation": "flatMap callback result is kept nested",
+      "evidence": "Required sibling for any future FlatMap idiom extension."
+    },
+    {
+      "id": "filter_map_filter_map_equiv",
+      "kind": "positive",
+      "semantic_family": "hof.filter_map",
+      "claim": "filter_map-style option-producing callbacks can converge with explicit filter+map where None drops elements.",
+      "evidence": "Candidate; first task must add focused source fixtures and classify current behavior."
+    },
+    {
+      "id": "filter_map_none_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "hof.filter_map",
+      "claim": "Dropping None differs from mapping None as a value.",
+      "mutation": "filter_map callback returns None where map keeps a sentinel value",
+      "evidence": "Must be counterexample-backed before filter_map is promoted."
+    },
+    {
+      "id": "filter_map_value_change",
+      "kind": "hard-negative",
+      "semantic_family": "hof.filter_map",
+      "claim": "Changing the mapped Some value changes behavior even when the predicate stays the same.",
+      "mutation": "Some(x) -> Some(x + 1)",
+      "evidence": "Required value-boundary sibling."
+    },
+    {
+      "id": "sum_flat_map_nested_loop",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "An aggregate over a flat-map stream equals the corresponding nested reduction loop.",
+      "evidence": "Candidate; must be reproduced after FlatMap landed."
+    },
+    {
+      "id": "sum_flat_map_wrong_seed",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Changing the reduction seed changes aggregate behavior.",
+      "mutation": "sum seed 0 -> 1",
+      "evidence": "Existing reduction tests use seed hard negatives; reuse that boundary for FlatMap aggregates."
+    },
+    {
+      "id": "sum_flat_map_nested_list",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Aggregating a nested list shape differs from aggregating a flattened stream unless a separate flatten is proven.",
+      "mutation": "flat stream -> nested list",
+      "evidence": "Protects aggregate bridge rules from assuming arbitrary flattening."
+    },
+    {
+      "id": "java_stream_flat_map_py_comp",
+      "kind": "positive",
+      "semantic_family": "hof.flat_map",
+      "claim": "A pure Java Stream.flatMap chain can express the same one-level flat-map as Python multi-clause comprehension.",
+      "evidence": "Oracle-blocked candidate; needs interpretable Java stream subset before promotion."
+    },
+    {
+      "id": "java_stream_map_not_flat_map",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Java Stream.map returning streams is not Stream.flatMap.",
+      "mutation": "flatMap -> map",
+      "evidence": "Hard negative for Java stream idiom work."
+    },
+    {
+      "id": "java_stream_effectful_lambda",
+      "kind": "hard-negative",
+      "semantic_family": "hof.flat_map",
+      "claim": "Effectful stream callbacks cannot be treated as pure HoF transformations.",
+      "mutation": "lambda mutates external state or performs an effect",
+      "evidence": "Oracle boundary for stream support."
+    },
+    {
+      "id": "clamp_minmax_guarded_bounds",
+      "kind": "positive",
+      "semantic_family": "numeric.clamp",
+      "claim": "Clamp-shaped min/max compositions converge when numeric lo<=hi is proven.",
+      "evidence": "Frontier platform records numeric_clamp as a real miss; proof facts are partial."
+    },
+    {
+      "id": "clamp_unordered_bounds",
+      "kind": "hard-negative",
+      "semantic_family": "numeric.clamp",
+      "claim": "Clamp composition is not sound when lo<=hi is not proven.",
+      "mutation": "remove or invert the bound-order proof",
+      "evidence": "Required for any clamp canon."
+    },
+    {
+      "id": "clamp_float_nan_boundary",
+      "kind": "hard-negative",
+      "semantic_family": "numeric.clamp",
+      "claim": "Floating-point NaN/min/max behavior is not covered by integer clamp facts.",
+      "mutation": "numeric domain becomes floatish",
+      "evidence": "Boundary recorded in normalization docs and clamp proof-fact tests."
+    },
+    {
+      "id": "map_default_imported_literal",
+      "kind": "positive",
+      "semantic_family": "map_default_lookup",
+      "claim": "Imported immutable literal map lookup with default can converge with local literal/default forms when provenance is proven.",
+      "evidence": "Proof-fact-blocked candidate."
+    },
+    {
+      "id": "map_default_mutated_receiver",
+      "kind": "hard-negative",
+      "semantic_family": "map_default_lookup",
+      "claim": "Receiver mutation between binding/import and lookup changes behavior.",
+      "mutation": "insert write to receiver before lookup",
+      "evidence": "Whole-file mutation exclusion boundary."
+    },
+    {
+      "id": "map_default_wrong_map",
+      "kind": "hard-negative",
+      "semantic_family": "map_default_lookup",
+      "claim": "Looking up the same key/default on a different map is behaviorally different.",
+      "mutation": "receiver map coordinate changes",
+      "evidence": "Existing map-default tests use wrong-map siblings."
+    },
+    {
+      "id": "hof_error_propagation",
+      "kind": "oracle-gap",
+      "semantic_family": "oracle",
+      "claim": "HoF oracle behavior must preserve lambda error propagation and empty-collection behavior.",
+      "evidence": "FlatMap has interpreter tests; future HoF adapters need the same coverage."
+    },
+    {
+      "id": "hof_non_list_flat_map",
+      "kind": "hard-negative",
+      "semantic_family": "oracle",
+      "claim": "FlatMap callback results must be lists; non-list callback results are Err in the oracle.",
+      "mutation": "callback returns scalar",
+      "evidence": "Boundary for FlatMap interpreter support."
+    },
+    {
+      "id": "hof_effectful_lambda",
+      "kind": "hard-negative",
+      "semantic_family": "oracle",
+      "claim": "Effectful callbacks cannot be folded into pure value-graph HoF facts without effect modeling.",
+      "mutation": "callback emits or mutates",
+      "evidence": "General HoF purity boundary."
+    },
+    {
+      "id": "deep_hof_chain_budget",
+      "kind": "perf",
+      "semantic_family": "performance",
+      "claim": "Deep HoF chains should retain compact value fingerprints.",
+      "evidence": "Perf smoke candidate for future broad iterator fusion."
+    },
+    {
+      "id": "wide_hof_chain_budget",
+      "kind": "perf",
+      "semantic_family": "performance",
+      "claim": "Wide generated HoF expressions should not explode value-node count or scan runtime.",
+      "evidence": "Perf hard-negative for representation growth."
+    }
+  ]
+}

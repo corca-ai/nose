@@ -209,6 +209,24 @@ hard negatives, and batch assignment. Use `already-covered`, `real-miss`, `hard-
 `unsupported`, and `closed` as the audit states so prioritizer frequency, real evidence,
 and detector progress stay separate.
 
+## Adversarial coverage matrix
+
+The agent-facing coverage ledger lives in `bench/type4/adversarial/`. It is not a
+replacement for the generator, evaluator, or frontier platform. It connects their signals
+to repeatable coding-agent tasks:
+
+```sh
+bench/type4/adversarial/scripts/type4-check
+bench/type4/adversarial/scripts/type4-report
+bench/type4/adversarial/scripts/type4-next --limit 3
+bench/type4/adversarial/scripts/type4-ingest-leads /tmp/leads.json --draft-json
+```
+
+The matrix separates `under-merged`, `oracle-blocked`, `proof-fact-blocked`,
+`perf-blocked`, and `false-merged` states so the next PR improves the right actor. See
+[`docs/type4-adversarial-coverage.md`](../../docs/type4-adversarial-coverage.md) for the
+workflow and status model.
+
 ## Frontier evidence platform
 
 `frontier_platform.py` is a companion to the prioritizer that ranks axes by **presence

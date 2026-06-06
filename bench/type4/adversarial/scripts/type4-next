@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""Print the next actionable Type-4 adversarial coverage task cards."""
+
+from __future__ import annotations
+
+import argparse
+import json
+
+from _type4_adversarial import (
+    actionable_cells,
+    case_index,
+    cell_score,
+    load_all,
+    registry_rules,
+    task_card,
+    validate_all,
+)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--limit", default=1, type=int)
+    parser.add_argument("--status", action="append", help="filter by matrix status")
+    parser.add_argument("--action", action="append", help="filter by next_action")
+    parser.add_argument("--include-covered", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+
+    matrix, registry, cases = load_all()
+    errors = validate_all(matrix, registry, cases)
+    if errors:
+        for error in errors:
+            print(f"error: {error}")
+        return 1
+
+    cells = actionable_cells(matrix, include_covered=args.include_covered)
+    if args.status:
+        allowed = set(args.status)
+        cells = [cell for cell in cells if cell.get("status") in allowed]
+    if args.action:
+        allowed = set(args.action)
+        cells = [cell for cell in cells if cell.get("next_action") in allowed]
+    cells = sorted(cells, key=lambda cell: (-cell_score(cell), cell["id"]))
+    selected = cells[: max(args.limit, 0)]
+
+    if args.json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "id": cell["id"],
+                        "score": cell_score(cell),
+                        "status": cell["status"],
+                        "next_action": cell["next_action"],
+                        "semantic_family": cell["semantic_family"],
+                        "title": cell["title"],
+                        "agent_task": cell.get("agent_task"),
+                        "required_gates": cell.get("required_gates", []),
+                    }
+                    for cell in selected
+                ],
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+
+    rules = registry_rules(registry)
+    known_cases = case_index(cases)
+    if not selected:
+        print("No actionable Type-4 adversarial coverage cells matched the filters.")
+        return 0
+    for idx, cell in enumerate(selected):
+        if idx:
+            print("\n" + "-" * 78 + "\n")
+        print(task_card(cell, rules, known_cases))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
