@@ -1959,6 +1959,9 @@ fn empty_or_single_direct_exact_statement_block(
     if exact_ordered_index_assignment_effect_sequence_block(il, node) {
         return Some(true);
     }
+    if exact_ordered_self_field_assignment_sequence_block(il, interner, node) {
+        return Some(true);
+    }
     if exact_ordered_loop_effect_sequence_block(il, interner, node) {
         return Some(true);
     }
@@ -2367,6 +2370,21 @@ fn exact_ordered_index_assignment_effect_sequence_block(il: &Il, node: NodeId) -
         return false;
     }
     effects == expected_effects
+}
+
+fn exact_ordered_self_field_assignment_sequence_block(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> bool {
+    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Block {
+        return false;
+    }
+    let kids = il.children(node);
+    (2..=3).contains(&kids.len())
+        && kids
+            .iter()
+            .all(|&kid| exact_self_field_assignment_fragment_root(il, interner, kid))
 }
 
 fn exact_temp_assignment_consumed_by_index_assignment_effect(
@@ -2783,6 +2801,12 @@ fn strict_exact_self_field_branch_safe(
     let kids = il.children(node);
     if kids.is_empty() {
         return Some(false);
+    }
+    if (2..=3).contains(&kids.len()) && kids.iter().all(|&kid| il.kind(kid) == NodeKind::Assign) {
+        return Some(
+            kids.iter()
+                .all(|&kid| strict_exact_self_field_effect_safe(il, interner, facts, parents, kid)),
+        );
     }
     if kids.len() != 1 {
         return None;

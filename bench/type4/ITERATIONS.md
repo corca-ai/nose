@@ -168,6 +168,7 @@ blocks. These are deliberately narrow and proof-shaped.
 | 20-21 | ordered append/index branch fragments | exactly two ordered effects preserve execution order and reject swapped-order siblings |
 | 22-23 | three append/index fragments | the same effect invariants extend to exactly three items, still capped and ordered |
 | 24-29 | ordered foreach, mixed-effect, conditional, and loop-conditional branch fragments | only small bounded branch bodies with accepted direct effects are opened; arbitrary statement windows remain closed |
+| 30 | ordered Java self-field branches after contract migration | exactly two or three `this.field` writes inside a conditional branch are accepted only when each receiver resolves to proven fixed `this`; `other.field` remains a hard negative |
 
 The useful product effect is that `semantic` can now find behaviorally exact sub-function
 clones hidden inside larger functions, while avoiding arbitrary slice semantics. The risk is
@@ -247,6 +248,17 @@ The tool-assisted manual audit produced **one implementation-ready packet**: `nu
   to a Team A implementation batch until the precondition is provable. boltons `clamp`
   source-proves `lower <= upper` via an explicit guard — the narrow slice such a proof fact
   would target.
+
+## Contract-Migration Expansion (issue #55)
+
+The first detector-expanding step after `LoopEffect`, `SelfFieldBody`, and
+`ConditionalGuard` reached the contract path is deliberately smaller than the numeric-clamp
+frontier packet above: `ConditionalGuard` now accepts a branch body made of exactly two or
+three Java fixed-`this` field assignments. This uses the existing field-write effect algebra
+instead of adding a public kind. The proof invariant is receiver/place identity, not naming:
+each write target must resolve to a proven `this.field` place, and the behavior oracle
+observes the final field-state map. Adjacent hard negatives with `other.field` remain
+rejected, so the expansion does not infer arbitrary receiver identity or API semantics.
 
 ## Current Next Work
 

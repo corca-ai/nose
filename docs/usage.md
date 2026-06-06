@@ -154,6 +154,9 @@ assignment is not receiver-overloadable, and Java `this.field = value` self-fiel
 assignments whose receiver is the language-fixed `this` object. Java function-body blocks
 can also become exact fragments when every body statement is one of those direct or
 conditional `this.field` assignments, optionally followed by a terminal `return this`.
+Conditional branches may also contain exactly two or three ordered Java fixed-`this`
+field assignments; this is admitted only because each write resolves to a proven
+`this.field` place and the oracle observes the resulting field state.
 General field writes such as `other.field = value`, implicit field assignments such as
 `field = value`, `return other`, mixed-effect bodies, arbitrary statement windows, and
 dynamic-property languages remain outside this exact fragment set. Those fragments are

@@ -126,11 +126,59 @@ impl RefactorFamily {
         if fragment_sites == 0 {
             return "default";
         }
+        // Mixed whole-unit + fragment families stay default: the enclosing unit is already a
+        // product-sized candidate, and the fragment locations serve as supporting evidence.
         if fragment_sites < self.locations.len() {
             return "default";
         }
-        if self.mean_lines <= 3 {
+
+        let all_generated = self.locations.iter().all(is_generated_loc);
+        let all_test = self.locations.iter().all(is_test_loc);
+        let all_have_enclosing = self.locations.iter().all(|l| l.enclosing_unit.is_some());
+        let high_fanout = self.members >= 8;
+        let has_effect_or_body = self.locations.iter().any(|l| {
+            matches!(
+                l.fragment_kind,
+                Some(
+                    crate::FragmentKind::LoopEffect
+                        | crate::FragmentKind::IndexAssignEffect
+                        | crate::FragmentKind::SelfFieldAssign
+                        | crate::FragmentKind::SelfFieldBody
+                )
+            )
+        });
+        let has_guard_or_exit = self.locations.iter().any(|l| {
+            matches!(
+                l.fragment_kind,
+                Some(
+                    crate::FragmentKind::ConditionalGuard
+                        | crate::FragmentKind::DirectReturn
+                        | crate::FragmentKind::DirectThrow
+                )
+            )
+        });
+
+        if all_generated || self.mean_lines <= 1 || (high_fanout && self.mean_lines <= 3) {
             "hidden"
+        } else if has_effect_or_body {
+            // Receiver/effect-bearing fragments are usually synchronization hazards first.
+            // Promote only substantial, cross-file production fragments to default; keep
+            // test/generated-looking and tiny forms in review/hidden.
+            if !all_test && self.mean_lines >= 12 && self.files >= 2 && self.modules >= 2 {
+                "default"
+            } else if self.mean_lines <= 3 && all_have_enclosing {
+                "hidden"
+            } else {
+                "review"
+            }
+        } else if has_guard_or_exit {
+            if self.mean_lines >= 12 && self.files >= 2 && !all_test {
+                "default"
+            } else if self.mean_lines <= 3 {
+                "hidden"
+            } else {
+                "review"
+            }
         } else if self.mean_lines <= 8 {
             "review"
         } else {
@@ -535,10 +583,14 @@ mod tests {
     }
 
     fn fragment_loc(file: &str, s: u32, e: u32) -> Loc {
+        fragment_loc_k(file, s, e, crate::FragmentKind::ConditionalGuard)
+    }
+
+    fn fragment_loc_k(file: &str, s: u32, e: u32, fragment_kind: crate::FragmentKind) -> Loc {
         Loc {
             is_fragment: true,
-            fragment_kind: Some(crate::FragmentKind::ConditionalGuard),
-            reason_code: Some(crate::FragmentKind::ConditionalGuard.reason_code()),
+            fragment_kind: Some(fragment_kind),
+            reason_code: Some(fragment_kind.reason_code()),
             ..Loc::new(LocInit {
                 file: file.into(),
                 source_span: LineSpan::new(s, e),
@@ -1014,6 +1066,57 @@ mod tests {
         assert!(
             fragment.extractability() < whole.extractability(),
             "tiny exact fragments remain present but should not outrank whole-unit candidates"
+        );
+    }
+
+    #[test]
+    fn fragment_surface_uses_kind_scope_and_spread() {
+        let review_effect = fam(
+            10.0,
+            6,
+            6,
+            0,
+            vec![
+                fragment_loc_k("src/a.rs", 1, 6, crate::FragmentKind::LoopEffect),
+                fragment_loc_k("src/b.rs", 1, 6, crate::FragmentKind::LoopEffect),
+            ],
+        );
+        assert_eq!(
+            review_effect.recommended_surface(),
+            "review",
+            "medium effect fragments are synchronization hazards before default refactors"
+        );
+
+        let default_guard = fam(
+            10.0,
+            14,
+            14,
+            0,
+            vec![
+                fragment_loc("src/a.rs", 1, 14),
+                fragment_loc("src/b.rs", 1, 14),
+            ],
+        );
+        assert_eq!(
+            default_guard.recommended_surface(),
+            "default",
+            "substantial cross-file guard fragments can be default candidates"
+        );
+
+        let generated = fam(
+            10.0,
+            20,
+            20,
+            0,
+            vec![
+                fragment_loc("target/generated/a.rs", 1, 20),
+                fragment_loc("target/generated/b.rs", 1, 20),
+            ],
+        );
+        assert_eq!(
+            generated.recommended_surface(),
+            "hidden",
+            "generated-looking exact fragments stay out of default output"
         );
     }
 

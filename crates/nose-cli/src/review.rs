@@ -40,6 +40,8 @@ pub(crate) struct ReviewArgs {
 struct Divergence {
     family_id: String,
     similarity: f64,
+    hazard: f64,
+    review_priority: u8,
     complexity: usize,
     /// Members whose base span was changed by the diff (the edit landed here).
     changed: Vec<Site>,
@@ -119,6 +121,8 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
             flagged.push(Divergence {
                 family_id: crate::baseline::family_id(&fam),
                 similarity: fam.mean_score,
+                hazard: fam.hazard(),
+                review_priority: review_priority(&fam, &changed_members, &untouched),
                 // Heaviest changed member's value-graph size — a cheap complexity proxy. A
                 // small edit inside a computation-rich clone is the Krinke "critical change"
                 // profile (the most likely un-propagated fix); an edit in a trivial clone is
@@ -131,8 +135,10 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
     }
     // Most likely un-propagated fix first.
     flagged.sort_by(|a, b| {
-        b.complexity
-            .cmp(&a.complexity)
+        b.review_priority
+            .cmp(&a.review_priority)
+            .then(b.hazard.total_cmp(&a.hazard))
+            .then(b.complexity.cmp(&a.complexity))
             .then(b.similarity.total_cmp(&a.similarity))
     });
 
@@ -191,6 +197,23 @@ fn to_site(loc: &Loc) -> Site {
         fragment_kind: loc.fragment_kind,
         reason_code: loc.reason_code,
         enclosing_unit: loc.enclosing_unit.clone(),
+    }
+}
+
+fn review_priority(fam: &RefactorFamily, changed: &[&Loc], untouched: &[&Loc]) -> u8 {
+    let any_fragment = changed.iter().chain(untouched).any(|loc| loc.is_fragment);
+    if !any_fragment {
+        return 0;
+    }
+    let any_enclosing = changed
+        .iter()
+        .chain(untouched)
+        .any(|loc| loc.enclosing_unit.is_some());
+    match fam.recommended_surface() {
+        "review" => 3,
+        "hidden" if any_enclosing => 2,
+        "hidden" => 1,
+        _ => 1,
     }
 }
 
@@ -476,6 +499,11 @@ fn print_review_human(flagged: &[Divergence], base: &str, changed_files: usize, 
                 .join(", "),
             d.similarity
         );
+        for s in &d.changed {
+            if let Some(context) = fragment_context(s) {
+                println!("      changed context: {context}");
+            }
+        }
         for s in &d.not_updated {
             println!("    not updated: {}", site_label(s));
             if let Some(context) = fragment_context(s) {
@@ -586,6 +614,7 @@ fn review_sarif(flagged: &[Divergence]) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_detect::{LineSpan, LocInit};
 
     // `git diff --unified=0` for: base "keep1\n-- marker\nkeep2a\nkeep2b\nzzz\n"
     // → new "KEEP1\nkeep2a\nkeep2b\nZZZ\n". The deleted "-- marker" line shows in the body
@@ -635,6 +664,73 @@ index 1111111..2222222 100644
         assert!(
             ranges_touch(ranges, 1, 3),
             "a member straddling the insertion gap IS touched: {ranges:?}"
+        );
+    }
+
+    fn fragment_loc(file: &str, start: u32, end: u32) -> Loc {
+        let mut loc = Loc::new(LocInit {
+            file: file.into(),
+            source_span: LineSpan::new(start, end),
+            lang: "rust".into(),
+            kind: nose_il::UnitKind::Block,
+            name: None,
+            sem: 4,
+            span_tokens: 8,
+        });
+        loc.is_fragment = true;
+        loc.fragment_kind = Some(FragmentKind::ConditionalGuard);
+        loc.reason_code = Some(FragmentKind::ConditionalGuard.reason_code());
+        loc.enclosing_unit = Some(EnclosingUnit {
+            file: file.into(),
+            start_line: 1,
+            end_line: 20,
+            kind: nose_il::UnitKind::Function,
+            name: Some("owner".into()),
+            unit_key: String::new(),
+        });
+        loc.enclosing_unit.as_mut().unwrap().refresh_unit_key();
+        loc
+    }
+
+    fn review_family(locs: Vec<Loc>) -> RefactorFamily {
+        RefactorFamily {
+            value: 1.0,
+            members: locs.len(),
+            files: locs.len(),
+            modules: 1,
+            languages: 1,
+            mean_score: 1.0,
+            mean_lines: 4,
+            dup_lines: 4,
+            shared_lines: 4,
+            params: 0,
+            shared_weight: 4.0,
+            locations: locs,
+            mean_sem: 4.0,
+            scope: "prod",
+            discount: 1.0,
+        }
+    }
+
+    #[test]
+    fn fragment_context_names_enclosing_unit() {
+        let site = to_site(&fragment_loc("src/a.rs", 8, 9));
+        let context = fragment_context(&site).expect("fragment context");
+        assert!(context.contains("conditional-guard fragment"));
+        assert!(context.contains("`owner`"));
+        assert!(context.contains("src/a.rs:1-20"));
+    }
+
+    #[test]
+    fn review_priority_promotes_fragment_surface() {
+        let changed = fragment_loc("src/a.rs", 8, 11);
+        let sibling = fragment_loc("src/b.rs", 8, 11);
+        let family = review_family(vec![changed.clone(), sibling.clone()]);
+        assert_eq!(family.recommended_surface(), "review");
+        assert_eq!(
+            review_priority(&family, &[&changed], &[&sibling]),
+            3,
+            "review-surface fragment hazards should rank before generic clone divergences"
         );
     }
 }

@@ -4629,6 +4629,127 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_fragments() {
 }
 
 #[test]
+fn semantic_scan_reports_exact_safe_ordered_java_this_field_branch_fragments() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_ordered_this_field_branch_fragments_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+
+    let fixtures = [
+        (
+            "FieldBranchOrderedA.java",
+            "class FieldBranchOrderedA {\n  int value;\n  int limit;\n  void f(boolean enabled, int a, int b) {\n    if (enabled) {\n      this.value = (a + 1) * (a + 1);\n      this.limit = b - a;\n    }\n    audit(this);\n  }\n}\n",
+        ),
+        (
+            "FieldBranchOrderedB.java",
+            "class FieldBranchOrderedB {\n  int value;\n  int limit;\n  void f(boolean ready, int c, int d) {\n    if (ready) {\n      this.value = (1 + c) * (1 + c);\n      this.limit = d - c;\n    }\n    trace(this);\n  }\n}\n",
+        ),
+        (
+            "FieldBranchOrderedWrongReceiver.java",
+            "class FieldBranchOrderedWrongReceiverBox { int value; }\nclass FieldBranchOrderedWrongReceiver {\n  int value;\n  int limit;\n  void f(FieldBranchOrderedWrongReceiverBox other, boolean ready, int c, int d) {\n    if (ready) {\n      other.value = (1 + c) * (1 + c);\n      this.limit = d - c;\n    }\n    audit(this);\n  }\n}\n",
+        ),
+        (
+            "FieldBranchTripleA.java",
+            "class FieldBranchTripleA {\n  int value;\n  int limit;\n  int score;\n  void f(boolean enabled, int a, int b) {\n    if (enabled) {\n      this.value = a + b;\n      this.limit = (a + b) * 2;\n      this.score = b - a;\n    }\n    audit(this);\n  }\n}\n",
+        ),
+        (
+            "FieldBranchTripleB.java",
+            "class FieldBranchTripleB {\n  int value;\n  int limit;\n  int score;\n  void f(boolean ready, int c, int d) {\n    if (ready) {\n      this.value = d + c;\n      this.limit = 2 * (d + c);\n      this.score = d - c;\n    }\n    trace(this);\n  }\n}\n",
+        ),
+        (
+            "FieldBranchTripleWrongReceiver.java",
+            "class FieldBranchTripleWrongReceiverBox { int limit; }\nclass FieldBranchTripleWrongReceiver {\n  int value;\n  int limit;\n  int score;\n  void f(FieldBranchTripleWrongReceiverBox other, boolean ready, int c, int d) {\n    if (ready) {\n      this.value = d + c;\n      other.limit = 2 * (d + c);\n      this.score = d - c;\n    }\n    audit(this);\n  }\n}\n",
+        ),
+    ];
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "100",
+        "--min-size",
+        "100",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let families = scan_families(&json);
+
+    let assert_branch_family = |left: &str, right: &str, negative: &str| {
+        let family = families
+            .iter()
+            .find(|family| {
+                let locations = family["locations"].as_array().expect("locations");
+                let files: Vec<&str> = locations
+                    .iter()
+                    .filter_map(|loc| loc["file"].as_str())
+                    .collect();
+                files.iter().any(|file| file.ends_with(left))
+                    && files.iter().any(|file| file.ends_with(right))
+                    && files.iter().all(|file| !file.ends_with(negative))
+                    && locations
+                        .iter()
+                        .all(|loc| loc["fragment_kind"] == "conditional-guard")
+            })
+            .unwrap_or_else(|| {
+                panic!("missing ordered self-field branch fragment family {left}/{right}: {out}")
+            });
+        let locations = family["locations"].as_array().expect("locations");
+        assert!(
+            locations
+                .iter()
+                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
+                    || loc["file"].as_str().unwrap_or("").ends_with(right))
+                .all(|loc| loc["end_line"].as_u64().unwrap_or(0)
+                    <= loc["start_line"].as_u64().unwrap_or(0) + 5),
+            "ordered self-field branch fragments should stay tightly scoped: {family:?}"
+        );
+    };
+
+    let assert_no_conditional_guard_location = |negative: &str| {
+        let has_conditional_guard = families.iter().any(|family| {
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .any(|loc| {
+                    loc["file"]
+                        .as_str()
+                        .is_some_and(|file| file.ends_with(negative))
+                        && loc["fragment_kind"] == "conditional-guard"
+                })
+        });
+        assert!(
+            !has_conditional_guard,
+            "wrong receiver must not produce an ordered self-field conditional guard: {negative}: {out}"
+        );
+    };
+
+    assert_branch_family(
+        "FieldBranchOrderedA.java",
+        "FieldBranchOrderedB.java",
+        "FieldBranchOrderedWrongReceiver.java",
+    );
+    assert_branch_family(
+        "FieldBranchTripleA.java",
+        "FieldBranchTripleB.java",
+        "FieldBranchTripleWrongReceiver.java",
+    );
+    assert_no_conditional_guard_location("FieldBranchOrderedWrongReceiver.java");
+    assert_no_conditional_guard_location("FieldBranchTripleWrongReceiver.java");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn semantic_scan_reports_exact_safe_java_this_field_assignment_body_fragments() {
     let dir = std::env::temp_dir().join(format!(
         "nose_exact_this_field_body_fragments_{}",

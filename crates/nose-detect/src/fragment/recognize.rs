@@ -29,6 +29,8 @@ pub(crate) const MIGRATED: &[FragmentKind] = &[
     FragmentKind::SelfFieldAssign,
     FragmentKind::ExprEffect,
     FragmentKind::LoopEffect,
+    FragmentKind::SelfFieldBody,
+    FragmentKind::ConditionalGuard,
 ];
 
 /// Recognize `node` as a migrated exact-fragment shape by building its contract directly,
@@ -43,6 +45,14 @@ pub(crate) fn recognize_contract(
     // Shared substrate gates — the invalidation-boundary model, reused (not duplicated).
     if !crate::units::subtree_spans_within(il, node, il.node(node).span) {
         return None;
+    }
+    // `SelfFieldBody` proves self-containment through fixed Java `this` field writes. It is
+    // the one migrated shape whose predicate acceptance boundary intentionally sits before
+    // the shared top-level context gate; keep that bypass local to this recognizer.
+    if let Some(contract) =
+        super::self_field_body::recognize_self_field_body(il, interner, parents, node)
+    {
+        return Some(contract);
     }
     if !crate::units::top_level_statement_fragment_context_safe(il, node, parents, interner) {
         return None;
@@ -77,6 +87,7 @@ pub(crate) fn recognize_contract(
                 EffectSite::observable(effect),
             ))
         }
+        NodeKind::If => super::conditional_guard::recognize_conditional_guard(il, interner, node),
         NodeKind::Loop => super::loop_effect::recognize_loop_effect(il, node),
         _ => None,
     }
@@ -162,7 +173,7 @@ fn effect_contract(
 /// - `base.field` → [`Place::Field`] over the resolved base, keyed by field-name hash
 /// - `base[key]` → [`Place::Index`] over the resolved base, keyed by a coarse key hash
 /// - anything else (a call result, an unresolved receiver) → [`Place::Unknown`]
-fn resolve_place(il: &Il, interner: &Interner, node: NodeId) -> Place {
+pub(super) fn resolve_place(il: &Il, interner: &Interner, node: NodeId) -> Place {
     match il.kind(node) {
         NodeKind::Var if exact_java_this_var(il, interner, node) => Place::This,
         NodeKind::Var => match il.node(node).payload {
@@ -269,6 +280,33 @@ mod tests {
         );
     }
 
+    fn contract_fragments(src: &str, lang: Lang) -> Vec<(Span, FragmentKind)> {
+        let interner = Interner::new();
+        let raw = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, &interner)
+            .expect("lowering should succeed");
+        let il = normalize(&raw, &interner, &NormalizeOptions::default());
+        let parents = build_parent_index(&il);
+        index(&il, &|node| {
+            recognize_contract(&il, node, &parents, &interner).map(|c| c.kind)
+        })
+    }
+
+    fn assert_contract_contains_kind(src: &str, lang: Lang, kind: FragmentKind) {
+        let fragments = contract_fragments(src, lang);
+        assert!(
+            fragments.iter().any(|(_, actual)| *actual == kind),
+            "expected {kind:?} in contract fragments for `{src}`, got {fragments:?}"
+        );
+    }
+
+    fn assert_contract_excludes_kind(src: &str, lang: Lang, kind: FragmentKind) {
+        let fragments = contract_fragments(src, lang);
+        assert!(
+            fragments.iter().all(|(_, actual)| *actual != kind),
+            "did not expect {kind:?} in contract fragments for `{src}`, got {fragments:?}"
+        );
+    }
+
     #[test]
     fn differential_direct_return_and_throw() {
         // Accepted: top-level computed return / throw.
@@ -313,17 +351,83 @@ mod tests {
     }
 
     #[test]
-    fn differential_ignores_non_migrated_shapes() {
-        // ConditionalGuard and SelfFieldBody are still predicate-owned: the predicate accepts
-        // the `if`/body as those kinds, but the contract path must not produce them. Only the
-        // migrated *leaves* inside them (DirectReturn, SelfFieldAssign) appear on both paths,
-        // so the migrated intersection stays equal.
+    fn differential_conditional_guard() {
+        // Accepted: direct return guards, bare returns, nested conditionals, branch-local
+        // temp windows, and small ordered effect sequences. The contract recognizer
+        // re-expresses the branch admissibility matrix independently of the predicate.
         assert_paths_agree(
             "function f(a){ if (a > 0) { return a * a; } }",
             Lang::JavaScript,
         );
         assert_paths_agree(
+            "function f(a){ if (a > 0) { return; } else {} }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function f(a){ if (a > 0) { if (a > 10) { return a * 2; } } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function f(a){ if (a > 0) { const t = a * 2; return t + 1; } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function f(out, a){ if (a > 0) { out.push(1); out.push(2); } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "package p\nfunc f(out []int, a int) {\n\tif a > 0 {\n\t\tout[0] = a\n\t\tout[1] = a + 1\n\t}\n}\n",
+            Lang::Go,
+        );
+        let ordered_self_fields =
+            "class C { int x; int y; void f(boolean b, int a){ if (b) { this.x = a; this.y = a + 1; } } }";
+        assert_paths_agree(ordered_self_fields, Lang::Java);
+        assert_contract_contains_kind(
+            ordered_self_fields,
+            Lang::Java,
+            FragmentKind::ConditionalGuard,
+        );
+        // Rejected by both paths: arbitrary multi-statement branch windows and wrong temp
+        // consumption are still outside the exact fragment set.
+        assert_paths_agree(
+            "function f(a){ if (a > 0) { const t = a * 2; const u = a + 1; return t + u; } }",
+            Lang::JavaScript,
+        );
+        assert_paths_agree(
+            "function f(out, a){ if (a > 0) { const t = a * 2; out.push(a); } }",
+            Lang::JavaScript,
+        );
+        let unproven_receiver =
+            "class C { int x; int y; void f(C other, boolean b, int a){ if (b) { other.x = a; this.y = a + 1; } } }";
+        assert_paths_agree(unproven_receiver, Lang::Java);
+        assert_contract_excludes_kind(
+            unproven_receiver,
+            Lang::Java,
+            FragmentKind::ConditionalGuard,
+        );
+    }
+
+    #[test]
+    fn differential_self_field_body() {
+        // Accepted: Java function body blocks composed of fixed-`this` field writes, nested
+        // conditionals over those writes, and an optional terminal `return this`. The body
+        // root bypasses the shared context gate only through the SelfFieldBody recognizer.
+        assert_paths_agree(
             "class C { int x; int y; void set(int a, int b){ this.x = a; this.y = b; } }",
+            Lang::Java,
+        );
+        assert_paths_agree(
+            "class C { int x; C set(int a){ if (a > 0) { this.x = a; } return this; } }",
+            Lang::Java,
+        );
+        // Rejected by both paths at the body root: return-this is only allowed terminally,
+        // and non-`this` field writes do not have a proven receiver.
+        assert_paths_agree(
+            "class C { int x; C set(int a){ return this; this.x = a; } }",
+            Lang::Java,
+        );
+        assert_paths_agree(
+            "class C { int x; void set(C other, int a){ other.x = a; this.x = a; } }",
             Lang::Java,
         );
     }

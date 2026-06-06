@@ -114,7 +114,7 @@ contract path accept **exactly the same `(span, kind)` set** for migrated kinds,
 across the whole fixture corpus. A migration step that changes which fragments are accepted
 fails the gate — that is what keeps the re-expression behavior-invariant.
 
-## Migrated kinds, and what remains
+## Migrated kinds
 
 The predicate path in `units.rs` is still the **production authority**: it decides which
 fragments are accepted. The contract path is an independent shadow recognizer, kept in lockstep
@@ -126,8 +126,8 @@ and adding it to that gate — it does **not** change production output.
 | `DirectReturn`, `DirectThrow` | yes — value/control sinks |
 | `IndexAssignEffect`, `SelfFieldAssign`, `ExprEffect` | yes — single-effect writes |
 | `LoopEffect` | yes — for-each iteration-dependent effect body |
-| `ConditionalGuard` | not yet — predicate-owned |
-| `SelfFieldBody` | not yet — predicate-owned |
+| `SelfFieldBody` | yes — fixed-`this` Java field-write body |
+| `ConditionalGuard` | yes — recursive branch admissibility matrix |
 
 `LoopEffect` is the first multi-statement-body migration: its independent recognizer lives in
 `fragment/loop_effect.rs` and re-expresses the for-each acceptance (an iteration-dependent
@@ -135,12 +135,23 @@ append/index effect, possibly through one or two local temps or nested `if` bran
 binding-aware free-input + multi-statement-lowering substrate, with no reuse of the predicate's
 acceptance helpers.
 
-The remaining two need the same treatment: `ConditionalGuard` re-expresses its full recursive
-branch admissibility independently, and `SelfFieldBody` reproduces the body-level acceptance
-boundary that bypasses the top-level context gate (proving self-containment through the fixed
-`this` receiver instead). Both migrate behind the differential gate in follow-up work. The
-interim "branch-local temp" and "ordered multi-effect" shapes are proof mechanisms *inside*
-these kinds, not new `FragmentKind` variants or reason codes.
+`SelfFieldBody` is the only migrated shape whose acceptance boundary intentionally bypasses
+the shared top-level context gate: it proves self-containment through fixed Java `this` field
+writes, allows conditional `this.field = ...` statements, and permits a terminal
+`return this`. That bypass is scoped to this kind only.
+
+`ConditionalGuard` re-expresses the full recursive branch admissibility matrix on the
+contract path: empty branches, direct return/throw/effect branches, branch-local temp
+consumption, bounded ordered effect sequences, loop-effect branches, conditional direct-effect
+branches, and nested conditional guards. After that migration base, `ConditionalGuard` also
+admits a narrow ordered Java self-field branch body: exactly two or three
+`this.field = ...` assignments. The invariant is the same as `SelfFieldAssign` and
+`SelfFieldBody`: every field write resolves to a proven `Place::This` field path, and the
+oracle observes the final field-state map. A sibling branch containing `other.field = ...`
+or an implicit field/local assignment stays rejected because receiver identity is not proven.
+The interim "branch-local temp", "ordered multi-effect", and ordered self-field branch
+shapes remain proof mechanisms *inside* existing kinds, not new `FragmentKind` variants or
+reason codes.
 
 ## What stays closed
 

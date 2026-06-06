@@ -305,9 +305,12 @@ share a field with exact-fragment proof reasons.
 
 The current product implementation keeps exact fragments visible in full
 machine-readable output while using `recommended_surface` and default ranking
-damping so tiny proof fragments do not read as first-class refactoring
-candidates. The important product decision remains: exact semantic fragments
-are evidence, not automatically refactoring candidates.
+damping so proof fragments do not automatically read as first-class refactoring
+candidates. The placement policy uses fragment shape, span, scope, spread, fanout,
+generated-looking paths, and enclosing context: tiny/high-fanout proof fragments stay
+hidden, medium effect/body fragments usually feed review, and substantial cross-file
+production fragments can still remain default candidates. The important product decision
+remains: exact semantic fragments are evidence, not automatically refactoring candidates.
 
 The scan-regression harness measures that placement policy without expanding the
 stable scan JSON schema. Its canonical output tracks `recommended_surface`

@@ -19,10 +19,12 @@
 //!
 //! [`reason_code`]: FragmentKind::reason_code
 
+mod conditional_guard;
 mod contract;
 mod loop_effect;
 mod oracle;
 pub(crate) mod recognize;
+mod self_field_body;
 
 pub use contract::{Effect, EffectSite, FragmentContract, Place};
 pub use oracle::{fragment_behavior, free_input_cids, synthesize_wrapper};

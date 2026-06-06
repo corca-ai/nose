@@ -45,9 +45,9 @@ decide whether the edit belongs there too, or whether the divergence is intentio
 3. For each family, members whose base span overlaps a changed line are **changed**; the
    rest are **not updated**. A family with *some but not all* members changed is flagged.
    (All copies changed = a consistent update, not flagged. None changed = irrelevant.)
-4. Findings are ordered with the most likely un-propagated fix first — a small edit inside
-   a computation-rich clone (the "critical change" profile) outranks an edit in a trivial
-   one.
+4. Findings are ordered with the most likely un-propagated fix first. Review-surface exact
+   fragments with enclosing context rank ahead of generic low-risk clone divergences, then
+   the hazard score and changed-site complexity break ties.
 
 This is a **candidate surfacer, not a proof**: nose tells you a sibling exists and wasn't
 touched, not that the change definitely belongs there. Review each flagged sibling.
@@ -75,10 +75,11 @@ output therefore carries the same stable fragment metadata as scan JSON:
 `enclosing_unit` when a containing function/method/class is recovered exactly.
 
 Human and SARIF output keep annotations anchored on the changed or not-updated fragment
-span, while the context text names the enclosing unit. JSON output includes the full
-fragment metadata for both `changed` and `not_updated` sites. `proof_facts` are not
-emitted; fragment `reason_code` explains the exact proof shape, not the broader
-family/actionability reasons planned in #11.
+span, while the context text names the enclosing unit. Human output prints fragment context
+for both changed and not-updated sites so a one-line guard or effect is reviewed inside its
+surrounding function. JSON output includes the full fragment metadata for both `changed` and
+`not_updated` sites. `proof_facts` are not emitted; fragment `reason_code` explains the
+exact proof shape, not the broader family/actionability reasons planned in #11.
 
 ## Suppressing intentional divergences
 
