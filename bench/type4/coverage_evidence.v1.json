@@ -136,7 +136,29 @@
     {
       "axis": "filter_fusion",
       "gen_axis": "probe:filter_fusion",
+      "language": "ruby",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "filter_fusion",
+      "gen_axis": "probe:filter_fusion",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "filter_fusion",
+      "gen_axis": "probe:filter_fusion",
+      "language": "typescript",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -169,9 +191,31 @@
     {
       "axis": "flat_map",
       "gen_axis": "probe:flat_map",
+      "language": "ruby",
+      "status": "gap",
+      "pos_hit": 0,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "flat_map",
+      "gen_axis": "probe:flat_map",
       "language": "rust",
       "status": "gap",
       "pos_hit": 0,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "flat_map",
+      "gen_axis": "probe:flat_map",
+      "language": "typescript",
+      "status": "covered",
+      "pos_hit": 1,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -587,7 +631,29 @@
     {
       "axis": "map_fusion",
       "gen_axis": "probe:map_fusion",
+      "language": "ruby",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "map_fusion",
+      "gen_axis": "probe:map_fusion",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "map_fusion",
+      "gen_axis": "probe:map_fusion",
+      "language": "typescript",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,
@@ -1181,6 +1247,17 @@
     {
       "axis": "recursion_tail_numeric",
       "gen_axis": "probe:recursion_tail_numeric",
+      "language": "go",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
       "language": "java",
       "status": "gap",
       "pos_hit": 0,
@@ -1214,9 +1291,31 @@
     {
       "axis": "recursion_tail_numeric",
       "gen_axis": "probe:recursion_tail_numeric",
+      "language": "ruby",
+      "status": "gap",
+      "pos_hit": 0,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
       "language": "rust",
       "status": "gap",
       "pos_hit": 0,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "recursion_tail_numeric",
+      "gen_axis": "probe:recursion_tail_numeric",
+      "language": "typescript",
+      "status": "covered",
+      "pos_hit": 1,
       "pos": 1,
       "false_merges": 0,
       "neg": 1,
@@ -1258,7 +1357,29 @@
     {
       "axis": "reduce_minmax_anyall",
       "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "ruby",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
       "language": "rust",
+      "status": "covered",
+      "pos_hit": 1,
+      "pos": 1,
+      "false_merges": 0,
+      "neg": 1,
+      "source": "probe"
+    },
+    {
+      "axis": "reduce_minmax_anyall",
+      "gen_axis": "probe:reduce_minmax_anyall",
+      "language": "typescript",
       "status": "covered",
       "pos_hit": 1,
       "pos": 1,

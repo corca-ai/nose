@@ -76,9 +76,9 @@
       "java": "none",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "none",
+      "ruby": "covered",
       "rust": "covered",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "flat_map": {
       "c": "none",
@@ -86,9 +86,9 @@
       "java": "none",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "none",
+      "ruby": "unsupported",
       "rust": "unsupported",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "identity_value_soundness": {
       "c": "none",
@@ -166,9 +166,9 @@
       "java": "none",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "none",
+      "ruby": "covered",
       "rust": "covered",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "membership_contains": {
       "c": "n/a",
@@ -272,13 +272,13 @@
     },
     "recursion_tail_numeric": {
       "c": "none",
-      "go": "none",
+      "go": "covered",
       "java": "unsupported",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "none",
+      "ruby": "unsupported",
       "rust": "unsupported",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "reduce_minmax_anyall": {
       "c": "none",
@@ -286,9 +286,9 @@
       "java": "unsupported",
       "javascript": "covered",
       "python": "covered",
-      "ruby": "none",
+      "ruby": "covered",
       "rust": "covered",
-      "typescript": "none"
+      "typescript": "covered"
     },
     "representation_choice": {
       "c": "none",
@@ -368,7 +368,7 @@
     },
     "go": {
       "applicable": 24,
-      "covered": 9
+      "covered": 10
     },
     "java": {
       "applicable": 27,
@@ -384,7 +384,7 @@
     },
     "ruby": {
       "applicable": 24,
-      "covered": 8
+      "covered": 11
     },
     "rust": {
       "applicable": 25,
@@ -392,7 +392,7 @@
     },
     "typescript": {
       "applicable": 27,
-      "covered": 11
+      "covered": 16
     }
   }
 }
