@@ -2827,6 +2827,47 @@ impl<'a> Builder<'a> {
         true
     }
 
+    /// Go's functional append `r = append(r, item)` (an `Assign` whose RHS is `Append(r, …)`
+    /// over the same var) to an ACTIVE builder var `r` is the same single-item build as the
+    /// effect-form `r.append(item)`: record the per-element contribution under the path guard.
+    /// A multi-item `append(r, a, b)` spoils the builder, like the effect form.
+    fn try_record_reassign_append(
+        &mut self,
+        target: NodeId,
+        rhs: NodeId,
+        env: &mut FxHashMap<u32, ValueId>,
+    ) -> bool {
+        let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(target), self.il.node(target).payload)
+        else {
+            return false;
+        };
+        if !self.building.contains_key(&c) {
+            return false;
+        }
+        if self.il.kind(rhs) != NodeKind::Call
+            || !matches!(self.il.node(rhs).payload, Payload::Builtin(Builtin::Append))
+        {
+            return false;
+        }
+        let rkids = self.il.children(rhs).to_vec();
+        // The append's receiver must be the same var being reassigned (`r = append(r, …)`).
+        let same_receiver = rkids.first().is_some_and(|&f| {
+            self.il.kind(f) == NodeKind::Var
+                && matches!(self.il.node(f).payload, Payload::Cid(fc) if fc == c)
+        });
+        if !same_receiver {
+            return false;
+        }
+        if rkids.len() != 2 {
+            self.building.insert(c, None); // multi-item append — not a clean map
+            return true;
+        }
+        let contrib = self.eval(rkids[1], env);
+        let guard = self.path_cond();
+        self.building.insert(c, Some((contrib, guard)));
+        true
+    }
+
     /// Local list-builder candidates of a loop body: a var `r` (1) bound to an empty list
     /// before the loop, (2) the target of exactly one single-item `append`, and (3) not
     /// otherwise mentioned in the body. Such a loop builds `Map(elem, contrib)` — the same
@@ -2837,6 +2878,37 @@ impl<'a> Builder<'a> {
         let mut spoiled: FxHashSet<u32> = FxHashSet::default();
         let mut stack = vec![body];
         while let Some(n) = stack.pop() {
+            // Go functional append `r = append(r, item)`: count it as r's single build append
+            // and a single build mention (mirroring the effect form's one receiver mention),
+            // then scan ONLY `item` — the two r occurrences (assign target + append receiver)
+            // are the build, not other uses that would disqualify r.
+            if self.il.kind(n) == NodeKind::Assign {
+                if let [tgt, rhs] = self.il.children(n) {
+                    if let (NodeKind::Var, Payload::Cid(c)) =
+                        (self.il.kind(*tgt), self.il.node(*tgt).payload)
+                    {
+                        if self.il.kind(*rhs) == NodeKind::Call
+                            && matches!(self.il.node(*rhs).payload, Payload::Builtin(Builtin::Append))
+                        {
+                            let rk = self.il.children(*rhs);
+                            let same = rk.first().is_some_and(|&f| {
+                                self.il.kind(f) == NodeKind::Var
+                                    && matches!(self.il.node(f).payload, Payload::Cid(fc) if fc == c)
+                            });
+                            if same {
+                                *mentions.entry(c).or_insert(0) += 1;
+                                if rk.len() == 2 {
+                                    *appends.entry(c).or_insert(0) += 1;
+                                    stack.push(rk[1]);
+                                } else {
+                                    spoiled.insert(c);
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
             if let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(n), self.il.node(n).payload) {
                 *mentions.entry(c).or_insert(0) += 1;
             }
@@ -3526,6 +3598,13 @@ impl<'a> Builder<'a> {
             NodeKind::Assign => {
                 let kids = self.il.children(stmt).to_vec();
                 if kids.len() == 2 {
+                    // Go-style functional append `r = append(r, item)` to an ACTIVE builder var
+                    // IS the per-element build (the reassignment is the append), exactly like
+                    // the effect-form `r.append(item)`. Record the contribution so the loop
+                    // becomes `Map(elem, contrib)` instead of an opaque reassign.
+                    if self.try_record_reassign_append(kids[0], kids[1], env) {
+                        return;
+                    }
                     let rhs = self.eval(kids[1], env);
                     if self.il.kind(kids[0]) == NodeKind::Var {
                         if let Payload::Cid(c) = self.il.node(kids[0]).payload {
@@ -3870,7 +3949,21 @@ impl<'a> Builder<'a> {
 
         let mut assigned = FxHashSet::default();
         collect_assigned(self.il, body, &mut assigned);
-        let mut carried: Vec<u32> = assigned.iter().copied().collect();
+        // List-builder vars (incl. Go's `r = append(r, …)`, which makes `r` assigned) are
+        // activated as builders, NOT seeded as numeric loop-carried recurrences — otherwise a
+        // Go builder var would be both a `Loop` placeholder and a `Map` build and collapse. The
+        // seed (empty-collection) check reads the PRE-loop `env` (the real `[]` seed; the body's
+        // reassignment would otherwise hide it). Builders are excluded from `carried`.
+        let builder_cands = self.builder_candidates(body, env);
+        let builder_set: FxHashSet<u32> = builder_cands.iter().copied().collect();
+        for &c in &builder_cands {
+            self.building.insert(c, None);
+        }
+        let mut carried: Vec<u32> = assigned
+            .iter()
+            .copied()
+            .filter(|c| !builder_set.contains(c))
+            .collect();
         carried.sort_unstable();
 
         // Seed each loop-carried variable with a symbolic "previous iteration" value
@@ -3903,12 +3996,8 @@ impl<'a> Builder<'a> {
         // effects) and the carried recurrences — so indexed iteration (`while i<len`,
         // `for i in range(len)`, multi-collection `a[i]*b[i]`) matches value iteration,
         // even when the accumulation is conditional (filter+reduce) not a clean fold.
-        // Activate local list-builder vars so their in-loop `append`s record a per-element
-        // contribution instead of an opaque effect (finalized to a `Map` below).
-        let builder_cands = self.builder_candidates(body, &body_env);
-        for &c in &builder_cands {
-            self.building.insert(c, None);
-        }
+        // (List-builder vars were activated above, before `carried`, so a Go functional-append
+        // builder is excluded from numeric recurrence seeding.)
         let sink_start = self.sinks.len();
         let outer_recurrence = self.loop_recurrence.replace(LoopRecurrenceScope {
             loop_values: loop_vals.clone(),

@@ -108,7 +108,7 @@ so it never matches the `flat_map`. Fix is in the ruby frontend (lower `<<` as a
 receiver is array-like) and is inherently ambiguous without type/context — a separate frontend
 lead, not a value-graph/gate alignment. Low-to-medium value; deferred.
 
-## L6 — go composite-literal disambiguation — ✅ RESOLVED (slice); builder = next
+## L6 — go composite-literal disambiguation + functional-append builder — ✅ RESOLVED
 
 Cross-language builder loops (`out := []T{}; for … out = append(out, e)` in Go; `new ArrayList`
 + `.add` in Java) do not converge with the comprehension/`.map` form. Investigation:

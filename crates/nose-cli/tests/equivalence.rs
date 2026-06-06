@@ -506,6 +506,30 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
+fn go_functional_append_builder_loop_converges_with_comprehension() {
+    // Go builds a list with `out := []T{}; for … { out = append(out, e) }` — a FUNCTIONAL
+    // append (reassignment), not the effect-form `out.append(e)` of Python/JS. Recognizing the
+    // `r = append(r, e)` reassign as the same per-element `Map` build (and excluding the builder
+    // var from numeric loop-carried seeding) makes the Go builder loop converge with the Python
+    // comprehension. The changed-contribution form stays a hard negative.
+    let i = Interner::new();
+    let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
+    let go_build = "package p\nfunc f(xs []int) []int {\n\tout := []int{}\n\tfor _, x := range xs {\n\t\tout = append(out, x*x)\n\t}\n\treturn out\n}\n";
+    let go_build_diff = "package p\nfunc f(xs []int) []int {\n\tout := []int{}\n\tfor _, x := range xs {\n\t\tout = append(out, x+1)\n\t}\n\treturn out\n}\n";
+    let comp_fp = value_fp(&i, py_comp, Lang::Python);
+    assert_eq!(
+        comp_fp,
+        value_fp(&i, go_build, Lang::Go),
+        "go functional-append builder loop must converge with the python comprehension"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, go_build_diff, Lang::Go),
+        "a different per-element contribution must stay distinct"
+    );
+}
+
+#[test]
 fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
     // A Go slice literal `[]int{1,2,3}` is an ordered sequence — it converges with a Python
     // list / JS array. A Go STRUCT literal `Point{1,2,3}` is a record, NOT a collection, and
