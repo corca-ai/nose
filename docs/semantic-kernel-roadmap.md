@@ -133,26 +133,41 @@ and pack ecosystem.
   JS/TS `Map.get(...)` defaulting remains exact-eligible only when `undefined`
   is the unshadowed JS-like sentinel.
 
-## Phase 0: documentation and vocabulary
+## Phase 0: documentation and vocabulary (landed)
 
-- Define semantic-kernel goals, non-goals, responsibility model, and pack kinds.
-- Record the current implementation snapshot separately from the roadmap.
-- Link the direction from home, architecture, languages, and formal-soundness.
-- Keep docs honest: this is planned architecture, not current user-facing
+- PR #100 defined semantic-kernel goals, non-goals, responsibility model, and
+  pack kinds.
+- The current implementation snapshot is recorded separately from this roadmap.
+- The direction is linked from home, architecture, languages, and
+  formal-soundness.
+- The docs distinguish implemented facade behavior from planned external-pack
   capability.
 
-## Phase 1: kernel facade and fail-closed migration
+## Phase 1: kernel facade and fail-closed migration (first slice landed)
 
-- Add a `nose-semantics` crate or module with stable internal types for language
-  profile, semantic facts, evaluation rules, effect summaries, protocol ops, API
-  contracts, law ids, and proof status.
-- Implement first-party built-in profiles by wrapping existing `Lang` matches.
-- Replace direct semantic `Lang` checks with named predicates where behavior is
-  already sound.
-- Tighten old name-only recognizers when the required proof does not exist yet,
-  even when this changes old convergence behavior.
-- Add tests proving language/arity/shadowing/receiver obligations for the facade.
-- Keep parser/lowering dispatch unchanged in this phase.
+Landed in PR #100 and PR #101:
+
+- `nose-semantics` exists as the first compiled facade for language profiles,
+  semantic facts, effect/operator/fragment predicates, stdlib/API contracts, law
+  ids, and proof status.
+- First-party built-in profiles now wrap many existing `Lang` matches behind
+  named predicates and contracts.
+- Several proof-sensitive direct `Lang`/name checks were replaced with semantic
+  predicates or fail-closed contracts.
+- Old name-only recognizers were narrowed when receiver, import, shadowing,
+  constructor, or protocol proof was missing.
+- Tests now cover language, arity, shadowing, import, receiver, and hard-negative
+  obligations for the migrated facade paths.
+- Parser and lowering dispatch remain unchanged.
+
+Remaining in this phase:
+
+- Continue replacing proof-sensitive `Lang`/selector checks that are still local
+  to normalize, detect, and import proof.
+- Keep behavior-changing recall reductions documented when missing evidence
+  blocks exact convergence.
+- Preserve the current precision gates while moving more first-party surfaces
+  behind shared contracts.
 
 ## Phase 2: shared contracts for duplicated gates
 
@@ -236,15 +251,21 @@ different APIs.
 - Should a pack be able to express language-specific proof-producing lowering
   extensions before the general construct/import/type fact model is complete?
 
-## Near-term acceptance criteria
+## Foundation acceptance status
 
-The first implementation PR should be considered successful if it:
+The first implementation slice landed through PR #100 and PR #101. It is
+considered successful because it:
 
-- introduces the semantic-kernel vocabulary and first compiled facade;
-- replaces proof-sensitive `Lang`/name matches with named semantic predicates or
-  fail-closed contracts;
-- records intentional old-behavior changes where missing evidence blocks exact
+- introduced the semantic-kernel vocabulary and first compiled facade;
+- replaced multiple proof-sensitive `Lang`/name matches with named semantic
+  predicates or fail-closed contracts;
+- recorded intentional old-behavior changes where missing evidence blocks exact
   convergence;
-- keeps tests and docs checks green;
-- documents the first-party/external responsibility boundary;
-- makes it easier to explain why an exact match was accepted.
+- kept tests and docs checks green after the proof-gated scan follow-up;
+- documented the first-party/external responsibility boundary;
+- made accepted exact matches easier to explain through explicit contracts and
+  hard-negative tests.
+
+The next implementation slices should be judged by whether they remove another
+class of scattered semantic knowledge without widening exact acceptance beyond
+the available evidence.

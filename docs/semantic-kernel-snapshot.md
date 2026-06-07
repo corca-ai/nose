@@ -4,8 +4,8 @@ Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
 
-Snapshot date: 2026-06-07, `feature/semantic-kernel-migration` worktree against
-`origin/main`.
+Snapshot date: 2026-06-07, current `main` after the semantic-kernel foundation
+and proof-gated exact-scan follow-up landed in PR #100 and PR #101.
 
 ## What exists today
 
@@ -173,8 +173,9 @@ language.
   added inside the main crates.
 - Report output does not yet expose semantic provenance such as pack id, contract
   id, law id, or proof status.
-- First-party and external responsibility boundaries are not represented because
-  there are no loadable external packs yet.
+- First-party and external responsibility boundaries are documented and
+  represented in the internal facade as provenance/trust policy, but there are no
+  loadable external packs or report-level pack provenance fields yet.
 
 ## Current fail-closed choices
 

@@ -64,10 +64,10 @@ under the user's configured trust policy.
 
 There are two responsibility classes.
 
-**First-party packs** ship with nose and are maintained by this project. Their
-exact contracts must be covered by the same quality gates as the engine: regression
-tests, hard negatives, the interpreter oracle where applicable, benchmark checks,
-and Lean obligations for proof-sensitive laws.
+**First-party packs** ship with nose and are maintained by the Corca/nose
+project. Their exact contracts must be covered by the same quality gates as the
+engine: regression tests, hard negatives, the interpreter oracle where
+applicable, benchmark checks, and Lean obligations for proof-sensitive laws.
 
 The first-party packs enabled by the default nose distribution are the **default
 packs**; nose owns their review, validation, and release quality.
