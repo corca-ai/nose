@@ -8,9 +8,11 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    contains_js_identifier, is_js_identifier_continue, Builtin, FileId, Il, Interner, Lang,
-    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCallKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
+    contains_js_identifier, is_js_identifier_continue, stable_symbol_hash, Builtin, EvidenceAnchor,
+    EvidenceKind, FileId, GuardEvidenceKind, Il, Interner, JsRecordGuardComparison,
+    JsRecordGuardNullCheck, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span,
+    SymbolEvidenceKind, UnitKind,
 };
 use nose_semantics::{
     js_array_is_array_contract, js_boolean_coercion_contract, qualified_global_symbol_contract,
@@ -1339,11 +1341,12 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 
     let mut ident: Option<String> = None;
     let mut has_typeof_object = false;
-    let mut has_non_null_or_truthy = false;
+    let mut null_check = None;
     let mut has_not_array = false;
-    let mut requires_boolean_global = false;
+    let mut comparison = JsRecordGuardComparison::StrictOnly;
     for clause in clauses {
-        let (kind, name) = record_guard_clause(&clause)?;
+        let parsed = record_guard_clause(&clause)?;
+        let name = parsed.name;
         if !simple_js_ident(&name) {
             return None;
         }
@@ -1352,19 +1355,15 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
             None => ident = Some(name.clone()),
             _ => {}
         }
-        match kind {
+        comparison = merge_record_guard_comparison(comparison, parsed.comparison);
+        match parsed.kind {
             RecordGuardClause::TypeofObject => has_typeof_object = true,
-            RecordGuardClause::NonNullOrTruthy {
-                requires_boolean_global: requires,
-            } => {
-                has_non_null_or_truthy = true;
-                requires_boolean_global |= requires;
-            }
+            RecordGuardClause::NonNullOrTruthy { kind } => null_check = Some(kind),
             RecordGuardClause::NotArray => has_not_array = true,
         }
     }
 
-    if !(has_typeof_object && has_non_null_or_truthy && has_not_array) {
+    if !(has_typeof_object && null_check.is_some() && has_not_array) {
         return None;
     }
     let array_contract = js_array_is_array_contract(lo.lang, "Array", "isArray", 1)?;
@@ -1374,6 +1373,8 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     {
         return None;
     }
+    let null_check = null_check?;
+    let requires_boolean_global = null_check == JsRecordGuardNullCheck::BooleanGlobalTruthy;
     let boolean_contract = requires_boolean_global
         .then(|| js_boolean_coercion_contract(lo.lang, "Boolean", 1))
         .flatten();
@@ -1387,100 +1388,165 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     }) {
         return None;
     }
+    let ident = ident?;
     let span = lo.span(node);
-    let value = lo.var(&ident?, span);
+    let value = lo.var(&ident, span);
     let object = lo.str_lit("object", span);
     let non_null = lo.str_lit("non_null", span);
     let not_array = lo.str_lit("not_array", span);
     let tag = lo.sym("record_guard");
-    Some(lo.add(
+    let guard = lo.add(
         NodeKind::Seq,
         Payload::Name(tag),
         span,
         &[value, object, non_null, not_array],
-    ))
+    );
+    let array_dependency = lo.record_evidence(
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+            path_hash: stable_symbol_hash(array_contract.qualified_path),
+        }),
+        "record_guard_array_is_array_api",
+    );
+    let mut dependencies = vec![array_dependency];
+    if let Some(contract) = boolean_contract {
+        dependencies.push(lo.record_evidence(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash(contract.function),
+            }),
+            "record_guard_boolean_api",
+        ));
+    }
+    lo.record_evidence_with_dependencies(
+        EvidenceAnchor::sequence(span),
+        EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
+            subject_hash: stable_symbol_hash(&ident),
+            null_check,
+            comparison,
+        }),
+        "record_guard_js_shape",
+        dependencies,
+    );
+    Some(guard)
 }
 
 #[derive(Clone, Copy)]
 enum RecordGuardClause {
     TypeofObject,
-    NonNullOrTruthy { requires_boolean_global: bool },
+    NonNullOrTruthy { kind: JsRecordGuardNullCheck },
     NotArray,
 }
 
-fn record_guard_clause(clause: &str) -> Option<(RecordGuardClause, String)> {
+struct ParsedRecordGuardClause {
+    kind: RecordGuardClause,
+    name: String,
+    comparison: JsRecordGuardComparison,
+}
+
+fn record_guard_clause(clause: &str) -> Option<ParsedRecordGuardClause> {
     parse_typeof_object_clause(clause)
-        .map(|name| (RecordGuardClause::TypeofObject, name))
-        .or_else(|| parse_non_null_clause(clause).map(|name| (non_null_guard_clause(false), name)))
+        .map(|(name, comparison)| ParsedRecordGuardClause {
+            kind: RecordGuardClause::TypeofObject,
+            name,
+            comparison,
+        })
         .or_else(|| {
-            parse_truthy_clause(clause).map(|(name, requires_boolean_global)| {
-                (non_null_guard_clause(requires_boolean_global), name)
+            parse_non_null_clause(clause).map(|(name, kind, comparison)| ParsedRecordGuardClause {
+                kind: RecordGuardClause::NonNullOrTruthy { kind },
+                name,
+                comparison,
             })
         })
-        .or_else(|| parse_not_array_clause(clause).map(|name| (RecordGuardClause::NotArray, name)))
+        .or_else(|| {
+            parse_truthy_clause(clause).map(|(name, kind)| ParsedRecordGuardClause {
+                kind: RecordGuardClause::NonNullOrTruthy { kind },
+                name,
+                comparison: JsRecordGuardComparison::StrictOnly,
+            })
+        })
+        .or_else(|| {
+            parse_not_array_clause(clause).map(|(name, comparison)| ParsedRecordGuardClause {
+                kind: RecordGuardClause::NotArray,
+                name,
+                comparison,
+            })
+        })
 }
 
-fn non_null_guard_clause(requires_boolean_global: bool) -> RecordGuardClause {
-    RecordGuardClause::NonNullOrTruthy {
-        requires_boolean_global,
-    }
-}
-
-fn parse_typeof_object_clause(clause: &str) -> Option<String> {
+fn parse_typeof_object_clause(clause: &str) -> Option<(String, JsRecordGuardComparison)> {
     for op in ["===", "=="] {
-        if let Some(rest) = clause.strip_prefix("typeof") {
+        let comparison = record_guard_comparison_for_op(op);
+        if let Some(rest) = clause.strip_prefix("typeof ") {
             let (name, value) = rest.split_once(op)?;
             if is_object_literal(value) {
-                return Some(name.to_string());
+                return Some((name.to_string(), comparison));
             }
         }
         for object_lit in ["'object'", "\"object\""] {
-            let prefix = format!("{object_lit}{op}typeof");
+            let prefix = format!("{object_lit}{op}typeof ");
             if let Some(name) = clause.strip_prefix(&prefix) {
-                return Some(name.to_string());
+                return Some((name.to_string(), comparison));
             }
         }
     }
     None
 }
 
-fn parse_non_null_clause(clause: &str) -> Option<String> {
+fn parse_non_null_clause(
+    clause: &str,
+) -> Option<(String, JsRecordGuardNullCheck, JsRecordGuardComparison)> {
     for op in ["!==", "!="] {
+        let null_check = match op {
+            "!==" => JsRecordGuardNullCheck::StrictNonNull,
+            "!=" => JsRecordGuardNullCheck::LooseNonNull,
+            _ => unreachable!(),
+        };
+        let comparison = record_guard_comparison_for_op(op);
         if let Some((name, "null")) = clause.split_once(op) {
-            return Some(name.to_string());
+            return Some((name.to_string(), null_check, comparison));
         }
         let prefix = format!("null{op}");
         if let Some(name) = clause.strip_prefix(&prefix) {
-            return Some(name.to_string());
+            return Some((name.to_string(), null_check, comparison));
         }
     }
     None
 }
 
-fn parse_truthy_clause(clause: &str) -> Option<(String, bool)> {
+fn parse_truthy_clause(clause: &str) -> Option<(String, JsRecordGuardNullCheck)> {
     if let Some(name) = clause.strip_prefix("!!") {
-        return Some((name.to_string(), false));
+        return Some((
+            name.to_string(),
+            JsRecordGuardNullCheck::DoubleNegationTruthy,
+        ));
     }
     clause
         .strip_prefix("Boolean(")
         .and_then(|inner| inner.strip_suffix(')'))
-        .map(|name| (name.to_string(), true))
+        .map(|name| {
+            (
+                name.to_string(),
+                JsRecordGuardNullCheck::BooleanGlobalTruthy,
+            )
+        })
 }
 
-fn parse_not_array_clause(clause: &str) -> Option<String> {
+fn parse_not_array_clause(clause: &str) -> Option<(String, JsRecordGuardComparison)> {
     if let Some(name) = clause
         .strip_prefix("!Array.isArray(")
         .and_then(|inner| inner.strip_suffix(')'))
     {
-        return Some(name.to_string());
+        return Some((name.to_string(), JsRecordGuardComparison::StrictOnly));
     }
     for op in ["===", "=="] {
+        let comparison = record_guard_comparison_for_op(op);
         if let Some(call) = clause.strip_suffix(&format!("{op}false")) {
             if let Some(name) = call
                 .strip_prefix("Array.isArray(")
                 .and_then(|inner| inner.strip_suffix(')'))
             {
-                return Some(name.to_string());
+                return Some((name.to_string(), comparison));
             }
         }
         let prefix = format!("false{op}Array.isArray(");
@@ -1488,10 +1554,32 @@ fn parse_not_array_clause(clause: &str) -> Option<String> {
             .strip_prefix(&prefix)
             .and_then(|inner| inner.strip_suffix(')'))
         {
-            return Some(name.to_string());
+            return Some((name.to_string(), comparison));
         }
     }
     None
+}
+
+fn record_guard_comparison_for_op(op: &str) -> JsRecordGuardComparison {
+    match op {
+        "==" | "!=" => JsRecordGuardComparison::LooseEqualityAllowed,
+        _ => JsRecordGuardComparison::StrictOnly,
+    }
+}
+
+fn merge_record_guard_comparison(
+    left: JsRecordGuardComparison,
+    right: JsRecordGuardComparison,
+) -> JsRecordGuardComparison {
+    if matches!(
+        (left, right),
+        (JsRecordGuardComparison::LooseEqualityAllowed, _)
+            | (_, JsRecordGuardComparison::LooseEqualityAllowed)
+    ) {
+        JsRecordGuardComparison::LooseEqualityAllowed
+    } else {
+        JsRecordGuardComparison::StrictOnly
+    }
 }
 
 fn is_object_literal(value: &str) -> bool {
@@ -1502,7 +1590,8 @@ fn compact_js_expr(text: &str) -> String {
     let mut out = String::new();
     let mut quote = None;
     let mut escaped = false;
-    for c in text.chars() {
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
         if let Some(q) = quote {
             out.push(c);
             if escaped {
@@ -1517,7 +1606,17 @@ fn compact_js_expr(text: &str) -> String {
         if c == '\'' || c == '"' {
             quote = Some(c);
             out.push(c);
-        } else if !c.is_whitespace() {
+        } else if c.is_whitespace() {
+            let next = chars.clone().find(|next| !next.is_whitespace());
+            if out
+                .chars()
+                .next_back()
+                .is_some_and(is_js_identifier_continue)
+                && next.is_some_and(is_js_identifier_continue)
+            {
+                out.push(' ');
+            }
+        } else {
             out.push(c);
         }
     }
@@ -1841,7 +1940,8 @@ fn js_source_operator(text: &str) -> Option<SourceOperatorKind> {
 mod tests {
     use super::*;
     use nose_il::{
-        stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, Interner, SymbolEvidenceKind,
+        stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, GuardEvidenceKind, Interner,
+        JsRecordGuardComparison, JsRecordGuardNullCheck, SymbolEvidenceKind,
     };
 
     fn lower_js(src: &str) -> Il {
@@ -1888,6 +1988,18 @@ mod tests {
                 )
             })
             .count()
+    }
+
+    fn js_record_shape_guard_evidence(il: &Il) -> Vec<&nose_il::EvidenceRecord> {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape { .. })
+                )
+            })
+            .collect()
     }
 
     fn switch_labels_for_return(src: &str, expected_return: i64) -> Vec<i64> {
@@ -2023,6 +2135,70 @@ mod tests {
             qualified_global_evidence_count(&il, "Array.isArray", NodeKind::Field),
             1
         );
+    }
+
+    #[test]
+    fn js_record_shape_guards_emit_guard_evidence_with_api_dependencies() {
+        let il = lower_js(
+            "function direct(value) {
+                return typeof value === \"object\" && value !== null && !Array.isArray(value);
+             }
+             function truthy(input) {
+                return Boolean(input) && typeof input === \"object\" && !Array.isArray(input);
+             }",
+        );
+
+        let guards = js_record_shape_guard_evidence(&il);
+        assert_eq!(guards.len(), 2);
+        assert!(guards.iter().any(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
+                    subject_hash,
+                    null_check: JsRecordGuardNullCheck::StrictNonNull,
+                    comparison: JsRecordGuardComparison::StrictOnly,
+                }) if subject_hash == stable_symbol_hash("value")
+            ) && record.dependencies.len() == 1
+        }));
+        assert!(guards.iter().any(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
+                    subject_hash,
+                    null_check: JsRecordGuardNullCheck::BooleanGlobalTruthy,
+                    comparison: JsRecordGuardComparison::StrictOnly,
+                }) if subject_hash == stable_symbol_hash("input")
+            ) && record.dependencies.len() == 2
+        }));
+    }
+
+    #[test]
+    fn js_record_shape_guard_evidence_respects_array_shadowing() {
+        let il = lower_js(
+            "function f(Array, value) {
+                return typeof value === \"object\" && value !== null && !Array.isArray(value);
+             }
+             function g(scope, value) {
+                const { Array } = scope;
+                return typeof value === \"object\" && value !== null && !Array.isArray(value);
+             }",
+        );
+
+        assert!(js_record_shape_guard_evidence(&il).is_empty());
+    }
+
+    #[test]
+    fn js_record_shape_guard_evidence_requires_typeof_keyword_boundary() {
+        let il = lower_js(
+            "function f(value) {
+                return typeofvalue === \"object\" && value !== null && !Array.isArray(value);
+             }
+             function g(value) {
+                return \"object\" === typeofvalue && value !== null && !Array.isArray(value);
+             }",
+        );
+
+        assert!(js_record_shape_guard_evidence(&il).is_empty());
     }
 
     #[test]

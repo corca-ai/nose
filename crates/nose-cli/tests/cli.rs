@@ -8760,6 +8760,16 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_shadowed_negative.js"),
+        "function shadowed(Array, input) {\n  return typeof input === \"object\" && input !== null && !Array.isArray(input);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_destructured_shadow_negative.js"),
+        "function shadowed(scope, input) {\n  const { Array } = scope;\n  return typeof input === \"object\" && input !== null && !Array.isArray(input);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_allowed_negative.js"),
         "function arrayAllowed(value) {\n  return typeof value === \"object\" && value !== null;\n}\n",
     )
@@ -8772,6 +8782,11 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     fs::write(
         dir.join("wrong_typeof_literal_negative.js"),
         "function wrongLiteral(value) {\n  return typeof value === \"ob ject\" && value !== null && !Array.isArray(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("typeof_identifier_negative.js"),
+        "function wrongIdentifier(value) {\n  return typeofvalue === \"object\" && value !== null && !Array.isArray(value);\n}\n",
     )
     .unwrap();
 
@@ -8805,8 +8820,11 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     }
     for unexpected in [
         "array_allowed_negative.js",
+        "array_destructured_shadow_negative.js",
+        "array_shadowed_negative.js",
         "boolean_shadowed_negative.js",
         "null_allowed_negative.js",
+        "typeof_identifier_negative.js",
         "wrong_typeof_literal_negative.js",
     ] {
         assert!(

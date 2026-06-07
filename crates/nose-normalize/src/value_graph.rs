@@ -58,8 +58,8 @@ use nose_semantics::{
     java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract_by_hash,
     map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
-    nullish_global_contract, qualified_global_symbol_at_span, reduction_builtin_contract,
-    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    nullish_global_contract, qualified_global_symbol_at_span, record_shape_guard_for_node,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
     rust_vec_new_factory_contract, scalar_integer_method_contract, semantics,
     seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
@@ -69,7 +69,7 @@ use nose_semantics::{
     JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
     MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
     StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
-    SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -7957,6 +7957,15 @@ impl<'a> Builder<'a> {
     }
 
     fn seq_tag(&self, node: NodeId) -> u64 {
+        if let Payload::Name(tag) = self.il.node(node).payload {
+            if self.interner.resolve(tag) == "record_guard" {
+                return if record_shape_guard_for_node(self.il, self.interner, node) {
+                    SEQ_VALUE_RECORD_GUARD
+                } else {
+                    self.interner.symbol_hash(tag)
+                };
+            }
+        }
         match (self.seq_surface(node), self.il.node(node).payload) {
             (Some(contract), _) => contract.value_tag,
             (None, Payload::Name(s)) => self.interner.symbol_hash(s),
@@ -8298,8 +8307,9 @@ mod tests {
     use super::*;
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
-        ParamSemantic, ParamTypeFact, Span, Unit, UnitKind,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
+        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang, ParamSemantic,
+        ParamTypeFact, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
     use nose_semantics::{import_fact_tag, FIRST_PARTY_PACK_ID};
 
@@ -8581,6 +8591,88 @@ mod tests {
         let mut builder = Builder::new(&il, &interner);
         let proven = builder.eval(field, &FxHashMap::default());
         assert!(builder.is_import_binding_value(proven, "math", "prod"));
+    }
+
+    #[test]
+    fn record_guard_value_tag_requires_guard_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let tag = interner.intern("record_guard");
+        let subject = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("value")),
+            sp(60),
+            &[],
+        );
+        let object = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("object")),
+            sp(60),
+            &[],
+        );
+        let non_null = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("non_null")),
+            sp(60),
+            &[],
+        );
+        let not_array = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("not_array")),
+            sp(60),
+            &[],
+        );
+        let guard = b.add(
+            NodeKind::Seq,
+            Payload::Name(tag),
+            sp(60),
+            &[subject, object, non_null, not_array],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(60), &[guard]);
+        let mut il = finish_test_il(b, root, Lang::JavaScript);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(guard, &FxHashMap::default());
+        assert!(!matches!(
+            builder.nodes[raw as usize].op,
+            ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
+        ));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(60)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let surface_only = builder.eval(guard, &FxHashMap::default());
+        assert!(!matches!(
+            builder.nodes[surface_only as usize].op,
+            ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
+        ));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::source_span(sp(60)),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+        ));
+        il.evidence.push(evidence(
+            2,
+            EvidenceAnchor::sequence(sp(60)),
+            EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
+                subject_hash: stable_symbol_hash("value"),
+                null_check: JsRecordGuardNullCheck::StrictNonNull,
+                comparison: JsRecordGuardComparison::StrictOnly,
+            }),
+        ));
+        il.evidence.last_mut().unwrap().dependencies = vec![EvidenceId(1)];
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(guard, &FxHashMap::default());
+        assert!(matches!(
+            builder.nodes[proven as usize].op,
+            ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
+        ));
     }
 
     #[test]

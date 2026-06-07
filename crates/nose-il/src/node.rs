@@ -326,6 +326,29 @@ pub enum SymbolEvidenceKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum JsRecordGuardNullCheck {
+    StrictNonNull,
+    LooseNonNull,
+    DoubleNegationTruthy,
+    BooleanGlobalTruthy,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum JsRecordGuardComparison {
+    StrictOnly,
+    LooseEqualityAllowed,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum GuardEvidenceKind {
+    JsRecordShape {
+        subject_hash: u64,
+        null_check: JsRecordGuardNullCheck,
+        comparison: JsRecordGuardComparison,
+    },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SequenceSurfaceKind {
     Untagged,
     Collection,
@@ -345,6 +368,7 @@ pub enum EvidenceKind {
     Domain(DomainEvidence),
     Import(ImportEvidenceKind),
     Symbol(SymbolEvidenceKind),
+    Guard(GuardEvidenceKind),
     SequenceSurface(SequenceSurfaceKind),
 }
 

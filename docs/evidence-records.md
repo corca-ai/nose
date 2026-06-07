@@ -60,6 +60,7 @@ The current implemented kinds are:
 | `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding and namespace proof |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
+| `Guard` | multi-obligation guard proof facts such as the first JS/TS record-shape guard contract |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, record guard, or Go composite map literal |
 
 ## Consumption Rules
@@ -97,6 +98,15 @@ first-party JS/TS producer emits `QualifiedGlobal` only for selected static path
 whose root is proven unshadowed, such as `Object.hasOwn`,
 `Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`.
 
+Guard identity is separate from sequence shape. A raw `Seq("record_guard")` or a
+matching `SequenceSurface(RecordGuard)` fact proves only that the frontend
+lowered a guard-shaped surface. Exact consumers additionally require a
+dedicated `Guard::JsRecordShape` record whose subject, null/truthiness form,
+comparison form, and asserted `Array.isArray`/optional `Boolean` dependencies
+match the lowered sequence. Generic `SequenceSurface(RecordGuard)` is therefore
+not `exact_tree_safe`; missing, ambiguous, conflicting, wrong-kind, wrong-anchor,
+or dependency-broken guard evidence keeps the exact path closed.
+
 ## Current Producers
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
@@ -112,13 +122,18 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   evidence at the lowered node anchor: own-property guards at their
   `Seq("own_property_guard")` node, and static member expressions such as
   `Array.from` and `Array.isArray` at their `Field` node;
+- JS/TS record-shape guard lowering emits `Guard::JsRecordShape` evidence for
+  the lowered `Seq("record_guard")`, including the shared subject hash, the
+  null/truthiness clause kind, whether JS loose equality was admitted, and
+  asserted dependencies for the required `Array.isArray` API proof plus optional
+  `Boolean` proof;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence.
 
 The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
-compatibility mirrors. JS/TS record-shape guard lowering still needs dedicated
-multi-obligation guard evidence for surfaces such as `Array.isArray(...)` plus
-optional `Boolean(...)`; that is separate from the selected qualified-path
-evidence already landed. These mirrors are not the desired pack boundary.
+compatibility mirrors. First-party JS/TS record-shape guards now have dedicated
+guard evidence, but broader guard families, richer source-clause dependencies,
+and general evidence validation remain open. These mirrors are not the desired
+pack boundary.
 
 ## Current Consumers
 
@@ -143,9 +158,15 @@ callers:
   guard normalization and strict exact safety require evidence for
   `Object.hasOwn` or `Object.prototype.hasOwnProperty.call`, and map-key view
   wrappers require evidence for `Array.from`;
-- sequence-surface admission for normalize/value-graph/detect exact paths.
+- JS/TS record-shape guard exact admission and value-graph tagging require both
+  `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
+  `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by
+  tag spelling alone;
+- sequence-surface admission for normalize/value-graph/detect exact paths where
+  the surface contract is independently exact-safe; guard surfaces use their
+  dedicated guard helper instead.
 
 Field/place/effect facts, receiver/protocol evidence beyond parameter domains,
-full scope-resolution and namespace-member evidence, record-shape
-multi-obligation guard evidence, report-level provenance, and external manifest
-loading are still open work.
+full scope-resolution and namespace-member evidence, broader guard evidence and
+dependency validation, report-level provenance, and external manifest loading
+are still open work.

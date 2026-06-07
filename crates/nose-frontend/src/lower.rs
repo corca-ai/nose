@@ -110,7 +110,17 @@ impl<'a> Lowering<'a> {
         anchor: EvidenceAnchor,
         kind: EvidenceKind,
         rule: &str,
-    ) {
+    ) -> EvidenceId {
+        self.record_evidence_with_dependencies(anchor, kind, rule, Vec::new())
+    }
+
+    pub(crate) fn record_evidence_with_dependencies(
+        &mut self,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        rule: &str,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceId {
         let id = EvidenceId(self.evidence.len() as u32);
         self.evidence.push(EvidenceRecord {
             id,
@@ -121,9 +131,10 @@ impl<'a> Lowering<'a> {
                 pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
                 rule_hash: Some(stable_symbol_hash(rule)),
             },
-            dependencies: Vec::new(),
+            dependencies,
             status: EvidenceStatus::Asserted,
         });
+        id
     }
 
     pub(crate) fn record_param_semantic_alias(&mut self, local: &str, semantic: ParamSemantic) {
@@ -214,14 +225,14 @@ impl<'a> Lowering<'a> {
         span: Span,
         kind: NodeKind,
         path: &str,
-    ) {
+    ) -> EvidenceId {
         self.record_evidence(
             EvidenceAnchor::node(span, kind),
             EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
                 path_hash: stable_symbol_hash(path),
             }),
             "symbol_qualified_global",
-        );
+        )
     }
 
     /// Lower an integer literal, retaining its **value** as [`Payload::LitInt`] so the

@@ -8,9 +8,10 @@
 
 use nose_il::{
     contains_js_identifier, stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind,
-    EvidenceStatus, HoFKind, Il, ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind,
-    Op, ParamSemantic, Payload, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
+    EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il, ImportEvidenceKind, Interner,
+    Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload, SequenceSurfaceKind,
+    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span,
+    SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -330,7 +331,7 @@ fn seq_surface_contract_for_tag(
         },
         SequenceSurfaceKind::RecordGuard => SeqSurfaceContract {
             value_tag: SEQ_VALUE_RECORD_GUARD,
-            exact_tree_safe: true,
+            exact_tree_safe: false,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
@@ -371,20 +372,174 @@ pub fn seq_surface_contract_for_node(
         _ => return None,
     };
     let span = il.node(node).span;
-    match unique_evidence_at(
-        il,
-        |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
-        |evidence| match evidence {
-            EvidenceKind::SequenceSurface(kind) => Some(kind),
-            _ => None,
-        },
-    ) {
+    match sequence_surface_evidence_at_sequence_span(il, span) {
         EvidenceResolution::Found(kind) => {
             let (raw_kind, raw_contract) = seq_surface_contract_for_tag(il.meta.lang, raw_tag)?;
             (kind == raw_kind).then_some(raw_contract)
         }
         EvidenceResolution::Ambiguous => None,
         EvidenceResolution::Missing => seq_surface_contract(il.meta.lang, raw_tag),
+    }
+}
+
+fn sequence_surface_evidence_at_sequence_span(
+    il: &Il,
+    span: Span,
+) -> EvidenceResolution<SequenceSurfaceKind> {
+    unique_evidence_at(
+        il,
+        |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
+        |evidence| match evidence {
+            EvidenceKind::SequenceSurface(kind) => Some(kind),
+            _ => None,
+        },
+    )
+}
+
+fn guard_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolution<GuardEvidenceKind> {
+    let mut found = None;
+    for record in &il.evidence {
+        if !matches!(record.anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span)
+        {
+            continue;
+        }
+        let EvidenceKind::Guard(kind) = record.kind else {
+            continue;
+        };
+        if record.status != EvidenceStatus::Asserted
+            || !guard_evidence_dependencies_valid(il, record, kind, span)
+        {
+            return EvidenceResolution::Ambiguous;
+        }
+        match found {
+            None => found = Some(kind),
+            Some(existing) if existing == kind => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn guard_evidence_dependencies_valid(
+    il: &Il,
+    record: &EvidenceRecord,
+    kind: GuardEvidenceKind,
+    span: Span,
+) -> bool {
+    match kind {
+        GuardEvidenceKind::JsRecordShape { null_check, .. } => {
+            js_record_shape_guard_dependencies_valid(il, record, null_check, span)
+        }
+    }
+}
+
+fn js_record_shape_guard_dependencies_valid(
+    il: &Il,
+    record: &EvidenceRecord,
+    null_check: nose_il::JsRecordGuardNullCheck,
+    span: Span,
+) -> bool {
+    let mut has_array_is_array = false;
+    let mut has_boolean = null_check != nose_il::JsRecordGuardNullCheck::BooleanGlobalTruthy;
+    for id in &record.dependencies {
+        let Some(dependency) = il.evidence.get(id.0 as usize) else {
+            return false;
+        };
+        if dependency.id != *id || dependency.status != EvidenceStatus::Asserted {
+            return false;
+        }
+        if !dependency.anchor.matches_span(span) {
+            return false;
+        }
+        match dependency.kind {
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal { path_hash })
+                if path_hash == stable_symbol_hash("Array.isArray") =>
+            {
+                has_array_is_array = true;
+            }
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal { name_hash })
+                if null_check == nose_il::JsRecordGuardNullCheck::BooleanGlobalTruthy
+                    && name_hash == stable_symbol_hash("Boolean") =>
+            {
+                has_boolean = true;
+            }
+            _ => return false,
+        }
+    }
+    has_array_is_array && has_boolean
+}
+
+/// Prove that a lowered `Seq("record_guard")` denotes the first-party JS-like
+/// record-shape guard contract. The surface tag is not enough: the sequence must
+/// carry both matching sequence-surface evidence and a dedicated guard evidence
+/// record whose dependencies are asserted.
+pub fn record_shape_guard_for_node(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    record_shape_guard_evidence_for_node(il, interner, node).is_some()
+}
+
+pub fn record_shape_guard_evidence_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<GuardEvidenceKind> {
+    if il.kind(node) != NodeKind::Seq || !js_like_lang(il.meta.lang) {
+        return None;
+    }
+    let span = il.node(node).span;
+    if !matches!(
+        sequence_surface_evidence_at_sequence_span(il, span),
+        EvidenceResolution::Found(SequenceSurfaceKind::RecordGuard)
+    ) {
+        return None;
+    }
+    match guard_evidence_at_sequence_span(il, span) {
+        EvidenceResolution::Found(
+            evidence @ GuardEvidenceKind::JsRecordShape { subject_hash, .. },
+        ) if record_shape_guard_sequence_matches(il, interner, node, subject_hash) => {
+            Some(evidence)
+        }
+        EvidenceResolution::Found(_)
+        | EvidenceResolution::Ambiguous
+        | EvidenceResolution::Missing => None,
+    }
+}
+
+fn record_shape_guard_sequence_matches(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    subject_hash: u64,
+) -> bool {
+    let Payload::Name(tag) = il.node(node).payload else {
+        return false;
+    };
+    if sequence_surface_kind_for_tag(il.meta.lang, Some(interner.resolve(tag)))
+        != Some(SequenceSurfaceKind::RecordGuard)
+    {
+        return false;
+    }
+    let [subject, object, non_null, not_array] = il.children(node) else {
+        return false;
+    };
+    record_shape_guard_subject_matches(il, interner, *subject, subject_hash)
+        && literal_string_hash(il, *object) == Some(stable_symbol_hash("object"))
+        && literal_string_hash(il, *non_null) == Some(stable_symbol_hash("non_null"))
+        && literal_string_hash(il, *not_array) == Some(stable_symbol_hash("not_array"))
+}
+
+fn record_shape_guard_subject_matches(
+    il: &Il,
+    interner: &Interner,
+    subject: NodeId,
+    subject_hash: u64,
+) -> bool {
+    if il.kind(subject) != NodeKind::Var {
+        return false;
+    }
+    match il.node(subject).payload {
+        Payload::Name(_) => node_name_hash(il, interner, subject) == Some(subject_hash),
+        Payload::Cid(_) => true,
+        _ => false,
     }
 }
 
@@ -3019,9 +3174,9 @@ mod tests {
     use super::*;
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind,
-        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, SymbolEvidenceKind,
-        Unit, UnitKind,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
+        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, ParamSemantic,
+        ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
 
     const ALL_LANGS: &[Lang] = &[
@@ -3092,6 +3247,16 @@ mod tests {
         kind: EvidenceKind,
         status: EvidenceStatus,
     ) -> EvidenceRecord {
+        evidence_with_dependencies(id, anchor, kind, status, Vec::new())
+    }
+
+    fn evidence_with_dependencies(
+        id: u32,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        status: EvidenceStatus,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
         EvidenceRecord {
             id: EvidenceId(id),
             anchor,
@@ -3101,7 +3266,7 @@ mod tests {
                 pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
                 rule_hash: Some(stable_symbol_hash("test")),
             },
-            dependencies: Vec::new(),
+            dependencies,
             status,
         }
     }
@@ -3242,6 +3407,392 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         assert_eq!(seq_surface_contract_for_node(&il, &interner, seq), None);
+    }
+
+    fn js_record_guard_il(interner: &Interner, subject: &str) -> (Il, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let tag = interner.intern("record_guard");
+        let subject = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern(subject)),
+            sp(12),
+            &[],
+        );
+        let object = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("object")),
+            sp(12),
+            &[],
+        );
+        let non_null = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("non_null")),
+            sp(12),
+            &[],
+        );
+        let not_array = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("not_array")),
+            sp(12),
+            &[],
+        );
+        let guard = b.add(
+            NodeKind::Seq,
+            Payload::Name(tag),
+            sp(12),
+            &[subject, object, non_null, not_array],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(12), &[guard]);
+        (finish_il(b, root, Lang::JavaScript), guard)
+    }
+
+    fn record_guard_evidence_with_null_check(
+        subject: &str,
+        null_check: JsRecordGuardNullCheck,
+    ) -> EvidenceKind {
+        EvidenceKind::Guard(GuardEvidenceKind::JsRecordShape {
+            subject_hash: stable_symbol_hash(subject),
+            null_check,
+            comparison: JsRecordGuardComparison::StrictOnly,
+        })
+    }
+
+    fn array_is_array_dependency(id: u32, span: Span, status: EvidenceStatus) -> EvidenceRecord {
+        evidence(
+            id,
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+            status,
+        )
+    }
+
+    fn boolean_dependency(id: u32, span: Span, status: EvidenceStatus) -> EvidenceRecord {
+        evidence(
+            id,
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Boolean"),
+            }),
+            status,
+        )
+    }
+
+    fn record_guard_record(
+        id: u32,
+        span: Span,
+        subject: &str,
+        null_check: JsRecordGuardNullCheck,
+        dependencies: &[u32],
+    ) -> EvidenceRecord {
+        evidence_with_dependencies(
+            id,
+            EvidenceAnchor::sequence(span),
+            record_guard_evidence_with_null_check(subject, null_check),
+            EvidenceStatus::Asserted,
+            dependencies.iter().copied().map(EvidenceId).collect(),
+        )
+    }
+
+    #[test]
+    fn record_shape_guard_requires_dedicated_guard_evidence() {
+        let interner = Interner::new();
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(record_shape_guard_for_node(&il, &interner, guard));
+    }
+
+    #[test]
+    fn record_shape_guard_validates_required_dependencies() {
+        let interner = Interner::new();
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            1,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::source_span(sp(12)),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.from"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Ambiguous,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(14),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::BooleanGlobalTruthy,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        il.evidence
+            .push(boolean_dependency(3, sp(12), EvidenceStatus::Asserted));
+        il.evidence.push(record_guard_record(
+            4,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::BooleanGlobalTruthy,
+            &[1, 3],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence
+            .push(boolean_dependency(2, sp(12), EvidenceStatus::Asserted));
+        il.evidence.push(record_guard_record(
+            3,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::BooleanGlobalTruthy,
+            &[1, 2],
+        ));
+        assert!(record_shape_guard_for_node(&il, &interner, guard));
+    }
+
+    #[test]
+    fn record_shape_guard_rejects_mismatched_or_ambiguous_evidence() {
+        let interner = Interner::new();
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "other",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            2,
+            EvidenceAnchor::sequence(sp(12)),
+            record_guard_evidence_with_null_check("value", JsRecordGuardNullCheck::StrictNonNull),
+            EvidenceStatus::Ambiguous,
+            vec![EvidenceId(1)],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_record_guard_il(&interner, "value");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(12)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(12),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(12),
+            "value",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        il.evidence.push(record_guard_record(
+            3,
+            sp(12),
+            "candidate",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+        assert!(!record_shape_guard_for_node(&il, &interner, guard));
+    }
+
+    #[test]
+    fn record_shape_guard_keeps_source_subject_proof_after_alpha_rename() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let tag = interner.intern("record_guard");
+        let subject = b.add(NodeKind::Var, Payload::Cid(0), sp(13), &[]);
+        let object = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("object")),
+            sp(13),
+            &[],
+        );
+        let non_null = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("non_null")),
+            sp(13),
+            &[],
+        );
+        let not_array = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("not_array")),
+            sp(13),
+            &[],
+        );
+        let guard = b.add(
+            NodeKind::Seq,
+            Payload::Name(tag),
+            sp(13),
+            &[subject, object, non_null, not_array],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(13), &[guard]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(13)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::RecordGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(array_is_array_dependency(
+            1,
+            sp(13),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(record_guard_record(
+            2,
+            sp(13),
+            "source_name",
+            JsRecordGuardNullCheck::StrictNonNull,
+            &[1],
+        ));
+
+        assert!(record_shape_guard_for_node(&il, &interner, guard));
     }
 
     #[test]
