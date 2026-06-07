@@ -2509,6 +2509,9 @@ fn value_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
     let n = normalize(&il, interner, &NormalizeOptions::default());
     nose_normalize::value_anchors(&n, first_func(&n), interner)
+        .into_iter()
+        .map(|(hash, _weight)| hash)
+        .collect()
 }
 
 fn shares_any(a: &[u64], b: &[u64]) -> bool {

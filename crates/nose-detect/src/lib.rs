@@ -268,8 +268,11 @@ impl Detector for StructuralDetector {
         // sub-computation) even though the whole-unit blend is low. Surface it for review at a
         // score above the near floor but below a full clone — it's a real refactor lead (pull
         // the shared computation into a helper), just a partial one. Keep the higher of the two.
-        if self.candidate_mode && shares_anchor(&a.anchors, &b.anchors) {
-            return (wv * vj + ws * sj).max(anchor_partial_score());
+        if self.candidate_mode {
+            let shared = shared_anchor_weight(&a.anchors, &b.anchors);
+            if shared > 0 {
+                return (wv * vj + ws * sj).max(anchor_partial_score(shared));
+            }
         }
         if 0.6 * vj + 0.4 * sj < 0.15 {
             return 0.6 * vj + 0.4 * sj; // prefilter: not worth the alignment DP
@@ -317,12 +320,16 @@ impl Detector for StructuralDetector {
     }
 }
 
-/// Surfacing score for a partial / sub-DAG clone (units sharing a rare heavy anchor). Above the
-/// default near floor (0.70) so it appears, below a full clone. Env-overridable.
-fn anchor_partial_score() -> f64 {
-    use std::sync::OnceLock;
-    static S: OnceLock<f64> = OnceLock::new();
-    *S.get_or_init(|| env_or("NOSE_ANCHOR_SCORE", 0.72))
+/// Surfacing score for a partial / sub-DAG clone, GRADED by the shared sub-DAG's weight: a
+/// minimal shared computation sits at the floor (just above the near threshold so it appears);
+/// a larger shared computation saturates toward the cap (still below a full clone). So a pair
+/// sharing a big extractable chunk ranks above one sharing a marginal one. Env-overridable.
+fn anchor_partial_score(weight: u32) -> f64 {
+    let floor: f64 = env_or("NOSE_ANCHOR_SCORE", 0.72);
+    let cap: f64 = env_or("NOSE_ANCHOR_SCORE_CAP", 0.90);
+    let half: f64 = env_or("NOSE_ANCHOR_SCORE_REF", 60.0_f64).max(1.0); // extra weight at half-saturation
+    let extra = (f64::from(weight) - f64::from(nose_normalize::ANCHOR_MIN_WEIGHT)).max(0.0);
+    floor + (cap - floor) * (extra / (extra + half))
 }
 
 /// Value-Jaccard threshold above which candidate mode accepts a pair on the value graph alone
@@ -1035,8 +1042,8 @@ const ANCHOR_PAIR_CAP: usize = 64;
 fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
     let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
     for (idx, unit) in units.iter().enumerate() {
-        for &a in &unit.anchors {
-            buckets.entry(a).or_default().push(idx);
+        for &(hash, _weight) in &unit.anchors {
+            buckets.entry(hash).or_default().push(idx);
         }
     }
     let max_df = anchor_max_df();
@@ -1059,18 +1066,23 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
     out
 }
 
-/// Do two sorted anchor-hash lists share any element? (A shared heavy anchor ⇒ a shared
-/// extractable sub-computation.)
-fn shares_anchor(a: &[u64], b: &[u64]) -> bool {
-    let (mut i, mut j) = (0, 0);
+/// The weight of the LARGEST sub-DAG the two units share (0 if none) — a shared anchor is a
+/// shared extractable sub-computation, and a bigger one is a stronger partial-clone signal.
+/// Both anchor lists are sorted by hash, so this is a linear merge.
+fn shared_anchor_weight(a: &[(u64, u32)], b: &[(u64, u32)]) -> u32 {
+    let (mut i, mut j, mut best) = (0, 0, 0);
     while i < a.len() && j < b.len() {
-        match a[i].cmp(&b[j]) {
+        match a[i].0.cmp(&b[j].0) {
             std::cmp::Ordering::Less => i += 1,
             std::cmp::Ordering::Greater => j += 1,
-            std::cmp::Ordering::Equal => return true,
+            std::cmp::Ordering::Equal => {
+                best = best.max(a[i].1.min(b[j].1));
+                i += 1;
+                j += 1;
+            }
         }
     }
-    false
+    best
 }
 
 #[inline]
