@@ -78,6 +78,13 @@ const FREE_NAME_COLLECTION_FACTORIES: &[CollectionFactoryRow] = &[
     ),
 ];
 
+/// A unit's heavy sub-DAG anchors as `(structural hash, sub-DAG weight)`, sorted/deduped by hash.
+pub type Anchors = Vec<(u64, u32)>;
+
+/// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
+/// heavy sub-DAG [`Anchors`].
+pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
+
 /// The [`ValOp::Call`] tag for a known builtin: its discriminant + 1. The `+1` reserves tag
 /// `0` for an opaque (non-builtin) callee — see [`ValOp::Call`]'s definition. Centralizes
 /// that encoding so the reserved-zero invariant lives in one place.
@@ -112,7 +119,7 @@ pub const ANCHOR_MIN_WEIGHT: u32 = 20;
 
 /// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
 /// anchor share an extractable sub-computation: a partial / sub-DAG clone.
-pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Vec<u64> {
+pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Anchors {
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     b.anchors(ANCHOR_MIN_WEIGHT)
@@ -124,7 +131,7 @@ pub fn value_fingerprint_lits_anchors(
     il: &Il,
     root: NodeId,
     interner: &Interner,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+) -> FingerprintBundle {
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
     let (v, l, r) = b.fingerprint_lits();
@@ -138,7 +145,7 @@ pub fn value_fingerprint_lits_anchors_with_context(
     root: NodeId,
     interner: &Interner,
     context: &ValueFingerprintContext,
-) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<u64>) {
+) -> FingerprintBundle {
     let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&context.subtree_hashes);
     b.build_unit_with_context(root, Some(context));
     let (v, l, r) = b.fingerprint_lits();
@@ -7279,8 +7286,10 @@ impl<'a> Builder<'a> {
     /// partial clone: an extractable common sub-computation, even when the units differ
     /// elsewhere (the case whole-unit Jaccard misses). `Const`/`Input`/`Elem` leaves are never
     /// anchors (no computation to extract). Weight is the memoized subtree size (args precede
-    /// their parent in id order); capped so a deeply-shared DAG can't blow it up.
-    fn anchors(&self, min_weight: u32) -> Vec<u64> {
+    /// their parent in id order); capped so a deeply-shared DAG can't blow it up. Returned as
+    /// `(hash, weight)` so the detector can RANK a shared sub-DAG by how big the shared
+    /// computation is (a larger shared chunk is a stronger partial-clone signal).
+    fn anchors(&self, min_weight: u32) -> Anchors {
         const WEIGHT_CAP: u32 = 1 << 20;
         let n = self.nodes.len();
         let mut reachable = vec![false; n];
@@ -7305,7 +7314,7 @@ impl<'a> Builder<'a> {
             }
             weight[i] = w.min(WEIGHT_CAP);
         }
-        let mut out = Vec::new();
+        let mut out: Vec<(u64, u32)> = Vec::new();
         for i in 0..n {
             if reachable[i]
                 && weight[i] >= min_weight
@@ -7314,11 +7323,13 @@ impl<'a> Builder<'a> {
                     ValOp::Const(_) | ValOp::Input(_) | ValOp::Elem(_)
                 )
             {
-                out.push(self.vhash[i]);
+                out.push((self.vhash[i], weight[i]));
             }
         }
-        out.sort_unstable();
-        out.dedup();
+        // Dedup by hash (a given sub-DAG hash has a deterministic weight); sort hash-asc,
+        // weight-desc so the kept entry is the largest if a hash ever recurs.
+        out.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
+        out.dedup_by_key(|&mut (h, _)| h);
         out
     }
 
