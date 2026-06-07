@@ -471,6 +471,11 @@ mod tests {
         // Rejected by both paths: receiver depends on the loop var (not loop-invariant);
         // appended value is loop-invariant; the loop is not a for-each. Each leaves the
         // migrated set empty at the loop node on both sides.
+        assert_contract_excludes_kind(
+            "function r(xs, out){ for(const x of xs){ out.push(x * 2); } }",
+            Lang::JavaScript,
+            FragmentKind::LoopEffect,
+        );
         assert_paths_agree(
             "function r(xs){ for(const x of xs){ x.push(1); } }",
             Lang::JavaScript,
@@ -559,13 +564,27 @@ mod tests {
         assert!(!site.effect.requires_proven_place());
         assert!(c.writes_proven());
 
-        // JS `xs.push(v)` → Append effect, no heap place.
+        // Typed TS `xs.push(v)` proves the receiver is an array, lowers to the canonical
+        // append builtin, and then records an Append effect with no heap place.
+        let (il, parents, interner) = norm(
+            "function f(xs: number[], v: number): void { xs.push(v + 1); }",
+            Lang::TypeScript,
+        );
+        let c = first_contract(&il, &parents, &interner);
+        assert_eq!(c.kind, FragmentKind::ExprEffect);
+        assert_eq!(c.effects.len(), 1);
+        assert_eq!(c.effects[0].effect, Effect::Append);
+        assert_eq!(c.effects[0].place, None);
+
+        // The same raw selector without receiver proof is not append evidence. It may still
+        // be accepted by the separate opaque-call policy as `Other`, but it must not claim
+        // append semantics.
         let (il, parents, interner) =
             norm("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
         let c = first_contract(&il, &parents, &interner);
         assert_eq!(c.kind, FragmentKind::ExprEffect);
         assert_eq!(c.effects.len(), 1);
-        assert_eq!(c.effects[0].effect, Effect::Append);
+        assert_eq!(c.effects[0].effect, Effect::Other);
         assert_eq!(c.effects[0].place, None);
     }
 
@@ -579,7 +598,7 @@ mod tests {
         ];
 
         let run = |src: &str| -> Vec<nose_normalize::Behavior> {
-            let (il, parents, interner) = norm(src, Lang::JavaScript);
+            let (il, parents, interner) = norm(src, Lang::TypeScript);
             let c = first_contract(&il, &parents, &interner);
             assert_eq!(c.effects.first().map(|s| s.effect), Some(Effect::Append));
             battery
@@ -591,9 +610,9 @@ mod tests {
                 .collect()
         };
 
-        let f = run("function f(xs){ xs.push(1); }");
-        let g = run("function g(ys){ ys.push(1); }");
-        let h = run("function h(zs){ zs.push(2); }");
+        let f = run("function f(xs: number[]): void { xs.push(1); }");
+        let g = run("function g(ys: number[]): void { ys.push(1); }");
+        let h = run("function h(zs: number[]): void { zs.push(2); }");
 
         // The effect is actually observed (not silently dropped).
         assert!(

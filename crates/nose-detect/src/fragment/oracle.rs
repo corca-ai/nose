@@ -22,7 +22,7 @@ use nose_il::{
     UnitKind,
 };
 use nose_normalize::{run_unit, Behavior, Value};
-use nose_semantics::builder_append_method_contract;
+use nose_semantics::builder_append_call_args;
 
 /// Run the fragment described by `contract` on `args` (bound to its inputs in order) and
 /// return its observable [`Behavior`], or `None` if the wrapper cannot be synthesized or
@@ -116,27 +116,25 @@ fn copy_subtree(
     policy: CopyPolicy,
 ) -> Option<NodeId> {
     if policy.canonicalize_append_effects {
-        if let Some((receiver, args)) = append_surface_parts(src, interner, node) {
+        if let Some((receiver, value)) = append_surface_parts(src, interner, node) {
             let receiver_tag = append_receiver_tag(src, receiver)?;
             let target = copy_subtree(src, interner, receiver, b, policy)?;
-            let mut kids = Vec::with_capacity(1 + args.len());
+            let mut kids = Vec::with_capacity(2);
             kids.push(target);
-            for &arg in args {
-                let value = copy_subtree(src, interner, arg, b, policy)?;
-                let tag = b.add(
-                    NodeKind::Lit,
-                    Payload::LitInt(receiver_tag),
-                    src.node(node).span,
-                    &[],
-                );
-                let tagged_value = b.add(
-                    NodeKind::Seq,
-                    Payload::None,
-                    src.node(node).span,
-                    &[tag, value],
-                );
-                kids.push(tagged_value);
-            }
+            let value = copy_subtree(src, interner, value, b, policy)?;
+            let tag = b.add(
+                NodeKind::Lit,
+                Payload::LitInt(receiver_tag),
+                src.node(node).span,
+                &[],
+            );
+            let tagged_value = b.add(
+                NodeKind::Seq,
+                Payload::None,
+                src.node(node).span,
+                &[tag, value],
+            );
+            kids.push(tagged_value);
             return Some(b.add(
                 NodeKind::Call,
                 Payload::Builtin(Builtin::Append),
@@ -156,30 +154,8 @@ fn copy_subtree(
     Some(b.add(n.kind, n.payload, n.span, &kids))
 }
 
-fn append_surface_parts<'a>(
-    src: &'a Il,
-    interner: &Interner,
-    node: NodeId,
-) -> Option<(NodeId, &'a [NodeId])> {
-    if src.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let kids = src.children(node);
-    if matches!(src.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return (kids.len() >= 2).then(|| (kids[0], &kids[1..]));
-    }
-    let (&callee, args) = kids.split_first()?;
-    if args.is_empty() || src.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = src.node(callee).payload else {
-        return None;
-    };
-    if !builder_append_method_contract(src.meta.lang, interner.resolve(method), args.len()) {
-        return None;
-    }
-    let receiver = *src.children(callee).first()?;
-    Some((receiver, args))
+fn append_surface_parts(src: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
+    builder_append_call_args(src, interner, node)
 }
 
 fn append_receiver_tag(src: &Il, receiver: NodeId) -> Option<i64> {
@@ -460,7 +436,7 @@ mod tests {
         };
         let run = |src: &str| -> Vec<Behavior> {
             let i = Interner::new();
-            let il = norm(&i, src, Lang::JavaScript);
+            let il = norm(&i, src, Lang::TypeScript);
             let loop_node = first_foreach(&il);
             let c = FragmentContract::single_effect(
                 FragmentKind::LoopEffect,
@@ -476,9 +452,15 @@ mod tests {
                 })
                 .collect()
         };
-        let f = run("function f(out, xs){ for (const x of xs){ out.push(x); } }");
-        let g = run("function g(acc, ys){ for (const y of ys){ acc.push(y); } }");
-        let h = run("function h(out, xs){ for (const x of xs){ out.push(x * 2); } }");
+        let f = run(
+            "function f(out: number[], xs: number[]): void { for (const x of xs){ out.push(x); } }",
+        );
+        let g = run(
+            "function g(acc: number[], ys: number[]): void { for (const y of ys){ acc.push(y); } }",
+        );
+        let h = run(
+            "function h(out: number[], xs: number[]): void { for (const x of xs){ out.push(x * 2); } }",
+        );
         assert!(
             f.iter().all(|b| !b.effects.is_empty()),
             "loop append surfaces as effects"
@@ -495,7 +477,7 @@ mod tests {
         // observable, so swapping the two appends diverges while an identical body agrees.
         let run = |src: &str| -> Behavior {
             let i = Interner::new();
-            let il = norm(&i, src, Lang::JavaScript);
+            let il = norm(&i, src, Lang::TypeScript);
             let body = first_func_body(&il);
             let c = FragmentContract::ordered_effects(
                 FragmentKind::ExprEffect,
@@ -510,9 +492,9 @@ mod tests {
             assert_eq!(c.arity(), 1, "only `out` is free (literals are not inputs)");
             fragment_behavior(&il, &i, &c, &[Value::List(vec![])]).expect("interpretable")
         };
-        let fwd = run("function f(out){ out.push(1); out.push(2); }");
-        let fwd2 = run("function h(out){ out.push(1); out.push(2); }");
-        let rev = run("function g(out){ out.push(2); out.push(1); }");
+        let fwd = run("function f(out: number[]): void { out.push(1); out.push(2); }");
+        let fwd2 = run("function h(out: number[]): void { out.push(1); out.push(2); }");
+        let rev = run("function g(out: number[]): void { out.push(2); out.push(1); }");
         assert_eq!(fwd.effects.len(), 2, "both appends are recorded in order");
         assert_eq!(fwd, fwd2, "identical ordered bodies must agree");
         assert_ne!(fwd, rev, "swapping the append order must be observable");
@@ -522,7 +504,7 @@ mod tests {
     fn append_effect_wrapper_preserves_receiver_identity() {
         let run = |src: &str| -> Behavior {
             let i = Interner::new();
-            let il = norm(&i, src, Lang::JavaScript);
+            let il = norm(&i, src, Lang::TypeScript);
             let body = first_func_body(&il);
             let c = FragmentContract::ordered_effects(
                 FragmentKind::ExprEffect,
@@ -538,9 +520,12 @@ mod tests {
                 .expect("interpretable")
         };
 
-        let same = run("function f(out, other){ out.push(1); other.push(2); }");
-        let renamed = run("function g(dst, aux){ dst.push(1); aux.push(2); }");
-        let swapped = run("function h(out, other){ other.push(1); out.push(2); }");
+        let same =
+            run("function f(out: number[], other: number[]): void { out.push(1); other.push(2); }");
+        let renamed =
+            run("function g(dst: number[], aux: number[]): void { dst.push(1); aux.push(2); }");
+        let swapped =
+            run("function h(out: number[], other: number[]): void { other.push(1); out.push(2); }");
 
         assert_eq!(same, renamed, "alpha-renamed receiver roles should agree");
         assert_ne!(
