@@ -17,11 +17,11 @@ use nose_semantics::{
     domain_evidence_for_param as semantic_domain_evidence_for_param, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, import_binding_rhs_matches,
-    import_namespace_rhs_matches, iterator_identity_adapter_contract,
-    java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
-    js_array_is_array_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
-    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, imported_binding_symbol,
+    imported_member_symbol, iterator_identity_adapter_contract, java_collection_factory_contract,
+    java_map_entry_contract, java_map_factory_contract, js_array_is_array_contract,
+    js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract,
+    map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
     nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
     rust_vec_new_factory_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
     source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
@@ -1913,79 +1913,7 @@ fn strict_exact_python_imported_factory_name(
     module: &str,
     exported: &str,
 ) -> bool {
-    match il.kind(callee) {
-        NodeKind::Var => {
-            let Payload::Name(local) = il.node(callee).payload else {
-                return false;
-            };
-            !unit_defines_symbol(il, local)
-                && top_level_assignment_count(il, local) == 1
-                && top_level_assignment_rhs(il, local).is_some_and(|rhs| {
-                    import_binding_rhs_matches(il, interner, rhs, module, exported)
-                })
-        }
-        NodeKind::Field => {
-            let Payload::Name(method) = il.node(callee).payload else {
-                return false;
-            };
-            if interner.resolve(method) != exported {
-                return false;
-            }
-            let Some(&receiver) = il.children(callee).first() else {
-                return false;
-            };
-            if il.kind(receiver) != NodeKind::Var {
-                return false;
-            }
-            let Payload::Name(namespace) = il.node(receiver).payload else {
-                return false;
-            };
-            !unit_defines_symbol(il, namespace)
-                && top_level_assignment_count(il, namespace) == 1
-                && top_level_assignment_rhs(il, namespace)
-                    .is_some_and(|rhs| import_namespace_rhs_matches(il, interner, rhs, module))
-        }
-        _ => false,
-    }
-}
-
-fn unit_defines_symbol(il: &Il, symbol: Symbol) -> bool {
-    il.units
-        .iter()
-        .any(|unit| unit.name.is_some_and(|name| name == symbol))
-}
-
-fn top_level_assignment_count(il: &Il, symbol: Symbol) -> usize {
-    top_level_statements(il)
-        .iter()
-        .filter(|&&stmt| assignment_name(il, stmt).is_some_and(|name| name == symbol))
-        .count()
-}
-
-fn top_level_assignment_rhs(il: &Il, symbol: Symbol) -> Option<NodeId> {
-    top_level_statements(il).into_iter().find_map(|stmt| {
-        if assignment_name(il, stmt).is_none_or(|name| name != symbol) {
-            return None;
-        }
-        let kids = il.children(stmt);
-        (kids.len() == 2).then_some(kids[1])
-    })
-}
-
-fn top_level_assignment_cid(il: &Il, symbol: Symbol) -> Option<u32> {
-    top_level_statements(il).into_iter().find_map(|stmt| {
-        if assignment_name(il, stmt).is_none_or(|name| name != symbol) {
-            return None;
-        }
-        let kids = il.children(stmt);
-        if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-            return None;
-        }
-        match il.node(kids[0]).payload {
-            Payload::Cid(cid) => Some(cid),
-            _ => None,
-        }
-    })
+    imported_member_symbol(il, interner, callee, module, exported)
 }
 
 fn strict_exact_ruby_set_factory_safe(
@@ -2205,23 +2133,7 @@ fn strict_exact_java_std_var_name(
     if java_file_defines_type_name(il, interner, expected) {
         return false;
     }
-    let symbol = match il.node(node).payload {
-        Payload::Name(name) => name,
-        Payload::Cid(cid) => {
-            let Some(&name) = il.cid_names.get(cid as usize) else {
-                return false;
-            };
-            if top_level_assignment_cid(il, name) != Some(cid) {
-                return false;
-            }
-            name
-        }
-        _ => return false,
-    };
-    interner.resolve(symbol) == expected
-        && top_level_assignment_count(il, symbol) == 1
-        && top_level_assignment_rhs(il, symbol)
-            .is_some_and(|rhs| import_binding_rhs_matches(il, interner, rhs, "java.util", expected))
+    imported_binding_symbol(il, interner, node, "java.util", expected)
 }
 
 fn strict_exact_java_map_factory_safe(

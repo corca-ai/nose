@@ -8,19 +8,24 @@
 //!
 //! proof-obligation: il.arena.validity
 
+pub mod ident;
 pub mod intern;
 pub mod node;
 pub mod span;
 
 mod sexpr;
 
+pub use ident::{
+    contains_c_identifier, contains_js_identifier, is_c_identifier_continue,
+    is_js_identifier_continue,
+};
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
     Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
     EvidenceProvenance, EvidenceRecord, EvidenceStatus, HoFKind, ImportEvidenceKind, LitClass,
     LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload,
     SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind,
-    SourceOperatorKind,
+    SourceOperatorKind, SymbolEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 

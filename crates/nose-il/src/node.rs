@@ -304,6 +304,24 @@ pub enum ImportEvidenceKind {
     },
 }
 
+/// Kernel-facing proof that a source-level symbol denotes a specific global or
+/// imported API coordinate. The spelling is only a selector; exact consumers
+/// must require one of these identities, or derive it through a compatibility
+/// fallback that proves shadowing/import preconditions.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SymbolEvidenceKind {
+    UnshadowedGlobal {
+        name_hash: u64,
+    },
+    ImportedBinding {
+        module_hash: u64,
+        exported_hash: u64,
+    },
+    ImportedNamespace {
+        module_hash: u64,
+    },
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SequenceSurfaceKind {
     Untagged,
@@ -323,6 +341,7 @@ pub enum EvidenceKind {
     Source(SourceFactKind),
     Domain(DomainEvidence),
     Import(ImportEvidenceKind),
+    Symbol(SymbolEvidenceKind),
     SequenceSurface(SequenceSurfaceKind),
 }
 

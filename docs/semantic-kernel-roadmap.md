@@ -228,6 +228,13 @@ and pack ecosystem.
   facts into records with ids, anchors, provenance, dependencies, and status.
   `nose-semantics` lookups fail closed on ambiguous/conflicting evidence before
   falling back to compatibility storage.
+- Symbol-identity evidence now represents static imported binding/namespace
+  aliases, and defines the unshadowed-global record kind that the next producer
+  slice should emit. Normalize idiom admission, value-graph namespace fallbacks,
+  and strict exact gates have started consuming this helper layer instead of each
+  re-scanning raw import assignment shapes. Provider/imported immutable literal
+  replacement also now rejects direct module-binding mutations such as
+  `LOOKUP.push(...)`.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -273,8 +280,8 @@ Remaining in this phase:
   A later source-fact slice preserves selected JS/TS and Python equality-like
   source operators, but broader operator dispatch, overload semantics, and
   pack-facing consumers remain open.
-- Continue migrating compatibility source/domain/import/sequence storage onto
-  `EvidenceRecord` consumers, then remove the old mirrors once no exact gate
+- Continue migrating compatibility source/domain/import/symbol/sequence storage
+  onto `EvidenceRecord` consumers, then remove the old mirrors once no exact gate
   depends on them.
 - Add scope, dependency, and ambiguity validation for evidence records before
   they become a stable external extension surface.
@@ -285,8 +292,9 @@ Remaining in this phase:
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
 - Remove the remaining raw import/module proof IL payload storage after import
-  evidence records can carry every consumer obligation, including module export
-  dependencies and mutation proof.
+  and symbol evidence records can carry every consumer obligation, including
+  namespace-member resolution, module export dependencies, scope, rebinding, and
+  mutation proof.
 - Expand the first `SequenceSurface` evidence into sequence/aggregate records for
   factories, nested entries, iterator views, and exported-literal eligibility.
 - Expand domain evidence from parameter annotations into receiver/protocol

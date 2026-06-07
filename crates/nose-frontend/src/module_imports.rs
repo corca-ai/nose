@@ -485,7 +485,7 @@ fn field_mutates_binding(il: &Il, interner: &Interner, field: NodeId, name: Symb
     let Payload::Name(method) = il.node(field).payload else {
         return false;
     };
-    if !nose_semantics::mutating_method_name(interner.resolve(method)) {
+    if !nose_semantics::module_binding_mutating_method_name(interner.resolve(method)) {
         return false;
     }
     il.children(field)
@@ -703,4 +703,64 @@ fn prepend_root_statement(il: &mut Il, stmt: NodeId) {
         child_len: children.len() as u32,
     });
     il.root = new_root;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang};
+
+    fn module_with_binding_method(method: &str) -> (Il, Interner, Symbol, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let span = Span::new(FileId(0), 0, 1, 1, 1);
+        let lookup = interner.intern("LOOKUP");
+        let lhs = b.add(NodeKind::Var, Payload::Name(lookup), span, &[]);
+        let rhs = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            span,
+            &[],
+        );
+        let assign = b.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(lookup), span, &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            span,
+            &[receiver],
+        );
+        let arg = b.add(NodeKind::Lit, Payload::LitInt(2), span, &[]);
+        let call = b.add(NodeKind::Call, Payload::None, span, &[field, arg]);
+        let stmt = b.add(NodeKind::ExprStmt, Payload::None, span, &[call]);
+        let root = b.add(NodeKind::Module, Payload::None, span, &[assign, stmt]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "tables.js".into(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, lookup, assign)
+    }
+
+    #[test]
+    fn module_binding_push_marks_export_unsafe() {
+        let (il, interner, lookup, assign) = module_with_binding_method("push");
+        assert!(
+            exported_binding_unsafe(&il, &interner, lookup, assign),
+            "exported literal bindings mutated through push must not be imported as immutable"
+        );
+    }
+
+    #[test]
+    fn module_binding_get_is_not_a_mutation() {
+        let (il, interner, lookup, assign) = module_with_binding_method("get");
+        assert!(
+            !binding_mutated(&il, &interner, lookup, assign),
+            "read-only lookup methods should not block immutable import replacement"
+        );
+    }
 }

@@ -8,8 +8,9 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
+    contains_js_identifier, is_js_identifier_continue, Builtin, FileId, Il, Interner, Lang,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCallKind, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
 };
 use nose_semantics::{
     js_array_is_array_contract, js_boolean_coercion_contract, method_call_contract,
@@ -1182,7 +1183,8 @@ fn enclosing_function_prefix_has_binding_ident(lo: &Lowering, node: TsNode, iden
             if end <= lo.src.len() && start <= end {
                 let prefix = std::str::from_utf8(&lo.src[start..end]).unwrap_or("");
                 let header = prefix.find('{').map(|idx| &prefix[..idx]).unwrap_or(prefix);
-                if contains_js_ident(header, ident) || contains_js_binding_ident(prefix, ident) {
+                if contains_js_identifier(header, ident) || contains_js_binding_ident(prefix, ident)
+                {
                     return true;
                 }
             }
@@ -1202,7 +1204,7 @@ fn contains_js_binding_ident(text: &str, ident: &str) -> bool {
 fn contains_keyword_binding(text: &str, keyword: &str, ident: &str) -> bool {
     text.match_indices(keyword).any(|(idx, _)| {
         let before = text[..idx].chars().next_back();
-        if before.is_some_and(is_js_ident_continue) {
+        if before.is_some_and(is_js_identifier_continue) {
             return false;
         }
         let mut rest = &text[idx + keyword.len()..];
@@ -1220,7 +1222,7 @@ fn contains_keyword_binding(text: &str, keyword: &str, ident: &str) -> bool {
 fn contains_import_binding(text: &str, ident: &str) -> bool {
     text.match_indices("import").any(|(idx, _)| {
         let before = text[..idx].chars().next_back();
-        if before.is_some_and(is_js_ident_continue) {
+        if before.is_some_and(is_js_identifier_continue) {
             return false;
         }
         let rest = text[idx + "import".len()..].trim_start();
@@ -1232,24 +1234,12 @@ fn contains_import_binding(text: &str, ident: &str) -> bool {
     })
 }
 
-fn contains_js_ident(text: &str, ident: &str) -> bool {
-    text.match_indices(ident).any(|(idx, _)| {
-        let before = text[..idx].chars().next_back();
-        let after = text[idx + ident.len()..].chars().next();
-        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
-    })
-}
-
 fn starts_with_js_ident(text: &str, ident: &str) -> bool {
     text.starts_with(ident)
         && !text[ident.len()..]
             .chars()
             .next()
-            .is_some_and(is_js_ident_continue)
-}
-
-fn is_js_ident_continue(c: char) -> bool {
-    c == '_' || c == '$' || c.is_ascii_alphanumeric()
+            .is_some_and(is_js_identifier_continue)
 }
 
 fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {

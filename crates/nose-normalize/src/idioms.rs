@@ -7,17 +7,16 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    domain_evidence_for_param, free_function_builtin_contract, import_binding_rhs_matches,
-    import_namespace_rhs_matches, iterator_identity_adapter_contract, map_get_contract,
+    domain_evidence_for_param, free_function_builtin_contract, imported_binding_symbol,
+    imported_namespace_symbol, iterator_identity_adapter_contract, map_get_contract,
     map_key_view_contract, method_call_contract, method_hof_contract,
     rust_option_some_constructor_contract, seq_surface_contract_for_node,
-    static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
-    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    static_collection_adapter_contract, unshadowed_global_symbol, BuiltinArgContract,
+    DomainEvidence, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
+    MethodSemanticContract, SEQ_VALUE_MAP,
 };
-
-use crate::contains_js_ident;
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
@@ -170,12 +169,12 @@ fn prove_method_receiver(
         MethodReceiverContract::LiteralString => {
             literal_string_receiver(old, base).then_some(ProvenReceiver::Direct(base))
         }
-        MethodReceiverContract::UnshadowedGlobal(global) => (name_of(old, interner, base)
-            == Some(global)
-            && !file_defines_name(old, interner, global))
-        .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::UnshadowedGlobal(global) => {
+            unshadowed_global_symbol(old, interner, base, global)
+                .then_some(ProvenReceiver::Direct(base))
+        }
         MethodReceiverContract::ImportedNamespace(module) => {
-            import_namespace_expr(old, interner, base, module)
+            imported_namespace_symbol(old, interner, base, module)
                 .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::RustMapGetOrExactOption => {
@@ -502,7 +501,7 @@ fn static_collection_adapter_arg(
         call_kids.len().saturating_sub(1),
     )?;
     if file_defines_type_name(old, interner, receiver_name)
-        || !import_binding_expr(old, interner, receiver, contract.module, contract.exported)
+        || !imported_binding_symbol(old, interner, receiver, contract.module, contract.exported)
     {
         return None;
     }
@@ -715,7 +714,39 @@ fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> boo
     nose_semantics::semantics(old.meta.lang)
         .collections()
         .free_name_map_factories()
-        .any(|factory| factory.names.contains(&callee))
+        .any(|factory| {
+            factory.names.contains(&callee)
+                && free_name_factory_shadow_safe(old, interner, callee, false)
+                && map_factory_entries_match_surface(old, interner, kids[1], factory.entry_seq_tag)
+        })
+}
+
+fn free_name_factory_shadow_safe(
+    old: &Il,
+    interner: &Interner,
+    name: &str,
+    shadow_guard: bool,
+) -> bool {
+    if shadow_guard {
+        return !file_defines_name(old, interner, name);
+    }
+    if old.meta.lang == nose_il::Lang::Rust && name.starts_with("std::") {
+        return !file_defines_name(old, interner, "std");
+    }
+    true
+}
+
+fn map_factory_entries_match_surface(
+    old: &Il,
+    interner: &Interner,
+    entries: NodeId,
+    entry_seq_tag: u64,
+) -> bool {
+    old.children(entries).iter().all(|&entry| {
+        old.kind(entry) == NodeKind::Seq
+            && seq_surface_contract_for_node(old, interner, entry)
+                .is_some_and(|contract| contract.value_tag == entry_seq_tag)
+    })
 }
 
 /// Canonical sync name for a known async counterpart, so behaviorally-equivalent
@@ -773,7 +804,7 @@ fn symbol_defines_name(old: &Il, interner: &Interner, symbol: nose_il::Symbol, n
         || (nose_semantics::semantics(old.meta.lang)
             .modules()
             .js_like_shadowed_module_bindings()
-            && contains_js_ident(text, name))
+            && contains_js_identifier(text, name))
 }
 
 fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {
@@ -794,96 +825,12 @@ fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> 
     None
 }
 
-fn import_namespace_expr(old: &Il, interner: &Interner, id: NodeId, module: &str) -> bool {
-    let Some(alias) = name_of(old, interner, id) else {
-        return false;
-    };
-    old.children(old.root).iter().any(|&stmt| {
-        import_namespace_assignment(old, interner, stmt, alias, module)
-            || (old.kind(stmt) == NodeKind::Block
-                && old
-                    .children(stmt)
-                    .iter()
-                    .any(|&child| import_namespace_assignment(old, interner, child, alias, module)))
-    })
-}
-
-fn import_binding_expr(
-    old: &Il,
-    interner: &Interner,
-    id: NodeId,
-    module: &str,
-    exported: &str,
-) -> bool {
-    let Some(alias) = name_of(old, interner, id) else {
-        return false;
-    };
-    old.children(old.root).iter().any(|&stmt| {
-        import_binding_assignment(old, interner, stmt, alias, module, exported)
-            || (old.kind(stmt) == NodeKind::Block
-                && old.children(stmt).iter().any(|&child| {
-                    import_binding_assignment(old, interner, child, alias, module, exported)
-                }))
-    })
-}
-
-fn import_binding_assignment(
-    old: &Il,
-    interner: &Interner,
-    stmt: NodeId,
-    alias: &str,
-    module: &str,
-    exported: &str,
-) -> bool {
-    if old.kind(stmt) != NodeKind::Assign {
-        return false;
-    }
-    let kids = old.children(stmt);
-    if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
-        return false;
-    }
-    import_binding_rhs_matches(old, interner, kids[1], module, exported)
-}
-
-fn import_namespace_assignment(
-    old: &Il,
-    interner: &Interner,
-    stmt: NodeId,
-    alias: &str,
-    module: &str,
-) -> bool {
-    if old.kind(stmt) != NodeKind::Assign {
-        return false;
-    }
-    let kids = old.children(stmt);
-    if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
-        return false;
-    }
-    import_namespace_rhs_matches(old, interner, kids[1], module)
-}
-
-fn assignment_alias_name<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
-    if old.kind(id) != NodeKind::Var {
-        return None;
-    }
-    match old.node(id).payload {
-        Payload::Name(symbol) => Some(interner.resolve(symbol)),
-        Payload::Cid(cid) => old
-            .cid_names
-            .get(cid as usize)
-            .map(|&symbol| interner.resolve(symbol)),
-        _ => None,
-    }
-}
-
 fn map_like_literal(old: &Il, interner: &Interner, id: NodeId) -> bool {
     if old.kind(id) != NodeKind::Seq {
         return false;
     }
-    match old.node(id).payload {
-        Payload::Name(s) => matches!(interner.resolve(s), "dictionary" | "hash" | "object"),
-        _ => false,
-    }
+    seq_surface_contract_for_node(old, interner, id)
+        .is_some_and(|contract| contract.value_tag == SEQ_VALUE_MAP)
 }
 
 fn map_get_call_parts(old: &Il, interner: &Interner, id: NodeId) -> Option<(NodeId, NodeId)> {
@@ -977,11 +924,35 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
 mod tests {
     use super::*;
     use nose_il::stable_symbol_hash;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span};
+    use nose_il::{
+        EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, Lang, ParamSemantic,
+        ParamTypeFact, SequenceSurfaceKind, Span, Unit, UnitKind,
+    };
     use nose_semantics::{import_fact_tag, ImportFactKind};
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)
+    }
+
+    fn evidence(
+        id: u32,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        status: EvidenceStatus,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("test")),
+            },
+            dependencies: Vec::new(),
+            status,
+        }
     }
 
     fn free_call_il(lang: Lang, name: &str, shadow_name: bool) -> (Il, Interner, NodeId) {
@@ -1500,6 +1471,105 @@ mod tests {
                 arg_olds
             } if arg_olds.len() == 2
         ));
+    }
+
+    #[test]
+    fn map_like_literal_respects_sequence_surface_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let map = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("dictionary")),
+            sp(),
+            &[],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[map]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+
+        assert!(map_like_literal(&il, &interner, map));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp()),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(
+            !map_like_literal(&il, &interner, map),
+            "conflicting sequence-surface evidence must block raw map tag fallback"
+        );
+    }
+
+    fn rust_hash_map_from_call(entry_surface: &str, shadow_std: bool) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let key = b.add(NodeKind::Lit, Payload::LitStr(1), sp(), &[]);
+        let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(), &[]);
+        let entry = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern(entry_surface)),
+            sp(),
+            &[key, value],
+        );
+        let entries = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(),
+            &[entry],
+        );
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("std::collections::HashMap::from")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[callee, entries]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+        let units = if shadow_std {
+            vec![Unit {
+                root,
+                kind: UnitKind::Class,
+                name: Some(interner.intern("std")),
+            }]
+        } else {
+            Vec::new()
+        };
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang: Lang::Rust,
+            },
+            units,
+            Vec::new(),
+        );
+        (il, interner, call)
+    }
+
+    #[test]
+    fn rust_std_map_factory_requires_entry_surface_and_shadow_proof() {
+        let (il, interner, call) = rust_hash_map_from_call("tuple", false);
+        assert!(rust_std_map_factory_call(&il, &interner, call));
+
+        let (il, interner, call) = rust_hash_map_from_call("array", false);
+        assert!(
+            !rust_std_map_factory_call(&il, &interner, call),
+            "HashMap::from exact map proof requires tuple-shaped entries"
+        );
+
+        let (il, interner, call) = rust_hash_map_from_call("tuple", true);
+        assert!(
+            !rust_std_map_factory_call(&il, &interner, call),
+            "a local std binding must close the Rust stdlib factory path"
+        );
     }
 
     #[test]

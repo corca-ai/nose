@@ -159,18 +159,6 @@ pub(crate) fn finalize_rebuild(
     out
 }
 
-pub(crate) fn contains_js_ident(text: &str, ident: &str) -> bool {
-    text.match_indices(ident).any(|(idx, _)| {
-        let before = text[..idx].chars().next_back();
-        let after = text[idx + ident.len()..].chars().next();
-        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
-    })
-}
-
-fn is_js_ident_continue(c: char) -> bool {
-    c == '_' || c == '$' || c.is_ascii_alphanumeric()
-}
-
 /// A control-flow terminator: a statement that unconditionally diverts control out of the
 /// straight-line flow, so any code after it in the same block is unreachable. Shared by DCE
 /// (dead-code-after-terminator) and desugar (guard-clause then-block termination).

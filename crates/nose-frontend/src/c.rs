@@ -7,8 +7,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    Payload, UnitKind,
+    contains_c_identifier, Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId,
+    NodeKind, Op, ParamSemantic, Payload, UnitKind,
 };
 use std::{fs, path::Path};
 use tree_sitter::Node as TsNode;
@@ -92,18 +92,6 @@ fn c_direct_quote_include_name(line: &str) -> Option<&str> {
     let rest = rest.strip_prefix('"')?;
     let end = rest.find('"')?;
     Some(&rest[..end])
-}
-
-fn contains_c_identifier(text: &str, ident: &str) -> bool {
-    text.match_indices(ident).any(|(start, _)| {
-        let before = text[..start].chars().next_back();
-        let after = text[start + ident.len()..].chars().next();
-        !before.is_some_and(is_c_identifier_char) && !after.is_some_and(is_c_identifier_char)
-    })
-}
-
-fn is_c_identifier_char(ch: char) -> bool {
-    ch == '_' || ch.is_ascii_alphanumeric()
 }
 
 fn c_source_may_contain_u16_byte_pack(source: &str) -> bool {
