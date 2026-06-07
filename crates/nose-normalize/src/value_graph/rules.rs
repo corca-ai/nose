@@ -5,3 +5,4 @@
 //! formal-obligation linter checks that directory/file pairing mechanically.
 
 pub(super) mod factor_distribute;
+pub(super) mod promise_then;
