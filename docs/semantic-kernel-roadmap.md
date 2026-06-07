@@ -88,6 +88,18 @@ and pack ecosystem.
 - Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`, and
   `Vec::new` moved into the kernel facade with explicit shadow-root obligations.
   The caller still proves local shadow safety.
+- Java collection/map factory selectors, Python free-name/imported collection
+  factories, Rust std collection/map factory paths, and Ruby `Set.new` moved
+  behind shared `nose-semantics` contracts. Normalize, strict exact gates, and
+  corpus import proof now consume the same selector source while keeping local
+  import, require, shadow, mutation, and entry-shape proof at the caller.
+- Membership and map-key membership recognition now uses language-scoped method
+  contracts before normalization or strict exact matching assigns containment
+  semantics. This intentionally closes old name-only paths such as JavaScript
+  `.contains(...)`, which had no first-party JS membership contract.
+- JS-like `Map`/`Set` constructors are now represented as explicit closed
+  contracts requiring construct-syntax proof; they remain exact-closed until the
+  frontend/kernel can distinguish `new Map(...)` from plain `Map(...)`.
 
 ## Phase 0: documentation and vocabulary
 
@@ -117,6 +129,10 @@ and pack ecosystem.
   versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
+- Move map key-view contracts (`keys`, Java `keySet`, JS-like
+  `Array.from(map.keys())`) into shared kernel contracts.
+- Move Go composite map literal/default-zero lookup contracts into shared kernel
+  contracts.
 - Replace the current `DomainEvidence` facade with versioned, pack-facing
   receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while

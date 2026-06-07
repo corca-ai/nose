@@ -9,7 +9,10 @@
 use nose_il::{
     stable_symbol_hash, Il, Interner, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
-use nose_semantics::{semantics, ImportedMapFactoryContract};
+use nose_semantics::{
+    java_map_entry_contract, java_map_factory_contract, semantics, ImportedMapFactoryContract,
+    JavaMapFactoryKind,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
 
@@ -302,20 +305,22 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
     let Some(method) = field_method_on_var(il, interner, callee, "Map") else {
         return false;
     };
-    if java_file_defines_type_name(il, interner, "Map") {
+    let Some(contract) = java_map_factory_contract(il.meta.lang, "Map", method) else {
+        return false;
+    };
+    if java_file_defines_type_name(il, interner, contract.receiver) {
         return false;
     }
-    match method {
-        "of" => {
+    match contract.kind {
+        JavaMapFactoryKind::Of => {
             args.len() % 2 == 0
                 && args
                     .iter()
                     .all(|&arg| literal_export_value_safe(il, interner, arg))
         }
-        "ofEntries" => args
+        JavaMapFactoryKind::OfEntries => args
             .iter()
             .all(|&arg| java_map_entry_call_safe(il, interner, arg)),
-        _ => false,
     }
 }
 
@@ -327,7 +332,10 @@ fn java_map_entry_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool 
     if kids.len() != 3 {
         return false;
     }
-    if field_method_on_var(il, interner, kids[0], "Map") != Some("entry") {
+    let Some(method) = field_method_on_var(il, interner, kids[0], "Map") else {
+        return false;
+    };
+    if !java_map_entry_contract(il.meta.lang, "Map", method) {
         return false;
     }
     if java_file_defines_type_name(il, interner, "Map") {
@@ -342,9 +350,14 @@ fn rust_std_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) ->
     if kids.len() != 2 {
         return false;
     }
-    if !var_named(il, interner, kids[0], "std::collections::HashMap::from")
-        && !var_named(il, interner, kids[0], "std::collections::BTreeMap::from")
-    {
+    let Some(name) = var_text(il, interner, kids[0]) else {
+        return false;
+    };
+    let factory = semantics(il.meta.lang)
+        .collections()
+        .free_name_map_factories()
+        .find(|factory| factory.names.contains(&name));
+    if factory.is_none() || !free_name_factory_shadow_safe(il, interner, name, false) {
         return false;
     }
     literal_export_value_safe(il, interner, kids[1])
@@ -367,10 +380,44 @@ fn field_method_on_var<'a>(
 }
 
 fn var_named(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool {
+    var_text(il, interner, node).is_some_and(|name| name == expected)
+}
+
+fn var_text<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
     if il.kind(node) != NodeKind::Var {
-        return false;
+        return None;
     }
-    matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == expected)
+    let Payload::Name(name) = il.node(node).payload else {
+        return None;
+    };
+    Some(interner.resolve(name))
+}
+
+fn free_name_factory_shadow_safe(
+    il: &Il,
+    interner: &Interner,
+    name: &str,
+    shadow_guard: bool,
+) -> bool {
+    if shadow_guard {
+        return !file_defines_name(il, interner, name);
+    }
+    if il.meta.lang == nose_il::Lang::Rust && name.starts_with("std::") {
+        return !file_defines_name(il, interner, "std");
+    }
+    true
+}
+
+fn file_defines_name(il: &Il, interner: &Interner, expected: &str) -> bool {
+    collect_top_level_statements(il).iter().any(|&stmt| {
+        assignment_name(il, stmt).is_some_and(|symbol| interner.resolve(symbol) == expected)
+    }) || il.units.iter().any(|unit| {
+        unit.name
+            .is_some_and(|symbol| interner.resolve(symbol) == expected)
+    }) || il.nodes.iter().any(|node| {
+        matches!(node.kind, NodeKind::Module | NodeKind::Block)
+            && matches!(node.payload, Payload::Name(symbol) if interner.resolve(symbol) == expected)
+    })
 }
 
 fn java_file_defines_type_name(il: &Il, interner: &Interner, expected: &str) -> bool {

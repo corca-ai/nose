@@ -3486,6 +3486,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_module_set =
         "const VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value, other) { return VALUES.has(value); }";
     let ts_module_set = "const VALUES = new Set<string>([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
+    let js_array_contains =
+        "function f(value, other) { return [\"red\", \"blue\"].contains(value); }";
     let js_array_some =
         "function f(value, other) { return [\"red\", \"blue\"].some((item) => item === value); }";
     let ts_array_some = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].some((item: string) => item === value); }";
@@ -3634,6 +3636,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
     assert_ne!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
     assert_ne!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_contains, Lang::JavaScript),
+        "JavaScript .contains is not a standard array membership contract"
+    );
     assert_eq!(literal_fp, value_fp(&i, js_array_some, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, ts_array_some, Lang::TypeScript));
     assert_eq!(
@@ -4360,6 +4367,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
     )
     .unwrap();
     std::fs::write(
+        dir.join("rust_imported_shadowed_std.rs"),
+        "use tables::LOOKUP;\n\nmod std { pub mod collections { pub struct HashMap; } }\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("wrong_tables.rs"),
         "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 9), (\"blue\", 2)];\n",
     )
@@ -4391,6 +4403,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         local,
         corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
         "Rust use-imported const entries should prove the same map/default coordinates"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported_shadowed_std.rs", "lookup"),
+        "a local Rust std module must block imported std map factory provenance"
     );
     assert_ne!(
         local,

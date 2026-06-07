@@ -50,11 +50,13 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
-    iterator_identity_adapter_contract, method_call_contract, reduction_builtin_contract,
-    rust_option_and_then_contract, rust_option_some_constructor_contract,
-    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics, DomainEvidence,
-    IteratorAdapterReceiverContract, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, method_call_contract,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
+    scalar_integer_method_contract, semantics, DomainEvidence, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    ReductionBuiltinContract, ScalarIntegerMethod,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -764,6 +766,11 @@ impl<'a> Builder<'a> {
             .is_some_and(DomainEvidence::is_collection_or_set)
     }
 
+    fn is_set_param_expr(&self, expr: NodeId) -> bool {
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_set)
+    }
+
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
         self.domain_evidence_of_expr(expr)
             .is_some_and(DomainEvidence::is_map)
@@ -873,11 +880,11 @@ impl<'a> Builder<'a> {
     /// Python `from collections import deque; deque(<seq>)` — the imported-stdlib collection
     /// factory (the non-free-name part of the former python recognizer).
     fn proven_python_deque_collection_value(&self, value: ValueId) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang).stdlib().python_deque_factory() {
-            return None;
-        }
         self.collection_factory_seq(value, |s, callee| {
-            s.is_import_binding_value(callee, "collections", "deque")
+            semantics(s.il.meta.lang)
+                .collections()
+                .imported_collection_factories()
+                .any(|factory| s.is_import_binding_value(callee, factory.module, factory.exported))
         })
     }
 
@@ -901,17 +908,17 @@ impl<'a> Builder<'a> {
             return None;
         }
         let receiver = callee.args[0];
-        let is_standard_factory = if method == stable_symbol_hash("of") {
-            self.is_free_java_std_name(receiver, "List")
-                || self.is_free_java_std_name(receiver, "Set")
-        } else if method == stable_symbol_hash("asList") {
-            self.is_free_java_std_name(receiver, "Arrays")
-        } else {
-            false
-        };
-        if !is_standard_factory {
-            return None;
-        }
+        let contract = ["List", "Set", "Arrays"]
+            .into_iter()
+            .find_map(|receiver_name| {
+                let contract = java_collection_factory_contract_by_hash(
+                    self.il.meta.lang,
+                    receiver_name,
+                    method,
+                )?;
+                self.is_free_java_std_name(receiver, contract.receiver)
+                    .then_some(contract)
+            })?;
         // A single argument to a varargs collection factory (`Arrays.asList(x)`,
         // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it is spread
         // into the element list, but when `x` is a single object it is the sole
@@ -921,7 +928,7 @@ impl<'a> Builder<'a> {
         // must refuse, or an array-typed field and a list-typed field of the same name
         // would false-merge. Multi-argument factories are always a literal element list.
         if args.len() == 2 {
-            if method == stable_symbol_hash("asList") && self.is_array_param_value(args[1]) {
+            if contract.single_arg_spreads_array && self.is_array_param_value(args[1]) {
                 return Some(self.mk(ValOp::ArrayParam, vec![args[1]]));
             }
             return None;
@@ -930,17 +937,20 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang).stdlib().ruby_set_factory()
-            || !self.ruby_file_requires_module("set")
-            || self.file_defines_name("Set")
-        {
-            return None;
-        }
         self.collection_factory_seq(value, |s, callee| {
             let callee = &s.nodes[callee as usize];
-            matches!(callee.op, ValOp::Field(method) if method == stable_symbol_hash("new"))
-                && callee.args.len() == 1
-                && s.is_free_name_value(callee.args[0], "Set")
+            let ValOp::Field(method) = callee.op else {
+                return false;
+            };
+            let Some(contract) =
+                ruby_set_factory_contract_by_hash(s.il.meta.lang, "Set", method, 1)
+            else {
+                return false;
+            };
+            callee.args.len() == 1
+                && s.ruby_file_requires_module(contract.required_module)
+                && !s.file_defines_name(contract.shadow_root)
+                && s.is_free_name_value(callee.args[0], contract.receiver)
         })
     }
 
@@ -1264,10 +1274,14 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return None;
         };
-        if callee.args.len() != 1 || !self.is_free_java_std_name(callee.args[0], "Map") {
+        if callee.args.len() != 1 {
             return None;
         }
-        if method == stable_symbol_hash("of") {
+        let contract = java_map_factory_contract_by_hash(self.il.meta.lang, "Map", method)?;
+        if !self.is_free_java_std_name(callee.args[0], contract.receiver) {
+            return None;
+        }
+        if contract.kind == JavaMapFactoryKind::Of {
             let entries = &args[1..];
             if entries.len() % 2 != 0 {
                 return None;
@@ -1278,7 +1292,7 @@ impl<'a> Builder<'a> {
             }
             return Some(self.mk(ValOp::Seq(3), canonical_entries));
         }
-        if method == stable_symbol_hash("ofEntries") {
+        if contract.kind == JavaMapFactoryKind::OfEntries {
             let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
             for entry in args.iter().skip(1).copied() {
                 let kv = self.proven_java_map_entry_pair(entry)?;
@@ -1296,8 +1310,11 @@ impl<'a> Builder<'a> {
         }
         let args = node.args.clone();
         let callee = &self.nodes[args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("entry"))
-            || callee.args.len() != 1
+        let ValOp::Field(method) = callee.op else {
+            return None;
+        };
+        if callee.args.len() != 1
+            || !java_map_entry_contract_by_hash(self.il.meta.lang, "Map", method)
             || !self.is_free_java_std_name(callee.args[0], "Map")
         {
             return None;
@@ -1493,30 +1510,53 @@ impl<'a> Builder<'a> {
         let callee_kids = self.il.children(callee);
         let receiver = callee_kids.first().copied();
 
-        if matches!(
-            method,
-            "contains" | "includes" | "include?" | "member?" | "__contains__" | "has"
-        ) && kids.len() == 2
+        let contract =
+            method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains) {
+            return None;
+        }
+
+        if contract.args == MethodBuiltinArgs::FirstThenReceiver
+            && matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactCollection
+                    | MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
+                    | MethodReceiverContract::ExactSetOrMap
+            )
+            && kids.len() == 2
         {
             let receiver = receiver?;
             let element = self.eval(kids[1], env);
-            if let Some(map) = self.proven_map_key_view_expr(receiver, env) {
-                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, map]));
+            if matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
+            ) {
+                if let Some(map) = self.proven_map_key_view_expr(receiver, env) {
+                    return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, map]));
+                }
             }
-            if self.is_collection_param_expr(receiver) {
+            let receiver_param_safe = match contract.receiver {
+                MethodReceiverContract::ExactSetOrMap => self.is_set_param_expr(receiver),
+                _ => self.is_collection_param_expr(receiver),
+            };
+            if receiver_param_safe {
                 let collection = self.eval_membership_collection(receiver, env);
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             let receiver_value = self.eval(receiver, env);
-            if let Some(collection) = self
-                .proven_collection_value(receiver_value)
-                .or_else(|| self.proven_local_collection_binding_value(receiver, env))
-            {
-                let collection = self.canonical_membership_collection_value(collection);
-                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            if contract.receiver != MethodReceiverContract::ExactSetOrMap {
+                if let Some(collection) = self
+                    .proven_collection_value(receiver_value)
+                    .or_else(|| self.proven_local_collection_binding_value(receiver, env))
+                {
+                    let collection = self.canonical_membership_collection_value(collection);
+                    return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+                }
             }
             None
-        } else if method == "Contains" && kids.len() == 3 {
+        } else if contract.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
             let receiver = receiver?;
             if !self.is_import_namespace_expr(receiver, "slices", env)
                 && !self.file_imports_namespace(receiver, "slices")
@@ -1552,9 +1592,16 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let map_specific_method =
-            matches!(method, "containsKey" | "contains_key" | "key?" | "has_key?");
-        if !matches!(method, "has" | "__contains__") && !map_specific_method {
+        let contract = method_call_contract(self.il.meta.lang, method, 1)?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+            || contract.args != MethodBuiltinArgs::FirstThenReceiver
+            || !matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactMap
+                    | MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactSetOrMap
+            )
+        {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;

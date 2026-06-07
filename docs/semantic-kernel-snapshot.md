@@ -59,6 +59,14 @@ migrated.
 - Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`,
   and `Vec::new` carry the exact selector and shadow-root requirement through
   `nose-semantics`; normalize/detect still perform the local scope shadow check.
+- Collection and map factory contracts have started moving into the facade.
+  Shared rows now cover Python free-name factories (`list`, `set`,
+  `frozenset`, `tuple`), Python imported `collections.deque`, Rust
+  `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from`,
+  Java `List.of`/`Set.of`/`Arrays.asList`, Java `Map.of`/`Map.ofEntries`/
+  `Map.entry`, and Ruby `require "set"; Set.new(...)`. Callers still prove the
+  local import, require, shadowing, entry-shape, mutation, and exact-safety
+  obligations.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
@@ -68,10 +76,14 @@ migrated.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
-- Map-key membership contracts now require map receiver proof. Examples include
+- Membership and map-key membership selectors now consume language-scoped method
+  contracts before normalize/detect treat them as semantic containment. A method
+  named `contains` is Java/Rust collection membership only; JavaScript
+  `.contains(...)` is not accepted as array membership. Map-key examples include
   Java `Map.containsKey`, Java `keySet().contains`, Rust `contains_key`, Rust
-  `get(key).is_some()`, and TypeScript `Array.from(map.keys()).includes(key)`
-  when the receiver is a typed/proven map.
+  `get(key).is_some()`, Ruby `key?`/`has_key?`, Python `__contains__`, and
+  TypeScript `Array.from(map.keys()).includes(key)` when the receiver is a
+  typed/proven map.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
 
@@ -81,8 +93,9 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
-- factory recognizers such as Python collection factories, Ruby `Set.new`, Rust
-  `Vec::new`, Java `List.of`, and Java/Rust map factories;
+- library/API recognizers that still lack shared contracts, especially map key
+  views, Go zero-map lookup surfaces, and remaining language-specific import or
+  module proof mechanics;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -155,9 +168,13 @@ The first high-value targets for semantic-kernel extraction are:
 
 - field/place identity for field reads and writes, replacing field-name-only
   state with receiver-aware proof;
-- constructor facts for JS/TS `new Map` and `new Set`;
-- resolved symbol facts for Java/Rust stdlib factories instead of path/name
-  heuristics;
+- constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
+  closed contracts waiting on construct-vs-call proof;
+- resolved symbol facts for Java/Rust stdlib factories instead of the current
+  path/name plus shadow-proof contracts;
+- shared contracts for map key-view surfaces such as `keys`, Java `keySet`, and
+  JS-like `Array.from(map.keys())`;
+- shared contracts for Go composite map literal/default-zero lookup rules;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
 - versioned receiver/domain evidence records to replace the current

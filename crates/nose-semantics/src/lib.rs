@@ -6,7 +6,10 @@
 //! extend this contract surface rather than letting packs mint fingerprints or
 //! approve exact clone matches directly.
 
-use nose_il::{Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, ParamSemantic, Payload};
+use nose_il::{
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, ParamSemantic,
+    Payload,
+};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
@@ -829,7 +832,7 @@ pub fn method_call_contract(
             "includes",
             1,
         )
-        | (Lang::Ruby, "include?", 1)
+        | (Lang::Ruby, "include?" | "member?", 1)
         | (Lang::Java | Lang::Rust, "contains", 1) => (
             Builtin::Contains,
             Receiver::ExactCollectionOrJavaKeySet,
@@ -1016,6 +1019,193 @@ pub fn rust_option_and_then_contract(lang: Lang, method: &str, arg_count: usize)
     lang == Lang::Rust && method == "and_then" && arg_count == 1
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JavaCollectionFactoryKind {
+    ListOf,
+    SetOf,
+    ArraysAsList,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaCollectionFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub kind: JavaCollectionFactoryKind,
+    pub single_arg_spreads_array: bool,
+}
+
+pub fn java_collection_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<JavaCollectionFactoryContract> {
+    if lang != Lang::Java {
+        return None;
+    }
+    Some(match (receiver, method) {
+        ("List", "of") => JavaCollectionFactoryContract {
+            receiver: "List",
+            method: "of",
+            kind: JavaCollectionFactoryKind::ListOf,
+            single_arg_spreads_array: false,
+        },
+        ("Set", "of") => JavaCollectionFactoryContract {
+            receiver: "Set",
+            method: "of",
+            kind: JavaCollectionFactoryKind::SetOf,
+            single_arg_spreads_array: false,
+        },
+        ("Arrays", "asList") => JavaCollectionFactoryContract {
+            receiver: "Arrays",
+            method: "asList",
+            kind: JavaCollectionFactoryKind::ArraysAsList,
+            single_arg_spreads_array: true,
+        },
+        _ => return None,
+    })
+}
+
+pub fn java_collection_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<JavaCollectionFactoryContract> {
+    ["of", "asList"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| java_collection_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JavaMapFactoryKind {
+    Of,
+    OfEntries,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaMapFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub kind: JavaMapFactoryKind,
+}
+
+pub fn java_map_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<JavaMapFactoryContract> {
+    if lang != Lang::Java || receiver != "Map" {
+        return None;
+    }
+    Some(match method {
+        "of" => JavaMapFactoryContract {
+            receiver: "Map",
+            method: "of",
+            kind: JavaMapFactoryKind::Of,
+        },
+        "ofEntries" => JavaMapFactoryContract {
+            receiver: "Map",
+            method: "ofEntries",
+            kind: JavaMapFactoryKind::OfEntries,
+        },
+        _ => return None,
+    })
+}
+
+pub fn java_map_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<JavaMapFactoryContract> {
+    ["of", "ofEntries"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| java_map_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+pub fn java_map_entry_contract(lang: Lang, receiver: &str, method: &str) -> bool {
+    lang == Lang::Java && receiver == "Map" && method == "entry"
+}
+
+pub fn java_map_entry_contract_by_hash(lang: Lang, receiver: &str, method_hash: u64) -> bool {
+    java_map_entry_contract(lang, receiver, "entry") && method_hash == stable_symbol_hash("entry")
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct RubySetFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub required_module: &'static str,
+    pub shadow_root: &'static str,
+}
+
+pub fn ruby_set_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<RubySetFactoryContract> {
+    (lang == Lang::Ruby && receiver == "Set" && method == "new" && arg_count == 1).then_some(
+        RubySetFactoryContract {
+            receiver: "Set",
+            method: "new",
+            required_module: "set",
+            shadow_root: "Set",
+        },
+    )
+}
+
+pub fn ruby_set_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<RubySetFactoryContract> {
+    (method_hash == stable_symbol_hash("new"))
+        .then(|| ruby_set_factory_contract(lang, receiver, "new", arg_count))
+        .flatten()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConstructorProofRequirement {
+    ConstructSyntax,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ClosedConstructorContract {
+    pub receiver: &'static str,
+    pub required_proof: ConstructorProofRequirement,
+}
+
+pub fn js_like_set_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<ClosedConstructorContract> {
+    (js_like_lang(lang) && receiver == "Set").then_some(ClosedConstructorContract {
+        receiver: "Set",
+        required_proof: ConstructorProofRequirement::ConstructSyntax,
+    })
+}
+
+pub fn js_like_map_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<ClosedConstructorContract> {
+    (js_like_lang(lang) && receiver == "Map").then_some(ClosedConstructorContract {
+        receiver: "Map",
+        required_proof: ConstructorProofRequirement::ConstructSyntax,
+    })
+}
+
+fn js_like_lang(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -1159,6 +1349,13 @@ impl CollectionSemantics {
             .copied()
             .filter(move |row| row.lang.is_none_or(|lang| lang == self.lang))
     }
+
+    pub fn imported_collection_factories(self) -> impl Iterator<Item = ImportedCollectionFactory> {
+        IMPORTED_COLLECTION_FACTORIES
+            .iter()
+            .copied()
+            .filter(move |row| row.lang.is_none_or(|lang| lang == self.lang))
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1199,6 +1396,19 @@ const FREE_NAME_MAP_FACTORIES: &[FreeNameMapFactory] = &[FreeNameMapFactory {
         "std::collections::BTreeMap::from",
     ],
     entry_seq_tag: 2,
+}];
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportedCollectionFactory {
+    pub lang: Option<Lang>,
+    pub module: &'static str,
+    pub exported: &'static str,
+}
+
+const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCollectionFactory {
+    lang: Some(Lang::Python),
+    module: "collections",
+    exported: "deque",
 }];
 
 pub fn imported_literal_seq_tag_safe(tag: &str) -> bool {
@@ -1452,6 +1662,13 @@ mod tests {
         assert!(py_names.contains(&"frozenset"));
         assert!(!py_names.contains(&"Set"));
 
+        let imported_py_names: Vec<_> = semantics(Lang::Python)
+            .collections()
+            .imported_collection_factories()
+            .map(|factory| (factory.module, factory.exported))
+            .collect();
+        assert_eq!(imported_py_names, vec![("collections", "deque")]);
+
         let rust_map_tags: Vec<_> = semantics(Lang::Rust)
             .collections()
             .free_name_map_factories()
@@ -1650,6 +1867,15 @@ mod tests {
             })
         );
         assert_eq!(
+            method_call_contract(Lang::Ruby, "member?", 1),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                receiver: MethodReceiverContract::ExactCollectionOrJavaKeySet,
+                args: MethodBuiltinArgs::FirstThenReceiver,
+            })
+        );
+        assert_eq!(method_call_contract(Lang::JavaScript, "contains", 1), None);
+        assert_eq!(
             method_call_contract(Lang::Java, "getOrDefault", 2),
             Some(MethodCallContract {
                 semantic: MethodSemanticContract::Builtin(Builtin::GetOrDefault),
@@ -1771,6 +1997,104 @@ mod tests {
             "and_then",
             1
         ));
+    }
+
+    #[test]
+    fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "List", "of"),
+            Some(JavaCollectionFactoryContract {
+                receiver: "List",
+                method: "of",
+                kind: JavaCollectionFactoryKind::ListOf,
+                single_arg_spreads_array: false,
+            })
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "Arrays", "asList"),
+            Some(JavaCollectionFactoryContract {
+                receiver: "Arrays",
+                method: "asList",
+                kind: JavaCollectionFactoryKind::ArraysAsList,
+                single_arg_spreads_array: true,
+            })
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::JavaScript, "List", "of"),
+            None
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "Map", "of"),
+            None
+        );
+        assert_eq!(
+            java_map_factory_contract(Lang::Java, "Map", "ofEntries"),
+            Some(JavaMapFactoryContract {
+                receiver: "Map",
+                method: "ofEntries",
+                kind: JavaMapFactoryKind::OfEntries,
+            })
+        );
+        assert_eq!(java_map_factory_contract(Lang::Java, "List", "of"), None);
+        assert!(java_map_entry_contract(Lang::Java, "Map", "entry"));
+        assert!(!java_map_entry_contract(Lang::Java, "Entry", "entry"));
+        assert_eq!(
+            java_collection_factory_contract_by_hash(Lang::Java, "Set", stable_symbol_hash("of"))
+                .map(|contract| contract.kind),
+            Some(JavaCollectionFactoryKind::SetOf)
+        );
+        assert_eq!(
+            java_map_factory_contract_by_hash(Lang::Java, "Map", stable_symbol_hash("of"))
+                .map(|contract| contract.kind),
+            Some(JavaMapFactoryKind::Of)
+        );
+        assert!(java_map_entry_contract_by_hash(
+            Lang::Java,
+            "Map",
+            stable_symbol_hash("entry")
+        ));
+    }
+
+    #[test]
+    fn ruby_and_closed_js_like_factory_contracts_keep_proof_obligations_explicit() {
+        assert_eq!(
+            ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1),
+            Some(RubySetFactoryContract {
+                receiver: "Set",
+                method: "new",
+                required_module: "set",
+                shadow_root: "Set",
+            })
+        );
+        assert_eq!(ruby_set_factory_contract(Lang::Ruby, "Set", "new", 2), None);
+        assert_eq!(
+            ruby_set_factory_contract(Lang::Python, "Set", "new", 1),
+            None
+        );
+        assert!(
+            ruby_set_factory_contract_by_hash(Lang::Ruby, "Set", stable_symbol_hash("new"), 1)
+                .is_some()
+        );
+
+        assert_eq!(
+            js_like_set_constructor_contract(Lang::TypeScript, "Set"),
+            Some(ClosedConstructorContract {
+                receiver: "Set",
+                required_proof: ConstructorProofRequirement::ConstructSyntax,
+            })
+        );
+        assert_eq!(
+            js_like_map_constructor_contract(Lang::JavaScript, "Map"),
+            Some(ClosedConstructorContract {
+                receiver: "Map",
+                required_proof: ConstructorProofRequirement::ConstructSyntax,
+            })
+        );
+        assert_eq!(js_like_map_constructor_contract(Lang::Java, "Map"), None);
+        assert_eq!(
+            js_like_set_constructor_contract(Lang::JavaScript, "WeakSet"),
+            None
+        );
     }
 
     #[test]
