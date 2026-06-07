@@ -97,10 +97,11 @@ and pack ecosystem.
   local shadow safety, and the Rust frontend no longer lowers bare `None`
   directly to null before that proof.
 - Java collection/map factory selectors, Python free-name/imported collection
-  factories, Rust std collection/map factory paths, and Ruby `Set.new` moved
-  behind shared `nose-semantics` contracts. Normalize, strict exact gates, and
-  corpus import proof now consume the same selector source while keeping local
-  import, require, shadow, mutation, and entry-shape proof at the caller.
+  factories, Rust std collection/map factory paths, Ruby `Set.new`, and JS-like
+  `new Map`/`new Set` moved behind internal `LibraryApiContract` rows in
+  `nose-semantics`. Normalize and strict exact gates now consume the same API
+  identity/result source while keeping local import, require, shadow, mutation,
+  constructor-syntax, and entry-shape proof at the caller.
 - Java empty `ArrayList`/`LinkedList` constructor lowering now consumes a
   `java.util` constructor contract instead of a raw simple-name check. Simple
   names need import proof and no local type shadow before they can seed exact
@@ -308,8 +309,16 @@ Remaining in this phase:
   versioned pack-facing effect/place evidence records.
 - Continue replacing any remaining local exact-fragment proof helpers with
   versioned pack-facing evidence records.
-- Move collection/map factory recognition into `LibraryApiContract` records.
-- Make value-graph and strict exact gates consume the same contract source.
+- Continue moving library API recognition into `LibraryApiContract` records.
+  The first internal slice covers collection/map factories, selected
+  constructors, Java `Map.entry`, and the shared shadow/import/result
+  obligations consumed by normalize and strict exact gates. Remaining work is to
+  cover non-factory API surfaces such as map-key views/wrappers, lookup/default
+  methods, static-global helpers, iterator adapters, and reductions.
+- Keep value-graph and strict exact gates on the same contract source. Factory
+  gates now share `LibraryApiContract` identity/result rows; method/view gates
+  still use narrower first-party contract helpers and should move behind the
+  same API-contract facade before the external pack boundary stabilizes.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph

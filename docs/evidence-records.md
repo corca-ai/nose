@@ -63,6 +63,15 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as the first JS/TS record-shape guard contract |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, record guard, or Go composite map literal |
 
+`LibraryApiContract` is deliberately not listed here yet. It is currently an
+internal `nose-semantics` contract layer that names first-party library/API
+identity, callee obligations, shadow/import requirements, and result semantics.
+Existing evidence kinds such as `Symbol`, `Import`, `Source`, and
+`SequenceSurface` prove those obligations; the contract decides whether the
+facts are enough to admit an exact or value-graph path. A future external pack
+schema may expose library API contracts, but providers still emit facts and
+contracts rather than exact-clone verdicts.
+
 ## Consumption Rules
 
 Consumers should go through `nose-semantics` helpers rather than scanning raw IL

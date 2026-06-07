@@ -3091,6 +3091,416 @@ const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCo
     exported: "deque",
 }];
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryApiContractId {
+    PythonBuiltinCollectionFactory,
+    PythonImportedCollectionFactory,
+    RustStdCollectionFactory,
+    RustStdMapFactory,
+    RustVecMacroFactory,
+    RustVecNewFactory,
+    JavaCollectionFactory(JavaCollectionFactoryKind),
+    JavaMapFactory(JavaMapFactoryKind),
+    JavaMapEntryFactory,
+    RubySetFactory,
+    JsLikeSetConstructor,
+    JsLikeMapConstructor,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryApiShadowPolicy {
+    None,
+    SameName,
+    RustStdRootForStdPath,
+    ExplicitRoot(&'static str),
+}
+
+pub fn library_api_free_name_shadow_safe(
+    lang: Lang,
+    name: &str,
+    policy: LibraryApiShadowPolicy,
+    defines_name: impl Fn(&str) -> bool,
+) -> bool {
+    match policy {
+        LibraryApiShadowPolicy::None => true,
+        LibraryApiShadowPolicy::SameName => !defines_name(name),
+        LibraryApiShadowPolicy::RustStdRootForStdPath => {
+            !(lang == Lang::Rust && name.starts_with("std::") && defines_name("std"))
+        }
+        LibraryApiShadowPolicy::ExplicitRoot(root) => !defines_name(root),
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryApiCalleeContract {
+    FreeName {
+        name: &'static str,
+        shadow: LibraryApiShadowPolicy,
+    },
+    ImportedBinding {
+        module: &'static str,
+        exported: &'static str,
+    },
+    JavaUtilStaticMember {
+        receiver: &'static str,
+        method: &'static str,
+    },
+    RubyRequireStaticMember {
+        receiver: &'static str,
+        method: &'static str,
+        required_module: &'static str,
+        shadow_root: &'static str,
+    },
+    JsGlobalConstructor {
+        receiver: &'static str,
+        requires_unshadowed_global: bool,
+    },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryCollectionFactoryResult {
+    SequenceArgument,
+    VariadicElements { single_arg_spreads_array: bool },
+    StaticNonFloatSequenceArgument,
+    EmptySequence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryCollectionFactoryContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: LibraryCollectionFactoryResult,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryMapFactoryResult {
+    EntrySequence { entry_seq_tag: u64 },
+    JavaFactory { kind: JavaMapFactoryKind },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMapFactoryContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: LibraryMapFactoryResult,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMapEntryFactoryContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+}
+
+pub fn library_free_name_collection_factory_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    FREE_NAME_COLLECTION_FACTORIES
+        .iter()
+        .find(|row| row.lang.is_none_or(|row_lang| row_lang == lang) && row.names.contains(&name))
+        .and_then(|row| {
+            let matched_name = row
+                .names
+                .iter()
+                .copied()
+                .find(|candidate| *candidate == name)?;
+            let id = match lang {
+                Lang::Python => LibraryApiContractId::PythonBuiltinCollectionFactory,
+                Lang::Rust => LibraryApiContractId::RustStdCollectionFactory,
+                _ => return None,
+            };
+            Some(LibraryCollectionFactoryContract {
+                id,
+                callee: LibraryApiCalleeContract::FreeName {
+                    name: matched_name,
+                    shadow: library_free_name_shadow_policy(lang, row.shadow_guard),
+                },
+                result: LibraryCollectionFactoryResult::SequenceArgument,
+            })
+        })
+}
+
+pub fn library_free_name_collection_factory_contracts(
+    lang: Lang,
+) -> impl Iterator<Item = LibraryCollectionFactoryContract> {
+    FREE_NAME_COLLECTION_FACTORIES
+        .iter()
+        .filter(move |row| row.lang.is_none_or(|row_lang| row_lang == lang))
+        .flat_map(move |row| {
+            row.names
+                .iter()
+                .filter_map(move |name| library_free_name_collection_factory_contract(lang, name))
+        })
+}
+
+pub fn library_imported_collection_factory_contract(
+    lang: Lang,
+    module: &str,
+    exported: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    IMPORTED_COLLECTION_FACTORIES
+        .iter()
+        .find(|row| {
+            row.lang.is_none_or(|row_lang| row_lang == lang)
+                && row.module == module
+                && row.exported == exported
+        })
+        .map(|row| LibraryCollectionFactoryContract {
+            id: LibraryApiContractId::PythonImportedCollectionFactory,
+            callee: LibraryApiCalleeContract::ImportedBinding {
+                module: row.module,
+                exported: row.exported,
+            },
+            result: LibraryCollectionFactoryResult::SequenceArgument,
+        })
+}
+
+pub fn library_imported_collection_factory_contracts(
+    lang: Lang,
+) -> impl Iterator<Item = LibraryCollectionFactoryContract> {
+    IMPORTED_COLLECTION_FACTORIES
+        .iter()
+        .filter(move |row| row.lang.is_none_or(|row_lang| row_lang == lang))
+        .filter_map(move |row| {
+            library_imported_collection_factory_contract(lang, row.module, row.exported)
+        })
+}
+
+pub fn library_free_name_map_factory_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryMapFactoryContract> {
+    FREE_NAME_MAP_FACTORIES
+        .iter()
+        .find(|row| row.lang.is_none_or(|row_lang| row_lang == lang) && row.names.contains(&name))
+        .and_then(|row| {
+            let matched_name = row
+                .names
+                .iter()
+                .copied()
+                .find(|candidate| *candidate == name)?;
+            let id = match lang {
+                Lang::Rust => LibraryApiContractId::RustStdMapFactory,
+                _ => return None,
+            };
+            Some(LibraryMapFactoryContract {
+                id,
+                callee: LibraryApiCalleeContract::FreeName {
+                    name: matched_name,
+                    shadow: library_free_name_shadow_policy(lang, false),
+                },
+                result: LibraryMapFactoryResult::EntrySequence {
+                    entry_seq_tag: row.entry_seq_tag,
+                },
+            })
+        })
+}
+
+pub fn library_free_name_map_factory_contracts(
+    lang: Lang,
+) -> impl Iterator<Item = LibraryMapFactoryContract> {
+    FREE_NAME_MAP_FACTORIES
+        .iter()
+        .filter(move |row| row.lang.is_none_or(|row_lang| row_lang == lang))
+        .flat_map(move |row| {
+            row.names
+                .iter()
+                .filter_map(move |name| library_free_name_map_factory_contract(lang, name))
+        })
+}
+
+pub fn library_java_collection_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    let contract = java_collection_factory_contract(lang, receiver, method)?;
+    Some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::JavaCollectionFactory(contract.kind),
+        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: contract.receiver,
+            method: contract.method,
+        },
+        result: LibraryCollectionFactoryResult::VariadicElements {
+            single_arg_spreads_array: contract.single_arg_spreads_array,
+        },
+    })
+}
+
+pub fn library_java_collection_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<LibraryCollectionFactoryContract> {
+    ["of", "asList"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| library_java_collection_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+pub fn library_java_map_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<LibraryMapFactoryContract> {
+    let contract = java_map_factory_contract(lang, receiver, method)?;
+    Some(LibraryMapFactoryContract {
+        id: LibraryApiContractId::JavaMapFactory(contract.kind),
+        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: contract.receiver,
+            method: contract.method,
+        },
+        result: LibraryMapFactoryResult::JavaFactory {
+            kind: contract.kind,
+        },
+    })
+}
+
+pub fn library_java_map_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<LibraryMapFactoryContract> {
+    ["of", "ofEntries"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| library_java_map_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+pub fn library_java_map_entry_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<LibraryMapEntryFactoryContract> {
+    java_map_entry_contract(lang, receiver, method).then_some(LibraryMapEntryFactoryContract {
+        id: LibraryApiContractId::JavaMapEntryFactory,
+        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: "Map",
+            method: "entry",
+        },
+    })
+}
+
+pub fn library_java_map_entry_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<LibraryMapEntryFactoryContract> {
+    (method_hash == stable_symbol_hash("entry"))
+        .then(|| library_java_map_entry_contract(lang, receiver, "entry"))
+        .flatten()
+}
+
+pub fn library_ruby_set_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryCollectionFactoryContract> {
+    let contract = ruby_set_factory_contract(lang, receiver, method, arg_count)?;
+    Some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::RubySetFactory,
+        callee: LibraryApiCalleeContract::RubyRequireStaticMember {
+            receiver: contract.receiver,
+            method: contract.method,
+            required_module: contract.required_module,
+            shadow_root: contract.shadow_root,
+        },
+        result: LibraryCollectionFactoryResult::SequenceArgument,
+    })
+}
+
+pub fn library_ruby_set_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<LibraryCollectionFactoryContract> {
+    (method_hash == stable_symbol_hash("new"))
+        .then(|| library_ruby_set_factory_contract(lang, receiver, "new", arg_count))
+        .flatten()
+}
+
+pub fn library_js_like_set_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    let contract = js_like_set_constructor_contract(lang, receiver)?;
+    Some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::JsLikeSetConstructor,
+        callee: LibraryApiCalleeContract::JsGlobalConstructor {
+            receiver: contract.receiver,
+            requires_unshadowed_global: contract.requires_unshadowed_global,
+        },
+        result: LibraryCollectionFactoryResult::StaticNonFloatSequenceArgument,
+    })
+}
+
+pub fn library_js_like_map_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<LibraryMapFactoryContract> {
+    let contract = js_like_map_constructor_contract(lang, receiver)?;
+    Some(LibraryMapFactoryContract {
+        id: LibraryApiContractId::JsLikeMapConstructor,
+        callee: LibraryApiCalleeContract::JsGlobalConstructor {
+            receiver: contract.receiver,
+            requires_unshadowed_global: contract.requires_unshadowed_global,
+        },
+        result: LibraryMapFactoryResult::EntrySequence {
+            entry_seq_tag: contract.entry_seq_tag?,
+        },
+    })
+}
+
+pub fn library_rust_vec_macro_factory_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    (lang == Lang::Rust && name == "vec").then_some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::RustVecMacroFactory,
+        callee: LibraryApiCalleeContract::FreeName {
+            name: "vec",
+            shadow: LibraryApiShadowPolicy::SameName,
+        },
+        result: LibraryCollectionFactoryResult::VariadicElements {
+            single_arg_spreads_array: false,
+        },
+    })
+}
+
+pub fn library_rust_vec_new_factory_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryCollectionFactoryContract> {
+    let contract = rust_vec_new_factory_contract(lang, name)?;
+    Some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::RustVecNewFactory,
+        callee: LibraryApiCalleeContract::FreeName {
+            name: match name {
+                "Vec::new" => "Vec::new",
+                "std::vec::Vec::new" => "std::vec::Vec::new",
+                "alloc::vec::Vec::new" => "alloc::vec::Vec::new",
+                _ => return None,
+            },
+            shadow: LibraryApiShadowPolicy::ExplicitRoot(contract.shadow_root),
+        },
+        result: LibraryCollectionFactoryResult::EmptySequence,
+    })
+}
+
+fn library_free_name_shadow_policy(lang: Lang, shadow_guard: bool) -> LibraryApiShadowPolicy {
+    if shadow_guard {
+        LibraryApiShadowPolicy::SameName
+    } else if lang == Lang::Rust {
+        LibraryApiShadowPolicy::RustStdRootForStdPath
+    } else {
+        LibraryApiShadowPolicy::None
+    }
+}
+
 pub fn imported_literal_seq_tag_safe(lang: Lang, tag: &str) -> bool {
     seq_surface_contract(lang, Some(tag)).is_some_and(|contract| contract.imported_literal)
 }
@@ -4308,6 +4718,106 @@ mod tests {
             .map(|factory| factory.entry_seq_tag)
             .collect();
         assert!(js_map_tags.is_empty());
+    }
+
+    #[test]
+    fn library_api_contracts_carry_identity_and_result_obligations() {
+        assert_eq!(
+            library_free_name_collection_factory_contract(Lang::Python, "list"),
+            Some(LibraryCollectionFactoryContract {
+                id: LibraryApiContractId::PythonBuiltinCollectionFactory,
+                callee: LibraryApiCalleeContract::FreeName {
+                    name: "list",
+                    shadow: LibraryApiShadowPolicy::SameName,
+                },
+                result: LibraryCollectionFactoryResult::SequenceArgument,
+            })
+        );
+        assert_eq!(
+            library_imported_collection_factory_contract(Lang::Python, "collections", "deque"),
+            Some(LibraryCollectionFactoryContract {
+                id: LibraryApiContractId::PythonImportedCollectionFactory,
+                callee: LibraryApiCalleeContract::ImportedBinding {
+                    module: "collections",
+                    exported: "deque",
+                },
+                result: LibraryCollectionFactoryResult::SequenceArgument,
+            })
+        );
+        assert_eq!(
+            library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from"),
+            Some(LibraryMapFactoryContract {
+                id: LibraryApiContractId::RustStdMapFactory,
+                callee: LibraryApiCalleeContract::FreeName {
+                    name: "std::collections::HashMap::from",
+                    shadow: LibraryApiShadowPolicy::RustStdRootForStdPath,
+                },
+                result: LibraryMapFactoryResult::EntrySequence {
+                    entry_seq_tag: SEQ_VALUE_TUPLE,
+                },
+            })
+        );
+        assert!(!library_api_free_name_shadow_safe(
+            Lang::Rust,
+            "std::collections::HashMap::from",
+            LibraryApiShadowPolicy::RustStdRootForStdPath,
+            |name| name == "std"
+        ));
+        assert!(library_api_free_name_shadow_safe(
+            Lang::Rust,
+            "std::collections::HashMap::from",
+            LibraryApiShadowPolicy::RustStdRootForStdPath,
+            |_| false
+        ));
+        assert_eq!(
+            library_java_collection_factory_contract(Lang::Java, "Arrays", "asList"),
+            Some(LibraryCollectionFactoryContract {
+                id: LibraryApiContractId::JavaCollectionFactory(
+                    JavaCollectionFactoryKind::ArraysAsList,
+                ),
+                callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+                    receiver: "Arrays",
+                    method: "asList",
+                },
+                result: LibraryCollectionFactoryResult::VariadicElements {
+                    single_arg_spreads_array: true,
+                },
+            })
+        );
+        assert_eq!(
+            library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1),
+            Some(LibraryCollectionFactoryContract {
+                id: LibraryApiContractId::RubySetFactory,
+                callee: LibraryApiCalleeContract::RubyRequireStaticMember {
+                    receiver: "Set",
+                    method: "new",
+                    required_module: "set",
+                    shadow_root: "Set",
+                },
+                result: LibraryCollectionFactoryResult::SequenceArgument,
+            })
+        );
+        assert_eq!(
+            library_js_like_map_constructor_contract(Lang::TypeScript, "Map"),
+            Some(LibraryMapFactoryContract {
+                id: LibraryApiContractId::JsLikeMapConstructor,
+                callee: LibraryApiCalleeContract::JsGlobalConstructor {
+                    receiver: "Map",
+                    requires_unshadowed_global: true,
+                },
+                result: LibraryMapFactoryResult::EntrySequence {
+                    entry_seq_tag: SEQ_VALUE_COLLECTION,
+                },
+            })
+        );
+        assert_eq!(
+            library_free_name_collection_factory_contract(Lang::JavaScript, "list"),
+            None
+        );
+        assert_eq!(
+            library_java_map_factory_contract(Lang::Java, "List", "of"),
+            None
+        );
     }
 
     #[test]

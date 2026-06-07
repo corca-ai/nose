@@ -10,12 +10,14 @@
 use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     domain_evidence_for_param, free_function_builtin_contract, imported_binding_symbol,
-    imported_namespace_symbol, iterator_identity_adapter_contract, map_get_contract,
+    imported_namespace_symbol, iterator_identity_adapter_contract,
+    library_api_free_name_shadow_safe, library_free_name_map_factory_contract, map_get_contract,
     map_key_view_contract, method_call_contract, method_hof_contract,
     rust_option_some_constructor_contract, seq_surface_contract_for_node,
     static_collection_adapter_contract, unshadowed_global_symbol, BuiltinArgContract,
-    DomainEvidence, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
-    MethodSemanticContract, SEQ_VALUE_MAP,
+    DomainEvidence, LibraryApiCalleeContract, LibraryMapFactoryResult, MapKeyViewKind,
+    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    SEQ_VALUE_MAP,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -711,29 +713,20 @@ fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> boo
         return false;
     };
     let callee = interner.resolve(callee);
-    nose_semantics::semantics(old.meta.lang)
-        .collections()
-        .free_name_map_factories()
-        .any(|factory| {
-            factory.names.contains(&callee)
-                && free_name_factory_shadow_safe(old, interner, callee, false)
-                && map_factory_entries_match_surface(old, interner, kids[1], factory.entry_seq_tag)
+    let Some(contract) = library_free_name_map_factory_contract(old.meta.lang, callee) else {
+        return false;
+    };
+    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        return false;
+    };
+    let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = contract.result else {
+        return false;
+    };
+    name == callee
+        && library_api_free_name_shadow_safe(old.meta.lang, name, shadow, |candidate| {
+            file_defines_name(old, interner, candidate)
         })
-}
-
-fn free_name_factory_shadow_safe(
-    old: &Il,
-    interner: &Interner,
-    name: &str,
-    shadow_guard: bool,
-) -> bool {
-    if shadow_guard {
-        return !file_defines_name(old, interner, name);
-    }
-    if old.meta.lang == nose_il::Lang::Rust && name.starts_with("std::") {
-        return !file_defines_name(old, interner, "std");
-    }
-    true
+        && map_factory_entries_match_surface(old, interner, kids[1], entry_seq_tag)
 }
 
 fn map_factory_entries_match_surface(
