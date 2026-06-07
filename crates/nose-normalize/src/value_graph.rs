@@ -2547,12 +2547,13 @@ impl<'a> Builder<'a> {
             if !self.function_binding_safe(unit.root, unit.root) {
                 continue;
             }
-            // SOUNDNESS: only inline a function whose body is a single `return <expr>` — a pure
-            // value with NO statement effects. `function_binding_safe` alone is too weak here: it
-            // admits field/index writes (an effect the value-only inline would silently drop,
-            // which the oracle — blind to cross-function calls — could not catch). A lone return
-            // has no other statements, so there is nothing to drop.
-            let Some(ret_expr) = self.single_return_expr(unit.root) else {
+            // SOUNDNESS: only inline an EFFECT-FREE body — a `return <expr>` or a straight-line
+            // block of LOCAL bindings ending in a `return`. `function_binding_safe` alone is too
+            // weak: it admits field/index WRITES (an effect the value-only inline would silently
+            // drop). `inline_pure_body` gates the statement level so nothing observable is dropped.
+            // (The interp oracle now interprets cross-function calls, so the inline is also checked
+            // end-to-end by `nose verify` — but the gate stays conservative by construction.)
+            let Some(body) = self.inline_pure_body(unit.root) else {
                 continue;
             };
             let kids = self.il.children(unit.root);
@@ -2563,7 +2564,7 @@ impl<'a> Builder<'a> {
                     _ => None,
                 })
                 .collect();
-            self.inline_fns.insert(name, (params, ret_expr));
+            self.inline_fns.insert(name, (params, body));
         }
     }
 
@@ -2585,7 +2586,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(fname) = self.il.node(callee).payload else {
             return None;
         };
-        let (params, ret_expr) = self.inline_fns.get(&fname)?.clone();
+        let (params, body) = self.inline_fns.get(&fname)?.clone();
         if params.len() != kids.len() - 1 {
             return None;
         }
@@ -2594,23 +2595,38 @@ impl<'a> Builder<'a> {
             let av = self.eval(kids[pi + 1], env);
             fenv.insert(pc, av);
         }
-        Some(self.eval(ret_expr, &fenv))
+        // Evaluate the body to its return value, binding any local `let`s along the way — the same
+        // sink-free evaluator used for lambda bodies, so locals thread through but no effect sink
+        // is emitted (the body is effect-free by `inline_pure_body`).
+        self.eval_block_return(body, &mut fenv)
     }
 
-    /// The single `return <expr>` of a function body, or `None` if the body is anything else
-    /// (locals, multiple statements, effects, control flow) — so only an effect-free pure value
-    /// qualifies for value-only inlining. Accepts `{ return e; }` and a bare `return e`.
-    fn single_return_expr(&self, root: NodeId) -> Option<NodeId> {
+    /// The body of a function that qualifies for value-only inlining: a bare `return <expr>`, or a
+    /// straight-line block of LOCAL bindings (`let x = …`, an `Assign` to a `Var`) ending in a
+    /// `return`. Returns `None` for any STATEMENT effect — a field/index write, a bare effect
+    /// expression, or control flow — which a value-only inline would silently drop.
+    /// `function_binding_safe` already vetted the expressions; this gates the statement level.
+    fn inline_pure_body(&self, root: NodeId) -> Option<NodeId> {
         let &body = self.il.children(root).last()?;
-        let ret = match self.il.kind(body) {
-            NodeKind::Return => body,
-            NodeKind::Block => match self.il.children(body) {
-                [only] if self.il.kind(*only) == NodeKind::Return => *only,
-                _ => return None,
-            },
-            _ => return None,
-        };
-        self.il.children(ret).first().copied()
+        match self.il.kind(body) {
+            NodeKind::Return => Some(body),
+            NodeKind::Block => {
+                let (last, prefix) = self.il.children(body).split_last()?;
+                if self.il.kind(*last) != NodeKind::Return {
+                    return None;
+                }
+                let local_binding = |&s: &NodeId| {
+                    self.il.kind(s) == NodeKind::Assign
+                        && self
+                            .il
+                            .children(s)
+                            .first()
+                            .is_some_and(|&t| self.il.kind(t) == NodeKind::Var)
+                };
+                prefix.iter().all(local_binding).then_some(body)
+            }
+            _ => None,
+        }
     }
 
     fn function_binding_safe(&self, root: NodeId, node: NodeId) -> bool {

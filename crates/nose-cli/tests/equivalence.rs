@@ -576,6 +576,29 @@ fn go_functional_append_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn interprocedural_inline_handles_multi_statement_pure_helper() {
+    // A pure helper with LOCAL temporaries (`sub = …; disc = …; return sub - disc`) inlines just
+    // like a single-`return` one — the multi-statement body is a pure value computation, so a
+    // caller of it converges with the same logic written inline. An effectful (field-writing)
+    // helper still does NOT inline (its effect can't be dropped).
+    let i = Interner::new();
+    let helper = "def base(item):\n    sub = item.price * item.qty\n    disc = sub * 0.1\n    return sub - disc\n\ndef total(item):\n    return base(item) + 5\n";
+    let inline = "def total(item):\n    sub = item.price * item.qty\n    disc = sub * 0.1\n    return (sub - disc) + 5\n";
+    assert_eq!(
+        value_fp_named(&i, helper, Lang::Python, "total"),
+        value_fp_named(&i, inline, Lang::Python, "total"),
+        "a multi-statement pure helper must inline like a single-return one",
+    );
+    let eff = "def bump(box, x):\n    box.count = box.count + 1\n    return x * 2\n\ndef use(box, x):\n    return bump(box, x) + 5\n";
+    let eff_free = "def use(box, x):\n    return x * 2 + 5\n";
+    assert_ne!(
+        value_fp_named(&i, eff, Lang::Python, "use"),
+        value_fp_named(&i, eff_free, Lang::Python, "use"),
+        "an effectful (field-writing) helper must not be inlined",
+    );
+}
+
+#[test]
 fn interprocedural_pure_inline_converges_extract_method() {
     // A function whose body inlines a computation converges with one that calls a PURE extracted
     // helper for it — `f(args)` is β-reduced to the helper's body (interprocedural summary), the
