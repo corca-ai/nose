@@ -2539,6 +2539,12 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         Lang::Rust,
         "f",
     );
+    let shadowed_none_rs = value_fp_named(
+        &i,
+        "const None: Option<i32> = Some(0);\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+        "f",
+    );
     let shadowed_vec_rs = value_fp_named(
         &i,
         "struct Vec;\nimpl Vec { fn new() -> Vec { Vec } fn push(&self, _value: i32) {} }\nfn f(xs: &[i32]) -> Vec { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
@@ -2597,6 +2603,10 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
     assert_ne!(
         filtered_py, shadowed_some_rs,
         "a local Rust Some definition must not be treated as Option::Some"
+    );
+    assert_ne!(
+        filtered_py, shadowed_none_rs,
+        "a local Rust None definition must not be treated as Option::None"
     );
     assert_ne!(
         filtered_py, shadowed_vec_rs,
@@ -4617,6 +4627,7 @@ fn rust_if_let_option_presence_converges_with_option_predicates() {
     let if_some = "pub fn f(value: Option<i32>) -> bool {\n    if let Some(_) = value { true } else { false }\n}\n";
     let is_some = "pub fn g(value: Option<i32>) -> bool {\n    value.is_some()\n}\n";
     let if_none = "pub fn h(value: Option<i32>) -> bool {\n    if let None = value { true } else { false }\n}\n";
+    let shadowed_some_pattern = "struct Some<T>(T);\npub fn f(value: Some<i32>) -> bool {\n    if let Some(_) = value { true } else { false }\n}\n";
     assert_eq!(
         value_fp(&i, if_some, Lang::Rust),
         value_fp(&i, is_some, Lang::Rust),
@@ -4626,6 +4637,11 @@ fn rust_if_let_option_presence_converges_with_option_predicates() {
         value_fp(&i, if_some, Lang::Rust),
         value_fp(&i, if_none, Lang::Rust),
         "if let Some(_) must stay distinct from if let None"
+    );
+    assert_ne!(
+        value_fp(&i, if_some, Lang::Rust),
+        value_fp_named(&i, shadowed_some_pattern, Lang::Rust, "f"),
+        "a local Rust Some pattern must not be treated as Option::Some"
     );
 }
 

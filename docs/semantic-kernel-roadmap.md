@@ -85,9 +85,11 @@ and pack ecosystem.
   Frontend `ParamSemantic` facts still provide the current evidence source, but
   normalize and detect exact gates now consume the kernel-facing domain
   vocabulary so pack-provided evidence can replace the source fact later.
-- Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`, and
-  `Vec::new` moved into the kernel facade with explicit shadow-root obligations.
-  The caller still proves local shadow safety.
+- Rust stdlib path contracts for `Some`/`Option::Some`,
+  `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
+  kernel facade with explicit shadow-root obligations. The caller still proves
+  local shadow safety, and the Rust frontend no longer lowers bare `None`
+  directly to null before that proof.
 - Java collection/map factory selectors, Python free-name/imported collection
   factories, Rust std collection/map factory paths, and Ruby `Set.new` moved
   behind shared `nose-semantics` contracts. Normalize, strict exact gates, and

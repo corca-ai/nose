@@ -59,9 +59,12 @@ migrated.
   closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
-- Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`,
-  and `Vec::new` carry the exact selector and shadow-root requirement through
-  `nose-semantics`; normalize/detect still perform the local scope shadow check.
+- Rust stdlib path contracts for `Some`/`Option::Some`,
+  `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
+  selector and shadow-root requirement through `nose-semantics`;
+  normalize/detect still perform the local scope shadow check. The Rust
+  frontend preserves bare `None` as a name rather than lowering it directly to
+  null, so Option absence is admitted only through the contract.
 - Collection and map factory contracts have started moving into the facade.
   Shared rows now cover Python free-name factories (`list`, `set`,
   `frozenset`, `tuple`), Python imported `collections.deque`, Rust

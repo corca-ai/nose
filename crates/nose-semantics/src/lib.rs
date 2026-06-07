@@ -1016,6 +1016,20 @@ pub fn rust_option_some_constructor_contract(
     Some(ShadowedPathContract { shadow_root })
 }
 
+pub fn rust_option_none_sentinel_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "None" => "None",
+        "Option::None" => "Option",
+        "std::option::Option::None" => "std",
+        "core::option::Option::None" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
 pub fn rust_vec_new_factory_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
     if lang != Lang::Rust {
         return None;
@@ -2272,6 +2286,22 @@ mod tests {
         );
         assert_eq!(
             rust_option_some_constructor_contract(Lang::Python, "Some"),
+            None
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::Rust, "None"),
+            Some(ShadowedPathContract {
+                shadow_root: "None",
+            })
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::Rust, "core::option::Option::None"),
+            Some(ShadowedPathContract {
+                shadow_root: "core",
+            })
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::JavaScript, "None"),
             None
         );
         assert_eq!(

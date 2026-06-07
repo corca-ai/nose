@@ -473,11 +473,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     match node.kind() {
         "identifier" | "type_identifier" | "field_identifier" | "scoped_identifier" => {
-            if lo.text(node) == "None" {
-                lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
-            } else {
-                lo.var(lo.text(node), span)
-            }
+            lo.var(lo.text(node), span)
         }
         "self" => lo.var("self", span),
         "integer_literal" => {
@@ -898,9 +894,9 @@ fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
         return lower_expr(lo, node);
     };
     let text = lo.text(node).trim();
-    let op = if text.starts_with("let Some") {
+    let op = if text.starts_with("let Some") && !rust_file_defines_name(lo, "Some") {
         Some(Builtin::IsNotNull)
-    } else if text.starts_with("let None") {
+    } else if text.starts_with("let None") && !rust_file_defines_name(lo, "None") {
         Some(Builtin::IsNull)
     } else {
         None
@@ -910,6 +906,51 @@ fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
         return lo.add(NodeKind::Call, Payload::Builtin(op), span, &[value]);
     }
     lower_expr(lo, value_node)
+}
+
+fn rust_file_defines_name(lo: &Lowering, name: &str) -> bool {
+    let Ok(src) = std::str::from_utf8(lo.src) else {
+        return false;
+    };
+    rust_item_declares_name(src, name)
+}
+
+fn rust_item_declares_name(src: &str, name: &str) -> bool {
+    const ITEM_PREFIXES: &[&str] = &[
+        "const", "static", "fn", "struct", "enum", "union", "type", "mod", "trait",
+    ];
+    src.lines()
+        .map(strip_rust_line_comment)
+        .map(rust_identifier_tokens)
+        .any(|tokens| rust_tokens_declare_name(&tokens, ITEM_PREFIXES, name))
+}
+
+fn strip_rust_line_comment(line: &str) -> &str {
+    line.split_once("//").map(|(code, _)| code).unwrap_or(line)
+}
+
+fn rust_identifier_tokens(line: &str) -> Vec<&str> {
+    line.split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
+        .filter(|token| !token.is_empty())
+        .collect()
+}
+
+fn rust_tokens_declare_name(tokens: &[&str], item_prefixes: &[&str], name: &str) -> bool {
+    tokens.iter().enumerate().any(|(idx, token)| {
+        if !item_prefixes.contains(token) {
+            return false;
+        }
+        tokens
+            .get(idx + 1)
+            .is_some_and(|candidate| !rust_item_qualifier_token(candidate) && *candidate == name)
+    })
+}
+
+fn rust_item_qualifier_token(token: &str) -> bool {
+    matches!(
+        token,
+        "pub" | "crate" | "super" | "self" | "unsafe" | "async" | "extern" | "const" | "fn"
+    )
 }
 
 /// `match e { p1 => b1, p2 => b2, … }` → nested `if`/`else` chain, each arm's
@@ -1247,6 +1288,26 @@ mod tests {
             il.nodes.iter().any(|node| node.kind == NodeKind::Throw),
             "panic! should lower to a Throw node so guard clauses are path-narrowing exits"
         );
+    }
+
+    #[test]
+    fn rust_item_shadow_scan_handles_visibility_and_qualifiers() {
+        assert!(rust_item_declares_name(
+            "pub(crate) struct Some<T>(T);",
+            "Some"
+        ));
+        assert!(rust_item_declares_name(
+            "pub const None: Option<i32> = Some(0);",
+            "None"
+        ));
+        assert!(rust_item_declares_name(
+            "pub const fn Some(value: i32) -> Option<i32> { None }",
+            "Some"
+        ));
+        assert!(!rust_item_declares_name(
+            "if let Some(_) = value { true } else { false }",
+            "Some"
+        ));
     }
 
     #[test]

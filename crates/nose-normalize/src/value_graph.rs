@@ -56,11 +56,12 @@ use nose_semantics::{
     java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
     map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
     reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
-    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, static_index_membership_contract, DomainEvidence,
-    GoZeroMapDefaultKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
-    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
+    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics,
+    static_index_membership_contract, DomainEvidence, GoZeroMapDefaultKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
     StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -6728,6 +6729,7 @@ impl<'a> Builder<'a> {
             }
             NodeKind::If => self.eval_filter_map_if(node, env),
             NodeKind::Lit if self.is_null_literal(node) => Some(FilterMapResult::Drop),
+            NodeKind::Var if self.is_rust_option_none_node(node) => Some(FilterMapResult::Drop),
             NodeKind::Call => {
                 if let Some((receiver, lambda)) = self.rust_option_and_then_call_parts(node) {
                     return self.eval_filter_map_and_then(receiver, lambda, env);
@@ -6876,6 +6878,19 @@ impl<'a> Builder<'a> {
             .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
     }
 
+    fn rust_option_none_name(&self, text: &str) -> bool {
+        rust_option_none_sentinel_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
+    }
+
+    fn is_rust_option_none_node(&self, node: NodeId) -> bool {
+        let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
+        else {
+            return false;
+        };
+        self.rust_option_none_name(self.interner.resolve(name))
+    }
+
     fn rust_vec_new_name(&self, text: &str) -> bool {
         rust_vec_new_factory_contract(self.il.meta.lang, text)
             .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
@@ -6996,6 +7011,9 @@ impl<'a> Builder<'a> {
                         return v;
                     }
                     let name = self.interner.resolve(s);
+                    if self.rust_option_none_name(name) {
+                        return self.null_const();
+                    }
                     if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
                         if !contract.requires_unshadowed || !self.file_defines_name(contract.name) {
                             return self.null_const();
