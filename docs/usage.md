@@ -25,8 +25,8 @@ from-source `./target/release/nose`.
 ## `nose scan`
 
 `nose scan <paths…>` scans one or more files/directories (recursively, respecting
-`.gitignore`), groups duplicated code into **families**, and ranks them by
-**extractability** — how cleanly each family folds into one shared helper — so the
+`.gitignore` files inside each scanned tree), groups duplicated code into **families**, and
+ranks them by **extractability** — how cleanly each family folds into one shared helper — so the
 duplication you can actually act on surfaces first. With no `--mode`, it runs
 `syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
 
@@ -40,7 +40,8 @@ breakdown, scope tags, and the `→` hint — is covered in
 The default human, Markdown, SARIF, and `--fail-on` surfaces show only
 action-oriented findings. Tiny proof-only fragments, review-only fragments, and
 families wholly inside files with generated-code headers are omitted with a short
-count line; `--format json --top 0` keeps the full diagnostic family set.
+count line; `--format json --top 0` keeps the post-ranking diagnostic families that
+survive rank-time pruning.
 
 ### Flags
 
@@ -56,7 +57,7 @@ Grouped by what they do. Config-backed scan defaults are listed in
 | `--min-members N` | only families with at least N duplicated sites (default 2) |
 | `--min-value V` | hide families below this refactoring value (noise floor on large repos) |
 | `--min-size N` | ignore units or syntax copy-paste runs smaller than this size, in IL tokens (default 24) |
-| `--mode MODE` | one or more of `syntax`, `semantic`, `near`; comma-list or repeatable; when present, replaces the default |
+| `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |
 
@@ -111,7 +112,7 @@ the standard Type-1–4 taxonomy.
 
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
-| `syntax` | Type-1/2 floor | jscpd-style contiguous copy-paste runs | replacing jscpd / blocking copy-paste clones in CI |
+| `syntax` | Type-1 / exact token-run floor | same-language jscpd-style contiguous copy-paste runs | replacing jscpd / blocking copy-paste clones in CI |
 | `semantic` | Type-4 | exact value-fingerprint matches | high-confidence semantic clones with no fuzzy threshold |
 | `near` | Type-3 | shape candidates + fuzzy structural/value scoring | finding near-duplicates for review |
 
@@ -129,44 +130,19 @@ nose scan src --mode syntax --mode semantic    # same as --mode syntax,semantic
 The `near` channel takes its acceptance threshold inline — `--mode near:0.8` (default
 `0.70`). `syntax` and `semantic` are exact channels and take no threshold.
 
-The `syntax` channel is the CPD floor: it finds duplicated token runs even when they
-start or end in the middle of a function. The normalized unit channels (`semantic` and
-`near`) are where renamed identifiers, cross-language convergence, and Type-3 edits are
-handled.
+The `syntax` channel is the CPD floor: it finds same-language duplicated token runs even
+when they start or end in the middle of a function. The normalized unit channels
+(`semantic` and `near`) are where renamed identifiers, literal-varied Type-2 cases,
+cross-language convergence, and Type-3 edits are handled.
 
 `semantic` is still unit-bounded rather than an arbitrary-fragment equivalence search.
-By default, sub-function units include bounded control-flow blocks and exact-safe
-single-statement fragments such as return/throw expressions and simple
-conditional return/throw/effect guards, including bare returns, explicit empty no-op
-branches, and nested branches whose only non-empty statement is another exact conditional,
-a single exact ForEach effect loop, or exactly two ordered exact effect items drawn from
-ForEach effect loops, append effects, conditional direct effects, and non-overloadable
-C/Go/Java index assignments.
-Conditional branches may also assign one local temporary, or a two-temporary linear chain,
-and immediately consume the final value in a direct return/throw/effect statement or a
-non-overloadable C/Go/Java index assignment whose receiver does not depend on the
-temporary.
-They may contain exactly two or three ordered single-item append effects when each
-appended item is direct or is immediately produced by a branch-local temporary or linear
-temp chain.
-They may also contain exactly two or three ordered non-overloadable C/Go/Java
-index-assignment effects when each assignment is direct or immediately consumes a
-branch-local temporary or linear temp chain.
-They also include ForEach append-effect loops whose only loop-body effects append values
-that depend on the iteration binding, plus C/Go/Java index-assignment effects where index
-assignment is not receiver-overloadable, and Java `this.field = value` self-field
-assignments whose receiver is the language-fixed `this` object. Java function-body blocks
-can also become exact fragments when every body statement is one of those direct or
-conditional `this.field` assignments, optionally followed by a terminal `return this`.
-Conditional branches may also contain exactly two or three ordered Java fixed-`this`
-field assignments; this is admitted only because each write resolves to a proven
-`this.field` place and the oracle observes the resulting field state.
-General field writes such as `other.field = value`, implicit field assignments such as
-`field = value`, `return other`, mixed-effect bodies, arbitrary statement windows, and
-dynamic-property languages remain outside this exact fragment set. Those fragments are
-reported only when the whole value subtree stays inside the displayed source span, the
-fragment is `exact_safe`, and the value fingerprint is large enough for the exact semantic
-gate.
+Besides whole functions/classes/blocks, it admits only exact-safe sub-function fragments
+whose inputs, exits, and ordered effects are self-contained: direct return/throw values,
+bounded conditional guards, selected for-each append/index effects, and fixed-`this` Java
+field writes. General statement windows, dynamic receiver writes, mixed unproven effects,
+and arbitrary field/property mutation stay closed. The exact fragment contract and JSON
+metadata are documented in [fragment-contracts](fragment-contracts.md) and
+[scan-json](scan-json.md#fragment-metadata).
 
 ## Integrating with nose
 
@@ -186,8 +162,9 @@ and may change to improve readability. The stable contract is documented in
 
 ## Other commands
 
-- `nose review [paths…] --base <ref>` — flag clones changed inconsistently in a diff (a
-  copy edited, its siblings missed). The git-aware companion to `scan`; full guide in
+- `nose review [paths…] [--base <ref>]` — flag clones changed inconsistently in a diff (a
+  copy edited, its siblings missed). Defaults to `HEAD` for uncommitted local changes;
+  use `--base origin/main` for a PR branch. The git-aware companion to `scan`; full guide in
   [review](review.md).
 - `nose stats <paths…> [--top N] [--json]` — per-language IL lowering coverage (the
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`

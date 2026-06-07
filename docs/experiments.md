@@ -603,13 +603,13 @@ correctives the prototype lacked — **tightness** (shared/total, so a 22/384 di
 outrank a 15/15 pair), a **parameter penalty** (a 30-hole "helper" is scaffolding), and an **IDF
 idiom-gate** (pervasive lines like `if err != nil {` contribute ~0) — plus zero-invariant-line
 families score 0 (the structural-only `sim 1.00` pathology) and a type-def/generated discount;
-cross-language families fall back to the structural estimate. **It is the first ranking change to
-move the held-out number, and it moves it the right way:** held-out +6pp (54% → 60%), dev flat, no
-recall cost (reordering only). Gains are broad (Java 42% → 71%, C 24% → 35%), not one-language. The
-lesson: **a re-rank built from what actually extracts (tight, few-param, non-idiom shared lines)
-generalizes, where one built from raw structural abstractness did not.** `--sort value` is retained
-for raw-volume triage; detection is unchanged (same families, only order and the `N/M shared · Pp`
-cell differ).
+cross-language families fall back to the structural estimate. In the historical §AZ slice it was
+the first ranking change to move the held-out number in the right direction (held-out +6pp,
+dev flat, no recall cost, reordering only). The durable lesson is that a re-rank built from
+what actually extracts (tight, few-param, non-idiom shared lines) generalized where one built
+from raw structural abstractness did not. For current reproducible P@10/recall numbers, use
+[benchmark](benchmark.md); `--sort value` is retained for raw-volume triage, and detection is
+unchanged (same families, only order and the `N/M shared · Pp` cell differ).
 
 ## BA. Exact-Type-4 convergence push — stronger types, Lean-backed algebra, filter fusion
 

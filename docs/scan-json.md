@@ -50,12 +50,14 @@ pin a release.
 > any truncation explicit; pass **`--top 0`** to emit every family. `ranking.total_families`
 > is always the complete post-filter count regardless of `--top`.
 
-The JSON report intentionally keeps diagnostic families that the default human,
-Markdown, SARIF, and `--fail-on` surfaces omit: hidden proof-only fragments,
-review-surface fragments, and families wholly inside files with generated-code
-headers. Consumers that want the same first-screen surface as humans should filter
-for `recommended_surface == "default"` and drop generated-header files according
-to their own source metadata.
+The JSON report intentionally keeps diagnostic families that survive ranking but are
+omitted from the default human, Markdown, SARIF, and `--fail-on` surfaces: hidden
+proof-only fragments, review-surface fragments, and families wholly inside files with
+generated-code headers. It is not raw detector output: families wholly in
+vendored/generated-looking paths may already have been pruned before serialization.
+Consumers that want the same first-screen surface as humans should filter for
+`recommended_surface == "default"` and drop generated-header files according to their own
+source metadata.
 
 ## Top-level fields
 
@@ -66,7 +68,7 @@ to their own source metadata.
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
 | `ranking.sort` | string | Sort key used for `families`: `extractability` (default), `value`, `sites`, or `hazard`. |
-| `ranking.total_families` | integer | Active families remaining after filters, baseline suppression, and structured ignores, before `--top`. |
+| `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |

@@ -39,7 +39,8 @@ shows up as one cross-container family (confirmed on real projects in
 
 Lowering quality is measured by the **Raw-node ratio** — the fraction of CST
 nodes that fall through to an opaque `Raw` IL node instead of a real one. Lower
-is better; the vendored corpus sits below 0.01%. Check it per language with:
+is better; on the current pinned `bench/repos` corpus the overall ratio is about
+0.57%, with language-specific gaps visible in `nose stats`. Check it per language with:
 
 ```sh
 nose stats <paths…>

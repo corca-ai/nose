@@ -186,8 +186,9 @@ via bounded equality saturation over a fixed rule set:
   negation normalization (De Morgan,
   double-negation `!!x` cancelled only on Bool, negated-comparison `!(a<=b)`→`a>b`);
   comparison-direction canonicalization; short-circuit `and`/`or` to the value-`Phi`.
-  Distribution (e.g. `a*c+b*c`) is intentionally NOT applied — it is unsound for strings
-  (`("x"+"y")*2` ≠ `"xx"+"yy"`) and the operands can't be proven numeric.
+  Distribution/factoring (e.g. `a*c+b*c -> (a+b)*c`) is applied only through the
+  value-graph rule when the operands are proven numeric. String/list repetition and other
+  overloadable or unproven domains stay closed.
 Extract a canonical term by a cost function. Self-contained; strong on
 expression-level Type-4. Hard parts: rule confluence, termination, choosing the
 canonical extraction, integer/float/overflow caveats (kept approximate).

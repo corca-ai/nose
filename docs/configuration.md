@@ -2,9 +2,9 @@
 
 Real projects shouldn't carry 200-character command lines. Put a `nose.toml`
 (or `.nose.toml`) in the directory where you invoke nose and it is read
-automatically. CLI flags from [usage](usage.md) always win; the config supplies
-defaults for supported scan settings; anything unset falls back to the built-in
-default. Back to [home](home.md).
+automatically. The config supplies defaults for supported scan settings; most CLI flags
+override those defaults, while `exclude` globs are additive. Anything unset falls back to
+the built-in default. Back to [home](home.md).
 
 ## `nose.toml`
 
@@ -31,7 +31,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | key | type | default | same as flag |
 |---|---|---|---|
 | `exclude` | list of globs | `[]` | `--exclude` |
-| `mode` | list of `syntax`\|`semantic`\|`near` | `["syntax", "semantic"]` | `--mode` |
+| `mode` | list of `syntax`\|`semantic`\|`near[:T]` | `["syntax", "semantic"]` | `--mode` |
 | `sort` | `extractability`\|`value`\|`sites`\|`hazard` | `extractability` | `--sort` |
 | `min-value` | float | `0.0` | `--min-value` |
 | `min-members` | int | `2` | `--min-members` |
@@ -68,8 +68,10 @@ command line are combined. Globs use gitignore syntax (`tests/**`,
 `**/*.test.ts`, `vendor/**`) and are applied *during the directory walk*, so an
 excluded directory is pruned, not just filtered out afterward.
 
-`.gitignore` is always respected automatically, so vendored dependencies, build
-output, and the like are skipped without any configuration.
+`.gitignore` files inside each scanned tree are respected automatically, even when that
+tree is not a git checkout, so vendored dependencies, build output, and the like are
+skipped without any configuration. Parent ignore files above the scanned root are not
+applied; pointing nose at an ignored subdirectory intentionally still scans it.
 
 ## Structured ignores
 
@@ -91,10 +93,11 @@ The file format, selector semantics, and expiry behavior are documented in
 
 ## Inline suppression
 
-To mark one specific clone as intentionally kept, put `// nose-ignore` on or
-just above the unit (function/class/block). nose drops that unit from
-detection, so it never shows up as a family. Use this for a duplicate you've
-consciously decided to live with, rather than excluding the whole file.
+To mark one site as intentionally kept, put a `nose-ignore` marker in a comment on the
+unit's first line or immediately above it (`# nose-ignore`, `// nose-ignore`, and similar
+comment syntax all work). nose drops that unit from detection, so that site cannot form a
+family. Use this for a duplicate you've consciously decided to live with, rather than
+excluding the whole file.
 
 For a finding that should stay visible to audit tooling, prefer a structured
 ignore entry. For accepting *all* of today's existing duplication at once — so

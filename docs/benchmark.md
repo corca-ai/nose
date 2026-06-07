@@ -29,11 +29,19 @@ bench/setup_repos.sh                      # clone the pinned corpus into bench/r
 python3 bench/labels/eval_by_language.py  # P@10 + worthy-recall, per language, dev/held-out, 95% CIs
 ```
 
-**Headline (current):** precision@10 ≈ **60% dev / 54% held-out**, worthy-**recall ≈ 99%**.
-The per-language CIs are wide (bounded by #repos×10), which is the point — they tell you
-whether a per-language difference is real or noise. The standing finding (experiments §AV)
-is that the residual precision loss is *judgment-deep* (genuinely-ambiguous, parallel-by-
-design families), not a detector signal gap.
+`eval_by_language.py` still prints its historical `value` baseline and
+anti-unification re-rank columns. The current default `extractability` order is the native
+`nose scan --format json` family order; the snapshot below uses that same label matching
+with the native order kept.
+
+**Current reproducible snapshot:** with the current default `extractability` order, an
+audit run over the checked-out `bench/repos` corpus measured overall precision@10 at about
+**65% dev / 58% held-out**. The same scan re-sorted by raw `value` measured about
+**58% dev / 56% held-out**. Worthy-recall in that run was roughly **86% dev / 88%
+held-out**. The per-language CIs are wide (bounded by #repos×10), which is the point —
+they tell you whether a per-language difference is real or noise. The standing finding
+(experiments §AV) is that much residual precision loss is *judgment-deep*
+(genuinely-ambiguous, parallel-by-design families), not a simple detector signal gap.
 
 ## Soundness — the behavioral oracle
 
@@ -51,10 +59,11 @@ nose verify bench/repos   # SOUND / canon PRESERVED, + a completeness ratio
 
 ## Throughput
 
-The detector is parallel at every stage and deterministic across runs, threads, and
-machines. On the pinned corpus it sustains **~19,500 files/sec** (warm, full pipeline);
-the frontend (tree-sitter parse + lower, ~65%) dominates and scales ~11.6× on 18 cores.
-`NOSE_TIME=1 nose scan <path> --top 0` prints the per-stage breakdown. Add
+The detector is parallel at every stage and designed for deterministic output; tests cover
+repeat runs and thread-count variation on the local platform. The archived §T run measured
+about **19,500 files/sec** warm on its pinned corpus/hardware, with frontend parse+lower
+dominating and scaling about 11.6x on 18 cores. `NOSE_TIME=1 nose scan <path> --top 0`
+prints the per-stage breakdown for your machine. Add
 `--mode syntax,semantic,near` when measuring the full review surface. See
 experiments §T for the throughput work.
 

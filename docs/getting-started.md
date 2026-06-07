@@ -27,8 +27,8 @@ instead, see [usage → Install](usage.md#install).
 
 ## Your first scan
 
-Run `nose scan` on any file or directory. It recurses, respects `.gitignore`, and
-prints the duplication it found, most worth-refactoring first:
+Run `nose scan` on any file or directory. It recurses, respects `.gitignore` files inside
+the scanned tree, and prints the duplication it found, most worth-refactoring first:
 
 ```sh
 nose scan path/to/project

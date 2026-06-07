@@ -16,14 +16,14 @@ frontier_platform.py
 
 `bench/type4/adversarial` is no longer the source of truth for next work. The former
 adversarial ledger was retired after each entry had a current gate in tests, `type4-smoke`,
-`nose verify`, or `scan_regression`.
+focused verifier checks, or `scan_regression`.
 
 What remains is intentionally smaller:
 
 | file | role |
 |---|---|
 | `cases/cases.v1.json` | focused positive and hard-negative case handles |
-| `cases/**` | small fixture corpora used by focused `scan` / `verify` gates |
+| `cases/**` | small fixture corpora used by focused `scan` gates, focused verifier checks, or boundary documentation |
 | `scripts/type4-check` | validate target packets, real-frontier links, and focused cases |
 | `scripts/type4-next` | print next task cards from `frontier_target_packets.v1.json` |
 | `scripts/type4-report` | summarize target packets and focused case coverage |
@@ -59,7 +59,9 @@ real frontier evidence. Important cases should be promoted into an automatic gat
 
 - Rust or CLI equivalence tests for stable semantic rules;
 - `scripts/type4-smoke.sh` focused gates for generated positives and hard negatives;
-- `nose verify --max-violations 0 <focused-corpus>` for oracle-backed behavior checks;
+- `nose verify --max-violations 0 <focused-corpus>` for named oracle-backed behavior
+  checks; not every directory under `cases/**` is intended to pass as a standalone
+  zero-violation verifier corpus;
 - `scan_regression compare` for product output/runtime and HoF value-graph budget checks;
 - formal obligations where a proof precondition is the boundary.
 

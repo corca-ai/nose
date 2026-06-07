@@ -50,12 +50,12 @@ resolve to a proven [`Place`] (an append/index write carries no such obligation)
 
 ### 3. The oracle — wrapper synthesis
 
-A fragment is verified through the *same* independent behavior check as a whole function. We
-do **not** add a new interpreter path. Instead the contract is lowered into a synthetic
-single-function IL — free inputs become parameters, the fragment subtree is deep-copied into
-the body — and handed to the existing [`run_unit`](architecture.md) interpreter. We reuse
-its `Behavior` (returned value + ordered effect trace + final field state) and the same input
-battery whole functions use.
+The contract path can verify a fragment through the *same* independent behavior machinery as
+a whole function. It does **not** add a new interpreter path. Instead the contract is lowered
+into a synthetic single-function IL — free inputs become parameters, the fragment subtree is
+deep-copied into the body — and handed to the existing [`run_unit`](architecture.md)
+interpreter. The production scan still uses the predicate path described below; the contract
+path is kept in lockstep by differential tests and proof obligations.
 
 Because `Behavior` already records effects and field state, **effects are preserved as
 observable behavior for free**: appending to a parameter list shows up in the effect trace,
@@ -113,11 +113,11 @@ resolves to `Field(This, …)`, and the recognizer asserts the place is exact-sa
 The recognizers are migrated onto the contract path one family at a time. An independent
 contract recognizer (`fragment::recognize`) re-expresses each migrated shape, reusing only the
 shared invalidation gates (span containment + context safety) rather than the per-shape
-predicates. A test asserts that over a multi-language corpus the predicate path and the
-contract path accept **exactly the same `(span, kind)` set** for migrated kinds, and a
+predicates. Tests assert that over representative multi-language snippets the predicate path
+and the contract path accept **exactly the same `(span, kind)` set** for migrated kinds, and a
 `debug_assert` in the collector cross-checks the forward direction on every accepted fragment
-across the whole fixture corpus. A migration step that changes which fragments are accepted
-fails the gate — that is what keeps the re-expression behavior-invariant.
+while collecting units. A migration step that changes which fragments are accepted fails the
+gate — that is what keeps the re-expression behavior-invariant.
 
 ## Output surfaces
 

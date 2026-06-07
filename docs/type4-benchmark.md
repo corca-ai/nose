@@ -289,27 +289,25 @@ when the focused/compact gates have closed.
 The bridge is candidate mining: v5 families seed generator templates and hard-negatives, but
 only evidence-backed pairs enter the Type-4 gold set.
 
-## Initial implementation shape
+## Current implementation shape
 
-The seed lives in `bench/type4/`:
+The detailed file inventory lives in [`bench/type4/README.md`](../bench/type4/README.md).
+The stable roles are:
 
-- `proposals.v1.json` — LLM-planned semantic proposal cards;
-- `capabilities.v1.json` — current surface-by-surface proof-fact capability matrix;
-- `ITERATIONS.md` — compact decision log for coverage expansion, real-corpus batches,
-  fragment-unit work, smoke results, and remaining frontier;
-- `generate.py` — deterministic source/manifest generator for all supported surfaces;
-- `select_cases.py` — coverage-preserving compaction for routine gates;
-- `eval_manifest.py` — compares `nose scan --mode semantic` output against the manifest;
-- `schema.json` — pair-level manifest schema;
-- `scan_regression/` — the repeatable product-scan runtime/output-drift harness
-  (`nose scan --mode semantic --format json --top 0`), with its own subset, recorded
-  baseline, fragment/reason-code/surface bucket drift, enclosing-unit recovery metrics,
-  generated HoF value-graph budget smoke, and threshold docs; see
-  `bench/type4/scan_regression/README.md`;
-- `adversarial/` — focused Type-4 case handles, verifier-lead draft tooling, and target
-  packet task scripts; see
+- synthetic generation and manifest evaluation:
+  `generate.py`, `select_cases.py`, `eval_manifest.py`, and `schema.json`;
+- coverage matrix and proof-fact capability tracking:
+  `coverage_matrix.v1.json`, `coverage_evidence.v1.json`, `coverage_matrix.py`, and
+  `capabilities.v1.json`;
+- real-corpus frontier evidence and next-work packets:
+  `real_frontier.v1.json`, `frontier_target_packets.v1.json`, `frontier_platform.py`, and
+  `frontier_axes.py`, summarized in [frontier-platform](frontier-platform.md);
+- focused adversarial cases and verifier-lead draft tooling:
+  `adversarial/`, summarized in
   [type4-adversarial-coverage](type4-adversarial-coverage.md);
-- `README.md` — commands and current smoke numbers.
+- product semantic-scan regression:
+  `scan_regression/`, which guards runtime, output drift, fragment/reason-code/surface
+  buckets, enclosing-unit recovery, and HoF value-graph budget behavior.
 
 The long-term direction is an adversarial semantic test factory: the generator creates
 frontier cases, the verifier proves or refutes them, detector failures become minimal

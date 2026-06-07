@@ -6,9 +6,9 @@ lowering every language into one normalized intermediate language (IL) and
 ranking duplicated code by how much it's worth refactoring. The repository
 [`README`](../README.md) is the one-screen overview; this wiki is the full guide.
 
-Every page lives in `docs/` and links to its neighbours with relative links, so the
-docs browse cleanly on GitHub and in any Markdown viewer. The pages are grouped by
-what you're here to do.
+Every wiki page lives in `docs/` and links to its neighbours with relative links, so the
+docs browse cleanly on GitHub and in any Markdown viewer. Root project docs are linked
+where relevant. The pages are grouped by what you're here to do.
 
 ## Start here
 

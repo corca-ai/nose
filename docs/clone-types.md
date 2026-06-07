@@ -21,7 +21,8 @@ the engine is in [architecture](architecture.md).
 ## Type-1 — fully
 
 Whitespace, layout, and comments never enter the IL, so Type-1 fragments produce identical
-fingerprints. They are caught by the `syntax` CPD floor and by the unit fingerprints.
+fingerprints. They are caught by the same-language `syntax` CPD floor and by the unit
+fingerprints.
 
 ## Type-2 — identifiers and types fully; literals on a two-axis split
 
@@ -34,10 +35,10 @@ fingerprints. They are caught by the `syntax` CPD floor and by the unit fingerpr
   their class. So a Type-2 clone that differs only in literal values is matched by
   `--mode near`, but deliberately kept distinct by exact `--mode semantic`.
 
-`--mode syntax` is intentionally the CPD floor: it is excellent for copied runs that a
-token detector should catch, including runs that cross function boundaries, but it is not
-the whole renamed-Type-2 story by itself. Use the default or add `near` when renamed or
-literal-varied copies matter.
+`--mode syntax` is intentionally the CPD floor: it is excellent for same-language copied
+runs that a token detector should catch, including runs that cross function boundaries, but
+it is not the renamed/literal-varied Type-2 story by itself. Use the default or add `near`
+when renamed or literal-varied copies matter.
 
 ## Type-3 — near-duplicate via similarity (the primary use)
 
@@ -76,9 +77,10 @@ graph, and canonicalizations actually model:
 - the same algorithm written in a **different language** (incl. Rust `it.iter().filter(p).sum()`
   ↔ Python `sum(x for x in xs if p)`).
 
-For the classes it captures, the match carries a **soundness guarantee**: equal fingerprint
-⟹ equal behavior, enforced by an interpreter oracle (`nose verify`) and machine-checked in
-Lean (`formal/`). See [normalization](normalization.md) for the full pass list.
+For the classes it captures, equal fingerprint -> equal behavior is the design invariant:
+guarded by the hidden `nose verify` oracle, regression tests, and Lean obligations for the
+core canonicalizations, but not a per-scan or whole-pipeline proof. See
+[normalization](normalization.md) for the full pass list.
 
 ### What nose does *not* do (no overclaim)
 
