@@ -243,13 +243,17 @@ and pack ecosystem.
   `Object.prototype.hasOwnProperty.call` gate own-property guard normalization
   and strict exact safety, while `Array.from` gates JS-like map-key iterator
   wrappers. `Array.isArray` emits the same path evidence for strict exact call
-  gates. Full namespace-member resolution and record-shape multi-obligation
-  guard evidence remain open.
+  gates. Full namespace-member resolution remains open.
 - Value-graph import identity now consumes sequence `Import` evidence into
   dedicated internal `ImportNamespace`/`ImportBinding` value ops instead of
   treating raw `ValOp::Seq(import_*)` shapes as proof objects. Imported
   binding/namespace symbol helpers also no longer accept raw import assignment
   RHS parsing as an exact proof fallback.
+- JS/TS record-shape guards now emit dedicated `Guard::JsRecordShape` evidence
+  with subject, null/truthiness, equality-form, and API-dependency obligations.
+  Strict exact and value-graph paths require that evidence plus
+  `SequenceSurface(RecordGuard)`, so raw `Seq("record_guard")` no longer acts as
+  a proof object by tag spelling.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -313,10 +317,9 @@ Remaining in this phase:
   selected JS/TS `QualifiedGlobal` paths are covered, but general
   qualified-member, namespace export identity, and cross-module dependency
   evidence are not.
-- Add dedicated guard evidence for multi-obligation guards such as JS/TS
-  record-shape checks, where one lowered guard depends on source operator facts,
-  several qualified/static API facts, subject identity, and truthiness/null
-  semantics.
+- Generalize dedicated guard evidence beyond the first JS/TS record-shape
+  contract, including richer source-clause records, API dependency validation,
+  subject/place identity, and truthiness/null semantics.
 - Expand the first `SequenceSurface` evidence into sequence/aggregate records for
   factories, nested entries, iterator views, and exported-literal eligibility.
 - Expand domain evidence from parameter annotations into receiver/protocol

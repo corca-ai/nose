@@ -202,7 +202,12 @@ migrated.
 - JS-like record-shape guards that use `Boolean(value)` as the non-null/truthy
   clause consume a static-global function contract and require the `Boolean`
   global to be unshadowed. `value !== null` and `!!value` remain available when
-  their own clauses prove the same record shape.
+  their own clauses prove the same record shape. The collapsed
+  `Seq("record_guard")` is no longer admitted by tag spelling alone: strict
+  exact and value-graph paths require matching `SequenceSurface(RecordGuard)` and
+  `Guard::JsRecordShape` evidence, including subject identity, null/truthiness
+  form, comparison form, and asserted API dependencies for `Array.isArray` plus
+  optional `Boolean`.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
@@ -267,10 +272,11 @@ Semantic knowledge still appears in several forms outside the facade:
   provenance, and external pack manifests remain open;
 - language-specific import, symbol, or module proof mechanics that are still
   local to frontend, normalize, detect, or value-graph callers;
-- JS/TS record-shape guards still need dedicated multi-obligation guard
-  evidence, because their proof depends on several source/API facts such as
-  `typeof`, `Array.isArray`, optional `Boolean`, null/truthiness, and matching
-  subject identity;
+- JS/TS record-shape guards now have a first dedicated `Guard::JsRecordShape`
+  record consumed by strict exact and value-graph paths. The recognizer is still
+  first-party JS/TS lowering code, and broader guard families, richer
+  source-clause dependency records, and pack-facing dependency validation remain
+  open;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
   `EvidenceRecord::Import`, and value-graph import identity is now evidence-only,
@@ -357,6 +363,8 @@ The first high-value targets for semantic-kernel extraction are:
 - richer sequence/aggregate evidence for factories, nested entries, iterator
   views, and exported-literal eligibility beyond the current first
   `SequenceSurface` substrate;
+- generalized guard evidence beyond the first JS/TS record-shape contract,
+  including richer source/API dependency records and validation;
 - dependency, scope, and ambiguity validation before evidence records become a
   stable external extension surface;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
