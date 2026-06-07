@@ -238,6 +238,7 @@ The same semantic knowledge can be safe for one channel and unsafe for another.
 |---|---|
 | `syntax-only` | parsing/lowering/reporting only |
 | `near-only` | candidate generation and review-oriented scoring |
+| `abstraction-witness` | weak refactoring-template witnesses over `near` candidates; never exact equivalence |
 | `exact-empirical` | exact channel when required tests, hard negatives, and oracle coverage are present |
 | `exact-proven` | exact channel with proof obligations for the core law |
 

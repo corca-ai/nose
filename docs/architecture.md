@@ -59,12 +59,14 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    the strict precision gates.
 4. **Candidate generation**: the selected scan channels decide which candidates exist.
    `semantic` uses value-fingerprint MinHash signatures plus exact-value buckets, `near`
-   uses shape MinHash signatures, and `syntax` bypasses unit LSH with a Rabin-Karp
-   token-stream pass.
+   uses shape MinHash signatures, experimental `abstraction` reuses the near candidate
+   stream, and `syntax` bypasses unit LSH with a Rabin-Karp token-stream pass.
 5. **Accept / score**: `semantic` accepts only exact-safe value-fingerprint equality, `near`
    scores candidates with structural alignment (RANSAC) plus weighted shape/value
    Jaccard and accepts above the inline `near:T` threshold (default `near:0.70`), and
-   `syntax` emits duplicated runs above the line/token floors.
+   `syntax` emits duplicated runs above the line/token floors. Experimental
+   `abstraction` then filters accepted near-style pairs to same-language, single
+   supported literal-leaf holes and attaches a weak witness instead of an exact claim.
 6. **Cluster & rank**: union-find over accepted pairs/runs forms clone groups, which
    are grouped into **families** and sorted by refactoring value (removable lines
    × similarity × cross-module/-file/-language spread). See [usage](usage.md) for how the

@@ -67,7 +67,7 @@ Grouped by what they do. Config-backed scan defaults are listed in
 | `--min-members N` | only families with at least N duplicated sites (default 2) |
 | `--min-value V` | hide families below this refactoring value (noise floor on large repos) |
 | `--min-size N` | ignore units or syntax copy-paste runs smaller than this size, in IL tokens (default 24) |
-| `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default |
+| `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default. Experimental `abstraction[:T]` is accepted but not a stable capabilities mode. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |
 
@@ -115,10 +115,10 @@ Structured suppressions are covered in [structured-ignores](structured-ignores.m
 
 ### Scan modes
 
-`nose scan` has three orthogonal channels. Omitting `--mode` runs `syntax,semantic`.
-When `--mode` is present, nose runs exactly the channels you list; it does not add
-them to the default. See [clone-types](clone-types.md) for what each finds against
-the standard Type-1–4 taxonomy.
+`nose scan` has three stable orthogonal channels. Omitting `--mode` runs
+`syntax,semantic`. When `--mode` is present, nose runs exactly the channels you
+list; it does not add them to the default. See [clone-types](clone-types.md) for
+what each finds against the standard Type-1–4 taxonomy.
 
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
@@ -139,6 +139,14 @@ nose scan src --mode syntax --mode semantic    # same as --mode syntax,semantic
 
 The `near` channel takes its acceptance threshold inline — `--mode near:0.8` (default
 `0.70`). `syntax` and `semantic` are exact channels and take no threshold.
+
+There is also a hidden experimental `abstraction[:T]` mode. It reuses the `near`
+candidate stream, defaults to threshold `0.50`, and then keeps only same-language
+families whose normalized IL differs by exactly one supported literal leaf. Its
+claim is weaker than `semantic`: it reports a refactoring-template witness with a
+typed hole and caveats such as `numeric-domain-sensitive`; it does not say the two
+copies are behavior-equivalent. Use `--format json --top 0` to consume the
+`abstraction_witness` field documented in [scan-json](scan-json.md#abstraction-witnesses).
 
 The `syntax` channel is the CPD floor: it finds same-language duplicated token runs even
 when they start or end in the middle of a function. The normalized unit channels

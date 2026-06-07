@@ -40,6 +40,11 @@ runs that a token detector should catch, including runs that cross function boun
 it is not the renamed/literal-varied Type-2 story by itself. Use the default or add `near`
 when renamed or literal-varied copies matter.
 
+The hidden experimental `abstraction` mode narrows one slice of this space for tools:
+it starts from low-threshold `near` candidates, then reports only same-language pairs
+whose normalized IL differs by exactly one supported literal leaf. The output is a typed
+template witness, not a claim that the copies are behavior-equivalent.
+
 ## Type-3 — near-duplicate via similarity (the primary use)
 
 Unit pairs are scored by value-graph + shape similarity and structural alignment, and
@@ -143,7 +148,9 @@ separately with `recommended_surface`: default, review, or hidden. See
 Each type maps to a detection channel by evidence surface: **Type-1 and token-level
 copy floors → `syntax`**, identifier/type-normalized **Type-2 → `semantic` or `near`**,
 literal-varied Type-2 and **Type-3 → `near`** (fuzzy; the threshold rides on the mode,
-`near:0.8`), and exact **Type-4 → `semantic`**. The default is `syntax,semantic`; see
+`near:0.8`), and exact **Type-4 → `semantic`**. The experimental
+`abstraction[:T]` mode is a weak witness layer over a narrow `near` subset; it does not
+feed `semantic` or `verify`. The default is `syntax,semantic`; see
 [usage → Scan modes](usage.md#scan-modes) for the full table and how to compose channels.
 
 The taxonomy is usually stated within a single language; because every language lowers to
