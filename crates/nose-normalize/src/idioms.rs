@@ -10,9 +10,10 @@
 use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     domain_evidence_from_param_semantic, free_function_builtin_contract,
-    iterator_identity_adapter_contract, method_call_contract, method_hof_contract,
-    rust_option_some_constructor_contract, BuiltinArgContract, DomainEvidence, MethodBuiltinArgs,
-    MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    iterator_identity_adapter_contract, map_key_view_contract, method_call_contract,
+    method_hof_contract, rust_option_some_constructor_contract, BuiltinArgContract, DomainEvidence,
+    MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
+    MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -827,7 +828,8 @@ fn key_set_receiver(old: &Il, interner: &Interner, id: NodeId) -> Option<NodeId>
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    if interner.resolve(method) != "keySet" {
+    let contract = map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?;
+    if contract.kind != MapKeyViewKind::Collection {
         return None;
     }
     old.children(kids[0]).first().copied()
