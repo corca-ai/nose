@@ -93,6 +93,13 @@ struct Interp<'a> {
     /// (non-self) opaque call stays unsupported.
     func_root: NodeId,
     func_name: Option<Symbol>,
+    /// In-file functions/methods by name (unique names only — an ambiguous name is omitted), so a
+    /// call to ANOTHER function is interpreted by binding the arguments and running its body
+    /// (a fresh frame, sharing the effect trace / step budget). This lets the oracle interpret
+    /// the *pre-canon* interprocedural form — a pure-function call is no longer opaque — and so
+    /// VALIDATE the interprocedural-inline canonicalization. Mutual/deep recursion safely hits
+    /// the step budget and the unit becomes uninterpretable.
+    funcs: FxHashMap<Symbol, NodeId>,
 }
 
 /// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
@@ -106,6 +113,26 @@ pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
         .iter()
         .find(|u| u.root == root)
         .and_then(|u| u.name);
+    // Unique-named in-file functions/methods, for cross-function call interpretation. An
+    // ambiguous name (two definitions) is dropped — it can't be resolved deterministically.
+    let mut funcs: FxHashMap<Symbol, NodeId> = FxHashMap::default();
+    let mut ambiguous: FxHashSet<Symbol> = FxHashSet::default();
+    for u in &il.units {
+        if !matches!(
+            u.kind,
+            nose_il::UnitKind::Function | nose_il::UnitKind::Method
+        ) {
+            continue;
+        }
+        let Some(name) = u.name else { continue };
+        if ambiguous.contains(&name) {
+            continue;
+        }
+        if funcs.insert(name, u.root).is_some() {
+            funcs.remove(&name);
+            ambiguous.insert(name);
+        }
+    }
     let mut it = Interp {
         il,
         steps: 0,
@@ -114,6 +141,7 @@ pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
         params: FxHashSet::default(),
         func_root: root,
         func_name,
+        funcs,
     };
     let mut env: FxHashMap<u32, Value> = FxHashMap::default();
     let kids = il.children(root).to_vec();
@@ -670,13 +698,15 @@ impl<'a> Interp<'a> {
     fn eval_user_call(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let kids = self.il.children(node).to_vec();
         let callee = *kids.first().ok_or(Unsupported)?;
-        let is_self = match (self.il.node(callee).payload, self.func_name) {
-            (Payload::Name(s), Some(name)) => s == name,
-            _ => false,
+        // Resolve the callee to a `Func` root: a same-named call is direct self-recursion; any
+        // other name resolves to a unique in-file function/method. Anything else (a computed
+        // callee, a method on a value, an unknown/ambiguous name) stays opaque (Unsupported), so
+        // the unit is excluded from the soundness check rather than guessed at.
+        let target = match (self.il.node(callee).payload, self.func_name) {
+            (Payload::Name(s), Some(name)) if s == name => self.func_root,
+            (Payload::Name(s), _) => *self.funcs.get(&s).ok_or(Unsupported)?,
+            _ => return Err(Unsupported),
         };
-        if !is_self {
-            return Err(Unsupported);
-        }
         // Evaluate the arguments in the CURRENT frame (call-by-value), left to right.
         let mut argv = Vec::with_capacity(kids.len().saturating_sub(1));
         for &a in &kids[1..] {
@@ -686,9 +716,11 @@ impl<'a> Interp<'a> {
             }
             argv.push(value);
         }
-        // Bind them positionally to the callee's parameters in a fresh environment; locals
-        // start empty, exactly like a real call.
-        let params = self.il.children(self.func_root).to_vec();
+        // Bind them positionally to the CALLEE's parameters in a fresh environment; locals
+        // start empty, exactly like a real call. The effect trace, field state, and step budget
+        // are shared with the caller (so effects stay ordered and runaway recursion terminates),
+        // and the func context is swapped to the callee so its own self-calls resolve.
+        let params = self.il.children(target).to_vec();
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         let mut pi = 0;
         for &p in &params {
@@ -700,7 +732,15 @@ impl<'a> Interp<'a> {
             }
         }
         let body = *params.last().ok_or(Unsupported)?;
-        match self.exec(body, &mut fenv)? {
+        let saved = (self.func_root, self.func_name);
+        self.func_root = target;
+        self.func_name = match self.il.node(callee).payload {
+            Payload::Name(s) => Some(s),
+            _ => self.func_name,
+        };
+        let result = self.exec(body, &mut fenv);
+        (self.func_root, self.func_name) = saved;
+        match result? {
             Flow::Ret(v) => Ok(v),
             Flow::Err => Ok(Value::Err),
             _ => Ok(Value::Null),
@@ -2621,6 +2661,63 @@ mod tests {
     #[test]
     fn self_call_argument_err_stops_execution() {
         assert_eq!(self_call_with_error_arg_ignored_by_callee(), Value::Err);
+    }
+
+    /// `g(x) = x*x` and `f(x) = g(x) + 1` in one file — running `f(3)` must interpret the
+    /// cross-function call to `g` (not bail out as opaque), giving `3*3 + 1 = 10`. This is what
+    /// lets the oracle validate the interprocedural-inline canonicalization.
+    fn cross_function_call_result() -> Value {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let g_name = interner.intern("g");
+        let f_name = interner.intern("f");
+        // g(x) = x * x
+        let g_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let gx1 = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let gx2 = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let g_mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp, &[gx1, gx2]);
+        let g_ret = b.add(NodeKind::Return, Payload::None, sp, &[g_mul]);
+        let g_body = b.add(NodeKind::Block, Payload::None, sp, &[g_ret]);
+        let g_func = b.add(NodeKind::Func, Payload::None, sp, &[g_param, g_body]);
+        // f(x) = g(x) + 1
+        let f_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let callee = b.add(NodeKind::Var, Payload::Name(g_name), sp, &[]);
+        let fx = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp, &[callee, fx]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let f_add = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp, &[call, one]);
+        let f_ret = b.add(NodeKind::Return, Payload::None, sp, &[f_add]);
+        let f_body = b.add(NodeKind::Block, Payload::None, sp, &[f_ret]);
+        let f_func = b.add(NodeKind::Func, Payload::None, sp, &[f_param, f_body]);
+        let il = b.finish(
+            f_func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            vec![
+                Unit {
+                    root: g_func,
+                    kind: UnitKind::Function,
+                    name: Some(g_name),
+                },
+                Unit {
+                    root: f_func,
+                    kind: UnitKind::Function,
+                    name: Some(f_name),
+                },
+            ],
+            Vec::new(),
+        );
+        run_unit(&il, f_func, &[Value::Int(3)])
+            .expect("run_unit")
+            .ret
+    }
+
+    #[test]
+    fn cross_function_call_is_interpreted() {
+        assert_eq!(cross_function_call_result(), Value::Int(10));
     }
 
     fn run_any_all_with_error_predicate(all: bool) -> Value {
