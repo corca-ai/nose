@@ -5,13 +5,15 @@ implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
 record substrate is described in [evidence-records](evidence-records.md).
 
-Snapshot date: 2026-06-07, current implementation after the semantic-kernel
+Snapshot date: 2026-06-08, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
 sequence-surface contracts, proof-backed append fragment evidence, and the first
 operator-law contracts, typed import facts, and source-fact gates for construct,
 literal, equality/operator provenance, and the first shared evidence-record
 substrate for source, domain, import, symbol-identity, and sequence-surface
-facts.
+facts. Library/API identity is now consolidated further through internal
+`LibraryApiContract` rows for both factory and selected non-factory method/view
+surfaces.
 
 ## What exists today
 
@@ -85,14 +87,15 @@ migrated.
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
   value. JS object `.length` remains a property read, not collection cardinality.
-- Promise `.then` has a JS-like surface contract, but exact beta-reduction is
-  closed until a pack/frontend can prove a Promise-like receiver.
+- Promise `.then` has a JS-like library API contract, but exact beta-reduction
+  is closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
-  `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
-  Normalize's exact protocol receiver admission consumes this same contract
-  instead of accepting same-named methods from other languages.
+  `copied`, `cloned`) are language-, arity-, and receiver-proof constrained
+  through `LibraryApiContract`. Normalize's exact protocol receiver admission
+  consumes this same contract instead of accepting same-named methods from other
+  languages.
 - Rust method `zip(...)` is admitted as a protocol-pair operation only through
-  the Rust `method_call_contract` and exact protocol proof for both sides.
+  the Rust library method-call contract and exact protocol proof for both sides.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
   selector and shadow-root requirement through `nose-semantics`;
@@ -112,6 +115,17 @@ migrated.
   shared contract source while still proving local import, require, shadowing,
   constructor syntax, entry-shape, mutation, and exact-safety obligations at the
   caller.
+- Selected non-factory library/API surfaces also consume `LibraryApiContract`
+  rows before normalize, value-graph, or strict exact paths assign semantics.
+  Current rows cover map-key views and wrappers, Java/Rust/JS-like map `get`,
+  Python/Java/Ruby map defaulting through method contracts, Rust
+  `get(...).is_some()`/`unwrap_or(...)`, JS-like `Array.isArray`, `Boolean(...)`,
+  regex-literal `.test(...)`, Python `math.prod`, promise `.then`, Rust/Java
+  iterator adapters, Java `Arrays.stream`, and the language-scoped method-call
+  surfaces already admitted by `method_call_contract`. These rows carry callee
+  identity and result obligations; local consumers still prove receiver domain,
+  import/symbol identity, source facts, exact-safe arguments, fallback demand
+  shape, and mutation safety.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` only for the Java `java.util` list types. Simple names
   require `java.util` import proof and no local type declaration with the same
@@ -145,11 +159,12 @@ migrated.
   sequence collection case is handled only by the explicit collection profile
   path.
 - Collection reductions such as Rust `Iterator::count()` and Java
-  `Stream.count()` are admitted through exact protocol receiver contracts, not
-  through a bare method-name check.
-- Java stream source adapters are split by proof: `receiver.stream()` requires
-  an exact iterable receiver, while `Arrays.stream(xs)` requires the
-  `java.util.Arrays` import binding and no local `Arrays` type shadow.
+  `Stream.count()` are admitted through library method contracts plus exact
+  protocol receiver proof, not through a bare method-name check.
+- Java stream source adapters are split by proof through library API contracts:
+  `receiver.stream()` requires an exact iterable receiver, while
+  `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local
+  `Arrays` type shadow.
 - Cross-file immutable import replacement now preserves import-binding
   dependencies used by the exported literal expression, so a Java static import
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
@@ -158,20 +173,20 @@ migrated.
   `LOOKUP.clear()`, `LOOKUP.push(...)`, and `LOOKUP[key] = value`, and
   provider-side opaque argument escapes such as `mutate(LOOKUP)`, before
   imported literal provenance can enter exact matching.
-- Membership and map-key membership selectors now consume language-scoped method
-  contracts before normalize/detect treat them as semantic containment. A method
-  named `contains` is Java/Rust collection membership only; JavaScript
-  `.contains(...)` is not accepted as array membership. Map-key examples include
-  Java `Map.containsKey`, Java `keySet().contains`, Rust `contains_key`, Rust
-  `get(key).is_some()`, Ruby `key?`/`has_key?`, Python `__contains__`, and
-  TypeScript `Array.from(map.keys()).includes(key)` when the receiver is a
-  typed/proven map.
-- Map key-view contracts distinguish collection views from iterator views:
+- Membership and map-key membership selectors now consume language-scoped
+  library method contracts before normalize/detect treat them as semantic
+  containment. A method named `contains` is Java/Rust collection membership
+  only; JavaScript `.contains(...)` is not accepted as array membership. Map-key
+  examples include Java `Map.containsKey`, Java `keySet().contains`, Rust
+  `contains_key`, Rust `get(key).is_some()`, Ruby `key?`/`has_key?`, Python
+  `__contains__`, and TypeScript `Array.from(map.keys()).includes(key)` when the
+  receiver is a typed/proven map.
+- Map key-view library contracts distinguish collection views from iterator views:
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
   contract plus `QualifiedGlobal("Array.from")` symbol evidence before it can
   feed exact membership.
-- Map lookup surfaces that return a value/option are now explicit contracts for
+- Map lookup surfaces that return a value/option are now explicit library API contracts for
   Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
   `dict.get(key, default)`, Java `getOrDefault`, and Ruby `fetch` still use the
   `GetOrDefault` method contract. Ruby `fetch(key) { fallback }` carries a

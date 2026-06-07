@@ -255,6 +255,13 @@ and pack ecosystem.
   Strict exact and value-graph paths require that evidence plus
   `SequenceSurface(RecordGuard)`, so raw `Seq("record_guard")` no longer acts as
   a proof object by tag spelling.
+- Non-factory library/API surfaces started moving into `LibraryApiContract`
+  identity/result rows. Map-key views and wrappers, map `get`/defaulting method
+  calls, selected static JS-like helpers, regex-literal `.test`, Python
+  `math.prod`, promise `.then`, iterator identity adapters, Java
+  `Arrays.stream`, and existing language-scoped method-call gates now share the
+  same API-contract source across normalize, value-graph, and strict exact
+  consumers.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -312,13 +319,18 @@ Remaining in this phase:
 - Continue moving library API recognition into `LibraryApiContract` records.
   The first internal slice covers collection/map factories, selected
   constructors, Java `Map.entry`, and the shared shadow/import/result
-  obligations consumed by normalize and strict exact gates. Remaining work is to
-  cover non-factory API surfaces such as map-key views/wrappers, lookup/default
-  methods, static-global helpers, iterator adapters, and reductions.
+  obligations consumed by normalize and strict exact gates. The next slice moved
+  selected non-factory surfaces behind the same identity/result facade: map-key
+  views and wrappers, map `get`, map defaulting method calls, static JS-like
+  helpers, regex-literal `.test`, Python `math.prod`, promise `.then`, iterator
+  identity adapters, Java `Arrays.stream`, and existing language-scoped method
+  call contracts.
 - Keep value-graph and strict exact gates on the same contract source. Factory
-  gates now share `LibraryApiContract` identity/result rows; method/view gates
-  still use narrower first-party contract helpers and should move behind the
-  same API-contract facade before the external pack boundary stabilizes.
+  and selected method/view/adapter gates now share `LibraryApiContract`
+  identity/result rows. Remaining API work is to move producer-side API evidence
+  and raw sequence/tag dependencies into explicit evidence records, then cover
+  broader reduction/HOF and ecosystem APIs only after demand, receiver, and
+  effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph

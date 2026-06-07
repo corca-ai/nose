@@ -10,14 +10,14 @@
 use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     domain_evidence_for_param, free_function_builtin_contract, imported_binding_symbol,
-    imported_namespace_symbol, iterator_identity_adapter_contract,
-    library_api_free_name_shadow_safe, library_free_name_map_factory_contract, map_get_contract,
-    map_key_view_contract, method_call_contract, method_hof_contract,
-    rust_option_some_constructor_contract, seq_surface_contract_for_node,
-    static_collection_adapter_contract, unshadowed_global_symbol, BuiltinArgContract,
-    DomainEvidence, LibraryApiCalleeContract, LibraryMapFactoryResult, MapKeyViewKind,
-    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
-    SEQ_VALUE_MAP,
+    imported_namespace_symbol, library_api_free_name_shadow_safe,
+    library_free_name_map_factory_contract, library_iterator_identity_adapter_contract,
+    library_map_get_contract, library_map_key_view_contract, library_method_call_contract,
+    library_static_collection_adapter_contract, method_hof_contract,
+    rust_option_some_constructor_contract, seq_surface_contract_for_node, unshadowed_global_symbol,
+    BuiltinArgContract, DomainEvidence, LibraryApiCalleeContract, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
+    MethodSemanticContract, SEQ_VALUE_MAP,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -85,16 +85,18 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
             if let Payload::Name(s) = cn.payload {
                 let fname = interner.resolve(s);
                 let base = old.children(callee).first().copied();
-                if let Some(contract) = method_call_contract(old.meta.lang, fname, args.len()) {
+                if let Some(contract) =
+                    library_method_call_contract(old.meta.lang, fname, args.len())
+                {
                     let Some(base) = base else {
                         return CallCanon::None;
                     };
                     let Some(proven) =
-                        prove_method_receiver(old, interner, contract.receiver, base, args)
+                        prove_method_receiver(old, interner, contract.result.receiver, base, args)
                     else {
                         return CallCanon::None;
                     };
-                    return apply_method_contract(old, interner, contract, proven, args);
+                    return apply_method_contract(old, interner, contract.result, proven, args);
                 }
             }
         }
@@ -420,7 +422,7 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
                             return arg;
                         }
                     }
-                    if iterator_identity_adapter_contract(
+                    if library_iterator_identity_adapter_contract(
                         old.meta.lang,
                         method,
                         call_kids.len() - 1,
@@ -466,7 +468,8 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
     if let Some(arg) = static_collection_adapter_arg(old, interner, receiver, method, kids) {
         return exact_collection_receiver(old, interner, arg);
     }
-    if let Some(contract) = method_call_contract(old.meta.lang, method, kids.len() - 1) {
+    if let Some(contract) = library_method_call_contract(old.meta.lang, method, kids.len() - 1) {
+        let contract = contract.result;
         if contract.semantic == MethodSemanticContract::Builtin(Builtin::Zip)
             && contract.receiver == MethodReceiverContract::ExactProtocolPairArgument
             && contract.args == MethodBuiltinArgs::RustZip
@@ -475,7 +478,7 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
                 && exact_protocol_receiver(old, interner, kids[1]);
         }
     }
-    if iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
+    if library_iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
         return exact_protocol_receiver(old, interner, receiver);
     }
     if method_hof_contract(old.meta.lang, method).is_some() && kids.len() >= 2 {
@@ -496,12 +499,13 @@ fn static_collection_adapter_arg(
     call_kids: &[NodeId],
 ) -> Option<NodeId> {
     let receiver_name = name_of(old, interner, receiver)?;
-    let contract = static_collection_adapter_contract(
+    let contract = library_static_collection_adapter_contract(
         old.meta.lang,
         receiver_name,
         method,
         call_kids.len().saturating_sub(1),
     )?;
+    let contract = contract.result;
     if file_defines_type_name(old, interner, receiver_name)
         || !imported_binding_symbol(old, interner, receiver, contract.module, contract.exported)
     {
@@ -837,7 +841,7 @@ fn map_get_call_parts(old: &Il, interner: &Interner, id: NodeId) -> Option<(Node
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    map_get_contract(old.meta.lang, interner.resolve(method), 1)?;
+    library_map_get_contract(old.meta.lang, interner.resolve(method), 1)?;
     let receiver = *old.children(kids[0]).first()?;
     Some((receiver, kids[1]))
 }
@@ -853,7 +857,8 @@ fn key_set_receiver(old: &Il, interner: &Interner, id: NodeId) -> Option<NodeId>
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    let contract = map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?;
+    let contract =
+        library_map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?.result;
     if contract.kind != MapKeyViewKind::Collection {
         return None;
     }

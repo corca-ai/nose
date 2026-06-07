@@ -53,28 +53,28 @@ use nose_semantics::{
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_static_membership_predicate_operator, free_function_builtin_contract,
     go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_evidence_rhs,
-    imported_namespace_function_contract, imported_namespace_symbol,
-    iterator_identity_adapter_contract, library_api_free_name_shadow_safe,
+    imported_namespace_symbol, library_api_free_name_shadow_safe,
     library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
-    library_imported_collection_factory_contracts,
-    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
-    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_ruby_set_factory_contract_by_hash,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    map_get_contract_by_hash, map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash,
-    method_call_contract, nullish_global_contract, qualified_global_symbol_at_span,
-    record_shape_guard_for_node, reduction_builtin_contract, rust_option_and_then_contract,
-    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
-    source_operator_at_node, static_index_membership_contract, unshadowed_global_symbol,
-    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
-    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
-    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
+    library_iterator_identity_adapter_contract, library_java_collection_factory_contract_by_hash,
+    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
+    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
+    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, nullish_global_contract,
+    qualified_global_symbol_at_span, record_shape_guard_for_node, reduction_builtin_contract,
+    rust_option_and_then_contract, rust_option_none_sentinel_contract,
+    rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
+    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
+    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
+    ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryCollectionFactoryResult,
+    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1609,7 +1609,7 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return None;
         };
-        map_get_contract_by_hash(self.il.meta.lang, method, args.len().saturating_sub(1))?;
+        library_map_get_contract_by_hash(self.il.meta.lang, method, args.len().saturating_sub(1))?;
         if callee.args.len() != 1 {
             return None;
         }
@@ -1641,7 +1641,8 @@ impl<'a> Builder<'a> {
             let ValOp::Field(method) = callee.op else {
                 return None;
             };
-            let contract = map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?;
+            let contract =
+                library_map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?.result;
             if contract.kind != accepted || callee.args.len() != 1 {
                 return None;
             }
@@ -1657,8 +1658,13 @@ impl<'a> Builder<'a> {
             let ValOp::Field(method) = callee.op else {
                 return None;
             };
-            let contract =
-                map_key_view_wrapper_contract_by_hash(self.il.meta.lang, "Array", method, 1)?;
+            let contract = library_map_key_view_wrapper_contract_by_hash(
+                self.il.meta.lang,
+                "Array",
+                method,
+                1,
+            )?
+            .result;
             if accepted != MapKeyViewKind::Collection
                 || callee.args.len() != 1
                 || !qualified_global_symbol_at_span(
@@ -1701,7 +1707,8 @@ impl<'a> Builder<'a> {
         let receiver = callee_kids.first().copied();
 
         let contract =
-            method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?;
+            library_method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?
+                .result;
         if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains) {
             return None;
         }
@@ -1783,7 +1790,7 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let contract = method_call_contract(self.il.meta.lang, method, 1)?;
+        let contract = library_method_call_contract(self.il.meta.lang, method, 1)?.result;
         if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
             || contract.args != MethodBuiltinArgs::FirstThenReceiver
             || !matches!(
@@ -1821,11 +1828,12 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        let contract = method_call_contract(
+        let contract = library_method_call_contract(
             self.il.meta.lang,
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
-        )?;
+        )?
+        .result;
         if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
             || contract.receiver != MethodReceiverContract::ExactMap
             || !matches!(
@@ -6638,7 +6646,7 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return false;
         };
-        if map_get_contract_by_hash(self.il.meta.lang, method, 1).is_none()
+        if library_map_get_contract_by_hash(self.il.meta.lang, method, 1).is_none()
             || callee.args.len() != 1
         {
             return false;
@@ -6791,11 +6799,12 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        let contract = method_call_contract(
+        let contract = library_method_call_contract(
             self.il.meta.lang,
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
-        )?;
+        )?
+        .result;
         if contract.semantic != MethodSemanticContract::Builtin(Builtin::Len)
             || contract.receiver != MethodReceiverContract::ExactProtocol
             || contract.args != MethodBuiltinArgs::CollectionReduction
@@ -6829,11 +6838,12 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        let contract = imported_namespace_function_contract(
+        let contract = library_imported_namespace_function_contract(
             self.il.meta.lang,
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
-        )?;
+        )?
+        .result;
         let base = *self.il.children(callee).first()?;
         if !self.is_import_namespace_expr(base, contract.module, env) {
             return None;
@@ -6871,11 +6881,12 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        let contract = iterator_identity_adapter_contract(
+        let contract = library_iterator_identity_adapter_contract(
             self.il.meta.lang,
             self.interner.resolve(method),
             0,
-        )?;
+        )?
+        .result;
         let base = *self.il.children(kids[0]).first()?;
         let value = self.eval(base, env);
         let value = self.param_domain_value(value);
@@ -6907,7 +6918,9 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        let contract = method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?;
+        let contract =
+            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?
+                .result;
         if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
             || contract.args != MethodBuiltinArgs::RustMapGetOrOptionDefault
         {
@@ -6934,7 +6947,9 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        let contract = method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?;
+        let contract =
+            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?
+                .result;
         if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
             || contract.args != MethodBuiltinArgs::ReceiverOnly
             || contract.semantic != MethodSemanticContract::Builtin(Builtin::IsNotNull)
