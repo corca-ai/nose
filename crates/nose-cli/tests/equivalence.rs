@@ -447,6 +447,9 @@ fn java_stream_aggregates_converge_with_loops() {
     let all_stream = "import java.util.Arrays; class C { static boolean f(int[] xs) { return Arrays.stream(xs).allMatch(x -> x >= 0); } }";
     let bad_seed =
         "import java.util.Arrays; class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(1, (total, x) -> total + x); } }";
+    let missing_arrays_import = "class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(0, (total, x) -> total + x); } }";
+    let shadowed_arrays =
+        "import java.util.Arrays; class Arrays {} class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(0, (total, x) -> total + x); } }";
     let sum_fp = value_fp(&i, sum_loop, Lang::Java);
     assert_eq!(sum_fp, value_fp(&i, sum_stream, Lang::Java));
     assert_eq!(
@@ -462,6 +465,8 @@ fn java_stream_aggregates_converge_with_loops() {
         value_fp(&i, all_stream, Lang::Java)
     );
     assert_ne!(sum_fp, value_fp(&i, bad_seed, Lang::Java));
+    assert_ne!(sum_fp, value_fp(&i, missing_arrays_import, Lang::Java));
+    assert_ne!(sum_fp, value_fp(&i, shadowed_arrays, Lang::Java));
 }
 
 #[test]
@@ -544,22 +549,22 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
-fn ruby_shovel_builder_loop_converges_with_comprehension() {
-    // Ruby builds a list with `out = []; xs.each { |x| out << e }` — `<<` lowers to `Shl`.
-    // Recognizing `out << e` as the per-element build (scoped to Ruby AND the empty-Seq seed,
-    // so integer `a << b` shift never enters) makes it converge with the Python comprehension.
+fn ruby_shovel_builder_each_stays_closed_without_receiver_proof() {
+    // Ruby `xs.each { ... }` stays an ordinary block call until a pack supplies receiver/protocol
+    // proof for `xs`. The Ruby `<<` builder signal is still retained inside the opaque call body,
+    // but the default analyzer must not infer Enumerable semantics from the method name alone.
     let i = Interner::new();
     let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
     let ruby_build = "def f(xs)\n  out = []\n  xs.each { |x| out << x * x }\n  out\nend\n";
     let ruby_diff = "def f(xs)\n  out = []\n  xs.each { |x| out << x + 1 }\n  out\nend\n";
     let comp_fp = value_fp(&i, py_comp, Lang::Python);
-    assert_eq!(
-        comp_fp,
-        value_fp(&i, ruby_build, Lang::Ruby),
-        "ruby << builder loop must converge with the python comprehension"
-    );
     assert_ne!(
         comp_fp,
+        value_fp(&i, ruby_build, Lang::Ruby),
+        "ruby each builder must stay closed without receiver/protocol proof"
+    );
+    assert_ne!(
+        value_fp(&i, ruby_build, Lang::Ruby),
         value_fp(&i, ruby_diff, Lang::Ruby),
         "a different per-element contribution must stay distinct"
     );
@@ -854,11 +859,18 @@ fn python_math_prod_converges_with_product_loop() {
     let loop_py = "def f(xs):\n    product = 1\n    for x in xs:\n        if x > 0:\n            product *= x\n    return product\n";
     let prod_py =
         "import math\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let aliased_prod_py =
+        "import math as m\n\ndef f(xs):\n    return m.prod((x for x in xs if x > 0), start=1)\n";
     let bad_seed =
         "import math\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=2)\n";
+    let missing_import = "def f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let shadowed_math = "import math\nmath = object()\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
     let loop_fp = value_fp(&i, loop_py, Lang::Python);
     assert_eq!(loop_fp, value_fp(&i, prod_py, Lang::Python));
+    assert_eq!(loop_fp, value_fp(&i, aliased_prod_py, Lang::Python));
     assert_ne!(loop_fp, value_fp(&i, bad_seed, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, missing_import, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, shadowed_math, Lang::Python));
 }
 
 #[test]
@@ -896,7 +908,11 @@ fn c_pointer_length_contract_converges_cross_language() {
 
     let c_fp = value_fp(&i, c, Lang::C);
     assert_eq!(c_fp, value_fp(&i, java, Lang::Java));
-    assert_eq!(c_fp, value_fp(&i, ruby, Lang::Ruby));
+    assert_ne!(
+        c_fp,
+        value_fp(&i, ruby, Lang::Ruby),
+        "ruby each must stay closed until receiver/protocol proof exists"
+    );
     assert_ne!(c_fp, value_fp(&i, param_order_not_contract, Lang::C));
     assert_ne!(c_fp, value_fp(&i, inclusive, Lang::C));
 }
@@ -915,7 +931,11 @@ fn c_integer_boolean_any_all_converge_cross_language() {
     let non_bool_return = "int f(int *xs, int n) { for (int i = 0; i < n; i++) { if (xs[i] == 0) { return 2; } } return 0; }";
 
     let any_fp = value_fp(&i, c_any, Lang::C);
-    assert_eq!(any_fp, value_fp(&i, ruby_any, Lang::Ruby));
+    assert_ne!(
+        any_fp,
+        value_fp(&i, ruby_any, Lang::Ruby),
+        "ruby each must stay closed until receiver/protocol proof exists"
+    );
     assert_eq!(any_fp, value_fp(&i, java_any, Lang::Java));
     assert_eq!(
         value_fp(&i, c_all, Lang::C),
@@ -1016,7 +1036,11 @@ fn dot_product_converges_across_index_zip_and_enumerate() {
     assert_eq!(fp, value_fp(&i, go_for, Lang::Go));
     assert_eq!(fp, value_fp(&i, rust_range, Lang::Rust));
     assert_eq!(fp, value_fp(&i, rust_zip, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, ruby_each, Lang::Ruby));
+    assert_ne!(
+        fp,
+        value_fp(&i, ruby_each, Lang::Ruby),
+        "ruby each_with_index must stay closed until receiver/protocol proof exists"
+    );
     assert_ne!(fp, value_fp(&i, ruby_while, Lang::Ruby));
     assert_eq!(
         return_fp(&i, py_loop, Lang::Python),
@@ -1079,6 +1103,7 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
         "pub fn f(value: i64, other: i64) -> i64 { let magnitude = value.abs(); magnitude + other }\n";
     let shadowed_js = "function f(Math, value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
     let local_shadowed_js = "function f(value, other) { const Math = { abs: function(_value) { return 0; } }; const magnitude = Math.abs(value); return magnitude + other; }";
+    let java_shadowed_math_param = "class Math { int abs(int value) { return 0; } }\nclass C { static int f(Math Math, int value, int other) { int magnitude = Math.abs(value); return magnitude + other; } }\n";
     let ts_number_method_abs = "function f(value: number, other: number): number { const magnitude = value.abs(); return magnitude + other; }";
     let rust_float_abs = "pub fn f(value: f64, other: f64) -> f64 { let magnitude = value.abs(); magnitude + other }\n";
     let custom_rust_abs = "struct Wrap(i64);\nimpl Wrap { fn abs(&self) -> i64 { 0 } }\npub fn f(value: Wrap) -> i64 { let magnitude = value.abs(); magnitude + 1 }\n";
@@ -1091,6 +1116,10 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
     assert_eq!(fp, value_fp(&i, rust_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, local_shadowed_js, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp_named(&i, java_shadowed_math_param, Lang::Java, "f")
+    );
     assert_ne!(fp, value_fp(&i, ts_number_method_abs, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, rust_float_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_abs, Lang::Rust));
@@ -1119,6 +1148,7 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     let py_shadowed_min =
         "def min(_left, _right):\n    return 0\n\ndef f(left, right, other):\n    selected = min(left, right)\n    return selected + other\n";
     let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
+    let java_shadowed_math_type = "class C { static int f(int left, int right, int other) { int selected = Math.min(left, right); return selected + other; } }\nclass Math { static int min(int left, int right) { return 0; } }\n";
     let ts_number_method_min = "function f(left: number, right: number, other: number): number { const selected = left.min(right); return selected + other; }";
     let rust_float_min = "pub fn f(left: f64, right: f64, other: f64) -> f64 { let selected = left.min(right); selected + other }\n";
     let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
@@ -1145,6 +1175,10 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     assert_ne!(fp, value_fp(&i, py_wrong_value, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_shadowed_min, Lang::Python));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp_named(&i, java_shadowed_math_type, Lang::Java, "f")
+    );
     assert_ne!(fp, value_fp(&i, ts_number_method_min, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, rust_float_min, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_min, Lang::Rust));
@@ -1774,7 +1808,7 @@ fn comprehension_converges_with_js_map() {
 }
 
 #[test]
-fn find_max_converges_py_rust_ruby() {
+fn find_max_converges_py_rust_but_ruby_each_stays_closed() {
     // A second algorithm shape (index `items[0]`, compare, branch-assign) converges
     // across languages — guards against shape-specific convergence over-fitting.
     let i = Interner::new();
@@ -1787,10 +1821,10 @@ fn find_max_converges_py_rust_ruby() {
         unit_hash(&i, rs, Lang::Rust),
         "python == rust (find-max)"
     );
-    assert_eq!(
+    assert_ne!(
         h,
         unit_hash(&i, rb, Lang::Ruby),
-        "python == ruby (find-max)"
+        "ruby each must stay closed until receiver/protocol proof exists"
     );
 }
 
@@ -1836,17 +1870,18 @@ fn c_non_equivalent_different_op_differ() {
 }
 
 #[test]
-fn ruby_each_converges_with_python_foreach() {
-    // Ruby `xs.each { |x| … }` and a Python `for x in xs` loop share IL shape.
+fn ruby_each_stays_closed_without_receiver_proof() {
+    // Ruby `xs.each { |x| ... }` is just a method call unless a pack proves that `xs` has
+    // Ruby Enumerable semantics. The analyzer must not infer a foreach loop from the name `each`.
     let i = Interner::new();
     let rb =
         "def f(items)\n  total = 0\n  items.each do |x|\n    total += x\n  end\n  total\nend\n";
     let py =
         "def f(items):\n    total = 0\n    for x in items:\n        total += x\n    return total\n";
-    assert_eq!(
+    assert_ne!(
         unit_hash(&i, rb, Lang::Ruby),
         unit_hash(&i, py, Lang::Python),
-        "ruby each == python for"
+        "ruby each must stay closed without receiver/protocol proof"
     );
 }
 
@@ -2522,6 +2557,12 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         Lang::Rust,
         "f",
     );
+    let shadowed_none_rs = value_fp_named(
+        &i,
+        "const None: Option<i32> = Some(0);\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+        "f",
+    );
     let shadowed_vec_rs = value_fp_named(
         &i,
         "struct Vec;\nimpl Vec { fn new() -> Vec { Vec } fn push(&self, _value: i32) {} }\nfn f(xs: &[i32]) -> Vec { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
@@ -2580,6 +2621,10 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
     assert_ne!(
         filtered_py, shadowed_some_rs,
         "a local Rust Some definition must not be treated as Option::Some"
+    );
+    assert_ne!(
+        filtered_py, shadowed_none_rs,
+        "a local Rust None definition must not be treated as Option::None"
     );
     assert_ne!(
         filtered_py, shadowed_vec_rs,
@@ -3298,6 +3343,7 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     let ruby = "def f(lookup, other_lookup, key, other)\n  lookup.key?(key)\nend\n";
     let ruby_has = "def f(lookup, other_lookup, key, other)\n  lookup.has_key?(key)\nend\n";
     let ts_array_from_keys = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(key); }";
+    let ts_direct_keys_includes = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return lookup.keys().includes(key); }";
     let typed_set_same_names = "function f(lookup: Set<string>, other_lookup: Set<string>, key: string, other: string): boolean { return lookup.has(key); }";
     let wrong_key =
         "def f(lookup, other_lookup, key, other):\n    return lookup.__contains__(other)\n";
@@ -3324,6 +3370,11 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     assert_ne!(fp, value_fp(&i, ruby, Lang::Ruby));
     assert_ne!(fp, value_fp(&i, ruby_has, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, ts_array_from_keys, Lang::TypeScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, ts_direct_keys_includes, Lang::TypeScript),
+        "Map.keys() is an iterator view; direct .includes is not a proven key-view collection"
+    );
     assert_ne!(fp, value_fp(&i, typed_set_same_names, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, wrong_key, Lang::Python));
     assert_ne!(fp, value_fp(&i, wrong_map, Lang::Python));
@@ -3486,6 +3537,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_module_set =
         "const VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value, other) { return VALUES.has(value); }";
     let ts_module_set = "const VALUES = new Set<string>([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
+    let js_array_contains =
+        "function f(value, other) { return [\"red\", \"blue\"].contains(value); }";
     let js_array_some =
         "function f(value, other) { return [\"red\", \"blue\"].some((item) => item === value); }";
     let ts_array_some = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].some((item: string) => item === value); }";
@@ -3634,6 +3687,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
     assert_ne!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
     assert_ne!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_array_contains, Lang::JavaScript),
+        "JavaScript .contains is not a standard array membership contract"
+    );
     assert_eq!(literal_fp, value_fp(&i, js_array_some, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, ts_array_some, Lang::TypeScript));
     assert_eq!(
@@ -4360,6 +4418,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
     )
     .unwrap();
     std::fs::write(
+        dir.join("rust_imported_shadowed_std.rs"),
+        "use tables::LOOKUP;\n\nmod std { pub mod collections { pub struct HashMap; } }\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("wrong_tables.rs"),
         "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 9), (\"blue\", 2)];\n",
     )
@@ -4391,6 +4454,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         local,
         corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
         "Rust use-imported const entries should prove the same map/default coordinates"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported_shadowed_std.rs", "lookup"),
+        "a local Rust std module must block imported std map factory provenance"
     );
     assert_ne!(
         local,
@@ -4543,6 +4611,7 @@ fn option_defaulting_converges_with_nullish_default_boundaries() {
     let wrong_value = "pub fn f(value: Option<i32>, fallback: i32, other: Option<i32>, other_default: i32) -> i32 { other.unwrap_or(fallback) }\n";
     let truthy_or =
         "function f(value, fallback, other, otherDefault) { return value || fallback; }";
+    let shadowed_undefined = "function f(value, fallback, other, otherDefault, undefined) { return value === undefined ? fallback : value; }";
 
     let fp = value_fp(&i, js, Lang::JavaScript);
     assert_eq!(fp, value_fp(&i, js_guard, Lang::JavaScript));
@@ -4554,6 +4623,7 @@ fn option_defaulting_converges_with_nullish_default_boundaries() {
     assert_ne!(fp, value_fp(&i, wrong_default, Lang::Rust));
     assert_ne!(fp, value_fp(&i, wrong_value, Lang::Rust));
     assert_ne!(fp, value_fp(&i, truthy_or, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, shadowed_undefined, Lang::JavaScript));
 }
 
 #[test]
@@ -4575,6 +4645,7 @@ fn rust_if_let_option_presence_converges_with_option_predicates() {
     let if_some = "pub fn f(value: Option<i32>) -> bool {\n    if let Some(_) = value { true } else { false }\n}\n";
     let is_some = "pub fn g(value: Option<i32>) -> bool {\n    value.is_some()\n}\n";
     let if_none = "pub fn h(value: Option<i32>) -> bool {\n    if let None = value { true } else { false }\n}\n";
+    let shadowed_some_pattern = "struct Some<T>(T);\npub fn f(value: Some<i32>) -> bool {\n    if let Some(_) = value { true } else { false }\n}\n";
     assert_eq!(
         value_fp(&i, if_some, Lang::Rust),
         value_fp(&i, is_some, Lang::Rust),
@@ -4584,6 +4655,11 @@ fn rust_if_let_option_presence_converges_with_option_predicates() {
         value_fp(&i, if_some, Lang::Rust),
         value_fp(&i, if_none, Lang::Rust),
         "if let Some(_) must stay distinct from if let None"
+    );
+    assert_ne!(
+        value_fp(&i, if_some, Lang::Rust),
+        value_fp_named(&i, shadowed_some_pattern, Lang::Rust, "f"),
+        "a local Rust Some pattern must not be treated as Option::Some"
     );
 }
 

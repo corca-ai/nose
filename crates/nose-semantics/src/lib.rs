@@ -6,7 +6,10 @@
 //! extend this contract surface rather than letting packs mint fingerprints or
 //! approve exact clone matches directly.
 
-use nose_il::{Builtin, HoFKind, Lang};
+use nose_il::{
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op,
+    ParamSemantic, Payload,
+};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
@@ -18,7 +21,99 @@ pub enum ChannelEligibility {
     NearOnly,
     ExactEmpirical,
     ExactProven,
-    FirstParty,
+}
+
+/// Trust/provenance policy for a pack, separate from which analysis channel a fact may enter.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PackTrust {
+    DefaultFirstParty,
+    FirstPartyOptional,
+    ExternalOptIn,
+}
+
+/// Kernel-facing domain evidence recovered from source facts, type inference, or future packs.
+///
+/// `nose-il::ParamSemantic` is the current frontend storage format for source-level parameter
+/// annotations. Exact gates should consume this semantic-kernel vocabulary instead, so future
+/// packs can provide equivalent evidence without becoming coupled to frontend syntax facts.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum DomainEvidence {
+    Array,
+    ByteArray,
+    Collection,
+    Integer,
+    Map,
+    Number,
+    Option,
+    Set,
+    String,
+}
+
+impl DomainEvidence {
+    pub fn from_param_semantic(semantic: ParamSemantic) -> Self {
+        match semantic {
+            ParamSemantic::Array => DomainEvidence::Array,
+            ParamSemantic::ByteArray => DomainEvidence::ByteArray,
+            ParamSemantic::Collection => DomainEvidence::Collection,
+            ParamSemantic::Integer => DomainEvidence::Integer,
+            ParamSemantic::Map => DomainEvidence::Map,
+            ParamSemantic::Number => DomainEvidence::Number,
+            ParamSemantic::Option => DomainEvidence::Option,
+            ParamSemantic::Set => DomainEvidence::Set,
+            ParamSemantic::String => DomainEvidence::String,
+        }
+    }
+
+    pub fn is_array(self) -> bool {
+        self == DomainEvidence::Array
+    }
+
+    pub fn is_byte_array(self) -> bool {
+        self == DomainEvidence::ByteArray
+    }
+
+    pub fn is_collection_or_set(self) -> bool {
+        matches!(self, DomainEvidence::Collection | DomainEvidence::Set)
+    }
+
+    pub fn is_array_or_collection(self) -> bool {
+        matches!(self, DomainEvidence::Array | DomainEvidence::Collection)
+    }
+
+    pub fn is_array_collection_or_set(self) -> bool {
+        matches!(
+            self,
+            DomainEvidence::Array | DomainEvidence::Collection | DomainEvidence::Set
+        )
+    }
+
+    pub fn is_set(self) -> bool {
+        self == DomainEvidence::Set
+    }
+
+    pub fn is_map(self) -> bool {
+        self == DomainEvidence::Map
+    }
+
+    pub fn is_option(self) -> bool {
+        self == DomainEvidence::Option
+    }
+
+    pub fn is_string(self) -> bool {
+        self == DomainEvidence::String
+    }
+
+    pub fn is_integer(self) -> bool {
+        self == DomainEvidence::Integer
+    }
+
+    pub fn is_integer_or_number(self) -> bool {
+        matches!(self, DomainEvidence::Integer | DomainEvidence::Number)
+    }
+}
+
+pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvidence {
+    DomainEvidence::from_param_semantic(semantic)
 }
 
 /// A first-party language profile. Keep this cheap and copyable; callers use it as a
@@ -41,8 +136,8 @@ impl LanguageProfile {
         FIRST_PARTY_PACK_ID
     }
 
-    pub fn eligibility(self) -> ChannelEligibility {
-        ChannelEligibility::FirstParty
+    pub fn trust(self) -> PackTrust {
+        PackTrust::DefaultFirstParty
     }
 
     pub fn operators(self) -> OperatorSemantics {
@@ -123,6 +218,71 @@ impl FragmentSemantics {
     pub fn java_this_field_place(self) -> bool {
         EffectSemantics { lang: self.lang }.java_this_field_place()
     }
+}
+
+/// Exact Java `this` receiver proof for first-party self-field fragments.
+pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        && il.kind(node) == NodeKind::Var
+        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
+}
+
+/// Exact Java `this.field` place proof for receiver-free field-write fingerprints.
+pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Field
+    {
+        return false;
+    }
+    if !matches!(il.node(node).payload, Payload::Name(_)) {
+        return false;
+    }
+    il.children(node)
+        .first()
+        .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver))
+}
+
+/// Exact Java `return this` proof used by self-field body fragments.
+pub fn exact_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Return
+    {
+        return false;
+    }
+    let kids = il.children(node);
+    kids.len() == 1 && exact_java_this_var(il, interner, kids[0])
+}
+
+/// `(receiver, key, value)` of a first-party exact-safe index assignment.
+///
+/// This is intentionally language-gated: languages with overloadable/user-dispatched index
+/// assignment remain fail-closed until a pack supplies a stronger receiver proof.
+pub fn exact_non_overloadable_index_assignment_parts(
+    il: &Il,
+    node: NodeId,
+) -> Option<(NodeId, Option<NodeId>, NodeId)> {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
+        return None;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
+        return None;
+    }
+    let target = il.children(kids[0]);
+    Some((*target.first()?, target.get(1).copied(), kids[1]))
+}
+
+pub fn exact_non_overloadable_index_assignment(il: &Il, node: NodeId) -> bool {
+    exact_non_overloadable_index_assignment_parts(il, node).is_some()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -679,7 +839,7 @@ pub fn method_call_contract(
             "includes",
             1,
         )
-        | (Lang::Ruby, "include?", 1)
+        | (Lang::Ruby, "include?" | "member?", 1)
         | (Lang::Java | Lang::Rust, "contains", 1) => (
             Builtin::Contains,
             Receiver::ExactCollectionOrJavaKeySet,
@@ -731,6 +891,13 @@ pub fn method_call_contract(
         ),
         (Lang::Go, "Min", 2) => (Builtin::Min, Receiver::ImportedNamespace("math"), Args::All),
         (Lang::Go, "Max", 2) => (Builtin::Max, Receiver::ImportedNamespace("math"), Args::All),
+        (Lang::Java, "abs", 1) => (
+            Builtin::Abs,
+            Receiver::UnshadowedGlobal("Math"),
+            Args::First,
+        ),
+        (Lang::Java, "min", 2) => (Builtin::Min, Receiver::UnshadowedGlobal("Math"), Args::All),
+        (Lang::Java, "max", 2) => (Builtin::Max, Receiver::UnshadowedGlobal("Math"), Args::All),
         (Lang::Rust, "zip", 1) => (
             Builtin::Zip,
             Receiver::ExactProtocolPairArgument,
@@ -818,6 +985,7 @@ pub fn iterator_identity_adapter_contract(
             method,
             "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
         )
+        || lang == Lang::Java && method == "stream" && arg_count == 0
     {
         Some(IteratorIdentityAdapterContract {
             receiver: IteratorAdapterReceiverContract::ExactIterableValue,
@@ -825,6 +993,530 @@ pub fn iterator_identity_adapter_contract(
     } else {
         None
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticCollectionAdapterContract {
+    pub module: &'static str,
+    pub exported: &'static str,
+}
+
+pub fn static_collection_adapter_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<StaticCollectionAdapterContract> {
+    (lang == Lang::Java && receiver == "Arrays" && method == "stream" && arg_count == 1).then_some(
+        StaticCollectionAdapterContract {
+            module: "java.util",
+            exported: "Arrays",
+        },
+    )
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ShadowedPathContract {
+    pub shadow_root: &'static str,
+}
+
+pub fn rust_option_some_constructor_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Some" => "Some",
+        "Option::Some" => "Option",
+        "std::option::Option::Some" => "std",
+        "core::option::Option::Some" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_option_none_sentinel_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "None" => "None",
+        "Option::None" => "Option",
+        "std::option::Option::None" => "std",
+        "core::option::Option::None" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_vec_new_factory_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Vec::new" => "Vec",
+        "std::vec::Vec::new" => "std",
+        "alloc::vec::Vec::new" => "alloc",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_option_and_then_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
+    lang == Lang::Rust && method == "and_then" && arg_count == 1
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JavaCollectionFactoryKind {
+    ListOf,
+    SetOf,
+    ArraysAsList,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaCollectionFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub kind: JavaCollectionFactoryKind,
+    pub single_arg_spreads_array: bool,
+}
+
+pub fn java_collection_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<JavaCollectionFactoryContract> {
+    if lang != Lang::Java {
+        return None;
+    }
+    Some(match (receiver, method) {
+        ("List", "of") => JavaCollectionFactoryContract {
+            receiver: "List",
+            method: "of",
+            kind: JavaCollectionFactoryKind::ListOf,
+            single_arg_spreads_array: false,
+        },
+        ("Set", "of") => JavaCollectionFactoryContract {
+            receiver: "Set",
+            method: "of",
+            kind: JavaCollectionFactoryKind::SetOf,
+            single_arg_spreads_array: false,
+        },
+        ("Arrays", "asList") => JavaCollectionFactoryContract {
+            receiver: "Arrays",
+            method: "asList",
+            kind: JavaCollectionFactoryKind::ArraysAsList,
+            single_arg_spreads_array: true,
+        },
+        _ => return None,
+    })
+}
+
+pub fn java_collection_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<JavaCollectionFactoryContract> {
+    ["of", "asList"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| java_collection_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JavaMapFactoryKind {
+    Of,
+    OfEntries,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaMapFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub kind: JavaMapFactoryKind,
+}
+
+pub fn java_map_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+) -> Option<JavaMapFactoryContract> {
+    if lang != Lang::Java || receiver != "Map" {
+        return None;
+    }
+    Some(match method {
+        "of" => JavaMapFactoryContract {
+            receiver: "Map",
+            method: "of",
+            kind: JavaMapFactoryKind::Of,
+        },
+        "ofEntries" => JavaMapFactoryContract {
+            receiver: "Map",
+            method: "ofEntries",
+            kind: JavaMapFactoryKind::OfEntries,
+        },
+        _ => return None,
+    })
+}
+
+pub fn java_map_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+) -> Option<JavaMapFactoryContract> {
+    ["of", "ofEntries"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| java_map_factory_contract(lang, receiver, method))
+            .flatten()
+    })
+}
+
+pub fn java_map_entry_contract(lang: Lang, receiver: &str, method: &str) -> bool {
+    lang == Lang::Java && receiver == "Map" && method == "entry"
+}
+
+pub fn java_map_entry_contract_by_hash(lang: Lang, receiver: &str, method_hash: u64) -> bool {
+    java_map_entry_contract(lang, receiver, "entry") && method_hash == stable_symbol_hash("entry")
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct RubySetFactoryContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub required_module: &'static str,
+    pub shadow_root: &'static str,
+}
+
+pub fn ruby_set_factory_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<RubySetFactoryContract> {
+    (lang == Lang::Ruby && receiver == "Set" && method == "new" && arg_count == 1).then_some(
+        RubySetFactoryContract {
+            receiver: "Set",
+            method: "new",
+            required_module: "set",
+            shadow_root: "Set",
+        },
+    )
+}
+
+pub fn ruby_set_factory_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<RubySetFactoryContract> {
+    (method_hash == stable_symbol_hash("new"))
+        .then(|| ruby_set_factory_contract(lang, receiver, "new", arg_count))
+        .flatten()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConstructorProofRequirement {
+    ConstructSyntax,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ClosedConstructorContract {
+    pub receiver: &'static str,
+    pub required_proof: ConstructorProofRequirement,
+}
+
+pub fn js_like_set_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<ClosedConstructorContract> {
+    (js_like_lang(lang) && receiver == "Set").then_some(ClosedConstructorContract {
+        receiver: "Set",
+        required_proof: ConstructorProofRequirement::ConstructSyntax,
+    })
+}
+
+pub fn js_like_map_constructor_contract(
+    lang: Lang,
+    receiver: &str,
+) -> Option<ClosedConstructorContract> {
+    (js_like_lang(lang) && receiver == "Map").then_some(ClosedConstructorContract {
+        receiver: "Map",
+        required_proof: ConstructorProofRequirement::ConstructSyntax,
+    })
+}
+
+fn js_like_lang(lang: Lang) -> bool {
+    matches!(
+        lang,
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
+    )
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MapKeyViewKind {
+    Collection,
+    Iterator,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapKeyViewContract {
+    pub method: &'static str,
+    pub kind: MapKeyViewKind,
+}
+
+pub fn map_key_view_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<MapKeyViewContract> {
+    if arg_count != 0 {
+        return None;
+    }
+    Some(match (lang, method) {
+        (Lang::Python | Lang::Ruby, "keys") => MapKeyViewContract {
+            method: "keys",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::Java, "keySet") => MapKeyViewContract {
+            method: "keySet",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "keys") => {
+            MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Iterator,
+            }
+        }
+        _ => return None,
+    })
+}
+
+pub fn map_key_view_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapKeyViewContract> {
+    ["keys", "keySet"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| map_key_view_contract(lang, method, arg_count))
+            .flatten()
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapKeyViewWrapperContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+}
+
+pub fn map_key_view_wrapper_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<MapKeyViewWrapperContract> {
+    (js_like_lang(lang) && receiver == "Array" && method == "from" && arg_count == 1).then_some(
+        MapKeyViewWrapperContract {
+            receiver: "Array",
+            method: "from",
+        },
+    )
+}
+
+pub fn map_key_view_wrapper_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapKeyViewWrapperContract> {
+    (method_hash == stable_symbol_hash("from"))
+        .then(|| map_key_view_wrapper_contract(lang, receiver, "from", arg_count))
+        .flatten()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct GoZeroMapLookupContract {
+    pub map_literal_tag: &'static str,
+    pub entry_tag: &'static str,
+    pub canonical_value_tag: &'static str,
+}
+
+pub fn go_zero_map_lookup_contract(lang: Lang) -> Option<GoZeroMapLookupContract> {
+    (lang == Lang::Go).then_some(GoZeroMapLookupContract {
+        map_literal_tag: "composite_literal",
+        entry_tag: "keyed_element",
+        canonical_value_tag: "go_literal_zero_map",
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GoZeroMapDefaultKind {
+    Int,
+    String,
+    Bool,
+    Float,
+    Null,
+}
+
+pub fn go_zero_map_default_kind(lang: Lang, payload: Payload) -> Option<GoZeroMapDefaultKind> {
+    if lang != Lang::Go {
+        return None;
+    }
+    Some(match payload {
+        Payload::LitInt(_) => GoZeroMapDefaultKind::Int,
+        Payload::LitStr(_) => GoZeroMapDefaultKind::String,
+        Payload::LitBool(_) => GoZeroMapDefaultKind::Bool,
+        Payload::LitFloat(_) => GoZeroMapDefaultKind::Float,
+        Payload::Lit(LitClass::Null) => GoZeroMapDefaultKind::Null,
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapGetContract {
+    pub method: &'static str,
+    pub receiver: MethodReceiverContract,
+}
+
+pub fn map_get_contract(lang: Lang, method: &str, arg_count: usize) -> Option<MapGetContract> {
+    matches!(
+        lang,
+        Lang::Java
+            | Lang::Rust
+            | Lang::JavaScript
+            | Lang::TypeScript
+            | Lang::Vue
+            | Lang::Svelte
+            | Lang::Html
+    )
+    .then_some(())
+    .filter(|_| method == "get" && arg_count == 1)
+    .map(|_| MapGetContract {
+        method: "get",
+        receiver: MethodReceiverContract::ExactMap,
+    })
+}
+
+pub fn map_get_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapGetContract> {
+    (method_hash == stable_symbol_hash("get"))
+        .then(|| map_get_contract(lang, "get", arg_count))
+        .flatten()
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StaticIndexMembershipKind {
+    IndexOf,
+    FindIndex,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StaticIndexMembershipReceiverContract {
+    StaticNonFloatLiteralCollection,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticIndexMembershipContract {
+    pub method: &'static str,
+    pub kind: StaticIndexMembershipKind,
+    pub receiver: StaticIndexMembershipReceiverContract,
+}
+
+pub fn static_index_membership_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<StaticIndexMembershipContract> {
+    if !js_like_lang(lang) || arg_count != 1 {
+        return None;
+    }
+    Some(match method {
+        "indexOf" => StaticIndexMembershipContract {
+            method: "indexOf",
+            kind: StaticIndexMembershipKind::IndexOf,
+            receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
+        },
+        "findIndex" => StaticIndexMembershipContract {
+            method: "findIndex",
+            kind: StaticIndexMembershipKind::FindIndex,
+            receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
+        },
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IndexMembershipThreshold {
+    MinusOne,
+    Zero,
+}
+
+pub fn index_membership_threshold_contract(
+    op: Op,
+    index_call_on_right: bool,
+    threshold: IndexMembershipThreshold,
+) -> bool {
+    match threshold {
+        IndexMembershipThreshold::MinusOne => {
+            op == Op::Ne
+                || (!index_call_on_right && op == Op::Gt)
+                || (index_call_on_right && op == Op::Lt)
+        }
+        IndexMembershipThreshold::Zero => {
+            (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le)
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ImportedNamespaceFunctionSemantic {
+    ProductReduction { op: Op, identity: u32 },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportedNamespaceFunctionContract {
+    pub module: &'static str,
+    pub function: &'static str,
+    pub receiver: MethodReceiverContract,
+    pub semantic: ImportedNamespaceFunctionSemantic,
+}
+
+pub fn imported_namespace_function_contract(
+    lang: Lang,
+    function: &str,
+    arg_count: usize,
+) -> Option<ImportedNamespaceFunctionContract> {
+    Some(match (lang, function, arg_count) {
+        (Lang::Python, "prod", 1 | 2) => ImportedNamespaceFunctionContract {
+            module: "math",
+            function: "prod",
+            receiver: MethodReceiverContract::ImportedNamespace("math"),
+            semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                op: Op::Mul,
+                identity: 1,
+            },
+        },
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct NullishGlobalContract {
+    pub name: &'static str,
+    pub requires_unshadowed: bool,
+}
+
+pub fn nullish_global_contract(lang: Lang, name: &str) -> Option<NullishGlobalContract> {
+    (js_like_lang(lang) && name == "undefined").then_some(NullishGlobalContract {
+        name: "undefined",
+        requires_unshadowed: true,
+    })
 }
 
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
@@ -839,6 +1531,38 @@ pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize
             | (Lang::Java, "add", 1)
             | (Lang::Rust, "push", 1)
     )
+}
+
+/// `(receiver, value)` of a single-item append-like builder call admitted by first-party
+/// language/library contracts.
+pub fn builder_append_call_args(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<(NodeId, NodeId)> {
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let kids = il.children(node);
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return (kids.len() == 2).then(|| (kids[0], kids[1]));
+    }
+    let (&callee, args) = kids.split_first()?;
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return None;
+    };
+    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
+        return None;
+    }
+    let receiver = *il.children(callee).first()?;
+    Some((receiver, args[0]))
+}
+
+pub fn builder_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    builder_append_call_args(il, interner, node).is_some()
 }
 
 pub fn method_fold_name(lang: Lang, name: &str) -> bool {
@@ -938,6 +1662,13 @@ impl CollectionSemantics {
             .copied()
             .filter(move |row| row.lang.is_none_or(|lang| lang == self.lang))
     }
+
+    pub fn imported_collection_factories(self) -> impl Iterator<Item = ImportedCollectionFactory> {
+        IMPORTED_COLLECTION_FACTORIES
+            .iter()
+            .copied()
+            .filter(move |row| row.lang.is_none_or(|lang| lang == self.lang))
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -978,6 +1709,19 @@ const FREE_NAME_MAP_FACTORIES: &[FreeNameMapFactory] = &[FreeNameMapFactory {
         "std::collections::BTreeMap::from",
     ],
     entry_seq_tag: 2,
+}];
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportedCollectionFactory {
+    pub lang: Option<Lang>,
+    pub module: &'static str,
+    pub exported: &'static str,
+}
+
+const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCollectionFactory {
+    lang: Some(Lang::Python),
+    module: "collections",
+    exported: "deque",
 }];
 
 pub fn imported_literal_seq_tag_safe(tag: &str) -> bool {
@@ -1064,6 +1808,7 @@ pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, ParamSemantic, Span, Unit, UnitKind};
 
     const ALL_LANGS: &[Lang] = &[
         Lang::Python,
@@ -1107,14 +1852,55 @@ mod tests {
         Builtin::UnsignedCast32,
     ];
 
+    fn sp(line: u32) -> Span {
+        Span::new(FileId(0), line, line, 1, 1)
+    }
+
+    fn finish_il(builder: IlBuilder, root: NodeId, lang: Lang) -> Il {
+        builder.finish(
+            root,
+            FileMeta {
+                path: "t".into(),
+                lang,
+            },
+            vec![Unit {
+                root,
+                kind: UnitKind::Function,
+                name: None,
+            }],
+            Vec::new(),
+        )
+    }
+
     #[test]
     fn first_party_profile_wraps_each_language() {
         for &lang in ALL_LANGS {
             let profile = semantics(lang);
             assert_eq!(profile.lang(), lang);
             assert_eq!(profile.pack_id(), FIRST_PARTY_PACK_ID);
-            assert_eq!(profile.eligibility(), ChannelEligibility::FirstParty);
+            assert_eq!(profile.trust(), PackTrust::DefaultFirstParty);
         }
+    }
+
+    #[test]
+    fn domain_evidence_preserves_param_semantic_boundaries() {
+        assert_eq!(
+            domain_evidence_from_param_semantic(ParamSemantic::Array),
+            DomainEvidence::Array
+        );
+        assert!(DomainEvidence::Array.is_array_collection_or_set());
+        assert!(DomainEvidence::Collection.is_array_or_collection());
+        assert!(DomainEvidence::Set.is_collection_or_set());
+        assert!(DomainEvidence::Map.is_map());
+        assert!(DomainEvidence::Option.is_option());
+        assert!(DomainEvidence::String.is_string());
+        assert!(DomainEvidence::ByteArray.is_byte_array());
+        assert!(DomainEvidence::Integer.is_integer());
+        assert!(DomainEvidence::Number.is_integer_or_number());
+        assert!(DomainEvidence::Integer.is_integer_or_number());
+        assert!(!DomainEvidence::Number.is_integer());
+        assert!(!DomainEvidence::Array.is_collection_or_set());
+        assert!(!DomainEvidence::Set.is_array_or_collection());
     }
 
     #[test]
@@ -1188,6 +1974,13 @@ mod tests {
         assert!(py_names.contains(&"list"));
         assert!(py_names.contains(&"frozenset"));
         assert!(!py_names.contains(&"Set"));
+
+        let imported_py_names: Vec<_> = semantics(Lang::Python)
+            .collections()
+            .imported_collection_factories()
+            .map(|factory| (factory.module, factory.exported))
+            .collect();
+        assert_eq!(imported_py_names, vec![("collections", "deque")]);
 
         let rust_map_tags: Vec<_> = semantics(Lang::Rust)
             .collections()
@@ -1371,6 +2164,22 @@ mod tests {
             })
         );
         assert_eq!(
+            method_call_contract(Lang::Java, "abs", 1),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Abs),
+                receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+                args: MethodBuiltinArgs::First,
+            })
+        );
+        assert_eq!(
+            method_call_contract(Lang::Java, "min", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Min),
+                receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+                args: MethodBuiltinArgs::All,
+            })
+        );
+        assert_eq!(
             method_call_contract(Lang::Python, "__contains__", 1),
             Some(MethodCallContract {
                 semantic: MethodSemanticContract::Builtin(Builtin::Contains),
@@ -1386,6 +2195,15 @@ mod tests {
                 args: MethodBuiltinArgs::FirstThenReceiver,
             })
         );
+        assert_eq!(
+            method_call_contract(Lang::Ruby, "member?", 1),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                receiver: MethodReceiverContract::ExactCollectionOrJavaKeySet,
+                args: MethodBuiltinArgs::FirstThenReceiver,
+            })
+        );
+        assert_eq!(method_call_contract(Lang::JavaScript, "contains", 1), None);
         assert_eq!(
             method_call_contract(Lang::Java, "getOrDefault", 2),
             Some(MethodCallContract {
@@ -1466,6 +2284,12 @@ mod tests {
             })
         );
         assert_eq!(
+            iterator_identity_adapter_contract(Lang::Java, "stream", 0),
+            Some(IteratorIdentityAdapterContract {
+                receiver: IteratorAdapterReceiverContract::ExactIterableValue,
+            })
+        );
+        assert_eq!(
             iterator_identity_adapter_contract(Lang::JavaScript, "collect", 0),
             None
         );
@@ -1476,6 +2300,385 @@ mod tests {
     }
 
     #[test]
+    fn static_collection_adapters_are_import_binding_constrained() {
+        assert_eq!(
+            static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 1),
+            Some(StaticCollectionAdapterContract {
+                module: "java.util",
+                exported: "Arrays",
+            })
+        );
+        assert_eq!(
+            static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 0),
+            None
+        );
+        assert_eq!(
+            static_collection_adapter_contract(Lang::JavaScript, "Arrays", "stream", 1),
+            None
+        );
+    }
+
+    #[test]
+    fn rust_std_path_contracts_carry_shadow_roots() {
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Rust, "Option::Some"),
+            Some(ShadowedPathContract {
+                shadow_root: "Option",
+            })
+        );
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Rust, "std::option::Option::Some"),
+            Some(ShadowedPathContract { shadow_root: "std" })
+        );
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Python, "Some"),
+            None
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::Rust, "None"),
+            Some(ShadowedPathContract {
+                shadow_root: "None",
+            })
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::Rust, "core::option::Option::None"),
+            Some(ShadowedPathContract {
+                shadow_root: "core",
+            })
+        );
+        assert_eq!(
+            rust_option_none_sentinel_contract(Lang::JavaScript, "None"),
+            None
+        );
+        assert_eq!(
+            rust_vec_new_factory_contract(Lang::Rust, "alloc::vec::Vec::new"),
+            Some(ShadowedPathContract {
+                shadow_root: "alloc",
+            })
+        );
+        assert_eq!(
+            rust_vec_new_factory_contract(Lang::Rust, "Vec::with_capacity"),
+            None
+        );
+        assert!(rust_option_and_then_contract(Lang::Rust, "and_then", 1));
+        assert!(!rust_option_and_then_contract(Lang::Rust, "and_then", 0));
+        assert!(!rust_option_and_then_contract(
+            Lang::JavaScript,
+            "and_then",
+            1
+        ));
+    }
+
+    #[test]
+    fn java_factory_contracts_are_language_receiver_and_selector_constrained() {
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "List", "of"),
+            Some(JavaCollectionFactoryContract {
+                receiver: "List",
+                method: "of",
+                kind: JavaCollectionFactoryKind::ListOf,
+                single_arg_spreads_array: false,
+            })
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "Arrays", "asList"),
+            Some(JavaCollectionFactoryContract {
+                receiver: "Arrays",
+                method: "asList",
+                kind: JavaCollectionFactoryKind::ArraysAsList,
+                single_arg_spreads_array: true,
+            })
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::JavaScript, "List", "of"),
+            None
+        );
+        assert_eq!(
+            java_collection_factory_contract(Lang::Java, "Map", "of"),
+            None
+        );
+        assert_eq!(
+            java_map_factory_contract(Lang::Java, "Map", "ofEntries"),
+            Some(JavaMapFactoryContract {
+                receiver: "Map",
+                method: "ofEntries",
+                kind: JavaMapFactoryKind::OfEntries,
+            })
+        );
+        assert_eq!(java_map_factory_contract(Lang::Java, "List", "of"), None);
+        assert!(java_map_entry_contract(Lang::Java, "Map", "entry"));
+        assert!(!java_map_entry_contract(Lang::Java, "Entry", "entry"));
+        assert_eq!(
+            java_collection_factory_contract_by_hash(Lang::Java, "Set", stable_symbol_hash("of"))
+                .map(|contract| contract.kind),
+            Some(JavaCollectionFactoryKind::SetOf)
+        );
+        assert_eq!(
+            java_map_factory_contract_by_hash(Lang::Java, "Map", stable_symbol_hash("of"))
+                .map(|contract| contract.kind),
+            Some(JavaMapFactoryKind::Of)
+        );
+        assert!(java_map_entry_contract_by_hash(
+            Lang::Java,
+            "Map",
+            stable_symbol_hash("entry")
+        ));
+    }
+
+    #[test]
+    fn ruby_and_closed_js_like_factory_contracts_keep_proof_obligations_explicit() {
+        assert_eq!(
+            ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1),
+            Some(RubySetFactoryContract {
+                receiver: "Set",
+                method: "new",
+                required_module: "set",
+                shadow_root: "Set",
+            })
+        );
+        assert_eq!(ruby_set_factory_contract(Lang::Ruby, "Set", "new", 2), None);
+        assert_eq!(
+            ruby_set_factory_contract(Lang::Python, "Set", "new", 1),
+            None
+        );
+        assert!(
+            ruby_set_factory_contract_by_hash(Lang::Ruby, "Set", stable_symbol_hash("new"), 1)
+                .is_some()
+        );
+
+        assert_eq!(
+            js_like_set_constructor_contract(Lang::TypeScript, "Set"),
+            Some(ClosedConstructorContract {
+                receiver: "Set",
+                required_proof: ConstructorProofRequirement::ConstructSyntax,
+            })
+        );
+        assert_eq!(
+            js_like_map_constructor_contract(Lang::JavaScript, "Map"),
+            Some(ClosedConstructorContract {
+                receiver: "Map",
+                required_proof: ConstructorProofRequirement::ConstructSyntax,
+            })
+        );
+        assert_eq!(js_like_map_constructor_contract(Lang::Java, "Map"), None);
+        assert_eq!(
+            js_like_set_constructor_contract(Lang::JavaScript, "WeakSet"),
+            None
+        );
+    }
+
+    #[test]
+    fn map_key_view_contracts_distinguish_collection_and_iterator_views() {
+        assert_eq!(
+            map_key_view_contract(Lang::Python, "keys", 0),
+            Some(MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Collection,
+            })
+        );
+        assert_eq!(
+            map_key_view_contract(Lang::Java, "keySet", 0),
+            Some(MapKeyViewContract {
+                method: "keySet",
+                kind: MapKeyViewKind::Collection,
+            })
+        );
+        assert_eq!(
+            map_key_view_contract(Lang::TypeScript, "keys", 0),
+            Some(MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Iterator,
+            })
+        );
+        assert_eq!(map_key_view_contract(Lang::JavaScript, "keySet", 0), None);
+        assert_eq!(map_key_view_contract(Lang::Python, "keys", 1), None);
+        assert_eq!(
+            map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1),
+            Some(MapKeyViewWrapperContract {
+                receiver: "Array",
+                method: "from",
+            })
+        );
+        assert_eq!(
+            map_key_view_wrapper_contract(Lang::Python, "Array", "from", 1),
+            None
+        );
+        assert_eq!(
+            map_key_view_contract_by_hash(Lang::Java, stable_symbol_hash("keySet"), 0)
+                .map(|contract| contract.kind),
+            Some(MapKeyViewKind::Collection)
+        );
+        assert!(map_key_view_wrapper_contract_by_hash(
+            Lang::TypeScript,
+            "Array",
+            stable_symbol_hash("from"),
+            1,
+        )
+        .is_some());
+    }
+
+    #[test]
+    fn go_zero_map_contracts_are_go_surface_and_default_constrained() {
+        assert_eq!(
+            go_zero_map_lookup_contract(Lang::Go),
+            Some(GoZeroMapLookupContract {
+                map_literal_tag: "composite_literal",
+                entry_tag: "keyed_element",
+                canonical_value_tag: "go_literal_zero_map",
+            })
+        );
+        assert_eq!(go_zero_map_lookup_contract(Lang::Python), None);
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::LitInt(1)),
+            Some(GoZeroMapDefaultKind::Int)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::LitStr(stable_symbol_hash("x"))),
+            Some(GoZeroMapDefaultKind::String)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::Lit(LitClass::Null)),
+            Some(GoZeroMapDefaultKind::Null)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::JavaScript, Payload::LitInt(1)),
+            None
+        );
+        assert_eq!(go_zero_map_default_kind(Lang::Go, Payload::None), None);
+    }
+
+    #[test]
+    fn map_get_contracts_are_language_and_arity_constrained() {
+        assert_eq!(
+            map_get_contract(Lang::Rust, "get", 1),
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
+        );
+        assert_eq!(
+            map_get_contract_by_hash(Lang::Java, stable_symbol_hash("get"), 1),
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
+        );
+        assert_eq!(
+            map_get_contract(Lang::TypeScript, "get", 1),
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
+        );
+        assert_eq!(map_get_contract(Lang::Python, "get", 1), None);
+        assert_eq!(map_get_contract(Lang::Rust, "get", 2), None);
+        assert_eq!(map_get_contract(Lang::Java, "getOrDefault", 1), None);
+    }
+
+    #[test]
+    fn static_index_membership_contracts_are_js_like_and_threshold_constrained() {
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "indexOf", 1),
+            Some(StaticIndexMembershipContract {
+                method: "indexOf",
+                kind: StaticIndexMembershipKind::IndexOf,
+                receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
+            })
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::TypeScript, "findIndex", 1),
+            Some(StaticIndexMembershipContract {
+                method: "findIndex",
+                kind: StaticIndexMembershipKind::FindIndex,
+                receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
+            })
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::Python, "indexOf", 1),
+            None
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "indexOf", 2),
+            None
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "includes", 1),
+            None
+        );
+        assert!(index_membership_threshold_contract(
+            Op::Ne,
+            false,
+            IndexMembershipThreshold::MinusOne
+        ));
+        assert!(index_membership_threshold_contract(
+            Op::Le,
+            true,
+            IndexMembershipThreshold::Zero
+        ));
+        assert!(!index_membership_threshold_contract(
+            Op::Eq,
+            false,
+            IndexMembershipThreshold::MinusOne
+        ));
+    }
+
+    #[test]
+    fn imported_namespace_function_contracts_carry_module_and_receiver_proof() {
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 1),
+            Some(ImportedNamespaceFunctionContract {
+                module: "math",
+                function: "prod",
+                receiver: MethodReceiverContract::ImportedNamespace("math"),
+                semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                    op: Op::Mul,
+                    identity: 1,
+                },
+            })
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 2)
+                .map(|contract| contract.semantic),
+            Some(ImportedNamespaceFunctionSemantic::ProductReduction {
+                op: Op::Mul,
+                identity: 1,
+            })
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::JavaScript, "prod", 1),
+            None
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 3),
+            None
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "sum", 1),
+            None
+        );
+    }
+
+    #[test]
+    fn nullish_global_contracts_are_js_like_and_unshadowed() {
+        assert_eq!(
+            nullish_global_contract(Lang::JavaScript, "undefined"),
+            Some(NullishGlobalContract {
+                name: "undefined",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(
+            nullish_global_contract(Lang::TypeScript, "undefined"),
+            Some(NullishGlobalContract {
+                name: "undefined",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(nullish_global_contract(Lang::Python, "undefined"), None);
+        assert_eq!(nullish_global_contract(Lang::JavaScript, "null"), None);
+    }
+
+    #[test]
     fn builder_append_contracts_are_language_and_arity_constrained() {
         assert!(builder_append_method_contract(Lang::Rust, "push", 1));
         assert!(!builder_append_method_contract(Lang::Rust, "push", 2));
@@ -1483,5 +2686,102 @@ mod tests {
         assert!(builder_append_method_contract(Lang::JavaScript, "push", 1));
         assert!(builder_append_method_contract(Lang::Python, "append", 1));
         assert!(!builder_append_method_contract(Lang::Ruby, "push", 1));
+    }
+
+    #[test]
+    fn exact_java_this_helpers_are_language_and_shape_constrained() {
+        let interner = Interner::default();
+        let this = interner.intern("this");
+        let field_name = interner.intern("value");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Name(this), sp(1), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp(1),
+            &[receiver],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp(2), &[receiver]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(1), &[field, ret]);
+        let il = finish_il(b, root, Lang::Java);
+
+        assert!(exact_java_this_var(&il, &interner, receiver));
+        assert!(exact_java_this_field(&il, &interner, field));
+        assert!(exact_java_return_this(&il, &interner, ret));
+
+        let mut js_il = il.clone();
+        js_il.meta.lang = Lang::JavaScript;
+        assert!(!exact_java_this_var(&js_il, &interner, receiver));
+        assert!(!exact_java_this_field(&js_il, &interner, field));
+        assert!(!exact_java_return_this(&js_il, &interner, ret));
+    }
+
+    #[test]
+    fn exact_index_assignment_parts_are_language_constrained() {
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let key = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp(1), &[receiver, key]);
+        let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(1), &[target, value]);
+        let il = finish_il(b, assign, Lang::Go);
+
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            Some((receiver, Some(key), value))
+        );
+        assert!(exact_non_overloadable_index_assignment(&il, assign));
+
+        let mut ruby_il = il.clone();
+        ruby_il.meta.lang = Lang::Ruby;
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&ruby_il, assign),
+            None
+        );
+        assert!(!exact_non_overloadable_index_assignment(&ruby_il, assign));
+    }
+
+    #[test]
+    fn builder_append_call_args_are_language_arity_and_receiver_constrained() {
+        let interner = Interner::default();
+        let append = interner.intern("append");
+        let push = interner.intern("push");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let value = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let builtin = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp(1),
+            &[receiver, value],
+        );
+        let method = b.add(NodeKind::Field, Payload::Name(append), sp(2), &[receiver]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(2), &[method, value]);
+        let push_method = b.add(NodeKind::Field, Payload::Name(push), sp(3), &[receiver]);
+        let push_call = b.add(NodeKind::Call, Payload::None, sp(3), &[push_method, value]);
+        let root = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp(1),
+            &[builtin, call, push_call],
+        );
+        let il = finish_il(b, root, Lang::Python);
+
+        assert_eq!(
+            builder_append_call_args(&il, &interner, builtin),
+            Some((receiver, value))
+        );
+        assert_eq!(
+            builder_append_call_args(&il, &interner, call),
+            Some((receiver, value))
+        );
+        assert_eq!(builder_append_call_args(&il, &interner, push_call), None);
+
+        let mut rust_il = il.clone();
+        rust_il.meta.lang = Lang::Rust;
+        assert_eq!(
+            builder_append_call_args(&rust_il, &interner, push_call),
+            Some((receiver, value))
+        );
     }
 }

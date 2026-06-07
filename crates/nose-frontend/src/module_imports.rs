@@ -9,13 +9,17 @@
 use nose_il::{
     stable_symbol_hash, Il, Interner, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
-use nose_semantics::{semantics, ImportedMapFactoryContract};
+use nose_semantics::{
+    java_map_entry_contract, java_map_factory_contract, semantics, ImportedMapFactoryContract,
+    JavaMapFactoryKind,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct ExportedBinding {
     file_idx: usize,
+    deps: Vec<SubtreeSnapshot>,
     rhs: NodeId,
 }
 
@@ -39,7 +43,7 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         return;
     }
 
-    let replacements: Vec<Vec<(NodeId, SubtreeSnapshot)>> = files
+    let replacements: Vec<Vec<(NodeId, Vec<SubtreeSnapshot>, SubtreeSnapshot)>> = files
         .iter()
         .enumerate()
         .map(|(file_idx, il)| {
@@ -51,14 +55,22 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
                     if export.file_idx == file_idx {
                         return None;
                     }
-                    Some((stmt, snapshot_subtree(&files[export.file_idx], export.rhs)))
+                    Some((
+                        stmt,
+                        export.deps.clone(),
+                        snapshot_subtree(&files[export.file_idx], export.rhs),
+                    ))
                 })
                 .collect()
         })
         .collect();
 
     for (file_idx, file_replacements) in replacements.into_iter().enumerate() {
-        for (stmt, snapshot) in file_replacements {
+        for (stmt, deps, snapshot) in file_replacements {
+            for dep in deps {
+                let dep_stmt = append_snapshot(&mut files[file_idx], &dep);
+                prepend_root_statement(&mut files[file_idx], dep_stmt);
+            }
             let rhs = append_snapshot(&mut files[file_idx], &snapshot);
             replace_assignment_rhs(&mut files[file_idx], stmt, rhs);
         }
@@ -153,16 +165,40 @@ fn collect_statement_exports(
             continue;
         }
         let exported = stable_symbol_hash(interner.resolve(name));
+        let deps = import_dependency_snapshots(il, interner, rhs);
         for &module in module_hashes {
             let key = (module, exported);
             if exports
-                .insert(key, ExportedBinding { file_idx, rhs })
+                .insert(
+                    key,
+                    ExportedBinding {
+                        file_idx,
+                        deps: deps.clone(),
+                        rhs,
+                    },
+                )
                 .is_some()
             {
                 ambiguous.insert(key);
             }
         }
     }
+}
+
+fn import_dependency_snapshots(il: &Il, interner: &Interner, rhs: NodeId) -> Vec<SubtreeSnapshot> {
+    collect_top_level_statements(il)
+        .into_iter()
+        .filter(|&stmt| {
+            assignment_rhs(il, stmt).is_some_and(|dep_rhs| {
+                import_binding_key(il, interner, stmt).is_some()
+                    && il.kind(dep_rhs) == NodeKind::Seq
+            })
+        })
+        .filter(|&stmt| {
+            assignment_name(il, stmt).is_some_and(|name| node_contains_symbol(il, rhs, name))
+        })
+        .map(|stmt| snapshot_subtree(il, stmt))
+        .collect()
 }
 
 fn collect_top_level_statements(il: &Il) -> Vec<NodeId> {
@@ -302,20 +338,22 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
     let Some(method) = field_method_on_var(il, interner, callee, "Map") else {
         return false;
     };
-    if java_file_defines_type_name(il, interner, "Map") {
+    let Some(contract) = java_map_factory_contract(il.meta.lang, "Map", method) else {
+        return false;
+    };
+    if java_file_defines_type_name(il, interner, contract.receiver) {
         return false;
     }
-    match method {
-        "of" => {
+    match contract.kind {
+        JavaMapFactoryKind::Of => {
             args.len() % 2 == 0
                 && args
                     .iter()
                     .all(|&arg| literal_export_value_safe(il, interner, arg))
         }
-        "ofEntries" => args
+        JavaMapFactoryKind::OfEntries => args
             .iter()
             .all(|&arg| java_map_entry_call_safe(il, interner, arg)),
-        _ => false,
     }
 }
 
@@ -327,7 +365,10 @@ fn java_map_entry_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool 
     if kids.len() != 3 {
         return false;
     }
-    if field_method_on_var(il, interner, kids[0], "Map") != Some("entry") {
+    let Some(method) = field_method_on_var(il, interner, kids[0], "Map") else {
+        return false;
+    };
+    if !java_map_entry_contract(il.meta.lang, "Map", method) {
         return false;
     }
     if java_file_defines_type_name(il, interner, "Map") {
@@ -342,9 +383,14 @@ fn rust_std_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) ->
     if kids.len() != 2 {
         return false;
     }
-    if !var_named(il, interner, kids[0], "std::collections::HashMap::from")
-        && !var_named(il, interner, kids[0], "std::collections::BTreeMap::from")
-    {
+    let Some(name) = var_text(il, interner, kids[0]) else {
+        return false;
+    };
+    let factory = semantics(il.meta.lang)
+        .collections()
+        .free_name_map_factories()
+        .find(|factory| factory.names.contains(&name));
+    if factory.is_none() || !free_name_factory_shadow_safe(il, interner, name, false) {
         return false;
     }
     literal_export_value_safe(il, interner, kids[1])
@@ -367,10 +413,44 @@ fn field_method_on_var<'a>(
 }
 
 fn var_named(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool {
+    var_text(il, interner, node).is_some_and(|name| name == expected)
+}
+
+fn var_text<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
     if il.kind(node) != NodeKind::Var {
-        return false;
+        return None;
     }
-    matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == expected)
+    let Payload::Name(name) = il.node(node).payload else {
+        return None;
+    };
+    Some(interner.resolve(name))
+}
+
+fn free_name_factory_shadow_safe(
+    il: &Il,
+    interner: &Interner,
+    name: &str,
+    shadow_guard: bool,
+) -> bool {
+    if shadow_guard {
+        return !file_defines_name(il, interner, name);
+    }
+    if il.meta.lang == nose_il::Lang::Rust && name.starts_with("std::") {
+        return !file_defines_name(il, interner, "std");
+    }
+    true
+}
+
+fn file_defines_name(il: &Il, interner: &Interner, expected: &str) -> bool {
+    collect_top_level_statements(il).iter().any(|&stmt| {
+        assignment_name(il, stmt).is_some_and(|symbol| interner.resolve(symbol) == expected)
+    }) || il.units.iter().any(|unit| {
+        unit.name
+            .is_some_and(|symbol| interner.resolve(symbol) == expected)
+    }) || il.nodes.iter().any(|node| {
+        matches!(node.kind, NodeKind::Module | NodeKind::Block)
+            && matches!(node.payload, Payload::Name(symbol) if interner.resolve(symbol) == expected)
+    })
 }
 
 fn java_file_defines_type_name(il: &Il, interner: &Interner, expected: &str) -> bool {
@@ -602,4 +682,23 @@ fn replace_assignment_rhs(il: &mut Il, stmt: NodeId, rhs: NodeId) {
     if let Some(slot) = il.edges.get_mut(rhs_slot) {
         *slot = rhs;
     }
+}
+
+fn prepend_root_statement(il: &mut Il, stmt: NodeId) {
+    let old_root = il.root;
+    let old_root_node = *il.node(old_root);
+    let mut children = Vec::with_capacity(il.children(old_root).len() + 1);
+    children.push(stmt);
+    children.extend_from_slice(il.children(old_root));
+    let child_start = il.edges.len() as u32;
+    il.edges.extend_from_slice(&children);
+    let new_root = NodeId(il.nodes.len() as u32);
+    il.nodes.push(Node {
+        kind: old_root_node.kind,
+        payload: old_root_node.payload,
+        span: old_root_node.span,
+        child_start,
+        child_len: children.len() as u32,
+    });
+    il.root = new_root;
 }

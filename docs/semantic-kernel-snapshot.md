@@ -4,7 +4,7 @@ Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
 
-Snapshot date: 2026-06-07, `feature/semantic-kernel-packs` worktree against
+Snapshot date: 2026-06-07, `feature/semantic-kernel-migration` worktree against
 `origin/main`.
 
 ## What exists today
@@ -38,11 +38,19 @@ The current facade is compiled Rust, not an external manifest schema. It is
 intended to make the future pack extension boundary explicit while behavior is
 migrated.
 
+- The first-party profile exposes pack id and trust policy separately from
+  channel eligibility. `ChannelEligibility` describes where a fact may be used;
+  first-party/default status is pack provenance, not an analysis channel.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
+- Source-level `ParamSemantic` facts are translated into `nose-semantics`
+  `DomainEvidence` before normalize/detect receiver-domain gates consume them.
+  This preserves the current Array/Collection/Set/Map/Option/String/Integer/
+  Number/ByteArray distinctions while moving the proof vocabulary into the
+  kernel facade.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
@@ -51,15 +59,69 @@ migrated.
   closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
+- Rust stdlib path contracts for `Some`/`Option::Some`,
+  `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
+  selector and shadow-root requirement through `nose-semantics`;
+  normalize/detect still perform the local scope shadow check. The Rust
+  frontend preserves bare `None` as a name rather than lowering it directly to
+  null, so Option absence is admitted only through the contract.
+- Collection and map factory contracts have started moving into the facade.
+  Shared rows now cover Python free-name factories (`list`, `set`,
+  `frozenset`, `tuple`), Python imported `collections.deque`, Rust
+  `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from`,
+  Java `List.of`/`Set.of`/`Arrays.asList`, Java `Map.of`/`Map.ofEntries`/
+  `Map.entry`, and Ruby `require "set"; Set.new(...)`. Callers still prove the
+  local import, require, shadowing, entry-shape, mutation, and exact-safety
+  obligations.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
+- Exact fragment surface proofs for Java `this.field`, Java `return this`,
+  non-overloadable C/Go/Java index assignment, and single-item builder append
+  calls are now shared through `nose-semantics`; predicate and contract paths
+  consume the same IL-level proof helpers.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
-- Map-key membership contracts now require map receiver proof. Examples include
+- Java stream source adapters are split by proof: `receiver.stream()` requires
+  an exact iterable receiver, while `Arrays.stream(xs)` requires the
+  `java.util.Arrays` import binding and no local `Arrays` type shadow.
+- Cross-file immutable import replacement now preserves import-binding
+  dependencies used by the exported literal expression, so a Java static import
+  of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
+  the importing file.
+- Membership and map-key membership selectors now consume language-scoped method
+  contracts before normalize/detect treat them as semantic containment. A method
+  named `contains` is Java/Rust collection membership only; JavaScript
+  `.contains(...)` is not accepted as array membership. Map-key examples include
   Java `Map.containsKey`, Java `keySet().contains`, Rust `contains_key`, Rust
-  `get(key).is_some()`, and TypeScript `Array.from(map.keys()).includes(key)`
-  when the receiver is a typed/proven map.
+  `get(key).is_some()`, Ruby `key?`/`has_key?`, Python `__contains__`, and
+  TypeScript `Array.from(map.keys()).includes(key)` when the receiver is a
+  typed/proven map.
+- Map key-view contracts distinguish collection views from iterator views:
+  Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
+  `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
+  contract before it can feed exact membership.
+- Map lookup surfaces that return a value/option are now explicit contracts for
+  Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
+  `dict.get(key, default)`, Ruby `fetch(key, default)`, and Java `getOrDefault`
+  still use the `GetOrDefault` method contract.
+- JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
+  contracts, including the static non-float literal collection requirement and
+  accepted `-1`/`0` threshold comparisons. Callers still prove the receiver and
+  lambda equality shape before exact normalization/detection accepts them.
+- Imported namespace function contracts now cover Python `math.prod` as a product
+  reduction only when the receiver is proven to be the imported `math` namespace.
+  Bare globals named `math` and overwritten module bindings stay exact-closed.
+- Java `Math.abs`/`Math.min`/`Math.max` now lower through method contracts with an
+  unshadowed `Math` receiver requirement instead of frontend text-only builtin
+  lowering.
+- JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
+  It is preserved as a name and only treated as the nullish sentinel through an
+  unshadowed-global contract.
+- Go literal map default lookup is represented by a shared contract for the
+  `composite_literal`/`keyed_element` surface and the supported zero-default
+  payload classes. The value graph still constructs the canonical default value,
+  and detect still checks exact-safe keys and entries.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
 
@@ -69,15 +131,16 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
-- factory recognizers such as Python collection factories, Ruby `Set.new`, Rust
-  `Vec::new`, Java `List.of`, and Java/Rust map factories;
+- language-specific import or module proof mechanics that are still local to
+  frontend, normalize, or detect callers;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
   instead of versioned `LawPack` records;
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,
   HOFs, nullish defaulting, recursion, and effect traces;
-- duplicated strict exact gates in value-graph and unit/fragment extraction paths.
+- duplicated receiver/domain and library/API proof gates in desugaring,
+  idiom lowering, value-graph, and strict exact paths.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -126,9 +189,10 @@ this worktree because the required evidence is not yet modeled:
   stay closed unless the nested element collection proof is available. Explicit
   nested builder loops can still converge with identity flat-map when their loop
   structure proves the emitted elements.
-- Ruby untyped `Enumerable` methods, Ruby scalar/array `abs`/`min`/`max`, and C
-  `fmin`/`fmax` remain closed until the relevant receiver, stdlib, and overload
-  facts are modeled as contracts.
+- Ruby untyped `Enumerable` methods, including block loop surfaces such as
+  `.each` and `.each_with_index`, plus Ruby scalar/array `abs`/`min`/`max` and
+  C `fmin`/`fmax`, remain closed until the relevant receiver, stdlib, and
+  overload facts are modeled as contracts.
 - Rust scalar `.abs`, `.min`, `.max`, and `.clamp` are admitted only for the
   current first-party primitive-integer domain. Rust float methods need a separate
   float/NaN contract and proof before they can enter exact matching.
@@ -142,11 +206,17 @@ The first high-value targets for semantic-kernel extraction are:
 
 - field/place identity for field reads and writes, replacing field-name-only
   state with receiver-aware proof;
-- constructor facts for JS/TS `new Map` and `new Set`;
-- resolved symbol facts for Java/Rust stdlib factories instead of path/name
-  heuristics;
+- constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
+  closed contracts waiting on construct-vs-call proof;
+- resolved symbol facts for Java/Rust stdlib factories instead of the current
+  path/name plus shadow-proof contracts;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
+- versioned receiver/domain evidence records to replace the current
+  `DomainEvidence` facade as the pack-facing proof vocabulary for collection,
+  map, option, string, integer, and byte-array domains;
+- demand/protocol contracts that distinguish eager arrays, lazy iterators,
+  streams, callbacks, futures/promises, and call-by-need thunks;
 - demand/error contracts for language-core oracle behavior such as non-iterable
   `for`/`foreach` evaluation;
 - LawPack-facing ids for named value-graph rules, with the existing formal

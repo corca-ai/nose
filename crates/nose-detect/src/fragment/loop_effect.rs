@@ -18,8 +18,8 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Builtin, Il, Interner, LoopKind, NodeId, NodeKind, Payload};
-use nose_semantics::{builder_append_method_contract, semantics};
+use nose_il::{Il, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_semantics::{builder_append_call_args, exact_non_overloadable_index_assignment_parts};
 use rustc_hash::FxHashSet;
 
 /// Recognize `node` as a `LoopEffect` contract, or `None` if it is not the shape.
@@ -393,43 +393,13 @@ fn index_assignment_consumes_chained_temp(
 
 /// `(receiver, value)` of an `append`/`push` builtin call with exactly two children.
 fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if il.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return (kids.len() == 2).then(|| (kids[0], kids[1]));
-    }
-    let (&callee, args) = kids.split_first()?;
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return None;
-    };
-    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
-        return None;
-    }
-    let receiver = *il.children(callee).first()?;
-    Some((receiver, args[0]))
+    builder_append_call_args(il, interner, node)
 }
 
 /// `(receiver, key, value)` of a non-overloadable `recv[key] = value` index assignment
 /// (C/Go/Java only — the same surface the migrated `IndexAssignEffect` admits).
 fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-    {
-        return None;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return None;
-    }
-    let target = il.children(kids[0]);
-    let receiver = *target.first()?;
-    Some((receiver, target.get(1).copied(), kids[1]))
+    exact_non_overloadable_index_assignment_parts(il, node)
 }
 
 /// A local `var = rhs` where `rhs` is not a bare var/lit and does not read the target itself.

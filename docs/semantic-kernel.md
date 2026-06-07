@@ -221,12 +221,20 @@ The same semantic knowledge can be safe for one channel and unsafe for another.
 | `near-only` | candidate generation and review-oriented scoring |
 | `exact-empirical` | exact channel when required tests, hard negatives, and oracle coverage are present |
 | `exact-proven` | exact channel with proof obligations for the core law |
-| `first-party` | maintained and gated by the nose project |
+
+Eligibility is not a trust class. Pack provenance and enablement are tracked
+separately.
+
+| trust policy | use |
+|---|---|
+| `default-first-party` | maintained, gated, and enabled by the nose project |
+| `first-party-optional` | maintained and gated by nose, but not enabled by default |
+| `external-opt-in` | provider/user responsibility; enabled only by explicit user choice |
 
 External packs may declare their intended eligibility, but users choose whether
 to trust that declaration. The default nose distribution should enable exact
-matching only for first-party packs and any external packs the user explicitly
-opts into.
+matching only for default first-party packs and any external packs the user
+explicitly opts into.
 
 ## Pack conformance
 

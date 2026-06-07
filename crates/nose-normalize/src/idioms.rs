@@ -7,13 +7,13 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, ParamSemantic, Payload,
-};
+use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    free_function_builtin_contract, iterator_identity_adapter_contract, method_call_contract,
-    method_hof_contract, BuiltinArgContract, MethodBuiltinArgs, MethodCallContract,
-    MethodReceiverContract, MethodSemanticContract,
+    domain_evidence_from_param_semantic, free_function_builtin_contract,
+    iterator_identity_adapter_contract, map_get_contract, map_key_view_contract,
+    method_call_contract, method_hof_contract, rust_option_some_constructor_contract,
+    static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
+    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -391,8 +391,8 @@ fn fold_fn_init(old: &Il, args: &[NodeId]) -> (Option<NodeId>, Option<NodeId>) {
     (fn_old, init)
 }
 
-/// Peel a first-party Rust identity iterator adapter to the underlying collection, so
-/// `xs.iter().fold(..)` iterates over `xs` (matching `for v in xs`). NOT `.keys()`/`.values()`,
+/// Peel a first-party identity iterator adapter to the underlying collection, so
+/// `xs.iter().fold(..)` / `xs.stream().map(..)` iterate over `xs`. NOT `.keys()`/`.values()`,
 /// which change *what* is iterated.
 fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
     if old.kind(node) == NodeKind::Call {
@@ -401,15 +401,11 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
             if old.kind(callee) == NodeKind::Field {
                 if let Payload::Name(s) = old.node(callee).payload {
                     let method = interner.resolve(s);
-                    if method == "stream" {
-                        if let Some(&base) = old.children(callee).first() {
-                            if name_of(old, interner, base) == Some("Arrays") {
-                                if let Some(&arg) = old.children(node).get(1) {
-                                    return arg;
-                                }
-                            } else {
-                                return base;
-                            }
+                    if let Some(&base) = old.children(callee).first() {
+                        if let Some(arg) =
+                            static_collection_adapter_arg(old, interner, base, method, call_kids)
+                        {
+                            return arg;
                         }
                     }
                     if iterator_identity_adapter_contract(
@@ -458,10 +454,8 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
     if matches!(method, "iter" | "into_iter" | "iter_mut") {
         return exact_collection_receiver(old, interner, receiver);
     }
-    if method == "stream" && name_of(old, interner, receiver) == Some("Arrays") {
-        return kids
-            .get(1)
-            .is_some_and(|&arg| exact_collection_receiver(old, interner, arg));
+    if let Some(arg) = static_collection_adapter_arg(old, interner, receiver, method, kids) {
+        return exact_collection_receiver(old, interner, arg);
     }
     if method == "zip" && kids.len() == 2 {
         return exact_protocol_receiver(old, interner, receiver)
@@ -477,18 +471,37 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
 }
 
 fn exact_collection_param(old: &Il, node: NodeId) -> bool {
-    matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set)
-    )
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_array_collection_or_set)
+}
+
+fn static_collection_adapter_arg(
+    old: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    method: &str,
+    call_kids: &[NodeId],
+) -> Option<NodeId> {
+    let receiver_name = name_of(old, interner, receiver)?;
+    let contract = static_collection_adapter_contract(
+        old.meta.lang,
+        receiver_name,
+        method,
+        call_kids.len().saturating_sub(1),
+    )?;
+    if file_defines_type_name(old, interner, receiver_name)
+        || !import_binding_expr(old, interner, receiver, contract.module, contract.exported)
+    {
+        return None;
+    }
+    call_kids.get(1).copied()
 }
 
 fn exact_set_param(old: &Il, node: NodeId) -> bool {
-    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Set))
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_set)
 }
 
 fn exact_map_param(old: &Il, node: NodeId) -> bool {
-    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Map))
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_map)
 }
 
 fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -496,13 +509,10 @@ fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
 }
 
 fn exact_option_param(old: &Il, node: NodeId) -> bool {
-    matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Option)
-    )
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_option)
 }
 
-fn param_semantic_for_var(old: &Il, node: NodeId) -> Option<ParamSemantic> {
+fn domain_evidence_for_var(old: &Il, node: NodeId) -> Option<DomainEvidence> {
     if old.kind(node) != NodeKind::Var {
         return None;
     }
@@ -524,7 +534,7 @@ fn param_semantic_for_var(old: &Il, node: NodeId) -> Option<ParamSemantic> {
         old.param_type_facts
             .iter()
             .find(|fact| fact.span == span)
-            .map(|fact| fact.semantic)
+            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
     })
 }
 
@@ -645,8 +655,8 @@ fn exact_string_receiver(old: &Il, node: NodeId) -> bool {
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
     ) || matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::String)
+        domain_evidence_for_var(old, node),
+        Some(domain) if domain.is_string()
     )
 }
 
@@ -659,22 +669,14 @@ fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
     ) || matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Integer)
+        domain_evidence_for_var(old, node),
+        Some(domain) if domain.is_integer()
     )
 }
 
 fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
-    if old.meta.lang != nose_il::Lang::Rust {
-        return false;
-    }
-    match text {
-        "Some" => !file_defines_name(old, interner, "Some"),
-        "Option::Some" => !file_defines_name(old, interner, "Option"),
-        "std::option::Option::Some" => !file_defines_name(old, interner, "std"),
-        "core::option::Option::Some" => !file_defines_name(old, interner, "core"),
-        _ => false,
-    }
+    rust_option_some_constructor_contract(old.meta.lang, text)
+        .is_some_and(|contract| !file_defines_name(old, interner, contract.shadow_root))
 }
 
 fn proven_map_get_call_parts(
@@ -733,6 +735,14 @@ fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
         })
 }
 
+fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {
+    old.units
+        .iter()
+        .filter(|unit| matches!(unit.kind, nose_il::UnitKind::Class))
+        .filter_map(|unit| unit.name)
+        .any(|symbol| interner.resolve(symbol) == name)
+}
+
 fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
     let n = old.node(id);
     if n.kind == NodeKind::Var {
@@ -755,6 +765,62 @@ fn import_namespace_expr(old: &Il, interner: &Interner, id: NodeId, module: &str
                     .iter()
                     .any(|&child| import_namespace_assignment(old, interner, child, alias, module)))
     })
+}
+
+fn import_binding_expr(
+    old: &Il,
+    interner: &Interner,
+    id: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    let Some(alias) = name_of(old, interner, id) else {
+        return false;
+    };
+    old.children(old.root).iter().any(|&stmt| {
+        import_binding_assignment(old, interner, stmt, alias, module, exported)
+            || (old.kind(stmt) == NodeKind::Block
+                && old.children(stmt).iter().any(|&child| {
+                    import_binding_assignment(old, interner, child, alias, module, exported)
+                }))
+    })
+}
+
+fn import_binding_assignment(
+    old: &Il,
+    interner: &Interner,
+    stmt: NodeId,
+    alias: &str,
+    module: &str,
+    exported: &str,
+) -> bool {
+    if old.kind(stmt) != NodeKind::Assign {
+        return false;
+    }
+    let kids = old.children(stmt);
+    if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
+        return false;
+    }
+    if old.kind(kids[1]) != NodeKind::Seq {
+        return false;
+    }
+    let Payload::Name(seq_name) = old.node(kids[1]).payload else {
+        return false;
+    };
+    if interner.resolve(seq_name) != "import_binding" {
+        return false;
+    }
+    let coords = old.children(kids[1]);
+    if coords.len() != 2 {
+        return false;
+    }
+    matches!(
+        old.node(coords[0]).payload,
+        Payload::LitStr(hash) if hash == stable_symbol_hash(module)
+    ) && matches!(
+        old.node(coords[1]).payload,
+        Payload::LitStr(hash) if hash == stable_symbol_hash(exported)
+    )
 }
 
 fn import_namespace_assignment(
@@ -824,9 +890,7 @@ fn map_get_call_parts(old: &Il, interner: &Interner, id: NodeId) -> Option<(Node
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    if interner.resolve(method) != "get" {
-        return None;
-    }
+    map_get_contract(old.meta.lang, interner.resolve(method), 1)?;
     let receiver = *old.children(kids[0]).first()?;
     Some((receiver, kids[1]))
 }
@@ -842,7 +906,8 @@ fn key_set_receiver(old: &Il, interner: &Interner, id: NodeId) -> Option<NodeId>
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    if interner.resolve(method) != "keySet" {
+    let contract = map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?;
+    if contract.kind != MapKeyViewKind::Collection {
         return None;
     }
     old.children(kids[0]).first().copied()
@@ -904,7 +969,7 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span};
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span};
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)

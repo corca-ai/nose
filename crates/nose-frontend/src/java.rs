@@ -8,8 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    Payload, Span, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -44,19 +44,33 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         | "annotation_type_declaration" => Some(lower_type(lo, node)),
         "method_declaration" | "constructor_declaration" => Some(lower_method(lo, node)),
         "field_declaration" => Some(lower_field(lo, node)),
-        "import_declaration" => Some(
-            lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
-        ),
+        "import_declaration" => {
+            Some(lower_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)))
+        }
         "package_declaration" => Some(crate::lower::import_tokens(lo, node)),
         "line_comment" | "block_comment" => None,
         _ => lower_stmt(lo, node),
     }
 }
 
-fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+fn lower_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);
     let text = lo.text(node).trim().trim_end_matches(';').trim();
-    let path = text.strip_prefix("import static ")?.trim();
+    if let Some(path) = text.strip_prefix("import static ") {
+        let path = path.trim();
+        if path.ends_with(".*") {
+            return None;
+        }
+        let (module, exported) = path.rsplit_once('.')?;
+        return Some(crate::lower::import_binding(
+            lo,
+            span,
+            exported.trim(),
+            module.trim(),
+            exported.trim(),
+        ));
+    }
+    let path = text.strip_prefix("import ")?.trim();
     if path.ends_with(".*") {
         return None;
     }
@@ -754,25 +768,6 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let name_node = node.child_by_field_name("name");
-    let object_node = node.child_by_field_name("object");
-    let math_builtin = name_node
-        .and_then(|n| match lo.text(n) {
-            "abs" => Some((Builtin::Abs, 1)),
-            "min" => Some((Builtin::Min, 2)),
-            "max" => Some((Builtin::Max, 2)),
-            _ => None,
-        })
-        .filter(|_| object_node.is_some_and(|o| lo.text(o) == "Math"));
-    if let Some((builtin, arity)) = math_builtin {
-        if let Some(args) = node.child_by_field_name("arguments") {
-            let args = Lowering::named_children(args);
-            if args.len() == arity {
-                let lowered: Vec<NodeId> =
-                    args.into_iter().map(|arg| lower_expr(lo, arg)).collect();
-                return lo.add(NodeKind::Call, Payload::Builtin(builtin), span, &lowered);
-            }
-        }
-    }
     let name = name_node.map(|n| lo.sym(lo.text(n)));
     let callee = match node.child_by_field_name("object") {
         Some(o) => {

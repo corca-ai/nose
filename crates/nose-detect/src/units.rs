@@ -6,14 +6,23 @@
 use crate::fragment::{FragmentKind, ProofFacts};
 use nose_il::{
     stable_symbol_hash, Builtin, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, Symbol, UnitKind,
+    Payload, Symbol, UnitKind,
 };
 use nose_normalize::{
     module_facts::{collect_module_mutations, mutating_method_name},
     node_tag,
 };
 use nose_semantics::{
-    builder_append_method_contract, iterator_identity_adapter_contract, semantics,
+    builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
+    exact_java_this_field, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
+    go_zero_map_lookup_contract, index_membership_threshold_contract,
+    iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
+    java_map_factory_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
+    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    static_index_membership_contract, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1012,14 +1021,14 @@ fn strict_exact_static_index_membership_parts(
     if !strict_exact_static_non_float_collection(il, receiver) {
         return None;
     }
-    if method == "indexOf" {
-        return Some((kids[1], receiver));
+    let contract = static_index_membership_contract(il.meta.lang, method, kids.len() - 1)?;
+    match contract.kind {
+        StaticIndexMembershipKind::IndexOf => Some((kids[1], receiver)),
+        StaticIndexMembershipKind::FindIndex => {
+            let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;
+            Some((element, receiver))
+        }
     }
-    if method == "findIndex" {
-        let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;
-        return Some((element, receiver));
-    }
-    None
 }
 
 fn strict_exact_index_membership_threshold(
@@ -1029,12 +1038,18 @@ fn strict_exact_index_membership_threshold(
     threshold: NodeId,
 ) -> bool {
     if strict_exact_minus_one_literal(il, threshold) {
-        return op == Op::Ne
-            || (!index_call_on_right && op == Op::Gt)
-            || (index_call_on_right && op == Op::Lt);
+        return index_membership_threshold_contract(
+            op,
+            index_call_on_right,
+            IndexMembershipThreshold::MinusOne,
+        );
     }
     if matches!(il.node(threshold).payload, Payload::LitInt(0)) {
-        return (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le);
+        return index_membership_threshold_contract(
+            op,
+            index_call_on_right,
+            IndexMembershipThreshold::Zero,
+        );
     }
     false
 }
@@ -1221,66 +1236,17 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         return strict_exact_field_receiver_name(il, interner, callee, "Array")
             && strict_exact_call_args_safe(il, interner, facts, node);
     }
-    if matches!(
-        method,
-        "contains" | "__contains__" | "include?" | "member?" | "includes"
-    ) {
-        let Some(&receiver) = il.children(callee).first() else {
-            return false;
-        };
-        if strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
-            || strict_exact_proven_collection_receiver_safe(il, facts, receiver)
-            || strict_exact_python_collection_factory_safe(il, interner, facts, receiver)
-            || strict_exact_ruby_set_factory_safe(il, interner, facts, receiver)
-            || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
-            || strict_exact_rust_std_collection_factory_safe(il, interner, facts, receiver)
-            || strict_exact_java_collection_factory_safe(il, interner, facts, receiver)
-            || strict_exact_map_key_view_collection_safe(il, interner, facts, receiver)
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
+    if strict_exact_collection_contains_call_safe(il, interner, facts, node, callee, method) {
+        return true;
     }
-    if matches!(
-        method,
-        "get" | "has" | "getOrDefault" | "containsKey" | "contains_key" | "key?" | "has_key?"
-    ) {
-        let Some(&receiver) = il.children(callee).first() else {
-            return false;
-        };
-        if method == "get"
-            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
-            && matches!(il.children(node).len(), 2 | 3)
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if method == "has"
-            && (strict_exact_proven_map_receiver_safe(il, facts, receiver)
-                || strict_exact_proven_collection_receiver_safe(il, facts, receiver))
-            && il.children(node).len() == 2
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if matches!(method, "containsKey" | "contains_key" | "key?" | "has_key?")
-            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
-            && il.children(node).len() == 2
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if method == "getOrDefault"
-            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
-            && il.children(node).len() == 3
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_set_constructor_collection_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_java_map_factory_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_map_constructor_entries_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
+    if strict_exact_map_contains_call_safe(il, interner, facts, node, callee, method) {
+        return true;
+    }
+    if strict_exact_map_get_call_safe(il, interner, facts, node, callee, method) {
+        return true;
+    }
+    if strict_exact_map_get_default_call_safe(il, interner, facts, node, callee, method) {
+        return true;
     }
     if strict_exact_iterator_identity_adapter_call_safe(il, interner, facts, node, callee, method) {
         return true;
@@ -1289,6 +1255,145 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     // without assigning semantic meaning to the method name. Cross-language/builtin
     // convergence still has to pass the proof-backed contracts above or in normalization.
     strict_exact_callee_identity(il, facts, callee)
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_collection_contains_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(contract) = method_call_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+        || contract.args != MethodBuiltinArgs::FirstThenReceiver
+    {
+        return false;
+    }
+    let receiver_safe = match contract.receiver {
+        MethodReceiverContract::ExactCollection
+        | MethodReceiverContract::ExactCollectionOrMap
+        | MethodReceiverContract::ExactCollectionOrJavaKeySet => {
+            let Some(&receiver) = il.children(callee).first() else {
+                return false;
+            };
+            strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
+                || strict_exact_proven_collection_receiver_safe(il, facts, receiver)
+                || strict_exact_python_collection_factory_safe(il, interner, facts, receiver)
+                || strict_exact_ruby_set_factory_safe(il, interner, facts, receiver)
+                || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
+                || strict_exact_rust_std_collection_factory_safe(il, interner, facts, receiver)
+                || strict_exact_java_collection_factory_safe(il, interner, facts, receiver)
+                || strict_exact_map_key_view_collection_safe(il, interner, facts, receiver)
+        }
+        MethodReceiverContract::ExactSetOrMap => {
+            let Some(&receiver) = il.children(callee).first() else {
+                return false;
+            };
+            strict_exact_typed_set_param_receiver_safe(il, receiver)
+        }
+        _ => false,
+    };
+    receiver_safe && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_map_contains_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(contract) = method_call_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+        || contract.args != MethodBuiltinArgs::FirstThenReceiver
+        || !matches!(
+            contract.receiver,
+            MethodReceiverContract::ExactMap
+                | MethodReceiverContract::ExactCollectionOrMap
+                | MethodReceiverContract::ExactSetOrMap
+        )
+    {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_map_get_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    if map_get_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    )
+    .is_none()
+    {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_map_get_default_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(contract) = method_call_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+        || contract.receiver != MethodReceiverContract::ExactMap
+        || contract.args != MethodBuiltinArgs::MapGetDefault
+    {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
 
@@ -1360,6 +1465,23 @@ fn strict_exact_iterator_identity_adapter_node_safe(
     )
 }
 
+fn strict_exact_typed_set_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
+    if il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
+        return false;
+    };
+    il.nodes.iter().any(|node| {
+        node.kind == NodeKind::Param
+            && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
+            && il.param_type_facts.iter().any(|fact| {
+                fact.span == node.span
+                    && domain_evidence_from_param_semantic(fact.semantic).is_set()
+            })
+    })
+}
+
 fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
     if il.kind(receiver) != NodeKind::Var {
         return false;
@@ -1372,10 +1494,8 @@ fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) 
             && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
             && il.param_type_facts.iter().any(|fact| {
                 fact.span == node.span
-                    && matches!(
-                        fact.semantic,
-                        ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set
-                    )
+                    && domain_evidence_from_param_semantic(fact.semantic)
+                        .is_array_collection_or_set()
             })
     })
 }
@@ -1404,10 +1524,10 @@ fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool
     il.nodes.iter().any(|node| {
         node.kind == NodeKind::Param
             && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && il
-                .param_type_facts
-                .iter()
-                .any(|fact| fact.span == node.span && matches!(fact.semantic, ParamSemantic::Map))
+            && il.param_type_facts.iter().any(|fact| {
+                fact.span == node.span
+                    && domain_evidence_from_param_semantic(fact.semantic).is_map()
+            })
     })
 }
 
@@ -1427,6 +1547,18 @@ fn strict_exact_map_key_view_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
+    strict_exact_map_key_view_safe_matching(il, interner, facts, node, |kind| {
+        kind == MapKeyViewKind::Collection
+    })
+}
+
+fn strict_exact_map_key_view_safe_matching(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    accepts: impl Fn(MapKeyViewKind) -> bool + Copy,
+) -> bool {
     if il.kind(node) != NodeKind::Call {
         return false;
     }
@@ -1437,7 +1569,10 @@ fn strict_exact_map_key_view_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "keys" {
+    let Some(contract) = map_key_view_contract(il.meta.lang, interner.resolve(method), 0) else {
+        return false;
+    };
+    if !accepts(contract.kind) {
         return false;
     }
     let Some(&receiver) = il.children(kids[0]).first() else {
@@ -1468,15 +1603,19 @@ fn strict_exact_map_key_view_collection_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "from" {
+    let Some(contract) =
+        map_key_view_wrapper_contract(il.meta.lang, "Array", interner.resolve(method), 1)
+    else {
         return false;
-    }
+    };
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_callee_name(il, interner, receiver, "Array")
-        && !file_defines_name(il, interner, "Array")
-        && strict_exact_map_key_view_safe(il, interner, facts, kids[1])
+    strict_exact_callee_name(il, interner, receiver, contract.receiver)
+        && !file_defines_name(il, interner, contract.receiver)
+        && strict_exact_map_key_view_safe_matching(il, interner, facts, kids[1], |kind| {
+            kind == MapKeyViewKind::Iterator
+        })
 }
 
 fn strict_exact_literal_collection_receiver_safe(
@@ -1528,13 +1667,16 @@ fn strict_exact_membership_collection_safe(
 }
 
 fn strict_exact_set_constructor_collection_safe(
-    _il: &Il,
+    il: &Il,
     _interner: &Interner,
     _facts: &StrictFacts,
     _node: NodeId,
 ) -> bool {
     // JS `new Set(xs)` and plain `Set(xs)` currently lower to the same call
     // shape, so exact constructor semantics must wait for a construct proof.
+    if js_like_set_constructor_contract(il.meta.lang, "Set").is_none() {
+        return false;
+    }
     false
 }
 
@@ -1560,13 +1702,33 @@ fn strict_exact_python_collection_factory_safe(
             return false;
         };
         let name = interner.resolve(name);
-        matches!(name, "list" | "set" | "frozenset" | "tuple")
-            && !file_defines_name(il, interner, name)
+        semantics(il.meta.lang)
+            .collections()
+            .free_name_collection_factories()
+            .any(|factory| {
+                factory.names.contains(&name)
+                    && strict_exact_free_name_factory_shadow_safe(
+                        il,
+                        interner,
+                        name,
+                        factory.shadow_guard,
+                    )
+            })
     } else {
         false
     };
-    let imported_stdlib_factory =
-        strict_exact_python_imported_factory_name(il, interner, kids[0], "collections", "deque");
+    let imported_stdlib_factory = semantics(il.meta.lang)
+        .collections()
+        .imported_collection_factories()
+        .any(|factory| {
+            strict_exact_python_imported_factory_name(
+                il,
+                interner,
+                kids[0],
+                factory.module,
+                factory.exported,
+            )
+        });
     (builtin || imported_stdlib_factory)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
@@ -1672,11 +1834,7 @@ fn strict_exact_ruby_set_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if !semantics(il.meta.lang).stdlib().ruby_set_factory()
-        || il.kind(node) != NodeKind::Call
-        || !ruby_file_requires_module(il, interner, "set")
-        || file_defines_name(il, interner, "Set")
-    {
+    if il.kind(node) != NodeKind::Call {
         return false;
     }
     let kids = il.children(node);
@@ -1686,13 +1844,23 @@ fn strict_exact_ruby_set_factory_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "new" {
-        return false;
-    }
+    let method = interner.resolve(method);
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_callee_name(il, interner, receiver, "Set")
+    if il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Name(receiver_name) = il.node(receiver).payload else {
+        return false;
+    };
+    let receiver_name = interner.resolve(receiver_name);
+    let Some(contract) = ruby_set_factory_contract(il.meta.lang, receiver_name, method, 1) else {
+        return false;
+    };
+    ruby_file_requires_module(il, interner, contract.required_module)
+        && !file_defines_name(il, interner, contract.shadow_root)
+        && strict_exact_callee_name(il, interner, receiver, contract.receiver)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
 
@@ -1769,12 +1937,8 @@ fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) ->
 }
 
 fn strict_exact_rust_vec_new_name(il: &Il, interner: &Interner, text: &str) -> bool {
-    match text {
-        "Vec::new" => !file_defines_name(il, interner, "Vec"),
-        "std::vec::Vec::new" => !file_defines_name(il, interner, "std"),
-        "alloc::vec::Vec::new" => !file_defines_name(il, interner, "alloc"),
-        _ => false,
-    }
+    rust_vec_new_factory_contract(il.meta.lang, text)
+        .is_some_and(|contract| !file_defines_name(il, interner, contract.shadow_root))
 }
 
 fn strict_exact_rust_std_collection_factory_safe(
@@ -1797,15 +1961,15 @@ fn strict_exact_rust_std_collection_factory_safe(
     let Payload::Name(name) = il.node(kids[0]).payload else {
         return false;
     };
-    if !matches!(
-        interner.resolve(name),
-        "std::collections::HashSet::from"
-            | "std::collections::BTreeSet::from"
-            | "std::collections::VecDeque::from"
-    ) {
+    let name = interner.resolve(name);
+    let factory = semantics(il.meta.lang)
+        .collections()
+        .free_name_collection_factories()
+        .find(|factory| factory.names.contains(&name));
+    let Some(factory) = factory else {
         return false;
-    }
-    if file_defines_name(il, interner, "std") {
+    };
+    if !strict_exact_free_name_factory_shadow_safe(il, interner, name, factory.shadow_guard) {
         return false;
     }
     strict_exact_membership_collection_safe(il, interner, facts, kids[1])
@@ -1840,12 +2004,11 @@ fn strict_exact_java_collection_factory_safe(
     };
     let method = interner.resolve(method);
     let receiver_name = interner.resolve(receiver_name);
-    let standard_factory = matches!(
-        (receiver_name, method),
-        ("List" | "Set", "of") | ("Arrays", "asList")
-    );
-    standard_factory
-        && !java_file_defines_type_name(il, interner, receiver_name)
+    let Some(contract) = java_collection_factory_contract(il.meta.lang, receiver_name, method)
+    else {
+        return false;
+    };
+    !java_file_defines_type_name(il, interner, contract.receiver)
         && kids
             .iter()
             .skip(1)
@@ -1914,22 +2077,25 @@ fn strict_exact_java_map_factory_safe(
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    if !strict_exact_java_std_var_name(il, interner, receiver, "Map") {
+    let method = interner.resolve(method);
+    let Some(contract) = java_map_factory_contract(il.meta.lang, "Map", method) else {
+        return false;
+    };
+    if !strict_exact_java_std_var_name(il, interner, receiver, contract.receiver) {
         return false;
     }
-    match interner.resolve(method) {
-        "of" => {
+    match contract.kind {
+        JavaMapFactoryKind::Of => {
             let entries = &kids[1..];
             entries.len() % 2 == 0
                 && entries
                     .iter()
                     .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
         }
-        "ofEntries" => kids
+        JavaMapFactoryKind::OfEntries => kids
             .iter()
             .skip(1)
             .all(|&entry| strict_exact_java_map_entry_safe(il, interner, facts, entry)),
-        _ => false,
     }
 }
 
@@ -1949,13 +2115,12 @@ fn strict_exact_java_map_entry_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "entry" {
-        return false;
-    }
+    let method = interner.resolve(method);
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_java_std_var_name(il, interner, receiver, "Map")
+    java_map_entry_contract(il.meta.lang, "Map", method)
+        && strict_exact_java_std_var_name(il, interner, receiver, "Map")
         && kids
             .iter()
             .skip(1)
@@ -1963,13 +2128,16 @@ fn strict_exact_java_map_entry_safe(
 }
 
 fn strict_exact_map_constructor_entries_safe(
-    _il: &Il,
+    il: &Il,
     _interner: &Interner,
     _facts: &StrictFacts,
     _node: NodeId,
 ) -> bool {
     // JS `new Map(entries)` and plain `Map(entries)` currently lower to the same
     // call shape, so exact constructor semantics must wait for a construct proof.
+    if js_like_map_constructor_contract(il.meta.lang, "Map").is_none() {
+        return false;
+    }
     false
 }
 
@@ -1990,16 +2158,33 @@ fn strict_exact_rust_std_map_factory_safe(
     let Payload::Name(name) = il.node(kids[0]).payload else {
         return false;
     };
-    if !matches!(
-        interner.resolve(name),
-        "std::collections::HashMap::from" | "std::collections::BTreeMap::from"
-    ) {
+    let name = interner.resolve(name);
+    let factory = semantics(il.meta.lang)
+        .collections()
+        .free_name_map_factories()
+        .find(|factory| factory.names.contains(&name));
+    if factory.is_none() {
         return false;
     }
-    if file_defines_name(il, interner, "std") {
+    if !strict_exact_free_name_factory_shadow_safe(il, interner, name, false) {
         return false;
     }
     strict_exact_map_entries_safe(il, interner, facts, kids[1])
+}
+
+fn strict_exact_free_name_factory_shadow_safe(
+    il: &Il,
+    interner: &Interner,
+    name: &str,
+    shadow_guard: bool,
+) -> bool {
+    if shadow_guard {
+        return !file_defines_name(il, interner, name);
+    }
+    if il.meta.lang == Lang::Rust && name.starts_with("std::") {
+        return !file_defines_name(il, interner, "std");
+    }
+    true
 }
 
 fn strict_exact_map_entries_safe(
@@ -2033,11 +2218,7 @@ fn strict_exact_go_literal_zero_map_index_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if !semantics(il.meta.lang)
-        .stdlib()
-        .go_literal_zero_map_lookup()
-        || il.kind(node) != NodeKind::Index
-    {
+    if go_zero_map_lookup_contract(il.meta.lang).is_none() || il.kind(node) != NodeKind::Index {
         return false;
     }
     let kids = il.children(node);
@@ -2052,13 +2233,16 @@ fn strict_exact_go_literal_zero_map_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
+    let Some(contract) = go_zero_map_lookup_contract(il.meta.lang) else {
+        return false;
+    };
     if il.kind(node) != NodeKind::Seq {
         return false;
     }
     let Payload::Name(name) = il.node(node).payload else {
         return false;
     };
-    if interner.resolve(name) != "composite_literal" || il.children(node).is_empty() {
+    if interner.resolve(name) != contract.map_literal_tag || il.children(node).is_empty() {
         return false;
     }
     let mut value_kind = None;
@@ -2070,14 +2254,14 @@ fn strict_exact_go_literal_zero_map_safe(
             return false;
         };
         let kv = il.children(entry);
-        if interner.resolve(entry_name) != "keyed_element"
+        if interner.resolve(entry_name) != contract.entry_tag
             || kv.len() != 2
             || !matches!(il.node(kv[0]).payload, Payload::LitStr(_))
             || !strict_exact_safe_tree(il, interner, facts, kv[0])
         {
             return false;
         }
-        let Some(kind) = strict_exact_go_zero_value_kind(il.node(kv[1]).payload) else {
+        let Some(kind) = go_zero_map_default_kind(il.meta.lang, il.node(kv[1]).payload) else {
             return false;
         };
         match value_kind {
@@ -2089,17 +2273,6 @@ fn strict_exact_go_literal_zero_map_safe(
             }
         }
     })
-}
-
-fn strict_exact_go_zero_value_kind(payload: Payload) -> Option<u8> {
-    match payload {
-        Payload::LitInt(_) => Some(1),
-        Payload::LitStr(_) => Some(2),
-        Payload::LitBool(_) => Some(3),
-        Payload::LitFloat(_) => Some(4),
-        Payload::Lit(LitClass::Null) => Some(5),
-        _ => None,
-    }
 }
 
 fn strict_exact_call_args_safe(
@@ -2914,15 +3087,8 @@ fn exact_index_assignment_consumes_temp(
     temp_cid: u32,
     forbidden_cids: Option<&FxHashSet<u32>>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, stmt) {
-        return false;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, stmt)
+    else {
         return false;
     };
 
@@ -2934,19 +3100,15 @@ fn exact_index_assignment_consumes_temp(
         return false;
     }
 
-    let key_uses_temp = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, &temp));
-    let value_uses_temp = node_mentions_any_cid(il, kids[1], &temp);
+    let key_uses_temp = key.is_some_and(|key| node_mentions_any_cid(il, key, &temp));
+    let value_uses_temp = node_mentions_any_cid(il, value, &temp);
     if !(key_uses_temp || value_uses_temp) {
         return false;
     }
     match forbidden_cids {
         Some(cids) => {
-            !target_kids
-                .get(1)
-                .is_some_and(|&key| node_mentions_any_cid(il, key, cids))
-                && !node_mentions_any_cid(il, kids[1], cids)
+            !key.is_some_and(|key| node_mentions_any_cid(il, key, cids))
+                && !node_mentions_any_cid(il, value, cids)
         }
         None => true,
     }
@@ -2974,14 +3136,7 @@ fn exact_assignment_fragment_kind(
 }
 
 fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 2 && il.kind(kids[0]) == NodeKind::Index
+    exact_non_overloadable_index_assignment(il, node)
 }
 
 // Field-write fingerprints intentionally model final self-field state without a receiver
@@ -2999,41 +3154,8 @@ fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node:
     kids.len() == 2 && exact_java_this_field(il, interner, kids[0])
 }
 
-pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Field
-    {
-        return false;
-    }
-    if !matches!(il.node(node).payload, Payload::Name(_)) {
-        return false;
-    }
-    let Some(&receiver) = il.children(node).first() else {
-        return false;
-    };
-    exact_java_this_var(il, interner, receiver)
-}
-
-pub(crate) fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && il.kind(node) == NodeKind::Var
-        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
-}
-
 fn exact_java_return_this_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Return
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 1 && exact_java_this_var(il, interner, kids[0])
+    exact_java_return_this(il, interner, node)
 }
 
 fn exact_function_body_self_field_fragment_root(
@@ -3491,15 +3613,8 @@ fn index_assignment_effect_consumes_temp(
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids)
@@ -3507,10 +3622,8 @@ fn index_assignment_effect_consumes_temp(
     {
         return false;
     }
-    target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, temp_cids))
-        || node_mentions_any_cid(il, kids[1], temp_cids)
+    key.is_some_and(|key| node_mentions_any_cid(il, key, temp_cids))
+        || node_mentions_any_cid(il, value, temp_cids)
 }
 
 fn index_assignment_effect_consumes_chained_temp(
@@ -3521,15 +3634,8 @@ fn index_assignment_effect_consumes_chained_temp(
     final_temp_cids: &FxHashSet<u32>,
     prior_temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids)
@@ -3537,14 +3643,10 @@ fn index_assignment_effect_consumes_chained_temp(
     {
         return false;
     }
-    let key_uses_final = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, final_temp_cids));
-    let key_uses_prior = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, prior_temp_cids));
-    let value_uses_final = node_mentions_any_cid(il, kids[1], final_temp_cids);
-    let value_uses_prior = node_mentions_any_cid(il, kids[1], prior_temp_cids);
+    let key_uses_final = key.is_some_and(|key| node_mentions_any_cid(il, key, final_temp_cids));
+    let key_uses_prior = key.is_some_and(|key| node_mentions_any_cid(il, key, prior_temp_cids));
+    let value_uses_final = node_mentions_any_cid(il, value, final_temp_cids);
+    let value_uses_prior = node_mentions_any_cid(il, value, prior_temp_cids);
     (key_uses_final || value_uses_final) && !key_uses_prior && !value_uses_prior
 }
 
@@ -3561,25 +3663,7 @@ fn append_effect_depends_on_iter(
 }
 
 fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if il.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return (kids.len() == 2).then(|| (kids[0], kids[1]));
-    }
-    let (&callee, args) = kids.split_first()?;
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return None;
-    };
-    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
-        return None;
-    }
-    let receiver = *il.children(callee).first()?;
-    Some((receiver, args[0]))
+    builder_append_call_args(il, interner, node)
 }
 
 fn index_assignment_effect_depends_on_iter(
@@ -3588,24 +3672,15 @@ fn index_assignment_effect_depends_on_iter(
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids) {
         return false;
     }
-    target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, iter_cids))
-        || node_mentions_any_cid(il, kids[1], iter_cids)
+    key.is_some_and(|key| node_mentions_any_cid(il, key, iter_cids))
+        || node_mentions_any_cid(il, value, iter_cids)
 }
 
 pub(crate) fn top_level_statement_fragment_context_safe(

@@ -46,13 +46,23 @@ use crate::module_facts::{
 use crate::types::Ty;
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, Span, Symbol, UnitKind,
+    Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    builder_append_method_contract, builtin_tag, iterator_identity_adapter_contract,
-    method_call_contract, reduction_builtin_contract, scalar_integer_method_contract, semantics,
-    IteratorAdapterReceiverContract, MethodBuiltinArgs, MethodReceiverContract,
+    builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, imported_namespace_function_contract,
+    index_membership_threshold_contract, iterator_identity_adapter_contract,
+    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
+    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
+    map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
+    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics,
+    static_index_membership_contract, DomainEvidence, GoZeroMapDefaultKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
     MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -399,9 +409,8 @@ struct Builder<'a> {
     /// Inferred parameter types by position (from `types::infer_param_types`), seeding the
     /// type of each `Input` node.
     param_ty: Vec<Ty>,
-    /// Explicit source-level parameter semantic facts keyed by the alpha-renamed cid
-    /// currently in scope.
-    param_semantic: FxHashMap<u32, ParamSemantic>,
+    /// Kernel domain evidence keyed by the alpha-renamed cid currently in scope.
+    param_domain: FxHashMap<u32, DomainEvidence>,
     /// The branch conditions currently in effect (each a `cond` or `Not(cond)`). A
     /// `return`/`throw` reached under a non-empty path is tagged with that condition,
     /// so `if c {return A} else {return B}` and the branch-swapped `if c {return B}
@@ -503,7 +512,7 @@ impl<'a> Builder<'a> {
             valued_subtree_hash: None,
             vty: Vec::new(),
             param_ty: Vec::new(),
-            param_semantic: FxHashMap::default(),
+            param_domain: FxHashMap::default(),
             path: Vec::new(),
             bound_order_facts: Vec::new(),
             effect_slot: 0,
@@ -703,30 +712,30 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn param_semantic_for_param(&self, param: NodeId) -> Option<ParamSemantic> {
+    fn domain_evidence_for_param(&self, param: NodeId) -> Option<DomainEvidence> {
         let span = self.il.node(param).span;
         self.il
             .param_type_facts
             .iter()
             .find(|fact| fact.span == span)
-            .map(|fact| fact.semantic)
+            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
     }
 
-    fn seed_param_semantics(&mut self, root: NodeId) {
-        let scope = self.param_semantic_scope(root).unwrap_or(root);
+    fn seed_param_domains(&mut self, root: NodeId) {
+        let scope = self.param_domain_scope(root).unwrap_or(root);
         for &k in self.il.children(scope) {
             if self.il.kind(k) != NodeKind::Param {
                 continue;
             }
-            if let (Payload::Cid(cid), Some(semantic)) =
-                (self.il.node(k).payload, self.param_semantic_for_param(k))
+            if let (Payload::Cid(cid), Some(domain)) =
+                (self.il.node(k).payload, self.domain_evidence_for_param(k))
             {
-                self.param_semantic.insert(cid, semantic);
+                self.param_domain.insert(cid, domain);
             }
         }
     }
 
-    fn param_semantic_scope(&self, root: NodeId) -> Option<NodeId> {
+    fn param_domain_scope(&self, root: NodeId) -> Option<NodeId> {
         if self.il.kind(root) == NodeKind::Func {
             return Some(root);
         }
@@ -748,57 +757,58 @@ impl<'a> Builder<'a> {
         best.map(|(_, node)| node)
     }
 
-    fn param_semantic_of_expr(&self, expr: NodeId) -> Option<ParamSemantic> {
+    fn domain_evidence_of_expr(&self, expr: NodeId) -> Option<DomainEvidence> {
         if self.il.kind(expr) != NodeKind::Var {
             return None;
         }
         let Payload::Cid(cid) = self.il.node(expr).payload else {
             return None;
         };
-        self.param_semantic.get(&cid).copied()
+        self.param_domain.get(&cid).copied()
     }
 
     fn is_collection_param_expr(&self, expr: NodeId) -> bool {
-        matches!(
-            self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Collection | ParamSemantic::Set)
-        )
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_collection_or_set)
+    }
+
+    fn is_set_param_expr(&self, expr: NodeId) -> bool {
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_set)
     }
 
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
-        matches!(self.param_semantic_of_expr(expr), Some(ParamSemantic::Map))
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_map)
     }
 
     fn is_integer_param_expr(&self, expr: NodeId) -> bool {
-        matches!(
-            self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Integer)
-        )
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_integer)
     }
 
-    /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate semantic. Replaces
-    /// the per-semantic `is_map`/`is_integer`/`is_byte_array` recognizers (identical but for the
-    /// variant). `is_array` adds the `ArrayParam` op on top.
-    fn is_param_value(&self, value: ValueId, sem: ParamSemantic) -> bool {
+    /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate domain.
+    /// `is_array` adds the `ArrayParam` op on top.
+    fn is_param_value(&self, value: ValueId, domain: DomainEvidence) -> bool {
         matches!(self.nodes[value as usize].op, ValOp::Input(cid)
-            if self.param_semantic.get(&cid) == Some(&sem))
+            if self.param_domain.get(&cid) == Some(&domain))
     }
 
     fn is_array_param_value(&self, value: ValueId) -> bool {
         matches!(self.nodes[value as usize].op, ValOp::ArrayParam)
-            || self.is_param_value(value, ParamSemantic::Array)
+            || self.is_param_value(value, DomainEvidence::Array)
     }
 
     fn param_domain_value(&mut self, value: ValueId) -> ValueId {
         let ValOp::Input(cid) = self.nodes[value as usize].op else {
             return value;
         };
-        match self.param_semantic.get(&cid).copied() {
-            Some(ParamSemantic::Array) => self.mk(ValOp::ArrayParam, vec![value]),
-            Some(ParamSemantic::Collection | ParamSemantic::Set) => {
+        match self.param_domain.get(&cid).copied() {
+            Some(domain) if domain.is_array() => self.mk(ValOp::ArrayParam, vec![value]),
+            Some(domain) if domain.is_collection_or_set() => {
                 self.mk(ValOp::CollectionParam, vec![value])
             }
-            Some(ParamSemantic::String) => self.mk(ValOp::StringParam, vec![value]),
+            Some(domain) if domain.is_string() => self.mk(ValOp::StringParam, vec![value]),
             _ => value,
         }
     }
@@ -876,11 +886,11 @@ impl<'a> Builder<'a> {
     /// Python `from collections import deque; deque(<seq>)` — the imported-stdlib collection
     /// factory (the non-free-name part of the former python recognizer).
     fn proven_python_deque_collection_value(&self, value: ValueId) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang).stdlib().python_deque_factory() {
-            return None;
-        }
         self.collection_factory_seq(value, |s, callee| {
-            s.is_import_binding_value(callee, "collections", "deque")
+            semantics(s.il.meta.lang)
+                .collections()
+                .imported_collection_factories()
+                .any(|factory| s.is_import_binding_value(callee, factory.module, factory.exported))
         })
     }
 
@@ -904,17 +914,17 @@ impl<'a> Builder<'a> {
             return None;
         }
         let receiver = callee.args[0];
-        let is_standard_factory = if method == stable_symbol_hash("of") {
-            self.is_free_java_std_name(receiver, "List")
-                || self.is_free_java_std_name(receiver, "Set")
-        } else if method == stable_symbol_hash("asList") {
-            self.is_free_java_std_name(receiver, "Arrays")
-        } else {
-            false
-        };
-        if !is_standard_factory {
-            return None;
-        }
+        let contract = ["List", "Set", "Arrays"]
+            .into_iter()
+            .find_map(|receiver_name| {
+                let contract = java_collection_factory_contract_by_hash(
+                    self.il.meta.lang,
+                    receiver_name,
+                    method,
+                )?;
+                self.is_imported_java_util_name(receiver, contract.receiver)
+                    .then_some(contract)
+            })?;
         // A single argument to a varargs collection factory (`Arrays.asList(x)`,
         // `List.of(x)`, `Set.of(x)`) is ambiguous: when `x` is an array it is spread
         // into the element list, but when `x` is a single object it is the sole
@@ -924,7 +934,7 @@ impl<'a> Builder<'a> {
         // must refuse, or an array-typed field and a list-typed field of the same name
         // would false-merge. Multi-argument factories are always a literal element list.
         if args.len() == 2 {
-            if method == stable_symbol_hash("asList") && self.is_array_param_value(args[1]) {
+            if contract.single_arg_spreads_array && self.is_array_param_value(args[1]) {
                 return Some(self.mk(ValOp::ArrayParam, vec![args[1]]));
             }
             return None;
@@ -933,17 +943,20 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang).stdlib().ruby_set_factory()
-            || !self.ruby_file_requires_module("set")
-            || self.file_defines_name("Set")
-        {
-            return None;
-        }
         self.collection_factory_seq(value, |s, callee| {
             let callee = &s.nodes[callee as usize];
-            matches!(callee.op, ValOp::Field(method) if method == stable_symbol_hash("new"))
-                && callee.args.len() == 1
-                && s.is_free_name_value(callee.args[0], "Set")
+            let ValOp::Field(method) = callee.op else {
+                return false;
+            };
+            let Some(contract) =
+                ruby_set_factory_contract_by_hash(s.il.meta.lang, "Set", method, 1)
+            else {
+                return false;
+            };
+            callee.args.len() == 1
+                && s.ruby_file_requires_module(contract.required_module)
+                && !s.file_defines_name(contract.shadow_root)
+                && s.is_free_name_value(callee.args[0], contract.receiver)
         })
     }
 
@@ -965,8 +978,9 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
     }
 
-    fn is_free_java_std_name(&self, value: ValueId, name: &str) -> bool {
-        self.is_free_name_value(value, name) && !self.java_file_defines_type_name(name)
+    fn is_imported_java_util_name(&self, value: ValueId, name: &str) -> bool {
+        !self.java_file_defines_type_name(name)
+            && self.is_import_binding_value(value, "java.util", name)
     }
 
     fn is_import_namespace_expr(
@@ -1267,10 +1281,14 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return None;
         };
-        if callee.args.len() != 1 || !self.is_free_java_std_name(callee.args[0], "Map") {
+        if callee.args.len() != 1 {
             return None;
         }
-        if method == stable_symbol_hash("of") {
+        let contract = java_map_factory_contract_by_hash(self.il.meta.lang, "Map", method)?;
+        if !self.is_imported_java_util_name(callee.args[0], contract.receiver) {
+            return None;
+        }
+        if contract.kind == JavaMapFactoryKind::Of {
             let entries = &args[1..];
             if entries.len() % 2 != 0 {
                 return None;
@@ -1281,7 +1299,7 @@ impl<'a> Builder<'a> {
             }
             return Some(self.mk(ValOp::Seq(3), canonical_entries));
         }
-        if method == stable_symbol_hash("ofEntries") {
+        if contract.kind == JavaMapFactoryKind::OfEntries {
             let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
             for entry in args.iter().skip(1).copied() {
                 let kv = self.proven_java_map_entry_pair(entry)?;
@@ -1299,9 +1317,12 @@ impl<'a> Builder<'a> {
         }
         let args = node.args.clone();
         let callee = &self.nodes[args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("entry"))
-            || callee.args.len() != 1
-            || !self.is_free_java_std_name(callee.args[0], "Map")
+        let ValOp::Field(method) = callee.op else {
+            return None;
+        };
+        if callee.args.len() != 1
+            || !java_map_entry_contract_by_hash(self.il.meta.lang, "Map", method)
+            || !self.is_imported_java_util_name(callee.args[0], "Map")
         {
             return None;
         }
@@ -1309,8 +1330,9 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_go_literal_zero_map_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
+        let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("go_literal_zero_map"))
+        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash(contract.canonical_value_tag))
             || node.args.len() != 2
         {
             return None;
@@ -1323,16 +1345,11 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         args: &[ValueId],
     ) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang)
-            .stdlib()
-            .go_literal_zero_map_lookup()
-        {
-            return None;
-        }
+        let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
         let Payload::Name(name) = self.il.node(expr).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "composite_literal" || args.is_empty() {
+        if self.interner.resolve(name) != contract.map_literal_tag || args.is_empty() {
             return None;
         }
         let entry_nodes = self.il.children(expr).to_vec();
@@ -1349,7 +1366,7 @@ impl<'a> Builder<'a> {
             let Payload::Name(entry_name) = self.il.node(entry_node_id).payload else {
                 return None;
             };
-            if self.interner.resolve(entry_name) != "keyed_element" {
+            if self.interner.resolve(entry_name) != contract.entry_tag {
                 return None;
             }
             let kv_nodes = self.il.children(entry_node_id);
@@ -1358,8 +1375,9 @@ impl<'a> Builder<'a> {
             {
                 return None;
             }
-            let (kind, value_default) =
-                self.go_literal_zero_default_from_payload(self.il.node(kv_nodes[1]).payload)?;
+            let kind =
+                go_zero_map_default_kind(self.il.meta.lang, self.il.node(kv_nodes[1]).payload)?;
+            let value_default = self.go_literal_zero_default_value(kind);
             match value_kind {
                 Some(current_kind) if current_kind != kind => return None,
                 Some(_) => {}
@@ -1369,7 +1387,7 @@ impl<'a> Builder<'a> {
                 }
             }
             let entry_value_node = &self.nodes[entry_value as usize];
-            if !matches!(entry_value_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("keyed_element"))
+            if !matches!(entry_value_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash(contract.entry_tag))
                 || entry_value_node.args.len() != 2
             {
                 return None;
@@ -1378,25 +1396,22 @@ impl<'a> Builder<'a> {
         }
         let map = self.mk(ValOp::Seq(3), canonical_entries);
         Some(self.mk(
-            ValOp::Seq(stable_symbol_hash("go_literal_zero_map")),
+            ValOp::Seq(stable_symbol_hash(contract.canonical_value_tag)),
             vec![default?, map],
         ))
     }
 
-    fn go_literal_zero_default_from_payload(&mut self, payload: Payload) -> Option<(u8, ValueId)> {
-        match payload {
-            Payload::LitInt(_) => Some((1, self.int_const(0))),
-            Payload::LitStr(_) => Some((
-                2,
-                self.mk(ValOp::Const(stable_string_const_key("")), vec![]),
-            )),
-            Payload::LitBool(_) => Some((3, self.mk(ValOp::Const(0x3000_0001), vec![]))),
-            Payload::LitFloat(_) => Some((
-                4,
-                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![]),
-            )),
-            Payload::Lit(nose_il::LitClass::Null) => Some((5, self.null_const())),
-            _ => None,
+    fn go_literal_zero_default_value(&mut self, kind: GoZeroMapDefaultKind) -> ValueId {
+        match kind {
+            GoZeroMapDefaultKind::Int => self.int_const(0),
+            GoZeroMapDefaultKind::String => {
+                self.mk(ValOp::Const(stable_string_const_key("")), vec![])
+            }
+            GoZeroMapDefaultKind::Bool => self.mk(ValOp::Const(0x3000_0001), vec![]),
+            GoZeroMapDefaultKind::Float => {
+                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![])
+            }
+            GoZeroMapDefaultKind::Null => self.null_const(),
         }
     }
 
@@ -1419,13 +1434,15 @@ impl<'a> Builder<'a> {
         }
         let args = node.args.clone();
         let callee = &self.nodes[node.args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("get"))
-            || callee.args.len() != 1
-        {
+        let ValOp::Field(method) = callee.op else {
+            return None;
+        };
+        map_get_contract_by_hash(self.il.meta.lang, method, args.len().saturating_sub(1))?;
+        if callee.args.len() != 1 {
             return None;
         }
         let map = callee.args[0];
-        let map = if self.is_param_value(map, ParamSemantic::Map) {
+        let map = if self.is_param_value(map, DomainEvidence::Map) {
             map
         } else {
             self.proven_map_value(map)?
@@ -1434,6 +1451,14 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_map_key_view_value(&mut self, value: ValueId) -> Option<ValueId> {
+        self.proven_map_key_view_value_matching(value, MapKeyViewKind::Collection)
+    }
+
+    fn proven_map_key_view_value_matching(
+        &mut self,
+        value: ValueId,
+        accepted: MapKeyViewKind,
+    ) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) {
             return None;
@@ -1441,18 +1466,15 @@ impl<'a> Builder<'a> {
         let args = node.args.clone();
         if args.len() == 1 {
             let callee = &self.nodes[args[0] as usize];
-            let key_view = matches!(
-                callee.op,
-                ValOp::Field(name)
-                    if name == stable_symbol_hash("keys")
-                        || (self.il.meta.lang == Lang::Java
-                            && name == stable_symbol_hash("keySet"))
-            );
-            if !key_view || callee.args.len() != 1 {
+            let ValOp::Field(method) = callee.op else {
+                return None;
+            };
+            let contract = map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?;
+            if contract.kind != accepted || callee.args.len() != 1 {
                 return None;
             }
             let map = callee.args[0];
-            return if self.is_param_value(map, ParamSemantic::Map) {
+            return if self.is_param_value(map, DomainEvidence::Map) {
                 Some(map)
             } else {
                 self.proven_map_value(map)
@@ -1460,13 +1482,19 @@ impl<'a> Builder<'a> {
         }
         if args.len() == 2 {
             let callee = &self.nodes[args[0] as usize];
-            if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("from"))
+            let ValOp::Field(method) = callee.op else {
+                return None;
+            };
+            let contract =
+                map_key_view_wrapper_contract_by_hash(self.il.meta.lang, "Array", method, 1)?;
+            if accepted != MapKeyViewKind::Collection
                 || callee.args.len() != 1
-                || !self.is_free_name_value(callee.args[0], "Array")
+                || !self.is_free_name_value(callee.args[0], contract.receiver)
+                || self.file_defines_name(contract.receiver)
             {
                 return None;
             }
-            return self.proven_map_key_view_value(args[1]);
+            return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator);
         }
         None
     }
@@ -1496,30 +1524,53 @@ impl<'a> Builder<'a> {
         let callee_kids = self.il.children(callee);
         let receiver = callee_kids.first().copied();
 
-        if matches!(
-            method,
-            "contains" | "includes" | "include?" | "member?" | "__contains__" | "has"
-        ) && kids.len() == 2
+        let contract =
+            method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains) {
+            return None;
+        }
+
+        if contract.args == MethodBuiltinArgs::FirstThenReceiver
+            && matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactCollection
+                    | MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
+                    | MethodReceiverContract::ExactSetOrMap
+            )
+            && kids.len() == 2
         {
             let receiver = receiver?;
             let element = self.eval(kids[1], env);
-            if let Some(map) = self.proven_map_key_view_expr(receiver, env) {
-                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, map]));
+            if matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactCollectionOrJavaKeySet
+            ) {
+                if let Some(map) = self.proven_map_key_view_expr(receiver, env) {
+                    return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, map]));
+                }
             }
-            if self.is_collection_param_expr(receiver) {
+            let receiver_param_safe = match contract.receiver {
+                MethodReceiverContract::ExactSetOrMap => self.is_set_param_expr(receiver),
+                _ => self.is_collection_param_expr(receiver),
+            };
+            if receiver_param_safe {
                 let collection = self.eval_membership_collection(receiver, env);
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             let receiver_value = self.eval(receiver, env);
-            if let Some(collection) = self
-                .proven_collection_value(receiver_value)
-                .or_else(|| self.proven_local_collection_binding_value(receiver, env))
-            {
-                let collection = self.canonical_membership_collection_value(collection);
-                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            if contract.receiver != MethodReceiverContract::ExactSetOrMap {
+                if let Some(collection) = self
+                    .proven_collection_value(receiver_value)
+                    .or_else(|| self.proven_local_collection_binding_value(receiver, env))
+                {
+                    let collection = self.canonical_membership_collection_value(collection);
+                    return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+                }
             }
             None
-        } else if method == "Contains" && kids.len() == 3 {
+        } else if contract.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
             let receiver = receiver?;
             if !self.is_import_namespace_expr(receiver, "slices", env)
                 && !self.file_imports_namespace(receiver, "slices")
@@ -1555,9 +1606,16 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let map_specific_method =
-            matches!(method, "containsKey" | "contains_key" | "key?" | "has_key?");
-        if !matches!(method, "has" | "__contains__") && !map_specific_method {
+        let contract = method_call_contract(self.il.meta.lang, method, 1)?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+            || contract.args != MethodBuiltinArgs::FirstThenReceiver
+            || !matches!(
+                contract.receiver,
+                MethodReceiverContract::ExactMap
+                    | MethodReceiverContract::ExactCollectionOrMap
+                    | MethodReceiverContract::ExactSetOrMap
+            )
+        {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;
@@ -1586,7 +1644,15 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if !matches!(self.interner.resolve(name), "get" | "getOrDefault") {
+        let contract = method_call_contract(
+            self.il.meta.lang,
+            self.interner.resolve(name),
+            kids.len().saturating_sub(1),
+        )?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+            || contract.receiver != MethodReceiverContract::ExactMap
+            || contract.args != MethodBuiltinArgs::MapGetDefault
+        {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;
@@ -1683,7 +1749,7 @@ impl<'a> Builder<'a> {
 
     fn is_integer_domain_value(&self, value: ValueId) -> bool {
         if self.int_const_value(value).is_some()
-            || self.is_param_value(value, ParamSemantic::Integer)
+            || self.is_param_value(value, DomainEvidence::Integer)
         {
             return true;
         }
@@ -2274,8 +2340,8 @@ impl<'a> Builder<'a> {
 
     fn build_unit_with_context(&mut self, root: NodeId, context: Option<&ValueFingerprintContext>) {
         self.param_ty = crate::types::infer_param_types(self.il, root);
-        self.param_semantic.clear();
-        self.seed_param_semantics(root);
+        self.param_domain.clear();
+        self.seed_param_domains(root);
         self.seed_immutable_bindings(root, context);
         self.build_inline_registry(root);
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
@@ -2291,8 +2357,8 @@ impl<'a> Builder<'a> {
                     if self.il.kind(k) == NodeKind::Param {
                         if let Payload::Cid(c) = self.il.node(k).payload {
                             if matches!(
-                                self.param_semantic.get(&c),
-                                Some(ParamSemantic::Integer | ParamSemantic::Number)
+                                self.param_domain.get(&c).copied(),
+                                Some(domain) if domain.is_integer_or_number()
                             ) {
                                 let pos_idx = pos as usize;
                                 if self.param_ty.len() <= pos_idx {
@@ -3343,7 +3409,7 @@ impl<'a> Builder<'a> {
     }
 
     fn is_safe_clamp_integer_value(&self, value: ValueId) -> bool {
-        self.int_const_value(value).is_some() || self.is_param_value(value, ParamSemantic::Integer)
+        self.int_const_value(value).is_some() || self.is_param_value(value, DomainEvidence::Integer)
     }
 
     fn proof_backed_clamp_value(
@@ -3775,9 +3841,9 @@ impl<'a> Builder<'a> {
                 NodeKind::Func => {
                     let kids = self.il.children(c).to_vec();
                     let mut menv = env.clone();
-                    let saved_param_semantic = self.param_semantic.clone();
-                    self.param_semantic.clear();
-                    self.seed_param_semantics(c);
+                    let saved_param_domain = self.param_domain.clone();
+                    self.param_domain.clear();
+                    self.seed_param_domains(c);
                     let mut pos = 0u32;
                     for &k in &kids {
                         if self.il.kind(k) == NodeKind::Param {
@@ -3791,7 +3857,7 @@ impl<'a> Builder<'a> {
                     if let Some(&body) = kids.last() {
                         self.process_stmt(body, &mut menv);
                     }
-                    self.param_semantic = saved_param_semantic;
+                    self.param_domain = saved_param_domain;
                 }
                 NodeKind::Block => self.process_container(c, env),
                 _ => self.process_stmt(c, env),
@@ -5180,7 +5246,7 @@ impl<'a> Builder<'a> {
             if base == low_base
                 && high_index == 0
                 && low_index == 1
-                && self.is_param_value(base, ParamSemantic::ByteArray)
+                && self.is_param_value(base, DomainEvidence::ByteArray)
             {
                 let zero = self.int_const(0);
                 let one = self.int_const(1);
@@ -5224,7 +5290,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let base = base?;
-        if !self.is_param_value(base, ParamSemantic::ByteArray) {
+        if !self.is_param_value(base, DomainEvidence::ByteArray) {
             return None;
         }
         let zero = self.int_const(0);
@@ -5865,7 +5931,7 @@ impl<'a> Builder<'a> {
 
     fn eval_static_index_membership_comparison(
         &mut self,
-        op: u32,
+        op: Op,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -5905,34 +5971,42 @@ impl<'a> Builder<'a> {
         if !self.is_static_non_float_collection_expr(receiver) {
             return None;
         }
-        if method == "indexOf" {
-            let element = self.eval(kids[1], env);
-            let collection = self.eval_membership_collection(receiver, env);
-            return Some((element, collection));
+        let contract = static_index_membership_contract(self.il.meta.lang, method, kids.len() - 1)?;
+        match contract.kind {
+            StaticIndexMembershipKind::IndexOf => {
+                let element = self.eval(kids[1], env);
+                let collection = self.eval_membership_collection(receiver, env);
+                Some((element, collection))
+            }
+            StaticIndexMembershipKind::FindIndex if self.il.kind(kids[1]) == NodeKind::Lambda => {
+                let collection = self.eval(receiver, env);
+                let elem = self.elem(collection);
+                let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
+                self.static_literal_membership_predicate(pred)
+            }
+            StaticIndexMembershipKind::FindIndex => None,
         }
-        if method == "findIndex" && self.il.kind(kids[1]) == NodeKind::Lambda {
-            let collection = self.eval(receiver, env);
-            let elem = self.elem(collection);
-            let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
-            return self.static_literal_membership_predicate(pred);
-        }
-        None
     }
 
     fn is_index_membership_threshold(
         &self,
-        op: u32,
+        op: Op,
         index_call_on_right: bool,
         threshold: NodeId,
     ) -> bool {
         if self.is_minus_one_literal(threshold) {
-            return op == Op::Ne as u32
-                || (!index_call_on_right && op == Op::Gt as u32)
-                || (index_call_on_right && op == Op::Lt as u32);
+            return index_membership_threshold_contract(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::MinusOne,
+            );
         }
         if self.is_zero_literal(threshold) {
-            return (!index_call_on_right && op == Op::Ge as u32)
-                || (index_call_on_right && op == Op::Le as u32);
+            return index_membership_threshold_contract(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::Zero,
+            );
         }
         false
     }
@@ -6177,7 +6251,10 @@ impl<'a> Builder<'a> {
             return false;
         }
         let callee = &self.nodes[args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("get"))
+        let ValOp::Field(method) = callee.op else {
+            return false;
+        };
+        if map_get_contract_by_hash(self.il.meta.lang, method, 1).is_none()
             || callee.args.len() != 1
         {
             return false;
@@ -6361,22 +6438,23 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "prod" {
-            return None;
-        }
+        let contract = imported_namespace_function_contract(
+            self.il.meta.lang,
+            self.interner.resolve(name),
+            kids.len().saturating_sub(1),
+        )?;
         let base = *self.il.children(callee).first()?;
-        if !matches!(
-            (self.il.kind(base), self.il.node(base).payload),
-            (NodeKind::Var, Payload::Name(s)) if self.interner.resolve(s) == "math"
-        ) {
+        if !self.is_import_namespace_expr(base, contract.module, env) {
             return None;
         }
+        let ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } =
+            contract.semantic;
         let coll = self.eval(*kids.get(1)?, env);
-        let (op, args) = {
+        let (coll_op, args) = {
             let n = &self.nodes[coll as usize];
             (n.op.clone(), n.args.clone())
         };
-        let contrib = match op {
+        let contrib = match coll_op {
             ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
                 let one = self.int_const(1);
                 self.mk(ValOp::Phi, vec![args[1], args[0], one])
@@ -6387,8 +6465,8 @@ impl<'a> Builder<'a> {
         let init = kids
             .get(2)
             .map(|&i| self.eval(i, env))
-            .unwrap_or_else(|| self.int_const(1));
-        Some(self.mk(ValOp::Reduce(Op::Mul as u32), vec![init, contrib]))
+            .unwrap_or_else(|| self.int_const(identity));
+        Some(self.mk(ValOp::Reduce(op as u32), vec![init, contrib]))
     }
 
     fn eval_iterator_identity_adapter(
@@ -6652,6 +6730,7 @@ impl<'a> Builder<'a> {
             }
             NodeKind::If => self.eval_filter_map_if(node, env),
             NodeKind::Lit if self.is_null_literal(node) => Some(FilterMapResult::Drop),
+            NodeKind::Var if self.is_rust_option_none_node(node) => Some(FilterMapResult::Drop),
             NodeKind::Call => {
                 if let Some((receiver, lambda)) = self.rust_option_and_then_call_parts(node) {
                     return self.eval_filter_map_and_then(receiver, lambda, env);
@@ -6779,7 +6858,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        if self.interner.resolve(method) != "and_then" {
+        if !rust_option_and_then_contract(self.il.meta.lang, self.interner.resolve(method), 1) {
             return None;
         }
         let receiver = *self.il.children(kids[0]).first()?;
@@ -6796,28 +6875,26 @@ impl<'a> Builder<'a> {
     }
 
     fn rust_option_some_name(&self, text: &str) -> bool {
-        if self.il.meta.lang != Lang::Rust {
+        rust_option_some_constructor_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
+    }
+
+    fn rust_option_none_name(&self, text: &str) -> bool {
+        rust_option_none_sentinel_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
+    }
+
+    fn is_rust_option_none_node(&self, node: NodeId) -> bool {
+        let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
+        else {
             return false;
-        }
-        match text {
-            "Some" => !self.file_defines_name("Some"),
-            "Option::Some" => !self.file_defines_name("Option"),
-            "std::option::Option::Some" => !self.file_defines_name("std"),
-            "core::option::Option::Some" => !self.file_defines_name("core"),
-            _ => false,
-        }
+        };
+        self.rust_option_none_name(self.interner.resolve(name))
     }
 
     fn rust_vec_new_name(&self, text: &str) -> bool {
-        if self.il.meta.lang != Lang::Rust {
-            return false;
-        }
-        match text {
-            "Vec::new" => !self.file_defines_name("Vec"),
-            "std::vec::Vec::new" => !self.file_defines_name("std"),
-            "alloc::vec::Vec::new" => !self.file_defines_name("alloc"),
-            _ => false,
-        }
+        rust_vec_new_factory_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
     }
 
     fn is_null_literal(&self, node: NodeId) -> bool {
@@ -6934,6 +7011,15 @@ impl<'a> Builder<'a> {
                     if let Some(&v) = self.global_env.get(&s) {
                         return v;
                     }
+                    let name = self.interner.resolve(s);
+                    if self.rust_option_none_name(name) {
+                        return self.null_const();
+                    }
+                    if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
+                        if !contract.requires_unshadowed || !self.file_defines_name(contract.name) {
+                            return self.null_const();
+                        }
+                    }
                     let key = 0x8000_0000u32 | (self.interner.symbol_hash(s) as u32);
                     self.mk(ValOp::Input(key), vec![])
                 }
@@ -6978,8 +7064,12 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
                     return v;
                 }
-                if let Some(v) = self.eval_static_index_membership_comparison(op, &kids, env) {
-                    return v;
+                if let Payload::Op(op_kind) = node.payload {
+                    if let Some(v) =
+                        self.eval_static_index_membership_comparison(op_kind, &kids, env)
+                    {
+                        return v;
+                    }
                 }
                 if op == Op::Add as u32 || op == Op::Sub as u32 {
                     let mut operands = Vec::new();
@@ -7088,10 +7178,10 @@ impl<'a> Builder<'a> {
                             if let Some(len) = self.eval_len_value(a[0]) {
                                 return len;
                             }
-                            if matches!(
-                                self.param_semantic_of_expr(kids[0]),
-                                Some(ParamSemantic::Array | ParamSemantic::Collection)
-                            ) {
+                            if self
+                                .domain_evidence_of_expr(kids[0])
+                                .is_some_and(DomainEvidence::is_array_or_collection)
+                            {
                                 return self.mk(ValOp::Call(builtin_tag(Builtin::Len)), a);
                             }
                         }
@@ -7864,7 +7954,9 @@ fn stable_float_const_key(value: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span, Unit, UnitKind};
+    use nose_il::{
+        FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span, Unit, UnitKind,
+    };
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)

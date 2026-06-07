@@ -65,8 +65,8 @@ and pack ecosystem.
 - Additional call surfaces moved behind proof-gated contracts: JS/TS
   `filter(...).length`, Rust `get(key).is_some()`, Java `keySet().contains`,
   and Java `Stream.count()` require receiver/protocol or map proof. Ruby untyped
-  `Enumerable` and scalar/array numeric helpers remain closed until comparable
-  proof facts exist.
+  `Enumerable` surfaces, including `.each`/`.each_with_index` block loops, and
+  scalar/array numeric helpers remain closed until comparable proof facts exist.
 - New value-graph rewrites began moving into named `rules/*` modules with
   mechanical formal-obligation pairing; `clamp` is the current proof-backed
   example.
@@ -77,6 +77,58 @@ and pack ecosystem.
   language-, signature-, and integer-domain-constrained first-party contract
   instead of a bare method-name recognizer. Float/NaN-sensitive methods remain a
   separate future contract.
+- Exact fragment IL-surface proofs for Java `this.field`, Java `return this`,
+  non-overloadable C/Go/Java index assignment, and single-item builder append
+  calls moved into `nose-semantics`, so predicate and contract paths no longer
+  duplicate those language/API gates.
+- The first receiver-domain evidence facade landed as `DomainEvidence`.
+  Frontend `ParamSemantic` facts still provide the current evidence source, but
+  normalize and detect exact gates now consume the kernel-facing domain
+  vocabulary so pack-provided evidence can replace the source fact later.
+- Rust stdlib path contracts for `Some`/`Option::Some`,
+  `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
+  kernel facade with explicit shadow-root obligations. The caller still proves
+  local shadow safety, and the Rust frontend no longer lowers bare `None`
+  directly to null before that proof.
+- Java collection/map factory selectors, Python free-name/imported collection
+  factories, Rust std collection/map factory paths, and Ruby `Set.new` moved
+  behind shared `nose-semantics` contracts. Normalize, strict exact gates, and
+  corpus import proof now consume the same selector source while keeping local
+  import, require, shadow, mutation, and entry-shape proof at the caller.
+- Membership and map-key membership recognition now uses language-scoped method
+  contracts before normalization or strict exact matching assigns containment
+  semantics. This intentionally closes old name-only paths such as JavaScript
+  `.contains(...)`, which had no first-party JS membership contract.
+- Java stream source adapters are now proof-gated: receiver `.stream()` requires
+  exact iterable evidence, and static `Arrays.stream(xs)` requires the
+  `java.util.Arrays` import binding with no local `Arrays` type shadow.
+- Cross-file immutable import replacement now copies import-binding dependencies
+  required by the exported literal expression, preserving provider-side stdlib
+  proofs such as `java.util.Map` for Java static imports.
+- JS-like `Map`/`Set` constructors are now represented as explicit closed
+  contracts requiring construct-syntax proof; they remain exact-closed until the
+  frontend/kernel can distinguish `new Map(...)` from plain `Map(...)`.
+- Map key-view recognition moved behind contracts that distinguish collection
+  views from iterator views. JS-like `Map.keys()` now requires an
+  `Array.from(...)` wrapper before exact membership can consume it.
+- Go composite map literal/default-zero lookup recognition moved behind a shared
+  contract for literal/entry tags and supported zero-default payload classes.
+- Map `get(key)` lookup surfaces for Java, Rust, and JS-like typed/proven maps
+  moved behind an explicit map-get contract. Defaulting surfaces continue through
+  the existing `GetOrDefault` method contract.
+- JS-like static array `indexOf`/`findIndex` membership and their accepted
+  threshold comparisons moved behind shared semantic contracts.
+- Channel eligibility and pack trust were split: first-party/default status is
+  provenance and enablement policy, not a semantic channel.
+- Newly migrated selector contracts started carrying explicit receiver/proof
+  requirements so extension APIs do not look like name-only semantic guesses.
+- Python `math.prod` product-reduction recognition moved behind an imported
+  namespace function contract with missing-import and overwritten-binding hard
+  negatives.
+- Java `Math.abs`/`Math.min`/`Math.max` moved out of frontend text-only lowering
+  and into method contracts that require an unshadowed `Math` receiver.
+- JS-like `undefined` moved from unconditional frontend null lowering to an
+  unshadowed-global nullish contract, preserving shadowed binding hard negatives.
 
 ## Phase 0: documentation and vocabulary
 
@@ -102,9 +154,12 @@ and pack ecosystem.
 ## Phase 2: shared contracts for duplicated gates
 
 - Move primitive comparison gates behind `OperatorSemantics`.
-- Move index assignment and Java self-field exact gates behind `EffectSemantics`.
+- Expand the exact fragment facade from first-party helper functions into
+  versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
+- Replace the current `DomainEvidence` facade with versioned, pack-facing
+  receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add construct/call distinction facts so constructor-only contracts such as
@@ -154,8 +209,10 @@ different APIs.
 
 ## Phase 6: ecosystem packs
 
-- Add high-value first-party or community packs only when their contracts are
-  narrow and testable.
+- Add high-value first-party packs only when their contracts are narrow and
+  testable.
+- Keep community packs external and opt-in unless nose explicitly adopts them as
+  first-party/default packs with project-owned gates.
 - Candidate areas: Lodash, RxJS, NumPy, pandas, Java Streams/Guava, Rust Iterator
   ecosystem helpers, Tokio futures, Rails ActiveSupport collection helpers.
 - Keep exact eligibility narrow. Many APIs should stay `near-only` because
