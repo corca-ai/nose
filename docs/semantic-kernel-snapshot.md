@@ -189,9 +189,10 @@ this worktree because the required evidence is not yet modeled:
   stay closed unless the nested element collection proof is available. Explicit
   nested builder loops can still converge with identity flat-map when their loop
   structure proves the emitted elements.
-- Ruby untyped `Enumerable` methods, Ruby scalar/array `abs`/`min`/`max`, and C
-  `fmin`/`fmax` remain closed until the relevant receiver, stdlib, and overload
-  facts are modeled as contracts.
+- Ruby untyped `Enumerable` methods, including block loop surfaces such as
+  `.each` and `.each_with_index`, plus Ruby scalar/array `abs`/`min`/`max` and
+  C `fmin`/`fmax`, remain closed until the relevant receiver, stdlib, and
+  overload facts are modeled as contracts.
 - Rust scalar `.abs`, `.min`, `.max`, and `.clamp` are admitted only for the
   current first-party primitive-integer domain. Rust float methods need a separate
   float/NaN contract and proof before they can enter exact matching.

@@ -2,14 +2,14 @@
 //!
 //! Convergence-friendly lowering: `def` → function unit, `class`/`module` →
 //! class-like unit; `if`/`unless`/`while`/`until`/`case` map to `If`/`Loop`;
-//! `xs.each { |x| … }` and `for x in xs` map to a `ForEach` loop; `x op= y`
-//! desugars to an assignment; method calls → `Field`-call form. Ruby's implicit
+//! `for x in xs` maps to a `ForEach` loop; `x op= y` desugars to an assignment;
+//! method calls → `Field`-call form. Ruby's implicit
 //! last-expression return is wrapped in `Return` to converge with explicit returns.
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    Symbol, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, Symbol,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -105,15 +105,9 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         // converge with the block forms and other languages' guards.
         "if_modifier" | "unless_modifier" => Some(lower_modifier(lo, node)),
         "assignment" | "operator_assignment" => Some(lower_assign(lo, node)),
-        // `xs.each { … }` as a statement is a loop, not an expr-statement — emit it
-        // bare so it converges with a `for x in xs` loop in other languages.
         "call" | "method_call" => {
-            if let Some(loop_node) = try_each_loop(lo, node) {
-                Some(loop_node)
-            } else {
-                let e = lower_call(lo, node);
-                Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[e]))
-            }
+            let e = lower_call(lo, node);
+            Some(lo.add(NodeKind::ExprStmt, Payload::None, span, &[e]))
         }
         _ => {
             let e = lower_expr(lo, node);
@@ -574,76 +568,8 @@ fn raw_kids(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.raw(node.kind(), span, &kids)
 }
 
-/// `recv.method(args) { block }` → `Call(Field(method, recv), args…, block?)`.
-/// An iteration like `xs.each { |x| … }` becomes a `ForEach` loop for convergence.
-/// `xs.each { |x| body }` / `xs.each do |x| body end` → `ForEach(x, xs, body)`,
-/// so Ruby iteration converges with a `for x in xs` loop in other languages.
-fn try_each_loop(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
-    let span = lo.span(node);
-    let m = node
-        .child_by_field_name("method")
-        .map(|m| lo.text(m).to_string())?;
-    let r = node.child_by_field_name("receiver")?;
-    let b = Lowering::named_children(node)
-        .into_iter()
-        .find(|c| matches!(c.kind(), "block" | "do_block"))?;
-    if !matches!(m.as_str(), "each" | "each_with_index") {
-        return None;
-    }
-    let mut iter = lower_expr(lo, r);
-    let params = b
-        .child_by_field_name("parameters")
-        .map(Lowering::named_children)
-        .unwrap_or_default();
-    let pat = if m.as_str() == "each_with_index" {
-        let mut params = params;
-        if params.len() >= 2 {
-            // Ruby yields `(element, index)`, while the shared Enumerate lowering
-            // expects pattern order `(index, element)`.
-            params.swap(0, 1);
-        }
-        let vars: Vec<NodeId> = params
-            .into_iter()
-            .map(|p| lower_block_param_var(lo, p, span))
-            .collect();
-        iter = lo.add(
-            NodeKind::Call,
-            Payload::Builtin(Builtin::Enumerate),
-            span,
-            &[iter],
-        );
-        lo.add(NodeKind::Seq, Payload::None, span, &vars)
-    } else {
-        params
-            .into_iter()
-            .next()
-            .and_then(|p| param_name(lo, p))
-            .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
-            .unwrap_or_else(|| lo.empty_block(span))
-    };
-    let body = block_body(lo, b);
-    Some(lo.add(
-        NodeKind::Loop,
-        Payload::Loop(LoopKind::ForEach),
-        span,
-        &[pat, iter, body],
-    ))
-}
-
-fn lower_block_param_var(lo: &mut Lowering, node: TsNode, span: Span) -> NodeId {
-    if lo.text(node) == "_" {
-        return lo.empty_block(span);
-    }
-    param_name(lo, node)
-        .map(|s| lo.add(NodeKind::Var, Payload::Name(s), span, &[]))
-        .unwrap_or_else(|| lo.empty_block(span))
-}
-
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    if let Some(loop_node) = try_each_loop(lo, node) {
-        return loop_node;
-    }
     let method = node
         .child_by_field_name("method")
         .map(|m| lo.sym(lo.text(m)));

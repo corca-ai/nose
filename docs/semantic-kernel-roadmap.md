@@ -65,8 +65,8 @@ and pack ecosystem.
 - Additional call surfaces moved behind proof-gated contracts: JS/TS
   `filter(...).length`, Rust `get(key).is_some()`, Java `keySet().contains`,
   and Java `Stream.count()` require receiver/protocol or map proof. Ruby untyped
-  `Enumerable` and scalar/array numeric helpers remain closed until comparable
-  proof facts exist.
+  `Enumerable` surfaces, including `.each`/`.each_with_index` block loops, and
+  scalar/array numeric helpers remain closed until comparable proof facts exist.
 - New value-graph rewrites began moving into named `rules/*` modules with
   mechanical formal-obligation pairing; `clamp` is the current proof-backed
   example.

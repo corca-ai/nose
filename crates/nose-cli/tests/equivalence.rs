@@ -549,22 +549,22 @@ fn rust_recursion_converges_with_iteration_via_return_unwrap() {
 }
 
 #[test]
-fn ruby_shovel_builder_loop_converges_with_comprehension() {
-    // Ruby builds a list with `out = []; xs.each { |x| out << e }` — `<<` lowers to `Shl`.
-    // Recognizing `out << e` as the per-element build (scoped to Ruby AND the empty-Seq seed,
-    // so integer `a << b` shift never enters) makes it converge with the Python comprehension.
+fn ruby_shovel_builder_each_stays_closed_without_receiver_proof() {
+    // Ruby `xs.each { ... }` stays an ordinary block call until a pack supplies receiver/protocol
+    // proof for `xs`. The Ruby `<<` builder signal is still retained inside the opaque call body,
+    // but the default analyzer must not infer Enumerable semantics from the method name alone.
     let i = Interner::new();
     let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
     let ruby_build = "def f(xs)\n  out = []\n  xs.each { |x| out << x * x }\n  out\nend\n";
     let ruby_diff = "def f(xs)\n  out = []\n  xs.each { |x| out << x + 1 }\n  out\nend\n";
     let comp_fp = value_fp(&i, py_comp, Lang::Python);
-    assert_eq!(
-        comp_fp,
-        value_fp(&i, ruby_build, Lang::Ruby),
-        "ruby << builder loop must converge with the python comprehension"
-    );
     assert_ne!(
         comp_fp,
+        value_fp(&i, ruby_build, Lang::Ruby),
+        "ruby each builder must stay closed without receiver/protocol proof"
+    );
+    assert_ne!(
+        value_fp(&i, ruby_build, Lang::Ruby),
         value_fp(&i, ruby_diff, Lang::Ruby),
         "a different per-element contribution must stay distinct"
     );
@@ -908,7 +908,11 @@ fn c_pointer_length_contract_converges_cross_language() {
 
     let c_fp = value_fp(&i, c, Lang::C);
     assert_eq!(c_fp, value_fp(&i, java, Lang::Java));
-    assert_eq!(c_fp, value_fp(&i, ruby, Lang::Ruby));
+    assert_ne!(
+        c_fp,
+        value_fp(&i, ruby, Lang::Ruby),
+        "ruby each must stay closed until receiver/protocol proof exists"
+    );
     assert_ne!(c_fp, value_fp(&i, param_order_not_contract, Lang::C));
     assert_ne!(c_fp, value_fp(&i, inclusive, Lang::C));
 }
@@ -927,7 +931,11 @@ fn c_integer_boolean_any_all_converge_cross_language() {
     let non_bool_return = "int f(int *xs, int n) { for (int i = 0; i < n; i++) { if (xs[i] == 0) { return 2; } } return 0; }";
 
     let any_fp = value_fp(&i, c_any, Lang::C);
-    assert_eq!(any_fp, value_fp(&i, ruby_any, Lang::Ruby));
+    assert_ne!(
+        any_fp,
+        value_fp(&i, ruby_any, Lang::Ruby),
+        "ruby each must stay closed until receiver/protocol proof exists"
+    );
     assert_eq!(any_fp, value_fp(&i, java_any, Lang::Java));
     assert_eq!(
         value_fp(&i, c_all, Lang::C),
@@ -1028,7 +1036,11 @@ fn dot_product_converges_across_index_zip_and_enumerate() {
     assert_eq!(fp, value_fp(&i, go_for, Lang::Go));
     assert_eq!(fp, value_fp(&i, rust_range, Lang::Rust));
     assert_eq!(fp, value_fp(&i, rust_zip, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, ruby_each, Lang::Ruby));
+    assert_ne!(
+        fp,
+        value_fp(&i, ruby_each, Lang::Ruby),
+        "ruby each_with_index must stay closed until receiver/protocol proof exists"
+    );
     assert_ne!(fp, value_fp(&i, ruby_while, Lang::Ruby));
     assert_eq!(
         return_fp(&i, py_loop, Lang::Python),
@@ -1796,7 +1808,7 @@ fn comprehension_converges_with_js_map() {
 }
 
 #[test]
-fn find_max_converges_py_rust_ruby() {
+fn find_max_converges_py_rust_but_ruby_each_stays_closed() {
     // A second algorithm shape (index `items[0]`, compare, branch-assign) converges
     // across languages — guards against shape-specific convergence over-fitting.
     let i = Interner::new();
@@ -1809,10 +1821,10 @@ fn find_max_converges_py_rust_ruby() {
         unit_hash(&i, rs, Lang::Rust),
         "python == rust (find-max)"
     );
-    assert_eq!(
+    assert_ne!(
         h,
         unit_hash(&i, rb, Lang::Ruby),
-        "python == ruby (find-max)"
+        "ruby each must stay closed until receiver/protocol proof exists"
     );
 }
 
@@ -1858,17 +1870,18 @@ fn c_non_equivalent_different_op_differ() {
 }
 
 #[test]
-fn ruby_each_converges_with_python_foreach() {
-    // Ruby `xs.each { |x| … }` and a Python `for x in xs` loop share IL shape.
+fn ruby_each_stays_closed_without_receiver_proof() {
+    // Ruby `xs.each { |x| ... }` is just a method call unless a pack proves that `xs` has
+    // Ruby Enumerable semantics. The analyzer must not infer a foreach loop from the name `each`.
     let i = Interner::new();
     let rb =
         "def f(items)\n  total = 0\n  items.each do |x|\n    total += x\n  end\n  total\nend\n";
     let py =
         "def f(items):\n    total = 0\n    for x in items:\n        total += x\n    return total\n";
-    assert_eq!(
+    assert_ne!(
         unit_hash(&i, rb, Lang::Ruby),
         unit_hash(&i, py, Lang::Python),
-        "ruby each == python for"
+        "ruby each must stay closed without receiver/protocol proof"
     );
 }
 
