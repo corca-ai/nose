@@ -99,6 +99,12 @@ and pack ecosystem.
   contracts before normalization or strict exact matching assigns containment
   semantics. This intentionally closes old name-only paths such as JavaScript
   `.contains(...)`, which had no first-party JS membership contract.
+- Java stream source adapters are now proof-gated: receiver `.stream()` requires
+  exact iterable evidence, and static `Arrays.stream(xs)` requires the
+  `java.util.Arrays` import binding with no local `Arrays` type shadow.
+- Cross-file immutable import replacement now copies import-binding dependencies
+  required by the exported literal expression, preserving provider-side stdlib
+  proofs such as `java.util.Map` for Java static imports.
 - JS-like `Map`/`Set` constructors are now represented as explicit closed
   contracts requiring construct-syntax proof; they remain exact-closed until the
   frontend/kernel can distinguish `new Map(...)` from plain `Map(...)`.

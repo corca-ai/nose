@@ -922,7 +922,7 @@ impl<'a> Builder<'a> {
                     receiver_name,
                     method,
                 )?;
-                self.is_free_java_std_name(receiver, contract.receiver)
+                self.is_imported_java_util_name(receiver, contract.receiver)
                     .then_some(contract)
             })?;
         // A single argument to a varargs collection factory (`Arrays.asList(x)`,
@@ -978,8 +978,9 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
     }
 
-    fn is_free_java_std_name(&self, value: ValueId, name: &str) -> bool {
-        self.is_free_name_value(value, name) && !self.java_file_defines_type_name(name)
+    fn is_imported_java_util_name(&self, value: ValueId, name: &str) -> bool {
+        !self.java_file_defines_type_name(name)
+            && self.is_import_binding_value(value, "java.util", name)
     }
 
     fn is_import_namespace_expr(
@@ -1284,7 +1285,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let contract = java_map_factory_contract_by_hash(self.il.meta.lang, "Map", method)?;
-        if !self.is_free_java_std_name(callee.args[0], contract.receiver) {
+        if !self.is_imported_java_util_name(callee.args[0], contract.receiver) {
             return None;
         }
         if contract.kind == JavaMapFactoryKind::Of {
@@ -1321,7 +1322,7 @@ impl<'a> Builder<'a> {
         };
         if callee.args.len() != 1
             || !java_map_entry_contract_by_hash(self.il.meta.lang, "Map", method)
-            || !self.is_free_java_std_name(callee.args[0], "Map")
+            || !self.is_imported_java_util_name(callee.args[0], "Map")
         {
             return None;
         }

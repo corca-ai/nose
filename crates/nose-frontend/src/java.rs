@@ -44,19 +44,33 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         | "annotation_type_declaration" => Some(lower_type(lo, node)),
         "method_declaration" | "constructor_declaration" => Some(lower_method(lo, node)),
         "field_declaration" => Some(lower_field(lo, node)),
-        "import_declaration" => Some(
-            lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
-        ),
+        "import_declaration" => {
+            Some(lower_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)))
+        }
         "package_declaration" => Some(crate::lower::import_tokens(lo, node)),
         "line_comment" | "block_comment" => None,
         _ => lower_stmt(lo, node),
     }
 }
 
-fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
+fn lower_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);
     let text = lo.text(node).trim().trim_end_matches(';').trim();
-    let path = text.strip_prefix("import static ")?.trim();
+    if let Some(path) = text.strip_prefix("import static ") {
+        let path = path.trim();
+        if path.ends_with(".*") {
+            return None;
+        }
+        let (module, exported) = path.rsplit_once('.')?;
+        return Some(crate::lower::import_binding(
+            lo,
+            span,
+            exported.trim(),
+            module.trim(),
+            exported.trim(),
+        ));
+    }
+    let path = text.strip_prefix("import ")?.trim();
     if path.ends_with(".*") {
         return None;
     }

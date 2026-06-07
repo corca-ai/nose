@@ -985,6 +985,7 @@ pub fn iterator_identity_adapter_contract(
             method,
             "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
         )
+        || lang == Lang::Java && method == "stream" && arg_count == 0
     {
         Some(IteratorIdentityAdapterContract {
             receiver: IteratorAdapterReceiverContract::ExactIterableValue,
@@ -992,6 +993,26 @@ pub fn iterator_identity_adapter_contract(
     } else {
         None
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticCollectionAdapterContract {
+    pub module: &'static str,
+    pub exported: &'static str,
+}
+
+pub fn static_collection_adapter_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<StaticCollectionAdapterContract> {
+    (lang == Lang::Java && receiver == "Arrays" && method == "stream" && arg_count == 1).then_some(
+        StaticCollectionAdapterContract {
+            module: "java.util",
+            exported: "Arrays",
+        },
+    )
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2263,11 +2284,36 @@ mod tests {
             })
         );
         assert_eq!(
+            iterator_identity_adapter_contract(Lang::Java, "stream", 0),
+            Some(IteratorIdentityAdapterContract {
+                receiver: IteratorAdapterReceiverContract::ExactIterableValue,
+            })
+        );
+        assert_eq!(
             iterator_identity_adapter_contract(Lang::JavaScript, "collect", 0),
             None
         );
         assert_eq!(
             iterator_identity_adapter_contract(Lang::Rust, "collect", 1),
+            None
+        );
+    }
+
+    #[test]
+    fn static_collection_adapters_are_import_binding_constrained() {
+        assert_eq!(
+            static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 1),
+            Some(StaticCollectionAdapterContract {
+                module: "java.util",
+                exported: "Arrays",
+            })
+        );
+        assert_eq!(
+            static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 0),
+            None
+        );
+        assert_eq!(
+            static_collection_adapter_contract(Lang::JavaScript, "Arrays", "stream", 1),
             None
         );
     }

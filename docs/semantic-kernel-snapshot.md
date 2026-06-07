@@ -82,6 +82,13 @@ migrated.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
+- Java stream source adapters are split by proof: `receiver.stream()` requires
+  an exact iterable receiver, while `Arrays.stream(xs)` requires the
+  `java.util.Arrays` import binding and no local `Arrays` type shadow.
+- Cross-file immutable import replacement now preserves import-binding
+  dependencies used by the exported literal expression, so a Java static import
+  of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
+  the importing file.
 - Membership and map-key membership selectors now consume language-scoped method
   contracts before normalize/detect treat them as semantic containment. A method
   named `contains` is Java/Rust collection membership only; JavaScript

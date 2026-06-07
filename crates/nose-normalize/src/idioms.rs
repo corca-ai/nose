@@ -12,8 +12,8 @@ use nose_semantics::{
     domain_evidence_from_param_semantic, free_function_builtin_contract,
     iterator_identity_adapter_contract, map_get_contract, map_key_view_contract,
     method_call_contract, method_hof_contract, rust_option_some_constructor_contract,
-    BuiltinArgContract, DomainEvidence, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract,
-    MethodReceiverContract, MethodSemanticContract,
+    static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
+    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -391,8 +391,8 @@ fn fold_fn_init(old: &Il, args: &[NodeId]) -> (Option<NodeId>, Option<NodeId>) {
     (fn_old, init)
 }
 
-/// Peel a first-party Rust identity iterator adapter to the underlying collection, so
-/// `xs.iter().fold(..)` iterates over `xs` (matching `for v in xs`). NOT `.keys()`/`.values()`,
+/// Peel a first-party identity iterator adapter to the underlying collection, so
+/// `xs.iter().fold(..)` / `xs.stream().map(..)` iterate over `xs`. NOT `.keys()`/`.values()`,
 /// which change *what* is iterated.
 fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
     if old.kind(node) == NodeKind::Call {
@@ -401,15 +401,11 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
             if old.kind(callee) == NodeKind::Field {
                 if let Payload::Name(s) = old.node(callee).payload {
                     let method = interner.resolve(s);
-                    if method == "stream" {
-                        if let Some(&base) = old.children(callee).first() {
-                            if name_of(old, interner, base) == Some("Arrays") {
-                                if let Some(&arg) = old.children(node).get(1) {
-                                    return arg;
-                                }
-                            } else {
-                                return base;
-                            }
+                    if let Some(&base) = old.children(callee).first() {
+                        if let Some(arg) =
+                            static_collection_adapter_arg(old, interner, base, method, call_kids)
+                        {
+                            return arg;
                         }
                     }
                     if iterator_identity_adapter_contract(
@@ -458,10 +454,8 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
     if matches!(method, "iter" | "into_iter" | "iter_mut") {
         return exact_collection_receiver(old, interner, receiver);
     }
-    if method == "stream" && name_of(old, interner, receiver) == Some("Arrays") {
-        return kids
-            .get(1)
-            .is_some_and(|&arg| exact_collection_receiver(old, interner, arg));
+    if let Some(arg) = static_collection_adapter_arg(old, interner, receiver, method, kids) {
+        return exact_collection_receiver(old, interner, arg);
     }
     if method == "zip" && kids.len() == 2 {
         return exact_protocol_receiver(old, interner, receiver)
@@ -478,6 +472,28 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
 
 fn exact_collection_param(old: &Il, node: NodeId) -> bool {
     domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_array_collection_or_set)
+}
+
+fn static_collection_adapter_arg(
+    old: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    method: &str,
+    call_kids: &[NodeId],
+) -> Option<NodeId> {
+    let receiver_name = name_of(old, interner, receiver)?;
+    let contract = static_collection_adapter_contract(
+        old.meta.lang,
+        receiver_name,
+        method,
+        call_kids.len().saturating_sub(1),
+    )?;
+    if file_defines_type_name(old, interner, receiver_name)
+        || !import_binding_expr(old, interner, receiver, contract.module, contract.exported)
+    {
+        return None;
+    }
+    call_kids.get(1).copied()
 }
 
 fn exact_set_param(old: &Il, node: NodeId) -> bool {
@@ -719,6 +735,14 @@ fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
         })
 }
 
+fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {
+    old.units
+        .iter()
+        .filter(|unit| matches!(unit.kind, nose_il::UnitKind::Class))
+        .filter_map(|unit| unit.name)
+        .any(|symbol| interner.resolve(symbol) == name)
+}
+
 fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
     let n = old.node(id);
     if n.kind == NodeKind::Var {
@@ -741,6 +765,62 @@ fn import_namespace_expr(old: &Il, interner: &Interner, id: NodeId, module: &str
                     .iter()
                     .any(|&child| import_namespace_assignment(old, interner, child, alias, module)))
     })
+}
+
+fn import_binding_expr(
+    old: &Il,
+    interner: &Interner,
+    id: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    let Some(alias) = name_of(old, interner, id) else {
+        return false;
+    };
+    old.children(old.root).iter().any(|&stmt| {
+        import_binding_assignment(old, interner, stmt, alias, module, exported)
+            || (old.kind(stmt) == NodeKind::Block
+                && old.children(stmt).iter().any(|&child| {
+                    import_binding_assignment(old, interner, child, alias, module, exported)
+                }))
+    })
+}
+
+fn import_binding_assignment(
+    old: &Il,
+    interner: &Interner,
+    stmt: NodeId,
+    alias: &str,
+    module: &str,
+    exported: &str,
+) -> bool {
+    if old.kind(stmt) != NodeKind::Assign {
+        return false;
+    }
+    let kids = old.children(stmt);
+    if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
+        return false;
+    }
+    if old.kind(kids[1]) != NodeKind::Seq {
+        return false;
+    }
+    let Payload::Name(seq_name) = old.node(kids[1]).payload else {
+        return false;
+    };
+    if interner.resolve(seq_name) != "import_binding" {
+        return false;
+    }
+    let coords = old.children(kids[1]);
+    if coords.len() != 2 {
+        return false;
+    }
+    matches!(
+        old.node(coords[0]).payload,
+        Payload::LitStr(hash) if hash == stable_symbol_hash(module)
+    ) && matches!(
+        old.node(coords[1]).payload,
+        Payload::LitStr(hash) if hash == stable_symbol_hash(exported)
+    )
 }
 
 fn import_namespace_assignment(

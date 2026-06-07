@@ -447,6 +447,9 @@ fn java_stream_aggregates_converge_with_loops() {
     let all_stream = "import java.util.Arrays; class C { static boolean f(int[] xs) { return Arrays.stream(xs).allMatch(x -> x >= 0); } }";
     let bad_seed =
         "import java.util.Arrays; class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(1, (total, x) -> total + x); } }";
+    let missing_arrays_import = "class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(0, (total, x) -> total + x); } }";
+    let shadowed_arrays =
+        "import java.util.Arrays; class Arrays {} class C { static int f(int[] xs) { return Arrays.stream(xs).filter(x -> x > 0).reduce(0, (total, x) -> total + x); } }";
     let sum_fp = value_fp(&i, sum_loop, Lang::Java);
     assert_eq!(sum_fp, value_fp(&i, sum_stream, Lang::Java));
     assert_eq!(
@@ -462,6 +465,8 @@ fn java_stream_aggregates_converge_with_loops() {
         value_fp(&i, all_stream, Lang::Java)
     );
     assert_ne!(sum_fp, value_fp(&i, bad_seed, Lang::Java));
+    assert_ne!(sum_fp, value_fp(&i, missing_arrays_import, Lang::Java));
+    assert_ne!(sum_fp, value_fp(&i, shadowed_arrays, Lang::Java));
 }
 
 #[test]
