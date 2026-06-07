@@ -8,8 +8,9 @@ record substrate is described in [evidence-records](evidence-records.md).
 Snapshot date: 2026-06-08. The current implementation has an internal
 semantic-kernel facade, receiver-aware field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
-facts, source-fact gates for construct/macro/literal/operator provenance, and a shared
-evidence-record substrate for source, domain, import, symbol-identity, guard,
+facts, source-fact gates for construct/macro/literal/operator provenance,
+receiver-domain evidence resolution, and a shared evidence-record substrate for
+source, domain, import, symbol-identity, guard,
 place/effect, selected library API occurrence, and sequence-surface facts.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
@@ -89,10 +90,15 @@ migrated.
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
 - Source-level `ParamSemantic` facts are mirrored into
-  `EvidenceRecord::Domain`, and normalize/detect receiver-domain gates consume
-  domain evidence through `nose-semantics` helpers. This preserves the current
-  Array/Collection/Set/Map/Option/String/Integer/Number/ByteArray distinctions
-  while moving the proof storage toward the pack-facing evidence substrate.
+  `EvidenceRecord::Domain`, and `nose-semantics` now resolves receiver-domain
+  evidence through a shared `DomainRequirement` contract. Consumers check exact
+  receiver node evidence first, then scoped parameter evidence, and fail closed
+  on ambiguous/conflicting/dependency-broken records before any compatibility
+  fallback. Desugaring, normalize idiom canonicalization, value-graph receiver
+  gates, and strict exact receiver gates consume this same helper layer. This
+  preserves the current Array/Collection/Set/Map/Option/String/Integer/Number
+  and ByteArray distinctions while opening the internal boundary for future packs
+  or inference passes to attach receiver-expression domain facts directly.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF

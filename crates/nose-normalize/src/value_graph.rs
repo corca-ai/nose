@@ -71,7 +71,7 @@ use nose_semantics::{
     rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
     seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
     unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
-    ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
+    ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
     ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
     JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
     LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
@@ -819,33 +819,23 @@ impl<'a> Builder<'a> {
     }
 
     fn domain_evidence_of_expr(&self, expr: NodeId) -> Option<DomainEvidence> {
-        if self.il.kind(expr) != NodeKind::Var {
-            return None;
-        }
-        let Payload::Cid(cid) = self.il.node(expr).payload else {
-            return None;
-        };
-        self.param_domain.get(&cid).copied()
+        nose_semantics::domain_evidence_for_receiver(self.il, expr)
     }
 
     fn is_collection_param_expr(&self, expr: NodeId) -> bool {
-        self.domain_evidence_of_expr(expr)
-            .is_some_and(DomainEvidence::is_collection_or_set)
+        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::CollectionOrSet)
     }
 
     fn is_set_param_expr(&self, expr: NodeId) -> bool {
-        self.domain_evidence_of_expr(expr)
-            .is_some_and(DomainEvidence::is_set)
+        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Set)
     }
 
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
-        self.domain_evidence_of_expr(expr)
-            .is_some_and(DomainEvidence::is_map)
+        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Map)
     }
 
     fn is_integer_param_expr(&self, expr: NodeId) -> bool {
-        self.domain_evidence_of_expr(expr)
-            .is_some_and(DomainEvidence::is_integer)
+        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Integer)
     }
 
     /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate domain.
@@ -8666,6 +8656,69 @@ mod tests {
         builder
             .proven_collection_value(raw)
             .map(|value| builder.nodes[value as usize].op.clone())
+    }
+
+    fn receiver_domain_contains_call_il() -> (Il, Interner, NodeId, Span) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver_span = sp(30);
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("xs")),
+            receiver_span,
+            &[],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("includes")),
+            sp(31),
+            &[receiver],
+        );
+        let item = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("item")),
+            sp(32),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(33), &[callee, item]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(29), &[call]);
+        let il = finish_test_il(b, root, Lang::TypeScript);
+        (il, interner, call, receiver_span)
+    }
+
+    fn eval_op(il: &Il, interner: &Interner, node: NodeId) -> ValOp {
+        let mut builder = Builder::new(il, interner);
+        let value = builder.eval(node, &FxHashMap::default());
+        builder.nodes[value as usize].op.clone()
+    }
+
+    #[test]
+    fn membership_call_consumes_receiver_domain_evidence() {
+        let (mut il, interner, call, receiver_span) = receiver_domain_contains_call_il();
+        assert!(
+            !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == Op::In as u32),
+            "method selector alone must not prove collection membership"
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+        ));
+        assert!(matches!(
+            eval_op(&il, &interner, call),
+            ValOp::Bin(op) if op == Op::In as u32
+        ));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Map),
+        ));
+        assert!(
+            !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == Op::In as u32),
+            "conflicting receiver-domain evidence must close the exact membership rewrite"
+        );
     }
 
     #[test]

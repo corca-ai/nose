@@ -11,7 +11,7 @@ use nose_il::{
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
     HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
     NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
+    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -226,10 +226,14 @@ pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvi
 }
 
 pub fn domain_evidence_at_span(il: &Il, span: Span) -> Option<DomainEvidence> {
-    match evidence_at_span(il, span, |evidence| match evidence {
-        EvidenceKind::Domain(domain) => Some(domain),
-        _ => None,
-    }) {
+    match unique_asserted_evidence_at(
+        il,
+        |anchor| anchor.matches_span(span),
+        |evidence| match evidence {
+            EvidenceKind::Domain(domain) => Some(domain),
+            _ => None,
+        },
+    ) {
         EvidenceResolution::Found(domain) => Some(domain),
         EvidenceResolution::Ambiguous => None,
         EvidenceResolution::Missing => {
@@ -251,6 +255,212 @@ pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidenc
     (il.kind(param) == NodeKind::Param)
         .then_some(il.node(param).span)
         .and_then(|span| domain_evidence_at_span(il, span))
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DomainRequirement {
+    Array,
+    ByteArray,
+    Collection,
+    CollectionOrSet,
+    CollectionOrMap,
+    ArrayOrCollection,
+    ArrayCollectionOrSet,
+    Set,
+    SetOrMap,
+    Map,
+    Option,
+    String,
+    Integer,
+    IntegerOrNumber,
+}
+
+impl DomainRequirement {
+    pub fn accepts(self, domain: DomainEvidence) -> bool {
+        match self {
+            DomainRequirement::Array => domain.is_array(),
+            DomainRequirement::ByteArray => domain.is_byte_array(),
+            DomainRequirement::Collection => domain == DomainEvidence::Collection,
+            DomainRequirement::CollectionOrSet => domain.is_collection_or_set(),
+            DomainRequirement::CollectionOrMap => {
+                domain.is_array_collection_or_set() || domain.is_map()
+            }
+            DomainRequirement::ArrayOrCollection => domain.is_array_or_collection(),
+            DomainRequirement::ArrayCollectionOrSet => domain.is_array_collection_or_set(),
+            DomainRequirement::Set => domain.is_set(),
+            DomainRequirement::SetOrMap => domain.is_set() || domain.is_map(),
+            DomainRequirement::Map => domain.is_map(),
+            DomainRequirement::Option => domain.is_option(),
+            DomainRequirement::String => domain.is_string(),
+            DomainRequirement::Integer => domain.is_integer(),
+            DomainRequirement::IntegerOrNumber => domain.is_integer_or_number(),
+        }
+    }
+}
+
+fn domain_evidence_at_exact_anchor(
+    il: &Il,
+    expected: EvidenceAnchor,
+) -> EvidenceResolution<DomainEvidence> {
+    unique_asserted_evidence_at(
+        il,
+        |anchor| anchor == expected,
+        |evidence| match evidence {
+            EvidenceKind::Domain(domain) => Some(domain),
+            _ => None,
+        },
+    )
+}
+
+pub fn domain_evidence_for_node(il: &Il, node: NodeId) -> Option<DomainEvidence> {
+    match domain_evidence_at_exact_anchor(
+        il,
+        EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+    ) {
+        EvidenceResolution::Found(domain) => Some(domain),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn domain_evidence_for_receiver(il: &Il, receiver: NodeId) -> Option<DomainEvidence> {
+    match domain_evidence_at_exact_anchor(
+        il,
+        EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
+    ) {
+        EvidenceResolution::Found(domain) => return Some(domain),
+        EvidenceResolution::Ambiguous => return None,
+        EvidenceResolution::Missing => {}
+    }
+    domain_evidence_for_var_reference(il, receiver)
+}
+
+pub fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
+    (il.kind(node) == NodeKind::Var)
+        .then(|| domain_evidence_for_receiver(il, node))
+        .flatten()
+}
+
+pub fn receiver_satisfies_domain(
+    il: &Il,
+    receiver: NodeId,
+    requirement: DomainRequirement,
+) -> bool {
+    domain_evidence_for_receiver(il, receiver).is_some_and(|domain| requirement.accepts(domain))
+}
+
+fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvidence> {
+    if il.kind(node) != NodeKind::Var {
+        return None;
+    }
+    match il.node(node).payload {
+        Payload::Cid(cid) => match nearest_scope(il, node) {
+            Some(scope) => unique_domain_evidence_for_params(
+                il,
+                il.children(scope).iter().copied().filter(move |&child| {
+                    il.kind(child) == NodeKind::Param
+                        && matches!(il.node(child).payload, Payload::Cid(param_cid) if param_cid == cid)
+                }),
+            ),
+            None => unique_domain_evidence_for_params(
+                il,
+                il.nodes.iter().enumerate().filter_map(move |(idx, candidate)| {
+                    (candidate.kind == NodeKind::Param
+                        && matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid))
+                    .then_some(NodeId(idx as u32))
+                }),
+            ),
+        },
+        Payload::Name(name) => {
+            let (scope, param) = nearest_named_param_scope(il, node, name)?;
+            if name_is_assigned_in_scope(il, name, scope) {
+                return None;
+            }
+            domain_evidence_for_param(il, param)
+        }
+        _ => None,
+    }
+}
+
+fn unique_domain_evidence_for_params(
+    il: &Il,
+    params: impl Iterator<Item = NodeId>,
+) -> Option<DomainEvidence> {
+    let mut found = None;
+    for param in params {
+        let Some(domain) = domain_evidence_for_param(il, param) else {
+            continue;
+        };
+        match found {
+            None => found = Some(domain),
+            Some(existing) if existing == domain => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn nearest_named_param_scope(il: &Il, node: NodeId, name: Symbol) -> Option<(NodeId, NodeId)> {
+    let target = il.node(node).span;
+    let mut best: Option<(u32, NodeId, NodeId)> = None;
+    for (idx, candidate) in il.nodes.iter().enumerate() {
+        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
+            continue;
+        }
+        if !span_contains(candidate.span, target) {
+            continue;
+        }
+        let scope = NodeId(idx as u32);
+        let Some(param) = il.children(scope).iter().copied().find(|&child| {
+            il.kind(child) == NodeKind::Param && il.node(child).payload == Payload::Name(name)
+        }) else {
+            continue;
+        };
+        let width = candidate
+            .span
+            .end_byte
+            .saturating_sub(candidate.span.start_byte);
+        if best.is_none_or(|(best_width, _, _)| width < best_width) {
+            best = Some((width, scope, param));
+        }
+    }
+    best.map(|(_, scope, param)| (scope, param))
+}
+
+fn name_is_assigned_in_scope(il: &Il, name: Symbol, scope: NodeId) -> bool {
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Assign {
+            return false;
+        }
+        let id = NodeId(idx as u32);
+        if nearest_scope(il, id) != Some(scope) {
+            return false;
+        }
+        let Some(&lhs) = il.children(id).first() else {
+            return false;
+        };
+        il.kind(lhs) == NodeKind::Var && il.node(lhs).payload == Payload::Name(name)
+    })
+}
+
+fn nearest_scope(il: &Il, node: NodeId) -> Option<NodeId> {
+    let target = il.node(node).span;
+    let mut best: Option<(u32, NodeId)> = None;
+    for (idx, candidate) in il.nodes.iter().enumerate() {
+        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
+            continue;
+        }
+        if !span_contains(candidate.span, target) {
+            continue;
+        }
+        let width = candidate
+            .span
+            .end_byte
+            .saturating_sub(candidate.span.start_byte);
+        if best.is_none_or(|(best_width, _)| width < best_width) {
+            best = Some((width, NodeId(idx as u32)));
+        }
+    }
+    best.map(|(_, scope)| scope)
 }
 
 pub const SEQ_VALUE_UNTAGGED: u64 = 0;
@@ -2180,6 +2390,44 @@ pub enum MethodReceiverContract {
     UnshadowedGlobal(&'static str),
     ImportedNamespace(&'static str),
     RustMapGetOrExactOption,
+}
+
+pub fn method_receiver_domain_requirement(
+    receiver: MethodReceiverContract,
+) -> Option<DomainRequirement> {
+    match receiver {
+        MethodReceiverContract::ExactCollection
+        | MethodReceiverContract::ExactProtocol
+        | MethodReceiverContract::ExactProtocolPairArgument
+        | MethodReceiverContract::ExactCollectionOrJavaKeySet => {
+            Some(DomainRequirement::ArrayCollectionOrSet)
+        }
+        MethodReceiverContract::ExactOption | MethodReceiverContract::RustMapGetOrExactOption => {
+            Some(DomainRequirement::Option)
+        }
+        MethodReceiverContract::ExactString | MethodReceiverContract::LiteralString => {
+            Some(DomainRequirement::String)
+        }
+        MethodReceiverContract::ExactInteger => Some(DomainRequirement::Integer),
+        MethodReceiverContract::ExactMap => Some(DomainRequirement::Map),
+        MethodReceiverContract::ExactCollectionOrMap
+        | MethodReceiverContract::ExactCollectionOrMapLiteral => {
+            Some(DomainRequirement::CollectionOrMap)
+        }
+        MethodReceiverContract::ExactSetOrMap => Some(DomainRequirement::SetOrMap),
+        MethodReceiverContract::ExactMapLiteral
+        | MethodReceiverContract::UnshadowedGlobal(_)
+        | MethodReceiverContract::ImportedNamespace(_) => None,
+    }
+}
+
+pub fn receiver_satisfies_method_domain(
+    il: &Il,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+) -> bool {
+    method_receiver_domain_requirement(contract)
+        .is_some_and(|requirement| receiver_satisfies_domain(il, receiver, requirement))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -5733,7 +5981,7 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
-        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck,
+        ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck,
         LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact,
         Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
     };
@@ -5782,6 +6030,10 @@ mod tests {
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, 1, 1)
+    }
+
+    fn span(start: u32, end: u32, line: u32) -> Span {
+        Span::new(FileId(0), start, end, line, line)
     }
 
     fn finish_il(builder: IlBuilder, root: NodeId, lang: Lang) -> Il {
@@ -5859,6 +6111,43 @@ mod tests {
         assert!(!DomainEvidence::Number.is_integer());
         assert!(!DomainEvidence::Array.is_collection_or_set());
         assert!(!DomainEvidence::Set.is_array_or_collection());
+        assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Array));
+        assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Map));
+        assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Set));
+        assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Map));
+        assert!(!DomainRequirement::SetOrMap.accepts(DomainEvidence::Collection));
+    }
+
+    #[test]
+    fn method_receiver_contracts_expose_only_domain_backed_obligations() {
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ExactCollection),
+            Some(DomainRequirement::ArrayCollectionOrSet)
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ExactProtocol),
+            Some(DomainRequirement::ArrayCollectionOrSet)
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ExactCollectionOrMap),
+            Some(DomainRequirement::CollectionOrMap)
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ExactSetOrMap),
+            Some(DomainRequirement::SetOrMap)
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::RustMapGetOrExactOption),
+            Some(DomainRequirement::Option)
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ExactMapLiteral),
+            None
+        );
+        assert_eq!(
+            method_receiver_domain_requirement(MethodReceiverContract::ImportedNamespace("math")),
+            None
+        );
     }
 
     #[test]
@@ -5908,6 +6197,242 @@ mod tests {
         ));
 
         assert_eq!(domain_evidence_for_param(&il, param), None);
+    }
+
+    #[test]
+    fn receiver_domain_evidence_at_node_is_preferred_over_param_mirror() {
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
+        let stmt = b.add(
+            NodeKind::ExprStmt,
+            Payload::None,
+            span(20, 22, 2),
+            &[receiver],
+        );
+        let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[stmt]);
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 30, 1),
+            &[param, body],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.param_type_facts.push(ParamTypeFact {
+            span: span(10, 12, 1),
+            semantic: ParamSemantic::Set,
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_param(&il, param),
+            Some(DomainEvidence::Set)
+        );
+        assert_eq!(
+            domain_evidence_for_receiver(&il, receiver),
+            Some(DomainEvidence::Map)
+        );
+        assert!(receiver_satisfies_domain(
+            &il,
+            receiver,
+            DomainRequirement::Map
+        ));
+        assert!(!receiver_satisfies_domain(
+            &il,
+            receiver,
+            DomainRequirement::Set
+        ));
+    }
+
+    #[test]
+    fn ambiguous_receiver_domain_evidence_blocks_param_fallback() {
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
+        let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[receiver]);
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 30, 1),
+            &[param, body],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.param_type_facts.push(ParamTypeFact {
+            span: span(10, 12, 1),
+            semantic: ParamSemantic::Map,
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Set),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
+    }
+
+    #[test]
+    fn cid_receiver_domain_uses_nearest_function_scope() {
+        let mut b = IlBuilder::new(FileId(0));
+        let first_param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+        let first_body = b.add(NodeKind::Block, Payload::None, span(14, 20, 1), &[]);
+        let first_func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 30, 1),
+            &[first_param, first_body],
+        );
+        let second_param = b.add(NodeKind::Param, Payload::Cid(0), span(50, 52, 3), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(60, 62, 4), &[]);
+        let stmt = b.add(
+            NodeKind::ExprStmt,
+            Payload::None,
+            span(60, 62, 4),
+            &[receiver],
+        );
+        let second_body = b.add(NodeKind::Block, Payload::None, span(58, 66, 4), &[stmt]);
+        let second_func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(40, 80, 3),
+            &[second_param, second_body],
+        );
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            span(0, 90, 1),
+            &[first_func, second_func],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::param(span(50, 52, 3)),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_receiver(&il, receiver),
+            Some(DomainEvidence::Map)
+        );
+    }
+
+    #[test]
+    fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
+        let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[receiver]);
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 30, 1),
+            &[param, body],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.param_type_facts.push(ParamTypeFact {
+            span: span(10, 12, 1),
+            semantic: ParamSemantic::Set,
+        });
+        il.evidence.push(evidence_with_dependencies(
+            0,
+            EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(99)],
+        ));
+
+        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
+    }
+
+    #[test]
+    fn named_receiver_domain_requires_unassigned_param_scope() {
+        let interner = Interner::new();
+        let xs = interner.intern("xs");
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Name(xs), span(10, 12, 1), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(xs), span(40, 42, 3), &[]);
+        let stmt = b.add(
+            NodeKind::ExprStmt,
+            Payload::None,
+            span(40, 42, 3),
+            &[receiver],
+        );
+        let body = b.add(NodeKind::Block, Payload::None, span(20, 50, 2), &[stmt]);
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 60, 1),
+            &[param, body],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_receiver(&il, receiver),
+            Some(DomainEvidence::Collection)
+        );
+
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Name(xs), span(10, 12, 1), &[]);
+        let lhs = b.add(NodeKind::Var, Payload::Name(xs), span(24, 26, 2), &[]);
+        let rhs = b.add(NodeKind::Lit, Payload::LitInt(1), span(29, 30, 2), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            span(24, 30, 2),
+            &[lhs, rhs],
+        );
+        let receiver = b.add(NodeKind::Var, Payload::Name(xs), span(40, 42, 3), &[]);
+        let stmt = b.add(
+            NodeKind::ExprStmt,
+            Payload::None,
+            span(40, 42, 3),
+            &[receiver],
+        );
+        let body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            span(20, 50, 2),
+            &[assign, stmt],
+        );
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            span(0, 60, 1),
+            &[param, body],
+        );
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
     }
 
     #[test]
