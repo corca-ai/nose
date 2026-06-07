@@ -46,6 +46,31 @@ use std::sync::OnceLock;
 
 const LARGE_AC_EXPR_OPERANDS: usize = 64;
 
+/// Free function/path names that construct a collection from a single sequence literal
+/// (`factory(<seq>)`), driving [`Builder::proven_free_name_collection_factory`]. Each row is
+/// `(language gate | None = any, the constructor names, shadow-guard)`: when the guard is true a
+/// same-named local definition (`file_defines_name`) shadows the builtin and the row does not
+/// match. This data table replaces the formerly-separate per-language `Set` / python-builtin /
+/// rust-`::from` recognizers, whose identical skeletons nose's own duplication gate flagged.
+type CollectionFactoryRow = (Option<Lang>, &'static [&'static str], bool);
+const FREE_NAME_COLLECTION_FACTORIES: &[CollectionFactoryRow] = &[
+    (None, &["Set"], false),
+    (
+        Some(Lang::Python),
+        &["list", "set", "frozenset", "tuple"],
+        true,
+    ),
+    (
+        Some(Lang::Rust),
+        &[
+            "std::collections::HashSet::from",
+            "std::collections::BTreeSet::from",
+            "std::collections::VecDeque::from",
+        ],
+        false,
+    ),
+];
+
 /// The [`ValOp::Call`] tag for a known builtin: its discriminant + 1. The `+1` reserves tag
 /// `0` for an opaque (non-builtin) callee — see [`ValOp::Call`]'s definition. Centralizes
 /// that encoding so the reserved-zero invariant lives in one place.
@@ -791,19 +816,52 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn proven_set_constructor_collection(&self, value: ValueId) -> Option<ValueId> {
+    /// Shared skeleton of the collection-factory recognizers: a `Call(0, [callee, Seq(1)])`
+    /// whose `callee` passes `is_factory` wraps the sequence literal `args[1]`; return it. The
+    /// per-language recognizers differ ONLY in their callee predicate, so this collapses the
+    /// identical skeletons that nose's own duplication gate flagged across them.
+    fn collection_factory_seq(
+        &self,
+        value: ValueId,
+        is_factory: impl FnOnce(&Self, ValueId) -> bool,
+    ) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
             return None;
         }
-        if !self.is_free_name_value(node.args[0], "Set") {
+        let (callee, seq) = (node.args[0], node.args[1]);
+        if !matches!(self.nodes[seq as usize].op, ValOp::Seq(1)) {
             return None;
         }
-        let collection = node.args[1];
-        if !matches!(self.nodes[collection as usize].op, ValOp::Seq(1)) {
+        is_factory(self, callee).then_some(seq)
+    }
+
+    /// `factory(<seq>)` where `factory` is a free function/path name that constructs a collection
+    /// from a single sequence literal. Data-driven by [`FREE_NAME_COLLECTION_FACTORIES`]: each row
+    /// is `(language | any, the constructor names, whether a same-named local definition shadows
+    /// it)`. Replaces the per-language `Set` / python-builtin / rust-`::from` recognizers.
+    fn proven_free_name_collection_factory(&self, value: ValueId) -> Option<ValueId> {
+        let lang = self.il.meta.lang;
+        self.collection_factory_seq(value, |s, callee| {
+            FREE_NAME_COLLECTION_FACTORIES
+                .iter()
+                .filter(|(want, _, _)| want.is_none_or(|l| l == lang))
+                .flat_map(|(_, names, guard)| names.iter().map(move |n| (*n, *guard)))
+                .any(|(name, guard)| {
+                    s.is_free_name_value(callee, name) && (!guard || !s.file_defines_name(name))
+                })
+        })
+    }
+
+    /// Python `from collections import deque; deque(<seq>)` — the imported-stdlib collection
+    /// factory (the non-free-name part of the former python recognizer).
+    fn proven_python_deque_collection_value(&self, value: ValueId) -> Option<ValueId> {
+        if self.il.meta.lang != Lang::Python {
             return None;
         }
-        Some(collection)
+        self.collection_factory_seq(value, |s, callee| {
+            s.is_import_binding_value(callee, "collections", "deque")
+        })
     }
 
     fn proven_java_collection_factory_value(&mut self, value: ValueId) -> Option<ValueId> {
@@ -851,29 +909,6 @@ impl<'a> Builder<'a> {
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
     }
 
-    fn proven_python_collection_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Python {
-            return None;
-        }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let args = node.args.clone();
-        let builtin = ["list", "set", "frozenset", "tuple"]
-            .into_iter()
-            .any(|name| self.is_free_name_value(args[0], name) && !self.file_defines_name(name));
-        let imported_stdlib_factory = self.is_import_binding_value(args[0], "collections", "deque");
-        if !builtin && !imported_stdlib_factory {
-            return None;
-        }
-        let collection = args[1];
-        if !matches!(self.nodes[collection as usize].op, ValOp::Seq(1)) {
-            return None;
-        }
-        Some(collection)
-    }
-
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
         if self.il.meta.lang != Lang::Ruby
             || !self.ruby_file_requires_module("set")
@@ -881,19 +916,12 @@ impl<'a> Builder<'a> {
         {
             return None;
         }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let args = node.args.clone();
-        let callee = &self.nodes[args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(method) if method == stable_symbol_hash("new"))
-            || callee.args.len() != 1
-            || !self.is_free_name_value(callee.args[0], "Set")
-        {
-            return None;
-        }
-        matches!(self.nodes[args[1] as usize].op, ValOp::Seq(1)).then_some(args[1])
+        self.collection_factory_seq(value, |s, callee| {
+            let callee = &s.nodes[callee as usize];
+            matches!(callee.op, ValOp::Field(method) if method == stable_symbol_hash("new"))
+                && callee.args.len() == 1
+                && s.is_free_name_value(callee.args[0], "Set")
+        })
     }
 
     fn proven_rust_vec_macro_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
@@ -909,24 +937,6 @@ impl<'a> Builder<'a> {
             return None;
         }
         Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
-    }
-
-    fn proven_rust_std_collection_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Rust {
-            return None;
-        }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let args = node.args.clone();
-        if !self.is_free_name_value(args[0], "std::collections::HashSet::from")
-            && !self.is_free_name_value(args[0], "std::collections::BTreeSet::from")
-            && !self.is_free_name_value(args[0], "std::collections::VecDeque::from")
-        {
-            return None;
-        }
-        matches!(self.nodes[args[1] as usize].op, ValOp::Seq(1)).then_some(args[1])
     }
 
     fn is_free_java_std_name(&self, value: ValueId, name: &str) -> bool {
@@ -1063,12 +1073,11 @@ impl<'a> Builder<'a> {
             let items = self.nodes[value as usize].args.clone();
             return Some(self.mk(ValOp::Seq(1), items));
         }
-        self.proven_set_constructor_collection(value)
+        self.proven_free_name_collection_factory(value)
             .or_else(|| self.proven_java_collection_factory_value(value))
-            .or_else(|| self.proven_python_collection_factory_value(value))
+            .or_else(|| self.proven_python_deque_collection_value(value))
             .or_else(|| self.proven_ruby_set_factory_value(value))
             .or_else(|| self.proven_rust_vec_macro_collection_value(value))
-            .or_else(|| self.proven_rust_std_collection_factory_value(value))
     }
 
     fn proven_collection_expr(
