@@ -57,14 +57,14 @@ The current implemented kinds are:
 
 | kind | purpose |
 |---|---|
-| `Source` | construct syntax, regex literal provenance, and source operator family |
+| `Source` | construct syntax, Rust macro invocation syntax, regex literal provenance, and source operator family |
 | `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
-| `Import` | static import binding/namespace proof and imported-literal snapshot provenance |
+| `Import` | static import binding/namespace proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs plus selected import/source-backed Python, Java, and regex APIs |
+| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs plus selected Python, Rust, Ruby, Java, and regex APIs |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
@@ -75,6 +75,31 @@ and the remaining obligations. Existing evidence kinds such as `Symbol`,
 contract decides whether the facts are enough to admit an exact or value-graph
 path. A future external pack schema may expose library API contracts, but
 providers still emit facts and contracts rather than exact-clone verdicts.
+
+Current first-party `LibraryApi` callee coordinates are intentionally specific:
+
+- `QualifiedGlobal`-backed coordinates, such as `StaticGlobalMethod` and
+  `StaticGlobalFunction`, name an allowed language/API path and depend on
+  matching symbol evidence for the anchored call occurrence.
+- `ImportedBinding` and `ImportedNamespaceFunction` name a module/export or
+  namespace/function identity and depend on import-backed call-site symbol
+  evidence. They do not infer semantics from the local alias spelling.
+- `FreeName` names a language-scoped free identifier, such as Python `list` or
+  Rust `Vec`, and depends on `Symbol(UnshadowedGlobal)` evidence at the callee
+  anchor plus the contract's shadow policy.
+- `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
+  calls and depends on matching Java import-binding evidence plus source-origin
+  local type shadow checks.
+- `RustMacro` names a Rust macro invocation, currently `vec!`, and depends on
+  both `Source::Call(MacroInvocation)` at the call span and
+  `Symbol(UnshadowedGlobal)` evidence at the macro callee anchor.
+- `RubyRequireStaticMember` names a Ruby receiver/method pair, currently
+  `Set.new`, and depends on both an unshadowed receiver symbol and a matching
+  earlier `Import::Require` module fact whose own dependency proves the
+  `require` callee identity.
+- `JsGlobalConstructor` and `RegexLiteralMethod` name APIs whose identity
+  includes source provenance, such as construct syntax or regex-literal receiver
+  proof.
 
 ## Consumption Rules
 
@@ -143,13 +168,17 @@ legacy language-gated fallback.
 Library API evidence follows the same fail-closed rule. If a call carries
 `LibraryApi` evidence for a selected API occurrence, consumers must validate the
 contract id, callee coordinate, arity, dependencies, dependency anchors, and call
-shape before using legacy name/symbol fallback. A conflicting, ambiguous,
-wrong-callee-anchor, wrong-dependency-anchor, or dependency-broken API record on
-the queried call closes that API path. A record anchored to another call is
-irrelevant to this lookup and leaves the compatibility path available. The
-record proves only API identity; exact consumers still separately prove
-receiver/domain facts, source-surface requirements, argument safety, result
-shape, mutation safety, and demand/effect obligations.
+shape. A conflicting, ambiguous, wrong-callee-anchor, wrong-dependency-anchor, or
+dependency-broken API record on the queried call closes that API path. A record
+anchored to another call is irrelevant to this lookup and leaves compatibility
+policy to the queried surface. For selected surfaces that already have
+first-party occurrence producers, missing `LibraryApi` evidence is also closed:
+older symbol/source/import facts remain dependencies of the occurrence proof,
+not alternate API-identity proofs. Compatibility fallback is reserved for
+contract rows whose occurrence producer is not modeled yet. The record proves
+only API identity; exact consumers still separately prove receiver/domain facts,
+source-surface requirements, argument safety, result shape, mutation safety, and
+demand/effect obligations.
 
 Imported API occurrence evidence is not a broad name guess. A call-site
 `Symbol(ImportedBinding)` or `Symbol(ImportedNamespace)` dependency must itself
@@ -167,6 +196,9 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
 - source-origin facts become `Source` evidence;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
+- selected top-level Ruby literal `require "module"` calls that occur before a
+  selected library API use emit `Import::Require` evidence for the required
+  module, with an asserted `UnshadowedGlobal("require")` dependency;
 - JS/TS static-global value occurrences that remain as `Var` nodes, such as
   member receivers, call callees, constructors, and `undefined`, emit
   `UnshadowedGlobal` symbol evidence when the frontend proves no local shadow;
@@ -190,18 +222,25 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   write proof back to the receiver proof;
 - first-party lowering emits `LibraryApi` evidence for selected API calls that
   remain as raw call nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
-  `Boolean(...)`, `new Map(...)`, and `new Set(...)`; Python
-  `collections.deque(...)` through imported binding/namespace proof; Python
-  `math.prod(...)` through imported namespace proof; Java `java.util` static
-  factories/adapters including `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
-  `Map.ofEntries`, `Map.entry`, and `Arrays.stream`; and JS-like regex-literal
-  `.test(...)`. These records depend on the relevant `QualifiedGlobal`,
-  `UnshadowedGlobal`, import-backed call-site `Symbol`, construct-syntax
+  `Boolean(...)`, `new Map(...)`, and `new Set(...)`; Python builtin collection
+  factories such as `list(...)` when the callee has an unshadowed free-name
+  proof; Python `collections.deque(...)` through imported binding/namespace
+  proof; Python `math.prod(...)` through imported namespace proof; Rust
+  `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
+  are proven, `Vec::new()`, and selected `std::collections::*::from(...)`
+  factory paths when their root-shadow policy is proven; Ruby
+  earlier top-level `require "set"; Set.new(...)` through `Import::Require`
+  plus unshadowed `require` and `Set` proof; Java `java.util` static
+  factories/adapters including
+  `List.of`, `Set.of`, `Arrays.asList`, `Map.of`, `Map.ofEntries`, `Map.entry`,
+  and `Arrays.stream`; and JS-like regex-literal `.test(...)`. These records
+  depend on the relevant `QualifiedGlobal`, `UnshadowedGlobal`,
+  import-backed call-site `Symbol`, `Import::Require`, construct-syntax
   `Source`, or regex-literal `Source` evidence. Calls collapsed into specialized
   guard surfaces emit their guard evidence instead. Shadowed roots, unsupported
-  arities, unsupported static paths, raw free-name/path factories without a
-  resolved symbol fact, and Ruby `require`-based APIs without require evidence
-  do not emit API occurrence evidence;
+  arities, unsupported static paths, unresolved free-name/path factories, and
+  Ruby require-backed APIs without require evidence do not emit API occurrence
+  evidence;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
   literal and Go map-entry surfaces where those tags carry first-party meaning.
 
@@ -222,9 +261,10 @@ callers:
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence
-  subgraph into the importer with remapped anchors/dependency ids, then records
-  `Import(ImportedLiteralSnapshot)` provenance that depends on the importer
-  import proof and copied provider evidence;
+  subgraph into the importer while preserving provider source-origin spans and
+  rewiring dependency ids, then records `Import(ImportedLiteralSnapshot)`
+  provenance that depends on the importer import proof and copied provider
+  evidence;
 - imported namespace/binding symbol proof for normalize idiom admission,
   value-graph namespace fallbacks, and strict exact gates, without raw assignment
   fallback;
@@ -240,13 +280,15 @@ callers:
   `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
   evidence for `Array.from`;
 - selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
-  evidence first for the migrated JS-like, Python imported, Java static, and
-  regex-literal surfaces; conflicting or dependency-broken API evidence keeps
-  the value-graph, idiom, and strict exact paths closed. When no relevant API
-  evidence is present, the current compatibility path still uses the older
-  symbol/source proof helpers. Other factory and method/view contract rows still
-  name API identity/result semantics while local consumers prove their current
-  `Symbol`, `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
+  evidence first for the migrated JS-like, Python builtin/imported, Rust
+  free-name/path, Ruby require-backed, Java static, and regex-literal surfaces;
+  conflicting or dependency-broken API evidence keeps
+  the value-graph, idiom, and strict exact paths closed. Missing API evidence is
+  now also closed for those producer-covered surfaces; older symbol/source proof
+  helpers remain dependency inputs to `LibraryApi` evidence, not fallback API
+  proofs. Other factory and method/view contract rows still name API
+  identity/result semantics while local consumers prove their current `Symbol`,
+  `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by
@@ -267,8 +309,7 @@ callers:
   or conflicting evidence keeps the exact path closed.
 
 Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
-free-name/path/receiver-method APIs, receiver/protocol evidence beyond parameter
-domains, full scope-resolution and namespace-member evidence, require/import
-evidence for surfaces such as Ruby `Set.new`, broader guard evidence, general
-cross-module dependency manifests, report-level provenance, and external
-manifest loading are still open work.
+receiver-method APIs and unmodeled stdlib/ecosystem APIs, receiver/protocol
+evidence beyond parameter domains, full scope-resolution and namespace-member
+evidence, broader guard evidence, general cross-module dependency manifests,
+report-level provenance, and external manifest loading are still open work.

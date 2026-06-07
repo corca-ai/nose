@@ -47,9 +47,9 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "use_declaration" | "extern_crate_declaration" => Some(
             lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
         ),
-        // type aliases, macro defs, attributes: no behavior to model
+        "macro_definition" => Some(lower_macro_definition_shadow(lo, node)),
+        // type aliases, attributes: no behavior to model
         "type_item"
-        | "macro_definition"
         | "attribute_item"
         | "inner_attribute_item"
         // trait method/const declarations without a body: no behavior to model
@@ -613,9 +613,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         | "trait_bounds"
         | "type_binding"
         | "constrained_type_parameter" => lo.empty_block(span),
-        "macro_definition" | "line_comment" | "block_comment" | "attribute_item" => {
-            lo.empty_block(span)
-        }
+        "macro_definition" => lower_macro_definition_shadow(lo, node),
+        "line_comment" | "block_comment" | "attribute_item" => lo.empty_block(span),
         _ => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -731,6 +730,10 @@ fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
     if macro_name.is_some_and(|name| name.trim_end_matches('!') == "panic") {
         return lo.add(NodeKind::Throw, Payload::None, span, &args);
     }
+    lo.record_source_fact(
+        span,
+        nose_il::SourceFactKind::Call(nose_il::SourceCallKind::MacroInvocation),
+    );
     let callee = lo.add(
         NodeKind::Var,
         name.map(Payload::Name).unwrap_or(Payload::None),
@@ -740,6 +743,30 @@ fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
     let mut kids = vec![callee];
     kids.extend(args);
     lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn lower_macro_definition_shadow(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let name = rust_macro_definition_name(lo, node).map(|name| lo.sym(name));
+    lo.add(
+        NodeKind::Block,
+        name.map(Payload::Name).unwrap_or(Payload::None),
+        span,
+        &[],
+    )
+}
+
+fn rust_macro_definition_name<'a>(lo: &Lowering<'a>, node: TsNode<'a>) -> Option<&'a str> {
+    if let Some(name) = node.child_by_field_name("name") {
+        return Some(lo.text(name).trim());
+    }
+    let text = lo.text(node).trim_start();
+    let rest = text.strip_prefix("macro_rules!")?.trim_start();
+    let name = rest
+        .split(|c: char| c == '{' || c == '(' || c == '[' || c.is_whitespace())
+        .next()?
+        .trim();
+    (!name.is_empty()).then_some(name)
 }
 
 /// Macro arguments are an unparsed token stream: nested `()`/`[]`/`{}` are sub-

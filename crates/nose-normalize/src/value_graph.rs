@@ -39,8 +39,9 @@ mod rules;
 
 use crate::combine;
 use crate::module_facts::{
-    assignment_name_in_scope, collect_all_node_symbols_in_scope, collect_module_mutations_in_scope,
-    local_scope_nodes, mutating_method_name, node_symbol_in_scope,
+    assignment_name_in_scope, collect_all_node_symbols_in_scope,
+    collect_module_mutations_in_scope_with_direct_definitions, local_scope_nodes,
+    mutating_method_name, node_symbol_in_scope,
     shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
 use crate::types::Ty;
@@ -54,31 +55,30 @@ use nose_semantics::{
     exact_static_membership_predicate_operator, free_function_builtin_contract,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
-    imported_literal_snapshot_evidence_at_span, imported_namespace_symbol,
+    imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
-    library_api_free_name_shadow_safe, library_free_name_collection_factory_contracts,
-    library_free_name_map_factory_contracts, library_imported_collection_factory_contracts,
-    library_imported_namespace_function_contract, library_iterator_identity_adapter_contract,
-    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
-    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
-    library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
-    library_method_call_contract, library_ruby_set_factory_contract_by_hash,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    nullish_global_contract, own_property_guard_evidence_at_span, qualified_global_symbol_at_span,
-    record_shape_guard_for_node, reduction_builtin_contract, rust_option_and_then_contract,
-    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
-    source_operator_at_node, static_index_membership_contract, unshadowed_global_symbol,
-    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
-    SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE,
-    SEQ_VALUE_UNTAGGED,
+    library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
+    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
+    library_iterator_identity_adapter_contract, library_java_collection_factory_contract_by_hash,
+    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
+    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
+    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, nullish_global_contract,
+    own_property_guard_evidence_at_span, record_shape_guard_for_node, reduction_builtin_contract,
+    rust_option_and_then_contract, rust_option_none_sentinel_contract,
+    rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
+    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
+    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
+    ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
+    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -219,13 +219,13 @@ impl ModuleSeedContext {
 
         let mut assignment_counts: FxHashMap<Symbol, usize> = FxHashMap::default();
         for &stmt in &top_level {
-            if let Some(name) = assignment_name_in_scope(il, stmt, &local_scope) {
+            if let Some(name) = module_seed_assignment_name(il, stmt, &local_scope) {
                 *assignment_counts.entry(name).or_insert(0) += 1;
             }
         }
         let mut assignment_deps: FxHashMap<Symbol, FxHashSet<Symbol>> = FxHashMap::default();
         for &stmt in &top_level {
-            let Some(name) = assignment_name_in_scope(il, stmt, &local_scope) else {
+            let Some(name) = module_seed_assignment_name(il, stmt, &local_scope) else {
                 continue;
             };
             if let Some(&rhs) = il.children(stmt).get(1) {
@@ -243,12 +243,18 @@ impl ModuleSeedContext {
                 (count == 1 && !unit_symbols.contains(&name)).then_some(name)
             })
             .collect();
-        let mutated_bindings = collect_module_mutations_in_scope(
+        let direct_definitions: FxHashSet<NodeId> = top_level
+            .iter()
+            .copied()
+            .filter(|&stmt| module_seed_assignment_name(il, stmt, &local_scope).is_some())
+            .collect();
+        let mutated_bindings = collect_module_mutations_in_scope_with_direct_definitions(
             il,
             interner,
             &candidate_names,
             &is_top_level,
             &local_scope,
+            &direct_definitions,
         );
 
         Self {
@@ -276,6 +282,32 @@ impl ModuleSeedContext {
             }
         }
         required
+    }
+}
+
+fn module_seed_assignment_name(il: &Il, stmt: NodeId, local_scope: &[bool]) -> Option<Symbol> {
+    assignment_name_in_scope(il, stmt, local_scope)
+        .or_else(|| evidence_backed_raw_assignment_name(il, stmt))
+}
+
+fn evidence_backed_raw_assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
+    if il.kind(stmt) != NodeKind::Assign {
+        return None;
+    }
+    let kids = il.children(stmt);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+        return None;
+    }
+    let Payload::Name(symbol) = il.node(kids[0]).payload else {
+        return None;
+    };
+    let rhs = kids[1];
+    if import_fact_evidence_rhs(il, rhs).is_some()
+        || imported_literal_producer_evidence_for_node(il, rhs)
+    {
+        Some(symbol)
+    } else {
+        None
     }
 }
 
@@ -908,13 +940,21 @@ impl<'a> Builder<'a> {
             else {
                 return false;
             };
-            let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+            let LibraryApiCalleeContract::FreeName { name, .. } = contract.callee else {
                 return false;
             };
             s.is_free_name_value(callee, name)
-                && library_api_free_name_shadow_safe(s.il.meta.lang, name, shadow, |candidate| {
-                    s.file_defines_name(candidate)
-                })
+                && matches!(
+                    s.library_api_evidence_for_value_call(
+                        value,
+                        callee,
+                        None,
+                        contract.id,
+                        contract.callee,
+                        1,
+                    ),
+                    LibraryApiEvidenceStatus::Admitted
+                )
         })
     }
 
@@ -923,9 +963,7 @@ impl<'a> Builder<'a> {
     fn proven_python_deque_collection_value(&self, value: ValueId) -> Option<ValueId> {
         self.collection_factory_seq(value, |s, callee| {
             library_imported_collection_factory_contracts(s.il.meta.lang).any(|contract| {
-                let LibraryApiCalleeContract::ImportedBinding { module, exported } =
-                    contract.callee
-                else {
+                let LibraryApiCalleeContract::ImportedBinding { .. } = contract.callee else {
                     return false;
                 };
                 let receiver = match s.nodes[callee as usize].op {
@@ -942,9 +980,7 @@ impl<'a> Builder<'a> {
                 ) {
                     LibraryApiEvidenceStatus::Admitted => true,
                     LibraryApiEvidenceStatus::Rejected => false,
-                    LibraryApiEvidenceStatus::Missing => {
-                        s.is_import_binding_value(callee, module, exported)
-                    }
+                    LibraryApiEvidenceStatus::Missing => false,
                 }
             })
         })
@@ -978,11 +1014,7 @@ impl<'a> Builder<'a> {
                     receiver_name,
                     method,
                 )?;
-                let LibraryApiCalleeContract::JavaUtilStaticMember {
-                    receiver: expected_receiver,
-                    ..
-                } = contract.callee
-                else {
+                let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
                     return None;
                 };
                 match self.library_api_evidence_for_value_call(
@@ -995,9 +1027,7 @@ impl<'a> Builder<'a> {
                 ) {
                     LibraryApiEvidenceStatus::Admitted => Some(contract),
                     LibraryApiEvidenceStatus::Rejected => None,
-                    LibraryApiEvidenceStatus::Missing => self
-                        .is_imported_java_util_name(receiver, expected_receiver)
-                        .then_some(contract),
+                    LibraryApiEvidenceStatus::Missing => None,
                 }
             })?;
         // A single argument to a varargs collection factory (`Arrays.asList(x)`,
@@ -1024,8 +1054,8 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        self.collection_factory_seq(value, |s, callee| {
-            let callee = &s.nodes[callee as usize];
+        self.collection_factory_seq(value, |s, callee_value| {
+            let callee = &s.nodes[callee_value as usize];
             let ValOp::Field(method) = callee.op else {
                 return false;
             };
@@ -1034,19 +1064,24 @@ impl<'a> Builder<'a> {
             else {
                 return false;
             };
-            let LibraryApiCalleeContract::RubyRequireStaticMember {
-                receiver,
-                required_module,
-                shadow_root,
-                ..
-            } = contract.callee
+            let LibraryApiCalleeContract::RubyRequireStaticMember { receiver, .. } =
+                contract.callee
             else {
                 return false;
             };
             callee.args.len() == 1
-                && s.ruby_file_requires_module(required_module)
-                && !s.file_defines_name(shadow_root)
                 && s.is_free_name_value(callee.args[0], receiver)
+                && matches!(
+                    s.library_api_evidence_for_value_call(
+                        value,
+                        callee_value,
+                        Some(callee.args[0]),
+                        contract.id,
+                        contract.callee,
+                        1,
+                    ),
+                    LibraryApiEvidenceStatus::Admitted
+                )
         })
     }
 
@@ -1063,22 +1098,25 @@ impl<'a> Builder<'a> {
         }
         let args = node.args.clone();
         let contract = library_rust_vec_macro_factory_contract(self.il.meta.lang, "vec")?;
-        let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        let LibraryApiCalleeContract::RustMacro { name, .. } = contract.callee else {
             return None;
         };
         if !self.is_free_name_value(args[0], name)
-            || !library_api_free_name_shadow_safe(self.il.meta.lang, name, shadow, |candidate| {
-                self.file_defines_name(candidate)
-            })
+            || !matches!(
+                self.library_api_evidence_for_value_call(
+                    value,
+                    args[0],
+                    None,
+                    contract.id,
+                    contract.callee,
+                    args.len().saturating_sub(1),
+                ),
+                LibraryApiEvidenceStatus::Admitted
+            )
         {
             return None;
         }
         Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
-    }
-
-    fn is_imported_java_util_name(&self, value: ValueId, name: &str) -> bool {
-        !self.java_file_defines_type_name(name)
-            && self.is_import_binding_value(value, "java.util", name)
     }
 
     fn is_import_namespace_expr(
@@ -1100,6 +1138,7 @@ impl<'a> Builder<'a> {
         )
     }
 
+    #[cfg(test)]
     fn is_import_binding_value(&self, value: ValueId, module: &str, exported: &str) -> bool {
         let node = &self.nodes[value as usize];
         matches!(
@@ -1136,21 +1175,6 @@ impl<'a> Builder<'a> {
             .modules()
             .go_import_namespace_facts()
             && imported_namespace_symbol(self.il, self.interner, expr, module)
-    }
-
-    fn java_file_defines_type_name(&self, name: &str) -> bool {
-        if !semantics(self.il.meta.lang)
-            .modules()
-            .java_type_declarations_shadow_stdlib()
-        {
-            return false;
-        }
-        self.il.units.iter().any(|unit| {
-            unit.kind == UnitKind::Class
-                && unit
-                    .name
-                    .is_some_and(|symbol| self.interner.resolve(symbol) == name)
-        })
     }
 
     fn file_defines_name(&self, name: &str) -> bool {
@@ -1191,37 +1215,6 @@ impl<'a> Builder<'a> {
     fn symbol_defines_name(&self, symbol: Symbol, name: &str) -> bool {
         let text = self.interner.resolve(symbol);
         text == name || (self.is_js_like_lang() && contains_js_identifier(text, name))
-    }
-
-    fn ruby_file_requires_module(&self, module: &str) -> bool {
-        if !semantics(self.il.meta.lang).stdlib().ruby_set_factory() {
-            return false;
-        }
-        let expected = stable_symbol_hash(module);
-        self.top_level_statements().iter().any(|&stmt| {
-            let expr = if self.il.kind(stmt) == NodeKind::ExprStmt {
-                self.il.children(stmt).first().copied()
-            } else {
-                Some(stmt)
-            };
-            let Some(call) = expr else {
-                return false;
-            };
-            if self.il.kind(call) != NodeKind::Call {
-                return false;
-            }
-            let kids = self.il.children(call);
-            if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Var {
-                return false;
-            }
-            let Payload::Name(callee) = self.il.node(kids[0]).payload else {
-                return false;
-            };
-            if self.interner.resolve(callee) != "require" {
-                return false;
-            }
-            matches!(self.il.node(kids[1]).payload, Payload::LitStr(hash) if hash == expected)
-        })
     }
 
     fn proven_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
@@ -1360,15 +1353,20 @@ impl<'a> Builder<'a> {
         }
         let entry_tag =
             library_free_name_map_factory_contracts(self.il.meta.lang).find_map(|contract| {
-                let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+                let LibraryApiCalleeContract::FreeName { name, .. } = contract.callee else {
                     return None;
                 };
                 if !self.is_free_name_value(callee, name)
-                    || !library_api_free_name_shadow_safe(
-                        self.il.meta.lang,
-                        name,
-                        shadow,
-                        |candidate| self.file_defines_name(candidate),
+                    || !matches!(
+                        self.library_api_evidence_for_value_call(
+                            value,
+                            callee,
+                            None,
+                            contract.id,
+                            contract.callee,
+                            1,
+                        ),
+                        LibraryApiEvidenceStatus::Admitted
                     )
                 {
                     return None;
@@ -1416,11 +1414,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let contract = library_java_map_factory_contract_by_hash(self.il.meta.lang, "Map", method)?;
-        let LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: expected_receiver,
-            ..
-        } = contract.callee
-        else {
+        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
             return None;
         };
         let api_status = self.library_api_evidence_for_value_call(
@@ -1431,17 +1425,10 @@ impl<'a> Builder<'a> {
             contract.callee,
             args.len().saturating_sub(1),
         );
-        let snapshot_proven = self.imported_literal_snapshot_proven(value, NodeKind::Call);
         match api_status {
             LibraryApiEvidenceStatus::Admitted => {}
             LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => {
-                if !snapshot_proven
-                    && !self.is_imported_java_util_name(callee.args[0], expected_receiver)
-                {
-                    return None;
-                }
-            }
+            LibraryApiEvidenceStatus::Missing => return None,
         }
         let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
             return None;
@@ -1460,7 +1447,7 @@ impl<'a> Builder<'a> {
         if kind == JavaMapFactoryKind::OfEntries {
             let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
             for entry in args.iter().skip(1).copied() {
-                let kv = self.proven_java_map_entry_pair(entry, snapshot_proven)?;
+                let kv = self.proven_java_map_entry_pair(entry)?;
                 canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
             }
             return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
@@ -1468,11 +1455,7 @@ impl<'a> Builder<'a> {
         None
     }
 
-    fn proven_java_map_entry_pair(
-        &self,
-        value: ValueId,
-        snapshot_proven: bool,
-    ) -> Option<Vec<ValueId>> {
+    fn proven_java_map_entry_pair(&self, value: ValueId) -> Option<Vec<ValueId>> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 3 {
             return None;
@@ -1483,11 +1466,7 @@ impl<'a> Builder<'a> {
             return None;
         };
         let contract = library_java_map_entry_contract_by_hash(self.il.meta.lang, "Map", method)?;
-        let LibraryApiCalleeContract::JavaUtilStaticMember {
-            receiver: expected_receiver,
-            ..
-        } = contract.callee
-        else {
+        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
             return None;
         };
         if callee.args.len() != 1 {
@@ -1503,20 +1482,9 @@ impl<'a> Builder<'a> {
         ) {
             LibraryApiEvidenceStatus::Admitted => {}
             LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => {
-                if !snapshot_proven
-                    && !self.is_imported_java_util_name(callee.args[0], expected_receiver)
-                {
-                    return None;
-                }
-            }
+            LibraryApiEvidenceStatus::Missing => return None,
         }
         Some(args[1..].to_vec())
-    }
-
-    fn imported_literal_snapshot_proven(&self, value: ValueId, kind: NodeKind) -> bool {
-        self.node_span[value as usize]
-            .is_some_and(|span| imported_literal_snapshot_evidence_at_span(self.il, span, kind))
     }
 
     fn library_api_evidence_for_value_call(
@@ -1568,11 +1536,7 @@ impl<'a> Builder<'a> {
         if let Some(contract) =
             library_js_like_set_constructor_contract(self.il.meta.lang, constructor)
         {
-            let LibraryApiCalleeContract::JsGlobalConstructor {
-                receiver,
-                requires_unshadowed_global,
-            } = contract.callee
-            else {
+            let LibraryApiCalleeContract::JsGlobalConstructor { .. } = contract.callee else {
                 return None;
             };
             match library_api_contract_evidence_for_call(
@@ -1585,13 +1549,7 @@ impl<'a> Builder<'a> {
             ) {
                 LibraryApiEvidenceStatus::Admitted => {}
                 LibraryApiEvidenceStatus::Rejected => return None,
-                LibraryApiEvidenceStatus::Missing => {
-                    if requires_unshadowed_global
-                        && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
-                    {
-                        return None;
-                    }
-                }
+                LibraryApiEvidenceStatus::Missing => return None,
             }
             if !self.is_static_non_float_collection_expr(kids[1]) {
                 return None;
@@ -1599,11 +1557,7 @@ impl<'a> Builder<'a> {
             return Some(self.eval_membership_collection(kids[1], env));
         }
         let contract = library_js_like_map_constructor_contract(self.il.meta.lang, constructor)?;
-        let LibraryApiCalleeContract::JsGlobalConstructor {
-            receiver,
-            requires_unshadowed_global,
-        } = contract.callee
-        else {
+        let LibraryApiCalleeContract::JsGlobalConstructor { .. } = contract.callee else {
             return None;
         };
         match library_api_contract_evidence_for_call(
@@ -1616,13 +1570,7 @@ impl<'a> Builder<'a> {
         ) {
             LibraryApiEvidenceStatus::Admitted => {}
             LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => {
-                if requires_unshadowed_global
-                    && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
-                {
-                    return None;
-                }
-            }
+            LibraryApiEvidenceStatus::Missing => return None,
         }
         let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = contract.result else {
             return None;
@@ -1805,16 +1753,7 @@ impl<'a> Builder<'a> {
             ) {
                 LibraryApiEvidenceStatus::Admitted => {}
                 LibraryApiEvidenceStatus::Rejected => return None,
-                LibraryApiEvidenceStatus::Missing => {
-                    if !qualified_global_symbol_at_span(
-                        self.il,
-                        self.node_span[args[0] as usize],
-                        NodeKind::Field,
-                        contract.result.qualified_path,
-                    ) {
-                        return None;
-                    }
-                }
+                LibraryApiEvidenceStatus::Missing => return None,
             }
             return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator);
         }
@@ -3000,7 +2939,7 @@ impl<'a> Builder<'a> {
     }
 
     fn assignment_name(&self, stmt: NodeId) -> Option<Symbol> {
-        assignment_name_in_scope(self.il, stmt, &self.local_scope_nodes)
+        module_seed_assignment_name(self.il, stmt, &self.local_scope_nodes)
     }
 
     fn unit_defines_symbol(&self, symbol: Symbol) -> bool {
@@ -7004,7 +6943,6 @@ impl<'a> Builder<'a> {
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
         )?;
-        let base = *self.il.children(callee).first()?;
         match library_api_contract_evidence_for_call(
             self.il,
             self.interner,
@@ -7015,11 +6953,7 @@ impl<'a> Builder<'a> {
         ) {
             LibraryApiEvidenceStatus::Admitted => {}
             LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => {
-                if !self.is_import_namespace_expr(base, contract.result.module, env) {
-                    return None;
-                }
-            }
+            LibraryApiEvidenceStatus::Missing => return None,
         }
         let ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } =
             contract.result.semantic;
@@ -7472,13 +7406,28 @@ impl<'a> Builder<'a> {
         Some((receiver, kids[1]))
     }
 
-    fn is_rust_vec_new_call(&self, callee: NodeId) -> bool {
+    fn is_rust_vec_new_call(&self, call: NodeId, callee: NodeId) -> bool {
         let (NodeKind::Var, Payload::Name(name)) =
             (self.il.kind(callee), self.il.node(callee).payload)
         else {
             return false;
         };
-        self.rust_vec_new_name(self.interner.resolve(name))
+        let Some(contract) =
+            library_rust_vec_new_factory_contract(self.il.meta.lang, self.interner.resolve(name))
+        else {
+            return false;
+        };
+        matches!(
+            library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                call,
+                contract.id,
+                contract.callee,
+                0,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        )
     }
 
     fn rust_option_some_name(&self, text: &str) -> bool {
@@ -7497,18 +7446,6 @@ impl<'a> Builder<'a> {
             return false;
         };
         self.rust_option_none_name(self.interner.resolve(name))
-    }
-
-    fn rust_vec_new_name(&self, text: &str) -> bool {
-        library_rust_vec_new_factory_contract(self.il.meta.lang, text).is_some_and(|contract| {
-            let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
-                return false;
-            };
-            name == text
-                && library_api_free_name_shadow_safe(self.il.meta.lang, name, shadow, |candidate| {
-                    self.file_defines_name(candidate)
-                })
-        })
     }
 
     fn is_null_literal(&self, node: NodeId) -> bool {
@@ -7919,7 +7856,7 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_rust_map_get_is_some_call(&kids, env) {
                     return r;
                 }
-                if kids.len() == 1 && self.is_rust_vec_new_call(kids[0]) {
+                if kids.len() == 1 && self.is_rust_vec_new_call(expr, kids[0]) {
                     return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
                 }
                 if let Some(v) = self.eval_js_like_constructed_collection_or_map(expr, &kids, env) {
@@ -8591,9 +8528,10 @@ mod tests {
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
+        library_free_name_collection_factory_contract,
         library_imported_collection_factory_contract, library_java_collection_factory_contract,
-        library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-        LibraryApiContractId, FIRST_PARTY_PACK_ID,
+        library_java_map_factory_contract, library_js_like_map_constructor_contract,
+        library_js_like_set_constructor_contract, LibraryApiContractId, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -8728,6 +8666,54 @@ mod tests {
         builder
             .proven_collection_value(raw)
             .map(|value| builder.nodes[value as usize].op.clone())
+    }
+
+    #[test]
+    fn free_name_collection_factory_value_graph_requires_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("list")),
+            sp(20),
+            &[],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(21), &[]);
+        let seq = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(22),
+            &[item],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(23), &[callee, seq]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(19), &[call]);
+        let mut il = finish_test_il(b, root, Lang::Python);
+        il.evidence.push(collection_sequence_evidence(0, sp(22)));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(20), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("list"),
+            }),
+        ));
+        assert!(
+            eval_proven_collection_op(&il, &interner, call).is_none(),
+            "symbol proof alone must not prove the migrated free-name factory"
+        );
+
+        let contract = library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            2,
+            sp(23),
+            contract.id,
+            contract.callee,
+            1,
+            vec![EvidenceId(1)],
+        ));
+        assert!(matches!(
+            eval_proven_collection_op(&il, &interner, call),
+            Some(ValOp::Seq(SEQ_VALUE_COLLECTION))
+        ));
     }
 
     #[derive(Clone, Copy)]
@@ -8994,6 +8980,10 @@ mod tests {
                 .expect("deque contract");
         push_imported_binding_use(&mut il, 0, sp(60), 1, sp(61), "collections", "deque");
         il.evidence.push(collection_sequence_evidence(2, sp(63)));
+        assert!(
+            eval_proven_collection_op(&il, &interner, call).is_none(),
+            "import symbol proof alone must not prove the migrated stdlib factory"
+        );
         il.evidence.push(library_api_contract_evidence(
             3,
             sp(64),
@@ -9049,6 +9039,10 @@ mod tests {
         let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
             .expect("List.of contract");
         push_imported_binding_use(&mut il, 0, sp(70), 1, sp(71), "java.util", "List");
+        assert!(
+            eval_proven_collection_op(&il, &interner, call).is_none(),
+            "java.util import proof alone must not prove the migrated Java factory"
+        );
         il.evidence.push(library_api_contract_evidence(
             2,
             sp(75),
@@ -9060,6 +9054,330 @@ mod tests {
         let admitted = eval_proven_collection_op(&il, &interner, call)
             .expect("admitted LibraryApi evidence should prove the Java factory");
         assert!(matches!(admitted, ValOp::Seq(SEQ_VALUE_COLLECTION)));
+    }
+
+    #[test]
+    fn java_map_factory_value_graph_uses_library_api_after_import_seed() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let map = interner.intern("Map");
+        let lookup = interner.intern("LOOKUP");
+        let import_lhs = b.add(NodeKind::Var, Payload::Name(map), sp(100), &[]);
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("java.util")),
+            sp(100),
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("Map")),
+            sp(100),
+            &[],
+        );
+        let import_rhs = b.add(NodeKind::Seq, Payload::None, sp(100), &[module, exported]);
+        let import = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(100),
+            &[import_lhs, import_rhs],
+        );
+        let receiver = b.add(NodeKind::Var, Payload::Name(map), sp(101), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp(102),
+            &[receiver],
+        );
+        let red = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("red")),
+            sp(103),
+            &[],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(104), &[]);
+        let blue = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("blue")),
+            sp(105),
+            &[],
+        );
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(106), &[]);
+        let call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(107),
+            &[callee, red, one, blue, two],
+        );
+        let lookup_lhs = b.add(NodeKind::Var, Payload::Name(lookup), sp(108), &[]);
+        let lookup_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(108),
+            &[lookup_lhs, call],
+        );
+        let lookup_ref = b.add(NodeKind::Var, Payload::Name(lookup), sp(109), &[]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(100),
+            &[import, lookup_assign, lookup_ref],
+        );
+        let mut il = finish_test_il(b, root, Lang::Java);
+        let contract =
+            library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(100)),
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash("java.util"),
+                exported_hash: stable_symbol_hash("Map"),
+            }),
+        ));
+        push_imported_binding_use(&mut il, 1, sp(100), 2, sp(101), "java.util", "Map");
+        il.evidence.push(library_api_contract_evidence(
+            3,
+            sp(107),
+            contract.id,
+            contract.callee,
+            4,
+            vec![EvidenceId(2)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            4,
+            EvidenceAnchor::node(sp(107), NodeKind::Call),
+            EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
+                module_hash: stable_symbol_hash("LookupProvider"),
+                exported_hash: stable_symbol_hash("LOOKUP"),
+                root_kind: NodeKind::Call,
+            }),
+            vec![EvidenceId(3)],
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        assert!(!builder.unit_defines_symbol(lookup));
+        assert!(
+            !builder.module_binding_mutated(lookup),
+            "read-only getOrDefault use must not mark LOOKUP as mutated"
+        );
+        builder.seed_module_value_bindings();
+        let raw = builder.eval(call, &FxHashMap::default());
+        let raw_args = builder.nodes[raw as usize].args.clone();
+        let raw_callee = raw_args[0];
+        let raw_receiver = builder.nodes[raw_callee as usize].args.first().copied();
+        assert_eq!(
+            builder.library_api_evidence_for_value_call(
+                raw,
+                raw_callee,
+                raw_receiver,
+                contract.id,
+                contract.callee,
+                4
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+        assert!(matches!(
+            builder
+                .proven_map_value(raw)
+                .map(|value| builder.nodes[value as usize].op.clone()),
+            Some(ValOp::Seq(SEQ_VALUE_MAP))
+        ));
+        let proven = builder.eval(lookup_ref, &FxHashMap::default());
+        assert!(
+            builder.global_env.contains_key(&lookup),
+            "LOOKUP should be seeded as an immutable module binding"
+        );
+        assert!(
+            matches!(builder.nodes[proven as usize].op, ValOp::Seq(SEQ_VALUE_MAP)),
+            "expected LOOKUP to seed as map"
+        );
+    }
+
+    #[test]
+    fn normalized_java_static_import_map_binding_feeds_get_or_default() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let map = interner.intern("Map");
+        let lookup = interner.intern("LOOKUP");
+        let lookup_method = interner.intern("lookup");
+
+        let import_lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(130), &[]);
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("java.util")),
+            sp(130),
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("Map")),
+            sp(130),
+            &[],
+        );
+        let import_rhs = b.add(NodeKind::Seq, Payload::None, sp(130), &[module, exported]);
+        let import = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(130),
+            &[import_lhs, import_rhs],
+        );
+
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(131), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp(132),
+            &[receiver],
+        );
+        let red = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("red")),
+            sp(133),
+            &[],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(134), &[]);
+        let blue = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("blue")),
+            sp(135),
+            &[],
+        );
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(136), &[]);
+        let map_of = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(137),
+            &[callee, red, one, blue, two],
+        );
+        let lookup_lhs = b.add(NodeKind::Var, Payload::Cid(1), sp(138), &[]);
+        let lookup_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(138),
+            &[lookup_lhs, map_of],
+        );
+
+        let key_param = b.add(NodeKind::Param, Payload::Cid(2), sp(139), &[]);
+        let other_param = b.add(NodeKind::Param, Payload::Cid(3), sp(139), &[]);
+        let lookup_receiver = b.add(NodeKind::Var, Payload::Name(lookup), sp(140), &[]);
+        let get_or_default = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("getOrDefault")),
+            sp(141),
+            &[lookup_receiver],
+        );
+        let key_ref = b.add(NodeKind::Var, Payload::Cid(2), sp(142), &[]);
+        let fallback = b.add(NodeKind::Lit, Payload::LitInt(0), sp(143), &[]);
+        let get_call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(144),
+            &[get_or_default, key_ref, fallback],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp(144), &[get_call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(144), &[ret]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            sp(139),
+            &[key_param, other_param, body],
+        );
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(130),
+            &[import, lookup_assign, func],
+        );
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "JavaImported.java".into(),
+                lang: Lang::Java,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Method,
+                name: Some(lookup_method),
+            }],
+            vec![map, lookup],
+        );
+        let contract =
+            library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(130)),
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash("java.util"),
+                exported_hash: stable_symbol_hash("Map"),
+            }),
+        ));
+        push_imported_binding_use(&mut il, 1, sp(130), 2, sp(131), "java.util", "Map");
+        il.evidence.push(library_api_contract_evidence(
+            3,
+            sp(137),
+            contract.id,
+            contract.callee,
+            4,
+            vec![EvidenceId(2)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            4,
+            EvidenceAnchor::node(sp(137), NodeKind::Call),
+            EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
+                module_hash: stable_symbol_hash("Tables"),
+                exported_hash: stable_symbol_hash("LOOKUP"),
+                root_kind: NodeKind::Call,
+            }),
+            vec![EvidenceId(3)],
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        builder.seed_module_value_bindings();
+        assert!(
+            builder.global_env.contains_key(&lookup),
+            "normalized static import binding should seed the copied map value"
+        );
+
+        let mut env = FxHashMap::default();
+        env.insert(2, builder.mk(ValOp::Input(0), vec![]));
+        env.insert(3, builder.mk(ValOp::Input(1), vec![]));
+        let value = builder.eval(get_call, &env);
+        let node = &builder.nodes[value as usize];
+        assert!(matches!(
+            node.op,
+            ValOp::Call(tag) if tag == builtin_tag(Builtin::GetOrDefault)
+        ));
+        assert!(matches!(
+            builder.nodes[node.args[0] as usize].op,
+            ValOp::Seq(SEQ_VALUE_MAP)
+        ));
+    }
+
+    #[test]
+    fn raw_name_module_assignment_without_evidence_is_not_seeded() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let table = interner.intern("TABLE");
+        let lhs = b.add(NodeKind::Var, Payload::Name(table), sp(120), &[]);
+        let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(120), &[]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(120), &[item]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(120), &[lhs, rhs]);
+        let table_ref = b.add(NodeKind::Var, Payload::Name(table), sp(121), &[]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(120),
+            &[assign, table_ref],
+        );
+        let il = finish_test_il(b, root, Lang::JavaScript);
+        let mut builder = Builder::new(&il, &interner);
+
+        builder.seed_module_value_bindings();
+
+        assert!(
+            !builder.global_env.contains_key(&table),
+            "raw Name assignments need first-party import or imported-literal evidence"
+        );
     }
 
     #[test]
@@ -9113,6 +9431,13 @@ mod tests {
         ));
         push_imported_namespace_use(&mut il, 1, sp(80), 2, sp(81), "collections");
         il.evidence.push(collection_sequence_evidence(3, sp(84)));
+        let mut builder = Builder::new(&il, &interner);
+        builder.seed_module_value_bindings();
+        let raw = builder.eval(call, &FxHashMap::default());
+        assert!(
+            builder.proven_collection_value(raw).is_none(),
+            "namespace import proof alone must not prove the migrated stdlib factory"
+        );
         il.evidence.push(library_api_contract_evidence(
             4,
             sp(85),
@@ -9250,14 +9575,14 @@ mod tests {
     }
 
     #[test]
-    fn js_constructor_value_graph_closes_on_conflicting_api_evidence() {
+    fn js_constructor_value_graph_requires_library_api_evidence() {
         let interner = Interner::new();
         let (mut il, call) = js_new_set_il(&interner);
 
         let mut builder = Builder::new(&il, &interner);
-        let legacy_proven = builder.eval(call, &FxHashMap::default());
-        assert!(matches!(
-            builder.nodes[legacy_proven as usize].op,
+        let missing = builder.eval(call, &FxHashMap::default());
+        assert!(!matches!(
+            builder.nodes[missing as usize].op,
             ValOp::Seq(SEQ_VALUE_COLLECTION)
         ));
 

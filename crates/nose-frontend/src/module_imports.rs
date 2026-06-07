@@ -13,11 +13,11 @@ use nose_il::{
     NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    import_fact_evidence_rhs, imported_binding_symbol, library_api_free_name_shadow_safe,
+    import_fact_evidence_rhs, library_api_contract_evidence_for_call,
     library_free_name_map_factory_contract, library_java_map_entry_contract,
     library_java_map_factory_contract, semantics, seq_surface_contract_evidence_for_node,
     ImportFactKind, ImportedMapFactoryContract, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryMapFactoryResult, FIRST_PARTY_PACK_ID,
+    LibraryApiEvidenceStatus, LibraryMapFactoryResult, FIRST_PARTY_PACK_ID,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
@@ -411,20 +411,14 @@ fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> boo
     let Some((&callee, args)) = kids.split_first() else {
         return false;
     };
-    let Some((receiver_node, method)) = field_method_on_var(il, interner, callee, "Map") else {
+    let Some((_receiver_node, method)) = field_method_on_var(il, interner, callee, "Map") else {
         return false;
     };
     let Some(contract) = library_java_map_factory_contract(il.meta.lang, "Map", method) else {
         return false;
     };
-    let LibraryApiCalleeContract::JavaUtilStaticMember {
-        receiver: expected_receiver,
-        ..
-    } = contract.callee
-    else {
-        return false;
-    };
-    if !java_util_static_receiver_safe(il, interner, receiver_node, expected_receiver) {
+    if !java_util_static_member_evidence_required(il, interner, call, contract.id, contract.callee)
+    {
         return false;
     }
     let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
@@ -451,20 +445,14 @@ fn java_map_entry_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool 
     if kids.len() != 3 {
         return false;
     }
-    let Some((receiver_node, method)) = field_method_on_var(il, interner, kids[0], "Map") else {
+    let Some((_receiver_node, method)) = field_method_on_var(il, interner, kids[0], "Map") else {
         return false;
     };
     let Some(contract) = library_java_map_entry_contract(il.meta.lang, "Map", method) else {
         return false;
     };
-    let LibraryApiCalleeContract::JavaUtilStaticMember {
-        receiver: expected_receiver,
-        ..
-    } = contract.callee
-    else {
-        return false;
-    };
-    if !java_util_static_receiver_safe(il, interner, receiver_node, expected_receiver) {
+    if !java_util_static_member_evidence_required(il, interner, call, contract.id, contract.callee)
+    {
         return false;
     }
     literal_export_value_safe(il, interner, kids[1])
@@ -482,22 +470,39 @@ fn rust_std_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) ->
     let Some(contract) = library_free_name_map_factory_contract(il.meta.lang, name) else {
         return false;
     };
-    let LibraryApiCalleeContract::FreeName {
-        name: contract_name,
-        shadow,
-    } = contract.callee
-    else {
+    let LibraryApiCalleeContract::FreeName { .. } = contract.callee else {
         return false;
     };
-    if !library_api_free_name_shadow_safe(il.meta.lang, contract_name, shadow, |candidate| {
-        file_defines_name(il, interner, candidate)
-    }) {
+    if !matches!(
+        library_api_contract_evidence_for_call(il, interner, call, contract.id, contract.callee, 1,),
+        LibraryApiEvidenceStatus::Admitted
+    ) {
         return false;
     }
     let LibraryMapFactoryResult::EntrySequence { .. } = contract.result else {
         return false;
     };
     literal_export_value_safe(il, interner, kids[1])
+}
+
+fn java_util_static_member_evidence_required(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    contract_id: nose_semantics::LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    matches!(
+        library_api_contract_evidence_for_call(
+            il,
+            interner,
+            call,
+            contract_id,
+            callee,
+            il.children(call).len().saturating_sub(1),
+        ),
+        LibraryApiEvidenceStatus::Admitted
+    )
 }
 
 fn field_method_on_var<'a>(
@@ -529,37 +534,6 @@ fn var_text<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str
         return None;
     };
     Some(interner.resolve(name))
-}
-
-fn java_util_static_receiver_safe(
-    il: &Il,
-    interner: &Interner,
-    receiver: NodeId,
-    expected_receiver: &str,
-) -> bool {
-    !java_file_defines_type_name(il, interner, expected_receiver)
-        && imported_binding_symbol(il, interner, receiver, "java.util", expected_receiver)
-}
-
-fn file_defines_name(il: &Il, interner: &Interner, expected: &str) -> bool {
-    collect_top_level_statements(il).iter().any(|&stmt| {
-        assignment_name(il, stmt).is_some_and(|symbol| interner.resolve(symbol) == expected)
-    }) || il.units.iter().any(|unit| {
-        unit.name
-            .is_some_and(|symbol| interner.resolve(symbol) == expected)
-    }) || il.nodes.iter().any(|node| {
-        matches!(node.kind, NodeKind::Module | NodeKind::Block)
-            && matches!(node.payload, Payload::Name(symbol) if interner.resolve(symbol) == expected)
-    })
-}
-
-fn java_file_defines_type_name(il: &Il, interner: &Interner, expected: &str) -> bool {
-    il.units.iter().any(|unit| {
-        unit.kind == UnitKind::Class
-            && unit
-                .name
-                .is_some_and(|name| interner.resolve(name) == expected)
-    })
 }
 
 fn binding_mutated(il: &Il, interner: &Interner, name: Symbol, defining_stmt: NodeId) -> bool {
@@ -775,22 +749,36 @@ fn snapshot_subtree(il: &Il, root: NodeId) -> SubtreeSnapshot {
 
 fn snapshot_evidence(il: &Il, nodes: &[SnapshotNode]) -> Vec<SnapshotEvidence> {
     let spans: FxHashSet<Span> = nodes.iter().map(|node| node.span).collect();
-    let candidates: FxHashMap<EvidenceId, &EvidenceRecord> = il
+    let asserted: FxHashMap<EvidenceId, &EvidenceRecord> = il
         .evidence
         .iter()
-        .filter(|record| {
-            record.status == EvidenceStatus::Asserted
-                && spans.contains(&evidence_anchor_span(record.anchor))
-        })
+        .filter(|record| record.status == EvidenceStatus::Asserted)
         .map(|record| (record.id, record))
         .collect();
-    let mut kept: FxHashSet<EvidenceId> = candidates.keys().copied().collect();
+    let mut kept: FxHashSet<EvidenceId> = asserted
+        .values()
+        .filter(|record| spans.contains(&evidence_anchor_span(record.anchor)))
+        .map(|record| record.id)
+        .collect();
+
+    let mut stack: Vec<EvidenceId> = kept.iter().copied().collect();
+    while let Some(id) = stack.pop() {
+        let Some(record) = asserted.get(&id) else {
+            continue;
+        };
+        for &dependency in &record.dependencies {
+            if asserted.contains_key(&dependency) && kept.insert(dependency) {
+                stack.push(dependency);
+            }
+        }
+    }
+
     loop {
         let rejected: Vec<EvidenceId> = kept
             .iter()
             .copied()
             .filter(|id| {
-                candidates
+                asserted
                     .get(id)
                     .is_some_and(|record| record.dependencies.iter().any(|dep| !kept.contains(dep)))
             })
@@ -896,47 +884,33 @@ fn append_snapshot(il: &mut Il, snapshot: &SubtreeSnapshot) -> AppendedSnapshot 
             .collect();
         let child_start = il.edges.len() as u32;
         il.edges.extend_from_slice(&children);
-        let mut span = snapshot_node.span;
-        span.file = il.file;
         let id = NodeId(il.nodes.len() as u32);
         il.nodes.push(Node {
             kind: snapshot_node.kind,
             payload: snapshot_node.payload,
-            span,
+            span: snapshot_node.span,
             child_start,
             child_len: children.len() as u32,
         });
         new_ids[idx] = id;
     }
+    let source_evidence: FxHashMap<EvidenceId, &SnapshotEvidence> = snapshot
+        .evidence
+        .iter()
+        .map(|evidence| (evidence.source_id, evidence))
+        .collect();
     let mut evidence_id_map = FxHashMap::default();
-    for (idx, evidence) in snapshot.evidence.iter().enumerate() {
-        evidence_id_map.insert(
-            evidence.source_id,
-            EvidenceId((il.evidence.len() + idx) as u32),
-        );
-    }
     let mut copied_evidence = Vec::with_capacity(snapshot.evidence.len());
     for evidence in &snapshot.evidence {
-        let id = evidence_id_map[&evidence.source_id];
-        let dependencies = evidence
-            .dependencies
-            .iter()
-            .map(|dependency| {
-                evidence_id_map
-                    .get(dependency)
-                    .copied()
-                    .expect("snapshot evidence dependency must be closed")
-            })
-            .collect();
-        il.evidence.push(EvidenceRecord {
-            id,
-            anchor: remap_anchor_file(evidence.anchor, il.file),
-            kind: evidence.kind,
-            provenance: evidence.provenance,
-            dependencies,
-            status: evidence.status,
-        });
-        copied_evidence.push(id);
+        let id = append_snapshot_evidence(
+            il,
+            &source_evidence,
+            &mut evidence_id_map,
+            evidence.source_id,
+        );
+        if !copied_evidence.contains(&id) {
+            copied_evidence.push(id);
+        }
     }
     AppendedSnapshot {
         root: new_ids[snapshot.root],
@@ -944,29 +918,69 @@ fn append_snapshot(il: &mut Il, snapshot: &SubtreeSnapshot) -> AppendedSnapshot 
     }
 }
 
-fn remap_anchor_file(anchor: EvidenceAnchor, file: nose_il::FileId) -> EvidenceAnchor {
-    match anchor {
-        EvidenceAnchor::SourceSpan(span) => EvidenceAnchor::SourceSpan(remap_span_file(span, file)),
-        EvidenceAnchor::Node { span, kind } => EvidenceAnchor::Node {
-            span: remap_span_file(span, file),
-            kind,
-        },
-        EvidenceAnchor::Param { span } => EvidenceAnchor::Param {
-            span: remap_span_file(span, file),
-        },
-        EvidenceAnchor::Binding { span, local_hash } => EvidenceAnchor::Binding {
-            span: remap_span_file(span, file),
-            local_hash,
-        },
-        EvidenceAnchor::Sequence { span } => EvidenceAnchor::Sequence {
-            span: remap_span_file(span, file),
-        },
+fn append_snapshot_evidence(
+    il: &mut Il,
+    source_evidence: &FxHashMap<EvidenceId, &SnapshotEvidence>,
+    evidence_id_map: &mut FxHashMap<EvidenceId, EvidenceId>,
+    source_id: EvidenceId,
+) -> EvidenceId {
+    if let Some(id) = evidence_id_map.get(&source_id).copied() {
+        return id;
     }
+    let evidence = source_evidence
+        .get(&source_id)
+        .copied()
+        .expect("snapshot evidence dependency must be closed");
+    let dependencies: Vec<EvidenceId> = evidence
+        .dependencies
+        .iter()
+        .map(|dependency| {
+            append_snapshot_evidence(il, source_evidence, evidence_id_map, *dependency)
+        })
+        .collect();
+    let anchor = evidence.anchor;
+    let id = existing_snapshot_evidence_id(
+        il,
+        anchor,
+        evidence.kind,
+        evidence.provenance,
+        &dependencies,
+        evidence.status,
+    )
+    .unwrap_or_else(|| {
+        let id = EvidenceId(il.evidence.len() as u32);
+        il.evidence.push(EvidenceRecord {
+            id,
+            anchor,
+            kind: evidence.kind,
+            provenance: evidence.provenance,
+            dependencies,
+            status: evidence.status,
+        });
+        id
+    });
+    evidence_id_map.insert(source_id, id);
+    id
 }
 
-fn remap_span_file(mut span: Span, file: nose_il::FileId) -> Span {
-    span.file = file;
-    span
+fn existing_snapshot_evidence_id(
+    il: &Il,
+    anchor: EvidenceAnchor,
+    kind: EvidenceKind,
+    provenance: EvidenceProvenance,
+    dependencies: &[EvidenceId],
+    status: EvidenceStatus,
+) -> Option<EvidenceId> {
+    il.evidence
+        .iter()
+        .find(|record| {
+            record.anchor == anchor
+                && record.kind == kind
+                && record.provenance == provenance
+                && record.dependencies == dependencies
+                && record.status == status
+        })
+        .map(|record| record.id)
 }
 
 fn replace_assignment_rhs(il: &mut Il, stmt: NodeId, rhs: NodeId) {
@@ -1111,6 +1125,203 @@ mod tests {
         );
     }
 
+    fn java_provider_and_importer(provider_src: &str, interner: &Interner) -> (Il, Il) {
+        java_provider_and_importer_src(
+            provider_src,
+            "import static Tables.LOOKUP;\nclass Consumer {}",
+            interner,
+        )
+    }
+
+    fn java_provider_and_importer_src(
+        provider_src: &str,
+        importer_src: &str,
+        interner: &Interner,
+    ) -> (Il, Il) {
+        let provider = crate::lower_source(
+            FileId(0),
+            "Tables.java",
+            provider_src.as_bytes(),
+            Lang::Java,
+            interner,
+        )
+        .expect("lower Java provider");
+        let importer = crate::lower_source(
+            FileId(1),
+            "Consumer.java",
+            importer_src.as_bytes(),
+            Lang::Java,
+            interner,
+        )
+        .expect("lower Java importer");
+        (provider, importer)
+    }
+
+    fn snapshot_count(il: &Il) -> usize {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot { .. })
+                )
+            })
+            .count()
+    }
+
+    fn resolve_importer(provider: Il, importer: Il, interner: &Interner) -> Il {
+        let mut files = vec![provider, importer];
+        resolve_imported_immutable_bindings(&mut files, interner);
+        files.remove(1)
+    }
+
+    fn resolve_snapshot_count(provider: Il, importer: Il, interner: &Interner) -> usize {
+        snapshot_count(&resolve_importer(provider, importer, interner))
+    }
+
+    fn remove_library_api_evidence_by_rule(il: &mut Il, rule: &str) {
+        let rule_hash = stable_symbol_hash(rule);
+        il.evidence.retain(|record| {
+            !matches!(record.kind, EvidenceKind::LibraryApi(_))
+                || record.provenance.rule_hash != Some(rule_hash)
+        });
+    }
+
+    #[test]
+    fn java_map_provider_requires_library_api_evidence_for_snapshot() {
+        let interner = Interner::new();
+        let provider_src = "import java.util.Map;\nclass Tables { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); }\n";
+        let (provider, importer) = java_provider_and_importer(provider_src, &interner);
+        assert_eq!(
+            resolve_snapshot_count(provider.clone(), importer.clone(), &interner),
+            1
+        );
+
+        let mut missing_api = provider;
+        remove_library_api_evidence_by_rule(&mut missing_api, "library_api_java_map_factory");
+        assert_eq!(
+            resolve_snapshot_count(missing_api, importer, &interner),
+            0,
+            "java.util import/symbol proof must not prove provider Map.of without LibraryApi evidence"
+        );
+    }
+
+    #[test]
+    fn java_map_provider_snapshot_copies_library_api_dependency_closure() {
+        let interner = Interner::new();
+        let provider_src = "import java.util.Map;\nclass Tables { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); }\n";
+        let (provider, importer) = java_provider_and_importer(provider_src, &interner);
+        let importer = resolve_importer(provider, importer, &interner);
+        let api_rule = stable_symbol_hash("library_api_java_map_factory");
+        let api = importer
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(record.kind, EvidenceKind::LibraryApi(_))
+                    && record.provenance.rule_hash == Some(api_rule)
+            })
+            .expect("copied Java Map.of snapshot should retain LibraryApi evidence");
+
+        let occurrence = api
+            .dependencies
+            .iter()
+            .filter_map(|id| importer.evidence.get(id.0 as usize))
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                        module_hash,
+                        exported_hash,
+                    }) if module_hash == stable_symbol_hash("java.util")
+                        && exported_hash == stable_symbol_hash("Map")
+                )
+            })
+            .expect("copied LibraryApi evidence should keep its imported-symbol dependency");
+        assert!(
+            occurrence.dependencies.iter().any(|id| {
+                importer.evidence.get(id.0 as usize).is_some_and(|record| {
+                    matches!(
+                        record.kind,
+                        EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                            module_hash,
+                            exported_hash,
+                        }) if module_hash == stable_symbol_hash("java.util")
+                            && exported_hash == stable_symbol_hash("Map")
+                    )
+                })
+            }),
+            "copied occurrence proof should keep the provider binding-anchor dependency"
+        );
+    }
+
+    #[test]
+    fn java_map_provider_snapshot_replaces_import_used_by_lookup_method() {
+        let interner = Interner::new();
+        let provider_src = "import java.util.Map;\nclass Tables { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); }\n";
+        let importer_src = "import static Tables.LOOKUP;\nclass Consumer { static int lookup(String key, String other) { return LOOKUP.getOrDefault(key, 0); } }\n";
+        let (provider, importer) =
+            java_provider_and_importer_src(provider_src, importer_src, &interner);
+        let importer = resolve_importer(provider, importer, &interner);
+        assert_eq!(snapshot_count(&importer), 1);
+        let import_stmt = collect_top_level_statements(&importer)
+            .into_iter()
+            .find(|&stmt| {
+                assignment_name(&importer, stmt)
+                    .is_some_and(|name| interner.resolve(name) == "LOOKUP")
+            })
+            .expect("static import assignment should remain as replacement anchor");
+        let rhs = assignment_rhs(&importer, import_stmt).expect("import assignment rhs");
+        assert_eq!(importer.kind(rhs), NodeKind::Call);
+        assert_eq!(
+            importer.node(rhs).span.file,
+            FileId(0),
+            "copied provider RHS keeps provider source origin so importer-local scopes cannot shadow it"
+        );
+        let contract =
+            library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &importer,
+                &interner,
+                rhs,
+                contract.id,
+                contract.callee,
+                4
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+    }
+
+    #[test]
+    fn java_map_of_entries_provider_requires_outer_and_entry_library_api_evidence() {
+        let interner = Interner::new();
+        let provider_src = "import java.util.Map;\nclass Tables { static final Map<String, Integer> LOOKUP = Map.ofEntries(Map.entry(\"red\", 1), Map.entry(\"blue\", 2)); }\n";
+        let (provider, importer) = java_provider_and_importer(provider_src, &interner);
+        assert_eq!(
+            resolve_snapshot_count(provider.clone(), importer.clone(), &interner),
+            1
+        );
+
+        let mut missing_outer = provider.clone();
+        remove_library_api_evidence_by_rule(&mut missing_outer, "library_api_java_map_factory");
+        assert_eq!(
+            resolve_snapshot_count(missing_outer, importer.clone(), &interner),
+            0,
+            "Map.ofEntries provider proof must require the outer LibraryApi evidence"
+        );
+
+        let mut missing_entry = provider;
+        remove_library_api_evidence_by_rule(
+            &mut missing_entry,
+            "library_api_java_map_entry_factory",
+        );
+        assert_eq!(
+            resolve_snapshot_count(missing_entry, importer, &interner),
+            0,
+            "Map.ofEntries provider proof must require every nested Map.entry LibraryApi evidence"
+        );
+    }
+
     fn coordinate_import_binding_assignment(
         file: FileId,
         lang: Lang,
@@ -1229,7 +1440,7 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_append_copies_relevant_evidence_with_remapped_file_spans() {
+    fn snapshot_append_copies_relevant_evidence_with_source_origin_spans() {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let span = Span::new(FileId(0), 4, 12, 1, 1);
@@ -1303,6 +1514,11 @@ mod tests {
         );
         let appended = append_snapshot(&mut importer, &snapshot);
 
+        assert_eq!(
+            importer.node(appended.root).span.file,
+            FileId(0),
+            "copied provider nodes keep provider source origin so importer-local scopes do not shadow them"
+        );
         assert_eq!(appended.evidence.len(), 3);
         assert!(
             importer
@@ -1323,7 +1539,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             copied_surface.anchor,
-            EvidenceAnchor::sequence(Span::new(FileId(1), 4, 12, 1, 1))
+            EvidenceAnchor::sequence(Span::new(FileId(0), 4, 12, 1, 1))
         );
         assert_eq!(copied_surface.provenance, test_provenance("surface"));
 

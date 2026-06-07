@@ -120,7 +120,7 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     if let Some(rest) = text.strip_prefix("from ") {
         let (module, names) = rest.split_once(" import ")?;
         if names.trim() == "*" {
-            return None;
+            return Some(lo.raw("python_wildcard_import", span, &[]));
         }
         for part in names.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (exported, local) = py_import_specifier(part);

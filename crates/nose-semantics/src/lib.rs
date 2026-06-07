@@ -1091,7 +1091,7 @@ fn imported_symbol(
     let Some(local_hash) = node_name_hash(il, interner, node) else {
         return false;
     };
-    if unit_defines_hash(il, interner, local_hash) {
+    if unit_defines_hash_visible_at(il, interner, local_hash, il.node(node).span) {
         return false;
     }
     let statements = top_level_statements(il);
@@ -1167,6 +1167,20 @@ fn unit_defines_hash(il: &Il, interner: &Interner, name_hash: u64) -> bool {
     })
 }
 
+fn unit_defines_hash_visible_at(
+    il: &Il,
+    interner: &Interner,
+    name_hash: u64,
+    occurrence_span: Span,
+) -> bool {
+    il.units.iter().any(|unit| {
+        il.node(unit.root).span.file == occurrence_span.file
+            && unit
+                .name
+                .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
+    })
+}
+
 fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
     let name_hash = stable_symbol_hash(name);
     il.units.iter().any(|unit| {
@@ -1188,6 +1202,34 @@ fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
                 .is_some_and(|lhs| node_defines_name(il, interner, lhs, name, name_hash)),
             _ => false,
         })
+}
+
+fn file_defines_name_visible_at(
+    il: &Il,
+    interner: &Interner,
+    name: &str,
+    occurrence_span: Span,
+) -> bool {
+    let name_hash = stable_symbol_hash(name);
+    il.units.iter().any(|unit| {
+        il.node(unit.root).span.file == occurrence_span.file
+            && unit.name.is_some_and(|symbol| {
+                symbol_defines_name(il.meta.lang, interner.resolve(symbol), name, name_hash)
+            })
+    }) || il.nodes.iter().enumerate().any(|(idx, node)| {
+        node.span.file == occurrence_span.file
+            && match node.kind {
+                NodeKind::Module | NodeKind::Block | NodeKind::Param => {
+                    node_defines_name(il, interner, NodeId(idx as u32), name, name_hash)
+                }
+                NodeKind::Assign => il
+                    .children(NodeId(idx as u32))
+                    .first()
+                    .copied()
+                    .is_some_and(|lhs| node_defines_name(il, interner, lhs, name, name_hash)),
+                _ => false,
+            }
+    })
 }
 
 fn node_defines_name(
@@ -3550,6 +3592,10 @@ pub enum LibraryApiCalleeContract {
         name: &'static str,
         shadow: LibraryApiShadowPolicy,
     },
+    RustMacro {
+        name: &'static str,
+        shadow: LibraryApiShadowPolicy,
+    },
     ImportedBinding {
         module: &'static str,
         exported: &'static str,
@@ -3614,6 +3660,7 @@ pub fn library_api_callee_contract_hash(callee: LibraryApiCalleeContract) -> u64
 fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) -> String {
     match callee {
         LibraryApiCalleeContract::FreeName { name, .. } => format!("free_name:{name}"),
+        LibraryApiCalleeContract::RustMacro { name, .. } => format!("rust_macro:{name}"),
         LibraryApiCalleeContract::ImportedBinding { module, exported } => {
             format!("imported_binding:{module}:{exported}")
         }
@@ -3942,6 +3989,9 @@ fn library_api_callee_shape_matches(
         return false;
     };
     match callee {
+        LibraryApiCalleeContract::FreeName { .. } | LibraryApiCalleeContract::RustMacro { .. } => {
+            il.kind(callee_node) == NodeKind::Var
+        }
         LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } => {
             var_name_matches(il, interner, callee_node, receiver)
         }
@@ -3955,6 +4005,16 @@ fn library_api_callee_shape_matches(
                 return false;
             };
             actual_receiver == receiver && actual_method == method
+        }
+        LibraryApiCalleeContract::RubyRequireStaticMember { method, .. } => {
+            if il.kind(callee_node) != NodeKind::Field {
+                return false;
+            }
+            let Some(&receiver) = il.children(callee_node).first() else {
+                return false;
+            };
+            il.kind(receiver) == NodeKind::Var
+                && field_method_matches(il, interner, callee_node, method)
         }
         LibraryApiCalleeContract::RegexLiteralMethod { method, .. } => {
             field_method_matches(il, interner, callee_node, method)
@@ -3990,6 +4050,23 @@ fn library_api_dependencies_match_callee(
         return false;
     };
     match callee {
+        LibraryApiCalleeContract::FreeName { name, shadow } => {
+            dependency_has_unshadowed_global_node(il, record, callee_node, name)
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    file_defines_name_visible_at(il, interner, candidate, il.node(callee_node).span)
+                })
+        }
+        LibraryApiCalleeContract::RustMacro { name, shadow } => {
+            dependency_has_source_call(
+                il,
+                record,
+                il.node(node).span,
+                SourceCallKind::MacroInvocation,
+            ) && dependency_has_unshadowed_global_node(il, record, callee_node, name)
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    file_defines_name_visible_at(il, interner, candidate, il.node(callee_node).span)
+                })
+        }
         LibraryApiCalleeContract::JsGlobalConstructor {
             receiver,
             requires_unshadowed_global,
@@ -4012,7 +4089,36 @@ fn library_api_dependencies_match_callee(
                 receiver_node,
                 "java.util",
                 receiver,
-            ) && !unit_defines_hash(il, interner, stable_symbol_hash(receiver))
+            ) && !unit_defines_hash_visible_at(
+                il,
+                interner,
+                stable_symbol_hash(receiver),
+                il.node(receiver_node).span,
+            )
+        }
+        LibraryApiCalleeContract::RubyRequireStaticMember {
+            receiver,
+            required_module,
+            shadow_root,
+            ..
+        } => {
+            let Some(receiver_node) = il.children(callee_node).first().copied() else {
+                return false;
+            };
+            dependency_has_unshadowed_global_node(il, record, receiver_node, receiver)
+                && dependency_has_required_module_before(
+                    record,
+                    il,
+                    interner,
+                    required_module,
+                    il.node(node).span,
+                )
+                && !file_defines_name_visible_at(
+                    il,
+                    interner,
+                    shadow_root,
+                    il.node(receiver_node).span,
+                )
         }
         LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
@@ -4063,6 +4169,25 @@ fn library_api_dependencies_match_callee_at_span(
     record: &EvidenceRecord,
 ) -> bool {
     match callee {
+        LibraryApiCalleeContract::FreeName { name, shadow } => {
+            callee_span.is_some_and(|span| {
+                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
+            }) && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                callee_span
+                    .is_some_and(|span| file_defines_name_visible_at(il, interner, candidate, span))
+            })
+        }
+        LibraryApiCalleeContract::RustMacro { name, shadow } => {
+            dependency_has_source_call(il, record, call_span, SourceCallKind::MacroInvocation)
+                && callee_span.is_some_and(|span| {
+                    dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
+                })
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    callee_span.is_some_and(|span| {
+                        file_defines_name_visible_at(il, interner, candidate, span)
+                    })
+                })
+        }
         LibraryApiCalleeContract::JsGlobalConstructor {
             receiver,
             requires_unshadowed_global,
@@ -4124,7 +4249,29 @@ fn library_api_dependencies_match_callee_at_span(
                     receiver,
                 )
             };
-            receiver_proven && !unit_defines_hash(il, interner, stable_symbol_hash(receiver))
+            receiver_proven
+                && if let Some(span) = receiver_span {
+                    !unit_defines_hash_visible_at(il, interner, stable_symbol_hash(receiver), span)
+                } else {
+                    !unit_defines_hash(il, interner, stable_symbol_hash(receiver))
+                }
+        }
+        LibraryApiCalleeContract::RubyRequireStaticMember {
+            receiver,
+            required_module,
+            shadow_root,
+            ..
+        } => {
+            receiver_span.is_some_and(|span| {
+                dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, receiver)
+            }) && dependency_has_required_module_before(
+                record,
+                il,
+                interner,
+                required_module,
+                call_span,
+            ) && receiver_span
+                .is_some_and(|span| !file_defines_name_visible_at(il, interner, shadow_root, span))
         }
         LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
@@ -4223,7 +4370,9 @@ fn imported_member_callee_shape_matches(
     exported: &str,
 ) -> bool {
     match il.kind(node) {
-        NodeKind::Var => var_name_matches(il, interner, node, exported),
+        // Aliased imports are proven by the imported-binding dependency, not by
+        // comparing the local callee spelling to the exported API name.
+        NodeKind::Var => true,
         NodeKind::Field => field_method_matches(il, interner, node, exported),
         _ => false,
     }
@@ -4284,6 +4433,72 @@ fn dependency_has_source_fact_anchor(
         ),
         EvidenceResolution::Found(fact) if fact == expected
     ) && dependency_has_asserted_record(il, record, anchor, EvidenceKind::Source(expected))
+}
+
+fn dependency_has_required_module_before(
+    record: &EvidenceRecord,
+    il: &Il,
+    interner: &Interner,
+    module: &str,
+    call_span: Span,
+) -> bool {
+    let expected = EvidenceKind::Import(ImportEvidenceKind::Require {
+        module_hash: stable_symbol_hash(module),
+    });
+    record.dependencies.iter().any(|id| {
+        il.evidence.get(id.0 as usize).is_some_and(|dependency| {
+            dependency.id == *id
+                && dependency.status == EvidenceStatus::Asserted
+                && dependency.kind == expected
+                && require_dependency_is_before_call(dependency, call_span)
+                && require_dependency_has_unshadowed_require(il, interner, dependency)
+        })
+    })
+}
+
+fn require_dependency_is_before_call(require_record: &EvidenceRecord, call_span: Span) -> bool {
+    matches!(
+        require_record.anchor,
+        EvidenceAnchor::SourceSpan(span)
+            if span.file == call_span.file && span.end_byte <= call_span.start_byte
+    )
+}
+
+fn require_dependency_has_unshadowed_require(
+    il: &Il,
+    interner: &Interner,
+    require_record: &EvidenceRecord,
+) -> bool {
+    let require_span = match require_record.anchor {
+        EvidenceAnchor::SourceSpan(span) => span,
+        _ => return false,
+    };
+    require_record.dependencies.iter().any(|id| {
+        let Some(dependency) = il.evidence.get(id.0 as usize) else {
+            return false;
+        };
+        let expected = SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("require"),
+        };
+        let EvidenceAnchor::Node {
+            span,
+            kind: NodeKind::Var,
+        } = dependency.anchor
+        else {
+            return false;
+        };
+        dependency.id == *id
+            && dependency.status == EvidenceStatus::Asserted
+            && dependency.kind == EvidenceKind::Symbol(expected)
+            && span.file == require_span.file
+            && span.start_byte >= require_span.start_byte
+            && span.end_byte <= require_span.end_byte
+            && !file_defines_name_visible_at(il, interner, "require", span)
+            && matches!(
+                symbol_evidence_at_node_anchor(il, span, NodeKind::Var),
+                EvidenceResolution::Found(actual) if actual == expected
+            )
+    })
 }
 
 fn dependency_has_unshadowed_global_node(
@@ -4551,7 +4766,7 @@ fn imported_occurrence_symbol_dependencies_valid(
     else {
         return false;
     };
-    if unit_defines_hash(il, interner, local_hash) {
+    if unit_defines_hash_visible_at(il, interner, local_hash, occurrence_span) {
         return false;
     }
     if !matches!(
@@ -4996,7 +5211,7 @@ pub fn library_rust_vec_macro_factory_contract(
 ) -> Option<LibraryCollectionFactoryContract> {
     (lang == Lang::Rust && name == "vec").then_some(LibraryCollectionFactoryContract {
         id: LibraryApiContractId::RustVecMacroFactory,
-        callee: LibraryApiCalleeContract::FreeName {
+        callee: LibraryApiCalleeContract::RustMacro {
             name: "vec",
             shadow: LibraryApiShadowPolicy::SameName,
         },
@@ -7164,7 +7379,7 @@ mod tests {
     fn library_api_evidence_resolution_accepts_import_and_source_backed_callees() {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
-        let local = interner.intern("deque");
+        let local = interner.intern("Values");
         let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(10), &[]);
         let rhs = b.add(NodeKind::Seq, Payload::None, sp(10), &[]);
         let import = b.add(NodeKind::Assign, Payload::None, sp(10), &[lhs, rhs]);
@@ -7187,7 +7402,7 @@ mod tests {
         });
         il.evidence.push(evidence(
             0,
-            EvidenceAnchor::binding(sp(10), stable_symbol_hash("deque")),
+            EvidenceAnchor::binding(sp(10), stable_symbol_hash("Values")),
             binding_symbol,
             EvidenceStatus::Asserted,
         ));
@@ -7255,6 +7470,163 @@ mod tests {
             contract.callee,
             EvidenceStatus::Asserted,
             &[0],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+    }
+
+    #[test]
+    fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("list")),
+            sp(40),
+            &[],
+        );
+        let arg = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(41),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(42), &[callee, arg]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(39), &[call]);
+        let mut il = finish_il(b, root, Lang::Python);
+        let contract = library_free_name_collection_factory_contract(Lang::Python, "list")
+            .expect("Python list contract");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(40), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("list"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(library_api_record(
+            1,
+            sp(42),
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+        assert_eq!(
+            library_api_contract_evidence_at_call_span(
+                &il,
+                &interner,
+                LibraryApiSpanEvidenceQuery {
+                    call_span: Some(sp(42)),
+                    callee_span: Some(sp(40)),
+                    receiver_span: None,
+                    id: contract.id,
+                    callee: contract.callee,
+                    arg_count: 1,
+                },
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+
+        let mut b = IlBuilder::new(FileId(0));
+        let require_callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("require")),
+            sp(48),
+            &[],
+        );
+        let require_arg = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("set")),
+            sp(48),
+            &[],
+        );
+        let require_call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(48),
+            &[require_callee, require_arg],
+        );
+        let set = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Set")),
+            sp(50),
+            &[],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("new")),
+            sp(51),
+            &[set],
+        );
+        let arg = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(52),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(53), &[callee, arg]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(49),
+            &[require_call, call],
+        );
+        let mut il = finish_il(b, root, Lang::Ruby);
+        let contract =
+            library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).expect("Set.new");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(50), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Set"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(48), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("require"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            2,
+            EvidenceAnchor::source_span(sp(48)),
+            EvidenceKind::Import(ImportEvidenceKind::Require {
+                module_hash: stable_symbol_hash("set"),
+            }),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(1)],
+        ));
+        il.evidence.push(library_api_record(
+            3,
+            sp(53),
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0, 2],
         ));
         assert_eq!(
             library_api_contract_evidence_for_call(

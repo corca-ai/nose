@@ -118,12 +118,14 @@ and pack ecosystem.
 - Cross-file immutable import replacement now copies the provider's closed
   evidence subgraph required by the exported literal expression, preserving
   provider-side stdlib proofs such as `java.util.Map` for Java static imports
-  only when that provider evidence exists. Replacement records
-  `ImportedLiteralSnapshot` provenance depending on the importer static import
-  proof and copied provider evidence. Static import identity now requires
-  `EvidenceRecord::Import`; frontends keep only untagged coordinate sequences
-  in the assignment carrier, and raw sequence spelling no longer proves
-  cross-file replacement or value-graph import identity.
+  only when that provider evidence exists. Copied provider nodes/evidence keep
+  provider source-origin spans while dependency ids are rewired in the importer,
+  so importer-local declarations do not shadow provider-proven API occurrences.
+  Replacement records `ImportedLiteralSnapshot` provenance depending on the
+  importer static import proof and copied provider evidence. Static import
+  identity now requires `EvidenceRecord::Import`; frontends keep only untagged
+  coordinate sequences in the assignment carrier, and raw sequence spelling no
+  longer proves cross-file replacement or value-graph import identity.
 - JS-like `Map`/`Set` constructor contracts now require construct-syntax proof.
   They were initially closed while construct-vs-call evidence was missing; the
   source-fact slice reopened proof-backed `new Map(...)`/`new Set(...)` while
@@ -204,10 +206,10 @@ and pack ecosystem.
   import proof, and strict exact gates initially moved behind that shared facade
   instead of parsing raw import `Seq` tags locally.
 - Imported immutable literal replacement now consumes evidence-only import facts,
-  copies provider evidence with remapped anchors/dependency ids, and records
-  `ImportedLiteralSnapshot` provenance. This closes raw import-tag fallback and
-  missing-provider-proof cases such as Java `Map.of(...)` without
-  `import java.util.Map`.
+  copies provider evidence with preserved source-origin anchors and rewired
+  dependency ids, and records `ImportedLiteralSnapshot` provenance. This closes
+  raw import-tag fallback and missing-provider-proof cases such as Java
+  `Map.of(...)` without `import java.util.Map`.
 - TypeScript type-only imports no longer emit runtime import facts: whole
   `import type ...` declarations and type-only named specifiers stay outside
   exact library/API proof.
@@ -304,6 +306,24 @@ and pack ecosystem.
   dependencies when spans survive normalization, and Java map provider proofs no
   longer replace current receiver identity except for imported literal snapshots
   already validated in the provider module.
+- The follow-up LibraryApi fallback-closure slice made those producer-covered
+  surfaces require admitted occurrence evidence. Missing `LibraryApi` evidence
+  now closes value-graph, idiom, strict exact, and Java map provider snapshot
+  paths for JS-like static/global APIs, Python imported `collections.deque`,
+  Python `math.prod`, Java `java.util` static factories/adapters, and JS-like
+  regex-literal `.test`. The older import/symbol/source facts remain
+  dependencies, not fallback API-identity proofs. Python aliased imports such as
+  `from collections import deque as Values; Values(...)` are preserved by
+  resolving the occurrence through imported-binding evidence rather than by
+  comparing the local name to the exported API name.
+- The same fallback-closure slice extended occurrence evidence to selected
+  free-name and require-backed factories: Python builtin collection factories,
+  Rust `vec!`, `Vec::new`, and selected `std::collections::*::from` factories,
+  plus Ruby `require "set"; Set.new(...)`. First-party lowering now emits
+  `UnshadowedGlobal`, macro-invocation `Source`, or earlier top-level
+  `Import::Require` dependencies for those occurrences, and value-graph, idiom,
+  strict exact, and provider snapshot consumers require admitted `LibraryApi`
+  evidence instead of raw selector/path/require scans.
 - An experimental `abstraction` scan mode landed as a weak sibling claim over a
   narrow `near` subset. It emits typed literal-hole witnesses and caveats for
   refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
@@ -375,7 +395,11 @@ Remaining in this phase:
   versioned pack-facing evidence records, especially broader field/read/write
   place facts and receiver-sensitive mutation/effect proofs.
 - Continue moving library API recognition into `LibraryApiContract` rows and
-  `LibraryApi` occurrence evidence.
+  `LibraryApi` occurrence evidence. The already producer-covered occurrence
+  surfaces are now fail-closed on missing evidence; remaining work is producer
+  coverage for Java constructors, broad receiver-method families, and
+  ecosystem APIs whose receiver/domain/demand obligations are not yet
+  expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -385,19 +409,20 @@ Remaining in this phase:
   helpers, regex-literal `.test`, Python `math.prod`, promise `.then`, iterator
   identity adapters, Java `Arrays.stream`, and existing language-scoped method
   call contracts. Occurrence-evidence slices now cover selected JS-like
-  static/global APIs, import-backed Python factories/functions, Java `java.util`
+  static/global APIs, Python builtin/import-backed factories/functions, Rust
+  free-name/path factories, Ruby require-backed factories, Java `java.util`
   static factories/adapters, and JS regex literals. Remaining stdlib and
   ecosystem APIs still need dependency-backed occurrence records before they
   become pack-facing.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
   `LibraryApiContract` identity/result rows, and selected JS-like,
-  import-backed Python, Java `java.util`, and regex calls now additionally share
-  `LibraryApi` occurrence evidence. Remaining API work is to move raw
-  sequence/tag, Ruby `require`, Rust free-name/path-root, Java constructor, and
-  broad receiver-method proof dependencies into explicit evidence records, then
-  cover broader reduction/HOF and ecosystem APIs only after demand, receiver,
-  and effect obligations are expressible.
+  Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
+  `java.util`, and regex calls now additionally share `LibraryApi` occurrence
+  evidence. Remaining API work is to move raw sequence/tag, Java constructor,
+  and broad receiver-method proof dependencies into explicit evidence records,
+  then cover broader reduction/HOF and ecosystem APIs only after demand,
+  receiver, and effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph

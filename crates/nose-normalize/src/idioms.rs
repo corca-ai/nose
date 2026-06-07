@@ -9,9 +9,8 @@
 
 use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    domain_evidence_for_param, free_function_builtin_contract, imported_binding_symbol,
-    imported_namespace_symbol, library_api_contract_evidence_for_call,
-    library_api_free_name_shadow_safe, library_free_name_map_factory_contract,
+    domain_evidence_for_param, free_function_builtin_contract, imported_namespace_symbol,
+    library_api_contract_evidence_for_call, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
     library_static_collection_adapter_contract, method_hof_contract,
@@ -517,19 +516,7 @@ fn static_collection_adapter_arg(
     ) {
         LibraryApiEvidenceStatus::Admitted => {}
         LibraryApiEvidenceStatus::Rejected => return None,
-        LibraryApiEvidenceStatus::Missing => {
-            if file_defines_type_name(old, interner, receiver_name)
-                || !imported_binding_symbol(
-                    old,
-                    interner,
-                    receiver,
-                    contract.result.module,
-                    contract.result.exported,
-                )
-            {
-                return None;
-            }
-        }
+        LibraryApiEvidenceStatus::Missing => return None,
     }
     call_kids.get(1).copied()
 }
@@ -740,17 +727,23 @@ fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> boo
     let Some(contract) = library_free_name_map_factory_contract(old.meta.lang, callee) else {
         return false;
     };
-    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+    let LibraryApiCalleeContract::FreeName { .. } = contract.callee else {
         return false;
     };
     let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = contract.result else {
         return false;
     };
-    name == callee
-        && library_api_free_name_shadow_safe(old.meta.lang, name, shadow, |candidate| {
-            file_defines_name(old, interner, candidate)
-        })
-        && map_factory_entries_match_surface(old, interner, kids[1], entry_seq_tag)
+    matches!(
+        library_api_contract_evidence_for_call(
+            old,
+            interner,
+            node,
+            contract.id,
+            contract.callee,
+            1,
+        ),
+        LibraryApiEvidenceStatus::Admitted
+    ) && map_factory_entries_match_surface(old, interner, kids[1], entry_seq_tag)
 }
 
 fn map_factory_entries_match_surface(
@@ -822,14 +815,6 @@ fn symbol_defines_name(old: &Il, interner: &Interner, symbol: nose_il::Symbol, n
             .modules()
             .js_like_shadowed_module_bindings()
             && contains_js_identifier(text, name))
-}
-
-fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {
-    old.units
-        .iter()
-        .filter(|unit| matches!(unit.kind, nose_il::UnitKind::Class))
-        .filter_map(|unit| unit.name)
-        .any(|symbol| interner.resolve(symbol) == name)
 }
 
 fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
@@ -945,8 +930,8 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
-        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
-        UnitKind,
+        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, Span,
+        SymbolEvidenceKind, Unit, UnitKind,
     };
 
     fn sp() -> Span {
@@ -959,6 +944,16 @@ mod tests {
         kind: EvidenceKind,
         status: EvidenceStatus,
     ) -> EvidenceRecord {
+        evidence_with_dependencies(id, anchor, kind, status, Vec::new())
+    }
+
+    fn evidence_with_dependencies(
+        id: u32,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        status: EvidenceStatus,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
         EvidenceRecord {
             id: EvidenceId(id),
             anchor,
@@ -968,7 +963,7 @@ mod tests {
                 pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
                 rule_hash: Some(stable_symbol_hash("test")),
             },
-            dependencies: Vec::new(),
+            dependencies,
             status,
         }
     }
@@ -1589,18 +1584,50 @@ mod tests {
         (il, interner, call)
     }
 
+    fn push_rust_hash_map_library_api_evidence(il: &mut Il) {
+        let contract =
+            library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from")
+                .expect("Rust HashMap::from contract");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("std::collections::HashMap::from"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::node(sp(), NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: nose_semantics::library_api_contract_id_hash(contract.id),
+                callee_hash: nose_semantics::library_api_callee_contract_hash(contract.callee),
+                arity: 1,
+            }),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(0)],
+        ));
+    }
+
     #[test]
     fn rust_std_map_factory_requires_entry_surface_and_shadow_proof() {
-        let (il, interner, call) = rust_hash_map_from_call("tuple", false);
+        let (mut il, interner, call) = rust_hash_map_from_call("tuple", false);
+        assert!(
+            !rust_std_map_factory_call(&il, &interner, call),
+            "raw Rust std path proof must not prove the migrated factory"
+        );
+        push_rust_hash_map_library_api_evidence(&mut il);
         assert!(rust_std_map_factory_call(&il, &interner, call));
 
-        let (il, interner, call) = rust_hash_map_from_call("array", false);
+        let (mut il, interner, call) = rust_hash_map_from_call("array", false);
+        push_rust_hash_map_library_api_evidence(&mut il);
         assert!(
             !rust_std_map_factory_call(&il, &interner, call),
             "HashMap::from exact map proof requires tuple-shaped entries"
         );
 
-        let (il, interner, call) = rust_hash_map_from_call("tuple", true);
+        let (mut il, interner, call) = rust_hash_map_from_call("tuple", true);
+        push_rust_hash_map_library_api_evidence(&mut il);
         assert!(
             !rust_std_map_factory_call(&il, &interner, call),
             "a local std binding must close the Rust stdlib factory path"

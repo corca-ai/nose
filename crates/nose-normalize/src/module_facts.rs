@@ -77,6 +77,25 @@ pub(crate) fn collect_module_mutations_in_scope(
     is_top_level: &[bool],
     local_scope: &[bool],
 ) -> FxHashSet<Symbol> {
+    let direct_definitions = direct_assignment_definitions_in_scope(il, is_top_level, local_scope);
+    collect_module_mutations_in_scope_with_direct_definitions(
+        il,
+        interner,
+        candidates,
+        is_top_level,
+        local_scope,
+        &direct_definitions,
+    )
+}
+
+pub(crate) fn collect_module_mutations_in_scope_with_direct_definitions(
+    il: &Il,
+    interner: &Interner,
+    candidates: &FxHashSet<Symbol>,
+    is_top_level: &[bool],
+    local_scope: &[bool],
+    direct_definitions: &FxHashSet<NodeId>,
+) -> FxHashSet<Symbol> {
     let mut mutated = FxHashSet::default();
     if candidates.is_empty() {
         return mutated;
@@ -119,7 +138,7 @@ pub(crate) fn collect_module_mutations_in_scope(
                 if let Some(lhs) = il.children(node_id).first().copied() {
                     let direct_top_level_definition =
                         is_top_level.get(idx).copied().unwrap_or(false)
-                            && assignment_name_in_scope(il, node_id, local_scope).is_some();
+                            && direct_definitions.contains(&node_id);
                     if !direct_top_level_definition {
                         collect_unshadowed_node_symbols(
                             il,
@@ -136,6 +155,23 @@ pub(crate) fn collect_module_mutations_in_scope(
         }
     }
     mutated
+}
+
+fn direct_assignment_definitions_in_scope(
+    il: &Il,
+    is_top_level: &[bool],
+    local_scope: &[bool],
+) -> FxHashSet<NodeId> {
+    il.nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, _)| {
+            let node = NodeId(idx as u32);
+            (is_top_level.get(idx).copied().unwrap_or(false)
+                && assignment_name_in_scope(il, node, local_scope).is_some())
+            .then_some(node)
+        })
+        .collect()
 }
 
 pub fn shadowed_js_like_module_binding_nodes_for_symbol(

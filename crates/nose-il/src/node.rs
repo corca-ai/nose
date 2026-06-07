@@ -302,6 +302,9 @@ pub enum ImportEvidenceKind {
     Namespace {
         module_hash: u64,
     },
+    Require {
+        module_hash: u64,
+    },
     ImmutableLiteralExport {
         module_hash: u64,
         exported_hash: u64,
@@ -453,6 +456,7 @@ pub enum SourceOperatorKind {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SourceCallKind {
     Construct,
+    MacroInvocation,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

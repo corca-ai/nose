@@ -8,13 +8,14 @@ record substrate is described in [evidence-records](evidence-records.md).
 Snapshot date: 2026-06-08. The current implementation has an internal
 semantic-kernel facade, receiver-aware field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
-facts, source-fact gates for construct/literal/operator provenance, and a shared
+facts, source-fact gates for construct/macro/literal/operator provenance, and a shared
 evidence-record substrate for source, domain, import, symbol-identity, guard,
 place/effect, selected library API occurrence, and sequence-surface facts.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
-occurrence evidence covering selected JS-like static/global APIs plus selected
-import/source-backed Python, Java, and JS regex API calls.
+occurrence evidence covering selected JS-like static/global APIs, Python
+builtin/import-backed APIs, Rust free-name/path APIs, Ruby require-backed APIs,
+Java `java.util` APIs, and JS regex API calls.
 
 ## What exists today
 
@@ -77,10 +78,11 @@ migrated.
 - Source facts are now first-class internal evidence for source distinctions that
   the shared IL erases. JS/TS frontends emit construct syntax, regex literal,
   strict/loose equality, strict/loose inequality, and `instanceof` facts. Python
-  emits value equality/inequality and identity equality/inequality facts. These
-  are mirrored into `EvidenceRecord::Source`; the older `SourceFact` vector
-  remains a compatibility fallback. Normalize and detect consume source facts
-  only where a semantic contract requires that exact source surface.
+  emits value equality/inequality and identity equality/inequality facts, and
+  Rust emits macro invocation syntax for selected macro-backed APIs. These are
+  mirrored into `EvidenceRecord::Source`; the older `SourceFact` vector remains
+  a compatibility fallback. Normalize and detect consume source facts only where
+  a semantic contract requires that exact source surface.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
@@ -122,8 +124,12 @@ migrated.
   `new ArrayList<>()`/`new LinkedList<>()`, Java `Map.of`/`Map.ofEntries`/
   `Map.entry`, Ruby `require "set"; Set.new(...)`, and JS-like `new Set(...)`/
   `new Map(...)`. Normalize and strict exact gates consume this shared contract
-  source while still proving local import, require, shadowing, constructor
-  syntax, entry-shape, mutation, and exact-safety obligations at the caller.
+  source. Producer-covered surfaces additionally require admitted `LibraryApi`
+  occurrence evidence whose dependencies carry the local import, earlier
+  top-level require, unshadowed-global, macro-invocation source,
+  construct-syntax, or regex-literal proof. Receiver/domain, entry-shape,
+  mutation, demand, and exact-safety obligations remain separate contract checks
+  at the consumer.
 - Selected non-factory library/API surfaces also consume `LibraryApiContract`
   rows before normalize, value-graph, or strict exact paths assign semantics.
   Current rows cover map-key views and wrappers, Java/Rust/JS-like map `get`,
@@ -138,21 +144,34 @@ migrated.
 - Selected API call occurrences now also have `LibraryApi` evidence records when
   they remain as raw call nodes. First-party lowering emits occurrence evidence
   for JS-like `Array.from(...)`, `Array.isArray(...)`, `Boolean(...)`,
-  `new Map(...)`, and `new Set(...)`; Python `collections.deque(...)` when the
-  callee is proven through `from collections import deque` or
-  `import collections; collections.deque(...)`; Python `import math;
-  math.prod(...)`; Java `java.util` static factories/adapters such as `List.of`,
-  `Set.of`, `Arrays.asList`, `Map.of`, `Map.ofEntries`, `Map.entry`, and
-  `Arrays.stream`; and JS-like regex-literal `.test(...)`. These records depend
-  on the relevant `QualifiedGlobal`, `UnshadowedGlobal`, import-backed
-  call-site `Symbol`, construct-syntax `Source`, or regex-literal `Source`
-  evidence. Calls collapsed into specialized guard surfaces emit guard evidence
-  instead. `nose-semantics` resolves these records with a three-state result:
-  admitted, missing, or rejected. Value-graph, idiom, and strict exact consumers
-  for the migrated surfaces consult this occurrence evidence first; conflicting
-  or dependency-broken API evidence closes the legacy path. The record proves
-  API identity only; receiver/domain, source, exact-safe argument, result-shape,
-  and mutation obligations remain separate.
+  `new Map(...)`, and `new Set(...)`; Python builtin collection factories such
+  as `list(...)` when the callee is proven as an unshadowed free name; Python
+  `collections.deque(...)` when the callee is proven through
+  `from collections import deque`, an alias such as
+  `from collections import deque as Values`, or `import collections;
+  collections.deque(...)`; Python `import math; math.prod(...)`; Rust
+  `vec!(...)` when source syntax proves a macro invocation, `Vec::new()`, and selected
+  `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from(...)`
+  factory paths when their root-shadow policy is proven; Ruby
+  `require "set"; Set.new(...)` when an earlier top-level `Import::Require("set")`
+  depends on unshadowed `require` proof and unshadowed `Set` receiver proof
+  exists; Java `java.util` static
+  factories/adapters such as `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
+  `Map.ofEntries`, `Map.entry`, and `Arrays.stream`; and JS-like regex-literal
+  `.test(...)`. These records depend on the relevant `QualifiedGlobal`,
+  `UnshadowedGlobal`, import-backed call-site `Symbol`, `Import::Require`,
+  macro-invocation `Source`, construct-syntax `Source`, or regex-literal
+  `Source` evidence. Calls
+  collapsed into specialized guard surfaces emit guard evidence instead.
+  `nose-semantics` resolves these records with a three-state result: admitted,
+  missing, or rejected. Value-graph, idiom, strict exact, and provider snapshot
+  consumers for these producer-covered surfaces require admitted occurrence
+  evidence; missing, conflicting, or dependency-broken API evidence keeps the
+  exact path closed. Older import/symbol/source facts are still required
+  dependencies of the occurrence evidence, but they no longer act as fallback
+  API-identity proof for these surfaces. The record proves API identity only;
+  receiver/domain, source, exact-safe argument, result-shape, and mutation
+  obligations remain separate.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require `java.util` import proof and no
@@ -204,12 +223,14 @@ migrated.
 - Cross-file immutable import replacement now copies the provider's closed
   evidence subgraph for the exported literal expression, so a Java static import
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
-  the importing file only when the provider emitted that import proof. The
-  copied evidence remaps anchors/dependency ids to the importer file, and the
-  replacement records `ImportedLiteralSnapshot` provenance depending on the
-  importer static import proof plus copied provider evidence. Provider and
-  importer module-binding mutation proof now rejects direct binding mutations
-  and direct place writes such as
+  the importing file only when the provider emitted that import proof. Copied
+  provider nodes and evidence anchors keep provider source-origin spans, while
+  copied dependency ids are rewired inside the importer IL; this prevents
+  importer-local scopes or same-named classes from shadowing provider-proven API
+  occurrences. The replacement records `ImportedLiteralSnapshot` provenance
+  depending on the importer static import proof plus copied provider evidence.
+  Provider and importer module-binding mutation proof now rejects direct binding
+  mutations and direct place writes such as
   `LOOKUP.clear()`, `LOOKUP.push(...)`, and `LOOKUP[key] = value`, and
   provider-side opaque argument escapes such as `mutate(LOOKUP)`, before
   imported literal provenance can enter exact matching.
@@ -358,9 +379,9 @@ Semantic knowledge still appears in several forms outside the facade:
   still local to `nose-frontend`;
 - module/import proof logic for immutable sibling-module literal bindings is
   still local to `nose-frontend`, although replacement now copies the provider's
-  closed evidence subgraph into the importer, remaps spans/dependency ids, and
-  records `ImportedLiteralSnapshot` provenance tied to the importer static
-  import proof;
+  closed evidence subgraph into the importer, preserves provider source-origin
+  spans, rewires dependency ids, and records `ImportedLiteralSnapshot`
+  provenance tied to the importer static import proof;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
   instead of versioned `LawPack` records;
@@ -369,10 +390,10 @@ Semantic knowledge still appears in several forms outside the facade:
 - duplicated receiver/domain and library/API proof gates in desugaring,
   idiom lowering, value-graph, and strict exact paths. `LibraryApi` occurrence
   evidence now reduces this for selected JS-like static/global APIs,
-  import-backed Python factories/functions, Java `java.util` static
-  factories/adapters, and JS regex literals, but Rust free-name/path factories,
-  Ruby `require "set"; Set.new(...)`, Java empty constructors, and broad
-  receiver-method surfaces still rely on contract rows plus local proof.
+  Python builtin/import-backed factories/functions, Rust free-name/path
+  factories, Ruby `require "set"; Set.new(...)`, Java `java.util` static
+  factories/adapters, and JS regex literals, but Java empty constructors and
+  broad receiver-method surfaces still rely on contract rows plus local proof.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -436,41 +457,5 @@ this worktree because the required evidence is not yet modeled:
 These reduce recall in affected cases, but they are the correct precision trade
 until packs can emit the missing facts.
 
-## Known migration targets
-
-The first high-value targets for semantic-kernel extraction are:
-
-- broader pack-facing field/place/effect evidence for all field reads and
-  writes, building on the initial append/index/self-field effect substrate and
-  the receiver-aware value-graph field state now used for same-unit caching;
-- full import/module fact migration beyond raw payload removal: provider/export
-  dependency records, module scope, wildcard/conflict handling, copied evidence
-  provenance, and pack-facing validation still need to move behind explicit
-  extension contracts;
-- richer sequence/aggregate evidence for factories, nested entries, iterator
-  views, and exported-literal eligibility beyond the current first
-  `SequenceSurface` substrate;
-- broader `LibraryApi` occurrence evidence for remaining Java/Rust/Python/Ruby
-  stdlib factories, map get/defaulting, iterator adapters, and method-call
-  surfaces that still need receiver/domain, require/import, or path-root proof
-  records before they can move beyond contract rows plus local proof;
-- generalized guard evidence beyond the first JS/TS record-shape contract,
-  including richer source/API dependency records and validation;
-- dependency, scope, and ambiguity validation before evidence records become a
-  stable external extension surface;
-- resolved symbol facts for Java/Rust stdlib factories instead of the current
-  path/name plus shadow-proof contracts;
-- nested collection element proofs for iterator chains and builder convergence;
-- Promise/future/thenable receiver facts;
-- receiver/protocol evidence records beyond parameter-domain facts, including
-  exact collection/map/set/option/string/integer receiver proofs, immutable
-  local/module bindings, and mutation exclusion;
-- demand/protocol contracts that distinguish eager arrays, lazy iterators,
-  streams, callbacks, futures/promises, and call-by-need thunks;
-- demand/error contracts for language-core oracle behavior such as non-iterable
-  `for`/`foreach` evaluation;
-- LawPack-facing ids for named value-graph rules, with the existing formal
-  obligation metadata kept as the first-party proof boundary;
-- module export visibility, path resolution, and mutation proof;
-- provenance fields in scan JSON for pack id, contract id, law id, and evidence
-  status.
+Remaining migration targets are tracked in
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md).
