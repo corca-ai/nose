@@ -260,6 +260,42 @@ def collect_rust_markers() -> dict[str, set[str]]:
     return markers
 
 
+# A `fn canonicalize_*` is, by convention, a value-graph CANONICALIZATION — a meaning-preserving
+# rewrite that needs Lean evidence. This catches the failure mode that let `.then`/`pure_inline`
+# slip (a new canon added inline with no obligation): name a canon `canonicalize_*` and the gate
+# *forces* a proof-obligation marker on it. (An arbitrarily-named canon still needs author
+# discipline — register it in REQUIRED_OBLIGATIONS — but the conventional name is now enforced.)
+CANON_FN_RE = re.compile(r"^\s*(?:pub(?:\([^)]*\))?\s+)?fn\s+(canonicalize_[A-Za-z0-9_]+)\b")
+
+
+def lint_canon_naming(obligations: dict[str, "Obligation"], errors: list[str]) -> None:
+    # The function NAME `canonicalize_*` already declares "this is a canonicalization"; no extra
+    # marker is needed. Require only that it is covered by an obligation — i.e. its name appears in
+    # some obligation's `[rust].symbols` (the registry obligations already declare). One
+    # declaration, where it belongs (the obligation), not a redundant source comment.
+    declared_symbols: set[str] = set()
+    for ob in obligations.values():
+        rust = ob.meta.get("rust", {})
+        if isinstance(rust, dict):
+            for sym in rust.get("symbols", []) or []:
+                if isinstance(sym, str):
+                    declared_symbols.add(sym)
+    for root in RUST_ROOTS:
+        if not root.exists():
+            continue
+        for rust_file in sorted(root.rglob("*.rs")):
+            rel = str(rust_file.relative_to(ROOT))
+            for i, line in enumerate(rust_file.read_text(encoding="utf-8").splitlines()):
+                m = CANON_FN_RE.match(line)
+                if m and m.group(1) not in declared_symbols:
+                    error(
+                        errors,
+                        f"{rel}:{i + 1}: `fn {m.group(1)}` is a canonicalization (by naming "
+                        f"convention) with no Lean obligation — add `{m.group(1)}` to some "
+                        f"obligation's `[rust].symbols`, or register it in REQUIRED_OBLIGATIONS.",
+                    )
+
+
 def lint_meta(
     obligation: Obligation,
     all_ids: set[str],
@@ -293,16 +329,16 @@ def lint_meta(
         for symbol in symbols:
             if re.search(rf"\b{re.escape(symbol)}\b", contents) is None:
                 error(errors, f"{where}: rust symbol `{symbol}` was not found in listed files")
-    markers = as_list(rust.get("markers", []), "rust.markers", errors, where)
-    if rust_files and not markers:
-        error(errors, f"{where}: rust-backed obligations must list at least one `rust.markers` entry")
+    # The source marker IS the obligation id (the lint always required `marker == id`), so a
+    # `[rust].markers` field just repeats the id — redundant. Forbid it and derive the expected
+    # source marker from the id: a rust-backed obligation must carry `// proof-obligation: <id>`
+    # in a listed file.
+    if rust.get("markers") is not None:
+        error(errors, f"{where}: drop the redundant `[rust].markers` field — the source marker is the obligation id `{obligation.id}`, checked automatically")
     if rust_files and rust_markers is not None:
-        for marker in markers:
-            if marker != obligation.id:
-                error(errors, f"{where}: rust marker `{marker}` must match obligation id `{obligation.id}`")
-            found_files = rust_markers.get(marker, set())
-            if not any(rust_file in found_files for rust_file in rust_files):
-                error(errors, f"{where}: rust marker `{marker}` was not found in listed rust files")
+        found_files = rust_markers.get(obligation.id, set())
+        if not any(rust_file in found_files for rust_file in rust_files):
+            error(errors, f"{where}: source marker `// proof-obligation: {obligation.id}` was not found in listed rust files")
 
     if rust.get("rule_module", False) is True:
         matching_prefix = next((prefix for prefix in RULE_ROOTS if obligation.id.startswith(prefix + ".")), None)
@@ -450,9 +486,6 @@ def lint_required_obligations(
         rust_symbols = rust.get("symbols", [])
         if not isinstance(rust_symbols, list):
             rust_symbols = []
-        rust_markers = rust.get("markers", [])
-        if not isinstance(rust_markers, list):
-            rust_markers = []
 
         for rust_file in item.rust_files:
             if rust_file not in rust_files:
@@ -460,8 +493,7 @@ def lint_required_obligations(
         for symbol in item.rust_symbols:
             if symbol not in rust_symbols:
                 error(errors, f"{where}: required surface must list rust symbol `{symbol}`")
-        if item.id not in rust_markers:
-            error(errors, f"{where}: required surface must list rust marker `{item.id}`")
+        # The source marker (`// proof-obligation: <id>`) is checked by lint_meta, not re-declared.
 
 
 def lint_lean_layout(errors: list[str]) -> None:
@@ -568,28 +600,24 @@ def run_self_tests() -> int:
                 "`lean.counterexample_theorems`",
             ),
             (
-                "rust-backed obligation without marker list",
+                "rust-backed obligation with redundant markers field",
+                {
+                    **base_meta("proven"),
+                    "rust": {"files": ["required.rs"], "symbols": [], "markers": ["self_test"]},
+                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
+                },
+                True,
+                "drop the redundant `[rust].markers` field",
+            ),
+            (
+                "rust-backed obligation with missing marker",
                 {
                     **base_meta("proven"),
                     "rust": {"files": ["required.rs"], "symbols": []},
                     "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
                 },
                 True,
-                "rust-backed obligations must list at least one `rust.markers` entry",
-            ),
-            (
-                "rust-backed obligation with missing marker",
-                {
-                    **base_meta("proven"),
-                    "rust": {
-                        "files": ["required.rs"],
-                        "symbols": [],
-                        "markers": ["self_test"],
-                    },
-                    "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
-                },
-                True,
-                "rust marker `self_test` was not found in listed rust files",
+                "source marker `// proof-obligation: self_test` was not found in listed rust files",
             ),
         ]
 
@@ -629,25 +657,6 @@ def run_self_tests() -> int:
                 },
                 "required surface must list rust symbol `required_symbol`",
             ),
-            (
-                "required obligation missing rust marker",
-                {
-                    "self_test": Obligation(
-                        "self_test",
-                        obligation_path,
-                        {
-                            **base_meta("proven"),
-                            "rust": {
-                                "files": ["required.rs"],
-                                "symbols": ["required_symbol"],
-                                "markers": [],
-                            },
-                            "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
-                        },
-                    )
-                },
-                "required surface must list rust marker `self_test`",
-            ),
         ]
 
         marker_index_cases = [
@@ -665,11 +674,7 @@ def run_self_tests() -> int:
                         obligation_path,
                         {
                             **base_meta("proven"),
-                            "rust": {
-                                "files": ["other.rs"],
-                                "symbols": [],
-                                "markers": ["self_test"],
-                            },
+                            "rust": {"files": ["other.rs"], "symbols": []},
                             "lean": {"proof": "Proof.lean", "theorems": ["SelfTest.ok"]},
                         },
                     )
@@ -724,6 +729,7 @@ def main() -> int:
     lint_rule_modules(obligations, errors)
     lint_rust_marker_index(obligations, rust_markers, errors)
     lint_required_obligations(obligations, errors)
+    lint_canon_naming(obligations, errors)
     lint_lean_layout(errors)
 
     if errors:

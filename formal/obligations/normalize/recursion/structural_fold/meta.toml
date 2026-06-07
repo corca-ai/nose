@@ -6,7 +6,6 @@ summary = "Numeric structural recursion can be emitted as an accumulator fold fo
 [rust]
 files = ["crates/nose-normalize/src/recursion/structural_fold.rs"]
 symbols = ["recognize", "build_body"]
-markers = ["normalize.recursion.structural_fold"]
 
 [lean]
 proof = "Proof.lean"

@@ -6,7 +6,6 @@ summary = "Deep-copying a subtree into a fresh IL builder keeps old ids valid an
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]
 symbols = ["copy_subtree", "synthesize_wrapper"]
-markers = ["il.arena.deep_copy"]
 
 [lean]
 proof = "Proof.lean"

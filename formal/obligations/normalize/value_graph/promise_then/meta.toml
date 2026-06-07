@@ -6,7 +6,6 @@ summary = "A settled Promise is modeled by its resolved value (the value graph s
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs"]
 symbols = ["eval_promise_then"]
-markers = ["normalize.value_graph.promise_then"]
 
 [lean]
 proof = "Proof.lean"

@@ -6,7 +6,6 @@ summary = "Identity flat-map (flatMap id) canonicalizes to flatten; the modeled 
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs"]
 symbols = ["HoFKind::FlatMap"]
-markers = ["normalize.value_graph.flatmap_identity"]
 
 [lean]
 proof = "Proof.lean"

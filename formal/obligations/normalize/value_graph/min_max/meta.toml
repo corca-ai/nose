@@ -6,7 +6,6 @@ summary = "Min/max select idioms and accumulator reductions are commutative and 
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"]
 symbols = ["minmax_pattern", "MIN_CODE", "MAX_CODE"]
-markers = ["normalize.value_graph.min_max"]
 
 [lean]
 proof = "Proof.lean"

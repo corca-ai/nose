@@ -6,7 +6,6 @@ summary = "A fragment wrapper exposes one parameter per free input and keeps the
 [rust]
 files = ["crates/nose-detect/src/fragment/oracle.rs"]
 symbols = ["fragment_behavior", "synthesize_wrapper", "run_unit"]
-markers = ["detect.fragment.wrapper_synthesis"]
 
 [lean]
 proof = "Proof.lean"
