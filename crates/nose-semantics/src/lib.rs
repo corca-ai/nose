@@ -2469,6 +2469,33 @@ pub struct StaticGlobalFunctionContract {
     pub requires_unshadowed_function: bool,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticGlobalSymbolContract {
+    pub name: &'static str,
+    pub requires_unshadowed: bool,
+}
+
+pub fn static_global_symbol_contract(lang: Lang, name: &str) -> Option<StaticGlobalSymbolContract> {
+    if !js_like_lang(lang) {
+        return None;
+    }
+    let name = match name {
+        "Array" => "Array",
+        "Boolean" => "Boolean",
+        "Map" => "Map",
+        "Math" => "Math",
+        "Object" => "Object",
+        "Set" => "Set",
+        "console" => "console",
+        "undefined" => "undefined",
+        _ => return None,
+    };
+    Some(StaticGlobalSymbolContract {
+        name,
+        requires_unshadowed: true,
+    })
+}
+
 pub fn js_boolean_coercion_contract(
     lang: Lang,
     function: &str,
@@ -4140,6 +4167,25 @@ mod tests {
 
     #[test]
     fn js_static_builtin_contracts_are_language_and_arity_constrained() {
+        assert_eq!(
+            static_global_symbol_contract(Lang::JavaScript, "Math"),
+            Some(StaticGlobalSymbolContract {
+                name: "Math",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(
+            static_global_symbol_contract(Lang::TypeScript, "undefined"),
+            Some(StaticGlobalSymbolContract {
+                name: "undefined",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(static_global_symbol_contract(Lang::Python, "Math"), None);
+        assert_eq!(
+            static_global_symbol_contract(Lang::JavaScript, "WeakMap"),
+            None
+        );
         assert_eq!(
             typeof_operator_contract(Lang::TypeScript, "typeof", 1),
             Some(TypeofOperatorContract { name: "typeof" })

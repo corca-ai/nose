@@ -25,8 +25,9 @@ use nose_semantics::{
     nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
     rust_vec_new_factory_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
     source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
-    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1206,7 +1207,7 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
     let Some(contract) = nullish_global_contract(il.meta.lang, name) else {
         return false;
     };
-    !contract.requires_unshadowed || !file_defines_name(il, interner, contract.name)
+    !contract.requires_unshadowed || unshadowed_global_symbol(il, interner, node, contract.name)
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -1366,7 +1367,9 @@ fn strict_exact_js_array_is_array_safe(
     ) else {
         return false;
     };
-    if contract.requires_unshadowed_receiver && file_defines_name(il, interner, contract.receiver) {
+    if contract.requires_unshadowed_receiver
+        && !unshadowed_global_symbol(il, interner, receiver, contract.receiver)
+    {
         return false;
     }
     strict_exact_call_args_safe(il, interner, facts, node)
@@ -1815,7 +1818,7 @@ fn strict_exact_membership_collection_safe(
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
 }
 
-fn strict_exact_two_arg_var_call(il: &Il, node: NodeId) -> Option<(Symbol, NodeId)> {
+fn strict_exact_two_arg_var_call(il: &Il, node: NodeId) -> Option<(NodeId, Symbol, NodeId)> {
     if il.kind(node) != NodeKind::Call {
         return None;
     }
@@ -1826,7 +1829,7 @@ fn strict_exact_two_arg_var_call(il: &Il, node: NodeId) -> Option<(Symbol, NodeI
         return None;
     }
     match il.node(*callee).payload {
-        Payload::Name(name) => Some((name, *argument)),
+        Payload::Name(name) => Some((*callee, name, *argument)),
         _ => None,
     }
 }
@@ -1840,7 +1843,7 @@ fn strict_exact_set_constructor_collection_safe(
     if !construct_syntax_proof(il, node) {
         return false;
     };
-    let Some((name, collection)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some((callee, name, collection)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let Some(contract) = js_like_set_constructor_contract(il.meta.lang, interner.resolve(name))
@@ -1849,7 +1852,7 @@ fn strict_exact_set_constructor_collection_safe(
     };
     contract.receiver == "Set"
         && (!contract.requires_unshadowed_global
-            || !file_defines_name(il, interner, contract.receiver))
+            || unshadowed_global_symbol(il, interner, callee, contract.receiver))
         && strict_exact_static_non_float_collection(il, interner, collection)
 }
 
@@ -2041,7 +2044,7 @@ fn strict_exact_rust_std_collection_factory_safe(
     {
         return false;
     }
-    let Some((name, collection)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some((_, name, collection)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let name = interner.resolve(name);
@@ -2214,7 +2217,7 @@ fn strict_exact_map_constructor_entries_safe(
     if !construct_syntax_proof(il, node) {
         return false;
     }
-    let Some((name, entries)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some((callee, name, entries)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let Some(contract) = js_like_map_constructor_contract(il.meta.lang, interner.resolve(name))
@@ -2223,7 +2226,7 @@ fn strict_exact_map_constructor_entries_safe(
     };
     contract.receiver == "Map"
         && (!contract.requires_unshadowed_global
-            || !file_defines_name(il, interner, contract.receiver))
+            || unshadowed_global_symbol(il, interner, callee, contract.receiver))
         && strict_exact_map_entries_safe(il, interner, facts, entries)
 }
 
@@ -2236,7 +2239,7 @@ fn strict_exact_rust_std_map_factory_safe(
     if !semantics(il.meta.lang).stdlib().rust_std_map_factories() {
         return false;
     }
-    let Some((name, entries)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some((_, name, entries)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let name = interner.resolve(name);

@@ -93,9 +93,9 @@ compatibility mirror while consumers migrate to evidence records.
 - Python lowering emits source facts for value equality/inequality and identity
   equality/inequality.
 - JS-like `new Set(...)` and `new Map(...)` can enter exact matching only when
-  construct syntax is proven, the `Set`/`Map` global is not shadowed, and the
-  collection/map argument remains exact-safe. Plain `Set(...)` and `Map(...)`
-  stay closed.
+  construct syntax is proven, the `Set`/`Map` callee has unshadowed-global
+  symbol proof, and the collection/map argument remains exact-safe. Plain
+  `Set(...)` and `Map(...)` stay closed.
 - JS/TS regex literal `.test(value)` can enter exact matching only when the
   receiver is proven to be a regex literal. Ordinary string `.test(...)` stays
   closed.

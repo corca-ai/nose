@@ -95,14 +95,15 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
 - source-origin facts become `Source` evidence;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
+- JS/TS static-global value occurrences that remain as `Var` nodes, such as
+  member receivers, call callees, constructors, and `undefined`, emit
+  `UnshadowedGlobal` symbol evidence when the frontend proves no local shadow;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence.
 
 The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
-compatibility mirrors. Unshadowed-global `Symbol` records are defined and
-consumed through the same helper surface, but first-party frontend producers for
-global identity are still a next migration slice; current global proof can still
-come from the compatibility shadow-scan path. These mirrors are not the desired
-pack boundary.
+compatibility mirrors. Some direct JS/TS guard lowerings still use compatibility
+shadow scans until qualified-member and guard evidence lands. These mirrors are
+not the desired pack boundary.
 
 ## Current Consumers
 
@@ -114,9 +115,11 @@ callers:
 - import proof parsing for normalize, value graph, imported literal replacement,
   and strict exact gates;
 - imported namespace/binding symbol proof for normalize idiom admission,
-  value-graph namespace fallbacks, and strict exact gates, plus a shared
-  unshadowed-global helper that still depends on compatibility shadow proof until
-  global `Symbol` producers land;
+  value-graph namespace fallbacks, and strict exact gates;
+- unshadowed-global symbol proof for JS/TS `Math.*` method contracts,
+  `new Map(...)`/`new Set(...)` constructor contracts, static `Array.isArray`
+  exact gates, and `undefined` nullish-default handling, with compatibility
+  fallback only when no relevant evidence record exists;
 - sequence-surface admission for normalize/value-graph/detect exact paths.
 
 Field/place/effect facts, receiver/protocol evidence beyond parameter domains,

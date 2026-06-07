@@ -62,8 +62,8 @@ use nose_semantics::{
     rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
     scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
-    source_operator_at_node, static_index_membership_contract, BuiltinArgContract,
-    CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    source_operator_at_node, static_index_membership_contract, unshadowed_global_symbol,
+    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
     GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
     IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind,
     MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
@@ -1381,7 +1381,9 @@ impl<'a> Builder<'a> {
         };
         let constructor = self.interner.resolve(name);
         if let Some(contract) = js_like_set_constructor_contract(self.il.meta.lang, constructor) {
-            if contract.requires_unshadowed_global && self.file_defines_name(contract.receiver) {
+            if contract.requires_unshadowed_global
+                && !unshadowed_global_symbol(self.il, self.interner, kids[0], contract.receiver)
+            {
                 return None;
             }
             if !self.is_static_non_float_collection_expr(kids[1]) {
@@ -1390,7 +1392,9 @@ impl<'a> Builder<'a> {
             return Some(self.eval_membership_collection(kids[1], env));
         }
         let contract = js_like_map_constructor_contract(self.il.meta.lang, constructor)?;
-        if contract.requires_unshadowed_global && self.file_defines_name(contract.receiver) {
+        if contract.requires_unshadowed_global
+            && !unshadowed_global_symbol(self.il, self.interner, kids[0], contract.receiver)
+        {
             return None;
         }
         let entry_seq_tag = contract.entry_seq_tag?;
@@ -7319,7 +7323,9 @@ impl<'a> Builder<'a> {
                         return self.null_const();
                     }
                     if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
-                        if !contract.requires_unshadowed || !self.file_defines_name(contract.name) {
+                        if !contract.requires_unshadowed
+                            || unshadowed_global_symbol(self.il, self.interner, expr, contract.name)
+                        {
                             return self.null_const();
                         }
                     }

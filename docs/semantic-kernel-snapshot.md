@@ -220,23 +220,24 @@ migrated.
   semantics, but computed property names are exact-closed until a future
   contract can prove key evaluation, coercion, order, and side-effect behavior.
 - JS/TS `new Map(...)` and `new Set(...)` now require construct-syntax source
-  facts distinct from ordinary calls plus an unshadowed `Map`/`Set` global. With
-  exact-safe static collection or entry arguments they can enter exact matching,
-  including supported immutable module-level Set/Map bindings. Plain
-  `Set(...)`/`Map(...)` calls and locally shadowed constructor names remain
-  exact-closed.
+  facts distinct from ordinary calls plus `UnshadowedGlobal` symbol proof for
+  the `Map`/`Set` constructor. With exact-safe static collection or entry
+  arguments they can enter exact matching, including supported immutable
+  module-level Set/Map bindings. Plain `Set(...)`/`Map(...)` calls and locally
+  shadowed constructor names remain exact-closed.
 - Static import proof facts now have a typed `ImportFactKind`/`ImportFact`
   facade in `nose-semantics`. First-party frontends emit import binding and
   namespace facts through that contract, and imported literal replacement,
   normalize idiom admission, value-graph import proof, and strict exact gates
   parse import proof RHS nodes through the shared helper instead of local raw
   tag checks.
-- Symbol identity evidence now covers static imported binding/namespace aliases,
-  and the same helper surface defines the next unshadowed-global record path.
-  Normalize idiom admission, value-graph Go namespace fallbacks, and strict exact
+- Symbol identity evidence now covers static imported binding/namespace aliases
+  and JS/TS static-global value occurrences such as `Math`, `console`, `Array`,
+  `Map`, `Set`, and `undefined` when the frontend proves no local shadow.
+  Normalize idiom admission, value-graph namespace fallbacks, and strict exact
   gates consume `nose-semantics` symbol-proof helpers instead of each re-scanning
-  raw import assignment shapes. First-party global producers have not landed yet,
-  so global proof still uses compatibility shadow scans behind the helper.
+  raw import assignment or global shadow shapes. Direct JS/TS guard lowerings for
+  some qualified members still need a dedicated evidence slice.
   A spelling such as `Math`, `fmt`, or `deque` is still only a selector; exact
   consumers need symbol identity proof plus the language/API contract. Binding
   evidence does not prove later uses if the alias is rebound or ambiguous.

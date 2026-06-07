@@ -229,12 +229,15 @@ and pack ecosystem.
   `nose-semantics` lookups fail closed on ambiguous/conflicting evidence before
   falling back to compatibility storage.
 - Symbol-identity evidence now represents static imported binding/namespace
-  aliases, and defines the unshadowed-global record kind that the next producer
-  slice should emit. Normalize idiom admission, value-graph namespace fallbacks,
-  and strict exact gates have started consuming this helper layer instead of each
-  re-scanning raw import assignment shapes. Provider/imported immutable literal
-  replacement also now rejects direct module-binding mutations such as
-  `LOOKUP.push(...)`.
+  aliases. Normalize idiom admission, value-graph namespace fallbacks, and strict
+  exact gates have started consuming this helper layer instead of each re-scanning
+  raw import assignment shapes. Provider/imported immutable literal replacement
+  also now rejects direct module-binding mutations such as `LOOKUP.push(...)`.
+- JS/TS static-global value occurrences now emit `UnshadowedGlobal` evidence for
+  first-party globals such as `Math`, `console`, `Array`, `Map`, `Set`, and
+  `undefined` when no local shadow is proven. JS/TS `Math.*` no longer lowers
+  directly to builtins in the frontend; normalize consumes the preserved
+  `Field(Var(global), method)` shape through symbol-proof contracts instead.
 
 ## Phase 0: documentation and vocabulary (landed)
 

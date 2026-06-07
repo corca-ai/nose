@@ -193,6 +193,20 @@ impl<'a> Lowering<'a> {
         self.b.add(NodeKind::Var, Payload::Name(sym), span, &[])
     }
 
+    /// A `Var` proven by the frontend to denote a language-defined unshadowed
+    /// global symbol at this source occurrence.
+    pub(crate) fn unshadowed_global_var(&mut self, name: &str, span: Span) -> NodeId {
+        let var = self.var(name, span);
+        self.record_evidence(
+            EvidenceAnchor::node(span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash(name),
+            }),
+            "symbol_unshadowed_global",
+        );
+        var
+    }
+
     /// Lower an integer literal, retaining its **value** as [`Payload::LitInt`] so the
     /// value-graph (the behavioral fingerprint) keeps behavior-defining constants
     /// distinct — `x % 7` ≢ `x % 11`, `return 100` ≢ `return 200` — rather than

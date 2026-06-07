@@ -13,8 +13,7 @@ use nose_il::{
     SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
 };
 use nose_semantics::{
-    js_array_is_array_contract, js_boolean_coercion_contract, method_call_contract,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    js_array_is_array_contract, js_boolean_coercion_contract, static_global_symbol_contract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -840,7 +839,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "null" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
-        "undefined" => lo.var("undefined", span),
+        "undefined" => lower_js_static_global_or_var(lo, node),
         "regex" => {
             let lit = lo.str_lit(lo.text(node), span);
             lo.record_source_fact(span, SourceFactKind::Literal(SourceLiteralKind::Regex));
@@ -858,7 +857,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "member_expression" => {
             let obj = node
                 .child_by_field_name("object")
-                .map(|o| lower_expr(lo, o))
+                .map(|o| lower_member_object(lo, o))
                 .unwrap_or_else(|| lo.empty_block(span));
             let prop = node
                 .child_by_field_name("property")
@@ -1067,13 +1066,10 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(guard) = lower_own_property_guard_call(lo, node) {
         return guard;
     }
-    if let Some(math_builtin) = lower_math_call(lo, node) {
-        return math_builtin;
-    }
     let span = lo.span(node);
     let mut kids = Vec::new();
     match node.child_by_field_name("function") {
-        Some(f) => kids.push(lower_expr(lo, f)),
+        Some(f) => kids.push(lower_callee_expr(lo, f)),
         None => {
             let e = lo.empty_block(span);
             kids.push(e);
@@ -1090,43 +1086,6 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
-}
-
-fn lower_math_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
-    let callee = node.child_by_field_name("function")?;
-    let callee = compact_js_expr(lo.text(callee));
-    let (receiver, method) = callee.split_once('.')?;
-    let args = node.child_by_field_name("arguments")?;
-    let args: Vec<TsNode> = Lowering::named_children(args);
-    let contract = method_call_contract(lo.lang, method, args.len())?;
-    let MethodSemanticContract::Builtin(builtin) = contract.semantic else {
-        return None;
-    };
-    let MethodReceiverContract::UnshadowedGlobal(global) = contract.receiver else {
-        return None;
-    };
-    if global != receiver {
-        return None;
-    }
-    if file_prefix_has_binding_ident(lo, node, global)
-        || enclosing_function_prefix_has_binding_ident(lo, node, global)
-    {
-        return None;
-    }
-    if !matches!(
-        contract.args,
-        MethodBuiltinArgs::First | MethodBuiltinArgs::All
-    ) || args.iter().any(|arg| arg.kind() == "spread_element")
-    {
-        return None;
-    }
-    let lowered: Vec<NodeId> = args.into_iter().map(|arg| lower_expr(lo, arg)).collect();
-    Some(lo.add(
-        NodeKind::Call,
-        Payload::Builtin(builtin),
-        lo.span(node),
-        &lowered,
-    ))
 }
 
 fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -1215,8 +1174,16 @@ fn contains_keyword_binding(text: &str, keyword: &str, ident: &str) -> bool {
             return false;
         }
         rest = rest.trim_start();
-        starts_with_js_ident(rest, ident)
+        starts_with_js_ident(rest, ident) || destructuring_pattern_binds_ident(rest, ident)
     })
+}
+
+fn destructuring_pattern_binds_ident(text: &str, ident: &str) -> bool {
+    if !matches!(text.chars().next(), Some('{') | Some('[')) {
+        return false;
+    }
+    let pattern = text.split_once('=').map(|(lhs, _)| lhs).unwrap_or(text);
+    contains_js_identifier(pattern, ident)
 }
 
 fn contains_import_binding(text: &str, ident: &str) -> bool {
@@ -1242,11 +1209,53 @@ fn starts_with_js_ident(text: &str, ident: &str) -> bool {
             .is_some_and(is_js_identifier_continue)
 }
 
+fn lower_callee_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    match node.kind() {
+        "identifier" | "undefined" => lower_js_static_global_or_var(lo, node),
+        _ => lower_expr(lo, node),
+    }
+}
+
+fn lower_member_object(lo: &mut Lowering, node: TsNode) -> NodeId {
+    match node.kind() {
+        "identifier" | "undefined" => lower_js_static_global_or_var(lo, node),
+        _ => lower_expr(lo, node),
+    }
+}
+
+fn lower_constructor_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    match node.kind() {
+        "identifier" | "undefined" => lower_js_static_global_or_var(lo, node),
+        _ => lower_expr(lo, node),
+    }
+}
+
+fn lower_js_static_global_or_var(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let name = lo.text(node);
+    let span = lo.span(node);
+    if js_static_global_unshadowed_at(lo, node, name) {
+        lo.unshadowed_global_var(name, span)
+    } else {
+        lo.var(name, span)
+    }
+}
+
+fn js_static_global_unshadowed_at(lo: &Lowering, node: TsNode, name: &str) -> bool {
+    let Some(contract) = static_global_symbol_contract(lo.lang, name) else {
+        return false;
+    };
+    if !contract.requires_unshadowed {
+        return true;
+    }
+    !file_prefix_has_binding_ident(lo, node, contract.name)
+        && !enclosing_function_prefix_has_binding_ident(lo, node, contract.name)
+}
+
 fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let mut kids = Vec::new();
     match node.child_by_field_name("constructor") {
-        Some(c) => kids.push(lower_expr(lo, c)),
+        Some(c) => kids.push(lower_constructor_expr(lo, c)),
         None => {
             let e = lo.empty_block(span);
             kids.push(e);
@@ -1813,7 +1822,33 @@ fn js_source_operator(text: &str) -> Option<SourceOperatorKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, Interner};
+    use nose_il::{stable_symbol_hash, EvidenceKind, FileId, Interner, SymbolEvidenceKind};
+
+    fn lower_js(src: &str) -> Il {
+        let interner = Interner::new();
+        crate::lower_source(
+            FileId(0),
+            "t.js",
+            src.as_bytes(),
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("lower js")
+    }
+
+    fn unshadowed_global_evidence_count(il: &Il, name: &str) -> usize {
+        let expected = stable_symbol_hash(name);
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal { name_hash })
+                        if name_hash == expected
+                )
+            })
+            .count()
+    }
 
     fn switch_labels_for_return(src: &str, expected_return: i64) -> Vec<i64> {
         let interner = Interner::new();
@@ -1875,5 +1910,47 @@ mod tests {
     fn stacked_switch_cases_share_the_following_body() {
         let src = "function f(x) { switch (x) { case 1: case 2: return 7; default: return 0; } }";
         assert_eq!(switch_labels_for_return(src, 7), vec![1, 2]);
+    }
+
+    #[test]
+    fn js_static_global_value_occurrences_emit_symbol_evidence() {
+        let il = lower_js(
+            "function f(value) {
+                console.log(Math.abs(value));
+                const picked = new Map([[\"x\", 1]]).get(\"x\") ?? undefined;
+                return Array.isArray(value) || new Set([value]).has(value) || picked;
+            }",
+        );
+
+        for name in ["console", "Math", "Map", "undefined", "Array", "Set"] {
+            assert!(
+                unshadowed_global_evidence_count(&il, name) >= 1,
+                "missing global evidence for {name}"
+            );
+        }
+        assert!(
+            !il.nodes
+                .iter()
+                .any(|node| matches!(node.payload, Payload::Builtin(Builtin::Abs))),
+            "Math.abs should stay as Field(Var(Math), abs) for semantic consumers"
+        );
+    }
+
+    #[test]
+    fn js_static_global_evidence_respects_local_and_destructured_shadows() {
+        let il = lower_js(
+            "function f(Math, value) { return Math.abs(value); }
+             function g(scope) { const { Map } = scope; return new Map([]); }
+             function h(value, undefined) { return value === undefined; }
+             function i(value) { const Array = { isArray() { return false; } }; return Array.isArray(value); }",
+        );
+
+        for name in ["Math", "Map", "undefined", "Array"] {
+            assert_eq!(
+                unshadowed_global_evidence_count(&il, name),
+                0,
+                "shadowed {name} should not get global evidence"
+            );
+        }
     }
 }
