@@ -1996,7 +1996,7 @@ impl<'a> Builder<'a> {
             }
         }
         let id = self.intern_node(op, args);
-        self.canonicalize_proof_backed_clamp(id).unwrap_or(id)
+        rules::clamp::apply(self, id).unwrap_or(id)
     }
 
     /// Intern a value node by `(op, args)` (hash-consing), computing its structural hash
@@ -3325,35 +3325,6 @@ impl<'a> Builder<'a> {
         } else {
             None
         }
-    }
-
-    fn canonicalize_proof_backed_clamp(&mut self, value: ValueId) -> Option<ValueId> {
-        if !matches!(self.nodes[value as usize].op, ValOp::Bin(o) if o == MIN_CODE || o == MAX_CODE)
-        {
-            return None;
-        }
-        let candidates = self.clamp_minmax_candidates(value);
-        if candidates.is_empty() {
-            return None;
-        }
-        self.clamp_candidate_count += 1;
-        let mut proven: Vec<_> = candidates
-            .into_iter()
-            .filter(|&(x, lo, hi)| {
-                self.is_safe_clamp_integer_value(x)
-                    && self.is_safe_clamp_integer_value(lo)
-                    && self.is_safe_clamp_integer_value(hi)
-                    && self.has_bound_order_fact(lo, hi)
-            })
-            .collect();
-        proven.sort_unstable();
-        proven.dedup();
-        if proven.len() != 1 {
-            return None;
-        }
-        self.clamp_proof_backed_candidate_count += 1;
-        let (x, lo, hi) = proven[0];
-        self.proof_backed_clamp_value(x, lo, hi)
     }
 
     fn clamp_minmax_candidates(&self, value: ValueId) -> Vec<(ValueId, ValueId, ValueId)> {
