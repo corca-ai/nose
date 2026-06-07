@@ -9,9 +9,9 @@
 use nose_il::{
     contains_js_identifier, stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor,
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
-    HoFKind, Il, ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic,
-    Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
+    HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
+    NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
+    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -3464,6 +3464,107 @@ pub enum LibraryApiContractId {
     MethodCall(MethodSemanticContract),
 }
 
+pub fn library_api_contract_id_hash(id: LibraryApiContractId) -> u64 {
+    stable_symbol_hash(&library_api_contract_id_key(id))
+}
+
+fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
+    match id {
+        LibraryApiContractId::PythonBuiltinCollectionFactory => {
+            "python.builtin.collection_factory".into()
+        }
+        LibraryApiContractId::PythonImportedCollectionFactory => {
+            "python.imported.collection_factory".into()
+        }
+        LibraryApiContractId::RustStdCollectionFactory => "rust.std.collection_factory".into(),
+        LibraryApiContractId::RustStdMapFactory => "rust.std.map_factory".into(),
+        LibraryApiContractId::RustVecMacroFactory => "rust.vec.macro_factory".into(),
+        LibraryApiContractId::RustVecNewFactory => "rust.vec.new_factory".into(),
+        LibraryApiContractId::JavaCollectionFactory(kind) => {
+            format!(
+                "java.collection_factory.{}",
+                java_collection_factory_kind_key(kind)
+            )
+        }
+        LibraryApiContractId::JavaCollectionConstructor(kind) => {
+            format!(
+                "java.collection_constructor.{}",
+                java_collection_constructor_kind_key(kind)
+            )
+        }
+        LibraryApiContractId::JavaMapFactory(kind) => {
+            format!("java.map_factory.{}", java_map_factory_kind_key(kind))
+        }
+        LibraryApiContractId::JavaMapEntryFactory => "java.map_entry_factory".into(),
+        LibraryApiContractId::RubySetFactory => "ruby.set_factory".into(),
+        LibraryApiContractId::JsLikeSetConstructor => "js_like.set.constructor".into(),
+        LibraryApiContractId::JsLikeMapConstructor => "js_like.map.constructor".into(),
+        LibraryApiContractId::MapKeyView(kind) => {
+            format!("map_key_view.{}", map_key_view_kind_key(kind))
+        }
+        LibraryApiContractId::MapKeyViewWrapper => "map_key_view.wrapper".into(),
+        LibraryApiContractId::MapGet => "map.get".into(),
+        LibraryApiContractId::JsArrayIsArray => "js_like.array.is_array".into(),
+        LibraryApiContractId::JsBooleanCoercion => "js_like.boolean.coercion".into(),
+        LibraryApiContractId::RegexTest => "js_like.regex.test".into(),
+        LibraryApiContractId::ImportedNamespaceFunction(semantic) => {
+            format!(
+                "imported_namespace_function.{}",
+                imported_namespace_function_semantic_key(semantic)
+            )
+        }
+        LibraryApiContractId::PromiseThen => "js_like.promise.then".into(),
+        LibraryApiContractId::IteratorIdentityAdapter => "iterator.identity_adapter".into(),
+        LibraryApiContractId::StaticCollectionAdapter => "static.collection_adapter".into(),
+        LibraryApiContractId::MethodCall(semantic) => {
+            format!("method_call.{}", method_semantic_contract_key(semantic))
+        }
+    }
+}
+
+fn java_collection_factory_kind_key(kind: JavaCollectionFactoryKind) -> &'static str {
+    match kind {
+        JavaCollectionFactoryKind::ListOf => "list_of",
+        JavaCollectionFactoryKind::SetOf => "set_of",
+        JavaCollectionFactoryKind::ArraysAsList => "arrays_as_list",
+    }
+}
+
+fn java_collection_constructor_kind_key(kind: JavaCollectionConstructorKind) -> &'static str {
+    match kind {
+        JavaCollectionConstructorKind::EmptyList => "empty_list",
+    }
+}
+
+fn java_map_factory_kind_key(kind: JavaMapFactoryKind) -> &'static str {
+    match kind {
+        JavaMapFactoryKind::Of => "of",
+        JavaMapFactoryKind::OfEntries => "of_entries",
+    }
+}
+
+fn map_key_view_kind_key(kind: MapKeyViewKind) -> &'static str {
+    match kind {
+        MapKeyViewKind::Collection => "collection",
+        MapKeyViewKind::Iterator => "iterator",
+    }
+}
+
+fn imported_namespace_function_semantic_key(semantic: ImportedNamespaceFunctionSemantic) -> String {
+    match semantic {
+        ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } => {
+            format!("product_reduction.{}.{}", op as u32, identity)
+        }
+    }
+}
+
+fn method_semantic_contract_key(semantic: MethodSemanticContract) -> String {
+    match semantic {
+        MethodSemanticContract::Builtin(builtin) => format!("builtin.{}", builtin as u32),
+        MethodSemanticContract::HoF(hof) => format!("hof.{}", hof as u32),
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LibraryApiShadowPolicy {
     None,
@@ -3549,6 +3650,105 @@ pub enum LibraryApiCalleeContract {
         method: &'static str,
         receiver: IteratorAdapterReceiverContract,
     },
+}
+
+pub fn library_api_callee_contract_hash(callee: LibraryApiCalleeContract) -> u64 {
+    stable_symbol_hash(&library_api_callee_contract_key(callee))
+}
+
+fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) -> String {
+    match callee {
+        LibraryApiCalleeContract::FreeName { name, .. } => format!("free_name:{name}"),
+        LibraryApiCalleeContract::ImportedBinding { module, exported } => {
+            format!("imported_binding:{module}:{exported}")
+        }
+        LibraryApiCalleeContract::JavaUtilStaticMember { receiver, method } => {
+            format!("java_util_static_member:{receiver}:{method}")
+        }
+        LibraryApiCalleeContract::JavaUtilConstructor {
+            simple_type,
+            qualified_type,
+            module,
+            ..
+        } => format!("java_util_constructor:{module}:{simple_type}:{qualified_type}"),
+        LibraryApiCalleeContract::RubyRequireStaticMember {
+            receiver,
+            method,
+            required_module,
+            ..
+        } => format!("ruby_require_static_member:{required_module}:{receiver}:{method}"),
+        LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } => {
+            format!("js_global_constructor:{receiver}")
+        }
+        LibraryApiCalleeContract::Method { method, receiver } => {
+            format!("method:{method}:{}", method_receiver_contract_key(receiver))
+        }
+        LibraryApiCalleeContract::StaticGlobalMethod { qualified_path, .. } => {
+            format!("static_global_method:{qualified_path}")
+        }
+        LibraryApiCalleeContract::StaticGlobalFunction { function, .. } => {
+            format!("static_global_function:{function}")
+        }
+        LibraryApiCalleeContract::RegexLiteralMethod { method, .. } => {
+            format!("regex_literal_method:{method}")
+        }
+        LibraryApiCalleeContract::ImportedNamespaceFunction { module, function } => {
+            format!("imported_namespace_function:{module}:{function}")
+        }
+        LibraryApiCalleeContract::AsyncMethod { method, receiver } => {
+            format!(
+                "async_method:{method}:{}",
+                async_receiver_contract_key(receiver)
+            )
+        }
+        LibraryApiCalleeContract::IteratorAdapterMethod { method, receiver } => {
+            format!(
+                "iterator_adapter_method:{method}:{}",
+                iterator_adapter_receiver_contract_key(receiver)
+            )
+        }
+    }
+}
+
+fn method_receiver_contract_key(receiver: MethodReceiverContract) -> String {
+    match receiver {
+        MethodReceiverContract::ExactCollection => "exact_collection".into(),
+        MethodReceiverContract::ExactProtocol => "exact_protocol".into(),
+        MethodReceiverContract::ExactProtocolPairArgument => "exact_protocol_pair_argument".into(),
+        MethodReceiverContract::ExactOption => "exact_option".into(),
+        MethodReceiverContract::ExactString => "exact_string".into(),
+        MethodReceiverContract::ExactInteger => "exact_integer".into(),
+        MethodReceiverContract::ExactMap => "exact_map".into(),
+        MethodReceiverContract::ExactMapLiteral => "exact_map_literal".into(),
+        MethodReceiverContract::ExactCollectionOrMap => "exact_collection_or_map".into(),
+        MethodReceiverContract::ExactCollectionOrMapLiteral => {
+            "exact_collection_or_map_literal".into()
+        }
+        MethodReceiverContract::ExactCollectionOrJavaKeySet => {
+            "exact_collection_or_java_key_set".into()
+        }
+        MethodReceiverContract::ExactSetOrMap => "exact_set_or_map".into(),
+        MethodReceiverContract::LiteralString => "literal_string".into(),
+        MethodReceiverContract::UnshadowedGlobal(name) => format!("unshadowed_global:{name}"),
+        MethodReceiverContract::ImportedNamespace(module) => {
+            format!("imported_namespace:{module}")
+        }
+        MethodReceiverContract::RustMapGetOrExactOption => "rust_map_get_or_exact_option".into(),
+    }
+}
+
+fn async_receiver_contract_key(receiver: AsyncReceiverContract) -> &'static str {
+    match receiver {
+        AsyncReceiverContract::ExactPromiseLike => "exact_promise_like",
+    }
+}
+
+fn iterator_adapter_receiver_contract_key(
+    receiver: IteratorAdapterReceiverContract,
+) -> &'static str {
+    match receiver {
+        IteratorAdapterReceiverContract::ExactIterableValue => "exact_iterable_value",
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3660,6 +3860,387 @@ pub struct LibraryMethodCallContract {
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,
     pub result: MethodCallContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LibraryApiEvidenceStatus {
+    Missing,
+    Admitted,
+    Rejected,
+}
+
+pub fn library_api_contract_evidence_for_call(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arg_count: usize,
+) -> LibraryApiEvidenceStatus {
+    if il.kind(node) != NodeKind::Call || arg_count > u16::MAX as usize {
+        return LibraryApiEvidenceStatus::Rejected;
+    }
+    let expected = LibraryApiEvidenceKind::Contract {
+        contract_hash: library_api_contract_id_hash(id),
+        callee_hash: library_api_callee_contract_hash(callee),
+        arity: arg_count as u16,
+    };
+    let span = il.node(node).span;
+    let mut saw_library_api_evidence = false;
+    let mut admitted = false;
+    for record in &il.evidence {
+        if record.anchor != EvidenceAnchor::node(span, NodeKind::Call) {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(api) = record.kind else {
+            continue;
+        };
+        saw_library_api_evidence = true;
+        if record.status != EvidenceStatus::Asserted
+            || api != expected
+            || !evidence_dependencies_asserted(il, record)
+            || !library_api_callee_shape_matches(il, interner, node, callee)
+            || !library_api_dependencies_match_callee(il, node, callee, record)
+        {
+            return LibraryApiEvidenceStatus::Rejected;
+        }
+        admitted = true;
+    }
+    if admitted {
+        LibraryApiEvidenceStatus::Admitted
+    } else if saw_library_api_evidence {
+        LibraryApiEvidenceStatus::Rejected
+    } else {
+        LibraryApiEvidenceStatus::Missing
+    }
+}
+
+pub fn library_api_contract_evidence_at_call_span(
+    il: &Il,
+    span: Option<Span>,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arg_count: usize,
+) -> LibraryApiEvidenceStatus {
+    let Some(span) = span else {
+        return LibraryApiEvidenceStatus::Missing;
+    };
+    if arg_count > u16::MAX as usize {
+        return LibraryApiEvidenceStatus::Rejected;
+    }
+    let expected = LibraryApiEvidenceKind::Contract {
+        contract_hash: library_api_contract_id_hash(id),
+        callee_hash: library_api_callee_contract_hash(callee),
+        arity: arg_count as u16,
+    };
+    let mut saw_library_api_evidence = false;
+    let mut admitted = false;
+    for record in &il.evidence {
+        if record.anchor != EvidenceAnchor::node(span, NodeKind::Call) {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(api) = record.kind else {
+            continue;
+        };
+        saw_library_api_evidence = true;
+        if record.status != EvidenceStatus::Asserted
+            || api != expected
+            || !evidence_dependencies_asserted(il, record)
+            || !library_api_dependencies_match_callee_at_span(
+                il,
+                span,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            )
+        {
+            return LibraryApiEvidenceStatus::Rejected;
+        }
+        admitted = true;
+    }
+    if admitted {
+        LibraryApiEvidenceStatus::Admitted
+    } else if saw_library_api_evidence {
+        LibraryApiEvidenceStatus::Rejected
+    } else {
+        LibraryApiEvidenceStatus::Missing
+    }
+}
+
+fn library_api_callee_shape_matches(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    let Some(&callee_node) = il.children(node).first() else {
+        return false;
+    };
+    match callee {
+        LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } => {
+            var_name_matches(il, interner, callee_node, receiver)
+        }
+        LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver, method, ..
+        } => {
+            let Some((actual_receiver, actual_method)) =
+                static_member_callee_parts(il, interner, callee_node)
+            else {
+                return false;
+            };
+            actual_receiver == receiver && actual_method == method
+        }
+        LibraryApiCalleeContract::StaticGlobalFunction { function, .. } => {
+            var_name_matches(il, interner, callee_node, function)
+        }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_callee(
+    il: &Il,
+    node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    let Some(&callee_node) = il.children(node).first() else {
+        return false;
+    };
+    match callee {
+        LibraryApiCalleeContract::JsGlobalConstructor {
+            receiver,
+            requires_unshadowed_global,
+        } => {
+            dependency_has_source_call(il, record, il.node(node).span, SourceCallKind::Construct)
+                && (!requires_unshadowed_global
+                    || dependency_has_unshadowed_global_node(il, record, callee_node, receiver))
+        }
+        LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver,
+            qualified_path,
+            requires_unshadowed_receiver,
+            ..
+        } => {
+            let Some(receiver_node) = il.children(callee_node).first().copied() else {
+                return false;
+            };
+            dependency_has_qualified_global_node(il, record, callee_node, qualified_path)
+                && (!requires_unshadowed_receiver
+                    || dependency_has_unshadowed_global_node(il, record, receiver_node, receiver))
+        }
+        LibraryApiCalleeContract::StaticGlobalFunction {
+            function,
+            requires_unshadowed_function,
+        } => {
+            !requires_unshadowed_function
+                || dependency_has_unshadowed_global_node(il, record, callee_node, function)
+        }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_callee_at_span(
+    il: &Il,
+    call_span: Span,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
+        LibraryApiCalleeContract::JsGlobalConstructor {
+            receiver,
+            requires_unshadowed_global,
+        } => {
+            dependency_has_source_call(il, record, call_span, SourceCallKind::Construct)
+                && (!requires_unshadowed_global
+                    || callee_span.is_some_and(|span| {
+                        dependency_has_unshadowed_global_anchor(
+                            il,
+                            record,
+                            span,
+                            NodeKind::Var,
+                            receiver,
+                        )
+                    }))
+        }
+        LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver,
+            qualified_path,
+            requires_unshadowed_receiver,
+            ..
+        } => {
+            callee_span.is_some_and(|span| {
+                dependency_has_qualified_global_anchor(
+                    il,
+                    record,
+                    span,
+                    NodeKind::Field,
+                    qualified_path,
+                )
+            }) && (!requires_unshadowed_receiver
+                || receiver_span.is_some_and(|span| {
+                    dependency_has_unshadowed_global_anchor(
+                        il,
+                        record,
+                        span,
+                        NodeKind::Var,
+                        receiver,
+                    )
+                }))
+        }
+        LibraryApiCalleeContract::StaticGlobalFunction {
+            function,
+            requires_unshadowed_function,
+        } => {
+            !requires_unshadowed_function
+                || callee_span.is_some_and(|span| {
+                    dependency_has_unshadowed_global_anchor(
+                        il,
+                        record,
+                        span,
+                        NodeKind::Var,
+                        function,
+                    )
+                })
+        }
+        _ => false,
+    }
+}
+
+fn var_name_matches(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool {
+    matches!(
+        (il.kind(node), il.node(node).payload),
+        (NodeKind::Var, Payload::Name(name)) if interner.resolve(name) == expected
+    )
+}
+
+fn static_member_callee_parts<'a>(
+    il: &Il,
+    interner: &'a Interner,
+    node: NodeId,
+) -> Option<(&'a str, &'a str)> {
+    if il.kind(node) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(node).payload else {
+        return None;
+    };
+    let receiver = il.children(node).first().copied()?;
+    let Payload::Name(receiver_name) = il.node(receiver).payload else {
+        return None;
+    };
+    (il.kind(receiver) == NodeKind::Var)
+        .then(|| (interner.resolve(receiver_name), interner.resolve(method)))
+}
+
+fn dependency_has_source_call(
+    il: &Il,
+    record: &EvidenceRecord,
+    span: Span,
+    expected: SourceCallKind,
+) -> bool {
+    let anchor = EvidenceAnchor::source_span(span);
+    let kind = EvidenceKind::Source(SourceFactKind::Call(expected));
+    matches!(
+        unique_evidence_at(
+            il,
+            |candidate| candidate == anchor,
+            |evidence| match evidence {
+                EvidenceKind::Source(SourceFactKind::Call(call)) => Some(call),
+                _ => None,
+            },
+        ),
+        EvidenceResolution::Found(call) if call == expected
+    ) && dependency_has_asserted_record(il, record, anchor, kind)
+}
+
+fn dependency_has_unshadowed_global_node(
+    il: &Il,
+    record: &EvidenceRecord,
+    node: NodeId,
+    expected: &str,
+) -> bool {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    dependency_has_unshadowed_global_anchor(il, record, span, kind, expected)
+}
+
+fn dependency_has_unshadowed_global_anchor(
+    il: &Il,
+    record: &EvidenceRecord,
+    span: Span,
+    kind: NodeKind,
+    expected: &str,
+) -> bool {
+    let expected_kind = SymbolEvidenceKind::UnshadowedGlobal {
+        name_hash: stable_symbol_hash(expected),
+    };
+    if !matches!(
+        symbol_evidence_at_node_anchor(il, span, kind),
+        EvidenceResolution::Found(actual) if actual == expected_kind
+    ) {
+        return false;
+    }
+    dependency_has_asserted_record(
+        il,
+        record,
+        EvidenceAnchor::node(span, kind),
+        EvidenceKind::Symbol(expected_kind),
+    )
+}
+
+fn dependency_has_qualified_global_node(
+    il: &Il,
+    record: &EvidenceRecord,
+    node: NodeId,
+    expected: &str,
+) -> bool {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    dependency_has_qualified_global_anchor(il, record, span, kind, expected)
+}
+
+fn dependency_has_qualified_global_anchor(
+    il: &Il,
+    record: &EvidenceRecord,
+    span: Span,
+    kind: NodeKind,
+    expected: &str,
+) -> bool {
+    let expected_kind = SymbolEvidenceKind::QualifiedGlobal {
+        path_hash: stable_symbol_hash(expected),
+    };
+    if !matches!(
+        symbol_evidence_at_node_anchor(il, span, kind),
+        EvidenceResolution::Found(actual) if actual == expected_kind
+    ) {
+        return false;
+    }
+    dependency_has_asserted_record(
+        il,
+        record,
+        EvidenceAnchor::node(span, kind),
+        EvidenceKind::Symbol(expected_kind),
+    )
+}
+
+fn dependency_has_asserted_record(
+    il: &Il,
+    record: &EvidenceRecord,
+    anchor: EvidenceAnchor,
+    kind: EvidenceKind,
+) -> bool {
+    record.dependencies.iter().any(|&id| {
+        evidence_record_by_id(il, id).is_some_and(|dependency| {
+            dependency.anchor == anchor
+                && dependency.status == EvidenceStatus::Asserted
+                && dependency.kind == kind
+        })
+    })
 }
 
 pub fn library_free_name_collection_factory_contract(
@@ -4473,8 +5054,9 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
-        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, ParamSemantic,
-        ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, SymbolEvidenceKind, Unit, UnitKind,
+        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck,
+        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact,
+        Span, SymbolEvidenceKind, Unit, UnitKind,
     };
 
     const ALL_LANGS: &[Lang] = &[
@@ -5779,6 +6361,289 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         assert!(!qualified_global_symbol(&il, field, "Array.from"));
+    }
+
+    fn js_array_is_array_call_il(interner: &Interner) -> (Il, NodeId, NodeId, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let array = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Array")),
+            sp(29),
+            &[],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("isArray")),
+            sp(30),
+            &[array],
+        );
+        let value = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("value")),
+            sp(31),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(32), &[callee, value]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(29), &[call]);
+        (finish_il(b, root, Lang::JavaScript), call, callee, array)
+    }
+
+    fn library_api_record(
+        id: u32,
+        span: Span,
+        contract_id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+        status: EvidenceStatus,
+        dependencies: &[u32],
+    ) -> EvidenceRecord {
+        evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract_id),
+                callee_hash: library_api_callee_contract_hash(callee),
+                arity: 1,
+            }),
+            status,
+            dependencies.iter().copied().map(EvidenceId).collect(),
+        )
+    }
+
+    #[test]
+    fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
+        let interner = Interner::new();
+        let (mut il, call, callee, array) = js_array_is_array_call_il(&interner);
+        let contract = library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1)
+            .expect("test contract");
+
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Missing
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(il.node(array).span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Array"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(library_api_record(
+            2,
+            il.node(call).span,
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0, 1],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+        assert_eq!(
+            library_api_contract_evidence_at_call_span(
+                &il,
+                Some(il.node(call).span),
+                Some(il.node(callee).span),
+                Some(il.node(array).span),
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+        assert_eq!(
+            library_api_contract_evidence_at_call_span(
+                &il,
+                Some(il.node(call).span),
+                Some(sp(99)),
+                Some(il.node(array).span),
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+        assert_eq!(
+            library_api_contract_evidence_at_call_span(
+                &il,
+                Some(il.node(call).span),
+                Some(il.node(callee).span),
+                Some(sp(99)),
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+
+        let (mut missing_dep, call, _callee, _array) = js_array_is_array_call_il(&interner);
+        missing_dep.evidence.push(library_api_record(
+            0,
+            missing_dep.node(call).span,
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &missing_dep,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+
+        let (mut ambiguous_dep, call, callee, array) = js_array_is_array_call_il(&interner);
+        ambiguous_dep.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(ambiguous_dep.node(array).span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Array"),
+            }),
+            EvidenceStatus::Ambiguous,
+        ));
+        ambiguous_dep.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(ambiguous_dep.node(callee).span, NodeKind::Field),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        ambiguous_dep.evidence.push(library_api_record(
+            2,
+            ambiguous_dep.node(call).span,
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0, 1],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &ambiguous_dep,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+
+        let (mut conflicting_dep, call, callee, array) = js_array_is_array_call_il(&interner);
+        conflicting_dep.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(conflicting_dep.node(array).span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Array"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        conflicting_dep.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(conflicting_dep.node(callee).span, NodeKind::Field),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        conflicting_dep.evidence.push(evidence(
+            2,
+            EvidenceAnchor::node(conflicting_dep.node(array).span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Map"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        conflicting_dep.evidence.push(library_api_record(
+            3,
+            conflicting_dep.node(call).span,
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0, 1],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &conflicting_dep,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+
+        let boolean = library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 1).unwrap();
+        il.evidence.push(library_api_record(
+            3,
+            il.node(call).span,
+            boolean.id,
+            boolean.callee,
+            EvidenceStatus::Asserted,
+            &[0],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Rejected
+        );
+
+        let (mut wrong_anchor, call, _callee, _array) = js_array_is_array_call_il(&interner);
+        wrong_anchor.evidence.push(library_api_record(
+            0,
+            sp(99),
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &wrong_anchor,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Missing
+        );
     }
 
     #[test]

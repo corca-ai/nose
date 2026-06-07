@@ -5,12 +5,25 @@
 use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
-    FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LoopKind, NodeId,
-    NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind, SourceFact,
-    SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind,
+    LoopKind, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind,
+    SourceCallKind, SourceFact, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
-use nose_semantics::{import_fact_tag, sequence_surface_kind_for_tag, ImportFactKind};
+use nose_semantics::{
+    import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
+    library_js_array_is_array_contract, library_js_boolean_coercion_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_key_view_wrapper_contract, sequence_surface_kind_for_tag, ImportFactKind,
+    LibraryApiCalleeContract, LibraryApiContractId,
+};
 use tree_sitter::Node as TsNode;
+
+type LibraryApiEvidencePlan = (
+    LibraryApiContractId,
+    LibraryApiCalleeContract,
+    Vec<EvidenceId>,
+    &'static str,
+);
 
 /// Mutable state threaded through a single file's lowering.
 pub(crate) struct Lowering<'a> {
@@ -113,6 +126,9 @@ impl<'a> Lowering<'a> {
                         "effect_builder_append",
                     );
                 }
+                if matches!(payload, Payload::None) {
+                    self.record_library_api_evidence_for_call(span, children);
+                }
             }
             NodeKind::Field if self.lang == Lang::Java => {
                 if let (Payload::Name(field), [receiver]) = (payload, children) {
@@ -149,6 +165,210 @@ impl<'a> Lowering<'a> {
             }
             _ => {}
         }
+    }
+
+    fn record_library_api_evidence_for_call(&mut self, span: Span, children: &[NodeId]) {
+        let Some((&callee, args)) = children.split_first() else {
+            return;
+        };
+        let arg_count = args.len();
+        if let Some((id, callee_contract, dependencies, rule)) =
+            self.library_api_contract_for_call(span, callee, arg_count)
+        {
+            self.record_evidence_with_dependencies(
+                EvidenceAnchor::node(span, NodeKind::Call),
+                EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                    contract_hash: library_api_contract_id_hash(id),
+                    callee_hash: library_api_callee_contract_hash(callee_contract),
+                    arity: arg_count as u16,
+                }),
+                rule,
+                dependencies,
+            );
+        }
+    }
+
+    fn library_api_contract_for_call(
+        &self,
+        span: Span,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if arg_count > u16::MAX as usize {
+            return None;
+        }
+        if let Some(result) = self.static_global_method_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        if let Some(result) = self.static_global_function_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        self.js_global_constructor_api_contract(span, callee, arg_count)
+    }
+
+    fn static_global_method_api_contract(
+        &self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        let receiver_node = self.b.children(callee).first().copied()?;
+        let Payload::Name(receiver_name) = self.b.payload(receiver_node) else {
+            return None;
+        };
+        if self.b.kind(receiver_node) != NodeKind::Var {
+            return None;
+        }
+        let receiver = self.interner.resolve(receiver_name);
+        let method = self.interner.resolve(method);
+        let contract = library_js_array_is_array_contract(self.lang, receiver, method, arg_count)
+            .map(|contract| {
+                (
+                    contract.id,
+                    contract.callee,
+                    contract.result.qualified_path,
+                    contract.result.requires_unshadowed_receiver,
+                    contract.result.receiver,
+                    "library_api_js_array_is_array",
+                )
+            })
+            .or_else(|| {
+                library_map_key_view_wrapper_contract(self.lang, receiver, method, arg_count).map(
+                    |contract| {
+                        (
+                            contract.id,
+                            contract.callee,
+                            contract.result.qualified_path,
+                            true,
+                            contract.result.receiver,
+                            "library_api_map_key_view_wrapper",
+                        )
+                    },
+                )
+            })?;
+        let qualified = self.qualified_global_evidence_id(callee, contract.2)?;
+        let mut dependencies = vec![qualified];
+        if contract.3 {
+            dependencies.push(self.unshadowed_global_evidence_id(receiver_node, contract.4)?);
+        }
+        Some((contract.0, contract.1, dependencies, contract.5))
+    }
+
+    fn static_global_function_api_contract(
+        &self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        let Payload::Name(function) = self.b.payload(callee) else {
+            return None;
+        };
+        if self.b.kind(callee) != NodeKind::Var {
+            return None;
+        }
+        let function = self.interner.resolve(function);
+        let contract = library_js_boolean_coercion_contract(self.lang, function, arg_count)?;
+        let mut dependencies = Vec::new();
+        if contract.result.requires_unshadowed_function {
+            dependencies
+                .push(self.unshadowed_global_evidence_id(callee, contract.result.function)?);
+        }
+        Some((
+            contract.id,
+            contract.callee,
+            dependencies,
+            "library_api_js_boolean_coercion",
+        ))
+    }
+
+    fn js_global_constructor_api_contract(
+        &self,
+        span: Span,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        let Payload::Name(receiver) = self.b.payload(callee) else {
+            return None;
+        };
+        if self.b.kind(callee) != NodeKind::Var {
+            return None;
+        }
+        let receiver = self.interner.resolve(receiver);
+        let contract = library_js_like_set_constructor_contract(self.lang, receiver)
+            .filter(|_| arg_count == 1)
+            .map(|contract| {
+                (
+                    contract.id,
+                    contract.callee,
+                    receiver,
+                    "library_api_js_set_constructor",
+                )
+            })
+            .or_else(|| {
+                library_js_like_map_constructor_contract(self.lang, receiver)
+                    .filter(|_| arg_count == 1)
+                    .map(|contract| {
+                        (
+                            contract.id,
+                            contract.callee,
+                            receiver,
+                            "library_api_js_map_constructor",
+                        )
+                    })
+            })?;
+        let source = self.source_call_evidence_id(span, SourceCallKind::Construct)?;
+        let mut dependencies = vec![source];
+        if let LibraryApiCalleeContract::JsGlobalConstructor {
+            requires_unshadowed_global,
+            ..
+        } = contract.1
+        {
+            if requires_unshadowed_global {
+                dependencies.push(self.unshadowed_global_evidence_id(callee, contract.2)?);
+            }
+        }
+        Some((contract.0, contract.1, dependencies, contract.3))
+    }
+
+    fn source_call_evidence_id(&self, span: Span, call: SourceCallKind) -> Option<EvidenceId> {
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::source_span(span)
+                && record.kind == EvidenceKind::Source(SourceFactKind::Call(call))
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
+    fn unshadowed_global_evidence_id(&self, node: NodeId, name: &str) -> Option<EvidenceId> {
+        let span = self.b.node(node).span;
+        let kind = self.b.kind(node);
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::node(span, kind)
+                && record.kind
+                    == EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                        name_hash: stable_symbol_hash(name),
+                    })
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
+    fn qualified_global_evidence_id(&self, node: NodeId, path: &str) -> Option<EvidenceId> {
+        let span = self.b.node(node).span;
+        let kind = self.b.kind(node);
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::node(span, kind)
+                && record.kind
+                    == EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                        path_hash: stable_symbol_hash(path),
+                    })
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
     }
 
     fn node_is_java_this_var(&self, node: NodeId) -> bool {

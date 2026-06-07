@@ -23,10 +23,10 @@ pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_
 pub use node::{
     Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
     EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind,
-    ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LitClass, LoopKind, Node,
-    NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind,
-    SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind,
-    SourceOperatorKind, SymbolEvidenceKind,
+    ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
+    LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload,
+    PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, SymbolEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 

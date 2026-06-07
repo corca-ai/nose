@@ -55,6 +55,7 @@ use nose_semantics::{
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_literal_producer_evidence_at_span, imported_namespace_symbol,
+    library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
     library_api_free_name_shadow_safe, library_free_name_collection_factory_contracts,
     library_free_name_map_factory_contracts, library_imported_collection_factory_contracts,
     library_imported_namespace_function_contract, library_iterator_identity_adapter_contract,
@@ -72,11 +73,11 @@ use nose_semantics::{
     BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
     GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
     IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
-    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
-    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryCollectionFactoryResult,
+    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1483,10 +1484,23 @@ impl<'a> Builder<'a> {
             else {
                 return None;
             };
-            if requires_unshadowed_global
-                && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
-            {
-                return None;
+            match library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                expr,
+                contract.id,
+                contract.callee,
+                1,
+            ) {
+                LibraryApiEvidenceStatus::Admitted => {}
+                LibraryApiEvidenceStatus::Rejected => return None,
+                LibraryApiEvidenceStatus::Missing => {
+                    if requires_unshadowed_global
+                        && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
+                    {
+                        return None;
+                    }
+                }
             }
             if !self.is_static_non_float_collection_expr(kids[1]) {
                 return None;
@@ -1501,10 +1515,23 @@ impl<'a> Builder<'a> {
         else {
             return None;
         };
-        if requires_unshadowed_global
-            && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
-        {
-            return None;
+        match library_api_contract_evidence_for_call(
+            self.il,
+            self.interner,
+            expr,
+            contract.id,
+            contract.callee,
+            1,
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => {
+                if requires_unshadowed_global
+                    && !unshadowed_global_symbol(self.il, self.interner, kids[0], receiver)
+                {
+                    return None;
+                }
+            }
         }
         let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = contract.result else {
             return None;
@@ -1665,18 +1692,35 @@ impl<'a> Builder<'a> {
                 "Array",
                 method,
                 1,
-            )?
-            .result;
-            if accepted != MapKeyViewKind::Collection
-                || callee.args.len() != 1
-                || !qualified_global_symbol_at_span(
-                    self.il,
-                    self.node_span[args[0] as usize],
-                    NodeKind::Field,
-                    contract.qualified_path,
-                )
-            {
+            )?;
+            if accepted != MapKeyViewKind::Collection || callee.args.len() != 1 {
                 return None;
+            }
+            let receiver_span = callee
+                .args
+                .first()
+                .and_then(|&receiver| self.node_span[receiver as usize]);
+            match library_api_contract_evidence_at_call_span(
+                self.il,
+                self.node_span[value as usize],
+                self.node_span[args[0] as usize],
+                receiver_span,
+                contract.id,
+                contract.callee,
+                1,
+            ) {
+                LibraryApiEvidenceStatus::Admitted => {}
+                LibraryApiEvidenceStatus::Rejected => return None,
+                LibraryApiEvidenceStatus::Missing => {
+                    if !qualified_global_symbol_at_span(
+                        self.il,
+                        self.node_span[args[0] as usize],
+                        NodeKind::Field,
+                        contract.result.qualified_path,
+                    ) {
+                        return None;
+                    }
+                }
             }
             return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator);
         }
@@ -8412,10 +8456,15 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
-        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang, ParamSemantic,
-        ParamTypeFact, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit, UnitKind,
+        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
+        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceCallKind,
+        SourceFactKind, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
-    use nose_semantics::{import_fact_tag, FIRST_PARTY_PACK_ID};
+    use nose_semantics::{
+        import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
+        library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+        FIRST_PARTY_PACK_ID,
+    };
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)
@@ -8434,6 +8483,15 @@ mod tests {
     }
 
     fn evidence(id: u32, anchor: EvidenceAnchor, kind: EvidenceKind) -> EvidenceRecord {
+        evidence_with_dependencies(id, anchor, kind, Vec::new())
+    }
+
+    fn evidence_with_dependencies(
+        id: u32,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
         EvidenceRecord {
             id: EvidenceId(id),
             anchor,
@@ -8443,7 +8501,7 @@ mod tests {
                 pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
                 rule_hash: Some(stable_symbol_hash("test")),
             },
-            dependencies: Vec::new(),
+            dependencies,
             status: EvidenceStatus::Asserted,
         }
     }
@@ -8776,6 +8834,94 @@ mod tests {
         assert!(matches!(
             builder.nodes[proven as usize].op,
             ValOp::Seq(SEQ_VALUE_RECORD_GUARD)
+        ));
+    }
+
+    fn js_new_set_il(interner: &Interner) -> (Il, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let set = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Set")),
+            sp(70),
+            &[],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(71), &[]);
+        let array = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(72),
+            &[one],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(73), &[set, array]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(73), &[call]);
+        let mut il = finish_test_il(b, root, Lang::JavaScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::source_span(sp(73)),
+            EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(70), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Set"),
+            }),
+        ));
+        il.evidence.push(evidence(
+            2,
+            EvidenceAnchor::sequence(sp(72)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+        ));
+        (il, call)
+    }
+
+    #[test]
+    fn js_constructor_value_graph_closes_on_conflicting_api_evidence() {
+        let interner = Interner::new();
+        let (mut il, call) = js_new_set_il(&interner);
+
+        let mut builder = Builder::new(&il, &interner);
+        let legacy_proven = builder.eval(call, &FxHashMap::default());
+        assert!(matches!(
+            builder.nodes[legacy_proven as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ));
+
+        let wrong = library_js_like_map_constructor_contract(Lang::JavaScript, "Map").unwrap();
+        il.evidence.push(evidence_with_dependencies(
+            3,
+            EvidenceAnchor::node(sp(73), NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(wrong.id),
+                callee_hash: library_api_callee_contract_hash(wrong.callee),
+                arity: 1,
+            }),
+            vec![EvidenceId(0), EvidenceId(1)],
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let rejected = builder.eval(call, &FxHashMap::default());
+        assert!(!matches!(
+            builder.nodes[rejected as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ));
+
+        let (mut il, call) = js_new_set_il(&interner);
+        let set = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
+        il.evidence.push(evidence_with_dependencies(
+            3,
+            EvidenceAnchor::node(sp(73), NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(set.id),
+                callee_hash: library_api_callee_contract_hash(set.callee),
+                arity: 1,
+            }),
+            vec![EvidenceId(0), EvidenceId(1)],
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let admitted = builder.eval(call, &FxHashMap::default());
+        assert!(matches!(
+            builder.nodes[admitted as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
         ));
     }
 
