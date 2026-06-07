@@ -6,7 +6,8 @@ implementation shape; planned work and decision history live in
 
 Snapshot date: 2026-06-07, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
-sequence-surface contracts, and proof-backed append fragment evidence.
+sequence-surface contracts, proof-backed append fragment evidence, and the first
+operator-law contracts.
 
 ## What exists today
 
@@ -42,6 +43,15 @@ migrated.
 - The first-party profile exposes pack id and trust policy separately from
   channel eligibility. `ChannelEligibility` describes where a fact may be used;
   first-party/default status is pack provenance, not an analysis channel.
+- `OperatorSemantics` now owns the first shared operator contracts:
+  comparison-direction transforms, comparison negation, equality operand
+  commutativity, comparison-lattice laws, abs/min/max/selection guard laws,
+  static cardinality thresholds, JS-like static `indexOf`/`findIndex`
+  thresholds, and source membership operators. Algebra normalization, CFG
+  branch orientation, value-graph comparison/count rewrites, and strict exact
+  static-index gates consume these contracts instead of local operator tables.
+  The old `primitive_order_comparisons()` helper remains as a compatibility
+  wrapper around the stricter lattice law contract.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
@@ -144,8 +154,14 @@ migrated.
   is not inferred from the selector name in normalize/detect.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
   contracts, including the static non-float literal collection requirement and
-  accepted `-1`/`0` threshold comparisons. Callers still prove the receiver and
-  lambda equality shape before exact normalization/detection accepts them.
+  accepted `-1`/`0` threshold comparisons through `OperatorSemantics`. Callers
+  still prove the receiver and lambda equality shape before exact
+  normalization/detection accepts them.
+- Source `Op::In` is not proof by itself. Strict exact collection/map
+  membership currently admits Python `in` only through a language-scoped
+  membership-operator contract plus receiver evidence. JS `in` remains
+  exact-closed for collection membership because it means property/key existence,
+  not array element membership.
 - Imported namespace function contracts now cover Python `math.prod` as a product
   reduction only when the receiver is proven to be the imported `math` namespace.
   Bare globals named `math` and overwritten module bindings stay exact-closed.
@@ -203,6 +219,10 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
+- source operator provenance is still lossy for some equality-shaped IL. For
+  example, JS loose equality and `instanceof`, and Python identity, can lower to
+  the same coarse equality operator until future frontend/kernel facts preserve
+  the source equality kind;
 - language-specific import or module proof mechanics that are still local to
   frontend, normalize, or detect callers;
 - IL still stores import facts as `Seq("import_binding")` /

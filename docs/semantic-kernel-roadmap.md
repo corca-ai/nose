@@ -201,6 +201,14 @@ and pack ecosystem.
   prove append fragments by name; first-party language/library paths must first
   prove the receiver or active-builder contract and lower the call to
   `Builtin::Append`.
+- Primitive operator gates now enter through `OperatorSemantics` contracts for
+  comparison transforms, comparison laws, cardinality thresholds, static
+  `indexOf`/`findIndex` thresholds, and source membership operators. Algebra,
+  CFG normalization, value-graph comparison/count rewrites, and strict exact
+  static-membership gates consume the shared contract vocabulary. JS `in` no
+  longer inherits collection-membership exact safety from the shared `Op::In`
+  token; only Python `in` currently has a first-party membership-operator
+  contract.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -240,7 +248,12 @@ Remaining in this phase:
 
 ## Phase 2: shared contracts for duplicated gates
 
-- Move primitive comparison gates behind `OperatorSemantics`.
+- Continue moving primitive operator gates behind `OperatorSemantics`. The first
+  larger slice covers comparison transforms/laws, cardinality thresholds, static
+  index-membership thresholds, and Python source `in` membership exact-safety.
+  Remaining work includes source equality provenance such as JS loose equality,
+  JS `instanceof`, and Python identity before exact callbacks can distinguish
+  all equality-shaped IL safely.
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records.
 - Continue replacing any remaining local exact-fragment proof helpers with

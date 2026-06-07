@@ -33,7 +33,10 @@ experiments that validated these passes are in [experiments](experiments.md).
 > changed flattened predicates; filtered Sum/Reduce FlatMap aggregates, method-terminal
 > Any/All predicates, and filtered nested early-return any/all loops preserve carried
 > outer/inner predicates), full **AC flatten+sort in the value graph itself** (not
-> only the `algebra` IL pass), **distribution/factoring** `a*c+b*c→(a+b)*c` (Num-gated),
+> only the `algebra` IL pass), **operator-law contracts** from the semantic kernel
+> gate comparison transforms, comparison-lattice rewrites, static cardinality
+> thresholds, and source membership operators, **distribution/factoring**
+> `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
 > **reduce-lambda selection** (`reduce(λ. a if a>b else b)≡max`), **count-of-filter**
@@ -117,6 +120,10 @@ Guiding constraints for every pass:
   Java `Arrays.asList(values).contains(x)` also carries the array domain when `values` is
   a proven array parameter, keeping element membership distinct from singleton-list
   membership such as `List.of(values).contains(x)` or `Arrays.asList(listParam).contains(x)`.
+  Source membership operators are language-scoped: Python `in` can enter exact
+  collection/map membership when the receiver is proven, while JavaScript `in`
+  remains exact-closed for collection membership because it is a property/key
+  existence operator.
   Module-binding facts respect alpha's per-function cid spaces: top-level assignment cids may
   resolve back to module symbols, but cids inside functions and lambdas are local and never
   prove or shadow a module binding by table index alone.

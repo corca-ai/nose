@@ -22,6 +22,7 @@
 
 use crate::combine;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload, Span};
+use nose_semantics::{semantics, ComparisonLaw};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
@@ -140,25 +141,31 @@ impl Rewriter<'_> {
         if kids.len() != 2 {
             return self.generic(old_id, span);
         }
-        match op {
+        let operators = semantics(self.old.meta.lang).operators();
+        if let Some(contract) = operators.comparison_direction(op) {
             // Canonicalize comparison direction by reflecting the order: `a > b` → `b < a`
             // (`normalize.value_graph.compare`), `a >= b` → `b <= a`.
             // Both arms swap the operands and emit the mirror operator; only the target
             // opcode differs.
-            Op::Gt | Op::Ge => {
-                let flipped = if op == Op::Gt { Op::Lt } else { Op::Le };
-                let (r, rh) = self.rewrite(kids[1]);
-                let (l, lh) = self.rewrite(kids[0]);
-                self.emit(
-                    NodeKind::BinOp,
-                    Payload::Op(flipped),
-                    span,
-                    &[r, l],
-                    &[rh, lh],
-                )
-            }
+            let (r, rh) = self.rewrite(kids[1]);
+            let (l, lh) = self.rewrite(kids[0]);
+            return self.emit(
+                NodeKind::BinOp,
+                Payload::Op(contract.output),
+                span,
+                &[r, l],
+                &[rh, lh],
+            );
+        }
+        match op {
             // commutative but not associative: sort the two operands
-            Op::Eq | Op::Ne => self.emit_commutative_cmp(op, span, kids[0], kids[1]),
+            Op::Eq | Op::Ne
+                if operators
+                    .comparison_law(ComparisonLaw::EqualityCommutativity)
+                    .is_some() =>
+            {
+                self.emit_commutative_cmp(op, span, kids[0], kids[1])
+            }
             _ => {
                 let (l, lh) = self.rewrite(kids[0]);
                 let (r, rh) = self.rewrite(kids[1]);
@@ -282,6 +289,7 @@ impl Rewriter<'_> {
                     _ => return self.negate_wrap(old, span),
                 };
                 let kids = self.old.children(old).to_vec();
+                let operators = semantics(self.old.meta.lang).operators();
                 match op {
                     Op::And | Op::Or => {
                         // De Morgan: negate each (flattened) operand, flip the op.
@@ -292,10 +300,6 @@ impl Rewriter<'_> {
                             olds.into_iter().map(|o| self.rewrite_negated(o)).collect();
                         self.build_assoc(flip, span, negated)
                     }
-                    Op::Eq | Op::Ne => {
-                        let flip = if op == Op::Eq { Op::Ne } else { Op::Eq };
-                        self.emit_commutative_cmp(flip, span, kids[0], kids[1])
-                    }
                     // Negate an order comparison on a total order, canonicalized to `<`/`<=`:
                     //   !(x < y)  = y <= x   !(x <= y) = y < x    (operands reflect)
                     //   !(x > y)  = x <= y   !(x >= y) = x < y     (operands stay)
@@ -303,20 +307,36 @@ impl Rewriter<'_> {
                     // and only the already-reflected `<`/`<=` cases swap operands so the result
                     // points the canonical way. Lean obligation: `normalize.value_graph.compare`,
                     // `not_le_eq_gt`+`gt_eq_lt_swap`, `not_gt_eq_le`, `not_ge_eq_lt`.
-                    Op::Lt | Op::Le | Op::Gt | Op::Ge => {
-                        let flip = if matches!(op, Op::Lt | Op::Gt) {
-                            Op::Le
-                        } else {
-                            Op::Lt
+                    Op::Eq | Op::Ne | Op::Lt | Op::Le | Op::Gt | Op::Ge => {
+                        let Some(contract) = operators.canonical_negated_comparison(op) else {
+                            return self.negate_wrap(old, span);
                         };
-                        let (first, second) = if matches!(op, Op::Lt | Op::Le) {
+                        if matches!(contract.output, Op::Eq | Op::Ne)
+                            && operators
+                                .comparison_law(ComparisonLaw::EqualityCommutativity)
+                                .is_some()
+                        {
+                            return self.emit_commutative_cmp(
+                                contract.output,
+                                span,
+                                kids[0],
+                                kids[1],
+                            );
+                        }
+                        let (first, second) = if contract.swap_operands {
                             (kids[1], kids[0])
                         } else {
                             (kids[0], kids[1])
                         };
                         let (a, ah) = self.rewrite(first);
                         let (b, bh) = self.rewrite(second);
-                        self.emit(NodeKind::BinOp, Payload::Op(flip), span, &[a, b], &[ah, bh])
+                        self.emit(
+                            NodeKind::BinOp,
+                            Payload::Op(contract.output),
+                            span,
+                            &[a, b],
+                            &[ah, bh],
+                        )
                     }
                     _ => self.negate_wrap(old, span),
                 }

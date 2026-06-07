@@ -52,19 +52,20 @@ use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
     free_function_builtin_contract, go_zero_map_default_kind, go_zero_map_lookup_contract,
     import_fact_contract, import_namespace_rhs_matches, imported_namespace_function_contract,
-    index_membership_threshold_contract, iterator_identity_adapter_contract,
-    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
-    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
-    map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
-    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
-    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
-    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics, seq_surface_contract,
-    static_index_membership_contract, BuiltinArgContract, DomainEvidence, GoZeroMapDefaultKind,
-    ImportFactKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
-    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
-    SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
+    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
+    nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
+    rust_option_and_then_contract, rust_option_none_sentinel_contract,
+    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
+    scalar_integer_method_contract, semantics, seq_surface_contract,
+    static_index_membership_contract, BuiltinArgContract, CardinalityPredicate,
+    CardinalityThreshold, ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -2031,7 +2032,7 @@ impl<'a> Builder<'a> {
             // one node). Language-agnostic and sound (total order). This is what lets a
             // `reduce(λa,v: a+v if v>0 else a, …)` fold converge with its loop, whose
             // guard may lower to the mirror comparison.
-            if args.len() == 2 {
+            if args.len() == 2 && self.comparison_law_enabled(ComparisonLaw::DirectionCanon) {
                 if opc == Op::Gt as u32 {
                     op = ValOp::Bin(Op::Lt as u32);
                     args.swap(0, 1);
@@ -2078,9 +2079,12 @@ impl<'a> Builder<'a> {
             // This canonicalizes the residual `Not` the algebra pass leaves on a pushed
             // double-negation (`!!(a<b)` → `!(b<=a)` → `a<b`), converging it with the bare
             // comparison without the unsound untyped `!!x → x`.
-            if o == Op::Not as u32 && !args.is_empty() {
+            if o == Op::Not as u32
+                && !args.is_empty()
+                && self.comparison_law_enabled(ComparisonLaw::Negation)
+            {
                 if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
-                    if let Some(neg) = negate_cmp_code(bo) {
+                    if let Some(neg) = negate_cmp_code(self.il.meta.lang, bo) {
                         let cargs = self.nodes[args[0] as usize].args.clone();
                         return self.mk(ValOp::Bin(neg), cargs);
                     }
@@ -2477,13 +2481,17 @@ impl<'a> Builder<'a> {
     /// `(x ≤ y) ∧ (x ≠ y) → x < y`. Sound on a total order
     /// (`normalize.value_graph.compare`); the post-normalize oracle re-checks it.
     fn lattice_le_ne_to_lt(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
+        if !self.comparison_law_enabled(ComparisonLaw::LatticeLeNeToLt) {
+            return None;
+        }
         self.lattice_pair_canon(a, b, Op::Le as u32, Op::Ne as u32, Op::Lt as u32)
     }
 
-    fn has_primitive_order_comparisons(&self) -> bool {
+    fn comparison_law_enabled(&self, law: ComparisonLaw) -> bool {
         semantics(self.il.meta.lang)
             .operators()
-            .primitive_order_comparisons()
+            .comparison_law(law)
+            .is_some()
     }
 
     /// `(x < y) ∧ (x ≤ y) → x < y`. Guard-clause lowering accumulates path conditions
@@ -2493,7 +2501,7 @@ impl<'a> Builder<'a> {
     /// can be absorbed only for source languages whose comparison operators are primitive
     /// rather than receiver-overloadable.
     fn lattice_strict_absorbs_nonstrict(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
-        if !self.has_primitive_order_comparisons() {
+        if !self.comparison_law_enabled(ComparisonLaw::LatticeStrictAbsorbsNonstrict) {
             return None;
         }
         for (lt_v, le_v) in [(a, b), (b, a)] {
@@ -2509,6 +2517,9 @@ impl<'a> Builder<'a> {
     /// `(x < y) ∨ (x = y) → x ≤ y` — the dual of [`lattice_le_ne_to_lt`] over `∨`
     /// (`normalize.value_graph.compare`).
     fn lattice_lt_eq_to_le(&mut self, a: ValueId, b: ValueId) -> Option<ValueId> {
+        if !self.comparison_law_enabled(ComparisonLaw::LatticeLtEqToLe) {
+            return None;
+        }
         self.lattice_pair_canon(a, b, Op::Lt as u32, Op::Eq as u32, Op::Le as u32)
     }
 
@@ -4871,7 +4882,7 @@ impl<'a> Builder<'a> {
                 (cid, kids[1], cmp)
             }
             (None, Some(cid)) if !mentioned_cids(self.il, kids[0]).contains(&cid) => {
-                (cid, kids[0], reverse_cmp_code(cmp)?)
+                (cid, kids[0], reverse_cmp_code(self.il.meta.lang, cmp)?)
             }
             _ => return None,
         };
@@ -5166,10 +5177,12 @@ impl<'a> Builder<'a> {
     /// converges with the positive guard a loop produces — and anything else is wrapped
     /// in logical `Not`.
     fn negate_guard(&mut self, v: ValueId) -> ValueId {
-        if let ValOp::Bin(opc) = self.nodes[v as usize].op {
-            if let Some(flip) = negate_cmp_code(opc) {
-                let args = self.nodes[v as usize].args.clone();
-                return self.mk(ValOp::Bin(flip), args);
+        if self.comparison_law_enabled(ComparisonLaw::Negation) {
+            if let ValOp::Bin(opc) = self.nodes[v as usize].op {
+                if let Some(flip) = negate_cmp_code(self.il.meta.lang, opc) {
+                    let args = self.nodes[v as usize].args.clone();
+                    return self.mk(ValOp::Bin(flip), args);
+                }
             }
         }
         self.mk(ValOp::Un(Op::Not as u32), vec![v])
@@ -5179,6 +5192,9 @@ impl<'a> Builder<'a> {
     /// classify the selection as max or min. Operand order is meaningful (comparisons
     /// are not commutative-canonicalized), so `cand > acc` and `acc < cand` both → max.
     fn selection_code(&self, cond: ValueId, cand: ValueId, loopv: ValueId) -> Option<u32> {
+        if !self.comparison_law_enabled(ComparisonLaw::SelectionReductionGuard) {
+            return None;
+        }
         let n = &self.nodes[cond as usize];
         let opc = match n.op {
             ValOp::Bin(o) => o,
@@ -5207,6 +5223,9 @@ impl<'a> Builder<'a> {
     /// Recognize the absolute-value idiom `x if x>=0 else -x` (and its mirror
     /// `-x if x<0 else x`) as `Un(ABS_CODE, [x])`, so it converges with `abs(x)`.
     fn abs_pattern(&mut self, cond: ValueId, then: ValueId, els: ValueId) -> Option<ValueId> {
+        if !self.comparison_law_enabled(ComparisonLaw::AbsSignTernary) {
+            return None;
+        }
         let is_neg_of = |s: &Self, neg: ValueId, base: ValueId| {
             matches!(s.nodes[neg as usize].op, ValOp::Un(o) if o == Op::Neg as u32)
                 && s.nodes[neg as usize].args == [base]
@@ -5256,6 +5275,9 @@ impl<'a> Builder<'a> {
     /// `</<= ` family by `mk` (`x>y` → `y<x`). Sound: it is the literal meaning of the
     /// ternary (and `MIN_CODE`/`MAX_CODE` are interpreted as exactly that).
     fn minmax_pattern(&mut self, cond: ValueId, then: ValueId, els: ValueId) -> Option<ValueId> {
+        if !self.comparison_law_enabled(ComparisonLaw::MinMaxTernary) {
+            return None;
+        }
         let cn = &self.nodes[cond as usize];
         let opc = match cn.op {
             ValOp::Bin(o) => o,
@@ -6012,7 +6034,10 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if kids.len() != 2 || !(op == Op::Eq as u32 || op == Op::Ne as u32) {
+        let cardinality = semantics(self.il.meta.lang)
+            .operators()
+            .zero_cardinality_equality(op_from_code(op)?)?;
+        if kids.len() != 2 {
             return None;
         }
         let coll = if self.is_zero_literal(kids[0]) {
@@ -6024,10 +6049,9 @@ impl<'a> Builder<'a> {
         };
         let coll_value = self.eval(coll, env);
         let empty = self.is_empty_value(coll_value);
-        if op == Op::Eq as u32 {
-            Some(empty)
-        } else {
-            Some(self.mk(ValOp::Un(Op::Not as u32), vec![empty]))
+        match cardinality.predicate {
+            CardinalityPredicate::Empty => Some(empty),
+            CardinalityPredicate::NonEmpty => Some(self.mk(ValOp::Un(Op::Not as u32), vec![empty])),
         }
     }
 
@@ -6083,27 +6107,59 @@ impl<'a> Builder<'a> {
         count_on_right: bool,
         threshold: NodeId,
     ) -> bool {
+        let Some(op) = op_from_code(op) else {
+            return false;
+        };
         if self.is_zero_literal(threshold) {
-            return op == Op::Ne as u32
-                || (!count_on_right && op == Op::Gt as u32)
-                || (count_on_right && op == Op::Lt as u32);
+            return semantics(self.il.meta.lang)
+                .operators()
+                .cardinality_threshold(
+                    op,
+                    count_on_right,
+                    CardinalityThreshold::Zero,
+                    CardinalityPredicate::NonEmpty,
+                )
+                .is_some();
         }
         if self.is_one_literal(threshold) {
-            return (!count_on_right && op == Op::Ge as u32)
-                || (count_on_right && op == Op::Le as u32);
+            return semantics(self.il.meta.lang)
+                .operators()
+                .cardinality_threshold(
+                    op,
+                    count_on_right,
+                    CardinalityThreshold::One,
+                    CardinalityPredicate::NonEmpty,
+                )
+                .is_some();
         }
         false
     }
 
     fn is_count_zero_threshold(&self, op: u32, count_on_right: bool, threshold: NodeId) -> bool {
+        let Some(op) = op_from_code(op) else {
+            return false;
+        };
         if self.is_zero_literal(threshold) {
-            return op == Op::Eq as u32
-                || (!count_on_right && op == Op::Le as u32)
-                || (count_on_right && op == Op::Ge as u32);
+            return semantics(self.il.meta.lang)
+                .operators()
+                .cardinality_threshold(
+                    op,
+                    count_on_right,
+                    CardinalityThreshold::Zero,
+                    CardinalityPredicate::Empty,
+                )
+                .is_some();
         }
         if self.is_one_literal(threshold) {
-            return (!count_on_right && op == Op::Lt as u32)
-                || (count_on_right && op == Op::Gt as u32);
+            return semantics(self.il.meta.lang)
+                .operators()
+                .cardinality_threshold(
+                    op,
+                    count_on_right,
+                    CardinalityThreshold::One,
+                    CardinalityPredicate::Empty,
+                )
+                .is_some();
         }
         false
     }
@@ -6174,18 +6230,24 @@ impl<'a> Builder<'a> {
         threshold: NodeId,
     ) -> bool {
         if self.is_minus_one_literal(threshold) {
-            return index_membership_threshold_contract(
-                op,
-                index_call_on_right,
-                IndexMembershipThreshold::MinusOne,
-            );
+            return semantics(self.il.meta.lang)
+                .operators()
+                .static_index_membership_threshold(
+                    op,
+                    index_call_on_right,
+                    IndexMembershipThreshold::MinusOne,
+                )
+                .is_some();
         }
         if self.is_zero_literal(threshold) {
-            return index_membership_threshold_contract(
-                op,
-                index_call_on_right,
-                IndexMembershipThreshold::Zero,
-            );
+            return semantics(self.il.meta.lang)
+                .operators()
+                .static_index_membership_threshold(
+                    op,
+                    index_call_on_right,
+                    IndexMembershipThreshold::Zero,
+                )
+                .is_some();
         }
         false
     }
@@ -7963,43 +8025,51 @@ fn is_increment(il: &Il, expr: NodeId, cid: u32) -> bool {
 }
 
 /// The complementary comparison op code, if `opc` is a comparison; else `None`.
-fn negate_cmp_code(opc: u32) -> Option<u32> {
-    let flip = if opc == Op::Lt as u32 {
-        Op::Ge
-    } else if opc == Op::Le as u32 {
-        Op::Gt
-    } else if opc == Op::Gt as u32 {
-        Op::Le
-    } else if opc == Op::Ge as u32 {
-        Op::Lt
-    } else if opc == Op::Eq as u32 {
-        Op::Ne
-    } else if opc == Op::Ne as u32 {
-        Op::Eq
-    } else {
-        return None;
-    };
-    Some(flip as u32)
+fn negate_cmp_code(lang: Lang, opc: u32) -> Option<u32> {
+    let op = op_from_code(opc)?;
+    semantics(lang)
+        .operators()
+        .comparison_complement(op)
+        .map(|contract| contract.output as u32)
 }
 
 /// The same comparison with operands swapped: `a < b` becomes `b > a`.
-fn reverse_cmp_code(opc: u32) -> Option<u32> {
-    let rev = if opc == Op::Lt as u32 {
-        Op::Gt
-    } else if opc == Op::Le as u32 {
-        Op::Ge
-    } else if opc == Op::Gt as u32 {
-        Op::Lt
-    } else if opc == Op::Ge as u32 {
-        Op::Le
-    } else if opc == Op::Eq as u32 {
-        Op::Eq
-    } else if opc == Op::Ne as u32 {
-        Op::Ne
-    } else {
-        return None;
-    };
-    Some(rev as u32)
+fn reverse_cmp_code(lang: Lang, opc: u32) -> Option<u32> {
+    let op = op_from_code(opc)?;
+    semantics(lang)
+        .operators()
+        .comparison_reverse(op)
+        .map(|contract| contract.output as u32)
+}
+
+fn op_from_code(opc: u32) -> Option<Op> {
+    const OPS: &[Op] = &[
+        Op::Add,
+        Op::Sub,
+        Op::Mul,
+        Op::Div,
+        Op::Mod,
+        Op::Pow,
+        Op::Eq,
+        Op::Ne,
+        Op::Lt,
+        Op::Le,
+        Op::Gt,
+        Op::Ge,
+        Op::In,
+        Op::And,
+        Op::Or,
+        Op::Not,
+        Op::BitAnd,
+        Op::BitOr,
+        Op::BitXor,
+        Op::Shl,
+        Op::Shr,
+        Op::BitNot,
+        Op::Neg,
+        Op::Pos,
+    ];
+    OPS.iter().copied().find(|op| *op as u32 == opc)
 }
 
 fn is_commutative(opc: u32) -> bool {
