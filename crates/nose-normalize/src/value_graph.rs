@@ -52,7 +52,8 @@ use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_static_membership_predicate_operator, free_function_builtin_contract,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_evidence_rhs,
+    go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
+    go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_namespace_symbol, library_api_free_name_shadow_safe,
     library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
@@ -63,18 +64,19 @@ use nose_semantics::{
     library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
     library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, nullish_global_contract,
-    qualified_global_symbol_at_span, record_shape_guard_for_node, reduction_builtin_contract,
-    rust_option_and_then_contract, rust_option_none_sentinel_contract,
-    rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
-    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
-    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
-    ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryCollectionFactoryResult,
-    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
-    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
-    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    own_property_guard_evidence_at_span, qualified_global_symbol_at_span,
+    record_shape_guard_for_node, reduction_builtin_contract, rust_option_and_then_contract,
+    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
+    scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
+    source_operator_at_node, static_index_membership_contract, unshadowed_global_symbol,
+    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
+    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1516,11 +1518,8 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         args: &[ValueId],
     ) -> Option<ValueId> {
-        let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
-        let Payload::Name(name) = self.il.node(expr).payload else {
-            return None;
-        };
-        if self.interner.resolve(name) != contract.map_literal_tag || args.is_empty() {
+        let contract = go_zero_map_literal_contract_for_node(self.il, self.interner, expr)?;
+        if args.is_empty() {
             return None;
         }
         let entry_nodes = self.il.children(expr).to_vec();
@@ -1531,15 +1530,7 @@ impl<'a> Builder<'a> {
         let mut value_kind = None;
         let mut default = None;
         for (&entry_node_id, &entry_value) in entry_nodes.iter().zip(args.iter()) {
-            if self.il.kind(entry_node_id) != NodeKind::Seq {
-                return None;
-            }
-            let Payload::Name(entry_name) = self.il.node(entry_node_id).payload else {
-                return None;
-            };
-            if self.interner.resolve(entry_name) != contract.entry_tag {
-                return None;
-            }
+            go_zero_map_entry_contract_for_node(self.il, self.interner, entry_node_id)?;
             let kv_nodes = self.il.children(entry_node_id);
             if kv_nodes.len() != 2
                 || !matches!(self.il.node(kv_nodes[0]).payload, Payload::LitStr(_))
@@ -6624,10 +6615,8 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_own_property_guard_value(&self, value: ValueId) -> bool {
-        let span = self.node_span[value as usize];
-        ["Object.hasOwn", "Object.prototype.hasOwnProperty.call"]
-            .into_iter()
-            .any(|path| qualified_global_symbol_at_span(self.il, span, NodeKind::Seq, path))
+        self.node_span[value as usize]
+            .is_some_and(|span| own_property_guard_evidence_at_span(self.il, span))
     }
 
     fn map_lookup_value_matches(&mut self, value: ValueId, map: ValueId, key: ValueId) -> bool {

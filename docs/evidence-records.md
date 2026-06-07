@@ -13,8 +13,8 @@ can satisfy an exact-channel precondition.
 
 ## Goal
 
-- Give source, domain, import, symbol-identity, and sequence-surface proof facts
-  one shared shape.
+- Give source, domain, import, symbol-identity, guard, and sequence-surface proof
+  facts one shared shape.
 - Make facts carry stable ids, anchors, provenance, dependencies, and status.
 - Keep exact matching fail-closed when evidence is missing, ambiguous, or
   conflicting.
@@ -60,8 +60,8 @@ The current implemented kinds are:
 | `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding and namespace proof |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
-| `Guard` | multi-obligation guard proof facts such as the first JS/TS record-shape guard contract |
-| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, record guard, or Go composite map literal |
+| `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
+| `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApiContract` is deliberately not listed here yet. It is currently an
 internal `nose-semantics` contract layer that names first-party library/API
@@ -116,6 +116,14 @@ match the lowered sequence. Generic `SequenceSurface(RecordGuard)` is therefore
 not `exact_tree_safe`; missing, ambiguous, conflicting, wrong-kind, wrong-anchor,
 or dependency-broken guard evidence keeps the exact path closed.
 
+JS/TS own-property guards follow the same rule. `Seq("own_property_guard")` and
+`SequenceSurface(OwnPropertyGuard)` are only the lowered shape; exact and
+value-graph consumers require `Guard::JsOwnProperty` with an asserted dependency
+on one supported qualified-global API path, currently `Object.hasOwn` or
+`Object.prototype.hasOwnProperty.call`. Object method spellings such as
+`value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
+ambiguous guard evidence remain closed.
+
 ## Current Producers
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
@@ -131,12 +139,16 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   evidence at the lowered node anchor: own-property guards at their
   `Seq("own_property_guard")` node, and static member expressions such as
   `Array.from` and `Array.isArray` at their `Field` node;
+- JS/TS own-property guard lowering emits `Guard::JsOwnProperty` evidence for
+  the lowered `Seq("own_property_guard")`, with an asserted `QualifiedGlobal`
+  dependency for the admitted API path;
 - JS/TS record-shape guard lowering emits `Guard::JsRecordShape` evidence for
   the lowered `Seq("record_guard")`, including the shared subject hash, the
   null/truthiness clause kind, whether JS loose equality was admitted, and
   asserted dependencies for the required `Array.isArray` API proof plus optional
   `Boolean` proof;
-- lowered `Seq` surfaces emit `SequenceSurface` evidence.
+- lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
+  literal and Go map-entry surfaces where those tags carry first-party meaning.
 
 The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
 compatibility mirrors. First-party JS/TS record-shape guards now have dedicated
@@ -164,9 +176,9 @@ callers:
   exact gates, and `undefined` nullish-default handling, with compatibility
   fallback only when no relevant evidence record exists;
 - qualified-global symbol proof for selected JS/TS API paths: own-property
-  guard normalization and strict exact safety require evidence for
-  `Object.hasOwn` or `Object.prototype.hasOwnProperty.call`, and map-key view
-  wrappers require evidence for `Array.from`;
+  guard evidence depends on `Object.hasOwn` or
+  `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
+  evidence for `Array.from`;
 - `LibraryApiContract` consumers for factory and selected non-factory API
   surfaces now use these evidence helpers for their local obligations. The
   contract rows name API identity and result semantics, while `Symbol`,
@@ -176,11 +188,18 @@ callers:
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by
   tag spelling alone;
+- JS/TS own-property guard exact admission and value-graph map-default
+  normalization require both `SequenceSurface(OwnPropertyGuard)` and
+  `Guard::JsOwnProperty`; raw `Seq("own_property_guard")` plus a path-shaped
+  spelling is not proof by itself;
 - sequence-surface admission for normalize/value-graph/detect exact paths where
   the surface contract is independently exact-safe; guard surfaces use their
-  dedicated guard helper instead.
+  dedicated guard helper instead. Go zero-map literal lookup also requires
+  `SequenceSurface(GoCompositeMapLiteral)` and `SequenceSurface(GoMapEntry)`,
+  so `composite_literal`/`keyed_element` tag spelling alone no longer admits the
+  exact map-default path.
 
 Field/place/effect facts, receiver/protocol evidence beyond parameter domains,
-full scope-resolution and namespace-member evidence, broader guard evidence and
-dependency validation, report-level provenance, and external manifest loading
-are still open work.
+full scope-resolution and namespace-member evidence, broader guard evidence,
+cross-module imported-literal snapshot provenance and evidence copying,
+report-level provenance, and external manifest loading are still open work.

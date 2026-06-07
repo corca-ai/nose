@@ -11,7 +11,10 @@ use nose_il::{
     FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
     Span, UnitKind,
 };
-use nose_semantics::{java_collection_constructor_contract, JavaCollectionConstructorKind};
+use nose_semantics::{
+    library_java_collection_constructor_contract, LibraryApiCalleeContract,
+    LibraryCollectionFactoryResult,
+};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
@@ -731,26 +734,35 @@ fn lower_empty_java_collection_constructor(
 ) -> Option<NodeId> {
     let ty = node.child_by_field_name("type")?;
     let type_name = java_constructor_type_name(lo.text(ty));
-    let contract = java_collection_constructor_contract(lo.lang, &type_name, arg_count)?;
-    let uses_simple_type = type_name == contract.simple_type;
+    let contract = library_java_collection_constructor_contract(lo.lang, &type_name, arg_count)?;
+    let LibraryApiCalleeContract::JavaUtilConstructor {
+        simple_type,
+        module,
+        requires_import_for_simple_type,
+        requires_no_local_type_shadow,
+        ..
+    } = contract.callee
+    else {
+        return None;
+    };
+    let uses_simple_type = type_name == simple_type;
     if uses_simple_type {
         let root = java_root(node);
-        if contract.requires_import_for_simple_type
-            && !java_tree_resolves_simple_type(lo, root, contract.module, contract.simple_type)
+        if requires_import_for_simple_type
+            && !java_tree_resolves_simple_type(lo, root, module, simple_type)
         {
             return None;
         }
-        if contract.requires_no_local_type_shadow
-            && java_tree_declares_type(lo, root, contract.simple_type)
-        {
+        if requires_no_local_type_shadow && java_tree_declares_type(lo, root, simple_type) {
             return None;
         }
     }
-    match contract.kind {
-        JavaCollectionConstructorKind::EmptyList => {
+    match contract.result {
+        LibraryCollectionFactoryResult::EmptySequence => {
             let tag = lo.sym("array");
             Some(lo.add(NodeKind::Seq, Payload::Name(tag), span, &[]))
         }
+        _ => None,
     }
 }
 

@@ -270,6 +270,7 @@ pub fn sequence_surface_kind_for_tag(lang: Lang, tag: Option<&str>) -> Option<Se
         Some("composite_literal") if lang == Lang::Go => {
             Some(SequenceSurfaceKind::GoCompositeMapLiteral)
         }
+        Some("keyed_element") if lang == Lang::Go => Some(SequenceSurfaceKind::GoMapEntry),
         _ => None,
     }
 }
@@ -350,6 +351,13 @@ fn seq_surface_contract_for_tag(
             map_entry_list: false,
             imported_literal: false,
         },
+        SequenceSurfaceKind::GoMapEntry => SeqSurfaceContract {
+            value_tag: stable_symbol_hash("keyed_element"),
+            exact_tree_safe: false,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
     };
     Some((kind, contract))
 }
@@ -396,6 +404,29 @@ fn sequence_surface_evidence_at_sequence_span(
     )
 }
 
+fn sequence_surface_evidence_matches_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: SequenceSurfaceKind,
+) -> bool {
+    if il.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    let raw_tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
+    };
+    if sequence_surface_kind_for_tag(il.meta.lang, raw_tag) != Some(expected) {
+        return false;
+    }
+    matches!(
+        sequence_surface_evidence_at_sequence_span(il, il.node(node).span),
+        EvidenceResolution::Found(kind) if kind == expected
+    )
+}
+
 fn guard_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolution<GuardEvidenceKind> {
     let mut found = None;
     for record in &il.evidence {
@@ -429,6 +460,9 @@ fn guard_evidence_dependencies_valid(
     match kind {
         GuardEvidenceKind::JsRecordShape { null_check, .. } => {
             js_record_shape_guard_dependencies_valid(il, record, null_check, span)
+        }
+        GuardEvidenceKind::JsOwnProperty { api_path_hash } => {
+            js_own_property_guard_dependencies_valid(il, record, api_path_hash, span)
         }
     }
 }
@@ -467,6 +501,43 @@ fn js_record_shape_guard_dependencies_valid(
         }
     }
     has_array_is_array && has_boolean
+}
+
+fn js_own_property_guard_api_path_hash_supported(path_hash: u64) -> bool {
+    path_hash == stable_symbol_hash("Object.hasOwn")
+        || path_hash == stable_symbol_hash("Object.prototype.hasOwnProperty.call")
+}
+
+fn js_own_property_guard_dependencies_valid(
+    il: &Il,
+    record: &EvidenceRecord,
+    api_path_hash: u64,
+    span: Span,
+) -> bool {
+    if !js_own_property_guard_api_path_hash_supported(api_path_hash) {
+        return false;
+    }
+    let mut has_api = false;
+    for id in &record.dependencies {
+        let Some(dependency) = il.evidence.get(id.0 as usize) else {
+            return false;
+        };
+        if dependency.id != *id
+            || dependency.status != EvidenceStatus::Asserted
+            || !dependency.anchor.matches_span(span)
+        {
+            return false;
+        }
+        match dependency.kind {
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal { path_hash })
+                if path_hash == api_path_hash =>
+            {
+                has_api = true;
+            }
+            _ => return false,
+        }
+    }
+    has_api
 }
 
 /// Prove that a lowered `Seq("record_guard")` denotes the first-party JS-like
@@ -541,6 +612,72 @@ fn record_shape_guard_subject_matches(
         Payload::Cid(_) => true,
         _ => false,
     }
+}
+
+/// Prove that a lowered `Seq("own_property_guard")` denotes a first-party
+/// JS-like own-property test such as `Object.hasOwn(obj, key)`. The surface tag
+/// is not enough: exact consumers require matching sequence evidence, dedicated
+/// guard evidence, and a supported qualified-global API dependency.
+pub fn own_property_guard_for_node(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    own_property_guard_evidence_for_node(il, interner, node).is_some()
+}
+
+pub fn own_property_guard_evidence_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<GuardEvidenceKind> {
+    if il.kind(node) != NodeKind::Seq || !js_like_lang(il.meta.lang) {
+        return None;
+    }
+    let span = il.node(node).span;
+    if !matches!(
+        sequence_surface_evidence_at_sequence_span(il, span),
+        EvidenceResolution::Found(SequenceSurfaceKind::OwnPropertyGuard)
+    ) {
+        return None;
+    }
+    match guard_evidence_at_sequence_span(il, span) {
+        EvidenceResolution::Found(evidence @ GuardEvidenceKind::JsOwnProperty { .. })
+            if own_property_guard_sequence_matches(il, interner, node) =>
+        {
+            Some(evidence)
+        }
+        EvidenceResolution::Found(_)
+        | EvidenceResolution::Ambiguous
+        | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn own_property_guard_evidence_at_span(il: &Il, span: Span) -> bool {
+    if !js_like_lang(il.meta.lang)
+        || !matches!(
+            sequence_surface_evidence_at_sequence_span(il, span),
+            EvidenceResolution::Found(SequenceSurfaceKind::OwnPropertyGuard)
+        )
+    {
+        return false;
+    }
+    matches!(
+        guard_evidence_at_sequence_span(il, span),
+        EvidenceResolution::Found(GuardEvidenceKind::JsOwnProperty { .. })
+    )
+}
+
+fn own_property_guard_sequence_matches(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    let Payload::Name(tag) = il.node(node).payload else {
+        return false;
+    };
+    if sequence_surface_kind_for_tag(il.meta.lang, Some(interner.resolve(tag)))
+        != Some(SequenceSurfaceKind::OwnPropertyGuard)
+    {
+        return false;
+    }
+    let [_, _, own, present] = il.children(node) else {
+        return false;
+    };
+    literal_string_hash(il, *own) == Some(stable_symbol_hash("own"))
+        && literal_string_hash(il, *present) == Some(stable_symbol_hash("present"))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2549,6 +2686,31 @@ pub fn go_zero_map_lookup_contract(lang: Lang) -> Option<GoZeroMapLookupContract
     })
 }
 
+pub fn go_zero_map_literal_contract_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<GoZeroMapLookupContract> {
+    let contract = go_zero_map_lookup_contract(il.meta.lang)?;
+    sequence_surface_evidence_matches_node(
+        il,
+        interner,
+        node,
+        SequenceSurfaceKind::GoCompositeMapLiteral,
+    )
+    .then_some(contract)
+}
+
+pub fn go_zero_map_entry_contract_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<GoZeroMapLookupContract> {
+    let contract = go_zero_map_lookup_contract(il.meta.lang)?;
+    sequence_surface_evidence_matches_node(il, interner, node, SequenceSurfaceKind::GoMapEntry)
+        .then_some(contract)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GoZeroMapDefaultKind {
     Int,
@@ -3018,6 +3180,7 @@ pub enum LibraryApiContractId {
     RustVecMacroFactory,
     RustVecNewFactory,
     JavaCollectionFactory(JavaCollectionFactoryKind),
+    JavaCollectionConstructor(JavaCollectionConstructorKind),
     JavaMapFactory(JavaMapFactoryKind),
     JavaMapEntryFactory,
     RubySetFactory,
@@ -3073,6 +3236,13 @@ pub enum LibraryApiCalleeContract {
     JavaUtilStaticMember {
         receiver: &'static str,
         method: &'static str,
+    },
+    JavaUtilConstructor {
+        simple_type: &'static str,
+        qualified_type: &'static str,
+        module: &'static str,
+        requires_import_for_simple_type: bool,
+        requires_no_local_type_shadow: bool,
     },
     RubyRequireStaticMember {
         receiver: &'static str,
@@ -3372,6 +3542,25 @@ pub fn library_java_collection_factory_contract_by_hash(
         (stable_symbol_hash(method) == method_hash)
             .then(|| library_java_collection_factory_contract(lang, receiver, method))
             .flatten()
+    })
+}
+
+pub fn library_java_collection_constructor_contract(
+    lang: Lang,
+    type_name: &str,
+    arg_count: usize,
+) -> Option<LibraryCollectionFactoryContract> {
+    let contract = java_collection_constructor_contract(lang, type_name, arg_count)?;
+    Some(LibraryCollectionFactoryContract {
+        id: LibraryApiContractId::JavaCollectionConstructor(contract.kind),
+        callee: LibraryApiCalleeContract::JavaUtilConstructor {
+            simple_type: contract.simple_type,
+            qualified_type: contract.qualified_type,
+            module: contract.module,
+            requires_import_for_simple_type: contract.requires_import_for_simple_type,
+            requires_no_local_type_shadow: contract.requires_no_local_type_shadow,
+        },
+        result: LibraryCollectionFactoryResult::EmptySequence,
     })
 }
 
@@ -4222,7 +4411,13 @@ mod tests {
         assert!(!go_map.membership_collection);
         assert!(!go_map.imported_literal);
 
+        let go_entry = seq_surface_contract(Lang::Go, Some("keyed_element")).unwrap();
+        assert_eq!(go_entry.value_tag, stable_symbol_hash("keyed_element"));
+        assert!(!go_entry.exact_tree_safe);
+        assert!(!go_entry.membership_collection);
+
         assert!(seq_surface_contract(Lang::Python, Some("composite_literal")).is_none());
+        assert!(seq_surface_contract(Lang::Python, Some("keyed_element")).is_none());
         assert!(imported_literal_seq_tag_safe(Lang::Python, "dictionary"));
         assert!(!imported_literal_seq_tag_safe(Lang::Ruby, "hash"));
     }
@@ -4337,6 +4532,267 @@ mod tests {
             EvidenceStatus::Asserted,
             dependencies.iter().copied().map(EvidenceId).collect(),
         )
+    }
+
+    fn js_own_property_guard_il(interner: &Interner) -> (Il, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let tag = interner.intern("own_property_guard");
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("value")),
+            sp(22),
+            &[],
+        );
+        let key = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("ready")),
+            sp(22),
+            &[],
+        );
+        let own = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("own")),
+            sp(22),
+            &[],
+        );
+        let present = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("present")),
+            sp(22),
+            &[],
+        );
+        let guard = b.add(
+            NodeKind::Seq,
+            Payload::Name(tag),
+            sp(22),
+            &[receiver, key, own, present],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(22), &[guard]);
+        (finish_il(b, root, Lang::JavaScript), guard)
+    }
+
+    fn qualified_global_dependency(
+        id: u32,
+        span: Span,
+        path: &str,
+        status: EvidenceStatus,
+    ) -> EvidenceRecord {
+        evidence(
+            id,
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash(path),
+            }),
+            status,
+        )
+    }
+
+    fn own_property_guard_record(
+        id: u32,
+        span: Span,
+        path: &str,
+        status: EvidenceStatus,
+        dependencies: &[u32],
+    ) -> EvidenceRecord {
+        evidence_with_dependencies(
+            id,
+            EvidenceAnchor::sequence(span),
+            EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
+                api_path_hash: stable_symbol_hash(path),
+            }),
+            status,
+            dependencies.iter().copied().map(EvidenceId).collect(),
+        )
+    }
+
+    #[test]
+    fn own_property_guard_requires_dedicated_guard_evidence() {
+        let interner = Interner::new();
+        let (mut il, guard) = js_own_property_guard_il(&interner);
+
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(22)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+
+        il.evidence.push(qualified_global_dependency(
+            1,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+
+        il.evidence.push(own_property_guard_record(
+            2,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        assert!(own_property_guard_for_node(&il, &interner, guard));
+        assert!(own_property_guard_evidence_at_span(&il, sp(22)));
+    }
+
+    #[test]
+    fn own_property_guard_validates_api_dependencies() {
+        let interner = Interner::new();
+        let (mut il, guard) = js_own_property_guard_il(&interner);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(22)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(qualified_global_dependency(
+            1,
+            sp(22),
+            "Array.from",
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(own_property_guard_record(
+            2,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_own_property_guard_il(&interner);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(22)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(qualified_global_dependency(
+            1,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Ambiguous,
+        ));
+        il.evidence.push(own_property_guard_record(
+            2,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+
+        let (mut il, guard) = js_own_property_guard_il(&interner);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(22)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(qualified_global_dependency(
+            1,
+            sp(22),
+            "value.hasOwnProperty",
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(own_property_guard_record(
+            2,
+            sp(22),
+            "value.hasOwnProperty",
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+    }
+
+    #[test]
+    fn own_property_guard_rejects_ambiguous_guard_evidence() {
+        let interner = Interner::new();
+        let (mut il, guard) = js_own_property_guard_il(&interner);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(22)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(qualified_global_dependency(
+            1,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(qualified_global_dependency(
+            2,
+            sp(22),
+            "Object.prototype.hasOwnProperty.call",
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(own_property_guard_record(
+            3,
+            sp(22),
+            "Object.hasOwn",
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        il.evidence.push(own_property_guard_record(
+            4,
+            sp(22),
+            "Object.prototype.hasOwnProperty.call",
+            EvidenceStatus::Asserted,
+            &[2],
+        ));
+        assert!(!own_property_guard_for_node(&il, &interner, guard));
+    }
+
+    #[test]
+    fn go_zero_map_surface_helpers_require_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let key = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("ready")),
+            sp(32),
+            &[],
+        );
+        let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(32), &[]);
+        let entry = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("keyed_element")),
+            sp(32),
+            &[key, value],
+        );
+        let map = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("composite_literal")),
+            sp(31),
+            &[entry],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(31), &[map]);
+        let mut il = finish_il(b, root, Lang::Go);
+
+        assert!(go_zero_map_literal_contract_for_node(&il, &interner, map).is_none());
+        assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_none());
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(31)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::GoCompositeMapLiteral),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(go_zero_map_literal_contract_for_node(&il, &interner, map).is_some());
+        assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_none());
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::sequence(sp(32)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::GoMapEntry),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(go_zero_map_entry_contract_for_node(&il, &interner, entry).is_some());
     }
 
     #[test]
@@ -5219,6 +5675,22 @@ mod tests {
             })
         );
         assert_eq!(
+            library_java_collection_constructor_contract(Lang::Java, "ArrayList", 0),
+            Some(LibraryCollectionFactoryContract {
+                id: LibraryApiContractId::JavaCollectionConstructor(
+                    JavaCollectionConstructorKind::EmptyList,
+                ),
+                callee: LibraryApiCalleeContract::JavaUtilConstructor {
+                    simple_type: "ArrayList",
+                    qualified_type: "java.util.ArrayList",
+                    module: "java.util",
+                    requires_import_for_simple_type: true,
+                    requires_no_local_type_shadow: true,
+                },
+                result: LibraryCollectionFactoryResult::EmptySequence,
+            })
+        );
+        assert_eq!(
             library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1),
             Some(LibraryCollectionFactoryContract {
                 id: LibraryApiContractId::RubySetFactory,
@@ -5960,6 +6432,14 @@ mod tests {
         );
         assert_eq!(
             java_collection_constructor_contract(Lang::JavaScript, "ArrayList", 0),
+            None
+        );
+        assert_eq!(
+            library_java_collection_constructor_contract(Lang::Java, "ArrayList", 1),
+            None
+        );
+        assert_eq!(
+            library_java_collection_constructor_contract(Lang::JavaScript, "ArrayList", 0),
             None
         );
         assert_eq!(

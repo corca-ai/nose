@@ -346,6 +346,9 @@ pub enum GuardEvidenceKind {
         null_check: JsRecordGuardNullCheck,
         comparison: JsRecordGuardComparison,
     },
+    JsOwnProperty {
+        api_path_hash: u64,
+    },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -360,6 +363,7 @@ pub enum SequenceSurfaceKind {
     RecordGuard,
     OwnPropertyGuard,
     GoCompositeMapLiteral,
+    GoMapEntry,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

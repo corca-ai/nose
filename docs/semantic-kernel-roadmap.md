@@ -103,9 +103,9 @@ and pack ecosystem.
   identity/result source while keeping local import, require, shadow, mutation,
   constructor-syntax, and entry-shape proof at the caller.
 - Java empty `ArrayList`/`LinkedList` constructor lowering now consumes a
-  `java.util` constructor contract instead of a raw simple-name check. Simple
-  names need import proof and no local type shadow before they can seed exact
-  builder-loop equivalence.
+  `LibraryApiContract` `java.util` constructor row instead of a raw simple-name
+  check. Simple names need import proof and no local type shadow before they can
+  seed exact builder-loop equivalence.
 - Membership and map-key membership recognition now uses language-scoped method
   contracts before normalization or strict exact matching assigns containment
   semantics. This intentionally closes old name-only paths such as JavaScript
@@ -123,8 +123,9 @@ and pack ecosystem.
 - Map key-view recognition moved behind contracts that distinguish collection
   views from iterator views. JS-like `Map.keys()` now requires an
   `Array.from(...)` wrapper before exact membership can consume it.
-- Go composite map literal/default-zero lookup recognition moved behind a shared
-  contract for literal/entry tags and supported zero-default payload classes.
+- Go composite map literal/default-zero lookup recognition moved behind shared
+  contracts for the outer literal surface, per-entry surface, and supported
+  zero-default payload classes.
 - Map `get(key)` lookup surfaces for Java, Rust, and JS-like typed/proven maps
   moved behind an explicit map-get contract. Defaulting surfaces continue through
   the existing `GetOrDefault` method contract.
@@ -241,10 +242,10 @@ and pack ecosystem.
   `Field(Var(global), method)` shape through symbol-proof contracts instead.
 - Selected JS/TS qualified static global paths now emit `QualifiedGlobal`
   evidence. `Object.hasOwn` and
-  `Object.prototype.hasOwnProperty.call` gate own-property guard normalization
-  and strict exact safety, while `Array.from` gates JS-like map-key iterator
-  wrappers. `Array.isArray` emits the same path evidence for strict exact call
-  gates. Full namespace-member resolution remains open.
+  `Object.prototype.hasOwnProperty.call` are dependencies of own-property guard
+  evidence, while `Array.from` gates JS-like map-key iterator wrappers.
+  `Array.isArray` emits the same path evidence for strict exact call gates. Full
+  namespace-member resolution remains open.
 - Value-graph import identity now consumes sequence `Import` evidence into
   dedicated internal `ImportNamespace`/`ImportBinding` value ops instead of
   treating raw `ValOp::Seq(import_*)` shapes as proof objects. Imported
@@ -255,6 +256,15 @@ and pack ecosystem.
   Strict exact and value-graph paths require that evidence plus
   `SequenceSurface(RecordGuard)`, so raw `Seq("record_guard")` no longer acts as
   a proof object by tag spelling.
+- JS/TS own-property guards now emit dedicated `Guard::JsOwnProperty` evidence
+  with an asserted supported `QualifiedGlobal` API dependency. Strict exact and
+  value-graph map-default paths require that evidence plus
+  `SequenceSurface(OwnPropertyGuard)`, so raw `Seq("own_property_guard")` no
+  longer acts as proof by tag spelling or API-looking text.
+- Go zero-map literal/default lookup now requires evidence for both
+  `SequenceSurface(GoCompositeMapLiteral)` and `SequenceSurface(GoMapEntry)`.
+  The compatibility tags still exist as lowered surfaces, but exact admission no
+  longer comes from raw `composite_literal`/`keyed_element` strings alone.
 - Non-factory library/API surfaces started moving into `LibraryApiContract`
   identity/result rows. Map-key views and wrappers, map `get`/defaulting method
   calls, selected static JS-like helpers, regex-literal `.test`, Python
@@ -318,19 +328,20 @@ Remaining in this phase:
   versioned pack-facing evidence records.
 - Continue moving library API recognition into `LibraryApiContract` records.
   The first internal slice covers collection/map factories, selected
-  constructors, Java `Map.entry`, and the shared shadow/import/result
+  constructors, Java empty collection constructors, Java `Map.entry`, and the
+  shared shadow/import/result
   obligations consumed by normalize and strict exact gates. The next slice moved
   selected non-factory surfaces behind the same identity/result facade: map-key
   views and wrappers, map `get`, map defaulting method calls, static JS-like
   helpers, regex-literal `.test`, Python `math.prod`, promise `.then`, iterator
   identity adapters, Java `Arrays.stream`, and existing language-scoped method
   call contracts.
-- Keep value-graph and strict exact gates on the same contract source. Factory
-  and selected method/view/adapter gates now share `LibraryApiContract`
-  identity/result rows. Remaining API work is to move producer-side API evidence
-  and raw sequence/tag dependencies into explicit evidence records, then cover
-  broader reduction/HOF and ecosystem APIs only after demand, receiver, and
-  effect obligations are expressible.
+- Keep value-graph and strict exact gates on the same contract source. Factory,
+  constructor, and selected method/view/adapter gates now share
+  `LibraryApiContract` identity/result rows. Remaining API work is to move
+  imported-literal producer provenance and other raw sequence/tag dependencies
+  into explicit evidence records, then cover broader reduction/HOF and ecosystem
+  APIs only after demand, receiver, and effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph
@@ -338,11 +349,13 @@ Remaining in this phase:
   selected JS/TS `QualifiedGlobal` paths are covered, but general
   qualified-member, namespace export identity, and cross-module dependency
   evidence are not.
-- Generalize dedicated guard evidence beyond the first JS/TS record-shape
-  contract, including richer source-clause records, API dependency validation,
-  subject/place identity, and truthiness/null semantics.
+- Generalize dedicated guard evidence beyond the first JS/TS record-shape and
+  own-property contracts, including richer source-clause records, API dependency
+  validation, subject/place identity, and truthiness/null semantics.
 - Expand the first `SequenceSurface` evidence into sequence/aggregate records for
-  factories, nested entries, iterator views, and exported-literal eligibility.
+  factories, more nested entries, iterator views, and exported-literal
+  eligibility. Go map literal entries are the first exact consumer that now
+  requires per-entry surface evidence.
 - Expand domain evidence from parameter annotations into receiver/protocol
   evidence records for exact collection/map/set/option/string/integer proofs,
   immutable local/module bindings, and mutation exclusion.

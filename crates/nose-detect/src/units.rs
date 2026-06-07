@@ -17,7 +17,8 @@ use nose_semantics::{
     domain_evidence_for_param as semantic_domain_evidence_for_param, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, imported_binding_symbol,
+    go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
+    go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, imported_binding_symbol,
     imported_member_symbol, library_api_free_name_shadow_safe,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
@@ -27,12 +28,13 @@ use nose_semantics::{
     library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    nullish_global_contract, qualified_global_symbol, record_shape_guard_for_node, semantics,
-    seq_surface_contract_for_node, source_fact_at_node, source_operator_at_node,
-    static_index_membership_contract, typeof_operator_contract, unshadowed_global_symbol,
-    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    nullish_global_contract, own_property_guard_for_node, qualified_global_symbol,
+    record_shape_guard_for_node, semantics, seq_surface_contract_for_node, source_fact_at_node,
+    source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
+    unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1218,7 +1220,9 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if let Payload::Name(tag) = il.node(node).payload {
         match interner.resolve(tag) {
-            "own_property_guard" => return strict_exact_own_property_guard_seq_safe(il, node),
+            "own_property_guard" => {
+                return strict_exact_own_property_guard_seq_safe(il, interner, node);
+            }
             "record_guard" => return record_shape_guard_for_node(il, interner, node),
             _ => {}
         }
@@ -1227,10 +1231,8 @@ fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
         .is_some_and(|contract| contract.exact_tree_safe)
 }
 
-fn strict_exact_own_property_guard_seq_safe(il: &Il, node: NodeId) -> bool {
-    ["Object.hasOwn", "Object.prototype.hasOwnProperty.call"]
-        .into_iter()
-        .any(|path| qualified_global_symbol(il, node, path))
+fn strict_exact_own_property_guard_seq_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    own_property_guard_for_node(il, interner, node)
 }
 
 fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
@@ -2422,29 +2424,18 @@ fn strict_exact_go_literal_zero_map_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    let Some(contract) = go_zero_map_lookup_contract(il.meta.lang) else {
-        return false;
-    };
-    if il.kind(node) != NodeKind::Seq {
-        return false;
-    }
-    let Payload::Name(name) = il.node(node).payload else {
-        return false;
-    };
-    if interner.resolve(name) != contract.map_literal_tag || il.children(node).is_empty() {
+    if go_zero_map_literal_contract_for_node(il, interner, node).is_none()
+        || il.children(node).is_empty()
+    {
         return false;
     }
     let mut value_kind = None;
     il.children(node).iter().all(|&entry| {
-        if il.kind(entry) != NodeKind::Seq {
+        if go_zero_map_entry_contract_for_node(il, interner, entry).is_none() {
             return false;
         }
-        let Payload::Name(entry_name) = il.node(entry).payload else {
-            return false;
-        };
         let kv = il.children(entry);
-        if interner.resolve(entry_name) != contract.entry_tag
-            || kv.len() != 2
+        if kv.len() != 2
             || !matches!(il.node(kv[0]).payload, Payload::LitStr(_))
             || !strict_exact_safe_tree(il, interner, facts, kv[0])
         {

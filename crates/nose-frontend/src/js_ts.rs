@@ -1113,7 +1113,15 @@ fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> Option<Node
         span,
         &[receiver, key, own, present],
     );
-    lo.record_qualified_global_symbol(span, NodeKind::Seq, contract.path);
+    let api_dependency = lo.record_qualified_global_symbol(span, NodeKind::Seq, contract.path);
+    lo.record_evidence_with_dependencies(
+        EvidenceAnchor::sequence(span),
+        EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
+            api_path_hash: stable_symbol_hash(contract.path),
+        }),
+        "own_property_guard_js_api",
+        vec![api_dependency],
+    );
     Some(guard)
 }
 
@@ -2002,6 +2010,18 @@ mod tests {
             .collect()
     }
 
+    fn js_own_property_guard_evidence(il: &Il) -> Vec<&nose_il::EvidenceRecord> {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty { .. })
+                )
+            })
+            .collect()
+    }
+
     fn switch_labels_for_return(src: &str, expected_return: i64) -> Vec<i64> {
         let interner = Interner::new();
         let il = crate::lower_source(
@@ -2138,6 +2158,31 @@ mod tests {
     }
 
     #[test]
+    fn js_own_property_guards_emit_guard_evidence_with_api_dependencies() {
+        let il = lower_js(
+            "function hasOwn(value) { return Object.hasOwn(value, \"ready\"); }
+             function hasOwnCall(value) { return Object.prototype.hasOwnProperty.call(value, \"ready\"); }",
+        );
+
+        let guards = js_own_property_guard_evidence(&il);
+        assert_eq!(guards.len(), 2);
+        assert!(guards.iter().any(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty { api_path_hash })
+                    if api_path_hash == stable_symbol_hash("Object.hasOwn")
+            ) && record.dependencies.len() == 1
+        }));
+        assert!(guards.iter().any(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty { api_path_hash })
+                    if api_path_hash == stable_symbol_hash("Object.prototype.hasOwnProperty.call")
+            ) && record.dependencies.len() == 1
+        }));
+    }
+
+    #[test]
     fn js_record_shape_guards_emit_guard_evidence_with_api_dependencies() {
         let il = lower_js(
             "function direct(value) {
@@ -2227,5 +2272,6 @@ mod tests {
             qualified_global_evidence_count(&il, "Array.from", NodeKind::Field),
             0
         );
+        assert!(js_own_property_guard_evidence(&il).is_empty());
     }
 }

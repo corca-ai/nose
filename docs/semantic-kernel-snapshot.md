@@ -9,11 +9,11 @@ Snapshot date: 2026-06-08, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
 sequence-surface contracts, proof-backed append fragment evidence, and the first
 operator-law contracts, typed import facts, and source-fact gates for construct,
-literal, equality/operator provenance, and the first shared evidence-record
-substrate for source, domain, import, symbol-identity, and sequence-surface
-facts. Library/API identity is now consolidated further through internal
-`LibraryApiContract` rows for both factory and selected non-factory method/view
-surfaces.
+literal, equality/operator provenance, and the shared evidence-record substrate
+for source, domain, import, symbol-identity, guard, and sequence-surface facts.
+Library/API identity is now consolidated further through internal
+`LibraryApiContract` rows for factory, constructor, and selected non-factory
+method/view surfaces.
 
 ## What exists today
 
@@ -102,19 +102,20 @@ migrated.
   normalize/detect still perform the local scope shadow check. The Rust
   frontend preserves bare `None` as a name rather than lowering it directly to
   null, so Option absence is admitted only through the contract.
-- Collection and map factory identity now has an internal `LibraryApiContract`
+- Collection factory, map factory, and selected constructor identity now have an
+  internal `LibraryApiContract`
   shape in `nose-semantics`. It separates API identity from result eligibility,
   so callers can distinguish "this is Java `Arrays.asList`" from "this argument
   can be canonicalized as a membership collection." Shared contracts cover
   Python free-name factories (`list`, `set`, `frozenset`, `tuple`), Python
   imported `collections.deque`, Rust
   `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from`, Rust
-  `vec!`/`Vec::new`, Java `List.of`/`Set.of`/`Arrays.asList`, Java `Map.of`/
-  `Map.ofEntries`/`Map.entry`, Ruby `require "set"; Set.new(...)`, and JS-like
-  `new Set(...)`/`new Map(...)`. Normalize and strict exact gates consume this
-  shared contract source while still proving local import, require, shadowing,
-  constructor syntax, entry-shape, mutation, and exact-safety obligations at the
-  caller.
+  `vec!`/`Vec::new`, Java `List.of`/`Set.of`/`Arrays.asList`, Java
+  `new ArrayList<>()`/`new LinkedList<>()`, Java `Map.of`/`Map.ofEntries`/
+  `Map.entry`, Ruby `require "set"; Set.new(...)`, and JS-like `new Set(...)`/
+  `new Map(...)`. Normalize and strict exact gates consume this shared contract
+  source while still proving local import, require, shadowing, constructor
+  syntax, entry-shape, mutation, and exact-safety obligations at the caller.
 - Selected non-factory library/API surfaces also consume `LibraryApiContract`
   rows before normalize, value-graph, or strict exact paths assign semantics.
   Current rows cover map-key views and wrappers, Java/Rust/JS-like map `get`,
@@ -127,11 +128,12 @@ migrated.
   import/symbol identity, source facts, exact-safe arguments, fallback demand
   shape, and mutation safety.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
-  `new LinkedList<>()` only for the Java `java.util` list types. Simple names
-  require `java.util` import proof and no local type declaration with the same
-  simple name. A `java.util.*` wildcard import is not enough when another
-  package explicitly imports the same simple type; fully-qualified
-  `java.util.*List` names carry the namespace proof in the selector itself.
+  `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
+  `java.util` list types. Simple names require `java.util` import proof and no
+  local type declaration with the same simple name. A `java.util.*` wildcard
+  import is not enough when another package explicitly imports the same simple
+  type; fully-qualified `java.util.*List` names carry the namespace proof in the
+  selector itself.
 - Builder append contracts are separate from arbitrary method calls. A selector
   such as `push`, `append`, or `add` is not proof by itself. First-party
   frontend/normalize paths must prove the receiver or active-builder contract and
@@ -228,16 +230,26 @@ migrated.
   `Guard::JsRecordShape` evidence, including subject identity, null/truthiness
   form, comparison form, and asserted API dependencies for `Array.isArray` plus
   optional `Boolean`.
+- JS/TS own-property guards are also evidence-backed. The frontend emits
+  `Guard::JsOwnProperty` for admitted `Object.hasOwn(obj, key)` and
+  `Object.prototype.hasOwnProperty.call(obj, key)` surfaces, with a dependency
+  on the corresponding `QualifiedGlobal` proof. Strict exact and value-graph
+  map-default paths require both `SequenceSurface(OwnPropertyGuard)` and that
+  dedicated guard evidence; raw `Seq("own_property_guard")`, object method
+  spellings, and shadowed `Object` roots stay closed.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
   consume that same proof, so temp-bound `Map.get(...)` defaulting can stay open
   without admitting shadowed `undefined` bindings.
-- Go literal map default lookup is represented by a shared contract for the
-  `composite_literal`/`keyed_element` surface and the supported zero-default
-  payload classes. Go `composite_literal` no longer falls back to a generic
-  collection sequence tag; it is consumed only by the Go map contract or left as
-  a distinct surface.
+- Go literal map default lookup is represented by shared contracts for both the
+  outer `composite_literal` and per-entry `keyed_element` sequence surfaces plus
+  the supported zero-default payload classes. Normalize and strict exact paths
+  require matching `SequenceSurface(GoCompositeMapLiteral)` and
+  `SequenceSurface(GoMapEntry)` evidence, so raw tag spelling alone is not
+  enough. Go `composite_literal` no longer falls back to a generic collection
+  sequence tag; it is consumed only by the Go map contract or left as a distinct
+  surface.
 - Static JS-like `indexOf`/`findIndex` membership requires a receiver whose
   sequence surface has membership-collection admission. Untagged sequence
   expressions, destructuring surfaces, and other positional groupings do not
@@ -292,10 +304,10 @@ Semantic knowledge still appears in several forms outside the facade:
   provenance, and external pack manifests remain open;
 - language-specific import, symbol, or module proof mechanics that are still
   local to frontend, normalize, detect, or value-graph callers;
-- JS/TS record-shape guards now have a first dedicated `Guard::JsRecordShape`
-  record consumed by strict exact and value-graph paths. The recognizer is still
-  first-party JS/TS lowering code, and broader guard families, richer
-  source-clause dependency records, and pack-facing dependency validation remain
+- JS/TS record-shape and own-property guards now have dedicated `Guard` evidence
+  records consumed by strict exact and value-graph paths. The recognizers are
+  still first-party JS/TS lowering code, and broader guard families, richer
+  source/API dependency records, and pack-facing dependency validation remain
   open;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
@@ -303,6 +315,9 @@ Semantic knowledge still appears in several forms outside the facade:
   but the raw IL storage shape and some compatibility consumers have not been
   removed;
 - module/import proof logic for immutable sibling-module literal bindings;
+- imported-literal snapshot provenance and evidence copying for cross-file
+  replacement, especially avoiding raw import `Seq` fallback when provider
+  evidence is missing or ambiguous;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
   instead of versioned `LawPack` records;
