@@ -3298,6 +3298,7 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     let ruby = "def f(lookup, other_lookup, key, other)\n  lookup.key?(key)\nend\n";
     let ruby_has = "def f(lookup, other_lookup, key, other)\n  lookup.has_key?(key)\nend\n";
     let ts_array_from_keys = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(key); }";
+    let ts_direct_keys_includes = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return lookup.keys().includes(key); }";
     let typed_set_same_names = "function f(lookup: Set<string>, other_lookup: Set<string>, key: string, other: string): boolean { return lookup.has(key); }";
     let wrong_key =
         "def f(lookup, other_lookup, key, other):\n    return lookup.__contains__(other)\n";
@@ -3324,6 +3325,11 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     assert_ne!(fp, value_fp(&i, ruby, Lang::Ruby));
     assert_ne!(fp, value_fp(&i, ruby_has, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, ts_array_from_keys, Lang::TypeScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, ts_direct_keys_includes, Lang::TypeScript),
+        "Map.keys() is an iterator view; direct .includes is not a proven key-view collection"
+    );
     assert_ne!(fp, value_fp(&i, typed_set_same_names, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, wrong_key, Lang::Python));
     assert_ne!(fp, value_fp(&i, wrong_map, Lang::Python));

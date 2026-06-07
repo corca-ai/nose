@@ -100,6 +100,9 @@ and pack ecosystem.
 - JS-like `Map`/`Set` constructors are now represented as explicit closed
   contracts requiring construct-syntax proof; they remain exact-closed until the
   frontend/kernel can distinguish `new Map(...)` from plain `Map(...)`.
+- Map key-view recognition moved behind contracts that distinguish collection
+  views from iterator views. JS-like `Map.keys()` now requires an
+  `Array.from(...)` wrapper before exact membership can consume it.
 
 ## Phase 0: documentation and vocabulary
 
@@ -129,8 +132,6 @@ and pack ecosystem.
   versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
-- Move map key-view contracts (`keys`, Java `keySet`, JS-like
-  `Array.from(map.keys())`) into shared kernel contracts.
 - Move Go composite map literal/default-zero lookup contracts into shared kernel
   contracts.
 - Replace the current `DomainEvidence` facade with versioned, pack-facing

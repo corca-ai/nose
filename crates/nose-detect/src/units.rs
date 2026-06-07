@@ -17,8 +17,9 @@ use nose_semantics::{
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, iterator_identity_adapter_contract,
     java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
-    js_like_map_constructor_contract, js_like_set_constructor_contract, method_call_contract,
-    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics, JavaMapFactoryKind,
+    js_like_map_constructor_contract, js_like_set_constructor_contract, map_key_view_contract,
+    map_key_view_wrapper_contract, method_call_contract, ruby_set_factory_contract,
+    rust_vec_new_factory_contract, semantics, JavaMapFactoryKind, MapKeyViewKind,
     MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -1502,6 +1503,18 @@ fn strict_exact_map_key_view_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
+    strict_exact_map_key_view_safe_matching(il, interner, facts, node, |kind| {
+        kind == MapKeyViewKind::Collection
+    })
+}
+
+fn strict_exact_map_key_view_safe_matching(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    accepts: impl Fn(MapKeyViewKind) -> bool + Copy,
+) -> bool {
     if il.kind(node) != NodeKind::Call {
         return false;
     }
@@ -1512,7 +1525,10 @@ fn strict_exact_map_key_view_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "keys" {
+    let Some(contract) = map_key_view_contract(il.meta.lang, interner.resolve(method), 0) else {
+        return false;
+    };
+    if !accepts(contract.kind) {
         return false;
     }
     let Some(&receiver) = il.children(kids[0]).first() else {
@@ -1543,15 +1559,19 @@ fn strict_exact_map_key_view_collection_safe(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    if interner.resolve(method) != "from" {
+    let Some(contract) =
+        map_key_view_wrapper_contract(il.meta.lang, "Array", interner.resolve(method), 1)
+    else {
         return false;
-    }
+    };
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_callee_name(il, interner, receiver, "Array")
-        && !file_defines_name(il, interner, "Array")
-        && strict_exact_map_key_view_safe(il, interner, facts, kids[1])
+    strict_exact_callee_name(il, interner, receiver, contract.receiver)
+        && !file_defines_name(il, interner, contract.receiver)
+        && strict_exact_map_key_view_safe_matching(il, interner, facts, kids[1], |kind| {
+            kind == MapKeyViewKind::Iterator
+        })
 }
 
 fn strict_exact_literal_collection_receiver_safe(

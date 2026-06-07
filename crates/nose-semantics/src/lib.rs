@@ -1206,6 +1206,88 @@ fn js_like_lang(lang: Lang) -> bool {
     )
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MapKeyViewKind {
+    Collection,
+    Iterator,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapKeyViewContract {
+    pub method: &'static str,
+    pub kind: MapKeyViewKind,
+}
+
+pub fn map_key_view_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<MapKeyViewContract> {
+    if arg_count != 0 {
+        return None;
+    }
+    Some(match (lang, method) {
+        (Lang::Python | Lang::Ruby, "keys") => MapKeyViewContract {
+            method: "keys",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::Java, "keySet") => MapKeyViewContract {
+            method: "keySet",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "keys") => {
+            MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Iterator,
+            }
+        }
+        _ => return None,
+    })
+}
+
+pub fn map_key_view_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapKeyViewContract> {
+    ["keys", "keySet"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| map_key_view_contract(lang, method, arg_count))
+            .flatten()
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapKeyViewWrapperContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+}
+
+pub fn map_key_view_wrapper_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<MapKeyViewWrapperContract> {
+    (js_like_lang(lang) && receiver == "Array" && method == "from" && arg_count == 1).then_some(
+        MapKeyViewWrapperContract {
+            receiver: "Array",
+            method: "from",
+        },
+    )
+}
+
+pub fn map_key_view_wrapper_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapKeyViewWrapperContract> {
+    (method_hash == stable_symbol_hash("from"))
+        .then(|| map_key_view_wrapper_contract(lang, receiver, "from", arg_count))
+        .flatten()
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2095,6 +2177,56 @@ mod tests {
             js_like_set_constructor_contract(Lang::JavaScript, "WeakSet"),
             None
         );
+    }
+
+    #[test]
+    fn map_key_view_contracts_distinguish_collection_and_iterator_views() {
+        assert_eq!(
+            map_key_view_contract(Lang::Python, "keys", 0),
+            Some(MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Collection,
+            })
+        );
+        assert_eq!(
+            map_key_view_contract(Lang::Java, "keySet", 0),
+            Some(MapKeyViewContract {
+                method: "keySet",
+                kind: MapKeyViewKind::Collection,
+            })
+        );
+        assert_eq!(
+            map_key_view_contract(Lang::TypeScript, "keys", 0),
+            Some(MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Iterator,
+            })
+        );
+        assert_eq!(map_key_view_contract(Lang::JavaScript, "keySet", 0), None);
+        assert_eq!(map_key_view_contract(Lang::Python, "keys", 1), None);
+        assert_eq!(
+            map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1),
+            Some(MapKeyViewWrapperContract {
+                receiver: "Array",
+                method: "from",
+            })
+        );
+        assert_eq!(
+            map_key_view_wrapper_contract(Lang::Python, "Array", "from", 1),
+            None
+        );
+        assert_eq!(
+            map_key_view_contract_by_hash(Lang::Java, stable_symbol_hash("keySet"), 0)
+                .map(|contract| contract.kind),
+            Some(MapKeyViewKind::Collection)
+        );
+        assert!(map_key_view_wrapper_contract_by_hash(
+            Lang::TypeScript,
+            "Array",
+            stable_symbol_hash("from"),
+            1,
+        )
+        .is_some());
     }
 
     #[test]

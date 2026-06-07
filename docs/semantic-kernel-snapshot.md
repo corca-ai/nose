@@ -84,6 +84,10 @@ migrated.
   `get(key).is_some()`, Ruby `key?`/`has_key?`, Python `__contains__`, and
   TypeScript `Array.from(map.keys()).includes(key)` when the receiver is a
   typed/proven map.
+- Map key-view contracts distinguish collection views from iterator views:
+  Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
+  `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
+  contract before it can feed exact membership.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
 
@@ -93,9 +97,9 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
-- library/API recognizers that still lack shared contracts, especially map key
-  views, Go zero-map lookup surfaces, and remaining language-specific import or
-  module proof mechanics;
+- library/API recognizers that still lack shared contracts, especially Go
+  zero-map lookup surfaces and remaining language-specific import or module proof
+  mechanics;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -172,8 +176,6 @@ The first high-value targets for semantic-kernel extraction are:
   closed contracts waiting on construct-vs-call proof;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
   path/name plus shadow-proof contracts;
-- shared contracts for map key-view surfaces such as `keys`, Java `keySet`, and
-  JS-like `Array.from(map.keys())`;
 - shared contracts for Go composite map literal/default-zero lookup rules;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;

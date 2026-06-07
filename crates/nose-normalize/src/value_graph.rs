@@ -51,12 +51,13 @@ use nose_il::{
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
     iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
-    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, method_call_contract,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
+    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
     reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
     scalar_integer_method_contract, semantics, DomainEvidence, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReductionBuiltinContract, ScalarIntegerMethod,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1448,6 +1449,14 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_map_key_view_value(&mut self, value: ValueId) -> Option<ValueId> {
+        self.proven_map_key_view_value_matching(value, MapKeyViewKind::Collection)
+    }
+
+    fn proven_map_key_view_value_matching(
+        &mut self,
+        value: ValueId,
+        accepted: MapKeyViewKind,
+    ) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) {
             return None;
@@ -1455,14 +1464,11 @@ impl<'a> Builder<'a> {
         let args = node.args.clone();
         if args.len() == 1 {
             let callee = &self.nodes[args[0] as usize];
-            let key_view = matches!(
-                callee.op,
-                ValOp::Field(name)
-                    if name == stable_symbol_hash("keys")
-                        || (self.il.meta.lang == Lang::Java
-                            && name == stable_symbol_hash("keySet"))
-            );
-            if !key_view || callee.args.len() != 1 {
+            let ValOp::Field(method) = callee.op else {
+                return None;
+            };
+            let contract = map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?;
+            if contract.kind != accepted || callee.args.len() != 1 {
                 return None;
             }
             let map = callee.args[0];
@@ -1474,13 +1480,19 @@ impl<'a> Builder<'a> {
         }
         if args.len() == 2 {
             let callee = &self.nodes[args[0] as usize];
-            if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("from"))
+            let ValOp::Field(method) = callee.op else {
+                return None;
+            };
+            let contract =
+                map_key_view_wrapper_contract_by_hash(self.il.meta.lang, "Array", method, 1)?;
+            if accepted != MapKeyViewKind::Collection
                 || callee.args.len() != 1
-                || !self.is_free_name_value(callee.args[0], "Array")
+                || !self.is_free_name_value(callee.args[0], contract.receiver)
+                || self.file_defines_name(contract.receiver)
             {
                 return None;
             }
-            return self.proven_map_key_view_value(args[1]);
+            return self.proven_map_key_view_value_matching(args[1], MapKeyViewKind::Iterator);
         }
         None
     }
