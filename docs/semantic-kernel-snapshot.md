@@ -105,6 +105,9 @@ migrated.
 - Java `Math.abs`/`Math.min`/`Math.max` now lower through method contracts with an
   unshadowed `Math` receiver requirement instead of frontend text-only builtin
   lowering.
+- JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
+  It is preserved as a name and only treated as the nullish sentinel through an
+  unshadowed-global contract.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

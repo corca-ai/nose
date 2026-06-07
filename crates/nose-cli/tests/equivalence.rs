@@ -4583,6 +4583,7 @@ fn option_defaulting_converges_with_nullish_default_boundaries() {
     let wrong_value = "pub fn f(value: Option<i32>, fallback: i32, other: Option<i32>, other_default: i32) -> i32 { other.unwrap_or(fallback) }\n";
     let truthy_or =
         "function f(value, fallback, other, otherDefault) { return value || fallback; }";
+    let shadowed_undefined = "function f(value, fallback, other, otherDefault, undefined) { return value === undefined ? fallback : value; }";
 
     let fp = value_fp(&i, js, Lang::JavaScript);
     assert_eq!(fp, value_fp(&i, js_guard, Lang::JavaScript));
@@ -4594,6 +4595,7 @@ fn option_defaulting_converges_with_nullish_default_boundaries() {
     assert_ne!(fp, value_fp(&i, wrong_default, Lang::Rust));
     assert_ne!(fp, value_fp(&i, wrong_value, Lang::Rust));
     assert_ne!(fp, value_fp(&i, truthy_or, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, shadowed_undefined, Lang::JavaScript));
 }
 
 #[test]

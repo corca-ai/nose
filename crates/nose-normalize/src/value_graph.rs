@@ -54,8 +54,8 @@ use nose_semantics::{
     index_membership_threshold_contract, iterator_identity_adapter_contract,
     java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
     java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
-    map_key_view_wrapper_contract_by_hash, method_call_contract, reduction_builtin_contract,
-    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
     scalar_integer_method_contract, semantics, static_index_membership_contract, DomainEvidence,
     GoZeroMapDefaultKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
@@ -6994,6 +6994,12 @@ impl<'a> Builder<'a> {
                 Payload::Name(s) => {
                     if let Some(&v) = self.global_env.get(&s) {
                         return v;
+                    }
+                    let name = self.interner.resolve(s);
+                    if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
+                        if !contract.requires_unshadowed || !self.file_defines_name(contract.name) {
+                            return self.null_const();
+                        }
                     }
                     let key = 0x8000_0000u32 | (self.interner.symbol_hash(s) as u32);
                     self.mk(ValOp::Input(key), vec![])

@@ -327,7 +327,7 @@ fn lower_field(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 
 fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
     // A single-identifier arrow param arrives as the identifier itself.
-    if params.kind() == "identifier" {
+    if matches!(params.kind(), "identifier" | "undefined") {
         let span = lo.span(params);
         let sym = lo.sym(lo.text(params));
         out.push(lo.add(NodeKind::Param, Payload::Name(sym), span, &[]));
@@ -349,7 +349,7 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
 
 fn param_name<'a>(lo: &Lowering<'a>, p: TsNode<'a>) -> Option<&'a str> {
     match p.kind() {
-        "identifier" | "shorthand_property_identifier_pattern" => Some(lo.text(p)),
+        "identifier" | "shorthand_property_identifier_pattern" | "undefined" => Some(lo.text(p)),
         "required_parameter" | "optional_parameter" => p
             .child_by_field_name("pattern")
             .or_else(|| p.named_child(0))
@@ -828,7 +828,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "template_string" => lower_template(lo, node),
         "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
-        "null" | "undefined" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
+        "null" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
+        "undefined" => lo.var("undefined", span),
         "regex" => lo.str_lit(lo.text(node), span),
         "call_expression" => lower_call(lo, node),
         "new_expression" => lower_new(lo, node),

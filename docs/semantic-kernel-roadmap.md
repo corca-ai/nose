@@ -119,6 +119,8 @@ and pack ecosystem.
   negatives.
 - Java `Math.abs`/`Math.min`/`Math.max` moved out of frontend text-only lowering
   and into method contracts that require an unshadowed `Math` receiver.
+- JS-like `undefined` moved from unconditional frontend null lowering to an
+  unshadowed-global nullish contract, preserving shadowed binding hard negatives.
 
 ## Phase 0: documentation and vocabulary
 

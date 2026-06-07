@@ -1471,6 +1471,19 @@ pub fn imported_namespace_function_contract(
     })
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct NullishGlobalContract {
+    pub name: &'static str,
+    pub requires_unshadowed: bool,
+}
+
+pub fn nullish_global_contract(lang: Lang, name: &str) -> Option<NullishGlobalContract> {
+    (js_like_lang(lang) && name == "undefined").then_some(NullishGlobalContract {
+        name: "undefined",
+        requires_unshadowed: true,
+    })
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2567,6 +2580,26 @@ mod tests {
             imported_namespace_function_contract(Lang::Python, "sum", 1),
             None
         );
+    }
+
+    #[test]
+    fn nullish_global_contracts_are_js_like_and_unshadowed() {
+        assert_eq!(
+            nullish_global_contract(Lang::JavaScript, "undefined"),
+            Some(NullishGlobalContract {
+                name: "undefined",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(
+            nullish_global_contract(Lang::TypeScript, "undefined"),
+            Some(NullishGlobalContract {
+                name: "undefined",
+                requires_unshadowed: true,
+            })
+        );
+        assert_eq!(nullish_global_contract(Lang::Python, "undefined"), None);
+        assert_eq!(nullish_global_contract(Lang::JavaScript, "null"), None);
     }
 
     #[test]
