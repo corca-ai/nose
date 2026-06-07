@@ -81,6 +81,10 @@ and pack ecosystem.
   non-overloadable C/Go/Java index assignment, and single-item builder append
   calls moved into `nose-semantics`, so predicate and contract paths no longer
   duplicate those language/API gates.
+- The first receiver-domain evidence facade landed as `DomainEvidence`.
+  Frontend `ParamSemantic` facts still provide the current evidence source, but
+  normalize and detect exact gates now consume the kernel-facing domain
+  vocabulary so pack-provided evidence can replace the source fact later.
 
 ## Phase 0: documentation and vocabulary
 
@@ -110,8 +114,8 @@ and pack ecosystem.
   versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
-- Replace `ParamSemantic` with kernel evidence records for receiver/domain
-  proofs while preserving the current precision gates.
+- Replace the current `DomainEvidence` facade with versioned, pack-facing
+  receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add construct/call distinction facts so constructor-only contracts such as

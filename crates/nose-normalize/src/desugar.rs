@@ -13,7 +13,8 @@
 
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
-use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, ParamSemantic, Payload};
+use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_semantics::{domain_evidence_from_param_semantic, DomainEvidence};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -266,15 +267,12 @@ impl Rebuilder<'_> {
 
 fn property_receiver_exact_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
     il.kind(node) == NodeKind::Seq
-        || matches!(
-            param_semantic_for_var(il, node),
-            Some(ParamSemantic::Array | ParamSemantic::Collection)
-        )
+        || domain_evidence_for_var(il, node).is_some_and(DomainEvidence::is_array_or_collection)
         || property_receiver_exact_hof_node(il, interner, node)
         || property_receiver_exact_hof_call(il, interner, node)
 }
 
-fn param_semantic_for_var(il: &Il, node: NodeId) -> Option<ParamSemantic> {
+fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
     if il.kind(node) != NodeKind::Var {
         return None;
     }
@@ -288,7 +286,7 @@ fn param_semantic_for_var(il: &Il, node: NodeId) -> Option<ParamSemantic> {
     il.param_type_facts
         .iter()
         .find(|fact| fact.span == span)
-        .map(|fact| fact.semantic)
+        .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
 }
 
 fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) -> bool {

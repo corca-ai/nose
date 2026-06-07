@@ -46,13 +46,14 @@ use crate::module_facts::{
 use crate::types::Ty;
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, Span, Symbol, UnitKind,
+    Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    builder_append_method_contract, builtin_tag, iterator_identity_adapter_contract,
-    method_call_contract, reduction_builtin_contract, scalar_integer_method_contract, semantics,
-    IteratorAdapterReceiverContract, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
+    iterator_identity_adapter_contract, method_call_contract, reduction_builtin_contract,
+    scalar_integer_method_contract, semantics, DomainEvidence, IteratorAdapterReceiverContract,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
+    ScalarIntegerMethod,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -399,9 +400,8 @@ struct Builder<'a> {
     /// Inferred parameter types by position (from `types::infer_param_types`), seeding the
     /// type of each `Input` node.
     param_ty: Vec<Ty>,
-    /// Explicit source-level parameter semantic facts keyed by the alpha-renamed cid
-    /// currently in scope.
-    param_semantic: FxHashMap<u32, ParamSemantic>,
+    /// Kernel domain evidence keyed by the alpha-renamed cid currently in scope.
+    param_domain: FxHashMap<u32, DomainEvidence>,
     /// The branch conditions currently in effect (each a `cond` or `Not(cond)`). A
     /// `return`/`throw` reached under a non-empty path is tagged with that condition,
     /// so `if c {return A} else {return B}` and the branch-swapped `if c {return B}
@@ -503,7 +503,7 @@ impl<'a> Builder<'a> {
             valued_subtree_hash: None,
             vty: Vec::new(),
             param_ty: Vec::new(),
-            param_semantic: FxHashMap::default(),
+            param_domain: FxHashMap::default(),
             path: Vec::new(),
             bound_order_facts: Vec::new(),
             effect_slot: 0,
@@ -703,30 +703,30 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn param_semantic_for_param(&self, param: NodeId) -> Option<ParamSemantic> {
+    fn domain_evidence_for_param(&self, param: NodeId) -> Option<DomainEvidence> {
         let span = self.il.node(param).span;
         self.il
             .param_type_facts
             .iter()
             .find(|fact| fact.span == span)
-            .map(|fact| fact.semantic)
+            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
     }
 
-    fn seed_param_semantics(&mut self, root: NodeId) {
-        let scope = self.param_semantic_scope(root).unwrap_or(root);
+    fn seed_param_domains(&mut self, root: NodeId) {
+        let scope = self.param_domain_scope(root).unwrap_or(root);
         for &k in self.il.children(scope) {
             if self.il.kind(k) != NodeKind::Param {
                 continue;
             }
-            if let (Payload::Cid(cid), Some(semantic)) =
-                (self.il.node(k).payload, self.param_semantic_for_param(k))
+            if let (Payload::Cid(cid), Some(domain)) =
+                (self.il.node(k).payload, self.domain_evidence_for_param(k))
             {
-                self.param_semantic.insert(cid, semantic);
+                self.param_domain.insert(cid, domain);
             }
         }
     }
 
-    fn param_semantic_scope(&self, root: NodeId) -> Option<NodeId> {
+    fn param_domain_scope(&self, root: NodeId) -> Option<NodeId> {
         if self.il.kind(root) == NodeKind::Func {
             return Some(root);
         }
@@ -748,57 +748,53 @@ impl<'a> Builder<'a> {
         best.map(|(_, node)| node)
     }
 
-    fn param_semantic_of_expr(&self, expr: NodeId) -> Option<ParamSemantic> {
+    fn domain_evidence_of_expr(&self, expr: NodeId) -> Option<DomainEvidence> {
         if self.il.kind(expr) != NodeKind::Var {
             return None;
         }
         let Payload::Cid(cid) = self.il.node(expr).payload else {
             return None;
         };
-        self.param_semantic.get(&cid).copied()
+        self.param_domain.get(&cid).copied()
     }
 
     fn is_collection_param_expr(&self, expr: NodeId) -> bool {
-        matches!(
-            self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Collection | ParamSemantic::Set)
-        )
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_collection_or_set)
     }
 
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
-        matches!(self.param_semantic_of_expr(expr), Some(ParamSemantic::Map))
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_map)
     }
 
     fn is_integer_param_expr(&self, expr: NodeId) -> bool {
-        matches!(
-            self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Integer)
-        )
+        self.domain_evidence_of_expr(expr)
+            .is_some_and(DomainEvidence::is_integer)
     }
 
-    /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate semantic. Replaces
-    /// the per-semantic `is_map`/`is_integer`/`is_byte_array` recognizers (identical but for the
-    /// variant). `is_array` adds the `ArrayParam` op on top.
-    fn is_param_value(&self, value: ValueId, sem: ParamSemantic) -> bool {
+    /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate domain.
+    /// `is_array` adds the `ArrayParam` op on top.
+    fn is_param_value(&self, value: ValueId, domain: DomainEvidence) -> bool {
         matches!(self.nodes[value as usize].op, ValOp::Input(cid)
-            if self.param_semantic.get(&cid) == Some(&sem))
+            if self.param_domain.get(&cid) == Some(&domain))
     }
 
     fn is_array_param_value(&self, value: ValueId) -> bool {
         matches!(self.nodes[value as usize].op, ValOp::ArrayParam)
-            || self.is_param_value(value, ParamSemantic::Array)
+            || self.is_param_value(value, DomainEvidence::Array)
     }
 
     fn param_domain_value(&mut self, value: ValueId) -> ValueId {
         let ValOp::Input(cid) = self.nodes[value as usize].op else {
             return value;
         };
-        match self.param_semantic.get(&cid).copied() {
-            Some(ParamSemantic::Array) => self.mk(ValOp::ArrayParam, vec![value]),
-            Some(ParamSemantic::Collection | ParamSemantic::Set) => {
+        match self.param_domain.get(&cid).copied() {
+            Some(domain) if domain.is_array() => self.mk(ValOp::ArrayParam, vec![value]),
+            Some(domain) if domain.is_collection_or_set() => {
                 self.mk(ValOp::CollectionParam, vec![value])
             }
-            Some(ParamSemantic::String) => self.mk(ValOp::StringParam, vec![value]),
+            Some(domain) if domain.is_string() => self.mk(ValOp::StringParam, vec![value]),
             _ => value,
         }
     }
@@ -1425,7 +1421,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let map = callee.args[0];
-        let map = if self.is_param_value(map, ParamSemantic::Map) {
+        let map = if self.is_param_value(map, DomainEvidence::Map) {
             map
         } else {
             self.proven_map_value(map)?
@@ -1452,7 +1448,7 @@ impl<'a> Builder<'a> {
                 return None;
             }
             let map = callee.args[0];
-            return if self.is_param_value(map, ParamSemantic::Map) {
+            return if self.is_param_value(map, DomainEvidence::Map) {
                 Some(map)
             } else {
                 self.proven_map_value(map)
@@ -1683,7 +1679,7 @@ impl<'a> Builder<'a> {
 
     fn is_integer_domain_value(&self, value: ValueId) -> bool {
         if self.int_const_value(value).is_some()
-            || self.is_param_value(value, ParamSemantic::Integer)
+            || self.is_param_value(value, DomainEvidence::Integer)
         {
             return true;
         }
@@ -2274,8 +2270,8 @@ impl<'a> Builder<'a> {
 
     fn build_unit_with_context(&mut self, root: NodeId, context: Option<&ValueFingerprintContext>) {
         self.param_ty = crate::types::infer_param_types(self.il, root);
-        self.param_semantic.clear();
-        self.seed_param_semantics(root);
+        self.param_domain.clear();
+        self.seed_param_domains(root);
         self.seed_immutable_bindings(root, context);
         self.build_inline_registry(root);
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
@@ -2291,8 +2287,8 @@ impl<'a> Builder<'a> {
                     if self.il.kind(k) == NodeKind::Param {
                         if let Payload::Cid(c) = self.il.node(k).payload {
                             if matches!(
-                                self.param_semantic.get(&c),
-                                Some(ParamSemantic::Integer | ParamSemantic::Number)
+                                self.param_domain.get(&c).copied(),
+                                Some(domain) if domain.is_integer_or_number()
                             ) {
                                 let pos_idx = pos as usize;
                                 if self.param_ty.len() <= pos_idx {
@@ -3343,7 +3339,7 @@ impl<'a> Builder<'a> {
     }
 
     fn is_safe_clamp_integer_value(&self, value: ValueId) -> bool {
-        self.int_const_value(value).is_some() || self.is_param_value(value, ParamSemantic::Integer)
+        self.int_const_value(value).is_some() || self.is_param_value(value, DomainEvidence::Integer)
     }
 
     fn proof_backed_clamp_value(
@@ -3775,9 +3771,9 @@ impl<'a> Builder<'a> {
                 NodeKind::Func => {
                     let kids = self.il.children(c).to_vec();
                     let mut menv = env.clone();
-                    let saved_param_semantic = self.param_semantic.clone();
-                    self.param_semantic.clear();
-                    self.seed_param_semantics(c);
+                    let saved_param_domain = self.param_domain.clone();
+                    self.param_domain.clear();
+                    self.seed_param_domains(c);
                     let mut pos = 0u32;
                     for &k in &kids {
                         if self.il.kind(k) == NodeKind::Param {
@@ -3791,7 +3787,7 @@ impl<'a> Builder<'a> {
                     if let Some(&body) = kids.last() {
                         self.process_stmt(body, &mut menv);
                     }
-                    self.param_semantic = saved_param_semantic;
+                    self.param_domain = saved_param_domain;
                 }
                 NodeKind::Block => self.process_container(c, env),
                 _ => self.process_stmt(c, env),
@@ -5180,7 +5176,7 @@ impl<'a> Builder<'a> {
             if base == low_base
                 && high_index == 0
                 && low_index == 1
-                && self.is_param_value(base, ParamSemantic::ByteArray)
+                && self.is_param_value(base, DomainEvidence::ByteArray)
             {
                 let zero = self.int_const(0);
                 let one = self.int_const(1);
@@ -5224,7 +5220,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let base = base?;
-        if !self.is_param_value(base, ParamSemantic::ByteArray) {
+        if !self.is_param_value(base, DomainEvidence::ByteArray) {
             return None;
         }
         let zero = self.int_const(0);
@@ -7088,10 +7084,10 @@ impl<'a> Builder<'a> {
                             if let Some(len) = self.eval_len_value(a[0]) {
                                 return len;
                             }
-                            if matches!(
-                                self.param_semantic_of_expr(kids[0]),
-                                Some(ParamSemantic::Array | ParamSemantic::Collection)
-                            ) {
+                            if self
+                                .domain_evidence_of_expr(kids[0])
+                                .is_some_and(DomainEvidence::is_array_or_collection)
+                            {
                                 return self.mk(ValOp::Call(builtin_tag(Builtin::Len)), a);
                             }
                         }
@@ -7864,7 +7860,9 @@ fn stable_float_const_key(value: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span, Unit, UnitKind};
+    use nose_il::{
+        FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span, Unit, UnitKind,
+    };
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)

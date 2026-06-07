@@ -7,12 +7,11 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, ParamSemantic, Payload,
-};
+use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    free_function_builtin_contract, iterator_identity_adapter_contract, method_call_contract,
-    method_hof_contract, BuiltinArgContract, MethodBuiltinArgs, MethodCallContract,
+    domain_evidence_from_param_semantic, free_function_builtin_contract,
+    iterator_identity_adapter_contract, method_call_contract, method_hof_contract,
+    BuiltinArgContract, DomainEvidence, MethodBuiltinArgs, MethodCallContract,
     MethodReceiverContract, MethodSemanticContract,
 };
 
@@ -477,18 +476,15 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
 }
 
 fn exact_collection_param(old: &Il, node: NodeId) -> bool {
-    matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set)
-    )
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_array_collection_or_set)
 }
 
 fn exact_set_param(old: &Il, node: NodeId) -> bool {
-    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Set))
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_set)
 }
 
 fn exact_map_param(old: &Il, node: NodeId) -> bool {
-    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Map))
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_map)
 }
 
 fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -496,13 +492,10 @@ fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
 }
 
 fn exact_option_param(old: &Il, node: NodeId) -> bool {
-    matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Option)
-    )
+    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_option)
 }
 
-fn param_semantic_for_var(old: &Il, node: NodeId) -> Option<ParamSemantic> {
+fn domain_evidence_for_var(old: &Il, node: NodeId) -> Option<DomainEvidence> {
     if old.kind(node) != NodeKind::Var {
         return None;
     }
@@ -524,7 +517,7 @@ fn param_semantic_for_var(old: &Il, node: NodeId) -> Option<ParamSemantic> {
         old.param_type_facts
             .iter()
             .find(|fact| fact.span == span)
-            .map(|fact| fact.semantic)
+            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
     })
 }
 
@@ -645,8 +638,8 @@ fn exact_string_receiver(old: &Il, node: NodeId) -> bool {
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
     ) || matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::String)
+        domain_evidence_for_var(old, node),
+        Some(domain) if domain.is_string()
     )
 }
 
@@ -659,8 +652,8 @@ fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
     ) || matches!(
-        param_semantic_for_var(old, node),
-        Some(ParamSemantic::Integer)
+        domain_evidence_for_var(old, node),
+        Some(domain) if domain.is_integer()
     )
 }
 
@@ -904,7 +897,7 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span};
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span};
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)

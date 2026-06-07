@@ -6,16 +6,16 @@
 use crate::fragment::{FragmentKind, ProofFacts};
 use nose_il::{
     stable_symbol_hash, Builtin, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, Symbol, UnitKind,
+    Payload, Symbol, UnitKind,
 };
 use nose_normalize::{
     module_facts::{collect_module_mutations, mutating_method_name},
     node_tag,
 };
 use nose_semantics::{
-    builder_append_call_args, exact_java_return_this, exact_java_this_field,
-    exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
-    iterator_identity_adapter_contract, semantics,
+    builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
+    exact_java_this_field, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, iterator_identity_adapter_contract, semantics,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1374,10 +1374,8 @@ fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) 
             && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
             && il.param_type_facts.iter().any(|fact| {
                 fact.span == node.span
-                    && matches!(
-                        fact.semantic,
-                        ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set
-                    )
+                    && domain_evidence_from_param_semantic(fact.semantic)
+                        .is_array_collection_or_set()
             })
     })
 }
@@ -1406,10 +1404,10 @@ fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool
     il.nodes.iter().any(|node| {
         node.kind == NodeKind::Param
             && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && il
-                .param_type_facts
-                .iter()
-                .any(|fact| fact.span == node.span && matches!(fact.semantic, ParamSemantic::Map))
+            && il.param_type_facts.iter().any(|fact| {
+                fact.span == node.span
+                    && domain_evidence_from_param_semantic(fact.semantic).is_map()
+            })
     })
 }
 

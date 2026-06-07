@@ -6,7 +6,7 @@
 //! extend this contract surface rather than letting packs mint fingerprints or
 //! approve exact clone matches directly.
 
-use nose_il::{Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, ParamSemantic, Payload};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
@@ -19,6 +19,91 @@ pub enum ChannelEligibility {
     ExactEmpirical,
     ExactProven,
     FirstParty,
+}
+
+/// Kernel-facing domain evidence recovered from source facts, type inference, or future packs.
+///
+/// `nose-il::ParamSemantic` is the current frontend storage format for source-level parameter
+/// annotations. Exact gates should consume this semantic-kernel vocabulary instead, so future
+/// packs can provide equivalent evidence without becoming coupled to frontend syntax facts.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum DomainEvidence {
+    Array,
+    ByteArray,
+    Collection,
+    Integer,
+    Map,
+    Number,
+    Option,
+    Set,
+    String,
+}
+
+impl DomainEvidence {
+    pub fn from_param_semantic(semantic: ParamSemantic) -> Self {
+        match semantic {
+            ParamSemantic::Array => DomainEvidence::Array,
+            ParamSemantic::ByteArray => DomainEvidence::ByteArray,
+            ParamSemantic::Collection => DomainEvidence::Collection,
+            ParamSemantic::Integer => DomainEvidence::Integer,
+            ParamSemantic::Map => DomainEvidence::Map,
+            ParamSemantic::Number => DomainEvidence::Number,
+            ParamSemantic::Option => DomainEvidence::Option,
+            ParamSemantic::Set => DomainEvidence::Set,
+            ParamSemantic::String => DomainEvidence::String,
+        }
+    }
+
+    pub fn is_array(self) -> bool {
+        self == DomainEvidence::Array
+    }
+
+    pub fn is_byte_array(self) -> bool {
+        self == DomainEvidence::ByteArray
+    }
+
+    pub fn is_collection_or_set(self) -> bool {
+        matches!(self, DomainEvidence::Collection | DomainEvidence::Set)
+    }
+
+    pub fn is_array_or_collection(self) -> bool {
+        matches!(self, DomainEvidence::Array | DomainEvidence::Collection)
+    }
+
+    pub fn is_array_collection_or_set(self) -> bool {
+        matches!(
+            self,
+            DomainEvidence::Array | DomainEvidence::Collection | DomainEvidence::Set
+        )
+    }
+
+    pub fn is_set(self) -> bool {
+        self == DomainEvidence::Set
+    }
+
+    pub fn is_map(self) -> bool {
+        self == DomainEvidence::Map
+    }
+
+    pub fn is_option(self) -> bool {
+        self == DomainEvidence::Option
+    }
+
+    pub fn is_string(self) -> bool {
+        self == DomainEvidence::String
+    }
+
+    pub fn is_integer(self) -> bool {
+        self == DomainEvidence::Integer
+    }
+
+    pub fn is_integer_or_number(self) -> bool {
+        matches!(self, DomainEvidence::Integer | DomainEvidence::Number)
+    }
+}
+
+pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvidence {
+    DomainEvidence::from_param_semantic(semantic)
 }
 
 /// A first-party language profile. Keep this cheap and copyable; callers use it as a
@@ -1161,7 +1246,7 @@ pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Span, Unit, UnitKind};
+    use nose_il::{FileId, FileMeta, IlBuilder, ParamSemantic, Span, Unit, UnitKind};
 
     const ALL_LANGS: &[Lang] = &[
         Lang::Python,
@@ -1233,6 +1318,27 @@ mod tests {
             assert_eq!(profile.pack_id(), FIRST_PARTY_PACK_ID);
             assert_eq!(profile.eligibility(), ChannelEligibility::FirstParty);
         }
+    }
+
+    #[test]
+    fn domain_evidence_preserves_param_semantic_boundaries() {
+        assert_eq!(
+            domain_evidence_from_param_semantic(ParamSemantic::Array),
+            DomainEvidence::Array
+        );
+        assert!(DomainEvidence::Array.is_array_collection_or_set());
+        assert!(DomainEvidence::Collection.is_array_or_collection());
+        assert!(DomainEvidence::Set.is_collection_or_set());
+        assert!(DomainEvidence::Map.is_map());
+        assert!(DomainEvidence::Option.is_option());
+        assert!(DomainEvidence::String.is_string());
+        assert!(DomainEvidence::ByteArray.is_byte_array());
+        assert!(DomainEvidence::Integer.is_integer());
+        assert!(DomainEvidence::Number.is_integer_or_number());
+        assert!(DomainEvidence::Integer.is_integer_or_number());
+        assert!(!DomainEvidence::Number.is_integer());
+        assert!(!DomainEvidence::Array.is_collection_or_set());
+        assert!(!DomainEvidence::Set.is_array_or_collection());
     }
 
     #[test]

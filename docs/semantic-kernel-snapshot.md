@@ -43,6 +43,11 @@ migrated.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
+- Source-level `ParamSemantic` facts are translated into `nose-semantics`
+  `DomainEvidence` before normalize/detect receiver-domain gates consume them.
+  This preserves the current Array/Collection/Set/Map/Option/String/Integer/
+  Number/ByteArray distinctions while moving the proof vocabulary into the
+  kernel facade.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
@@ -152,9 +157,9 @@ The first high-value targets for semantic-kernel extraction are:
   heuristics;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
-- receiver/domain evidence records to replace `ParamSemantic` as the internal
-  proof vocabulary for collection, map, option, string, integer, and byte-array
-  domains;
+- versioned receiver/domain evidence records to replace the current
+  `DomainEvidence` facade as the pack-facing proof vocabulary for collection,
+  map, option, string, integer, and byte-array domains;
 - demand/protocol contracts that distinguish eager arrays, lazy iterators,
   streams, callbacks, futures/promises, and call-by-need thunks;
 - demand/error contracts for language-core oracle behavior such as non-iterable
