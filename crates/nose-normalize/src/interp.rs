@@ -293,7 +293,13 @@ impl<'a> Interp<'a> {
                 let seq = match self.eval(kids[1], env)? {
                     Value::List(xs) => xs,
                     Value::Err => return Ok(Flow::Err),
-                    _ => return Err(Unsupported),
+                    // Iterating a non-iterable (int/bool/null/string) is a runtime TYPE ERROR in
+                    // every modeled language (Python/JS `TypeError`, …), not an unmodelable
+                    // construct — so it is `Err` behavior, NOT `Unsupported`. This keeps a
+                    // foreach-accumulator (the headline cross-language Type-4 pattern) interpretable
+                    // even on the battery's scalar rows: it `Err`s there and computes on the list
+                    // rows, so the oracle CHECKS it instead of excluding the whole unit.
+                    _ => return Ok(Flow::Err),
                 };
                 for item in seq {
                     self.tick()?;

@@ -400,7 +400,9 @@ plus a checker (`nose verify`) that groups units by value fingerprint and assert
 **fingerprint-equal ⟹ behavior-equal on every input** (a battery of input vectors per
 interpretable function). It is intentionally *partial*: any unmodeled construct (opaque call,
 field access, exception) makes the whole unit uninterpretable and it is excluded — never
-guessed. It **need not match any language exactly, only be self-consistent**: a genuinely
+guessed. (A genuine runtime *type error*, though, is behavior, not an unmodeled construct: e.g.
+iterating a non-iterable — a scalar where the battery feeds one to a `for`-each — yields `Err`,
+so a foreach-accumulator stays interpretable across the battery instead of being dropped.) It **need not match any language exactly, only be self-consistent**: a genuinely
 equivalent pair agrees under any consistent semantics, so a merge the interpreter contradicts is
 a real bug. This sets the asymmetry that defines the instrument: **soundness violations are
 proofs (every one a real bug); completeness misses are leads (some real, some battery
