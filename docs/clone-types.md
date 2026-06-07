@@ -54,19 +54,21 @@ This is nose's distinguishing capability, but it is **bounded, not total** — a
 semantic equivalence is undecidable. nose converges the equivalence classes its IL, value
 graph, and canonicalizations actually model:
 
-- loop ↔ `reduce`/`sum` ↔ comprehension ↔ `.append`/`.map` builder loop; nested list
-  builders ↔ Python multi-clause comprehensions ↔ `.flatMap(... .map(...))`; an `any`/`all`
-  loop ↔ the functional form; pure aggregate consumers over flat-map streams ↔ nested
+- loop ↔ `reduce`/`sum` ↔ comprehension ↔ proof-backed `.append`/`.map` builder loop;
+  nested list builders ↔ Python multi-clause comprehensions ↔ proven flat-map
+  surfaces; inner method chains such as `xs.map(...)` require nested element
+  collection proof before they enter exact matching; an `any`/`all` loop ↔ the
+  functional form; pure aggregate consumers over flat-map streams ↔ nested
   reduction loops; a `reduce`-lambda min/max ↔ `max`/`min`;
   `len([… if p]) ↔ Σ(p?1:0)`; a dict-building loop `d={}; for x: d[k]=v` ↔ the dict
   comprehension `{k: v for x in xs}`;
 - literal map-default lookup through proven map/key/fallback coordinates, including
   Python `dict.get(key, fallback)` and Ruby literal `Hash#fetch(key, fallback)` or
   zero-arg pure fallback blocks such as `Hash#fetch(key) { fallback }`, plus Python
-  sibling-module `from module import LOOKUP` literal bindings, JS/TS named imports from
-  sibling `Map` exports, Java static imports from class `Map.of` fields, and Rust
-  `use` imports of const entry arrays consumed by `HashMap::from`/`BTreeMap::from` when
-  the provider binding is unique, immutable, and unambiguous;
+  sibling-module `from module import LOOKUP` literal bindings, Java static imports from
+  class `Map.of` fields, and Rust `use` imports of const entry arrays consumed by
+  `HashMap::from`/`BTreeMap::from` when the provider binding is unique, immutable, and
+  unambiguous;
 - `filter q (filter p) ↔ filter (p∧q)` (and the filtered comprehension / `.filter().filter()`
   chain / filtered builder loop), plus the direct Rust `filter_map` / guarded-builder slice
   where `None` means absence and emitted falsey values remain values;
@@ -74,8 +76,10 @@ graph, and canonicalizations actually model:
   idioms, commutativity +
   associativity (AC-canonical operands), distribution `a·c + b·c ≡ (a+b)·c` (numeric),
   `a − b ≡ a + (−b)`, De Morgan, short-circuit `and`/`or`;
-- the same algorithm written in a **different language** (incl. Rust `it.iter().filter(p).sum()`
-  ↔ Python `sum(x for x in xs if p)`).
+- the same algorithm written in a **different language** when the relevant API
+  contracts and receiver domains are proven (for example Rust
+  `it.iter().filter(p).sum()` ↔ Python `sum(x for x in xs if p)` under a collection
+  proof).
 
 For the classes it captures, equal fingerprint -> equal behavior is the design invariant:
 guarded by the hidden `nose verify` oracle, regression tests, and Lean obligations for the
@@ -90,7 +94,10 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
 - **General collection flattening** — depth-parameterized flattening such as
   `Array.prototype.flat(depth)` is not canonicalized. The modeled flattening is the
   one-level flat-map shape (`FlatMap[A, λa. Map[B, λb. e]]`) used by Python multi-clause
-  comprehensions, JS `.flatMap`, and equivalent nested builder loops.
+  comprehensions, proof-backed JS `.flatMap`, and equivalent nested builder loops.
+- **Name-only library semantics** are not accepted. A method named `map`, `then`,
+  `collect`, or `contains` is exact only when the language, symbol/receiver,
+  shadowing/import, arity, and effect/demand obligations for that API are proven.
 - **Recursion ↔ iteration** is partially modeled — a bounded subset converges (see
   [normalization](normalization.md)); general recursion↔iteration remains out of scope.
 - The behavioral *proof* (`nose verify`) covers only interpretable (≈ pure) units; detection

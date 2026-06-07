@@ -5,6 +5,13 @@ designed so that semantically-equivalent code converges toward identical
 structure, then finds and ranks duplication on top of it. The IL is **not** the
 deliverable — it's the substrate.
 
+The long-term boundary for language and library meaning is the
+[semantic-kernel](semantic-kernel.md): a pack-based semantic contract layer that
+makes evaluation strategy, effects, library APIs, laws, and proof status explicit
+instead of scattering semantic assumptions across the engine. The first internal
+facade is in `nose-semantics`; the pipeline below describes the current mixed
+state while migration continues.
+
 ## North star
 
 nose's exact Type-4 goal is **not** to guess arbitrary semantic similarity. It is
@@ -68,11 +75,15 @@ A Cargo workspace; data flows left-to-right through them.
 | crate | role |
 |---|---|
 | `nose-il` | arena IL model (`Vec<Node>`, `NodeId(u32)`, out-of-line edges), provenance spans, interner, serialization, IR verifier |
+| `nose-semantics` | first-party semantic facade: language profiles, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
 | `nose-frontend` | tree-sitter parse + per-language CST→IL lowering (one module per language; embedded `<script>` extraction) |
 | `nose-normalize` | the normalization passes + the value graph (GVN) |
 | `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |
 | `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |
 | `nose-cli` | the `nose` binary, config loading, baselines, caching |
+
+The current semantic assumptions these crates share are summarized in
+[semantic-kernel-snapshot](semantic-kernel-snapshot.md).
 
 ## Design choices worth knowing
 

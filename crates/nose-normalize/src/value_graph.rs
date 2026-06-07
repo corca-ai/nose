@@ -48,55 +48,16 @@ use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
     ParamSemantic, Payload, Span, Symbol, UnitKind,
 };
+use nose_semantics::{
+    builder_append_method_contract, builtin_tag, iterator_identity_adapter_contract,
+    method_call_contract, reduction_builtin_contract, scalar_integer_method_contract, semantics,
+    IteratorAdapterReceiverContract, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
 
 const LARGE_AC_EXPR_OPERANDS: usize = 64;
-
-/// Free function/path names that construct a collection from a single sequence literal
-/// (`factory(<seq>)`), driving [`Builder::proven_free_name_collection_factory`]. Each row is
-/// `(language gate | None = any, the constructor names, shadow-guard)`: when the guard is true a
-/// same-named local definition (`file_defines_name`) shadows the builtin and the row does not
-/// match. This data table replaces the formerly-separate per-language `Set` / python-builtin /
-/// rust-`::from` recognizers, whose identical skeletons nose's own duplication gate flagged.
-type CollectionFactoryRow = (Option<Lang>, &'static [&'static str], bool);
-const FREE_NAME_COLLECTION_FACTORIES: &[CollectionFactoryRow] = &[
-    (None, &["Set"], false),
-    (
-        Some(Lang::Python),
-        &["list", "set", "frozenset", "tuple"],
-        true,
-    ),
-    (
-        Some(Lang::Rust),
-        &[
-            "std::collections::HashSet::from",
-            "std::collections::BTreeSet::from",
-            "std::collections::VecDeque::from",
-        ],
-        false,
-    ),
-];
-
-/// Free function/path names that construct a MAP from a single sequence literal of key/value
-/// entries (`factory([<entry>, …])`), driving [`Builder::proven_free_name_map_factory`]. Each row
-/// is `(language gate | None = any, the constructor names, the entry literal's `Seq` tag)`: JS
-/// `new Map([[k, v], …])` nests each entry as a `Seq(1)` array, Rust `HashMap::from([(k, v), …])`
-/// as a `Seq(2)` tuple — the only difference between two otherwise-identical skeletons. This data
-/// table replaces the separate `proven_map_constructor_entries` / `proven_rust_std_map_factory_*`
-/// recognizers. (Java `Map.of`/`ofEntries` and Go map literals have different shapes — kept apart.)
-type MapFactoryRow = (Option<Lang>, &'static [&'static str], u64);
-const FREE_NAME_MAP_FACTORIES: &[MapFactoryRow] = &[
-    (None, &["Map"], 1),
-    (
-        Some(Lang::Rust),
-        &[
-            "std::collections::HashMap::from",
-            "std::collections::BTreeMap::from",
-        ],
-        2,
-    ),
-];
 
 /// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
 /// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
@@ -115,13 +76,6 @@ pub type Anchors = Vec<Anchor>;
 /// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
 /// heavy sub-DAG [`Anchors`].
 pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
-
-/// The [`ValOp::Call`] tag for a known builtin: its discriminant + 1. The `+1` reserves tag
-/// `0` for an opaque (non-builtin) callee — see [`ValOp::Call`]'s definition. Centralizes
-/// that encoding so the reserved-zero invariant lives in one place.
-fn builtin_tag(b: Builtin) -> u32 {
-    b as u32 + 1
-}
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`
 /// (sorted multiset of `u64` value hashes). Equivalent computations → equal
@@ -807,7 +761,7 @@ impl<'a> Builder<'a> {
     fn is_collection_param_expr(&self, expr: NodeId) -> bool {
         matches!(
             self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Collection)
+            Some(ParamSemantic::Collection | ParamSemantic::Set)
         )
     }
 
@@ -815,10 +769,10 @@ impl<'a> Builder<'a> {
         matches!(self.param_semantic_of_expr(expr), Some(ParamSemantic::Map))
     }
 
-    fn is_number_param_expr(&self, expr: NodeId) -> bool {
+    fn is_integer_param_expr(&self, expr: NodeId) -> bool {
         matches!(
             self.param_semantic_of_expr(expr),
-            Some(ParamSemantic::Integer | ParamSemantic::Number)
+            Some(ParamSemantic::Integer)
         )
     }
 
@@ -841,17 +795,18 @@ impl<'a> Builder<'a> {
         };
         match self.param_semantic.get(&cid).copied() {
             Some(ParamSemantic::Array) => self.mk(ValOp::ArrayParam, vec![value]),
-            Some(ParamSemantic::Collection) => self.mk(ValOp::CollectionParam, vec![value]),
+            Some(ParamSemantic::Collection | ParamSemantic::Set) => {
+                self.mk(ValOp::CollectionParam, vec![value])
+            }
             Some(ParamSemantic::String) => self.mk(ValOp::StringParam, vec![value]),
             _ => value,
         }
     }
 
     fn is_js_like_lang(&self) -> bool {
-        matches!(
-            self.il.meta.lang,
-            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-        )
+        semantics(self.il.meta.lang)
+            .modules()
+            .js_like_shadowed_module_bindings()
     }
 
     fn free_name_input_key(&self, name: &str) -> u32 {
@@ -887,26 +842,41 @@ impl<'a> Builder<'a> {
     }
 
     /// `factory(<seq>)` where `factory` is a free function/path name that constructs a collection
-    /// from a single sequence literal. Data-driven by [`FREE_NAME_COLLECTION_FACTORIES`]: each row
-    /// is `(language | any, the constructor names, whether a same-named local definition shadows
-    /// it)`. Replaces the per-language `Set` / python-builtin / rust-`::from` recognizers.
+    /// from a single sequence literal. Data-driven by the first-party collection contracts in
+    /// `nose-semantics`; each row carries the names and whether a same-named local definition
+    /// shadows the builtin.
     fn proven_free_name_collection_factory(&self, value: ValueId) -> Option<ValueId> {
-        let lang = self.il.meta.lang;
         self.collection_factory_seq(value, |s, callee| {
-            FREE_NAME_COLLECTION_FACTORIES
-                .iter()
-                .filter(|(want, _, _)| want.is_none_or(|l| l == lang))
-                .flat_map(|(_, names, guard)| names.iter().map(move |n| (*n, *guard)))
+            semantics(s.il.meta.lang)
+                .collections()
+                .free_name_collection_factories()
+                .flat_map(|factory| {
+                    factory
+                        .names
+                        .iter()
+                        .map(move |name| (*name, factory.shadow_guard))
+                })
                 .any(|(name, guard)| {
-                    s.is_free_name_value(callee, name) && (!guard || !s.file_defines_name(name))
+                    s.is_free_name_value(callee, name)
+                        && s.free_name_factory_shadow_safe(name, guard)
                 })
         })
+    }
+
+    fn free_name_factory_shadow_safe(&self, name: &str, shadow_guard: bool) -> bool {
+        if shadow_guard {
+            return !self.file_defines_name(name);
+        }
+        if self.il.meta.lang == Lang::Rust && name.starts_with("std::") {
+            return !self.file_defines_name("std");
+        }
+        true
     }
 
     /// Python `from collections import deque; deque(<seq>)` — the imported-stdlib collection
     /// factory (the non-free-name part of the former python recognizer).
     fn proven_python_deque_collection_value(&self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Python {
+        if !semantics(self.il.meta.lang).stdlib().python_deque_factory() {
             return None;
         }
         self.collection_factory_seq(value, |s, callee| {
@@ -915,7 +885,10 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_java_collection_factory_value(&mut self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Java {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .java_collection_factories()
+        {
             return None;
         }
         let node = &self.nodes[value as usize];
@@ -960,7 +933,7 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Ruby
+        if !semantics(self.il.meta.lang).stdlib().ruby_set_factory()
             || !self.ruby_file_requires_module("set")
             || self.file_defines_name("Set")
         {
@@ -975,7 +948,10 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_rust_vec_macro_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Rust {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .rust_vec_macro_factory()
+        {
             return None;
         }
         let node = &self.nodes[value as usize];
@@ -1029,7 +1005,10 @@ impl<'a> Builder<'a> {
     }
 
     fn file_imports_namespace(&self, expr: NodeId, module: &str) -> bool {
-        if self.il.meta.lang != Lang::Go {
+        if !semantics(self.il.meta.lang)
+            .modules()
+            .go_import_namespace_facts()
+        {
             return false;
         }
         let Some(alias) = self.node_symbol(expr) else {
@@ -1060,7 +1039,10 @@ impl<'a> Builder<'a> {
     }
 
     fn java_file_defines_type_name(&self, name: &str) -> bool {
-        if self.il.meta.lang != Lang::Java {
+        if !semantics(self.il.meta.lang)
+            .modules()
+            .java_type_declarations_shadow_stdlib()
+        {
             return false;
         }
         self.il.units.iter().any(|unit| {
@@ -1078,11 +1060,14 @@ impl<'a> Builder<'a> {
         }) || self.il.units.iter().any(|unit| {
             unit.name
                 .is_some_and(|symbol| self.interner.resolve(symbol) == name)
+        }) || self.il.nodes.iter().any(|node| {
+            matches!(node.kind, NodeKind::Module | NodeKind::Block)
+                && matches!(node.payload, Payload::Name(symbol) if self.interner.resolve(symbol) == name)
         })
     }
 
     fn ruby_file_requires_module(&self, module: &str) -> bool {
-        if self.il.meta.lang != Lang::Ruby {
+        if !semantics(self.il.meta.lang).stdlib().ruby_set_factory() {
             return false;
         }
         let expected = stable_symbol_hash(module);
@@ -1117,7 +1102,9 @@ impl<'a> Builder<'a> {
             return Some(value);
         }
         if matches!(self.nodes[value as usize].op, ValOp::Seq(2))
-            || (self.il.meta.lang == Lang::Python
+            || (semantics(self.il.meta.lang)
+                .collections()
+                .empty_sequence_is_collection()
                 && matches!(self.nodes[value as usize].op, ValOp::Seq(0)))
         {
             let items = self.nodes[value as usize].args.clone();
@@ -1224,9 +1211,8 @@ impl<'a> Builder<'a> {
     }
 
     /// `factory([<entry>, …])` where `factory` is a free name that builds a map from a sequence of
-    /// 2-element key/value entries. Data-driven by [`FREE_NAME_MAP_FACTORIES`]; the matched row's
-    /// `Seq` tag says how each entry is shaped (JS array vs Rust tuple). Replaces the per-language
-    /// JS-`Map` and Rust-`::from` map recognizers (identical skeletons but for the entry tag).
+    /// 2-element key/value entries. Data-driven by first-party map contracts in `nose-semantics`;
+    /// the matched row's `Seq` tag says how each entry is shaped (JS array vs Rust tuple).
     fn proven_free_name_map_factory(&mut self, value: ValueId) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
@@ -1236,12 +1222,16 @@ impl<'a> Builder<'a> {
         if !matches!(self.nodes[seq as usize].op, ValOp::Seq(1)) {
             return None;
         }
-        let lang = self.il.meta.lang;
-        let entry_tag = FREE_NAME_MAP_FACTORIES
-            .iter()
-            .filter(|(want, _, _)| want.is_none_or(|l| l == lang))
-            .find(|(_, names, _)| names.iter().any(|n| self.is_free_name_value(callee, n)))
-            .map(|(_, _, tag)| *tag)?;
+        let entry_tag = semantics(self.il.meta.lang)
+            .collections()
+            .free_name_map_factories()
+            .find(|factory| {
+                factory.names.iter().any(|name| {
+                    self.is_free_name_value(callee, name)
+                        && self.free_name_factory_shadow_safe(name, false)
+                })
+            })
+            .map(|factory| factory.entry_seq_tag)?;
         self.map_factory_from_seq(seq, entry_tag)
     }
 
@@ -1265,7 +1255,7 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_java_map_factory_entries(&mut self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Java {
+        if !semantics(self.il.meta.lang).stdlib().java_map_factories() {
             return None;
         }
         let node = &self.nodes[value as usize];
@@ -1333,7 +1323,10 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         args: &[ValueId],
     ) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Go {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .go_literal_zero_map_lookup()
+        {
             return None;
         }
         let Payload::Name(name) = self.il.node(expr).payload else {
@@ -1448,9 +1441,14 @@ impl<'a> Builder<'a> {
         let args = node.args.clone();
         if args.len() == 1 {
             let callee = &self.nodes[args[0] as usize];
-            if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("keys"))
-                || callee.args.len() != 1
-            {
+            let key_view = matches!(
+                callee.op,
+                ValOp::Field(name)
+                    if name == stable_symbol_hash("keys")
+                        || (self.il.meta.lang == Lang::Java
+                            && name == stable_symbol_hash("keySet"))
+            );
+            if !key_view || callee.args.len() != 1 {
                 return None;
             }
             let map = callee.args[0];
@@ -1568,8 +1566,7 @@ impl<'a> Builder<'a> {
         let map = if self.is_map_param_expr(receiver) {
             receiver_value
         } else {
-            self.proven_map_value(receiver_value)
-                .or_else(|| map_specific_method.then_some(receiver_value))?
+            self.proven_map_value(receiver_value)?
         };
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
@@ -1589,7 +1586,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "get" {
+        if !matches!(self.interner.resolve(name), "get" | "getOrDefault") {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;
@@ -1607,19 +1604,11 @@ impl<'a> Builder<'a> {
         ))
     }
 
-    fn eval_proven_numeric_method_call(
+    fn eval_proven_integer_method_call(
         &mut self,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        #[derive(Clone, Copy)]
-        enum NumericMethod {
-            Abs,
-            Min(NodeId),
-            Max(NodeId),
-            Clamp(NodeId, NodeId),
-        }
-
         let &callee = kids.first()?;
         if self.il.kind(callee) != NodeKind::Field {
             return None;
@@ -1628,43 +1617,93 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let numeric_op = match (method, kids.len()) {
-            ("abs", 1) => Some(NumericMethod::Abs),
-            ("min", 2) => kids.get(1).copied().map(NumericMethod::Min),
-            ("max", 2) => kids.get(1).copied().map(NumericMethod::Max),
-            ("clamp", 3) => Some(NumericMethod::Clamp(kids[1], kids[2])),
-            _ => None,
-        }?;
+        let contract = scalar_integer_method_contract(
+            self.il.meta.lang,
+            method,
+            kids.len().saturating_sub(1),
+        )?;
+        if contract.receiver != MethodReceiverContract::ExactInteger {
+            return None;
+        }
         let receiver = self.il.children(callee).first().copied()?;
-        let receiver_value = self.eval_proven_numeric_expr(receiver, env)?;
-        match numeric_op {
-            NumericMethod::Abs => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
-            NumericMethod::Min(rhs) => {
-                let rhs = self.eval(rhs, env);
-                Some(self.mk(ValOp::Bin(MIN_CODE), vec![receiver_value, rhs]))
+        let receiver_value = self.eval_proven_integer_expr(receiver, env)?;
+        match contract.semantic {
+            ScalarIntegerMethod::Abs => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
+            ScalarIntegerMethod::Min => {
+                let rhs = self.eval(*kids.get(1)?, env);
+                self.eval_proven_integer_minmax_method_call(MIN_CODE, receiver_value, rhs)
             }
-            NumericMethod::Max(rhs) => {
-                let rhs = self.eval(rhs, env);
-                Some(self.mk(ValOp::Bin(MAX_CODE), vec![receiver_value, rhs]))
+            ScalarIntegerMethod::Max => {
+                let rhs = self.eval(*kids.get(1)?, env);
+                self.eval_proven_integer_minmax_method_call(MAX_CODE, receiver_value, rhs)
             }
-            NumericMethod::Clamp(lo, hi) => {
-                let lo = self.eval(lo, env);
-                let hi = self.eval(hi, env);
-                self.proof_backed_clamp_value(receiver_value, lo, hi)
+            ScalarIntegerMethod::Clamp => {
+                let lo = self.eval(*kids.get(1)?, env);
+                let hi = self.eval(*kids.get(2)?, env);
+                self.eval_proven_integer_clamp_method_call(receiver_value, lo, hi)
             }
         }
     }
 
-    fn eval_proven_numeric_expr(
+    fn eval_proven_integer_minmax_method_call(
+        &mut self,
+        op: u32,
+        receiver: ValueId,
+        rhs: ValueId,
+    ) -> Option<ValueId> {
+        if !self.is_integer_domain_value(rhs) {
+            return None;
+        }
+        Some(self.mk(ValOp::Bin(op), vec![receiver, rhs]))
+    }
+
+    fn eval_proven_integer_clamp_method_call(
+        &mut self,
+        receiver: ValueId,
+        lo: ValueId,
+        hi: ValueId,
+    ) -> Option<ValueId> {
+        if !self.is_integer_domain_value(lo) || !self.is_integer_domain_value(hi) {
+            return None;
+        }
+        self.proof_backed_clamp_value(receiver, lo, hi)
+    }
+
+    fn eval_proven_integer_expr(
         &mut self,
         expr: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
         let value = self.eval(expr, env);
         if self.il.kind(expr) == NodeKind::Var {
-            return self.is_number_param_expr(expr).then_some(value);
+            return self.is_integer_param_expr(expr).then_some(value);
         }
-        (self.vty(value) == Ty::Num).then_some(value)
+        self.is_integer_domain_value(value).then_some(value)
+    }
+
+    fn is_integer_domain_value(&self, value: ValueId) -> bool {
+        if self.int_const_value(value).is_some()
+            || self.is_param_value(value, ParamSemantic::Integer)
+        {
+            return true;
+        }
+        let node = &self.nodes[value as usize];
+        match node.op {
+            ValOp::Un(op) if op == ABS_CODE && node.args.len() == 1 => {
+                self.is_integer_domain_value(node.args[0])
+            }
+            ValOp::Bin(op) if (op == MIN_CODE || op == MAX_CODE) && node.args.len() == 2 => node
+                .args
+                .iter()
+                .copied()
+                .all(|arg| self.is_integer_domain_value(arg)),
+            ValOp::Clamp if node.args.len() == 3 => node
+                .args
+                .iter()
+                .copied()
+                .all(|arg| self.is_integer_domain_value(arg)),
+            _ => false,
+        }
     }
 
     /// Push an effect sink, tagged with the current path condition — so a *conditional*
@@ -2195,7 +2234,9 @@ impl<'a> Builder<'a> {
     }
 
     fn has_primitive_order_comparisons(&self) -> bool {
-        matches!(self.il.meta.lang, Lang::C | Lang::Go | Lang::Java)
+        semantics(self.il.meta.lang)
+            .operators()
+            .primitive_order_comparisons()
     }
 
     /// `(x < y) ∧ (x ≤ y) → x < y`. Guard-clause lowering accumulates path conditions
@@ -3011,7 +3052,9 @@ impl<'a> Builder<'a> {
         // Ruby `r << item` appends to a list (`<<` lowers to `Shl`, a BinOp not a Call). Scoped
         // to Ruby and — via `builder_candidates`' empty-Seq-seed gate — to a `[]`-seeded builder,
         // so integer `a << b` shift (`a` is not a list-builder) never enters the Map build.
-        if self.il.meta.lang == Lang::Ruby
+        if semantics(self.il.meta.lang)
+            .collections()
+            .ruby_shovel_list_append()
             && self.il.kind(e) == NodeKind::BinOp
             && matches!(self.il.node(e).payload, Payload::Op(Op::Shl))
         {
@@ -3039,7 +3082,11 @@ impl<'a> Builder<'a> {
         }
         if self.il.kind(first) == NodeKind::Field {
             if let Payload::Name(s) = self.il.node(first).payload {
-                if self.interner.resolve(s) == "add" {
+                if builder_append_method_contract(
+                    self.il.meta.lang,
+                    self.interner.resolve(s),
+                    kids.len() - 1,
+                ) {
                     if let Some(&recv) = self.il.children(first).first() {
                         if let (NodeKind::Var, Payload::Cid(c)) =
                             (self.il.kind(recv), self.il.node(recv).payload)
@@ -5042,7 +5089,9 @@ impl<'a> Builder<'a> {
     }
 
     fn has_java_primitive_integer_ops(&self) -> bool {
-        self.il.meta.lang == Lang::Java
+        semantics(self.il.meta.lang)
+            .stdlib()
+            .java_primitive_integer_ops()
     }
 
     fn parity_zero_condition(&self, cond: ValueId) -> Option<(ValueId, bool)> {
@@ -5113,7 +5162,10 @@ impl<'a> Builder<'a> {
     }
 
     fn c_u16_be_byte_pack_pattern(&mut self, left: ValueId, right: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::C {
+        if !semantics(self.il.meta.lang)
+            .operators()
+            .c_integer_byte_pack_contracts()
+        {
             return None;
         }
         for (shifted, low) in [(left, right), (right, left)] {
@@ -5139,7 +5191,11 @@ impl<'a> Builder<'a> {
     }
 
     fn c_u32_be_byte_pack_pattern(&mut self, operands: &[ValueId]) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::C || operands.len() != 4 {
+        if !semantics(self.il.meta.lang)
+            .operators()
+            .c_integer_byte_pack_contracts()
+            || operands.len() != 4
+        {
             return None;
         }
         let mut base = None;
@@ -5250,6 +5306,13 @@ impl<'a> Builder<'a> {
         let ValOp::Const(key) = self.nodes[value as usize].op else {
             return None;
         };
+        // `LitInt(v)` is keyed as `0x1000_0000 + v as u32`, so retained
+        // negative integers sit below the positive range. Exclude only the
+        // small `LitClass` discriminants; strings/floats/bools live in their
+        // own higher ranges and must never count as integer-bound proofs.
+        if !(0x0000_0006..=0x1FFF_FFFF).contains(&key) {
+            return None;
+        }
         Some(key.wrapping_sub(0x1000_0000) as i32 as i64)
     }
 
@@ -5519,15 +5582,15 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        match b {
-            Builtin::Len => {
+        match reduction_builtin_contract(b)? {
+            ReductionBuiltinContract::Len => {
                 if kids.len() == 1 {
                     self.eval_len_builtin(kids[0], env)
                 } else {
                     None
                 }
             }
-            Builtin::Sum => {
+            ReductionBuiltinContract::Sum => {
                 let av = self.eval(*kids.first()?, env);
                 // `sum(map)` → the mapped stream's per-element contribution; a filtered
                 // map/flat-map carries a predicate and becomes `pred ? contrib : 0`,
@@ -5543,7 +5606,7 @@ impl<'a> Builder<'a> {
                 let init = self.int_const(0);
                 Some(self.mk(ValOp::Reduce(Op::Add as u32), vec![init, contrib]))
             }
-            Builtin::Reduce => {
+            ReductionBuiltinContract::ExplicitFold => {
                 if kids.len() < 2 {
                     return None;
                 }
@@ -5579,8 +5642,8 @@ impl<'a> Builder<'a> {
                 };
                 Some(self.mk(ValOp::Reduce(op), args))
             }
-            Builtin::Min | Builtin::Max => {
-                let (reduce_code, choice_code) = if matches!(b, Builtin::Max) {
+            ReductionBuiltinContract::Selection { max } => {
+                let (reduce_code, choice_code) = if max {
                     (REDUCE_MAX, MAX_CODE)
                 } else {
                     (REDUCE_MIN, MIN_CODE)
@@ -5604,12 +5667,8 @@ impl<'a> Builder<'a> {
                 };
                 Some(self.mk(ValOp::Reduce(reduce_code), vec![contrib]))
             }
-            Builtin::Any | Builtin::All => {
-                let code = if matches!(b, Builtin::All) {
-                    REDUCE_ALL
-                } else {
-                    REDUCE_ANY
-                };
+            ReductionBuiltinContract::Bool { all } => {
+                let code = if all { REDUCE_ALL } else { REDUCE_ANY };
                 // `xs.some(p)` / `xs.any(p)` — method form `[coll, λ]`: the per-element
                 // contribution is `p(Elem coll)`. `any(p(x) for x in xs)` — generator form
                 // `[Map]`: the mapped predicate value; a *filtered* generator carries its
@@ -5660,7 +5719,7 @@ impl<'a> Builder<'a> {
                 };
                 Some(self.mk(ValOp::Reduce(code), vec![contrib]))
             }
-            Builtin::Join => {
+            ReductionBuiltinContract::Join => {
                 if kids.len() != 2 {
                     return None;
                 }
@@ -5669,7 +5728,6 @@ impl<'a> Builder<'a> {
                 let elem = self.elem(coll);
                 Some(self.mk(ValOp::Reduce(ORDERED_STRING_JOIN), vec![sep, elem]))
             }
-            _ => None,
         }
     }
 
@@ -5679,8 +5737,12 @@ impl<'a> Builder<'a> {
         }
 
         let av = self.eval(arg, env);
+        self.eval_len_value(av)
+    }
+
+    fn eval_len_value(&mut self, value: ValueId) -> Option<ValueId> {
         let (op, args) = {
-            let n = &self.nodes[av as usize];
+            let n = &self.nodes[value as usize];
             (n.op.clone(), n.args.clone())
         };
         let ValOp::Hof(k) = op else { return None };
@@ -6261,17 +6323,28 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "count" {
+        let contract = method_call_contract(
+            self.il.meta.lang,
+            self.interner.resolve(name),
+            kids.len().saturating_sub(1),
+        )?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Len)
+            || contract.receiver != MethodReceiverContract::ExactProtocol
+            || contract.args != MethodBuiltinArgs::CollectionReduction
+        {
             return None;
         }
         let base = *self.il.children(callee).first()?;
+        let base_value = self.eval(base, env);
+        if !matches!(
+            self.nodes[base_value as usize].op,
+            ValOp::Seq(_) | ValOp::ArrayParam | ValOp::CollectionParam | ValOp::Hof(_)
+        ) {
+            return None;
+        }
         match kids {
             // Rust-style `iter.filter(p).count()`.
             [_] => self.eval_filter_count(base, env),
-            // Ruby-style `xs.count { |x| p(x) }`.
-            [_, predicate] if self.il.kind(*predicate) == NodeKind::Lambda => {
-                self.eval_predicate_count(base, *predicate, env)
-            }
             _ => None,
         }
     }
@@ -6316,6 +6389,93 @@ impl<'a> Builder<'a> {
             .map(|&i| self.eval(i, env))
             .unwrap_or_else(|| self.int_const(1));
         Some(self.mk(ValOp::Reduce(Op::Mul as u32), vec![init, contrib]))
+    }
+
+    fn eval_iterator_identity_adapter(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = iterator_identity_adapter_contract(
+            self.il.meta.lang,
+            self.interner.resolve(method),
+            0,
+        )?;
+        let base = *self.il.children(kids[0]).first()?;
+        let value = self.eval(base, env);
+        let value = self.param_domain_value(value);
+        self.iterator_adapter_receiver_proven(contract.receiver, value)
+            .then_some(value)
+    }
+
+    fn iterator_adapter_receiver_proven(
+        &self,
+        receiver: IteratorAdapterReceiverContract,
+        value: ValueId,
+    ) -> bool {
+        match receiver {
+            IteratorAdapterReceiverContract::ExactIterableValue => matches!(
+                self.nodes[value as usize].op,
+                ValOp::Seq(_) | ValOp::ArrayParam | ValOp::CollectionParam | ValOp::Hof(_)
+            ),
+        }
+    }
+
+    fn eval_rust_map_get_unwrap_or_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?;
+        if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
+            || contract.args != MethodBuiltinArgs::RustMapGetOrOptionDefault
+        {
+            return None;
+        }
+        let receiver = *self.il.children(kids[0]).first()?;
+        let value = self.eval(receiver, env);
+        let (map, key) = self.proven_map_get_value(value)?;
+        let default = self.eval(kids[1], env);
+        Some(self.mk(
+            ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
+            vec![map, key, default],
+        ))
+    }
+
+    fn eval_rust_map_get_is_some_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?;
+        if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
+            || contract.args != MethodBuiltinArgs::ReceiverOnly
+            || contract.semantic != MethodSemanticContract::Builtin(Builtin::IsNotNull)
+        {
+            return None;
+        }
+        let receiver = *self.il.children(kids[0]).first()?;
+        let value = self.eval(receiver, env);
+        let (map, key) = self.proven_map_get_value(value)?;
+        Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
 
     /// The element value(s) a map lambda binds to, plus any predicate CARRIED by the
@@ -6600,12 +6760,16 @@ impl<'a> Builder<'a> {
         else {
             return None;
         };
-        let text = self.interner.resolve(name);
-        (text == "Some" || text.ends_with("::Some")).then_some(kids[1])
+        self.rust_option_some_name(self.interner.resolve(name))
+            .then_some(kids[1])
     }
 
     fn rust_option_and_then_call_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
-        if self.il.meta.lang != Lang::Rust || self.il.kind(node) != NodeKind::Call {
+        if !semantics(self.il.meta.lang)
+            .stdlib()
+            .rust_filter_map_option_contract()
+            || self.il.kind(node) != NodeKind::Call
+        {
             return None;
         }
         let kids = self.il.children(node);
@@ -6628,8 +6792,32 @@ impl<'a> Builder<'a> {
         else {
             return false;
         };
-        let text = self.interner.resolve(name);
-        text == "Vec::new" || text.ends_with("::Vec::new")
+        self.rust_vec_new_name(self.interner.resolve(name))
+    }
+
+    fn rust_option_some_name(&self, text: &str) -> bool {
+        if self.il.meta.lang != Lang::Rust {
+            return false;
+        }
+        match text {
+            "Some" => !self.file_defines_name("Some"),
+            "Option::Some" => !self.file_defines_name("Option"),
+            "std::option::Option::Some" => !self.file_defines_name("std"),
+            "core::option::Option::Some" => !self.file_defines_name("core"),
+            _ => false,
+        }
+    }
+
+    fn rust_vec_new_name(&self, text: &str) -> bool {
+        if self.il.meta.lang != Lang::Rust {
+            return false;
+        }
+        match text {
+            "Vec::new" => !self.file_defines_name("Vec"),
+            "std::vec::Vec::new" => !self.file_defines_name("std"),
+            "alloc::vec::Vec::new" => !self.file_defines_name("alloc"),
+            _ => false,
+        }
     }
 
     fn is_null_literal(&self, node: NodeId) -> bool {
@@ -6892,6 +7080,21 @@ impl<'a> Builder<'a> {
                 };
                 if a.len() == 1 {
                     if let Payload::Name(s) = node.payload {
+                        if nose_semantics::property_builtin_contract(
+                            self.il.meta.lang,
+                            self.interner.resolve(s),
+                        ) == Some(Builtin::Len)
+                        {
+                            if let Some(len) = self.eval_len_value(a[0]) {
+                                return len;
+                            }
+                            if matches!(
+                                self.param_semantic_of_expr(kids[0]),
+                                Some(ParamSemantic::Array | ParamSemantic::Collection)
+                            ) {
+                                return self.mk(ValOp::Call(builtin_tag(Builtin::Len)), a);
+                            }
+                        }
                         let receiver = &self.nodes[a[0] as usize];
                         if matches!(receiver.op, ValOp::Seq(6)) && receiver.args.len() == 1 {
                             let module = receiver.args[0];
@@ -6923,8 +7126,9 @@ impl<'a> Builder<'a> {
             }
             NodeKind::Call => {
                 let kids = self.il.children(expr).to_vec();
-                // `p.then(λr. body)` is a Promise continuation ≡ `const r = await p; body` — a
-                // value-graph canon proved in `rules::promise_then` (the #1 real-world async gap).
+                // Promise continuation beta-reduction is exact only when a semantic pack can
+                // prove the receiver is Promise-like; otherwise arbitrary `.then` methods stay
+                // opaque.
                 if let Some(v) = rules::promise_then::apply(self, expr, env) {
                     return v;
                 }
@@ -6995,34 +7199,20 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_product_call(&kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_proven_numeric_method_call(&kids, env) {
+                if let Some(r) = self.eval_proven_integer_method_call(&kids, env) {
+                    return r;
+                }
+                if let Some(r) = self.eval_rust_map_get_unwrap_or_call(&kids, env) {
+                    return r;
+                }
+                if let Some(r) = self.eval_rust_map_get_is_some_call(&kids, env) {
                     return r;
                 }
                 if kids.len() == 1 && self.is_rust_vec_new_call(kids[0]) {
                     return self.mk(ValOp::Seq(1), vec![]);
                 }
-                // Iteration-identity adapters: `xs.iter()` / `.into_iter()` / `.collect()`
-                // / `.to_vec()` / `.copied()` / `.cloned()` don't change *what* is iterated
-                // or produced, so peel them — `xs.iter().map(f).collect()` (Rust) converges
-                // with `[f(x) for x in xs]` (Python). The callee is a `Field` whose base is
-                // the receiver; the call has no value arguments.
-                if kids.len() == 1 && self.il.kind(kids[0]) == NodeKind::Field {
-                    if let Payload::Name(s) = self.il.node(kids[0]).payload {
-                        if matches!(
-                            self.interner.resolve(s),
-                            "iter"
-                                | "into_iter"
-                                | "iter_mut"
-                                | "collect"
-                                | "to_vec"
-                                | "copied"
-                                | "cloned"
-                        ) {
-                            if let Some(&base) = self.il.children(kids[0]).first() {
-                                return self.eval(base, env);
-                            }
-                        }
-                    }
+                if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
+                    return v;
                 }
                 // 2-way `min(x, y)` / `max(x, y)` → canonical Min/Max, converging with the
                 // ternary idiom `x if x<y else y`. (1-arg `min(iterable)` is a reduction,
@@ -7031,15 +7221,18 @@ impl<'a> Builder<'a> {
                     if let (NodeKind::Var, Payload::Name(s)) =
                         (self.il.kind(kids[0]), self.il.node(kids[0]).payload)
                     {
-                        let code = match self.interner.resolve(s) {
+                        let method = self.interner.resolve(s);
+                        let code = match method {
                             "min" => Some(MIN_CODE),
                             "max" => Some(MAX_CODE),
                             _ => None,
                         };
                         if let Some(c) = code {
-                            let x = self.eval(kids[1], env);
-                            let y = self.eval(kids[2], env);
-                            return self.mk(ValOp::Bin(c), vec![x, y]);
+                            if !self.file_defines_name(method) {
+                                let x = self.eval(kids[1], env);
+                                let y = self.eval(kids[2], env);
+                                return self.mk(ValOp::Bin(c), vec![x, y]);
+                            }
                         }
                     }
                 }
@@ -7208,7 +7401,7 @@ impl<'a> Builder<'a> {
                 self.mk(ValOp::Phi, a)
             }
             NodeKind::Lambda => {
-                let hash = self.subtree_hash(expr);
+                let hash = self.valued_subtree_hash(expr);
                 self.mk(ValOp::Lambda(hash), vec![])
             }
             // Any unlowered / unhandled construct — notably `Raw`, which wraps a
@@ -7671,7 +7864,7 @@ fn stable_float_const_key(value: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, ParamTypeFact, Span, Unit, UnitKind};
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span, Unit, UnitKind};
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)

@@ -480,6 +480,7 @@ dependencies = [
  "nose-frontend",
  "nose-il",
  "nose-normalize",
+ "nose-semantics",
  "rayon",
  "rustc-hash",
  "serde",
@@ -502,6 +503,7 @@ dependencies = [
  "anyhow",
  "ignore",
  "nose-il",
+ "nose-semantics",
  "rayon",
  "rustc-hash",
  "serde",
@@ -529,8 +531,16 @@ name = "nose-normalize"
 version = "0.5.0"
 dependencies = [
  "nose-il",
+ "nose-semantics",
  "rustc-hash",
  "serde",
+]
+
+[[package]]
+name = "nose-semantics"
+version = "0.5.0"
+dependencies = [
+ "nose-il",
 ]
 
 [[package]]

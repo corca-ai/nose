@@ -134,6 +134,8 @@ pub enum ParamSemantic {
     Integer,
     Map,
     Number,
+    Option,
+    Set,
     String,
 }
 

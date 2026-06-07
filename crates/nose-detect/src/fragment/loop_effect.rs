@@ -18,14 +18,19 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Builtin, Il, Lang, LoopKind, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, Il, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_semantics::{builder_append_method_contract, semantics};
 use rustc_hash::FxHashSet;
 
 /// Recognize `node` as a `LoopEffect` contract, or `None` if it is not the shape.
 ///
 /// Independent of `units::exact_loop_effect_fragment_root`; the caller has already applied the
 /// shared span/context-safety gates (see [`super::recognize::recognize_contract`]).
-pub(crate) fn recognize_loop_effect(il: &Il, node: NodeId) -> Option<FragmentContract> {
+pub(crate) fn recognize_loop_effect(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<FragmentContract> {
     if !matches!(il.node(node).payload, Payload::Loop(LoopKind::ForEach)) {
         return None;
     }
@@ -42,7 +47,7 @@ pub(crate) fn recognize_loop_effect(il: &Il, node: NodeId) -> Option<FragmentCon
     }
 
     let mut effects = Vec::new();
-    if !body_depends_on_iter(il, kids[2], &iter_cids, &mut effects)? {
+    if !body_depends_on_iter(il, interner, kids[2], &iter_cids, &mut effects)? {
         return None;
     }
 
@@ -61,6 +66,7 @@ pub(crate) fn recognize_loop_effect(il: &Il, node: NodeId) -> Option<FragmentCon
 /// branch). Recognized effects are pushed onto `effects` in body order.
 fn body_depends_on_iter(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     effects: &mut Vec<EffectSite>,
@@ -75,6 +81,7 @@ fn body_depends_on_iter(
                 if idx + 2 < kids.len()
                     && temp_chain_consumed_by_effect(
                         il,
+                        interner,
                         kids[idx],
                         kids[idx + 1],
                         kids[idx + 2],
@@ -89,6 +96,7 @@ fn body_depends_on_iter(
                 if idx + 1 < kids.len()
                     && temp_assignment_consumed_by_effect(
                         il,
+                        interner,
                         kids[idx],
                         kids[idx + 1],
                         iter_cids,
@@ -99,14 +107,14 @@ fn body_depends_on_iter(
                     idx += 2;
                     continue;
                 }
-                has_effect |= body_depends_on_iter(il, kids[idx], iter_cids, effects)?;
+                has_effect |= body_depends_on_iter(il, interner, kids[idx], iter_cids, effects)?;
                 idx += 1;
             }
             Some(has_effect)
         }
         NodeKind::ExprStmt => {
             let kids = il.children(node);
-            if kids.len() == 1 && append_depends_on_iter(il, kids[0], iter_cids) {
+            if kids.len() == 1 && append_depends_on_iter(il, interner, kids[0], iter_cids) {
                 effects.push(EffectSite::observable(Effect::Append));
                 Some(true)
             } else {
@@ -131,7 +139,7 @@ fn body_depends_on_iter(
                 if il.kind(branch) != NodeKind::Block {
                     return None;
                 }
-                has_effect |= body_depends_on_iter(il, branch, iter_cids, effects)?;
+                has_effect |= body_depends_on_iter(il, interner, branch, iter_cids, effects)?;
             }
             Some(has_effect)
         }
@@ -143,8 +151,13 @@ fn body_depends_on_iter(
 
 /// `recv.append(value)` where the appended value depends on the loop var but the receiver
 /// (the appended-to collection) does not — so the receiver is loop-invariant.
-fn append_depends_on_iter(il: &Il, node: NodeId, iter_cids: &FxHashSet<u32>) -> bool {
-    let Some(kids) = append_call_args(il, node) else {
+fn append_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> bool {
+    let Some(kids) = append_call_args(il, interner, node) else {
         return false;
     };
     !mentions_any(il, kids.0, iter_cids) && mentions_any(il, kids.1, iter_cids)
@@ -167,6 +180,7 @@ fn index_assignment_depends_on_iter(il: &Il, node: NodeId, iter_cids: &FxHashSet
 /// `t = <expr over iter>;  <effect consuming t>` over two adjacent statements.
 fn temp_assignment_consumed_by_effect(
     il: &Il,
+    interner: &Interner,
     assign: NodeId,
     effect: NodeId,
     iter_cids: &FxHashSet<u32>,
@@ -177,7 +191,7 @@ fn temp_assignment_consumed_by_effect(
     };
     let mut temp_cids = FxHashSet::default();
     temp_cids.insert(temp);
-    effect_consumes_temp(il, effect, iter_cids, &temp_cids, effects)
+    effect_consumes_temp(il, interner, effect, iter_cids, &temp_cids, effects)
 }
 
 /// A local `t = rhs` whose `rhs` is non-trivial, depends on the loop var, does not read `t`
@@ -197,6 +211,7 @@ fn iter_temp_assignment(il: &Il, node: NodeId, iter_cids: &FxHashSet<u32>) -> Op
 /// neither iter nor temp), or an index write whose key/value reads the temp.
 fn effect_consumes_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
@@ -205,7 +220,8 @@ fn effect_consumes_temp(
     match il.kind(node) {
         NodeKind::ExprStmt => {
             let kids = il.children(node);
-            if kids.len() == 1 && append_consumes_temp(il, kids[0], iter_cids, temp_cids) {
+            if kids.len() == 1 && append_consumes_temp(il, interner, kids[0], iter_cids, temp_cids)
+            {
                 effects.push(EffectSite::observable(Effect::Append));
                 return true;
             }
@@ -224,11 +240,12 @@ fn effect_consumes_temp(
 
 fn append_consumes_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    let Some((recv, value)) = append_call_args(il, node) else {
+    let Some((recv, value)) = append_call_args(il, interner, node) else {
         return false;
     };
     !mentions_any(il, recv, iter_cids)
@@ -257,6 +274,7 @@ fn index_assignment_consumes_temp(
 /// adjacent statements.
 fn temp_chain_consumed_by_effect(
     il: &Il,
+    interner: &Interner,
     first: NodeId,
     second: NodeId,
     effect: NodeId,
@@ -286,6 +304,7 @@ fn temp_chain_consumed_by_effect(
     final_temp.insert(second_cid);
     effect_consumes_chained_temp(
         il,
+        interner,
         effect,
         iter_cids,
         &all_temps,
@@ -297,6 +316,7 @@ fn temp_chain_consumed_by_effect(
 
 fn effect_consumes_chained_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     all_temps: &FxHashSet<u32>,
@@ -309,7 +329,7 @@ fn effect_consumes_chained_temp(
             let kids = il.children(node);
             if kids.len() == 1
                 && append_consumes_chained_temp(
-                    il, kids[0], iter_cids, all_temps, final_temp, prior_temp,
+                    il, interner, kids[0], iter_cids, all_temps, final_temp, prior_temp,
                 )
             {
                 effects.push(EffectSite::observable(Effect::Append));
@@ -332,13 +352,14 @@ fn effect_consumes_chained_temp(
 
 fn append_consumes_chained_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     all_temps: &FxHashSet<u32>,
     final_temp: &FxHashSet<u32>,
     prior_temp: &FxHashSet<u32>,
 ) -> bool {
-    let Some((recv, value)) = append_call_args(il, node) else {
+    let Some((recv, value)) = append_call_args(il, interner, node) else {
         return false;
     };
     !mentions_any(il, recv, iter_cids)
@@ -371,20 +392,35 @@ fn index_assignment_consumes_chained_temp(
 // ---- shared structural readers (no acceptance semantics) ----------------------------------
 
 /// `(receiver, value)` of an `append`/`push` builtin call with exactly two children.
-fn append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if il.kind(node) != NodeKind::Call
-        || !matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
-    {
+fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
+    if il.kind(node) != NodeKind::Call {
         return None;
     }
     let kids = il.children(node);
-    (kids.len() == 2).then(|| (kids[0], kids[1]))
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return (kids.len() == 2).then(|| (kids[0], kids[1]));
+    }
+    let (&callee, args) = kids.split_first()?;
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return None;
+    };
+    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
+        return None;
+    }
+    let receiver = *il.children(callee).first()?;
+    Some((receiver, args[0]))
 }
 
 /// `(receiver, key, value)` of a non-overloadable `recv[key] = value` index assignment
 /// (C/Go/Java only — the same surface the migrated `IndexAssignEffect` admits).
 fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-    if !matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
         return None;
     }
     let kids = il.children(node);

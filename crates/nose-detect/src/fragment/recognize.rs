@@ -17,7 +17,8 @@ use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind, Place};
 use crate::units::{exact_java_this_field, exact_java_this_var};
-use nose_il::{stable_symbol_hash, Builtin, Il, Interner, Lang, NodeId, NodeKind, Payload};
+use nose_il::{stable_symbol_hash, Builtin, Il, Interner, NodeId, NodeKind, Payload};
+use nose_semantics::{builder_append_method_contract, semantics};
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
@@ -75,7 +76,7 @@ pub(crate) fn recognize_contract(
         )),
         NodeKind::Assign => recognize_assignment_effect(il, interner, node),
         NodeKind::ExprStmt if expr_effect_shape(il, kids) => {
-            let effect = if is_append_call(il, kids[0]) {
+            let effect = if is_append_call(il, interner, kids[0]) {
                 Effect::Append
             } else {
                 Effect::Other
@@ -88,7 +89,7 @@ pub(crate) fn recognize_contract(
             ))
         }
         NodeKind::If => super::conditional_guard::recognize_conditional_guard(il, interner, node),
-        NodeKind::Loop => super::loop_effect::recognize_loop_effect(il, node),
+        NodeKind::Loop => super::loop_effect::recognize_loop_effect(il, interner, node),
         _ => None,
     }
 }
@@ -105,7 +106,10 @@ fn recognize_assignment_effect(
         return None;
     }
     let target = kids[0];
-    if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) && il.kind(target) == NodeKind::Index
+    if semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+        && il.kind(target) == NodeKind::Index
     {
         // An index write is observable in the effect trace (key and value are recorded), so
         // it carries no receiver-identity obligation and records no `Place` on the contract.
@@ -118,7 +122,11 @@ fn recognize_assignment_effect(
             EffectSite::observable(Effect::IndexWrite),
         ));
     }
-    if il.meta.lang == Lang::Java && exact_java_this_field(il, interner, target) {
+    if semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        && exact_java_this_field(il, interner, target)
+    {
         let place = resolve_place(il, interner, target);
         // Field writes do not observe their receiver in the oracle (the field-state map is
         // keyed by name only), so the write is exact-safe only with a proven receiver. The
@@ -152,9 +160,24 @@ fn expr_effect_shape(il: &Il, kids: &[NodeId]) -> bool {
         )
 }
 
-fn is_append_call(il: &Il, node: NodeId) -> bool {
-    il.kind(node) == NodeKind::Call
-        && matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
+fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return kids.len() == 2;
+    }
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len())
 }
 
 fn effect_contract(
@@ -579,7 +602,8 @@ mod tests {
             battery
                 .iter()
                 .map(|row| {
-                    fragment_behavior(&il, &c, row).expect("append fragment is interpretable")
+                    fragment_behavior(&il, &interner, &c, row)
+                        .expect("append fragment is interpretable")
                 })
                 .collect()
         };

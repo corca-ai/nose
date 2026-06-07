@@ -16,15 +16,24 @@
 //! proof-obligation: detect.fragment.wrapper_synthesis
 //! proof-obligation: il.arena.deep_copy
 
-use super::contract::FragmentContract;
-use nose_il::{FileMeta, Il, IlBuilder, LoopKind, NodeId, NodeKind, Payload, Span, Unit, UnitKind};
+use super::contract::{Effect, FragmentContract};
+use nose_il::{
+    Builtin, FileMeta, Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload, Span, Unit,
+    UnitKind,
+};
 use nose_normalize::{run_unit, Behavior, Value};
+use nose_semantics::builder_append_method_contract;
 
 /// Run the fragment described by `contract` on `args` (bound to its inputs in order) and
 /// return its observable [`Behavior`], or `None` if the wrapper cannot be synthesized or
 /// the interpreter cannot model the fragment.
-pub fn fragment_behavior(il: &Il, contract: &FragmentContract, args: &[Value]) -> Option<Behavior> {
-    let (synth, func) = synthesize_wrapper(il, contract)?;
+pub fn fragment_behavior(
+    il: &Il,
+    interner: &Interner,
+    contract: &FragmentContract,
+    args: &[Value],
+) -> Option<Behavior> {
+    let (synth, func) = synthesize_wrapper(il, interner, contract)?;
     run_unit(&synth, func, args)
 }
 
@@ -34,9 +43,19 @@ pub fn fragment_behavior(il: &Il, contract: &FragmentContract, args: &[Value]) -
 /// of fragment subtree> ] ]`. Parameters carry the fragment's free canonical ids so the
 /// deep-copied `Var` references resolve against them; the interpreter binds them
 /// positionally from `args`.
-pub fn synthesize_wrapper(il: &Il, contract: &FragmentContract) -> Option<(Il, NodeId)> {
+pub fn synthesize_wrapper(
+    il: &Il,
+    interner: &Interner,
+    contract: &FragmentContract,
+) -> Option<(Il, NodeId)> {
     let mut b = IlBuilder::new(il.file);
     let syn = Span::synthetic(il.file);
+    let policy = CopyPolicy {
+        canonicalize_append_effects: contract
+            .effects
+            .iter()
+            .any(|site| site.effect == Effect::Append),
+    };
 
     // Parameters: one per free input, in the contract's canonical order.
     let mut children: Vec<NodeId> = contract
@@ -54,10 +73,10 @@ pub fn synthesize_wrapper(il: &Il, contract: &FragmentContract) -> Option<(Il, N
         il.children(contract.root)
             .to_vec()
             .iter()
-            .map(|&s| copy_subtree(il, s, &mut b))
-            .collect()
+            .map(|&s| copy_subtree(il, interner, s, &mut b, policy))
+            .collect::<Option<Vec<_>>>()?
     } else {
-        vec![copy_subtree(il, contract.root, &mut b)]
+        vec![copy_subtree(il, interner, contract.root, &mut b, policy)?]
     };
     let body = b.add(NodeKind::Block, Payload::None, syn, &body_stmts);
     children.push(body);
@@ -80,18 +99,94 @@ pub fn synthesize_wrapper(il: &Il, contract: &FragmentContract) -> Option<(Il, N
     Some((synth, func))
 }
 
-/// Deep-copy the subtree rooted at `node` from `src` into `b`, preserving kind, payload,
-/// and span. Post-order: children are copied first so their fresh ids are known when the
-/// parent is added.
-fn copy_subtree(src: &Il, node: NodeId, b: &mut IlBuilder) -> NodeId {
+#[derive(Clone, Copy)]
+struct CopyPolicy {
+    canonicalize_append_effects: bool,
+}
+
+/// Deep-copy the subtree rooted at `node` from `src` into `b`, preserving kind, payload, and
+/// span unless the accepted contract needs an append effect surface made executable. That
+/// rewrite is deliberately local to wrapper synthesis: normal semantic normalization remains
+/// proof-gated and does not infer collection semantics from a method name alone.
+fn copy_subtree(
+    src: &Il,
+    interner: &Interner,
+    node: NodeId,
+    b: &mut IlBuilder,
+    policy: CopyPolicy,
+) -> Option<NodeId> {
+    if policy.canonicalize_append_effects {
+        if let Some((receiver, args)) = append_surface_parts(src, interner, node) {
+            let receiver_tag = append_receiver_tag(src, receiver)?;
+            let target = copy_subtree(src, interner, receiver, b, policy)?;
+            let mut kids = Vec::with_capacity(1 + args.len());
+            kids.push(target);
+            for &arg in args {
+                let value = copy_subtree(src, interner, arg, b, policy)?;
+                let tag = b.add(
+                    NodeKind::Lit,
+                    Payload::LitInt(receiver_tag),
+                    src.node(node).span,
+                    &[],
+                );
+                let tagged_value = b.add(
+                    NodeKind::Seq,
+                    Payload::None,
+                    src.node(node).span,
+                    &[tag, value],
+                );
+                kids.push(tagged_value);
+            }
+            return Some(b.add(
+                NodeKind::Call,
+                Payload::Builtin(Builtin::Append),
+                src.node(node).span,
+                &kids,
+            ));
+        }
+    }
+
     let kids: Vec<NodeId> = src
         .children(node)
         .to_vec()
         .iter()
-        .map(|&c| copy_subtree(src, c, b))
-        .collect();
+        .map(|&c| copy_subtree(src, interner, c, b, policy))
+        .collect::<Option<Vec<_>>>()?;
     let n = src.node(node);
-    b.add(n.kind, n.payload, n.span, &kids)
+    Some(b.add(n.kind, n.payload, n.span, &kids))
+}
+
+fn append_surface_parts<'a>(
+    src: &'a Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<(NodeId, &'a [NodeId])> {
+    if src.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let kids = src.children(node);
+    if matches!(src.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return (kids.len() >= 2).then(|| (kids[0], &kids[1..]));
+    }
+    let (&callee, args) = kids.split_first()?;
+    if args.is_empty() || src.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = src.node(callee).payload else {
+        return None;
+    };
+    if !builder_append_method_contract(src.meta.lang, interner.resolve(method), args.len()) {
+        return None;
+    }
+    let receiver = *src.children(callee).first()?;
+    Some((receiver, args))
+}
+
+fn append_receiver_tag(src: &Il, receiver: NodeId) -> Option<i64> {
+    match (src.kind(receiver), src.node(receiver).payload) {
+        (NodeKind::Var, Payload::Cid(cid)) => Some(i64::from(cid)),
+        _ => None,
+    }
 }
 
 /// Collect the free canonical ids read in the subtree rooted at `node`, in ascending
@@ -230,11 +325,17 @@ mod tests {
             .collect()
     }
 
-    fn behavior_vector(il: &Il, c: &FragmentContract, battery: &[Vec<Value>]) -> Vec<Behavior> {
+    fn behavior_vector(
+        il: &Il,
+        interner: &Interner,
+        c: &FragmentContract,
+        battery: &[Vec<Value>],
+    ) -> Vec<Behavior> {
         battery
             .iter()
             .map(|row| {
-                fragment_behavior(il, c, row).expect("direct-return fragment must be interpretable")
+                fragment_behavior(il, interner, c, row)
+                    .expect("direct-return fragment must be interpretable")
             })
             .collect()
     }
@@ -247,7 +348,7 @@ mod tests {
         let contract = direct_return_contract(&il, root);
         assert_eq!(contract.arity(), 1, "one free input (the parameter)");
 
-        let (synth, func) = synthesize_wrapper(&il, &contract).expect("wrapper synthesizes");
+        let (synth, func) = synthesize_wrapper(&il, &i, &contract).expect("wrapper synthesizes");
         assert_eq!(synth.kind(func), NodeKind::Func);
         let b = run_unit(&synth, func, &[Value::Int(4)]).expect("interpretable");
         assert_eq!(b.ret, Value::Int(17), "4*4 + 1 = 17");
@@ -264,8 +365,8 @@ mod tests {
 
         let battery = battery_1();
         assert_eq!(
-            behavior_vector(&f, &cf, &battery),
-            behavior_vector(&g, &cg, &battery),
+            behavior_vector(&f, &i, &cf, &battery),
+            behavior_vector(&g, &i, &cg, &battery),
             "equivalent direct-return fragments must agree on every battery input"
         );
     }
@@ -280,8 +381,8 @@ mod tests {
 
         let battery = battery_1();
         assert_ne!(
-            behavior_vector(&f, &cf, &battery),
-            behavior_vector(&h, &ch, &battery),
+            behavior_vector(&f, &i, &cf, &battery),
+            behavior_vector(&h, &i, &ch, &battery),
             "behaviorally distinct fragments must diverge on the battery"
         );
     }
@@ -370,7 +471,9 @@ mod tests {
             assert_eq!(c.arity(), 2, "loop var excluded → arity 2");
             battery()
                 .iter()
-                .map(|row| fragment_behavior(&il, &c, row).expect("loop fragment interpretable"))
+                .map(|row| {
+                    fragment_behavior(&il, &i, &c, row).expect("loop fragment interpretable")
+                })
                 .collect()
         };
         let f = run("function f(out, xs){ for (const x of xs){ out.push(x); } }");
@@ -405,7 +508,7 @@ mod tests {
                 ],
             );
             assert_eq!(c.arity(), 1, "only `out` is free (literals are not inputs)");
-            fragment_behavior(&il, &c, &[Value::List(vec![])]).expect("interpretable")
+            fragment_behavior(&il, &i, &c, &[Value::List(vec![])]).expect("interpretable")
         };
         let fwd = run("function f(out){ out.push(1); out.push(2); }");
         let fwd2 = run("function h(out){ out.push(1); out.push(2); }");
@@ -413,5 +516,36 @@ mod tests {
         assert_eq!(fwd.effects.len(), 2, "both appends are recorded in order");
         assert_eq!(fwd, fwd2, "identical ordered bodies must agree");
         assert_ne!(fwd, rev, "swapping the append order must be observable");
+    }
+
+    #[test]
+    fn append_effect_wrapper_preserves_receiver_identity() {
+        let run = |src: &str| -> Behavior {
+            let i = Interner::new();
+            let il = norm(&i, src, Lang::JavaScript);
+            let body = first_func_body(&il);
+            let c = FragmentContract::ordered_effects(
+                FragmentKind::ExprEffect,
+                body,
+                free_input_cids(&il, body),
+                Exit::Normal,
+                vec![
+                    EffectSite::observable(Effect::Append),
+                    EffectSite::observable(Effect::Append),
+                ],
+            );
+            fragment_behavior(&il, &i, &c, &[Value::List(vec![]), Value::List(vec![])])
+                .expect("interpretable")
+        };
+
+        let same = run("function f(out, other){ out.push(1); other.push(2); }");
+        let renamed = run("function g(dst, aux){ dst.push(1); aux.push(2); }");
+        let swapped = run("function h(out, other){ other.push(1); out.push(2); }");
+
+        assert_eq!(same, renamed, "alpha-renamed receiver roles should agree");
+        assert_ne!(
+            same, swapped,
+            "append effects must preserve which receiver role was mutated"
+        );
     }
 }

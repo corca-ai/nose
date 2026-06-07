@@ -8,8 +8,21 @@ rule_module = true
 files = [
   "crates/nose-normalize/src/value_graph/rules/clamp.rs",
   "crates/nose-normalize/src/value_graph.rs",
+  "crates/nose-semantics/src/lib.rs",
 ]
-symbols = ["apply", "minmax_pattern"]
+symbols = [
+  "apply",
+  "minmax_pattern",
+  "clamp_ternary_pattern",
+  "eval_proven_integer_clamp_method_call",
+  "clamp_minmax_candidates",
+  "is_integer_domain_value",
+  "scalar_integer_method_contract",
+  "ScalarIntegerMethod",
+  "is_safe_clamp_integer_value",
+  "has_bound_order_fact",
+  "proof_backed_clamp_value",
+]
 
 [lean]
 proof = "Proof.lean"

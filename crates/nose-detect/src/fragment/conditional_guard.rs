@@ -9,7 +9,8 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Builtin, Il, Interner, Lang, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, Il, Interner, NodeId, NodeKind, Payload};
+use nose_semantics::{builder_append_method_contract, semantics};
 use rustc_hash::FxHashSet;
 
 pub(crate) fn recognize_conditional_guard(
@@ -71,7 +72,7 @@ fn branch_block(il: &Il, interner: &Interner, node: NodeId) -> Option<Summary> {
     if kids.is_empty() {
         return Some(Summary::default());
     }
-    if let Some(effects) = ordered_append_effect_sequence(il, node) {
+    if let Some(effects) = ordered_append_effect_sequence(il, interner, node) {
         return Some(Summary::exact(effects));
     }
     if let Some(effects) = ordered_index_assignment_effect_sequence(il, node) {
@@ -80,10 +81,10 @@ fn branch_block(il: &Il, interner: &Interner, node: NodeId) -> Option<Summary> {
     if let Some(effects) = ordered_self_field_assignment_sequence(il, interner, node) {
         return Some(Summary::exact(effects));
     }
-    if let Some(effects) = ordered_loop_effect_sequence(il, node) {
+    if let Some(effects) = ordered_loop_effect_sequence(il, interner, node) {
         return Some(Summary::exact(effects));
     }
-    if let Some(effects) = ordered_mixed_effect_sequence(il, node) {
+    if let Some(effects) = ordered_mixed_effect_sequence(il, interner, node) {
         return Some(Summary::exact(effects));
     }
     if let Some(effects) = ordered_conditional_effect_sequence(il, interner, node) {
@@ -99,12 +100,15 @@ fn branch_block(il: &Il, interner: &Interner, node: NodeId) -> Option<Summary> {
         return Some(Summary::exact(effects));
     }
     if kids.len() == 3 {
-        if let Some(effects) = temp_chain_consumed_by_statement(il, kids[0], kids[1], kids[2]) {
+        if let Some(effects) =
+            temp_chain_consumed_by_statement(il, interner, kids[0], kids[1], kids[2])
+        {
             return Some(Summary::exact(effects));
         }
     }
     if kids.len() == 2 {
-        if let Some(effects) = temp_assignment_consumed_by_statement(il, kids[0], kids[1]) {
+        if let Some(effects) = temp_assignment_consumed_by_statement(il, interner, kids[0], kids[1])
+        {
             return Some(Summary::exact(effects));
         }
     }
@@ -121,28 +125,38 @@ fn single_branch_statement(il: &Il, interner: &Interner, node: NodeId) -> Option
         NodeKind::Assign => {
             assignment_effect_site(il, interner, node).map(|site| Summary::exact(vec![site]))
         }
-        NodeKind::ExprStmt => expr_statement_site(il, node).map(|site| Summary::exact(vec![site])),
+        NodeKind::ExprStmt => {
+            expr_statement_site(il, interner, node).map(|site| Summary::exact(vec![site]))
+        }
         NodeKind::If => {
             let summary = conditional_summary(il, interner, node)?;
             summary.has_statement.then_some(summary)
         }
-        NodeKind::Loop => loop_effect_sites(il, node).map(Summary::exact),
+        NodeKind::Loop => loop_effect_sites(il, interner, node).map(Summary::exact),
         _ => None,
     }
 }
 
 // ---- ordered branch bodies --------------------------------------------------------------
 
-fn ordered_loop_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
+fn ordered_loop_effect_sequence(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 2)?;
     let mut effects = Vec::new();
     for &kid in kids {
-        effects.extend(loop_effect_sites(il, kid)?);
+        effects.extend(loop_effect_sites(il, interner, kid)?);
     }
     Some(effects)
 }
 
-fn ordered_mixed_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
+fn ordered_mixed_effect_sequence(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<Vec<EffectSite>> {
     let kids = block_children_exact_len(il, node, 2)?;
     if kids
         .iter()
@@ -163,8 +177,10 @@ fn ordered_mixed_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite
     let mut effects = Vec::new();
     for &kid in kids {
         match il.kind(kid) {
-            NodeKind::Loop => effects.extend(loop_effect_sites(il, kid)?),
-            NodeKind::ExprStmt | NodeKind::Assign => effects.push(direct_effect_site(il, kid)?),
+            NodeKind::Loop => effects.extend(loop_effect_sites(il, interner, kid)?),
+            NodeKind::ExprStmt | NodeKind::Assign => {
+                effects.push(direct_effect_site(il, interner, kid)?)
+            }
             _ => return None,
         }
     }
@@ -213,7 +229,9 @@ fn ordered_conditional_mixed_effect_sequence(
     for &kid in kids {
         match il.kind(kid) {
             NodeKind::If => effects.extend(conditional_direct_effect_sites(il, interner, kid)?),
-            NodeKind::ExprStmt | NodeKind::Assign => effects.push(direct_effect_site(il, kid)?),
+            NodeKind::ExprStmt | NodeKind::Assign => {
+                effects.push(direct_effect_site(il, interner, kid)?)
+            }
             _ => return None,
         }
     }
@@ -245,7 +263,7 @@ fn ordered_loop_conditional_effect_sequence(
     let mut effects = Vec::new();
     for &kid in kids {
         match il.kind(kid) {
-            NodeKind::Loop => effects.extend(loop_effect_sites(il, kid)?),
+            NodeKind::Loop => effects.extend(loop_effect_sites(il, interner, kid)?),
             NodeKind::If => effects.extend(conditional_direct_effect_sites(il, interner, kid)?),
             _ => return None,
         }
@@ -286,16 +304,22 @@ fn ordered_loop_conditional_mixed_effect_sequence(
     let mut effects = Vec::new();
     for &kid in kids {
         match il.kind(kid) {
-            NodeKind::Loop => effects.extend(loop_effect_sites(il, kid)?),
+            NodeKind::Loop => effects.extend(loop_effect_sites(il, interner, kid)?),
             NodeKind::If => effects.extend(conditional_direct_effect_sites(il, interner, kid)?),
-            NodeKind::ExprStmt | NodeKind::Assign => effects.push(direct_effect_site(il, kid)?),
+            NodeKind::ExprStmt | NodeKind::Assign => {
+                effects.push(direct_effect_site(il, interner, kid)?)
+            }
             _ => return None,
         }
     }
     Some(effects)
 }
 
-fn ordered_append_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
+fn ordered_append_effect_sequence(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<Vec<EffectSite>> {
     let kids = il.children(node);
     if il.kind(node) != NodeKind::Block || !(2..=5).contains(&kids.len()) {
         return None;
@@ -308,7 +332,7 @@ fn ordered_append_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSit
     }
     let expected_effects = match kids
         .iter()
-        .filter(|&&kid| append_statement(il, kid))
+        .filter(|&&kid| append_statement(il, interner, kid))
         .count()
     {
         2 if kids.len() <= 4 => 2,
@@ -319,19 +343,20 @@ fn ordered_append_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSit
     let mut idx = 0;
     while idx < kids.len() {
         if idx + 2 < kids.len()
-            && temp_chain_consumed_by_append(il, kids[idx], kids[idx + 1], kids[idx + 2])
+            && temp_chain_consumed_by_append(il, interner, kids[idx], kids[idx + 1], kids[idx + 2])
         {
             effects.push(EffectSite::observable(Effect::Append));
             idx += 3;
             continue;
         }
-        if idx + 1 < kids.len() && temp_assignment_consumed_by_append(il, kids[idx], kids[idx + 1])
+        if idx + 1 < kids.len()
+            && temp_assignment_consumed_by_append(il, interner, kids[idx], kids[idx + 1])
         {
             effects.push(EffectSite::observable(Effect::Append));
             idx += 2;
             continue;
         }
-        if append_statement(il, kids[idx]) {
+        if append_statement(il, interner, kids[idx]) {
             effects.push(EffectSite::observable(Effect::Append));
             idx += 1;
             continue;
@@ -342,7 +367,10 @@ fn ordered_append_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSit
 }
 
 fn ordered_index_assignment_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
-    if !matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
         return None;
     }
     let kids = il.children(node);
@@ -393,7 +421,10 @@ fn ordered_self_field_assignment_sequence(
     interner: &Interner,
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
-    if il.meta.lang != Lang::Java {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+    {
         return None;
     }
     let kids = il.children(node);
@@ -409,7 +440,7 @@ fn ordered_self_field_assignment_sequence(
 
 fn conditional_direct_effect_sites(
     il: &Il,
-    _interner: &Interner,
+    interner: &Interner,
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
     if il.kind(node) != NodeKind::If {
@@ -422,7 +453,7 @@ fn conditional_direct_effect_sites(
     let mut has_effect = false;
     let mut effects = Vec::new();
     for &branch in kids.iter().skip(1) {
-        let branch_effect = empty_or_single_direct_effect_block(il, branch)?;
+        let branch_effect = empty_or_single_direct_effect_block(il, interner, branch)?;
         has_effect |= branch_effect.is_some();
         if let Some(site) = branch_effect {
             effects.push(site);
@@ -431,7 +462,11 @@ fn conditional_direct_effect_sites(
     has_effect.then_some(effects)
 }
 
-fn empty_or_single_direct_effect_block(il: &Il, node: NodeId) -> Option<Option<EffectSite>> {
+fn empty_or_single_direct_effect_block(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<Option<EffectSite>> {
     if il.kind(node) != NodeKind::Block {
         return None;
     }
@@ -442,12 +477,12 @@ fn empty_or_single_direct_effect_block(il: &Il, node: NodeId) -> Option<Option<E
     if kids.len() != 1 {
         return None;
     }
-    direct_effect_site(il, kids[0]).map(Some)
+    direct_effect_site(il, interner, kids[0]).map(Some)
 }
 
-fn direct_effect_site(il: &Il, node: NodeId) -> Option<EffectSite> {
+fn direct_effect_site(il: &Il, interner: &Interner, node: NodeId) -> Option<EffectSite> {
     match il.kind(node) {
-        NodeKind::ExprStmt if append_statement(il, node) => {
+        NodeKind::ExprStmt if append_statement(il, interner, node) => {
             Some(EffectSite::observable(Effect::Append))
         }
         NodeKind::Assign if index_assignment(il, node) => {
@@ -468,7 +503,12 @@ fn assignment_effect_site(il: &Il, interner: &Interner, node: NodeId) -> Option<
 
 fn self_field_assignment_site(il: &Il, interner: &Interner, node: NodeId) -> Option<EffectSite> {
     let kids = il.children(node);
-    if il.meta.lang == Lang::Java && kids.len() == 2 && is_java_this_field(il, interner, kids[0]) {
+    if semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        && kids.len() == 2
+        && is_java_this_field(il, interner, kids[0])
+    {
         let place = super::recognize::resolve_place(il, interner, kids[0]);
         return place
             .is_exact_safe()
@@ -477,7 +517,7 @@ fn self_field_assignment_site(il: &Il, interner: &Interner, node: NodeId) -> Opt
     None
 }
 
-fn expr_statement_site(il: &Il, node: NodeId) -> Option<EffectSite> {
+fn expr_statement_site(il: &Il, interner: &Interner, node: NodeId) -> Option<EffectSite> {
     if il.kind(node) != NodeKind::ExprStmt {
         return None;
     }
@@ -495,45 +535,49 @@ fn expr_statement_site(il: &Il, node: NodeId) -> Option<EffectSite> {
     {
         return None;
     }
-    if is_append_call(il, kids[0]) {
+    if is_append_call(il, interner, kids[0]) {
         Some(EffectSite::observable(Effect::Append))
     } else {
         Some(EffectSite::observable(Effect::Other))
     }
 }
 
-fn append_statement(il: &Il, stmt: NodeId) -> bool {
+fn append_statement(il: &Il, interner: &Interner, stmt: NodeId) -> bool {
     if il.kind(stmt) != NodeKind::ExprStmt {
         return false;
     }
     let kids = il.children(stmt);
-    kids.len() == 1 && is_append_call(il, kids[0])
+    kids.len() == 1 && is_append_call(il, interner, kids[0])
 }
 
 fn index_assignment(il: &Il, node: NodeId) -> bool {
-    matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java)
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
         && il.kind(node) == NodeKind::Assign
         && il.children(node).len() == 2
         && il.kind(il.children(node)[0]) == NodeKind::Index
 }
 
-fn loop_effect_sites(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
-    super::loop_effect::recognize_loop_effect(il, node).map(|contract| contract.effects)
+fn loop_effect_sites(il: &Il, interner: &Interner, node: NodeId) -> Option<Vec<EffectSite>> {
+    super::loop_effect::recognize_loop_effect(il, interner, node).map(|contract| contract.effects)
 }
 
 // ---- temp windows -----------------------------------------------------------------------
 
 fn temp_assignment_consumed_by_statement(
     il: &Il,
+    interner: &Interner,
     assign: NodeId,
     stmt: NodeId,
 ) -> Option<Vec<EffectSite>> {
     let (temp_cid, _) = local_nontrivial_assignment(il, assign)?;
-    statement_consumes_temp(il, stmt, temp_cid, None)
+    statement_consumes_temp(il, interner, stmt, temp_cid, None)
 }
 
 fn temp_chain_consumed_by_statement(
     il: &Il,
+    interner: &Interner,
     first_assign: NodeId,
     second_assign: NodeId,
     stmt: NodeId,
@@ -548,11 +592,12 @@ fn temp_chain_consumed_by_statement(
     if !mentions_any(il, second_rhs, &first) {
         return None;
     }
-    statement_consumes_temp(il, stmt, second_cid, Some(&first))
+    statement_consumes_temp(il, interner, stmt, second_cid, Some(&first))
 }
 
 fn statement_consumes_temp(
     il: &Il,
+    interner: &Interner,
     stmt: NodeId,
     temp_cid: u32,
     forbidden_cids: Option<&FxHashSet<u32>>,
@@ -580,7 +625,7 @@ fn statement_consumes_temp(
             {
                 return None;
             }
-            expr_statement_site(il, stmt).map(|site| vec![site])
+            expr_statement_site(il, interner, stmt).map(|site| vec![site])
         }
         NodeKind::Assign => index_assignment_consumes_temp(il, stmt, temp_cid, forbidden_cids)
             .then(|| vec![EffectSite::observable(Effect::IndexWrite)]),
@@ -588,7 +633,12 @@ fn statement_consumes_temp(
     }
 }
 
-fn temp_assignment_consumed_by_append(il: &Il, assign: NodeId, effect: NodeId) -> bool {
+fn temp_assignment_consumed_by_append(
+    il: &Il,
+    interner: &Interner,
+    assign: NodeId,
+    effect: NodeId,
+) -> bool {
     let Some((temp_cid, _)) = local_nontrivial_assignment(il, assign) else {
         return false;
     };
@@ -597,12 +647,13 @@ fn temp_assignment_consumed_by_append(il: &Il, assign: NodeId, effect: NodeId) -
     let empty = FxHashSet::default();
     il.kind(effect) == NodeKind::ExprStmt
         && il.children(effect).len() == 1
-        && is_append_call(il, il.children(effect)[0])
-        && append_consumes_temp(il, il.children(effect)[0], &empty, &temp_cids)
+        && is_append_call(il, interner, il.children(effect)[0])
+        && append_consumes_temp(il, interner, il.children(effect)[0], &empty, &temp_cids)
 }
 
 fn temp_chain_consumed_by_append(
     il: &Il,
+    interner: &Interner,
     first_assign: NodeId,
     second_assign: NodeId,
     effect: NodeId,
@@ -632,8 +683,15 @@ fn temp_chain_consumed_by_append(
     final_temp.insert(second_cid);
     il.kind(effect) == NodeKind::ExprStmt
         && il.children(effect).len() == 1
-        && is_append_call(il, il.children(effect)[0])
-        && append_consumes_chained_temp(il, il.children(effect)[0], &all_temps, &final_temp, &first)
+        && is_append_call(il, interner, il.children(effect)[0])
+        && append_consumes_chained_temp(
+            il,
+            interner,
+            il.children(effect)[0],
+            &all_temps,
+            &final_temp,
+            &first,
+        )
 }
 
 fn temp_assignment_consumed_by_index_assignment(il: &Il, assign: NodeId, effect: NodeId) -> bool {
@@ -699,11 +757,12 @@ fn index_assignment_consumes_temp(
 
 fn append_consumes_temp(
     il: &Il,
+    interner: &Interner,
     call: NodeId,
     forbidden_receiver_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    let Some((receiver, value)) = append_call_args(il, call) else {
+    let Some((receiver, value)) = append_call_args(il, interner, call) else {
         return false;
     };
     !mentions_any(il, receiver, forbidden_receiver_cids)
@@ -713,12 +772,13 @@ fn append_consumes_temp(
 
 fn append_consumes_chained_temp(
     il: &Il,
+    interner: &Interner,
     call: NodeId,
     all_temp_cids: &FxHashSet<u32>,
     final_temp_cids: &FxHashSet<u32>,
     prior_temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    let Some((receiver, value)) = append_call_args(il, call) else {
+    let Some((receiver, value)) = append_call_args(il, interner, call) else {
         return false;
     };
     !mentions_any(il, receiver, all_temp_cids)
@@ -732,18 +792,36 @@ fn block_children_exact_len(il: &Il, node: NodeId, len: usize) -> Option<&[NodeI
     (il.kind(node) == NodeKind::Block && il.children(node).len() == len).then(|| il.children(node))
 }
 
-fn append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if !is_append_call(il, node) {
+fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
+    if !is_append_call(il, interner, node) {
         return None;
     }
     let kids = il.children(node);
-    Some((kids[0], kids[1]))
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return Some((kids[0], kids[1]));
+    }
+    let receiver = *il.children(kids[0]).first()?;
+    Some((receiver, kids[1]))
 }
 
-fn is_append_call(il: &Il, node: NodeId) -> bool {
-    il.kind(node) == NodeKind::Call
-        && matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
-        && il.children(node).len() == 2
+fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return kids.len() == 2;
+    }
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len())
 }
 
 fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeId>, NodeId)> {
@@ -778,7 +856,11 @@ fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
 }
 
 fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Field {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Field
+    {
         return false;
     }
     if !matches!(il.node(node).payload, Payload::Name(_)) {
@@ -790,7 +872,9 @@ fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
 }
 
 fn is_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    il.meta.lang == Lang::Java
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
         && il.kind(node) == NodeKind::Var
         && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
 }

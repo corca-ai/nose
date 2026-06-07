@@ -164,6 +164,7 @@ Each `locations[]` item has:
 | `sem` | integer | Value-graph size for the site. |
 | `span_lines` | integer | Inclusive source-line span for this location. |
 | `span_tokens` | integer | Normalized-token span used by the detector's size gates. |
+| `shared_subdag` | array, optional | `[start_line, end_line]` inclusive range of the heavy shared computation at this site when the family is grouped by a shared sub-DAG. |
 | `is_fragment` | boolean | `true` when this location is an exact sub-function fragment; `false` for whole units and syntax-channel copy-paste spans. |
 | `fragment_kind` | string, optional | Exact fragment proof shape, present only when `is_fragment` is `true`; examples include `direct-return`, `conditional-guard`, and `self-field-body`. |
 | `reason_code` | string, optional | Stable exact-fragment proof reason derived from `fragment_kind`, present only when `is_fragment` is `true`; examples include `exact-direct-return` and `exact-conditional-guard`. |

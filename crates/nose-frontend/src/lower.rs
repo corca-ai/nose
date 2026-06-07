@@ -363,15 +363,18 @@ pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
     {
         return Some(ParamSemantic::Map);
     }
+    if t.contains("option<") || t.contains("optional<") {
+        return Some(ParamSemantic::Option);
+    }
+    if t.contains("set[") || t.contains("set<") || t.contains("hashset<") || t.contains("btreeset<")
+    {
+        return Some(ParamSemantic::Set);
+    }
     if t.contains("[]")
         || t.contains(":&[")
         || t.contains("&[")
         || t.contains("list[")
         || t.contains("list<")
-        || t.contains("set[")
-        || t.contains("set<")
-        || t.contains("hashset<")
-        || t.contains("btreeset<")
         || t.contains("tuple[")
         || t.contains("container[")
         || t.contains("container<")
@@ -389,7 +392,12 @@ pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
     {
         return Some(ParamSemantic::Collection);
     }
-    if t.contains("string") || t.contains(":str") || t.contains(":&str") {
+    if t.contains("string")
+        || t == "str"
+        || t == "&str"
+        || t.contains(":str")
+        || t.contains(":&str")
+    {
         return Some(ParamSemantic::String);
     }
     if is_integer_semantic_text(&t) {
@@ -472,17 +480,19 @@ pub(crate) fn stdlib_type_semantic(module: &str, exported: &str) -> Option<Param
         return Some(ParamSemantic::Map);
     }
     if matches!(module, "typing" | "collections.abc")
+        && matches!(exported, "FrozenSet" | "MutableSet" | "Set")
+    {
+        return Some(ParamSemantic::Set);
+    }
+    if matches!(module, "typing" | "collections.abc")
         && matches!(
             exported,
             "Collection"
                 | "Container"
                 | "Deque"
-                | "FrozenSet"
                 | "List"
                 | "MutableSequence"
-                | "MutableSet"
                 | "Sequence"
-                | "Set"
                 | "Tuple"
         )
     {

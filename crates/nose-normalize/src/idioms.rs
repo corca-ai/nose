@@ -7,7 +7,14 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, ParamSemantic, Payload,
+};
+use nose_semantics::{
+    free_function_builtin_contract, iterator_identity_adapter_contract, method_call_contract,
+    method_hof_contract, BuiltinArgContract, MethodBuiltinArgs, MethodCallContract,
+    MethodReceiverContract, MethodSemanticContract,
+};
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
@@ -55,30 +62,18 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
     match cn.kind {
         NodeKind::Var => {
             if let Payload::Name(s) = cn.payload {
-                match interner.resolve(s) {
-                    "len" if args.len() == 1 => builtin!(Builtin::Len, first),
-                    "print" => builtin!(Builtin::Print, all),
-                    // Go's builtin `append(xs, x...)`
-                    "append" => builtin!(Builtin::Append, all),
-                    "range" => builtin!(Builtin::Range, all),
-                    // `sum(xs)` / `sum(x for x in xs)` — additive reduction.
-                    "sum" if args.len() == 1 => builtin!(Builtin::Sum, first),
-                    // `functools.reduce(f, xs[, init])` — explicit fold.
-                    "reduce" if args.len() >= 2 => builtin!(Builtin::Reduce, all),
-                    // `min(iterable)` / `max(iterable)` — selection reduction.
-                    // `min(a, b)` / `max(a, b)` — scalar 2-way choice.
-                    "min" if args.len() == 1 || args.len() == 2 => builtin!(Builtin::Min, all),
-                    "max" if args.len() == 1 || args.len() == 2 => builtin!(Builtin::Max, all),
-                    "fmin" | "fminf" | "fminl" if args.len() == 2 => builtin!(Builtin::Min, all),
-                    "fmax" | "fmaxf" | "fmaxl" if args.len() == 2 => builtin!(Builtin::Max, all),
-                    "abs" | "fabs" if args.len() == 1 => builtin!(Builtin::Abs, first),
-                    "zip" if args.len() == 2 => builtin!(Builtin::Zip, all),
-                    "enumerate" if args.len() == 1 => builtin!(Builtin::Enumerate, first),
-                    // `any(gen)` / `all(gen)` — Python existential/universal reduction over
-                    // a generator (which lowers to a `Map`). One canonical arg (the Map).
-                    "any" if args.len() == 1 => builtin!(Builtin::Any, first),
-                    "all" if args.len() == 1 => builtin!(Builtin::All, first),
-                    _ => {}
+                if let Some(contract) =
+                    free_function_builtin_contract(old.meta.lang, interner.resolve(s), args.len())
+                {
+                    if contract.requires_unshadowed
+                        && file_defines_name(old, interner, interner.resolve(s))
+                    {
+                        return CallCanon::None;
+                    }
+                    match contract.args {
+                        BuiltinArgContract::First => builtin!(contract.builtin, first),
+                        BuiltinArgContract::All => builtin!(contract.builtin, all),
+                    }
                 }
             }
         }
@@ -86,335 +81,299 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
             if let Payload::Name(s) = cn.payload {
                 let fname = interner.resolve(s);
                 let base = old.children(callee).first().copied();
-                let base_name = base.and_then(|b| name_of(old, interner, b));
-                match fname {
-                    // xs.append(x) / xs.push(x)  →  Append[xs, args...]
-                    "append" | "push" => {
-                        let mut a = Vec::with_capacity(args.len() + 1);
-                        if let Some(b) = base {
-                            a.push(b);
-                        }
-                        a.extend_from_slice(args);
-                        return CallCanon::Builtin {
-                            op: Builtin::Append,
-                            arg_olds: a,
-                        };
-                    }
-                    "log" | "info" | "debug" if base_name == Some("console") => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Print,
-                            arg_olds: args.to_vec(),
-                        }
-                    }
-                    "Println" | "Printf" | "Print" if base_name == Some("fmt") => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Print,
-                            arg_olds: args.to_vec(),
-                        }
-                    }
-                    "Abs" if base_name == Some("math") && args.len() == 1 => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Abs,
-                            arg_olds: vec![args[0]],
-                        }
-                    }
-                    "HasPrefix" | "HasSuffix"
-                        if base_name == Some("strings") && args.len() == 2 =>
-                    {
-                        return CallCanon::Builtin {
-                            op: if fname == "HasPrefix" {
-                                Builtin::StartsWith
-                            } else {
-                                Builtin::EndsWith
-                            },
-                            arg_olds: args.to_vec(),
-                        }
-                    }
-                    "Contains"
-                        if args.len() == 2
-                            && base.is_some_and(|b| {
-                                import_namespace_expr(old, interner, b, "slices")
-                            }) =>
-                    {
-                        return CallCanon::Builtin {
-                            op: Builtin::Contains,
-                            arg_olds: vec![args[1], args[0]],
-                        }
-                    }
-                    "len" | "length" | "size" if base.is_some() && args.is_empty() => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Len,
-                            arg_olds: vec![base.unwrap()],
-                        }
-                    }
-                    "is_empty" | "isEmpty" | "empty?" if base.is_some() && args.is_empty() => {
-                        return CallCanon::Builtin {
-                            op: Builtin::IsEmpty,
-                            arg_olds: vec![base.unwrap()],
-                        }
-                    }
-                    "nil?" | "is_none" if base.is_some() && args.is_empty() => {
-                        return CallCanon::Builtin {
-                            op: Builtin::IsNull,
-                            arg_olds: vec![base.unwrap()],
-                        }
-                    }
-                    "is_some" if base.is_some() && args.is_empty() => {
-                        if let Some((map, key)) = map_get_call_parts(old, interner, base.unwrap()) {
-                            return CallCanon::Builtin {
-                                op: Builtin::Contains,
-                                arg_olds: vec![key, map],
-                            };
-                        }
-                        return CallCanon::Builtin {
-                            op: Builtin::IsNotNull,
-                            arg_olds: vec![base.unwrap()],
-                        };
-                    }
-                    "startsWith" | "startswith" | "starts_with" | "start_with?"
-                        if base.is_some() && args.len() == 1 =>
-                    {
-                        return CallCanon::Builtin {
-                            op: Builtin::StartsWith,
-                            arg_olds: vec![base.unwrap(), args[0]],
-                        }
-                    }
-                    "endsWith" | "endswith" | "ends_with" | "end_with?"
-                        if base.is_some() && args.len() == 1 =>
-                    {
-                        return CallCanon::Builtin {
-                            op: Builtin::EndsWith,
-                            arg_olds: vec![base.unwrap(), args[0]],
-                        }
-                    }
-                    "containsKey" | "contains_key" | "key?" | "has_key?" | "__contains__"
-                        if base.is_some() && args.len() == 1 =>
-                    {
-                        return CallCanon::Builtin {
-                            op: Builtin::Contains,
-                            arg_olds: vec![args[0], base.unwrap()],
-                        }
-                    }
-                    "includes" | "include?" | "contains" | "__contains__"
-                        if base.is_some()
-                            && args.len() == 1
-                            && (old.kind(base.unwrap()) == NodeKind::Seq
-                                || (fname == "contains"
-                                    && key_set_receiver(old, interner, base.unwrap())
-                                        .is_some())) =>
-                    {
-                        let collection = if fname == "contains" {
-                            key_set_receiver(old, interner, base.unwrap()).unwrap_or(base.unwrap())
-                        } else {
-                            base.unwrap()
-                        };
-                        return CallCanon::Builtin {
-                            op: Builtin::Contains,
-                            arg_olds: vec![args[0], collection],
-                        };
-                    }
-                    // Python `sep.join(xs)`: ordered string-builder fold. Keep this
-                    // restricted to a literal separator receiver; JavaScript/Ruby
-                    // `xs.join(sep)` have the collection as the receiver and are not this
-                    // surface shape.
-                    "join"
-                        if base.is_some()
-                            && args.len() == 1
-                            && matches!(
-                                old.node(base.unwrap()).payload,
-                                Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
-                            ) =>
-                    {
-                        return CallCanon::Builtin {
-                            op: Builtin::Join,
-                            arg_olds: vec![base.unwrap(), args[0]],
-                        };
-                    }
-                    "get" | "fetch"
-                        if base.is_some()
-                            && args.len() == 2
-                            && map_like_literal(old, interner, base.unwrap()) =>
-                    {
-                        let fallback = if fname == "fetch" && old.kind(args[1]) == NodeKind::Lambda
-                        {
-                            let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
-                                return CallCanon::None;
-                            };
-                            fallback
-                        } else {
-                            args[1]
-                        };
-                        return CallCanon::Builtin {
-                            op: Builtin::GetOrDefault,
-                            arg_olds: vec![base.unwrap(), args[0], fallback],
-                        };
-                    }
-                    "getOrDefault" if base.is_some() && args.len() == 2 => {
-                        return CallCanon::Builtin {
-                            op: Builtin::GetOrDefault,
-                            arg_olds: vec![base.unwrap(), args[0], args[1]],
-                        }
-                    }
-                    "unwrap_or" if base.is_some() && args.len() == 1 => {
-                        if let Some((map, key)) = map_get_call_parts(old, interner, base.unwrap()) {
-                            return CallCanon::Builtin {
-                                op: Builtin::GetOrDefault,
-                                arg_olds: vec![map, key, args[0]],
-                            };
-                        }
-                        return CallCanon::Builtin {
-                            op: Builtin::ValueOrDefault,
-                            arg_olds: vec![base.unwrap(), args[0]],
-                        };
-                    }
-                    "unwrap_or_else" if base.is_some() && args.len() == 1 => {
-                        if let Some(fallback) = zero_arg_lambda_body(old, args[0]) {
-                            return CallCanon::Builtin {
-                                op: Builtin::ValueOrDefault,
-                                arg_olds: vec![base.unwrap(), fallback],
-                            };
-                        }
-                    }
-                    "map_or" if base.is_some() && args.len() == 2 => {
-                        if identity_lambda(old, args[1]) {
-                            return CallCanon::Builtin {
-                                op: Builtin::ValueOrDefault,
-                                arg_olds: vec![base.unwrap(), args[0]],
-                            };
-                        }
-                    }
-                    // `functools.reduce(f, xs[, init])` — here the *base* is the module
-                    // `functools`, not the collection, so it is an explicit fold over
-                    // `xs` (the same `Builtin::Reduce` as a bare `reduce(f, xs, init)`),
-                    // NOT a `xs.reduce(f)` method HoF. Without this it was read as a HoF
-                    // over `functools`, and a `functools.reduce` sum never converged with
-                    // its loop form.
-                    "reduce" if base_name == Some("functools") && args.len() >= 2 => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Reduce,
-                            arg_olds: args.to_vec(),
-                        }
-                    }
-                    "Min" | "Max" if base_name == Some("math") && args.len() == 2 => {
-                        let op = if fname == "Min" {
-                            Builtin::Min
-                        } else {
-                            Builtin::Max
-                        };
-                        return CallCanon::Builtin {
-                            op,
-                            arg_olds: args.to_vec(),
-                        };
-                    }
-                    // Rust/iterator-style `a.iter().zip(b.iter())` is the same aligned
-                    // pair stream as Python `zip(a, b)`. Canonicalize it before outer
-                    // `.fold`/`.map` reasoning so tuple element bindings are shared.
-                    "zip" if base.is_some() && args.len() == 1 => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Zip,
-                            arg_olds: vec![
-                                unwrap_iter(old, interner, base.unwrap()),
-                                unwrap_iter(old, interner, args[0]),
-                            ],
-                        }
-                    }
-                    // Folds across languages → one canonical `Reduce[fn, coll, init]`,
-                    // so a `.reduce`/`.inject`/`.fold` converges with an accumulator loop
-                    // (and with `functools.reduce`). The lambda is detected regardless of
-                    // arg order — JS `xs.reduce(fn, init)`, Ruby `xs.inject(init){fn}` /
-                    // `xs.reduce(init){fn}`, Rust `it.fold(init, fn)`. A Rust `.iter()` /
-                    // `.into_iter()` base is unwrapped to the underlying collection.
-                    "reduce" | "inject" | "fold" if base.is_some() && !args.is_empty() => {
-                        let (fn_old, init_old) = fold_fn_init(old, args);
-                        if let Some(fn_old) = fn_old {
-                            let coll = unwrap_iter(old, interner, base.unwrap());
-                            let mut a = vec![fn_old, coll];
-                            if let Some(init) = init_old {
-                                a.push(init);
-                            }
-                            return CallCanon::Builtin {
-                                op: Builtin::Reduce,
-                                arg_olds: a,
-                            };
-                        }
-                        // no lambda arg → not a recognizable fold; leave as a plain call.
-                    }
-                    // Existential/universal predicate reductions across languages → one
-                    // canonical `Any`/`All[coll, λ]`: JS `xs.some/every(p)`, Rust
-                    // `xs.iter().any/all(p)`, Java `stream.anyMatch/allMatch(p)`. The
-                    // iteration adapter base is unwrapped to the collection, so it
-                    // converges with Python `any(p(x) for x in xs)`.
-                    "some" | "any" | "any?" | "anyMatch" if base.is_some() && !args.is_empty() => {
-                        let coll = unwrap_iter(old, interner, base.unwrap());
-                        return CallCanon::Builtin {
-                            op: Builtin::Any,
-                            arg_olds: vec![coll, args[0]],
-                        };
-                    }
-                    "every" | "all" | "all?" | "allMatch" if base.is_some() && !args.is_empty() => {
-                        let coll = unwrap_iter(old, interner, base.unwrap());
-                        return CallCanon::Builtin {
-                            op: Builtin::All,
-                            arg_olds: vec![coll, args[0]],
-                        };
-                    }
-                    "map" | "collect" | "flatMap" | "flat_map" | "filter_map" | "filter"
-                    | "select"
-                        if base.is_some() && !args.is_empty() =>
-                    {
-                        let kind = match fname {
-                            "map" | "collect" => HoFKind::Map,
-                            "flatMap" | "flat_map" => HoFKind::FlatMap,
-                            "filter_map" => HoFKind::FilterMap,
-                            _ => HoFKind::Filter,
-                        };
-                        return CallCanon::HoF {
-                            kind,
-                            collection_old: unwrap_iter(old, interner, base.unwrap()),
-                            fn_old: args[0],
-                        };
-                    }
-                    "abs" if base.is_some() && args.is_empty() => {
-                        return CallCanon::Builtin {
-                            op: Builtin::Abs,
-                            arg_olds: vec![base.unwrap()],
-                        };
-                    }
-                    // Method-form iterator reductions (Rust `it.sum()/min()/max()/count()`,
-                    // taking no value args — the receiver IS the collection). Canonicalize to
-                    // the same builtin as the function form, unwrapping a `.iter()` base, so
-                    // `xs.iter().filter(p).sum()` converges with Python `sum(x for x in xs if p)`
-                    // and `.count()` with `len([… if p])` / `sum(1 for …)` (both via `Len`).
-                    "sum" | "min" | "max" | "count" if base.is_some() && args.is_empty() => {
-                        let op = match fname {
-                            "sum" => Builtin::Sum,
-                            "min" => Builtin::Min,
-                            "max" => Builtin::Max,
-                            _ => Builtin::Len, // count
-                        };
-                        let base_id = base.unwrap();
-                        if matches!(fname, "min" | "max") && old.kind(base_id) == NodeKind::Seq {
-                            let items = old.children(base_id);
-                            if items.len() == 2 {
-                                return CallCanon::Builtin {
-                                    op,
-                                    arg_olds: items.to_vec(),
-                                };
-                            }
-                        }
-                        let coll = unwrap_iter(old, interner, base_id);
-                        return CallCanon::Builtin {
-                            op,
-                            arg_olds: vec![coll],
-                        };
-                    }
-                    _ => {}
+                if let Some(contract) = method_call_contract(old.meta.lang, fname, args.len()) {
+                    let Some(base) = base else {
+                        return CallCanon::None;
+                    };
+                    let Some(proven) =
+                        prove_method_receiver(old, interner, contract.receiver, base, args)
+                    else {
+                        return CallCanon::None;
+                    };
+                    return apply_method_contract(old, interner, fname, contract, proven, args);
                 }
             }
         }
         _ => {}
     }
     CallCanon::None
+}
+
+#[derive(Clone, Copy)]
+enum ProvenReceiver {
+    Direct(NodeId),
+    MapGet { map: NodeId, key: NodeId },
+}
+
+fn prove_method_receiver(
+    old: &Il,
+    interner: &Interner,
+    contract: MethodReceiverContract,
+    base: NodeId,
+    args: &[NodeId],
+) -> Option<ProvenReceiver> {
+    match contract {
+        MethodReceiverContract::ExactCollection => {
+            exact_collection_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactProtocol => {
+            exact_protocol_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactProtocolPairArgument => {
+            (exact_protocol_receiver(old, interner, base)
+                && args
+                    .first()
+                    .is_some_and(|&arg| exact_protocol_receiver(old, interner, arg)))
+            .then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactOption => {
+            exact_option_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactString => {
+            exact_string_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactInteger => {
+            exact_integer_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactMap => {
+            exact_map_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactMapLiteral => {
+            map_like_literal(old, interner, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactCollectionOrMap => {
+            (exact_collection_receiver(old, interner, base)
+                || exact_map_receiver(old, interner, base))
+            .then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactCollectionOrMapLiteral => {
+            (exact_collection_receiver(old, interner, base)
+                || map_like_literal(old, interner, base))
+            .then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::ExactCollectionOrJavaKeySet => {
+            if exact_collection_receiver(old, interner, base) {
+                return Some(ProvenReceiver::Direct(base));
+            }
+            if old.meta.lang == nose_il::Lang::Java {
+                let map = key_set_receiver(old, interner, base)?;
+                return map_like_literal(old, interner, map).then_some(ProvenReceiver::Direct(map));
+            }
+            None
+        }
+        MethodReceiverContract::ExactSetOrMap => (exact_set_param(old, base)
+            || exact_map_param(old, base))
+        .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::LiteralString => {
+            literal_string_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::UnshadowedGlobal(global) => (name_of(old, interner, base)
+            == Some(global)
+            && !file_defines_name(old, interner, global))
+        .then_some(ProvenReceiver::Direct(base)),
+        MethodReceiverContract::ImportedNamespace(module) => {
+            import_namespace_expr(old, interner, base, module)
+                .then_some(ProvenReceiver::Direct(base))
+        }
+        MethodReceiverContract::RustMapGetOrExactOption => {
+            if let Some((map, key)) = proven_map_get_call_parts(old, interner, base) {
+                Some(ProvenReceiver::MapGet { map, key })
+            } else {
+                exact_option_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+            }
+        }
+    }
+}
+
+fn apply_method_contract(
+    old: &Il,
+    interner: &Interner,
+    method: &str,
+    contract: MethodCallContract,
+    receiver: ProvenReceiver,
+    args: &[NodeId],
+) -> CallCanon {
+    let op = match contract.semantic {
+        MethodSemanticContract::Builtin(op) => op,
+        MethodSemanticContract::HoF(kind) => {
+            let ProvenReceiver::Direct(base) = receiver else {
+                return CallCanon::None;
+            };
+            return CallCanon::HoF {
+                kind,
+                collection_old: unwrap_iter(old, interner, base),
+                fn_old: args[0],
+            };
+        }
+    };
+
+    let direct = match receiver {
+        ProvenReceiver::Direct(node) => Some(node),
+        ProvenReceiver::MapGet { .. } => None,
+    };
+
+    match contract.args {
+        MethodBuiltinArgs::All => CallCanon::Builtin {
+            op,
+            arg_olds: args.to_vec(),
+        },
+        MethodBuiltinArgs::First => CallCanon::Builtin {
+            op,
+            arg_olds: vec![args[0]],
+        },
+        MethodBuiltinArgs::ReceiverOnly => {
+            if let ProvenReceiver::MapGet { map, key } = receiver {
+                if op == Builtin::IsNotNull {
+                    return CallCanon::Builtin {
+                        op: Builtin::Contains,
+                        arg_olds: vec![key, map],
+                    };
+                }
+                return CallCanon::None;
+            }
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![direct.unwrap()],
+            }
+        }
+        MethodBuiltinArgs::ReceiverThenAll => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            let mut a = Vec::with_capacity(args.len() + 1);
+            a.push(base);
+            a.extend_from_slice(args);
+            CallCanon::Builtin { op, arg_olds: a }
+        }
+        MethodBuiltinArgs::ReceiverAndFirst => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![base, args[0]],
+            }
+        }
+        MethodBuiltinArgs::FirstThenReceiver => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![args[0], base],
+            }
+        }
+        MethodBuiltinArgs::GoSliceContains => CallCanon::Builtin {
+            op,
+            arg_olds: vec![args[1], args[0]],
+        },
+        MethodBuiltinArgs::MapGetDefault => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            let fallback = if method == "fetch" && old.kind(args[1]) == NodeKind::Lambda {
+                let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
+                    return CallCanon::None;
+                };
+                fallback
+            } else {
+                args[1]
+            };
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![base, args[0], fallback],
+            }
+        }
+        MethodBuiltinArgs::RustMapGetOrOptionDefault => match receiver {
+            ProvenReceiver::MapGet { map, key } => CallCanon::Builtin {
+                op: Builtin::GetOrDefault,
+                arg_olds: vec![map, key, args[0]],
+            },
+            ProvenReceiver::Direct(base) => CallCanon::Builtin {
+                op,
+                arg_olds: vec![base, args[0]],
+            },
+        },
+        MethodBuiltinArgs::RustOptionDefaultLambda => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            if let Some(fallback) = zero_arg_lambda_body(old, args[0]) {
+                return CallCanon::Builtin {
+                    op,
+                    arg_olds: vec![base, fallback],
+                };
+            }
+            CallCanon::None
+        }
+        MethodBuiltinArgs::RustOptionMapOrIdentity => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            if identity_lambda(old, args[1]) {
+                return CallCanon::Builtin {
+                    op,
+                    arg_olds: vec![base, args[0]],
+                };
+            }
+            CallCanon::None
+        }
+        MethodBuiltinArgs::RustZip => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![
+                    unwrap_iter(old, interner, base),
+                    unwrap_iter(old, interner, args[0]),
+                ],
+            }
+        }
+        MethodBuiltinArgs::Fold => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            let (fn_old, init_old) = fold_fn_init(old, args);
+            let Some(fn_old) = fn_old else {
+                return CallCanon::None;
+            };
+            let coll = unwrap_iter(old, interner, base);
+            let mut a = vec![fn_old, coll];
+            if let Some(init) = init_old {
+                a.push(init);
+            }
+            CallCanon::Builtin { op, arg_olds: a }
+        }
+        MethodBuiltinArgs::BoolReduction => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![unwrap_iter(old, interner, base), args[0]],
+            }
+        }
+        MethodBuiltinArgs::Hof => CallCanon::None,
+        MethodBuiltinArgs::CollectionReduction => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            if matches!(op, Builtin::Min | Builtin::Max) && old.kind(base) == NodeKind::Seq {
+                let items = old.children(base);
+                if items.len() == 2 {
+                    return CallCanon::Builtin {
+                        op,
+                        arg_olds: items.to_vec(),
+                    };
+                }
+            }
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![unwrap_iter(old, interner, base)],
+            }
+        }
+    }
 }
 
 /// Classify a fold's args into `(fn, init)`: the lambda is the function (whatever its
@@ -432,12 +391,13 @@ fn fold_fn_init(old: &Il, args: &[NodeId]) -> (Option<NodeId>, Option<NodeId>) {
     (fn_old, init)
 }
 
-/// Peel a Rust iteration adapter — `xs.iter()` / `xs.into_iter()` / `xs.iter_mut()` —
-/// to the underlying collection, so a `xs.iter().fold(..)` iterates over `xs` (matching
-/// `for v in xs`). NOT `.keys()`/`.values()`, which change *what* is iterated.
+/// Peel a first-party Rust identity iterator adapter to the underlying collection, so
+/// `xs.iter().fold(..)` iterates over `xs` (matching `for v in xs`). NOT `.keys()`/`.values()`,
+/// which change *what* is iterated.
 fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
     if old.kind(node) == NodeKind::Call {
-        if let Some(&callee) = old.children(node).first() {
+        let call_kids = old.children(node);
+        if let Some(&callee) = call_kids.first() {
             if old.kind(callee) == NodeKind::Field {
                 if let Payload::Name(s) = old.node(callee).payload {
                     let method = interner.resolve(s);
@@ -452,9 +412,15 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
                             }
                         }
                     }
-                    if matches!(method, "iter" | "into_iter" | "iter_mut") {
+                    if iterator_identity_adapter_contract(
+                        old.meta.lang,
+                        method,
+                        call_kids.len() - 1,
+                    )
+                    .is_some()
+                    {
                         if let Some(&base) = old.children(callee).first() {
-                            return base;
+                            return unwrap_iter(old, interner, base);
                         }
                     }
                 }
@@ -464,35 +430,307 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
     node
 }
 
+fn exact_collection_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    exact_protocol_receiver(old, interner, node)
+}
+
+fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    if exact_collection_literal(old, interner, node) || exact_collection_param(old, node) {
+        return true;
+    }
+    if old.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = old.children(node);
+    let Some(&callee) = kids.first() else {
+        return false;
+    };
+    if old.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = old.node(callee).payload else {
+        return false;
+    };
+    let method = interner.resolve(method);
+    let Some(&receiver) = old.children(callee).first() else {
+        return false;
+    };
+    if matches!(method, "iter" | "into_iter" | "iter_mut") {
+        return exact_collection_receiver(old, interner, receiver);
+    }
+    if method == "stream" && name_of(old, interner, receiver) == Some("Arrays") {
+        return kids
+            .get(1)
+            .is_some_and(|&arg| exact_collection_receiver(old, interner, arg));
+    }
+    if method == "zip" && kids.len() == 2 {
+        return exact_protocol_receiver(old, interner, receiver)
+            && exact_protocol_receiver(old, interner, kids[1]);
+    }
+    if iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
+        return exact_protocol_receiver(old, interner, receiver);
+    }
+    if method_hof_contract(old.meta.lang, method).is_some() && kids.len() >= 2 {
+        return exact_protocol_receiver(old, interner, receiver);
+    }
+    false
+}
+
+fn exact_collection_param(old: &Il, node: NodeId) -> bool {
+    matches!(
+        param_semantic_for_var(old, node),
+        Some(ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set)
+    )
+}
+
+fn exact_set_param(old: &Il, node: NodeId) -> bool {
+    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Set))
+}
+
+fn exact_map_param(old: &Il, node: NodeId) -> bool {
+    matches!(param_semantic_for_var(old, node), Some(ParamSemantic::Map))
+}
+
+fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    exact_map_param(old, node) || map_like_literal(old, interner, node)
+}
+
+fn exact_option_param(old: &Il, node: NodeId) -> bool {
+    matches!(
+        param_semantic_for_var(old, node),
+        Some(ParamSemantic::Option)
+    )
+}
+
+fn param_semantic_for_var(old: &Il, node: NodeId) -> Option<ParamSemantic> {
+    if old.kind(node) != NodeKind::Var {
+        return None;
+    }
+    let param_span = match old.node(node).payload {
+        Payload::Cid(cid) => old.nodes.iter().find_map(|candidate| {
+            (candidate.kind == NodeKind::Param && candidate.payload == Payload::Cid(cid))
+                .then_some(candidate.span)
+        }),
+        Payload::Name(name) => {
+            let (scope, span) = nearest_named_param_scope(old, node, name)?;
+            if name_is_assigned_in_scope(old, name, scope) {
+                return None;
+            }
+            Some(span)
+        }
+        _ => None,
+    };
+    param_span.and_then(|span| {
+        old.param_type_facts
+            .iter()
+            .find(|fact| fact.span == span)
+            .map(|fact| fact.semantic)
+    })
+}
+
+fn nearest_named_param_scope(
+    old: &Il,
+    node: NodeId,
+    name: nose_il::Symbol,
+) -> Option<(NodeId, nose_il::Span)> {
+    let target = old.node(node).span;
+    let mut best: Option<(u32, NodeId, nose_il::Span)> = None;
+    for (idx, candidate) in old.nodes.iter().enumerate() {
+        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
+            continue;
+        }
+        if !span_contains(candidate.span, target) {
+            continue;
+        }
+        let scope = NodeId(idx as u32);
+        let Some(param_span) = old.children(scope).iter().find_map(|&child| {
+            (old.kind(child) == NodeKind::Param && old.node(child).payload == Payload::Name(name))
+                .then_some(old.node(child).span)
+        }) else {
+            continue;
+        };
+        let width = candidate
+            .span
+            .end_byte
+            .saturating_sub(candidate.span.start_byte);
+        if best.is_none_or(|(best_width, _, _)| width < best_width) {
+            best = Some((width, scope, param_span));
+        }
+    }
+    best.map(|(_, scope, span)| (scope, span))
+}
+
+fn name_is_assigned_in_scope(old: &Il, name: nose_il::Symbol, scope: NodeId) -> bool {
+    old.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Assign {
+            return false;
+        }
+        let id = NodeId(idx as u32);
+        if nearest_scope(old, id) != Some(scope) {
+            return false;
+        }
+        let Some(&lhs) = old.children(id).first() else {
+            return false;
+        };
+        old.kind(lhs) == NodeKind::Var && old.node(lhs).payload == Payload::Name(name)
+    })
+}
+
+fn nearest_scope(old: &Il, node: NodeId) -> Option<NodeId> {
+    let target = old.node(node).span;
+    let mut best: Option<(u32, NodeId)> = None;
+    for (idx, candidate) in old.nodes.iter().enumerate() {
+        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
+            continue;
+        }
+        if !span_contains(candidate.span, target) {
+            continue;
+        }
+        let width = candidate
+            .span
+            .end_byte
+            .saturating_sub(candidate.span.start_byte);
+        if best.is_none_or(|(best_width, _)| width < best_width) {
+            best = Some((width, NodeId(idx as u32)));
+        }
+    }
+    best.map(|(_, scope)| scope)
+}
+
+fn span_contains(outer: nose_il::Span, inner: nose_il::Span) -> bool {
+    outer.file == inner.file
+        && outer.start_byte <= inner.start_byte
+        && outer.end_byte >= inner.end_byte
+}
+
+fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    if old.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    match old.node(node).payload {
+        Payload::None => true,
+        Payload::Name(name) => matches!(
+            interner.resolve(name),
+            "array" | "array_expression" | "list" | "tuple" | "tuple_expression"
+        ),
+        _ => false,
+    }
+}
+
+fn exact_option_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    if exact_option_param(old, node) {
+        return true;
+    }
+    if matches!(
+        old.node(node).payload,
+        Payload::Lit(nose_il::LitClass::Null)
+    ) {
+        return true;
+    }
+    if old.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = old.children(node);
+    if kids.len() != 2 || old.kind(kids[0]) != NodeKind::Var {
+        return false;
+    }
+    matches!(
+        old.node(kids[0]).payload,
+        Payload::Name(name) if rust_option_some_name(old, interner, interner.resolve(name))
+    )
+}
+
+fn exact_string_receiver(old: &Il, node: NodeId) -> bool {
+    matches!(
+        old.node(node).payload,
+        Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
+    ) || matches!(
+        param_semantic_for_var(old, node),
+        Some(ParamSemantic::String)
+    )
+}
+
+fn literal_string_receiver(old: &Il, node: NodeId) -> bool {
+    exact_string_receiver(old, node)
+}
+
+fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
+    matches!(
+        old.node(node).payload,
+        Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
+    ) || matches!(
+        param_semantic_for_var(old, node),
+        Some(ParamSemantic::Integer)
+    )
+}
+
+fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
+    if old.meta.lang != nose_il::Lang::Rust {
+        return false;
+    }
+    match text {
+        "Some" => !file_defines_name(old, interner, "Some"),
+        "Option::Some" => !file_defines_name(old, interner, "Option"),
+        "std::option::Option::Some" => !file_defines_name(old, interner, "std"),
+        "core::option::Option::Some" => !file_defines_name(old, interner, "core"),
+        _ => false,
+    }
+}
+
+fn proven_map_get_call_parts(
+    old: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<(NodeId, NodeId)> {
+    let (map, key) = map_get_call_parts(old, interner, node)?;
+    source_map_expr(old, interner, map).then_some((map, key))
+}
+
+fn source_map_expr(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    map_like_literal(old, interner, node) || rust_std_map_factory_call(old, interner, node)
+}
+
+fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> bool {
+    if old.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = old.children(node);
+    if kids.len() != 2 || old.kind(kids[0]) != NodeKind::Var || old.kind(kids[1]) != NodeKind::Seq {
+        return false;
+    }
+    let Payload::Name(callee) = old.node(kids[0]).payload else {
+        return false;
+    };
+    let callee = interner.resolve(callee);
+    nose_semantics::semantics(old.meta.lang)
+        .collections()
+        .free_name_map_factories()
+        .any(|factory| factory.names.iter().any(|name| *name == callee))
+}
+
 /// Canonical sync name for a known async counterpart, so behaviorally-equivalent
 /// sync/async twins (a frequent real Type-4 pattern, e.g. `__exit__`/`__aexit__`,
 /// `read`/`aread`) converge. Curated to high-confidence pairs only — generic
 /// `a`-prefixed names (`add`, `append`, `get`) are deliberately excluded.
-pub(crate) fn async_to_sync(name: &str) -> Option<&'static str> {
-    Some(match name {
-        // async dunder protocol methods
-        "__aenter__" => "__enter__",
-        "__aexit__" => "__exit__",
-        "__anext__" => "__next__",
-        "__aiter__" => "__iter__",
-        // async I/O / lifecycle method twins
-        "aread" => "read",
-        "areadline" => "readline",
-        "areadlines" => "readlines",
-        "awrite" => "write",
-        "aclose" => "close",
-        "asend" => "send",
-        "areceive" => "receive",
-        "aconnect" => "connect",
-        "adrain" => "drain",
-        "aflush" => "flush",
-        // async typing constructs
-        "AsyncIterable" => "Iterable",
-        "AsyncIterator" => "Iterator",
-        "AsyncGenerator" => "Generator",
-        "AsyncContextManager" => "ContextManager",
-        _ => return None,
-    })
+pub(crate) fn async_to_sync(lang: nose_il::Lang, name: &str) -> Option<&'static str> {
+    nose_semantics::async_to_sync_name(lang, name)
+}
+
+fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
+    old.units
+        .iter()
+        .filter_map(|unit| unit.name)
+        .any(|symbol| interner.resolve(symbol) == name)
+        || old.nodes.iter().any(|node| match node.payload {
+            Payload::Cid(cid) => old
+                .cid_names
+                .get(cid as usize)
+                .is_some_and(|symbol| interner.resolve(*symbol) == name),
+            Payload::Name(symbol) if matches!(node.kind, NodeKind::Module | NodeKind::Block) => {
+                interner.resolve(symbol) == name
+            }
+            _ => false,
+        })
 }
 
 fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
@@ -660,5 +898,349 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
         (Payload::Cid(a), Payload::Cid(b)) => a == b,
         (Payload::Name(a), Payload::Name(b)) => a == b,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamTypeFact, Span};
+
+    fn sp() -> Span {
+        Span::new(FileId(0), 1, 1, 1, 1)
+    }
+
+    fn free_call_il(lang: Lang, name: &str, shadow_name: bool) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let mut module_kids = Vec::new();
+        let mut cid_names = Vec::new();
+        if shadow_name {
+            let sym = interner.intern(name);
+            cid_names.push(sym);
+            module_kids.push(b.add(NodeKind::Param, Payload::Cid(0), sp(), &[]));
+        }
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern(name)),
+            sp(),
+            &[],
+        );
+        let arg = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("x")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[callee, arg]);
+        module_kids.push(call);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            cid_names,
+        );
+        (il, interner, call)
+    }
+
+    fn method_call_il(lang: Lang, method: &str, literal_receiver: bool) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = if literal_receiver {
+            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+        } else {
+            b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern("xs")),
+                sp(),
+                &[],
+            )
+        };
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            sp(),
+            &[receiver],
+        );
+        let func = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("f")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, call)
+    }
+
+    fn typed_method_call_il(
+        lang: Lang,
+        method: &str,
+        semantic: ParamSemantic,
+        duplicate_param_name: bool,
+    ) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let mut functions = Vec::new();
+        let param_span = sp();
+        let xs = interner.intern("xs");
+        let param = b.add(NodeKind::Param, Payload::Name(xs), param_span, &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(xs), param_span, &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            sp(),
+            &[receiver],
+        );
+        let func = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("f")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(), &[call]);
+        let function = b.add(NodeKind::Func, Payload::None, sp(), &[param, body]);
+        functions.push(function);
+        let duplicate_span = Span::new(FileId(0), 10, 11, 2, 2);
+        if duplicate_param_name {
+            let other_param = b.add(NodeKind::Param, Payload::Name(xs), duplicate_span, &[]);
+            let other_body = b.add(NodeKind::Block, Payload::None, duplicate_span, &[]);
+            let other_function = b.add(
+                NodeKind::Func,
+                Payload::None,
+                duplicate_span,
+                &[other_param, other_body],
+            );
+            functions.push(other_function);
+        }
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &functions);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.param_type_facts.push(ParamTypeFact {
+            span: param_span,
+            semantic,
+        });
+        if duplicate_param_name {
+            il.param_type_facts.push(ParamTypeFact {
+                span: duplicate_span,
+                semantic,
+            });
+        }
+        (il, interner, call)
+    }
+
+    fn console_log_il(shadow_console: bool) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let mut module_kids = Vec::new();
+        let mut cid_names = Vec::new();
+        if shadow_console {
+            cid_names.push(interner.intern("console"));
+            module_kids.push(b.add(NodeKind::Param, Payload::Cid(0), sp(), &[]));
+        }
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("console")),
+            sp(),
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("log")),
+            sp(),
+            &[receiver],
+        );
+        let arg = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("x")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
+        module_kids.push(call);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            cid_names,
+        );
+        (il, interner, call)
+    }
+
+    fn go_math_abs_il(with_import: bool) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let mut module_kids = Vec::new();
+        if with_import {
+            let lhs = b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern("math")),
+                sp(),
+                &[],
+            );
+            let module = b.add(
+                NodeKind::Lit,
+                Payload::LitStr(stable_symbol_hash("math")),
+                sp(),
+                &[],
+            );
+            let tag = interner.intern("import_namespace");
+            let rhs = b.add(NodeKind::Seq, Payload::Name(tag), sp(), &[module]);
+            module_kids.push(b.add(NodeKind::Assign, Payload::None, sp(), &[lhs, rhs]));
+        }
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("math")),
+            sp(),
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("Abs")),
+            sp(),
+            &[receiver],
+        );
+        let arg = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("x")),
+            sp(),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
+        module_kids.push(call);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang: Lang::Go,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, call)
+    }
+
+    #[test]
+    fn free_name_builtin_requires_language_contract() {
+        let (il, interner, call) = free_call_il(Lang::JavaScript, "len", false);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+    }
+
+    #[test]
+    fn free_name_builtin_requires_no_shadowing() {
+        let (il, interner, call) = free_call_il(Lang::Python, "len", true);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+    }
+
+    #[test]
+    fn python_unshadowed_builtin_is_admitted() {
+        let (il, interner, call) = free_call_il(Lang::Python, "len", false);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Len,
+                arg_olds
+            } if arg_olds.len() == 1
+        ));
+    }
+
+    #[test]
+    fn method_hof_requires_exact_receiver() {
+        let (il, interner, call) = method_call_il(Lang::JavaScript, "map", false);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+    }
+
+    #[test]
+    fn method_hof_allows_literal_sequence_receiver() {
+        let (il, interner, call) = method_call_il(Lang::JavaScript, "map", true);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::HoF {
+                kind: HoFKind::Map,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn method_bool_reduction_allows_typed_collection_receiver() {
+        let (il, interner, call) =
+            typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Collection, false);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Any,
+                arg_olds
+            } if arg_olds.len() == 2
+        ));
+    }
+
+    #[test]
+    fn method_bool_reduction_uses_lexical_param_scope() {
+        let (il, interner, call) =
+            typed_method_call_il(Lang::TypeScript, "some", ParamSemantic::Collection, true);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Any,
+                arg_olds
+            } if arg_olds.len() == 2
+        ));
+    }
+
+    #[test]
+    fn js_console_print_requires_no_shadowing() {
+        let (il, interner, call) = console_log_il(true);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+
+        let (il, interner, call) = console_log_il(false);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Print,
+                arg_olds
+            } if arg_olds.len() == 1
+        ));
+    }
+
+    #[test]
+    fn go_stdlib_method_requires_import_namespace_proof() {
+        let (il, interner, call) = go_math_abs_il(false);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+
+        let (il, interner, call) = go_math_abs_il(true);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Abs,
+                arg_olds
+            } if arg_olds.len() == 1
+        ));
     }
 }

@@ -7,8 +7,9 @@
 //! module-binding seed can reuse its mutation and canonicalization logic.
 
 use nose_il::{
-    stable_symbol_hash, Il, Interner, Lang, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
+    stable_symbol_hash, Il, Interner, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
+use nose_semantics::{semantics, ImportedMapFactoryContract};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
 
@@ -85,7 +86,10 @@ fn collect_literal_exports(
             );
         }
 
-        if il.meta.lang != Lang::Java {
+        if !semantics(il.meta.lang)
+            .modules()
+            .java_class_literal_exports()
+        {
             continue;
         }
         for unit in &il.units {
@@ -246,7 +250,7 @@ fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) -> b
             let Payload::Name(tag) = il.node(node).payload else {
                 return false;
             };
-            if !imported_literal_seq_tag_safe(interner.resolve(tag)) {
+            if !nose_semantics::imported_literal_seq_tag_safe(interner.resolve(tag)) {
                 return false;
             }
             il.children(node)
@@ -280,31 +284,14 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
     }
 }
 
-fn imported_literal_seq_tag_safe(tag: &str) -> bool {
-    matches!(
-        tag,
-        "dictionary" | "object" | "array" | "array_expression" | "tuple_expression"
-    )
-}
-
 fn imported_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
-    match il.meta.lang {
-        Lang::JavaScript | Lang::TypeScript => js_map_constructor_call_safe(il, interner, call),
-        Lang::Java => java_map_factory_call_safe(il, interner, call),
-        Lang::Rust => rust_std_map_factory_call_safe(il, interner, call),
-        _ => false,
+    match semantics(il.meta.lang).stdlib().imported_map_factory() {
+        Some(ImportedMapFactoryContract::JavaMap) => java_map_factory_call_safe(il, interner, call),
+        Some(ImportedMapFactoryContract::RustStdMap) => {
+            rust_std_map_factory_call_safe(il, interner, call)
+        }
+        None => false,
     }
-}
-
-fn js_map_constructor_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
-    let kids = il.children(call);
-    if kids.len() != 2 || !var_named(il, interner, kids[0], "Map") {
-        return false;
-    }
-    if file_defines_symbol(il, interner, "Map") {
-        return false;
-    }
-    literal_export_value_safe(il, interner, kids[1])
 }
 
 fn java_map_factory_call_safe(il: &Il, interner: &Interner, call: NodeId) -> bool {
@@ -386,15 +373,6 @@ fn var_named(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool
     matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == expected)
 }
 
-fn file_defines_symbol(il: &Il, interner: &Interner, expected: &str) -> bool {
-    il.units.iter().any(|unit| {
-        unit.name
-            .is_some_and(|name| interner.resolve(name) == expected)
-    }) || collect_top_level_statements(il).into_iter().any(|stmt| {
-        assignment_name(il, stmt).is_some_and(|name| interner.resolve(name) == expected)
-    })
-}
-
 fn java_file_defines_type_name(il: &Il, interner: &Interner, expected: &str) -> bool {
     il.units.iter().any(|unit| {
         unit.kind == UnitKind::Class
@@ -425,29 +403,12 @@ fn field_mutates_binding(il: &Il, interner: &Interner, field: NodeId, name: Symb
     let Payload::Name(method) = il.node(field).payload else {
         return false;
     };
-    if !mutating_method_name(interner.resolve(method)) {
+    if !nose_semantics::mutating_method_name(interner.resolve(method)) {
         return false;
     }
     il.children(field)
         .first()
         .is_some_and(|&receiver| node_refers_to_symbol(il, receiver, name))
-}
-
-fn mutating_method_name(method: &str) -> bool {
-    matches!(
-        method,
-        "clear"
-            | "delete"
-            | "insert"
-            | "pop"
-            | "popitem"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "set"
-            | "setdefault"
-            | "update"
-    )
 }
 
 fn node_refers_to_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
@@ -466,26 +427,28 @@ fn node_contains_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
 }
 
 fn file_module_hashes(il: &Il) -> Vec<u64> {
-    match il.meta.lang {
-        Lang::Python => module_hashes_from_path(&il.meta.path, &["py"], ".", false, true),
-        Lang::JavaScript | Lang::TypeScript => module_hashes_from_path(
+    let Some(spec) = semantics(il.meta.lang).modules().path_spec() else {
+        return Vec::new();
+    };
+    let mut hashes = module_hashes_from_path(
+        &il.meta.path,
+        spec.extensions,
+        spec.separator,
+        spec.include_relative_dot,
+        spec.drop_init_file,
+    );
+    if spec.rust_crate_self_aliases {
+        for module in module_names_from_path(
             &il.meta.path,
-            &["js", "jsx", "mjs", "cjs", "ts", "tsx", "mts", "cts"],
-            "/",
-            true,
-            false,
-        ),
-        Lang::Java => module_hashes_from_path(&il.meta.path, &["java"], ".", false, false),
-        Lang::Rust => {
-            let mut hashes = module_hashes_from_path(&il.meta.path, &["rs"], "::", false, false);
-            for module in module_names_from_path(&il.meta.path, &["rs"], "::", false) {
-                hashes.push(stable_symbol_hash(&format!("crate::{module}")));
-                hashes.push(stable_symbol_hash(&format!("self::{module}")));
-            }
-            dedupe_hashes(hashes)
+            spec.extensions,
+            spec.separator,
+            spec.drop_init_file,
+        ) {
+            hashes.push(stable_symbol_hash(&format!("crate::{module}")));
+            hashes.push(stable_symbol_hash(&format!("self::{module}")));
         }
-        _ => Vec::new(),
     }
+    dedupe_hashes(hashes)
 }
 
 fn java_class_module_hashes(il: &Il, interner: &Interner, class_name: Symbol) -> Vec<u64> {

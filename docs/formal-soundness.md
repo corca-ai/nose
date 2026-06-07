@@ -14,6 +14,11 @@ should not depend only on corpus coverage. The registry lives under
 - `Counterexamples.lean` — optional boundary proof for rewrites or missing preconditions that
   must stay closed.
 
+The planned [semantic-kernel](semantic-kernel.md) keeps this registry as the
+first-party proof boundary for exact laws. External semantic packs may declare
+their own evidence status, but nose does not certify external packs; providers
+and users own those claims unless the pack is adopted as first-party.
+
 The obligation id must match its path. For example,
 `formal/obligations/normalize/value_graph/factor_distribute/meta.toml` declares
 `normalize.value_graph.factor_distribute`.

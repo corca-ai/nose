@@ -12,6 +12,9 @@ use nose_normalize::{
     module_facts::{collect_module_mutations, mutating_method_name},
     node_tag,
 };
+use nose_semantics::{
+    builder_append_method_contract, iterator_identity_adapter_contract, semantics,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
 
@@ -590,12 +593,15 @@ pub(crate) fn extract(
 struct StrictFacts {
     immutable_names: FxHashSet<Symbol>,
     function_names: FxHashSet<Symbol>,
+    collection_cids: FxHashSet<u32>,
+    map_cids: FxHashSet<u32>,
 }
 
 impl StrictFacts {
     fn collect(il: &Il, interner: &Interner) -> Self {
         let mut facts = StrictFacts::default();
         facts.collect_immutable_bindings(il, interner);
+        facts.collect_local_container_bindings(il, interner);
         facts.collect_function_bindings(il, interner);
         facts
     }
@@ -664,6 +670,85 @@ impl StrictFacts {
             }
         }
     }
+
+    fn collect_local_container_bindings(&mut self, il: &Il, interner: &Interner) {
+        let mut counts: FxHashMap<u32, usize> = FxHashMap::default();
+        for (idx, node) in il.nodes.iter().enumerate() {
+            if node.kind != NodeKind::Assign {
+                continue;
+            }
+            let id = NodeId(idx as u32);
+            let kids = il.children(id);
+            if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+                continue;
+            }
+            if let Payload::Cid(cid) = il.node(kids[0]).payload {
+                *counts.entry(cid).or_insert(0) += 1;
+            }
+        }
+        let candidates: FxHashSet<u32> = counts
+            .iter()
+            .filter_map(|(&cid, &count)| (count == 1).then_some(cid))
+            .collect();
+        let mutated = collect_mutated_cids(il, interner, &candidates);
+        for (idx, node) in il.nodes.iter().enumerate() {
+            if node.kind != NodeKind::Assign {
+                continue;
+            }
+            let id = NodeId(idx as u32);
+            let kids = il.children(id);
+            if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+                continue;
+            }
+            let Payload::Cid(cid) = il.node(kids[0]).payload else {
+                continue;
+            };
+            if !candidates.contains(&cid) || mutated.contains(&cid) {
+                continue;
+            }
+            if strict_exact_local_collection_binding_safe(il, interner, self, kids[1]) {
+                self.collection_cids.insert(cid);
+            } else if strict_exact_local_map_binding_safe(il, interner, self, kids[1]) {
+                self.map_cids.insert(cid);
+            }
+        }
+    }
+}
+
+fn collect_mutated_cids(
+    il: &Il,
+    interner: &Interner,
+    candidates: &FxHashSet<u32>,
+) -> FxHashSet<u32> {
+    let mut mutated = FxHashSet::default();
+    for (idx, node) in il.nodes.iter().enumerate() {
+        if node.kind != NodeKind::Call {
+            continue;
+        }
+        let id = NodeId(idx as u32);
+        let kids = il.children(id);
+        let Some(&callee) = kids.first() else {
+            continue;
+        };
+        if il.kind(callee) != NodeKind::Field {
+            continue;
+        }
+        let Payload::Name(method) = il.node(callee).payload else {
+            continue;
+        };
+        if !mutating_method_name(interner.resolve(method)) {
+            continue;
+        }
+        let Some(&receiver) = il.children(callee).first() else {
+            continue;
+        };
+        if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(receiver), il.node(receiver).payload) {
+            if candidates.contains(&cid) {
+                mutated.insert(cid);
+            }
+        }
+    }
+    mutated
 }
 
 fn top_level_statements(il: &Il) -> Vec<NodeId> {
@@ -707,6 +792,32 @@ fn strict_exact_module_container_binding_safe(
         || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
         || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
         || strict_exact_java_collection_factory_safe(il, interner, facts, node)
+}
+
+fn strict_exact_local_collection_binding_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_literal_collection_receiver_safe(il, interner, facts, node)
+        || strict_exact_python_collection_factory_safe(il, interner, facts, node)
+        || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
+        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
+        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
+        || strict_exact_rust_vec_new_safe(il, interner, node)
+        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
+}
+
+fn strict_exact_local_map_binding_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_java_map_factory_safe(il, interner, facts, node)
+        || strict_exact_rust_std_map_factory_safe(il, interner, facts, node)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, node)
 }
 
 fn immutable_binding_safe(
@@ -783,12 +894,57 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         NodeKind::BinOp if strict_exact_static_index_membership_safe(il, interner, facts, node) => {
             true
         }
+        NodeKind::BinOp if strict_exact_in_membership_safe(il, interner, facts, node) => true,
         NodeKind::Lit => exact_literal_safe(il, node),
         NodeKind::Var => strict_exact_safe_var(il, facts, node),
         _ => il
             .children(node)
             .iter()
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
+    }
+}
+
+fn strict_exact_in_membership_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    let Payload::Op(Op::In) = il.node(node).payload else {
+        return false;
+    };
+    let kids = il.children(node);
+    kids.len() == 2
+        && strict_exact_safe_tree(il, interner, facts, kids[0])
+        && strict_exact_in_membership_collection_safe(il, interner, facts, kids[1])
+}
+
+fn strict_exact_in_membership_collection_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if strict_exact_proven_collection_receiver_safe(il, facts, node)
+        || strict_exact_proven_map_receiver_safe(il, facts, node)
+    {
+        return true;
+    }
+    match il.kind(node) {
+        NodeKind::Seq => strict_exact_membership_collection_safe(il, interner, facts, node),
+        NodeKind::Call => {
+            strict_exact_set_constructor_collection_safe(il, interner, facts, node)
+                || strict_exact_python_collection_factory_safe(il, interner, facts, node)
+                || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
+                || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
+                || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
+                || strict_exact_java_collection_factory_safe(il, interner, facts, node)
+                || strict_exact_map_key_view_collection_safe(il, interner, facts, node)
+        }
+        NodeKind::Var => {
+            matches!(il.node(node).payload, Payload::Name(name) if facts.proven_name(name))
+        }
+        _ => false,
     }
 }
 
@@ -1073,6 +1229,7 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
             return false;
         };
         if strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
+            || strict_exact_proven_collection_receiver_safe(il, facts, receiver)
             || strict_exact_python_collection_factory_safe(il, interner, facts, receiver)
             || strict_exact_ruby_set_factory_safe(il, interner, facts, receiver)
             || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
@@ -1083,12 +1240,34 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
             return strict_exact_call_args_safe(il, interner, facts, node);
         }
     }
-    if matches!(method, "get" | "has" | "getOrDefault") {
+    if matches!(
+        method,
+        "get" | "has" | "getOrDefault" | "containsKey" | "contains_key" | "key?" | "has_key?"
+    ) {
         let Some(&receiver) = il.children(callee).first() else {
             return false;
         };
         if method == "get"
-            && strict_exact_typed_map_param_receiver_safe(il, receiver)
+            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
+            && matches!(il.children(node).len(), 2 | 3)
+        {
+            return strict_exact_call_args_safe(il, interner, facts, node);
+        }
+        if method == "has"
+            && (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+                || strict_exact_proven_collection_receiver_safe(il, facts, receiver))
+            && il.children(node).len() == 2
+        {
+            return strict_exact_call_args_safe(il, interner, facts, node);
+        }
+        if matches!(method, "containsKey" | "contains_key" | "key?" | "has_key?")
+            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
+            && il.children(node).len() == 2
+        {
+            return strict_exact_call_args_safe(il, interner, facts, node);
+        }
+        if method == "getOrDefault"
+            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
             && il.children(node).len() == 3
         {
             return strict_exact_call_args_safe(il, interner, facts, node);
@@ -1103,14 +1282,116 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
             return strict_exact_call_args_safe(il, interner, facts, node);
         }
     }
-    if matches!(
-        method,
-        "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
-    ) {
-        return strict_exact_call_args_safe(il, interner, facts, node);
+    if strict_exact_iterator_identity_adapter_call_safe(il, interner, facts, node, callee, method) {
+        return true;
     }
+    // Opaque exact method identity: this keeps same-callee calls eligible as exact clones
+    // without assigning semantic meaning to the method name. Cross-language/builtin
+    // convergence still has to pass the proof-backed contracts above or in normalization.
     strict_exact_callee_identity(il, facts, callee)
         && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_iterator_identity_adapter_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let kids = il.children(node);
+    let Some(arg_count) = kids.len().checked_sub(1) else {
+        return false;
+    };
+    if iterator_identity_adapter_contract(il.meta.lang, method, arg_count).is_none() {
+        return false;
+    }
+    if il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    strict_exact_iterator_receiver_safe(il, interner, facts, receiver)
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_iterator_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    receiver: NodeId,
+) -> bool {
+    strict_exact_proven_collection_receiver_safe(il, facts, receiver)
+        || strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
+        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
+        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, receiver)
+        || strict_exact_rust_vec_new_safe(il, interner, receiver)
+        || strict_exact_iterator_identity_adapter_node_safe(il, interner, facts, receiver)
+}
+
+fn strict_exact_iterator_identity_adapter_node_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    let Some(&callee) = kids.first() else {
+        return false;
+    };
+    if il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    strict_exact_iterator_identity_adapter_call_safe(
+        il,
+        interner,
+        facts,
+        node,
+        callee,
+        interner.resolve(method),
+    )
+}
+
+fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
+    if il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
+        return false;
+    };
+    il.nodes.iter().any(|node| {
+        node.kind == NodeKind::Param
+            && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
+            && il.param_type_facts.iter().any(|fact| {
+                fact.span == node.span
+                    && matches!(
+                        fact.semantic,
+                        ParamSemantic::Array | ParamSemantic::Collection | ParamSemantic::Set
+                    )
+            })
+    })
+}
+
+fn strict_exact_proven_collection_receiver_safe(
+    il: &Il,
+    facts: &StrictFacts,
+    receiver: NodeId,
+) -> bool {
+    if strict_exact_typed_collection_param_receiver_safe(il, receiver) {
+        return true;
+    }
+    matches!(
+        (il.kind(receiver), il.node(receiver).payload),
+        (NodeKind::Var, Payload::Cid(cid)) if facts.collection_cids.contains(&cid)
+    )
 }
 
 fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
@@ -1128,6 +1409,16 @@ fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool
                 .iter()
                 .any(|fact| fact.span == node.span && matches!(fact.semantic, ParamSemantic::Map))
     })
+}
+
+fn strict_exact_proven_map_receiver_safe(il: &Il, facts: &StrictFacts, receiver: NodeId) -> bool {
+    if strict_exact_typed_map_param_receiver_safe(il, receiver) {
+        return true;
+    }
+    matches!(
+        (il.kind(receiver), il.node(receiver).payload),
+        (NodeKind::Var, Payload::Cid(cid)) if facts.map_cids.contains(&cid)
+    )
 }
 
 fn strict_exact_map_key_view_safe(
@@ -1152,7 +1443,7 @@ fn strict_exact_map_key_view_safe(
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_typed_map_param_receiver_safe(il, receiver)
+    strict_exact_proven_map_receiver_safe(il, facts, receiver)
         || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver)
         || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
         || strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver)
@@ -1214,6 +1505,11 @@ fn strict_exact_membership_collection_safe(
                 || strict_exact_java_collection_factory_safe(il, interner, facts, node)
                 || strict_exact_map_key_view_collection_safe(il, interner, facts, node);
         }
+        if strict_exact_proven_collection_receiver_safe(il, facts, node)
+            || strict_exact_proven_map_receiver_safe(il, facts, node)
+        {
+            return true;
+        }
         return strict_exact_safe_tree(il, interner, facts, node);
     }
     let tag_safe = match il.node(node).payload {
@@ -1232,19 +1528,14 @@ fn strict_exact_membership_collection_safe(
 }
 
 fn strict_exact_set_constructor_collection_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
+    _il: &Il,
+    _interner: &Interner,
+    _facts: &StrictFacts,
+    _node: NodeId,
 ) -> bool {
-    if il.kind(node) != NodeKind::Call {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || !strict_exact_callee_name(il, interner, kids[0], "Set") {
-        return false;
-    }
-    strict_exact_membership_collection_safe(il, interner, facts, kids[1])
+    // JS `new Set(xs)` and plain `Set(xs)` currently lower to the same call
+    // shape, so exact constructor semantics must wait for a construct proof.
+    false
 }
 
 fn strict_exact_python_collection_factory_safe(
@@ -1253,7 +1544,11 @@ fn strict_exact_python_collection_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Python || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang)
+        .stdlib()
+        .python_collection_factories()
+        || il.kind(node) != NodeKind::Call
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1377,7 +1672,7 @@ fn strict_exact_ruby_set_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Ruby
+    if !semantics(il.meta.lang).stdlib().ruby_set_factory()
         || il.kind(node) != NodeKind::Call
         || !ruby_file_requires_module(il, interner, "set")
         || file_defines_name(il, interner, "Set")
@@ -1402,7 +1697,7 @@ fn strict_exact_ruby_set_factory_safe(
 }
 
 fn ruby_file_requires_module(il: &Il, interner: &Interner, module: &str) -> bool {
-    if il.meta.lang != Lang::Ruby {
+    if !semantics(il.meta.lang).stdlib().ruby_set_factory() {
         return false;
     }
     let expected = stable_symbol_hash(module);
@@ -1438,7 +1733,8 @@ fn strict_exact_rust_vec_macro_collection_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Rust || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang).stdlib().rust_vec_macro_factory() || il.kind(node) != NodeKind::Call
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1459,7 +1755,7 @@ fn strict_exact_rust_vec_macro_collection_safe(
 /// the exact channel like the `out = []` builder loops in Python/JS. Sound: it is a constant
 /// empty collection, no inputs or effects.
 fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Rust || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang).stdlib().rust_vec_new_factory() || il.kind(node) != NodeKind::Call {
         return false;
     }
     let kids = il.children(node);
@@ -1469,8 +1765,16 @@ fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) ->
     let Payload::Name(name) = il.node(kids[0]).payload else {
         return false;
     };
-    let text = interner.resolve(name);
-    text == "Vec::new" || text.ends_with("::Vec::new")
+    strict_exact_rust_vec_new_name(il, interner, interner.resolve(name))
+}
+
+fn strict_exact_rust_vec_new_name(il: &Il, interner: &Interner, text: &str) -> bool {
+    match text {
+        "Vec::new" => !file_defines_name(il, interner, "Vec"),
+        "std::vec::Vec::new" => !file_defines_name(il, interner, "std"),
+        "alloc::vec::Vec::new" => !file_defines_name(il, interner, "alloc"),
+        _ => false,
+    }
 }
 
 fn strict_exact_rust_std_collection_factory_safe(
@@ -1479,7 +1783,11 @@ fn strict_exact_rust_std_collection_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Rust || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang)
+        .stdlib()
+        .rust_std_collection_factories()
+        || il.kind(node) != NodeKind::Call
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1497,6 +1805,9 @@ fn strict_exact_rust_std_collection_factory_safe(
     ) {
         return false;
     }
+    if file_defines_name(il, interner, "std") {
+        return false;
+    }
     strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
 
@@ -1506,7 +1817,9 @@ fn strict_exact_java_collection_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang).stdlib().java_collection_factories()
+        || il.kind(node) != NodeKind::Call
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1540,7 +1853,10 @@ fn strict_exact_java_collection_factory_safe(
 }
 
 fn java_file_defines_type_name(il: &Il, interner: &Interner, name: &str) -> bool {
-    if il.meta.lang != Lang::Java {
+    if !semantics(il.meta.lang)
+        .modules()
+        .java_type_declarations_shadow_stdlib()
+    {
         return false;
     }
     il.units.iter().any(|unit| {
@@ -1557,6 +1873,9 @@ fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
     }) || il.units.iter().any(|unit| {
         unit.name
             .is_some_and(|symbol| interner.resolve(symbol) == name)
+    }) || il.nodes.iter().any(|node| {
+        matches!(node.kind, NodeKind::Module | NodeKind::Block)
+            && matches!(node.payload, Payload::Name(symbol) if interner.resolve(symbol) == name)
     })
 }
 
@@ -1582,7 +1901,7 @@ fn strict_exact_java_map_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang).stdlib().java_map_factories() || il.kind(node) != NodeKind::Call {
         return false;
     }
     let kids = il.children(node);
@@ -1644,19 +1963,14 @@ fn strict_exact_java_map_entry_safe(
 }
 
 fn strict_exact_map_constructor_entries_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
+    _il: &Il,
+    _interner: &Interner,
+    _facts: &StrictFacts,
+    _node: NodeId,
 ) -> bool {
-    if il.kind(node) != NodeKind::Call {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || !strict_exact_callee_name(il, interner, kids[0], "Map") {
-        return false;
-    }
-    strict_exact_map_entries_safe(il, interner, facts, kids[1])
+    // JS `new Map(entries)` and plain `Map(entries)` currently lower to the same
+    // call shape, so exact constructor semantics must wait for a construct proof.
+    false
 }
 
 fn strict_exact_rust_std_map_factory_safe(
@@ -1665,7 +1979,8 @@ fn strict_exact_rust_std_map_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Rust || il.kind(node) != NodeKind::Call {
+    if !semantics(il.meta.lang).stdlib().rust_std_map_factories() || il.kind(node) != NodeKind::Call
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1679,6 +1994,9 @@ fn strict_exact_rust_std_map_factory_safe(
         interner.resolve(name),
         "std::collections::HashMap::from" | "std::collections::BTreeMap::from"
     ) {
+        return false;
+    }
+    if file_defines_name(il, interner, "std") {
         return false;
     }
     strict_exact_map_entries_safe(il, interner, facts, kids[1])
@@ -1715,7 +2033,11 @@ fn strict_exact_go_literal_zero_map_index_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Go || il.kind(node) != NodeKind::Index {
+    if !semantics(il.meta.lang)
+        .stdlib()
+        .go_literal_zero_map_lookup()
+        || il.kind(node) != NodeKind::Index
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1984,7 +2306,7 @@ fn empty_or_single_direct_exact_statement_block(
     if kids.is_empty() {
         return Some(false);
     }
-    if exact_ordered_append_effect_sequence_block(il, node) {
+    if exact_ordered_append_effect_sequence_block(il, interner, node) {
         return Some(true);
     }
     if exact_ordered_index_assignment_effect_sequence_block(il, node) {
@@ -1999,10 +2321,10 @@ fn empty_or_single_direct_exact_statement_block(
     if exact_ordered_mixed_effect_sequence_block(il, interner, node) {
         return Some(true);
     }
-    if exact_ordered_conditional_effect_sequence_block(il, node) {
+    if exact_ordered_conditional_effect_sequence_block(il, interner, node) {
         return Some(true);
     }
-    if exact_ordered_conditional_mixed_effect_sequence_block(il, node) {
+    if exact_ordered_conditional_mixed_effect_sequence_block(il, interner, node) {
         return Some(true);
     }
     if exact_ordered_loop_conditional_effect_sequence_block(il, interner, node) {
@@ -2068,12 +2390,18 @@ fn exact_ordered_mixed_effect_sequence_block(il: &Il, interner: &Interner, node:
 fn exact_ordered_mixed_effect_sequence_item(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match il.kind(node) {
         NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, node),
-        NodeKind::ExprStmt | NodeKind::Assign => exact_direct_effect_statement_root(il, node),
+        NodeKind::ExprStmt | NodeKind::Assign => {
+            exact_direct_effect_statement_root(il, interner, node)
+        }
         _ => false,
     }
 }
 
-fn exact_ordered_conditional_effect_sequence_block(il: &Il, node: NodeId) -> bool {
+fn exact_ordered_conditional_effect_sequence_block(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> bool {
     if il.kind(node) != NodeKind::Block {
         return false;
     }
@@ -2082,17 +2410,23 @@ fn exact_ordered_conditional_effect_sequence_block(il: &Il, node: NodeId) -> boo
         && kids.iter().all(|&kid| il.kind(kid) == NodeKind::If)
         && kids
             .iter()
-            .all(|&kid| exact_conditional_direct_effect_fragment_root(il, kid))
+            .all(|&kid| exact_conditional_direct_effect_fragment_root(il, interner, kid))
 }
 
-fn exact_conditional_direct_effect_fragment_root(il: &Il, node: NodeId) -> bool {
+fn exact_conditional_direct_effect_fragment_root(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> bool {
     let kids = il.children(node);
     if il.kind(node) != NodeKind::If || !(kids.len() == 2 || kids.len() == 3) {
         return false;
     }
     let mut has_effect = false;
     for &branch in kids.iter().skip(1) {
-        let Some(branch_has_effect) = empty_or_single_direct_exact_effect_block(il, branch) else {
+        let Some(branch_has_effect) =
+            empty_or_single_direct_exact_effect_block(il, interner, branch)
+        else {
             return false;
         };
         has_effect |= branch_has_effect;
@@ -2100,7 +2434,11 @@ fn exact_conditional_direct_effect_fragment_root(il: &Il, node: NodeId) -> bool 
     has_effect
 }
 
-fn exact_ordered_conditional_mixed_effect_sequence_block(il: &Il, node: NodeId) -> bool {
+fn exact_ordered_conditional_mixed_effect_sequence_block(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> bool {
     if il.kind(node) != NodeKind::Block {
         return false;
     }
@@ -2120,8 +2458,10 @@ fn exact_ordered_conditional_mixed_effect_sequence_block(il: &Il, node: NodeId) 
         return false;
     }
     kids.iter().all(|&kid| match il.kind(kid) {
-        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, kid),
-        NodeKind::ExprStmt | NodeKind::Assign => exact_direct_effect_statement_root(il, kid),
+        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, interner, kid),
+        NodeKind::ExprStmt | NodeKind::Assign => {
+            exact_direct_effect_statement_root(il, interner, kid)
+        }
         _ => false,
     })
 }
@@ -2151,7 +2491,7 @@ fn exact_ordered_loop_conditional_effect_sequence_block(
     }
     kids.iter().all(|&kid| match il.kind(kid) {
         NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, kid),
-        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, kid),
+        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, interner, kid),
         _ => false,
     })
 }
@@ -2185,13 +2525,19 @@ fn exact_ordered_loop_conditional_mixed_effect_sequence_block(
     }
     kids.iter().all(|&kid| match il.kind(kid) {
         NodeKind::Loop => exact_loop_effect_fragment_root(il, interner, kid),
-        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, kid),
-        NodeKind::ExprStmt | NodeKind::Assign => exact_direct_effect_statement_root(il, kid),
+        NodeKind::If => exact_conditional_direct_effect_fragment_root(il, interner, kid),
+        NodeKind::ExprStmt | NodeKind::Assign => {
+            exact_direct_effect_statement_root(il, interner, kid)
+        }
         _ => false,
     })
 }
 
-fn empty_or_single_direct_exact_effect_block(il: &Il, node: NodeId) -> Option<bool> {
+fn empty_or_single_direct_exact_effect_block(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<bool> {
     if il.kind(node) != NodeKind::Block {
         return None;
     }
@@ -2202,18 +2548,18 @@ fn empty_or_single_direct_exact_effect_block(il: &Il, node: NodeId) -> Option<bo
     if kids.len() != 1 {
         return None;
     }
-    exact_direct_effect_statement_root(il, kids[0]).then_some(true)
+    exact_direct_effect_statement_root(il, interner, kids[0]).then_some(true)
 }
 
-fn exact_direct_effect_statement_root(il: &Il, node: NodeId) -> bool {
+fn exact_direct_effect_statement_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match il.kind(node) {
-        NodeKind::ExprStmt => exact_append_effect_statement_root(il, node),
+        NodeKind::ExprStmt => exact_append_effect_statement_root(il, interner, node),
         NodeKind::Assign => exact_index_assignment_fragment_root(il, node),
         _ => false,
     }
 }
 
-fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
+fn exact_ordered_append_effect_sequence_block(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if il.kind(node) != NodeKind::Block {
         return false;
     }
@@ -2229,7 +2575,7 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
     }
     let expected_effects = match kids
         .iter()
-        .filter(|&&kid| exact_append_effect_statement_root(il, kid))
+        .filter(|&&kid| exact_append_effect_statement_root(il, interner, kid))
         .count()
     {
         2 if kids.len() <= 4 => 2,
@@ -2242,6 +2588,7 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
         if idx + 2 < kids.len()
             && exact_temp_chain_consumed_by_append_effect(
                 il,
+                interner,
                 kids[idx],
                 kids[idx + 1],
                 kids[idx + 2],
@@ -2252,13 +2599,18 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
             continue;
         }
         if idx + 1 < kids.len()
-            && exact_temp_assignment_consumed_by_append_effect(il, kids[idx], kids[idx + 1])
+            && exact_temp_assignment_consumed_by_append_effect(
+                il,
+                interner,
+                kids[idx],
+                kids[idx + 1],
+            )
         {
             effects += 1;
             idx += 2;
             continue;
         }
-        if exact_append_effect_statement_root(il, kids[idx]) {
+        if exact_append_effect_statement_root(il, interner, kids[idx]) {
             effects += 1;
             idx += 1;
             continue;
@@ -2268,22 +2620,21 @@ fn exact_ordered_append_effect_sequence_block(il: &Il, node: NodeId) -> bool {
     effects == expected_effects
 }
 
-fn exact_append_effect_statement_root(il: &Il, stmt: NodeId) -> bool {
+fn exact_append_effect_statement_root(il: &Il, interner: &Interner, stmt: NodeId) -> bool {
     if il.kind(stmt) != NodeKind::ExprStmt {
         return false;
     }
     let kids = il.children(stmt);
-    kids.len() == 1 && exact_single_item_append_call(il, kids[0])
+    kids.len() == 1 && exact_single_item_append_call(il, interner, kids[0])
 }
 
-fn exact_single_item_append_call(il: &Il, call: NodeId) -> bool {
-    il.kind(call) == NodeKind::Call
-        && matches!(il.node(call).payload, Payload::Builtin(Builtin::Append))
-        && il.children(call).len() == 2
+fn exact_single_item_append_call(il: &Il, interner: &Interner, call: NodeId) -> bool {
+    append_call_args(il, interner, call).is_some()
 }
 
 fn exact_temp_assignment_consumed_by_append_effect(
     il: &Il,
+    interner: &Interner,
     assign: NodeId,
     effect: NodeId,
 ) -> bool {
@@ -2296,12 +2647,13 @@ fn exact_temp_assignment_consumed_by_append_effect(
     let kids = il.children(effect);
     il.kind(effect) == NodeKind::ExprStmt
         && kids.len() == 1
-        && exact_single_item_append_call(il, kids[0])
-        && append_effect_consumes_temp(il, kids[0], &empty, &temp_cids)
+        && exact_single_item_append_call(il, interner, kids[0])
+        && append_effect_consumes_temp(il, interner, kids[0], &empty, &temp_cids)
 }
 
 fn exact_temp_chain_consumed_by_append_effect(
     il: &Il,
+    interner: &Interner,
     first_assign: NodeId,
     second_assign: NodeId,
     effect: NodeId,
@@ -2333,9 +2685,10 @@ fn exact_temp_chain_consumed_by_append_effect(
     let kids = il.children(effect);
     il.kind(effect) == NodeKind::ExprStmt
         && kids.len() == 1
-        && exact_single_item_append_call(il, kids[0])
+        && exact_single_item_append_call(il, interner, kids[0])
         && append_effect_consumes_chained_temp(
             il,
+            interner,
             kids[0],
             &empty,
             &all_temps,
@@ -2345,7 +2698,10 @@ fn exact_temp_chain_consumed_by_append_effect(
 }
 
 fn exact_ordered_index_assignment_effect_sequence_block(il: &Il, node: NodeId) -> bool {
-    if !matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
         return false;
     }
     if il.kind(node) != NodeKind::Block {
@@ -2408,7 +2764,11 @@ fn exact_ordered_self_field_assignment_sequence_block(
     interner: &Interner,
     node: NodeId,
 ) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Block {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Block
+    {
         return false;
     }
     let kids = il.children(node);
@@ -2614,7 +2974,10 @@ fn exact_assignment_fragment_kind(
 }
 
 fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
-    if !matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
         return false;
     }
     let kids = il.children(node);
@@ -2625,7 +2988,11 @@ fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
 // coordinate. Expose only Java's fixed `this.field = ...`; arbitrary receivers such as
 // `other.field = ...` need a receiver-aware proof fact before they can be exact fragments.
 fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Assign {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Assign
+    {
         return false;
     }
     let kids = il.children(node);
@@ -2633,7 +3000,11 @@ fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node:
 }
 
 pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Field {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Field
+    {
         return false;
     }
     if !matches!(il.node(node).payload, Payload::Name(_)) {
@@ -2646,13 +3017,19 @@ pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) 
 }
 
 pub(crate) fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    il.meta.lang == Lang::Java
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
         && il.kind(node) == NodeKind::Var
         && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
 }
 
 fn exact_java_return_this_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Return {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Return
+    {
         return false;
     }
     let kids = il.children(node);
@@ -2878,6 +3255,7 @@ fn foreach_effect_body_depends_on_iter(
                 if idx + 2 < kids.len()
                     && loop_temp_chain_consumed_by_effect(
                         il,
+                        interner,
                         kids[idx],
                         kids[idx + 1],
                         kids[idx + 2],
@@ -2891,6 +3269,7 @@ fn foreach_effect_body_depends_on_iter(
                 if idx + 1 < kids.len()
                     && loop_temp_assignment_consumed_by_effect(
                         il,
+                        interner,
                         kids[idx],
                         kids[idx + 1],
                         iter_cids,
@@ -2908,7 +3287,7 @@ fn foreach_effect_body_depends_on_iter(
         }
         NodeKind::ExprStmt => {
             let kids = il.children(node);
-            (kids.len() == 1 && append_effect_depends_on_iter(il, kids[0], iter_cids))
+            (kids.len() == 1 && append_effect_depends_on_iter(il, interner, kids[0], iter_cids))
                 .then_some(true)
         }
         NodeKind::Assign => {
@@ -2934,6 +3313,7 @@ fn foreach_effect_body_depends_on_iter(
 
 fn loop_temp_assignment_consumed_by_effect(
     il: &Il,
+    interner: &Interner,
     assign: NodeId,
     effect: NodeId,
     iter_cids: &FxHashSet<u32>,
@@ -2943,11 +3323,12 @@ fn loop_temp_assignment_consumed_by_effect(
     };
     let mut temp_cids = FxHashSet::default();
     temp_cids.insert(temp_cid);
-    loop_effect_consumes_temp(il, effect, iter_cids, &temp_cids)
+    loop_effect_consumes_temp(il, interner, effect, iter_cids, &temp_cids)
 }
 
 fn loop_temp_chain_consumed_by_effect(
     il: &Il,
+    interner: &Interner,
     first_assign: NodeId,
     second_assign: NodeId,
     effect: NodeId,
@@ -2976,7 +3357,15 @@ fn loop_temp_chain_consumed_by_effect(
     all_temps.insert(second_cid);
     let mut final_temp = FxHashSet::default();
     final_temp.insert(second_cid);
-    loop_effect_consumes_chained_temp(il, effect, iter_cids, &all_temps, &final_temp, &first_temp)
+    loop_effect_consumes_chained_temp(
+        il,
+        interner,
+        effect,
+        iter_cids,
+        &all_temps,
+        &final_temp,
+        &first_temp,
+    )
 }
 
 fn loop_local_iter_temp_assignment(
@@ -3012,6 +3401,7 @@ fn loop_local_iter_temp_assignment(
 
 fn loop_effect_consumes_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
@@ -3019,7 +3409,8 @@ fn loop_effect_consumes_temp(
     match il.kind(node) {
         NodeKind::ExprStmt => {
             let kids = il.children(node);
-            kids.len() == 1 && append_effect_consumes_temp(il, kids[0], iter_cids, temp_cids)
+            kids.len() == 1
+                && append_effect_consumes_temp(il, interner, kids[0], iter_cids, temp_cids)
         }
         NodeKind::Assign => index_assignment_effect_consumes_temp(il, node, iter_cids, temp_cids),
         _ => false,
@@ -3028,6 +3419,7 @@ fn loop_effect_consumes_temp(
 
 fn loop_effect_consumes_chained_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     all_temp_cids: &FxHashSet<u32>,
@@ -3040,6 +3432,7 @@ fn loop_effect_consumes_chained_temp(
             kids.len() == 1
                 && append_effect_consumes_chained_temp(
                     il,
+                    interner,
                     kids[0],
                     iter_cids,
                     all_temp_cids,
@@ -3061,45 +3454,35 @@ fn loop_effect_consumes_chained_temp(
 
 fn append_effect_consumes_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if il.kind(node) != NodeKind::Call
-        || !matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
-    {
+    let Some((receiver, value)) = append_call_args(il, interner, node) else {
         return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 {
-        return false;
-    }
-    !node_mentions_any_cid(il, kids[0], iter_cids)
-        && !node_mentions_any_cid(il, kids[0], temp_cids)
-        && node_mentions_any_cid(il, kids[1], temp_cids)
+    };
+    !node_mentions_any_cid(il, receiver, iter_cids)
+        && !node_mentions_any_cid(il, receiver, temp_cids)
+        && node_mentions_any_cid(il, value, temp_cids)
 }
 
 fn append_effect_consumes_chained_temp(
     il: &Il,
+    interner: &Interner,
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
     all_temp_cids: &FxHashSet<u32>,
     final_temp_cids: &FxHashSet<u32>,
     prior_temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if il.kind(node) != NodeKind::Call
-        || !matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
-    {
+    let Some((receiver, value)) = append_call_args(il, interner, node) else {
         return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 {
-        return false;
-    }
-    !node_mentions_any_cid(il, kids[0], iter_cids)
-        && !node_mentions_any_cid(il, kids[0], all_temp_cids)
-        && node_mentions_any_cid(il, kids[1], final_temp_cids)
-        && !node_mentions_any_cid(il, kids[1], prior_temp_cids)
+    };
+    !node_mentions_any_cid(il, receiver, iter_cids)
+        && !node_mentions_any_cid(il, receiver, all_temp_cids)
+        && node_mentions_any_cid(il, value, final_temp_cids)
+        && !node_mentions_any_cid(il, value, prior_temp_cids)
 }
 
 fn index_assignment_effect_consumes_temp(
@@ -3165,17 +3548,38 @@ fn index_assignment_effect_consumes_chained_temp(
     (key_uses_final || value_uses_final) && !key_uses_prior && !value_uses_prior
 }
 
-fn append_effect_depends_on_iter(il: &Il, node: NodeId, iter_cids: &FxHashSet<u32>) -> bool {
-    if il.kind(node) != NodeKind::Call
-        || !matches!(il.node(node).payload, Payload::Builtin(Builtin::Append))
-    {
+fn append_effect_depends_on_iter(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    iter_cids: &FxHashSet<u32>,
+) -> bool {
+    let Some((receiver, value)) = append_call_args(il, interner, node) else {
         return false;
+    };
+    !node_mentions_any_cid(il, receiver, iter_cids) && node_mentions_any_cid(il, value, iter_cids)
+}
+
+fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
+    if il.kind(node) != NodeKind::Call {
+        return None;
     }
     let kids = il.children(node);
-    if kids.len() != 2 {
-        return false;
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return (kids.len() == 2).then(|| (kids[0], kids[1]));
     }
-    !node_mentions_any_cid(il, kids[0], iter_cids) && node_mentions_any_cid(il, kids[1], iter_cids)
+    let (&callee, args) = kids.split_first()?;
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return None;
+    };
+    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
+        return None;
+    }
+    let receiver = *il.children(callee).first()?;
+    Some((receiver, args[0]))
 }
 
 fn index_assignment_effect_depends_on_iter(
@@ -3295,6 +3699,9 @@ fn call_may_mutate_blocked_cid(
         return false;
     }
     let kids = il.children(node);
+    if let Some((receiver, _)) = append_call_args(il, interner, node) {
+        return node_mentions_any_cid(il, receiver, blocked);
+    }
     match il.node(node).payload {
         Payload::Builtin(Builtin::Append) => kids
             .first()

@@ -4,6 +4,11 @@ nose parses each language with tree-sitter and lowers it into one shared IL, so
 clones are found *across* languages, not just within one. The lowering machinery is
 described in [architecture](architecture.md).
 
+The current language frontends are first-party code. The direction is for both
+first-party and external languages to enter through the same pack extension
+boundary described in [semantic-kernel](semantic-kernel.md), while keeping exact
+semantic matching fail-closed unless the required facts and contracts are present.
+
 ## Supported languages
 
 Eight base languages, each with its own CST→IL lowering:
@@ -63,4 +68,7 @@ lowering to expression if-chains instead of `Raw`, or Ruby scrutinee-less `case`
 its `when` predicates directly while preserving the `else` arm) is how a language becomes a
 first-class citizen —
 see the [experiments](experiments.md) log and the convergence-test discipline in
-[CONTRIBUTING](../CONTRIBUTING.md).
+[`CONTRIBUTING`](../CONTRIBUTING.md).
+
+For the planned pack-based language onboarding model, see
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md).

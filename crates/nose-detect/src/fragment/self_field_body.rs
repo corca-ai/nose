@@ -10,7 +10,8 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Il, Interner, Lang, NodeId, NodeKind, Payload};
+use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
+use nose_semantics::semantics;
 
 pub(crate) fn recognize_self_field_body(
     il: &Il,
@@ -18,7 +19,11 @@ pub(crate) fn recognize_self_field_body(
     parents: &[Option<NodeId>],
     node: NodeId,
 ) -> Option<FragmentContract> {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Block {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Block
+    {
         return None;
     }
     let func = parents.get(node.0 as usize).copied().flatten()?;
@@ -124,7 +129,11 @@ fn self_field_assign(
 }
 
 fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Field {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Field
+    {
         return false;
     }
     if !matches!(il.node(node).payload, Payload::Name(_)) {
@@ -136,13 +145,19 @@ fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
 }
 
 fn is_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    il.meta.lang == Lang::Java
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
         && il.kind(node) == NodeKind::Var
         && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
 }
 
 fn is_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.meta.lang != Lang::Java || il.kind(node) != NodeKind::Return {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Return
+    {
         return false;
     }
     let kids = il.children(node);

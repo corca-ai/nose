@@ -18,7 +18,11 @@
 //! proof-obligation: normalize.value_graph.field_writes
 //! proof-obligation: normalize.value_graph.free_monoid
 
-use nose_il::{Builtin, HoFKind, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
+use nose_il::{Builtin, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
+use nose_semantics::{
+    builtin_demand, eager_builtin_contract, hof_contract, BuiltinDemand, EagerBuiltinContract,
+    HofContract,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 /// A runtime value. `List` is nested so `zip`/`enumerate` can yield pairs.
@@ -569,21 +573,14 @@ impl<'a> Interp<'a> {
         };
         let kids = self.il.children(node).to_vec();
         let mut args = Vec::new();
-        // `reduce(f, xs, init)` carries a lambda; evaluate it specially.
-        if matches!(b, Builtin::Reduce) {
-            return self.eval_reduce_call(&kids, env);
-        }
-        // `any`/`all` short-circuit over a (possibly predicate-mapped) collection. The
-        // method form `xs.some(λ)` carries a lambda; the generator form `any(p for x in xs)`
-        // is a pre-mapped list of predicate values.
-        if matches!(b, Builtin::Any | Builtin::All) {
-            return self.eval_any_all_call(matches!(b, Builtin::All), &kids, env);
-        }
-        if matches!(b, Builtin::Append) {
-            return self.eval_append(&kids, env);
-        }
-        if matches!(b, Builtin::ValueOrDefault) {
-            return self.eval_value_or_default_call(&kids, env);
+        match builtin_demand(b) {
+            BuiltinDemand::Reduce => return self.eval_reduce_call(&kids, env),
+            BuiltinDemand::AnyAll { all } => return self.eval_any_all_call(all, &kids, env),
+            BuiltinDemand::Append => return self.eval_append(&kids, env),
+            BuiltinDemand::ValueOrDefault => {
+                return self.eval_value_or_default_call(&kids, env);
+            }
+            BuiltinDemand::Eager => {}
         }
         for &k in &kids {
             let arg = self.eval(k, env)?;
@@ -592,8 +589,8 @@ impl<'a> Interp<'a> {
             }
             args.push(arg);
         }
-        match b {
-            Builtin::Len => match args.first() {
+        match eager_builtin_contract(b).ok_or(Unsupported)? {
+            EagerBuiltinContract::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
                 // A string is the free monoid over opaque piece hashes; its character
                 // length is unknown (piece count ≠ char count), so `len` stays `Err` —
@@ -601,40 +598,40 @@ impl<'a> Interp<'a> {
                 // `Int(1)` falsely equated `len(any_string)` with the literal `1`.
                 _ => Ok(Value::Err),
             },
-            Builtin::IsEmpty => match args.first() {
+            EagerBuiltinContract::IsEmpty => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Bool(xs.is_empty())),
                 _ => Ok(Value::Err),
             },
-            Builtin::IsNull => match args.first() {
+            EagerBuiltinContract::IsNull => match args.first() {
                 Some(value) => Ok(Value::Bool(matches!(value, Value::Null))),
                 _ => Ok(Value::Err),
             },
-            Builtin::IsNotNull => match args.first() {
+            EagerBuiltinContract::IsNotNull => match args.first() {
                 Some(value) => Ok(Value::Bool(!matches!(value, Value::Null))),
                 _ => Ok(Value::Err),
             },
-            Builtin::StartsWith => Ok(string_affix(args.first(), args.get(1), true)),
-            Builtin::EndsWith => Ok(string_affix(args.first(), args.get(1), false)),
-            Builtin::Contains => match (args.first(), args.get(1)) {
+            EagerBuiltinContract::StartsWith => Ok(string_affix(args.first(), args.get(1), true)),
+            EagerBuiltinContract::EndsWith => Ok(string_affix(args.first(), args.get(1), false)),
+            EagerBuiltinContract::Contains => match (args.first(), args.get(1)) {
                 (Some(element), Some(Value::List(items))) => Ok(Value::Bool(
                     items.iter().any(|candidate| candidate == element),
                 )),
                 _ => Ok(Value::Err),
             },
-            Builtin::Join => Ok(join_strings(args.first(), args.get(1))),
-            Builtin::Abs => match args.first() {
+            EagerBuiltinContract::Join => Ok(join_strings(args.first(), args.get(1))),
+            EagerBuiltinContract::Abs => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.abs())),
                 _ => Ok(Value::Err),
             },
-            Builtin::UnsignedCast32 => match args.first() {
+            EagerBuiltinContract::UnsignedCast32 => match args.first() {
                 Some(Value::Int(v)) => Ok(Value::Int(v.rem_euclid(1_i64 << 32))),
                 _ => Ok(Value::Err),
             },
-            Builtin::Sum => Ok(fold_ints(args.first(), 0, |a, x| a + x)),
-            Builtin::Min => Ok(fold_opt(args.first(), |a, x| a.min(x))),
-            Builtin::Max => Ok(fold_opt(args.first(), |a, x| a.max(x))),
-            Builtin::Range => range_values(&args),
-            Builtin::Zip => match (args.first(), args.get(1)) {
+            EagerBuiltinContract::Sum => Ok(fold_ints(args.first(), 0, |a, x| a + x)),
+            EagerBuiltinContract::Min => Ok(fold_opt(args.first(), |a, x| a.min(x))),
+            EagerBuiltinContract::Max => Ok(fold_opt(args.first(), |a, x| a.max(x))),
+            EagerBuiltinContract::Range => range_values(&args),
+            EagerBuiltinContract::Zip => match (args.first(), args.get(1)) {
                 (Some(Value::List(a)), Some(Value::List(b))) => Ok(Value::List(
                     a.iter()
                         .zip(b.iter())
@@ -643,7 +640,7 @@ impl<'a> Interp<'a> {
                 )),
                 _ => Ok(Value::Err),
             },
-            Builtin::Enumerate => match args.first() {
+            EagerBuiltinContract::Enumerate => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::List(
                     xs.iter()
                         .enumerate()
@@ -654,14 +651,13 @@ impl<'a> Interp<'a> {
             },
             // `for (x in list)` iterates the indices 0..n-1 (keys). Objects aren't
             // modeled → Err (so such loops are non-interpretable, not falsely merged).
-            Builtin::Keys => match args.first() {
+            EagerBuiltinContract::Keys => match args.first() {
                 Some(Value::List(xs)) => {
                     Ok(Value::List((0..xs.len() as i64).map(Value::Int).collect()))
                 }
                 _ => Ok(Value::Err),
             },
-            Builtin::Append => unreachable!("handled by eval_append before arg eval"),
-            Builtin::Print => {
+            EagerBuiltinContract::Print => {
                 for a in &args {
                     self.effects.push(a.clone());
                 }
@@ -670,10 +666,8 @@ impl<'a> Interp<'a> {
             // Dicts are not modeled — a `DictEntry` makes its unit non-interpretable (Err),
             // so dict-building units are excluded from the oracle rather than risk a false
             // merge. Their convergence rests on the DistinctEntry-vs-tuple representation.
-            Builtin::DictEntry => Ok(Value::Err),
-            Builtin::GetOrDefault => Ok(Value::Err),
-            Builtin::ValueOrDefault => unreachable!("handled before eager arg eval"),
-            Builtin::Reduce | Builtin::Any | Builtin::All => unreachable!(),
+            EagerBuiltinContract::DictEntry => Ok(Value::Err),
+            EagerBuiltinContract::GetOrDefault => Ok(Value::Err),
         }
     }
 
@@ -914,8 +908,8 @@ impl<'a> Interp<'a> {
             _ => return Ok(Value::Err),
         };
         let f = kids[1];
-        match kind {
-            HoFKind::Map => {
+        match hof_contract(kind) {
+            HofContract::Map => {
                 let mut out = Vec::new();
                 for x in coll {
                     let value = self.apply(f, &[x], env)?;
@@ -926,7 +920,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HoFKind::FlatMap => {
+            HofContract::FlatMap => {
                 let mut out = Vec::new();
                 for x in coll {
                     match self.apply(f, &[x], env)? {
@@ -937,7 +931,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HoFKind::FilterMap => {
+            HofContract::FilterMap => {
                 let mut out = Vec::new();
                 for x in coll {
                     match self.apply(f, &[x], env)? {
@@ -948,7 +942,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HoFKind::Filter => {
+            HofContract::Filter => {
                 let mut out = Vec::new();
                 for x in coll {
                     let keep = self.apply(f, std::slice::from_ref(&x), env)?;
@@ -961,7 +955,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HoFKind::Reduce => {
+            HofContract::Reduce => {
                 let mut it = coll.into_iter();
                 let mut acc = match it.next() {
                     Some(v) => v,
@@ -1241,7 +1235,9 @@ fn un(op: Op, a: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Interner, Lang, LitClass, Span, Unit, UnitKind};
+    use nose_il::{
+        FileId, FileMeta, HoFKind, IlBuilder, Interner, Lang, LitClass, Span, Unit, UnitKind,
+    };
 
     /// Build `fn() { return len(<str literal>) }` and run it.
     fn run_len_of_string() -> Value {

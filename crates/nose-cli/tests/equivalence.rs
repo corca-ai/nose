@@ -132,7 +132,8 @@ fn loop_converges_with_reduce_and_comprehension() {
     // SAME value fingerprint — they are the same fold.
     let i = Interner::new();
     let prod_loop = "def p(xs):\n    r = 1\n    for x in xs:\n        r = r * x\n    return r\n";
-    let prod_reduce = "def p(xs):\n    return reduce(lambda a, b: a * b, xs, 1)\n";
+    let prod_reduce =
+        "import functools\n\ndef p(xs):\n    return functools.reduce(lambda a, b: a * b, xs, 1)\n";
     assert_eq!(
         value_fp(&i, prod_loop, Lang::Python),
         value_fp(&i, prod_reduce, Lang::Python),
@@ -370,16 +371,16 @@ fn filtered_method_reduce_converges_with_guarded_loop() {
     // `if p(x) { acc = acc ⊕ x }`. The value graph must attach the filter predicate
     // to the reduce contribution, while the accumulator seed stays behavior-defining.
     let i = Interner::new();
-    let loop_js = "function f(xs){ let total = 0; for (const x of xs) { if (x > 0) { total += x; } } return total; }";
+    let loop_js = "function f(xs: number[]): number { let total = 0; for (const x of xs) { if (x > 0) { total += x; } } return total; }";
     let reduce_js =
-        "function f(xs){ return xs.filter(x => x > 0).reduce((total, x) => total + x, 0); }";
+        "function f(xs: number[]): number { return xs.filter(x => x > 0).reduce((total, x) => total + x, 0); }";
     let reduce_rs = "fn f(xs: &[i64]) -> i64 { xs.iter().copied().filter(|x| *x > 0).fold(0, |total, x| total + x) }";
     let bad_init =
-        "function f(xs){ return xs.filter(x => x > 0).reduce((total, x) => total + x, 1); }";
-    let loop_fp = value_fp(&i, loop_js, Lang::JavaScript);
+        "function f(xs: number[]): number { return xs.filter(x => x > 0).reduce((total, x) => total + x, 1); }";
+    let loop_fp = value_fp(&i, loop_js, Lang::TypeScript);
     assert_eq!(
         loop_fp,
-        value_fp(&i, reduce_js, Lang::JavaScript),
+        value_fp(&i, reduce_js, Lang::TypeScript),
         "JS filter().reduce(sum) should converge with the guarded loop"
     );
     assert_eq!(
@@ -389,41 +390,43 @@ fn filtered_method_reduce_converges_with_guarded_loop() {
     );
     assert_ne!(
         loop_fp,
-        value_fp(&i, bad_init, Lang::JavaScript),
+        value_fp(&i, bad_init, Lang::TypeScript),
         "changing the reduce seed is a hard negative"
     );
 }
 
 #[test]
 fn filtered_count_aggregates_converge_with_count_loop() {
-    // `filter(p).length`, `filter(p).count()`, and `count { p }` are all
-    // count-filter reductions: add 1 when the predicate holds, otherwise add 0.
+    // `filter(p).length` and Rust `filter(p).count()` are count-filter reductions:
+    // add 1 when the predicate holds, otherwise add 0. Ruby `count { p }` stays opaque
+    // until a pack/receiver proof can establish that `xs` is Ruby's collection protocol.
     let i = Interner::new();
-    let loop_js = "function f(xs){ let count = 0; for (const x of xs) { if (x > 0) { count += 1; } } return count; }";
-    let len_js = "function f(xs){ return xs.filter(x => x > 0).length; }";
+    let loop_js = "function f(xs: number[]): number { let count = 0; for (const x of xs) { if (x > 0) { count += 1; } } return count; }";
+    let len_js = "function f(xs: number[]): number { return xs.filter(x => x > 0).length; }";
     let count_rs =
         "fn f(xs: &[i64]) -> i64 { xs.iter().copied().filter(|x| *x > 0).count() as i64 }";
     let count_rb = "def f(xs)\n  xs.count { |x| x > 0 }\nend\n";
-    let bad_predicate = "function f(xs){ return xs.filter(x => x >= 0).length; }";
-    let loop_fp = value_fp(&i, loop_js, Lang::JavaScript);
+    let bad_predicate =
+        "function f(xs: number[]): number { return xs.filter(x => x >= 0).length; }";
+    let loop_fp = return_fp(&i, loop_js, Lang::TypeScript);
     assert_eq!(
         loop_fp,
-        value_fp(&i, len_js, Lang::JavaScript),
+        return_fp(&i, len_js, Lang::TypeScript),
         "JS filter().length should converge with a guarded count loop"
     );
     assert_eq!(
         loop_fp,
-        value_fp(&i, count_rs, Lang::Rust),
+        return_fp(&i, count_rs, Lang::Rust),
         "Rust filter().count() should converge through the same count reduce"
-    );
-    assert_eq!(
-        loop_fp,
-        value_fp(&i, count_rb, Lang::Ruby),
-        "Ruby count block should converge through the same count reduce"
     );
     assert_ne!(
         loop_fp,
-        value_fp(&i, bad_predicate, Lang::JavaScript),
+        return_fp(&i, count_rb, Lang::Ruby),
+        "Ruby count block must stay closed without a receiver/protocol proof"
+    );
+    assert_ne!(
+        loop_fp,
+        return_fp(&i, bad_predicate, Lang::TypeScript),
         "changing the count predicate is a hard negative"
     );
 }
@@ -447,8 +450,8 @@ fn java_stream_aggregates_converge_with_loops() {
     let sum_fp = value_fp(&i, sum_loop, Lang::Java);
     assert_eq!(sum_fp, value_fp(&i, sum_stream, Lang::Java));
     assert_eq!(
-        value_fp(&i, count_loop, Lang::Java),
-        value_fp(&i, count_stream, Lang::Java)
+        return_fp(&i, count_loop, Lang::Java),
+        return_fp(&i, count_stream, Lang::Java)
     );
     assert_eq!(
         value_fp(&i, any_loop, Lang::Java),
@@ -488,20 +491,20 @@ fn java_stream_flat_map_converges_with_python_comprehension() {
 }
 
 #[test]
-fn rust_vec_new_builder_loop_converges_with_flat_map() {
-    // `out = Vec::new()`-seeded builder loops now enter the exact channel like `[]`-seeded
-    // ones: `Vec::new()` is the empty vector (the value graph already models it as an empty
-    // Seq), so the exact-safe gate recognizes it. A nested flatten builder loop converges with
-    // `.flat_map(|xs| xs.iter().map(...))`; a changed inner element stays a hard negative.
+fn rust_vec_new_builder_loop_stays_distinct_from_flat_map_without_nested_element_proof() {
+    // `xss: &[Vec<_>]` proves the outer parameter is a collection, but the current semantic
+    // kernel does not yet carry the element-type proof needed to know that the lambda parameter
+    // `xs` is itself a collection. Keep the `.flat_map(|xs| xs.iter()...)` form fail-closed until
+    // nested collection receiver proofs exist.
     let i = Interner::new();
     let builder = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { let mut out = Vec::new(); for xs in xss { for y in xs { out.push(*y); } } out }";
     let flat = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { xss.iter().flat_map(|xs| xs.iter().map(|y| *y)).collect() }";
     let changed = "pub fn f(xss: &[Vec<i64>]) -> Vec<i64> { xss.iter().flat_map(|xs| xs.iter().map(|y| y + 1)).collect() }";
     let bfp = value_fp(&i, builder, Lang::Rust);
-    assert_eq!(
+    assert_ne!(
         bfp,
         value_fp(&i, flat, Lang::Rust),
-        "rust Vec::new() builder loop must converge with flat_map"
+        "nested flat_map must not converge without a nested element collection proof"
     );
     assert_ne!(
         bfp,
@@ -682,20 +685,19 @@ fn sub_dag_anchor_shared_when_units_share_a_heavy_computation() {
 }
 
 #[test]
-fn promise_then_chain_converges_with_await_sequential_code() {
-    // `p.then(r => body)` is a Promise continuation ≡ `const r = await p; body`. Beta-reducing
-    // the callback with the receiver makes a `.then`-chain's value fingerprint identical to the
-    // equivalent await/sequential code (the #1 real-world async Type-4 gap). A different
-    // continuation expression stays distinct.
+fn promise_then_chain_stays_opaque_without_receiver_proof() {
+    // A `.then` name is not itself proof of Promise/thenable semantics. Until the frontend or a
+    // semantic pack carries a resolved Promise-like receiver proof, exact value fingerprints must
+    // keep `.then` opaque rather than beta-reducing an arbitrary user method.
     let i = Interner::new();
     let await_form = "function f(id) {\n  const r = await db.get(id);\n  return r.x + 1;\n}\n";
     let then_form = "function f(id) {\n  return db.get(id).then(r => r.x + 1);\n}\n";
     let then_diff = "function f(id) {\n  return db.get(id).then(r => r.y - 1);\n}\n";
     let av = value_fp(&i, await_form, Lang::TypeScript);
-    assert_eq!(
+    assert_ne!(
         av,
         value_fp(&i, then_form, Lang::TypeScript),
-        "a `.then` continuation must converge with the equivalent await/sequential code"
+        "a `.then` continuation must not converge with await without receiver proof"
     );
     assert_ne!(
         av,
@@ -759,38 +761,40 @@ fn pure_method_recursion_converges_with_iteration() {
 }
 
 #[test]
-fn flatmap_identity_converges_with_inner_map_and_flatten_loop() {
-    // `xss.flatMap(xs => xs)` (identity inner) is `flatten`, equal to the explicit
-    // inner-identity-map `xss.flatMap(xs => xs.map(y => y))` and to the nested builder loop —
-    // the monad law `flatMap id = join` (`map id = id` on each sublist, so every emitted
-    // element is unchanged). A changed inner element stays a hard negative.
+fn flatmap_identity_converges_with_explicit_flatten_but_inner_map_stays_closed() {
+    // `xss.flatMap(xs => xs)` is a flatten semantically and converges with an explicit nested
+    // builder loop. The inner `xs.map(...)` form still stays closed until the kernel carries
+    // nested element collection proofs for `xs`.
     let i = Interner::new();
-    let identity = "function f(xss){ return xss.flatMap(xs => xs); }";
-    let inner_map = "function f(xss){ return xss.flatMap(xs => xs.map(y => y)); }";
-    let builder = "function f(xss){ const out = []; for (const xs of xss) { for (const y of xs) { out.push(y); } } return out; }";
-    let changed = "function f(xss){ return xss.flatMap(xs => xs.map(y => y + 1)); }";
-    let id_fp = value_fp(&i, identity, Lang::JavaScript);
-    assert_eq!(
+    let identity = "function f(xss: number[][]): number[] { return xss.flatMap(xs => xs); }";
+    let inner_map =
+        "function f(xss: number[][]): number[] { return xss.flatMap(xs => xs.map(y => y)); }";
+    let builder = "function f(xss: number[][]): number[] { const out: number[] = []; for (const xs of xss) { for (const y of xs) { out.push(y); } } return out; }";
+    let changed =
+        "function f(xss: number[][]): number[] { return xss.flatMap(xs => xs.map(y => y + 1)); }";
+    let id_fp = value_fp(&i, identity, Lang::TypeScript);
+    assert_ne!(
         id_fp,
-        value_fp(&i, inner_map, Lang::JavaScript),
-        "flatMap(id) must converge with flatMap(x => x.map(y => y))"
+        value_fp(&i, inner_map, Lang::TypeScript),
+        "inner map must stay closed without nested element collection proof"
     );
     assert_eq!(
         id_fp,
-        value_fp(&i, builder, Lang::JavaScript),
-        "flatMap(id) must converge with the nested builder loop (flatten)"
+        value_fp(&i, builder, Lang::TypeScript),
+        "flatMap(id) should converge with the explicit nested builder loop"
     );
     assert_ne!(
         id_fp,
-        value_fp(&i, changed, Lang::JavaScript),
+        value_fp(&i, changed, Lang::TypeScript),
         "a changed inner element (y + 1) must stay distinct (hard negative)"
     );
 }
 
 #[test]
 fn ruby_select_reduce_converges_with_guarded_loop() {
-    // Ruby `select { p }.reduce(init) { |a, x| ... }` is the same filtered fold as
-    // a guarded `each` accumulator loop. The changed seed remains a hard negative.
+    // Ruby `select { p }.reduce(init) { |a, x| ... }` is the same filtered fold only when
+    // `xs` is proven to be Ruby's collection protocol. With no receiver proof in this snippet,
+    // the method chain stays closed. The changed seed remains a hard negative.
     let i = Interner::new();
     let loop_rb = "def f(xs)\n  total = 0\n  xs.each do |x|\n    if x > 0\n      total += x\n    end\n  end\n  total\nend\n";
     let reduce_rb =
@@ -801,8 +805,8 @@ fn ruby_select_reduce_converges_with_guarded_loop() {
         "def f(xs)\n  xs.select { |x| x > 0 }.reduce(1) { |product, x| product * x }\nend\n";
     let bad_seed = "def f(xs)\n  xs.select { |x| x > 0 }.reduce(1) { |total, x| total + x }\nend\n";
     let sum_fp = value_fp(&i, loop_rb, Lang::Ruby);
-    assert_eq!(sum_fp, value_fp(&i, reduce_rb, Lang::Ruby));
-    assert_eq!(
+    assert_ne!(sum_fp, value_fp(&i, reduce_rb, Lang::Ruby));
+    assert_ne!(
         value_fp(&i, product_loop, Lang::Ruby),
         value_fp(&i, product_reduce, Lang::Ruby)
     );
@@ -818,8 +822,8 @@ fn ruby_any_all_predicates_converge_with_early_return_loops() {
     let all_call = "def f(xs)\n  xs.all? { |x| x >= 0 }\nend\n";
     let bad_predicate = "def f(xs)\n  xs.any? { |x| x >= 0 }\nend\n";
     let any_fp = value_fp(&i, any_loop, Lang::Ruby);
-    assert_eq!(any_fp, value_fp(&i, any_call, Lang::Ruby));
-    assert_eq!(
+    assert_ne!(any_fp, value_fp(&i, any_call, Lang::Ruby));
+    assert_ne!(
         value_fp(&i, all_loop, Lang::Ruby),
         value_fp(&i, all_call, Lang::Ruby)
     );
@@ -926,14 +930,15 @@ fn selection_reduction_loops_converge_cross_language() {
     let py_max = "def f(xs):\n    best = 0\n    for x in xs:\n        if x > best:\n            best = x\n    return best\n";
     let js_max =
         "function f(xs){ let best = 0; for (const x of xs) { if (x > best) { best = x; } } return best; }";
-    let reduce_js = "function f(xs){ return xs.reduce((best, x) => x > best ? x : best, 0); }";
+    let reduce_js =
+        "function f(xs: number[]): number { return xs.reduce((best, x) => x > best ? x : best, 0); }";
     let rust_max =
         "fn f(xs: &[i32]) -> i32 { let mut best = 0; for &x in xs { if x > best { best = x; } } best }";
     let rust_fold_max =
         "fn f(xs: &[i32]) -> i32 { xs.iter().copied().fold(0, |best, x| if x > best { x } else { best }) }";
     let py_min = "def f(xs):\n    best = 0\n    for x in xs:\n        if x < best:\n            best = x\n    return best\n";
     let reduce_py =
-        "def f(xs):\n    return reduce(lambda best, x: x if x < best else best, xs, 0)\n";
+        "import functools\n\ndef f(xs):\n    return functools.reduce(lambda best, x: x if x < best else best, xs, 0)\n";
     let rust_min =
         "fn f(xs: &[i32]) -> i32 { let mut best = 0; for &x in xs { if x < best { best = x; } } best }";
     let rust_fold_min =
@@ -942,7 +947,7 @@ fn selection_reduction_loops_converge_cross_language() {
 
     let max_fp = value_fp(&i, py_max, Lang::Python);
     assert_eq!(max_fp, value_fp(&i, js_max, Lang::JavaScript));
-    assert_eq!(max_fp, value_fp(&i, reduce_js, Lang::JavaScript));
+    assert_eq!(max_fp, value_fp(&i, reduce_js, Lang::TypeScript));
     assert_eq!(max_fp, value_fp(&i, rust_max, Lang::Rust));
     assert_eq!(max_fp, value_fp(&i, rust_fold_max, Lang::Rust));
     let min_fp = value_fp(&i, py_min, Lang::Python);
@@ -1012,8 +1017,11 @@ fn dot_product_converges_across_index_zip_and_enumerate() {
     assert_eq!(fp, value_fp(&i, rust_range, Lang::Rust));
     assert_eq!(fp, value_fp(&i, rust_zip, Lang::Rust));
     assert_eq!(fp, value_fp(&i, ruby_each, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, ruby_while, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, java_for, Lang::Java));
+    assert_ne!(fp, value_fp(&i, ruby_while, Lang::Ruby));
+    assert_eq!(
+        return_fp(&i, py_loop, Lang::Python),
+        return_fp(&i, java_for, Lang::Java)
+    );
     assert_eq!(fp, value_fp(&i, c_for, Lang::C));
     assert_ne!(fp, value_fp(&i, bad_pair_sum, Lang::Python));
 }
@@ -1071,16 +1079,20 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
         "pub fn f(value: i64, other: i64) -> i64 { let magnitude = value.abs(); magnitude + other }\n";
     let shadowed_js = "function f(Math, value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
     let local_shadowed_js = "function f(value, other) { const Math = { abs: function(_value) { return 0; } }; const magnitude = Math.abs(value); return magnitude + other; }";
+    let ts_number_method_abs = "function f(value: number, other: number): number { const magnitude = value.abs(); return magnitude + other; }";
+    let rust_float_abs = "pub fn f(value: f64, other: f64) -> f64 { let magnitude = value.abs(); magnitude + other }\n";
     let custom_rust_abs = "struct Wrap(i64);\nimpl Wrap { fn abs(&self) -> i64 { 0 } }\npub fn f(value: Wrap) -> i64 { let magnitude = value.abs(); magnitude + 1 }\n";
     let fp = value_fp(&i, py, Lang::Python);
     assert_eq!(fp, value_fp(&i, js, Lang::JavaScript));
     assert_eq!(fp, value_fp(&i, ts, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, go, Lang::Go));
     assert_eq!(fp, value_fp(&i, java, Lang::Java));
-    assert_eq!(fp, value_fp(&i, ruby_abs, Lang::Ruby));
+    assert_ne!(fp, value_fp(&i, ruby_abs, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, rust_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, local_shadowed_js, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, ts_number_method_abs, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, rust_float_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_abs, Lang::Rust));
 }
 
@@ -1104,7 +1116,11 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     let rust_max = "pub fn f(left: i64, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
     let py_wrong_value =
         "def f(left, right, other):\n    selected = min(left, other)\n    return selected + other\n";
+    let py_shadowed_min =
+        "def min(_left, _right):\n    return 0\n\ndef f(left, right, other):\n    selected = min(left, right)\n    return selected + other\n";
     let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
+    let ts_number_method_min = "function f(left: number, right: number, other: number): number { const selected = left.min(right); return selected + other; }";
+    let rust_float_min = "pub fn f(left: f64, right: f64, other: f64) -> f64 { let selected = left.min(right); selected + other }\n";
     let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
     let custom_rust_max = "struct Wrap(i64);\nimpl Wrap { fn max(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
 
@@ -1114,11 +1130,11 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     assert_eq!(fp, value_fp(&i, ts_min, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, go_min, Lang::Go));
     assert_eq!(fp, value_fp(&i, java_min, Lang::Java));
-    assert_eq!(fp, value_fp(&i, c_min, Lang::C));
-    assert_eq!(fp, value_fp(&i, ruby_min, Lang::Ruby));
+    assert_ne!(fp, value_fp(&i, c_min, Lang::C));
+    assert_ne!(fp, value_fp(&i, ruby_min, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, rust_min, Lang::Rust));
     assert_ne!(fp, value_fp(&i, py_max, Lang::Python));
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, py_max, Lang::Python),
         value_fp(&i, ruby_max, Lang::Ruby)
     );
@@ -1127,7 +1143,10 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
         value_fp(&i, rust_max, Lang::Rust)
     );
     assert_ne!(fp, value_fp(&i, py_wrong_value, Lang::Python));
+    assert_ne!(fp, value_fp(&i, py_shadowed_min, Lang::Python));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, ts_number_method_min, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, rust_float_min, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_min, Lang::Rust));
     assert_ne!(
         value_fp(&i, py_max, Lang::Python),
@@ -1185,6 +1204,8 @@ fn numeric_clamp_surface_bridge_requires_bound_proof() {
     let rust_guarded_clamp =
         "fn f(x: i64, lo: i64, hi: i64) -> i64 { if hi < lo { panic!(); } x.clamp(lo, hi) }";
     let rust_unproven_clamp = "fn f(x: i64, lo: i64, hi: i64) -> i64 { x.clamp(lo, hi) }";
+    let ts_number_method_clamp = "function f(x: number): number { return x.clamp(0, 10); }";
+    let rust_float_clamp = "fn f(x: f64) -> f64 { x.clamp(0.0, 10.0) }";
     let rust_custom_clamp = "struct Wrap(i64);\nimpl Wrap { fn clamp(&self, _lo: i64, _hi: i64) -> i64 { 0 } }\nfn f(x: Wrap) -> i64 { x.clamp(0, 10) }\n";
 
     let guarded_fp = value_fp(&i, minmax_guarded, Lang::Python);
@@ -1225,6 +1246,16 @@ fn numeric_clamp_surface_bridge_requires_bound_proof() {
     );
     assert_ne!(
         value_fp(&i, rust_literal_clamp, Lang::Rust),
+        value_fp(&i, ts_number_method_clamp, Lang::TypeScript),
+        "numeric method selectors outside a specific language/API contract must stay closed"
+    );
+    assert_ne!(
+        value_fp(&i, rust_literal_clamp, Lang::Rust),
+        value_fp(&i, rust_float_clamp, Lang::Rust),
+        "float/NaN-sensitive Rust clamp needs a separate contract and proof"
+    );
+    assert_ne!(
+        value_fp(&i, rust_literal_clamp, Lang::Rust),
         value_fp(&i, rust_custom_clamp, Lang::Rust),
         "custom clamp methods must stay outside the numeric library bridge"
     );
@@ -1238,7 +1269,7 @@ fn conditional_abs_reduction_converges_with_aggregate() {
     let py_loop = "def f(xs):\n    total = 0\n    for x in xs:\n        if x < 0:\n            total += -x\n        else:\n            total += x\n    return total\n";
     let py_sum = "def f(xs):\n    return sum(abs(x) for x in xs)\n";
     let js_reduce =
-        "function f(xs){ return xs.reduce((total, x) => total + (x < 0 ? -x : x), 0); }";
+        "function f(xs: number[]): number { return xs.reduce((total, x) => total + (x < 0 ? -x : x), 0); }";
     let rust_fold =
         "fn f(xs: &[i32]) -> i32 { xs.iter().copied().fold(0, |total, x| total + if x < 0 { -x } else { x }) }";
     let c_loop = "int f(int *xs, int n) { int total = 0; for (int i = 0; i < n; i++) { if (xs[i] < 0) { total += -xs[i]; } else { total += xs[i]; } } return total; }";
@@ -1246,7 +1277,7 @@ fn conditional_abs_reduction_converges_with_aggregate() {
         "def f(xs):\n    total = 0\n    for x in xs:\n        total += x\n    return total\n";
     let fp = value_fp(&i, py_loop, Lang::Python);
     assert_eq!(fp, value_fp(&i, py_sum, Lang::Python));
-    assert_eq!(fp, value_fp(&i, js_reduce, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, js_reduce, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, rust_fold, Lang::Rust));
     assert_eq!(fp, value_fp(&i, c_loop, Lang::C));
     assert_ne!(fp, value_fp(&i, bad_sum, Lang::Python));
@@ -1444,11 +1475,11 @@ fn commutative_reconcile() {
 fn cross_language_summation_converges() {
     let i = Interner::new();
     let py = "def f(items):\n    total = 0\n    i = 0\n    while i < len(items):\n        total += items[i]\n        i = i + 1\n    return total\n";
-    let ts = "function f(items){ let total=0; for(let i=0;i<items.length;i++){ total += items[i]; } return total; }";
+    let ts = "function f(items: number[]): number { let total=0; for(let i=0;i<items.length;i++){ total += items[i]; } return total; }";
     let go = "package m\nfunc F(items []int) int {\n\ttotal := 0\n\tfor i := 0; i < len(items); i++ {\n\t\ttotal += items[i]\n\t}\n\treturn total\n}\n";
-    let hp = unit_hash(&i, py, Lang::Python);
-    assert_eq!(hp, unit_hash(&i, ts, Lang::TypeScript), "py == ts");
-    assert_eq!(hp, unit_hash(&i, go, Lang::Go), "py == go");
+    let hp = return_fp(&i, py, Lang::Python);
+    assert_eq!(hp, return_fp(&i, ts, Lang::TypeScript), "py == ts");
+    assert_eq!(hp, return_fp(&i, go, Lang::Go), "py == go");
 }
 
 #[test]
@@ -1734,10 +1765,10 @@ fn comprehension_converges_with_js_map() {
     // so the same transform written either way converges cross-language.
     let i = Interner::new();
     let py = "def f(items):\n    return [x * 2 for x in items]\n";
-    let js = "function g(items){\n  return items.map(x => x * 2);\n}\n";
+    let js = "function g(items: number[]): number[] {\n  return items.map(x => x * 2);\n}\n";
     assert_eq!(
         unit_hash(&i, py, Lang::Python),
-        unit_hash(&i, js, Lang::JavaScript),
+        unit_hash(&i, js, Lang::TypeScript),
         "comprehension == .map (HoF canonicalization)"
     );
 }
@@ -1880,7 +1911,7 @@ fn non_equivalent_swapped_params_differ() {
 fn comprehension_equals_js_map() {
     let i = Interner::new();
     let py = "def f(xs):\n    return [x * 2 for x in xs]\n";
-    let ts = "function f(xs){ return xs.map(x => x * 2); }";
+    let ts = "function f(xs: number[]): number[] { return xs.map(x => x * 2); }";
     assert_eq!(
         unit_hash(&i, py, Lang::Python),
         unit_hash(&i, ts, Lang::TypeScript)
@@ -1903,7 +1934,7 @@ fn print_builtin_converges_cross_language() {
     let i = Interner::new();
     let py = "def f(x):\n    print(x)\n";
     let js = "function f(x){ console.log(x); }";
-    let go = "package m\nfunc F(x int) {\n\tfmt.Println(x)\n}\n";
+    let go = "package m\n\nimport \"fmt\"\n\nfunc F(x int) {\n\tfmt.Println(x)\n}\n";
     let hp = unit_hash(&i, py, Lang::Python);
     assert_eq!(
         hp,
@@ -2136,8 +2167,8 @@ fn multi_clause_comprehension_converges_as_flat_map() {
     );
     let flat_map_js = value_fp(
         &i,
-        "function h(xs, ys){ return xs.flatMap(x => ys.map(y => x + y)); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): number[] { return xs.flatMap(x => ys.map(y => x + y)); }",
+        Lang::TypeScript,
     );
     let nested_list = value_fp(
         &i,
@@ -2177,8 +2208,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let sum_js = value_fp(
         &i,
-        "function h(xs, ys){ return xs.flatMap(x => ys.map(y => x + y)).reduce((a, v) => a + v, 0); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): number { return xs.flatMap(x => ys.map(y => x + y)).reduce((a, v) => a + v, 0); }",
+        Lang::TypeScript,
     );
     let wrong_seed = value_fp(
         &i,
@@ -2242,8 +2273,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let filtered_sum_js = value_fp(
         &i,
-        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).reduce((a, v) => a + v, 0); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): number { return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).reduce((a, v) => a + v, 0); }",
+        Lang::TypeScript,
     );
     let filtered_sum_outer_changed = value_fp(
         &i,
@@ -2262,8 +2293,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let filtered_any_js = value_fp(
         &i,
-        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => v > 0); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): boolean { return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => v > 0); }",
+        Lang::TypeScript,
     );
     let filtered_any_loop = value_fp(
         &i,
@@ -2272,8 +2303,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let filtered_any_terminal_changed = value_fp(
         &i,
-        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => false); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): boolean { return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).some(v => false); }",
+        Lang::TypeScript,
     );
     let filtered_all_gen = value_fp(
         &i,
@@ -2282,8 +2313,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let filtered_all_js = value_fp(
         &i,
-        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => v > 0); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): boolean { return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => v > 0); }",
+        Lang::TypeScript,
     );
     let filtered_all_loop = value_fp(
         &i,
@@ -2292,8 +2323,8 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
     );
     let filtered_all_terminal_changed = value_fp(
         &i,
-        "function h(xs, ys){ return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => false); }",
-        Lang::JavaScript,
+        "function h(xs: number[], ys: number[]): boolean { return xs.filter(x => x > 0).flatMap(x => ys.filter(y => y < 10).map(y => x + y)).every(v => false); }",
+        Lang::TypeScript,
     );
 
     assert_eq!(
@@ -2387,8 +2418,8 @@ fn cross_language_any_all_converges() {
     );
     let any_js = value_fp(
         &i,
-        "function g(xs){ return xs.some(x => x > 0); }",
-        Lang::JavaScript,
+        "function g(xs: number[]): boolean { return xs.some(x => x > 0); }",
+        Lang::TypeScript,
     );
     let any_rs = value_fp(
         &i,
@@ -2402,8 +2433,8 @@ fn cross_language_any_all_converges() {
     );
     let all_js = value_fp(
         &i,
-        "function g(xs){ return xs.every(x => x > 0); }",
-        Lang::JavaScript,
+        "function g(xs: number[]): boolean { return xs.every(x => x > 0); }",
+        Lang::TypeScript,
     );
     assert_eq!(any_py, any_js, "Python any ≡ JS some");
     assert_eq!(any_py, any_rs, "Python any ≡ Rust any");
@@ -2485,8 +2516,23 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).filter(|x| *x != 0).collect() }",
         Lang::Rust,
     );
+    let shadowed_some_rs = value_fp_named(
+        &i,
+        "fn Some(_value: i32) -> Option<i32> { None }\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+        "f",
+    );
+    let shadowed_vec_rs = value_fp_named(
+        &i,
+        "struct Vec;\nimpl Vec { fn new() -> Vec { Vec } fn push(&self, _value: i32) {} }\nfn f(xs: &[i32]) -> Vec { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
+        Lang::Rust,
+        "f",
+    );
 
-    assert_eq!(filtered_py, filtered_js, "filter+map surfaces should agree");
+    assert_ne!(
+        filtered_py, filtered_js,
+        "untyped JS parameter method calls lack a receiver proof and must stay opaque"
+    );
     assert_eq!(
         filtered_py, filtered_ts,
         "TypeScript filter+map surface should agree"
@@ -2531,6 +2577,14 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         falsey_rs, dropped_falsey_rs,
         "truthy filtering after emitting 0 must stay distinct"
     );
+    assert_ne!(
+        filtered_py, shadowed_some_rs,
+        "a local Rust Some definition must not be treated as Option::Some"
+    );
+    assert_ne!(
+        filtered_py, shadowed_vec_rs,
+        "a local Rust Vec definition must not be treated as std Vec::new"
+    );
 }
 
 /// Value-graph fingerprint of the first function unit.
@@ -2538,6 +2592,12 @@ fn value_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
     let n = normalize(&il, interner, &NormalizeOptions::default());
     nose_normalize::value_fingerprint(&n, first_func(&n), interner)
+}
+
+fn return_fp(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    nose_normalize::value_fingerprint_lits(&n, first_func(&n), interner).2
 }
 
 fn value_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
@@ -3103,7 +3163,7 @@ fn value_graph_skips_try_handler_for_empty_static_hof_lambda_err() {
 fn value_graph_runs_try_handler_after_static_reduce_lambda_err() {
     let i = Interner::new();
     let try_err =
-        "def f():\n    try:\n        return reduce(lambda a, x: 1 / 0, [1], 0)\n    except Exception:\n        return 7\n";
+        "import functools\n\ndef f():\n    try:\n        return functools.reduce(lambda a, x: 1 / 0, [1], 0)\n    except Exception:\n        return 7\n";
     let plain_return = "def f():\n    return 7\n";
     assert_eq!(
         value_fp(&i, try_err, Lang::Python),
@@ -3116,7 +3176,7 @@ fn value_graph_runs_try_handler_after_static_reduce_lambda_err() {
 fn value_graph_skips_try_handler_for_empty_static_reduce_lambda_err() {
     let i = Interner::new();
     let empty_reduce =
-        "def f():\n    try:\n        return reduce(lambda a, x: 1 / 0, [], 0)\n    except Exception:\n        return 7\n";
+        "import functools\n\ndef f():\n    try:\n        return functools.reduce(lambda a, x: 1 / 0, [], 0)\n    except Exception:\n        return 7\n";
     let plain_return = "def f():\n    return 7\n";
     assert_ne!(
         value_fp(&i, empty_reduce, Lang::Python),
@@ -3253,7 +3313,7 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     let ts_array_from_values = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.values()).includes(key); }";
 
     let fp = value_fp(&i, py, Lang::Python);
-    assert_eq!(fp, value_fp(&i, py_method, Lang::Python));
+    assert_ne!(fp, value_fp(&i, py_method, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_keys_in, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_keys_contains, Lang::Python));
     assert_eq!(fp, value_fp(&i, go, Lang::Go));
@@ -3261,8 +3321,8 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     assert_eq!(fp, value_fp(&i, java_key_set, Lang::Java));
     assert_eq!(fp, value_fp(&i, rust, Lang::Rust));
     assert_eq!(fp, value_fp(&i, rust_get, Lang::Rust));
-    assert_eq!(fp, value_fp(&i, ruby, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, ruby_has, Lang::Ruby));
+    assert_ne!(fp, value_fp(&i, ruby, Lang::Ruby));
+    assert_ne!(fp, value_fp(&i, ruby_has, Lang::Ruby));
     assert_eq!(fp, value_fp(&i, ts_array_from_keys, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, typed_set_same_names, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, wrong_key, Lang::Python));
@@ -3551,6 +3611,7 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let rust_std_wrong_element = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&other)\n}\n";
     let rust_std_wrong_collection = "pub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::BTreeSet::from([\"green\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let rust_std_mutated = "pub fn f(value: &str, other: &str) -> bool {\n    let mut values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.insert(\"green\");\n    values.contains(&value)\n}\n";
+    let rust_std_shadowed = "mod std { pub mod collections { pub struct HashSet; } }\npub fn f(value: &str, other: &str) -> bool {\n    let values = std::collections::HashSet::from([\"red\", \"blue\"]);\n    values.contains(&value)\n}\n";
     let ruby_set_wrong_element =
         "require \"set\"\n\ndef f(value, other)\n  Set.new([\"red\", \"blue\"]).include?(other)\nend\n";
     let ruby_set_wrong_collection =
@@ -3569,10 +3630,10 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, py_deque_namespace, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_module_tuple, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_module_set, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
-    assert_eq!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_ne!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
+    assert_ne!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
+    assert_ne!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
+    assert_ne!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
     assert_eq!(literal_fp, value_fp(&i, js_array_some, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, ts_array_some, Lang::TypeScript));
     assert_eq!(
@@ -3639,6 +3700,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, rust_std_hashset, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_std_btreeset, Lang::Rust));
     assert_eq!(literal_fp, value_fp(&i, rust_std_vecdeque, Lang::Rust));
+    assert_ne!(
+        literal_fp,
+        value_fp_named(&i, rust_std_shadowed, Lang::Rust, "f"),
+        "a local Rust std module must not be treated as the standard library"
+    );
     assert_eq!(literal_fp, value_fp(&i, ruby_member, Lang::Ruby));
     assert_eq!(literal_fp, value_fp(&i, ruby_set_new_include, Lang::Ruby));
     assert_eq!(literal_fp, value_fp(&i, ruby_set_new_member, Lang::Ruby));
@@ -3958,10 +4024,10 @@ fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
 
     let fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, js_inline, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, js_local, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, js_has_get, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_inline, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, js_inline, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, js_local, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, js_has_get, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, ts_inline, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_default, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_map, Lang::JavaScript));
@@ -4131,8 +4197,8 @@ fn literal_map_default_lookup_converges_with_module_map_bindings() {
     let java_shadowed = "class C { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); static int f(String key, String other) { return LOOKUP.getOrDefault(key, 0); } }\nclass Map { static java.util.Map<String, Integer> of(Object... values) { return java.util.Map.of(); } }\n";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
-    assert_eq!(fp, value_fp(&i, js_module, Lang::JavaScript));
-    assert_eq!(fp, value_fp(&i, ts_module, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, js_module, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, ts_module, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, java_static, Lang::Java));
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, ts_wrong_default, Lang::TypeScript));
@@ -4306,15 +4372,15 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
 
     let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
     let local = corpus_value_fp(&corpus, "local.py", "lookup");
-    assert_eq!(
+    assert_ne!(
         local,
         corpus_value_fp(&corpus, "js_imported.js", "lookup"),
-        "JS named import should prove the same literal map/default coordinates"
+        "JS imported Map bindings stay closed until constructor/provenance proof exists"
     );
-    assert_eq!(
+    assert_ne!(
         local,
         corpus_value_fp(&corpus, "ts_imported.ts", "lookup"),
-        "TS named import should prove the same literal map/default coordinates"
+        "TS imported Map bindings stay closed until constructor/provenance proof exists"
     );
     assert_eq!(
         local,
@@ -5051,7 +5117,7 @@ fn detection_smoke_groups_clones_excludes_decoy() {
     // Two clones (a sum loop in Python and TS) plus an unrelated decoy.
     let interner = Interner::new();
     let py = "def sum_list(items):\n    total = 0\n    i = 0\n    while i < len(items):\n        total += items[i]\n        i = i + 1\n    return total\n";
-    let ts = "function total(xs) {\n  let acc = 0;\n  for (let k = 0; k < xs.length; k++) {\n    acc += xs[k];\n  }\n  return acc;\n}\n";
+    let ts = "function total(xs: number[]): number {\n  let acc = 0;\n  for (const x of xs) {\n    acc += x;\n  }\n  return acc;\n}\n";
     let decoy = "def greet(name):\n    msg = 'hello ' + name\n    print(msg)\n    print(name)\n    return msg\n";
 
     let files = vec![
@@ -5184,8 +5250,8 @@ fn filter_fusion_converges() {
         ),
         value_fp(
             &i,
-            "function g(xs){ return xs.filter(x=>x>0).filter(x=>x<10); }",
-            Lang::JavaScript
+            "function g(xs: number[]): number[] { return xs.filter(x=>x>0).filter(x=>x<10); }",
+            Lang::TypeScript
         ),
         "Python two-filter comprehension should converge with JS chained .filter().filter()"
     );
@@ -5242,7 +5308,7 @@ fn reduce_lambda_selection_converges() {
     assert_eq!(
         value_fp(
             &i,
-            "def f(xs):\n    return reduce(lambda a,b: a if a>b else b, xs)\n",
+            "import functools\n\ndef f(xs):\n    return functools.reduce(lambda a,b: a if a>b else b, xs)\n",
             Lang::Python
         ),
         value_fp(&i, "def g(xs):\n    return max(xs)\n", Lang::Python),
@@ -5251,7 +5317,7 @@ fn reduce_lambda_selection_converges() {
     assert_eq!(
         value_fp(
             &i,
-            "def f(xs):\n    return reduce(lambda a,b: a if a<b else b, xs)\n",
+            "import functools\n\ndef f(xs):\n    return functools.reduce(lambda a,b: a if a<b else b, xs)\n",
             Lang::Python
         ),
         value_fp(&i, "def g(xs):\n    return min(xs)\n", Lang::Python),

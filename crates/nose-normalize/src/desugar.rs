@@ -3,7 +3,7 @@
 //! - C-style loops rewritten to `while` (init hoisted before, update appended to
 //!   the body) so they converge with hand-written `while` loops;
 //! - cross-language builtins canonicalized (see [`crate::idioms`]);
-//! - `x.length` field reads folded to the `Len` builtin;
+//! - exact-safe `length` field reads folded to the `Len` builtin;
 //! - statement-position blocks flattened, empty blocks dropped;
 //! - (when `cfg_norm`) `if c { …; return } else { B }` flattened to
 //!   `if c { …; return } ; B`.
@@ -13,7 +13,7 @@
 
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
-use nose_il::{Builtin, Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, ParamSemantic, Payload};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -230,18 +230,23 @@ impl Rebuilder<'_> {
         let n = *self.old.node(old_id);
         if let Payload::Name(s) = n.payload {
             let name = self.interner.resolve(s);
-            if name == "length" {
+            if let Some(builtin) =
+                nose_semantics::property_builtin_contract(self.old.meta.lang, name)
+            {
                 if let Some(&base) = self.old.children(old_id).first() {
+                    if !property_receiver_exact_safe(self.old, self.interner, base) {
+                        return self.generic(old_id);
+                    }
                     let new_base = self.go(base);
                     return self.b.add(
                         NodeKind::Call,
-                        Payload::Builtin(Builtin::Len),
+                        Payload::Builtin(builtin),
                         n.span,
                         &[new_base],
                     );
                 }
             }
-            if let Some(sync) = crate::idioms::async_to_sync(name) {
+            if let Some(sync) = crate::idioms::async_to_sync(self.old.meta.lang, name) {
                 let sym = self.interner.intern(sync);
                 let kids: Vec<NodeId> = self
                     .old
@@ -257,4 +262,68 @@ impl Rebuilder<'_> {
         }
         self.generic(old_id)
     }
+}
+
+fn property_receiver_exact_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    il.kind(node) == NodeKind::Seq
+        || matches!(
+            param_semantic_for_var(il, node),
+            Some(ParamSemantic::Array | ParamSemantic::Collection)
+        )
+        || property_receiver_exact_hof_node(il, interner, node)
+        || property_receiver_exact_hof_call(il, interner, node)
+}
+
+fn param_semantic_for_var(il: &Il, node: NodeId) -> Option<ParamSemantic> {
+    if il.kind(node) != NodeKind::Var {
+        return None;
+    }
+    let Payload::Cid(cid) = il.node(node).payload else {
+        return None;
+    };
+    let span = il.nodes.iter().find_map(|candidate| {
+        (candidate.kind == NodeKind::Param && candidate.payload == Payload::Cid(cid))
+            .then_some(candidate.span)
+    })?;
+    il.param_type_facts
+        .iter()
+        .find(|fact| fact.span == span)
+        .map(|fact| fact.semantic)
+}
+
+fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    let Some(&callee) = kids.first() else {
+        return false;
+    };
+    if il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    if kids.len() < 2 {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    let method_text = interner.resolve(method);
+    nose_semantics::method_hof_contract(il.meta.lang, method_text).is_some()
+        && property_receiver_exact_safe(il, interner, receiver)
+}
+
+fn property_receiver_exact_hof_node(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::HoF {
+        return false;
+    }
+    if !matches!(il.node(node).payload, Payload::HoF(_)) {
+        return false;
+    }
+    il.children(node)
+        .first()
+        .is_some_and(|&receiver| property_receiver_exact_safe(il, interner, receiver))
 }

@@ -10,7 +10,7 @@
 use crate::lower::Lowering;
 use nose_il::{
     Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    UnitKind,
+    Symbol, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -42,7 +42,7 @@ fn lower_item(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         "function_item" => Some(lower_func(lo, node, false)),
         "impl_item" | "trait_item" => Some(lower_type_block(lo, node, true)),
         "struct_item" | "enum_item" | "union_item" => Some(lower_type_block(lo, node, false)),
-        "mod_item" => node.child_by_field_name("body").map(|b| lower_items(lo, b)),
+        "mod_item" => Some(lower_mod_item(lo, node)),
         "const_item" | "static_item" => Some(lower_value_item(lo, node)),
         "use_declaration" | "extern_crate_declaration" => Some(
             lower_static_import(lo, node).unwrap_or_else(|| crate::lower::import_tokens(lo, node)),
@@ -88,7 +88,7 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 /// also a unit) or field declarations, so similar types/impls cluster.
 fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -> NodeId {
     let span = lo.span(node);
-    let name = node.child_by_field_name("name").map(|n| lo.sym(lo.text(n)));
+    let name = rust_item_name(lo, node);
     let body = node.child_by_field_name("body");
     let mut kids = Vec::new();
     if let Some(body) = body {
@@ -102,7 +102,8 @@ fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -> NodeId {
             }
         }
     }
-    let block = lo.add(NodeKind::Block, Payload::None, span, &kids);
+    let payload = name.map(Payload::Name).unwrap_or(Payload::None);
+    let block = lo.add(NodeKind::Block, payload, span, &kids);
     // Only `impl`/`trait` blocks (which carry behavior) are detection units. Pure
     // data-type definitions (struct/enum/union) are NOT unit-ified: they have no
     // call/control/value signal, so any two same-arity types look "similar" and
@@ -111,6 +112,33 @@ fn lower_type_block(lo: &mut Lowering, node: TsNode, methods: bool) -> NodeId {
         lo.push_unit(block, UnitKind::Class, name);
     }
     block
+}
+
+fn lower_mod_item(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let payload = rust_item_name(lo, node)
+        .map(Payload::Name)
+        .unwrap_or(Payload::None);
+    let kids = node
+        .child_by_field_name("body")
+        .map(|body| {
+            Lowering::named_children(body)
+                .into_iter()
+                .filter_map(|child| lower_item(lo, child))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    lo.add(NodeKind::Module, payload, span, &kids)
+}
+
+fn rust_item_name(lo: &mut Lowering, node: TsNode) -> Option<Symbol> {
+    node.child_by_field_name("name")
+        .or_else(|| {
+            Lowering::named_children(node)
+                .into_iter()
+                .find(|child| matches!(child.kind(), "identifier" | "type_identifier"))
+        })
+        .map(|n| lo.sym(lo.text(n)))
 }
 
 /// A struct/enum field or enum variant → an `Assign(name, type-as-literal)` so the
@@ -196,7 +224,7 @@ fn push_pattern_params(lo: &mut Lowering, pat: TsNode, out: &mut Vec<NodeId>) {
 }
 
 /// Extract the binding identifier from a (simple) pattern.
-fn ident_of(lo: &Lowering, pat: TsNode) -> Option<nose_il::Symbol> {
+fn ident_of(lo: &Lowering, pat: TsNode) -> Option<Symbol> {
     match pat.kind() {
         "identifier" | "type_identifier" | "field_identifier" => Some(lo.sym(lo.text(pat))),
         // `mut x`, `ref x`, `&x`, `x: T` — descend to the inner identifier

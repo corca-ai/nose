@@ -5546,8 +5546,8 @@ fn scan_mode_semantic_proves_collection_empty_checks() {
             && semantic_text.contains("rust_named.rs")
             && semantic_text.contains("java_size.java")
             && semantic_text.contains("java_named.java")
-            && semantic_text.contains("ruby_length.rb")
-            && semantic_text.contains("ruby_named.rb")
+            && !semantic_text.contains("ruby_length.rb")
+            && !semantic_text.contains("ruby_named.rb")
             && !semantic_text.contains("rust_threshold_negative.rs")
             && !semantic_text.contains("rust_receiver_negative.rs"),
         "semantic mode must prove collection-empty checks without merging boundaries: {semantic}"
@@ -5563,7 +5563,7 @@ fn scan_mode_semantic_proves_string_prefix_checks() {
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("prefix.py"),
-        "def prefix(value, other):\n    return value.startswith(\"pre\")\n",
+        "def prefix(value: str, other: str) -> bool:\n    return value.startswith(\"pre\")\n",
     )
     .unwrap();
     fs::write(
@@ -5635,12 +5635,10 @@ fn scan_mode_semantic_proves_string_prefix_checks() {
     let semantic_text = semantic_json.to_string();
     for expected in [
         "prefix.py",
-        "prefix.js",
         "prefix.ts",
         "prefix.go",
         "prefix.rs",
         "prefix.java",
-        "prefix.rb",
     ] {
         assert!(
             semantic_text.contains(expected),
@@ -5648,6 +5646,8 @@ fn scan_mode_semantic_proves_string_prefix_checks() {
         );
     }
     for unexpected in [
+        "prefix.js",
+        "prefix.rb",
         "affix_negative.py",
         "direction_negative.js",
         "receiver_negative.rs",
@@ -5662,7 +5662,7 @@ fn scan_mode_semantic_proves_string_prefix_checks() {
 }
 
 #[test]
-fn scan_mode_semantic_proves_rust_numeric_methods() {
+fn scan_mode_semantic_proves_rust_integer_methods() {
     let dir =
         std::env::temp_dir().join(format!("nose_rust_numeric_methods_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
@@ -5746,7 +5746,7 @@ fn scan_mode_semantic_proves_rust_numeric_methods() {
                 expected_pair.iter().all(|expected| text.contains(expected))
             })
             .unwrap_or_else(|| {
-                panic!("semantic mode should report numeric method family: {semantic}")
+                panic!("semantic mode should report integer method family: {semantic}")
             });
         let text = family.to_string();
         for unexpected in [
@@ -5757,7 +5757,7 @@ fn scan_mode_semantic_proves_rust_numeric_methods() {
         ] {
             assert!(
                 !text.contains(unexpected),
-                "semantic mode must preserve Rust numeric method boundaries: {semantic}"
+                "semantic mode must preserve Rust integer method boundaries: {semantic}"
             );
         }
     }
@@ -6278,8 +6278,6 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "python_deque_namespace.py",
         "python_module_tuple.py",
         "python_module_set.py",
-        "module_set.js",
-        "module_set.ts",
         "array_some.js",
         "array_some.ts",
         "array_indexof.js",
@@ -6294,11 +6292,11 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_every.ts",
         "array_filter_length_absence.js",
         "array_filter_length_absence.ts",
-        "module_list.java",
         "go_slices_package.go",
         "go_slices_alias.go",
         "go_slices_const.go",
         "go_slices_local.go",
+        "module_list.java",
         "java_local_list.java",
         "rust_local_array.rs",
         "rust_local_typed_array.rs",
@@ -6332,6 +6330,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_every_wrong_element.js",
         "array_every_wrong_collection.ts",
         "substring.rs",
+        "module_set.js",
+        "module_set.ts",
         "module_set_mutated.js",
         "python_module_mutated.py",
         "module_set_shadowed.ts",
@@ -6699,8 +6699,6 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
     let semantic_families = scan_families(&semantic_json);
     let expected_positive = [
         "literal.py",
-        "set_inline.js",
-        "set_local.js",
         "java_list_of.java",
         "java_set_of.java",
         "java_arrays_aslist.java",
@@ -6728,6 +6726,8 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
         });
     let typed_text = typed_family.to_string();
     for unexpected in [
+        "set_inline.js",
+        "set_local.js",
         "wrong_element.js",
         "wrong_collection.js",
         "untyped_receiver.ts",
@@ -6847,7 +6847,7 @@ fn scan_mode_semantic_proves_typed_typescript_map_key_membership() {
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("map_key.py"),
-        "def f(lookup, other_lookup, key, other):\n    return key in lookup\n",
+        "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return key in lookup\n",
     )
     .unwrap();
     fs::write(
@@ -7624,19 +7624,12 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "map_default.py",
         "map_default.rb",
         "map_default_block.rb",
-        "map_default_inline.js",
-        "map_default_local.js",
-        "map_default_has_get.js",
-        "map_default_inline.ts",
         "map_default_java_of.java",
         "map_default_java_entries.java",
         "map_default_java_local.java",
-        "map_default_module.js",
-        "map_default_module.ts",
         "map_default_module.java",
         "map_default_rust_hashmap.rs",
         "map_default_rust_btreemap.rs",
-        "map_default_rust_local.rs",
         "map_default_go_inline.go",
         "map_default_go_local.go",
         "map_default_go_var.go",
@@ -7770,6 +7763,13 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "wrong_map.py",
         "ruby_fetch_block_param.rb",
         "ruby_fetch_raise_block.rb",
+        "map_default_inline.js",
+        "map_default_local.js",
+        "map_default_has_get.js",
+        "map_default_inline.ts",
+        "map_default_module.js",
+        "map_default_module.ts",
+        "map_default_rust_local.rs",
         "wrong_js_key.js",
         "wrong_js_default.js",
         "wrong_js_map.js",
@@ -7888,7 +7888,6 @@ fn scan_mode_semantic_proves_null_presence_predicates() {
     for expected in [
         "none_compare.py",
         "null_compare.c",
-        "nil_method.rb",
         "none_method.rs",
         "iflet_none.rs",
     ] {
@@ -7897,7 +7896,7 @@ fn scan_mode_semantic_proves_null_presence_predicates() {
             "semantic mode should include {expected}: {semantic}"
         );
     }
-    for unexpected in ["some_method.rs", "wrong_value.py"] {
+    for unexpected in ["nil_method.rb", "some_method.rs", "wrong_value.py"] {
         assert!(
             !semantic_text.contains(unexpected),
             "semantic mode must preserve null-presence boundaries: {semantic}"
@@ -7914,13 +7913,13 @@ fn scan_mode_semantic_reports_flattened_guard_span_only() {
     fs::create_dir_all(&dir).unwrap();
 
     fs::write(
-        dir.join("large_branch.rb"),
-        "def table(rows, errors)\n  if rows.length == 0\n    return nil\n  else\n    title = \"Potential problems\"\n    if errors.length > 0\n      title = title.red\n    else\n      title = title.yellow\n    end\n    return Terminal::Table.new(title: title, rows: rows).to_s\n  end\nend\n",
+        dir.join("large_branch.ts"),
+        "export function table(rows: string[], errors: string[]) {\n  if (rows.length === 0) {\n    return null;\n  } else {\n    let title = \"Potential problems\";\n    if (errors.length > 0) {\n      title = title.toUpperCase();\n    } else {\n      title = title.toLowerCase();\n    }\n    return title + rows.join(\",\");\n  }\n}\n",
     )
     .unwrap();
     fs::write(
-        dir.join("small_guard.rb"),
-        "def payload(data)\n  return nil if data.empty?\n  data\nend\n",
+        dir.join("small_guard.ts"),
+        "export function payload(data: string[]) {\n  if (data.length === 0) return null;\n  return data;\n}\n",
     )
     .unwrap();
 
@@ -7942,7 +7941,7 @@ fn scan_mode_semantic_reports_flattened_guard_span_only() {
     let families = scan_families(&semantic_json);
     let text = semantic_json.to_string();
     assert!(
-        text.contains("large_branch.rb") && text.contains("small_guard.rb"),
+        text.contains("large_branch.ts") && text.contains("small_guard.ts"),
         "semantic mode should still report the strict guard-clause clone: {semantic}"
     );
     assert!(
@@ -7954,8 +7953,8 @@ fn scan_mode_semantic_reports_flattened_guard_span_only() {
                 let Some(file) = loc["file"].as_str() else {
                     return true;
                 };
-                !file.ends_with("large_branch.rb")
-                    || (loc["start_line"] == 2 && loc["end_line"] == 3)
+                !file.ends_with("large_branch.ts")
+                    || (loc["start_line"] == 2 && loc["end_line"] == 4)
             })
         }),
         "semantic mode must not report the flattened guard as the whole if/else span: {semantic}"

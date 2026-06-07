@@ -1,4 +1,6 @@
-use nose_il::{Builtin, Il, Interner, Lang, NodeId, NodeKind, Payload, Symbol};
+use nose_il::{Builtin, Il, Interner, NodeId, NodeKind, Payload, Symbol};
+pub use nose_semantics::module_binding_mutating_method_name as mutating_method_name;
+use nose_semantics::semantics;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub fn top_level_statements_for(il: &Il) -> Vec<NodeId> {
@@ -152,36 +154,6 @@ pub(crate) fn shadowed_js_like_module_binding_nodes_for_symbol_in_scope(
         .collect()
 }
 
-pub fn mutating_method_name(method: &str) -> bool {
-    matches!(
-        method,
-        "add"
-            | "addAll"
-            | "append"
-            | "delete"
-            | "clear"
-            | "compute"
-            | "computeIfAbsent"
-            | "computeIfPresent"
-            | "merge"
-            | "pop"
-            | "push"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "removeAll"
-            | "removeIf"
-            | "replace"
-            | "replaceAll"
-            | "retainAll"
-            | "shift"
-            | "sort"
-            | "splice"
-            | "unshift"
-            | "set"
-    )
-}
-
 fn mark_direct_symbol(
     il: &Il,
     node: NodeId,
@@ -221,7 +193,11 @@ fn shadowed_js_like_module_binding_nodes(
     local_scope: &[bool],
 ) -> FxHashMap<NodeId, FxHashSet<Symbol>> {
     let mut out = FxHashMap::default();
-    if candidates.is_empty() || !js_like_lang(il.meta.lang) {
+    if candidates.is_empty()
+        || !semantics(il.meta.lang)
+            .modules()
+            .js_like_shadowed_module_bindings()
+    {
         return out;
     }
     collect_shadowed_js_like_module_binding_nodes(
@@ -271,13 +247,6 @@ fn collect_shadowed_js_like_module_binding_nodes(
     }
 }
 
-fn js_like_lang(lang: Lang) -> bool {
-    matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    )
-}
-
 #[cfg(test)]
 fn node_symbol_in(il: &Il, node: NodeId) -> Option<Symbol> {
     let local_scope = local_scope_nodes(il);
@@ -318,7 +287,7 @@ fn cid_is_module_scoped(node: NodeId, local_scope: &[bool]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Span, Unit, UnitKind};
+    use nose_il::{FileId, FileMeta, IlBuilder, Lang, Span, Unit, UnitKind};
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)

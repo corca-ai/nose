@@ -15,14 +15,18 @@ experiments that validated these passes are in [experiments](experiments.md).
 > Later additions on the value graph: a purpose-fit **type inference** (`types.rs`, now a
 > fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
-> so nested filters fuse to `p∧q`), Rust **filter-map** selection for direct
-> `Some(value)`/`None` callbacks and guarded `Vec::new()`/`push` builders, first-class
+> so nested filters fuse to `p∧q` when the collection/protocol receiver is proven), Rust
+> **filter-map** selection for direct `Some(value)`/`None` callbacks and proof-backed
+> guarded `Vec::new()`/`push` builders, first-class
 > **flat-map** modeling for Python
-> multi-clause comprehensions, JS `.flatMap`, pure Java `Arrays.stream(...).flatMap(...map...)`,
-> equivalent nested list-builder loops, **identity flat-map `flatMap(λx. x)` canonicalized to
+> multi-clause comprehensions, proof-backed JS `.flatMap`, pure Java
+> `Arrays.stream(...).flatMap(...map...)`, equivalent nested list-builder loops,
+> **identity flat-map `flatMap(λx. x)` canonicalized to
 > the modeled element-stream inner (the monad law `flatMap id = join`; proven in
-> `normalize.value_graph.flatmap_identity`), so it converges with the nested builder loop and
-> the explicit inner-identity-map form**, and pure inner-Map aggregate consumers such as
+> `normalize.value_graph.flatmap_identity`), so it converges with explicit nested
+> builder loops**. Inner method chains such as `xs.map(...)` still require nested
+> element collection proof before they enter the exact channel. Pure inner-Map
+> aggregate consumers such as
 > sum/max/any over flat-map streams versus nested reduction loops when the contribution
 > uses the outer element (kept distinct from nested-list comprehensions, Java stream
 > `map` returning streams, wrong reduction seeds, outer-cardinality-only cases, and
@@ -33,8 +37,10 @@ experiments that validated these passes are in [experiments](experiments.md).
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
 > **reduce-lambda selection** (`reduce(λ. a if a>b else b)≡max`), **count-of-filter**
-> (`len([…if p])≡Σ(p?1:0)`), method-form iterator reductions (Rust
-> `.sum()/.min()/.max()/.count()`), **dict-builder ≡ dict comprehension**
+> (`len([…if p])≡Σ(p?1:0)`, including proof-backed JS/TS `filter(...).length`),
+> method-form iterator/stream reductions (Rust `.sum()/.min()/.max()/.count()`
+> and Java `Stream.count()` when receiver/protocol proof exists),
+> **dict-builder ≡ dict comprehension**
 > (`d={}; for x: d[k]=v` ≡ `{k:v for x}` via a `DictEntry`-distinct rep that cannot collide
 > with a list of tuples), ternary-return decomposition, negated-comparison canon,
 > equality-chain literal membership (`x=="a" || x=="b"`), stricter record-shape guard

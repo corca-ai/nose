@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/nose-il",
+    "crates/nose-semantics",
     "crates/nose-frontend",
     "crates/nose-normalize",
     "crates/nose-detect",
@@ -25,6 +26,7 @@ rust-version = "1.85"
 # Internal crates carry an explicit `version` (not just `path`) so the tree has no
 # wildcard deps and the crates stay publishable; `path` wins for local builds.
 nose-il = { path = "crates/nose-il", version = "0.5.0" }
+nose-semantics = { path = "crates/nose-semantics", version = "0.5.0" }
 nose-frontend = { path = "crates/nose-frontend", version = "0.5.0" }
 nose-normalize = { path = "crates/nose-normalize", version = "0.5.0" }
 nose-detect = { path = "crates/nose-detect", version = "0.5.0" }
