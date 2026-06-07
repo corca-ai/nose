@@ -106,5 +106,10 @@ A later PR weight-grades the sub-DAG score (a larger shared computation scores h
 lifts one pre-existing partial-clone family past the substantial threshold — budget re-baselined
 20 → 21. Each sub-DAG anchor also now carries the **source line range** of the shared computation
 (stamped from the enclosing expression during value-graph evaluation), exposed per unit in
-`nose features --format json` (`anchors[].line_start` / `line_end`) — so a partial / sub-DAG clone
-can point at *where* the shared computation lives in each member, not just that one exists.
+`nose features --format json` (`anchors[].line_start` / `line_end`).
+
+Those line ranges are now surfaced at the **family** level too: when every member of a clone family
+shares a heavy sub-DAG, each site in the report carries `locations[].shared_subdag = [start, end]`
+— its OWN source range for the shared computation — and `nose scan`'s text output appends
+`(shared computation: lines X-Y)` to each site. So a partial / sub-DAG clone points at *where* the
+shared logic lives in every copy, not just that one exists.

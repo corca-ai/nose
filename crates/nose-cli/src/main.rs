@@ -3070,7 +3070,17 @@ fn print_refactor_human(
                 .as_deref()
                 .map(|n| format!("  {n}"))
                 .unwrap_or_default();
-            println!("    {}:{}-{}{}", l.file, l.start_line, l.end_line, name);
+            // For a partial / sub-DAG clone, point at where the shared computation sits here.
+            let shared = match l.shared_subdag {
+                Some((s, e)) if (s, e) != (l.start_line, l.end_line) => {
+                    format!("  (shared computation: lines {s}-{e})")
+                }
+                _ => String::new(),
+            };
+            println!(
+                "    {}:{}-{}{}{}",
+                l.file, l.start_line, l.end_line, name, shared
+            );
         }
         if f.locations.len() > SITE_CAP {
             println!(
