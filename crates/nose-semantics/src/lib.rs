@@ -7,11 +7,11 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    contains_js_identifier, stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceEmitter,
-    EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il,
-    ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
-    Span, SymbolEvidenceKind,
+    contains_js_identifier, stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
+    HoFKind, Il, ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic,
+    Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -72,6 +72,32 @@ fn unique_evidence_at<T: Copy + Eq>(
             continue;
         };
         if record.status != EvidenceStatus::Asserted {
+            return EvidenceResolution::Ambiguous;
+        }
+        match found {
+            None => found = Some(value),
+            Some(existing) if existing == value => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn unique_asserted_evidence_at<T: Copy + Eq>(
+    il: &Il,
+    anchor_matches: impl Fn(EvidenceAnchor) -> bool,
+    project: impl Fn(EvidenceKind) -> Option<T>,
+) -> EvidenceResolution<T> {
+    let mut found = None;
+    for record in &il.evidence {
+        if !anchor_matches(record.anchor) {
+            continue;
+        }
+        let Some(value) = project(record.kind) else {
+            continue;
+        };
+        if record.status != EvidenceStatus::Asserted || !evidence_dependencies_asserted(il, record)
+        {
             return EvidenceResolution::Ambiguous;
         }
         match found {
@@ -1612,8 +1638,61 @@ impl FragmentSemantics {
     }
 }
 
+fn effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<EffectEvidenceKind> {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    unique_asserted_evidence_at(
+        il,
+        |anchor| {
+            matches!(
+                anchor,
+                EvidenceAnchor::Node {
+                    span: anchor_span,
+                    kind: anchor_kind,
+                } if anchor_span == span && anchor_kind == kind
+            )
+        },
+        |evidence| match evidence {
+            EvidenceKind::Effect(effect) => Some(effect),
+            _ => None,
+        },
+    )
+}
+
+fn place_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<PlaceEvidenceKind> {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    unique_asserted_evidence_at(
+        il,
+        |anchor| {
+            matches!(
+                anchor,
+                EvidenceAnchor::Node {
+                    span: anchor_span,
+                    kind: anchor_kind,
+                } if anchor_span == span && anchor_kind == kind
+            )
+        },
+        |evidence| match evidence {
+            EvidenceKind::Place(place) => Some(place),
+            _ => None,
+        },
+    )
+}
+
 /// Exact Java `this` receiver proof for first-party self-field fragments.
 pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    match place_evidence_for_node(il, node) {
+        EvidenceResolution::Found(PlaceEvidenceKind::SelfReceiver) => {
+            return il.kind(node) == NodeKind::Var;
+        }
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    legacy_exact_java_this_var(il, interner, node)
+}
+
+fn legacy_exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
     semantics(il.meta.lang)
         .exact_fragments()
         .java_this_field_place()
@@ -1623,6 +1702,29 @@ pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
 
 /// Exact Java `this.field` place proof for receiver-aware field-write fingerprints.
 pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    match place_evidence_for_node(il, node) {
+        EvidenceResolution::Found(PlaceEvidenceKind::SelfField { field_hash }) => {
+            if il.kind(node) != NodeKind::Field {
+                return false;
+            }
+            let Payload::Name(field) = il.node(node).payload else {
+                return false;
+            };
+            if stable_symbol_hash(interner.resolve(field)) != field_hash {
+                return false;
+            }
+            return il
+                .children(node)
+                .first()
+                .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver));
+        }
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    legacy_exact_java_this_field(il, interner, node)
+}
+
+fn legacy_exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if !semantics(il.meta.lang)
         .exact_fragments()
         .java_this_field_place()
@@ -1659,10 +1761,25 @@ pub fn exact_non_overloadable_index_assignment_parts(
     il: &Il,
     node: NodeId,
 ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-    if !semantics(il.meta.lang)
+    match effect_evidence_for_node(il, node) {
+        EvidenceResolution::Found(EffectEvidenceKind::NonOverloadableIndexWrite) => {
+            return syntactic_index_assignment_parts(il, node);
+        }
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return None,
+        EvidenceResolution::Missing => {}
+    }
+    semantics(il.meta.lang)
         .exact_fragments()
         .non_overloadable_index_assignment()
-    {
+        .then_some(())
+        .and_then(|()| syntactic_index_assignment_parts(il, node))
+}
+
+fn syntactic_index_assignment_parts(
+    il: &Il,
+    node: NodeId,
+) -> Option<(NodeId, Option<NodeId>, NodeId)> {
+    if il.kind(node) != NodeKind::Assign {
         return None;
     }
     let kids = il.children(node);
@@ -1675,6 +1792,44 @@ pub fn exact_non_overloadable_index_assignment_parts(
 
 pub fn exact_non_overloadable_index_assignment(il: &Il, node: NodeId) -> bool {
     exact_non_overloadable_index_assignment_parts(il, node).is_some()
+}
+
+pub fn exact_self_field_write_assignment(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    match effect_evidence_for_node(il, node) {
+        EvidenceResolution::Found(EffectEvidenceKind::SelfFieldWrite { field_hash }) => {
+            return syntactic_self_field_write_assignment(il, interner, node, Some(field_hash));
+        }
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        && syntactic_self_field_write_assignment(il, interner, node, None)
+}
+
+fn syntactic_self_field_write_assignment(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected_field_hash: Option<u64>,
+) -> bool {
+    if il.kind(node) != NodeKind::Assign {
+        return false;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Field {
+        return false;
+    }
+    if let Some(expected) = expected_field_hash {
+        let Payload::Name(field) = il.node(kids[0]).payload else {
+            return false;
+        };
+        if stable_symbol_hash(interner.resolve(field)) != expected {
+            return false;
+        }
+    }
+    exact_java_this_field(il, interner, kids[0])
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3082,6 +3237,17 @@ pub fn builder_append_call_args(
     _interner: &Interner,
     node: NodeId,
 ) -> Option<(NodeId, NodeId)> {
+    match effect_evidence_for_node(il, node) {
+        EvidenceResolution::Found(EffectEvidenceKind::BuilderAppendCall) => {
+            return syntactic_append_call_args(il, node);
+        }
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return None,
+        EvidenceResolution::Missing => {}
+    }
+    canonical_append_call_args(il, node)
+}
+
+fn canonical_append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
     if il.kind(node) != NodeKind::Call {
         return None;
     }
@@ -3090,6 +3256,21 @@ pub fn builder_append_call_args(
         return (kids.len() == 2).then(|| (kids[0], kids[1]));
     }
     None
+}
+
+fn syntactic_append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
+    if let Some(parts) = canonical_append_call_args(il, node) {
+        return Some(parts);
+    }
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Field {
+        return None;
+    }
+    let receiver = il.children(kids[0]).first().copied()?;
+    Some((receiver, kids[1]))
 }
 
 pub fn builder_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -7113,6 +7294,176 @@ mod tests {
             builder_append_call_args(&rust_il, &interner, push_call),
             None
         );
+    }
+
+    #[test]
+    fn effect_evidence_can_prove_non_overloadable_index_write() {
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let key = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp(1), &[receiver, key]);
+        let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(9), &[target, value]);
+        let mut il = finish_il(b, assign, Lang::Ruby);
+
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            None
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(9), NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            Some((receiver, Some(key), value))
+        );
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(9), NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash: 1 }),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            None
+        );
+
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let key = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp(1), &[receiver, key]);
+        let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(10), &[target, value]);
+        let mut non_assign = finish_il(b, call, Lang::Ruby);
+        non_assign.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(10), NodeKind::Call),
+            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&non_assign, call),
+            None
+        );
+    }
+
+    #[test]
+    fn append_effect_evidence_can_prove_raw_method_call() {
+        let interner = Interner::default();
+        let append = interner.intern("append");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let value = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let method = b.add(NodeKind::Field, Payload::Name(append), sp(2), &[receiver]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(3), &[method, value]);
+        let mut il = finish_il(b, call, Lang::Ruby);
+
+        assert_eq!(builder_append_call_args(&il, &interner, call), None);
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(3), NodeKind::Call),
+            EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            builder_append_call_args(&il, &interner, call),
+            Some((receiver, value))
+        );
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(3), NodeKind::Call),
+            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(builder_append_call_args(&il, &interner, call), None);
+    }
+
+    #[test]
+    fn place_evidence_is_authoritative_for_self_field_proof() {
+        let interner = Interner::default();
+        let this = interner.intern("this");
+        let field_name = interner.intern("value");
+        let field_hash = stable_symbol_hash("value");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Name(this), sp(1), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp(2),
+            &[receiver],
+        );
+        let value = b.add(NodeKind::Var, Payload::Cid(1), sp(3), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(4), &[field, value]);
+        let mut il = finish_il(b, assign, Lang::Ruby);
+
+        assert!(!exact_java_this_field(&il, &interner, field));
+        assert!(!exact_self_field_write_assignment(&il, &interner, assign));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(1), NodeKind::Var),
+            EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::node(sp(2), NodeKind::Field),
+            EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash }),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(0)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            2,
+            EvidenceAnchor::node(sp(4), NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash }),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(1)],
+        ));
+        assert!(exact_java_this_field(&il, &interner, field));
+        assert!(exact_self_field_write_assignment(&il, &interner, assign));
+
+        il.evidence.push(evidence(
+            3,
+            EvidenceAnchor::node(sp(2), NodeKind::Field),
+            EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!exact_java_this_field(&il, &interner, field));
+        assert!(!exact_self_field_write_assignment(&il, &interner, assign));
+
+        let other = interner.intern("other");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Name(other), sp(5), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp(6),
+            &[receiver],
+        );
+        let value = b.add(NodeKind::Var, Payload::Cid(1), sp(7), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(8), &[field, value]);
+        let mut il = finish_il(b, assign, Lang::Ruby);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(6), NodeKind::Field),
+            EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(8), NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash }),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!exact_java_this_field(&il, &interner, field));
+        assert!(!exact_self_field_write_assignment(&il, &interner, assign));
     }
 
     #[test]

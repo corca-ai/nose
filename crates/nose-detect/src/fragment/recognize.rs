@@ -17,7 +17,10 @@ use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind, Place};
 use nose_il::{stable_symbol_hash, Il, Interner, NodeId, NodeKind, Payload};
-use nose_semantics::{builder_append_call, exact_java_this_field, exact_java_this_var, semantics};
+use nose_semantics::{
+    builder_append_call, exact_java_this_var, exact_non_overloadable_index_assignment,
+    exact_self_field_write_assignment,
+};
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
@@ -105,11 +108,7 @@ fn recognize_assignment_effect(
         return None;
     }
     let target = kids[0];
-    if semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-        && il.kind(target) == NodeKind::Index
-    {
+    if exact_non_overloadable_index_assignment(il, node) {
         // An index write is observable in the effect trace (key and value are recorded), so
         // it carries no receiver-identity obligation and records no `Place` on the contract.
         // The write target is identity, not proof; surfacing it is a separate diagnostic
@@ -121,11 +120,7 @@ fn recognize_assignment_effect(
             EffectSite::observable(Effect::IndexWrite),
         ));
     }
-    if semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && exact_java_this_field(il, interner, target)
-    {
+    if exact_self_field_write_assignment(il, interner, node) {
         let place = resolve_place(il, interner, target);
         // Field-write final state is keyed by receiver+field place, so the write is exact-safe
         // only with a proven receiver. The `this.field` recognizer guarantees this; assert the
@@ -226,7 +221,10 @@ mod tests {
     use super::*;
     use crate::fragment::{fragment_behavior, Place};
     use crate::units::{build_parent_index, exact_statement_fragment_root};
-    use nose_il::{FileId, Lang, Span};
+    use nose_il::{
+        EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+        EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, Lang, Span,
+    };
     use nose_normalize::{normalize, NormalizeOptions, Value};
 
     /// Walk `il` exactly as the real fragment collector does (skipping `Lambda` subtrees),
@@ -313,6 +311,38 @@ mod tests {
         );
     }
 
+    fn index_assignment_node(il: &Il) -> NodeId {
+        il.nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                let id = NodeId(idx as u32);
+                (node.kind == NodeKind::Assign
+                    && il
+                        .children(id)
+                        .first()
+                        .is_some_and(|&target| il.kind(target) == NodeKind::Index))
+                .then_some(id)
+            })
+            .expect("fixture should contain an index assignment")
+    }
+
+    fn add_effect_evidence(il: &mut Il, node: NodeId, kind: EffectEvidenceKind) {
+        let id = EvidenceId(il.evidence.len() as u32);
+        il.evidence.push(EvidenceRecord {
+            id,
+            anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            kind: EvidenceKind::Effect(kind),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::External,
+                pack_hash: None,
+                rule_hash: None,
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        });
+    }
+
     #[test]
     fn differential_direct_return_and_throw() {
         // Accepted: top-level computed return / throw.
@@ -354,6 +384,41 @@ mod tests {
         // Expression-statement effect: an append/push call.
         assert_paths_agree("function f(xs, v){ xs.push(v + 1); }", Lang::JavaScript);
         assert_paths_agree("def f(xs, v):\n    xs.append(v + 1)\n", Lang::Python);
+    }
+
+    #[test]
+    fn index_assignment_contract_uses_effect_evidence_gate() {
+        let interner = Interner::new();
+        let raw = nose_frontend::lower_source(
+            FileId(0),
+            "t",
+            b"class C { int[] a; void f(int i, int v){ a[i] = v; } }",
+            Lang::Java,
+            &interner,
+        )
+        .expect("lowering should succeed");
+        let mut il = normalize(&raw, &interner, &NormalizeOptions::default());
+        let parents = build_parent_index(&il);
+        let assign = index_assignment_node(&il);
+        assert_eq!(
+            exact_statement_fragment_root(&il, assign, &parents, &interner),
+            Some(FragmentKind::IndexAssignEffect)
+        );
+        assert_eq!(
+            recognize_contract(&il, assign, &parents, &interner).map(|contract| contract.kind),
+            Some(FragmentKind::IndexAssignEffect)
+        );
+
+        add_effect_evidence(
+            &mut il,
+            assign,
+            EffectEvidenceKind::SelfFieldWrite { field_hash: 1 },
+        );
+        assert_eq!(
+            exact_statement_fragment_root(&il, assign, &parents, &interner),
+            None
+        );
+        assert!(recognize_contract(&il, assign, &parents, &interner).is_none());
     }
 
     #[test]

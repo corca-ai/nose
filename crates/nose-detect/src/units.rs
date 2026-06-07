@@ -15,8 +15,8 @@ use nose_normalize::{
 use nose_semantics::{
     builder_append_call_args, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param, exact_java_return_this,
-    exact_java_this_field, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
+    exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
+    exact_self_field_write_assignment, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, imported_binding_symbol,
     imported_literal_producer_evidence_for_node, imported_member_symbol,
@@ -3309,15 +3309,7 @@ fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
 // `this.field = ...`; arbitrary receivers such as `other.field = ...` need a
 // receiver-place proof fact before they can be exact fragments.
 fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Assign
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 2 && exact_java_this_field(il, interner, kids[0])
+    exact_self_field_write_assignment(il, interner, node)
 }
 
 fn exact_java_return_this_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
