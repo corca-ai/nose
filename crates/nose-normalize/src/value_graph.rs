@@ -8590,7 +8590,7 @@ mod tests {
         SourceFactKind, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
     use nose_semantics::{
-        import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
+        library_api_callee_contract_hash, library_api_contract_id_hash,
         library_imported_collection_factory_contract, library_java_collection_factory_contract,
         library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
         LibraryApiContractId, FIRST_PARTY_PACK_ID,
@@ -8896,7 +8896,6 @@ mod tests {
     fn import_binding_value_requires_sequence_evidence() {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
-        let tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
         let module = b.add(
             NodeKind::Lit,
             Payload::LitStr(stable_symbol_hash("collections")),
@@ -8909,18 +8908,16 @@ mod tests {
             sp(40),
             &[],
         );
-        let binding = b.add(
-            NodeKind::Seq,
-            Payload::Name(tag),
-            sp(40),
-            &[module, exported],
-        );
+        let binding = b.add(NodeKind::Seq, Payload::None, sp(40), &[module, exported]);
         let root = b.add(NodeKind::Block, Payload::None, sp(40), &[binding]);
         let mut il = finish_test_il(b, root, Lang::Python);
 
         let mut builder = Builder::new(&il, &interner);
         let raw = builder.eval(binding, &FxHashMap::default());
-        assert!(matches!(builder.nodes[raw as usize].op, ValOp::Seq(_)));
+        assert!(matches!(
+            builder.nodes[raw as usize].op,
+            ValOp::Seq(SEQ_VALUE_UNTAGGED)
+        ));
         assert!(!builder.is_import_binding_value(raw, "collections", "deque"));
 
         il.evidence.push(evidence(
@@ -8944,7 +8941,6 @@ mod tests {
     fn namespace_member_import_binding_requires_proven_namespace_value() {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
-        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
         let prod = interner.intern("prod");
         let module = b.add(
             NodeKind::Lit,
@@ -8952,12 +8948,7 @@ mod tests {
             sp(50),
             &[],
         );
-        let namespace = b.add(
-            NodeKind::Seq,
-            Payload::Name(namespace_tag),
-            sp(50),
-            &[module],
-        );
+        let namespace = b.add(NodeKind::Seq, Payload::None, sp(50), &[module]);
         let field = b.add(NodeKind::Field, Payload::Name(prod), sp(51), &[namespace]);
         let root = b.add(NodeKind::Block, Payload::None, sp(50), &[field]);
         let mut il = finish_test_il(b, root, Lang::Python);
@@ -9076,7 +9067,6 @@ mod tests {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let local = interner.intern("collections");
-        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
         let lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(80), &[]);
         let module = b.add(
             NodeKind::Lit,
@@ -9084,12 +9074,7 @@ mod tests {
             sp(80),
             &[],
         );
-        let rhs = b.add(
-            NodeKind::Seq,
-            Payload::Name(namespace_tag),
-            sp(80),
-            &[module],
-        );
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(80), &[module]);
         let import = b.add(NodeKind::Assign, Payload::None, sp(80), &[lhs, rhs]);
         let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(81), &[]);
         let callee = b.add(

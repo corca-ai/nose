@@ -10,7 +10,7 @@ use nose_il::{
     SourceCallKind, SourceFact, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
 use nose_semantics::{
-    import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
+    library_api_callee_contract_hash, library_api_contract_id_hash,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
     library_java_collection_factory_contract, library_java_map_entry_contract,
     library_java_map_factory_contract, library_js_array_is_array_contract,
@@ -970,11 +970,9 @@ pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, modul
     import_fact(lo, span, local, ImportFactKind::Namespace, &[module])
 }
 
-/// Shared shape of the static-import proof facts: `local = Seq[tag](str_lit(c) for c in
-/// coords)`. Both `import_binding` and `import_namespace` build this exact form, differing
-/// only in the Seq tag and the coordinate count. The node-allocation order — lhs var, then
-/// each coordinate string, then the Seq, then the Assign — is preserved identically to the
-/// original two functions.
+/// Shared shape of static-import proof facts. The assignment remains in IL so
+/// import text participates in the syntax/near floor, but the `Seq` payload is
+/// deliberately untagged: semantic proof lives only in the evidence records.
 fn import_fact(
     lo: &mut Lowering,
     span: Span,
@@ -984,8 +982,7 @@ fn import_fact(
 ) -> NodeId {
     let lhs = lo.var(local, span);
     let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
-    let tag = lo.sym(import_fact_tag(kind));
-    let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &strs);
+    let rhs = lo.add(NodeKind::Seq, Payload::None, span, &strs);
     let evidence_kind = match kind {
         ImportFactKind::Binding if coords.len() == 2 => {
             EvidenceKind::Import(ImportEvidenceKind::Binding {

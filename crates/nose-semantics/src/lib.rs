@@ -258,13 +258,8 @@ pub const SEQ_VALUE_COLLECTION: u64 = 1;
 pub const SEQ_VALUE_TUPLE: u64 = 2;
 pub const SEQ_VALUE_MAP: u64 = 3;
 pub const SEQ_VALUE_PAIR: u64 = 4;
-pub const SEQ_VALUE_IMPORT_BINDING: u64 = 5;
-pub const SEQ_VALUE_IMPORT_NAMESPACE: u64 = 6;
 pub const SEQ_VALUE_RECORD_GUARD: u64 = 7;
 pub const SEQ_VALUE_OWN_PROPERTY_GUARD: u64 = 8;
-
-pub const IMPORT_BINDING_TAG: &str = "import_binding";
-pub const IMPORT_NAMESPACE_TAG: &str = "import_namespace";
 
 /// Kernel contract for a lowered `Seq` surface tag.
 ///
@@ -289,8 +284,6 @@ pub fn sequence_surface_kind_for_tag(lang: Lang, tag: Option<&str>) -> Option<Se
         Some("tuple" | "tuple_expression") => Some(SequenceSurfaceKind::Tuple),
         Some("dictionary" | "object" | "hash") => Some(SequenceSurfaceKind::Map),
         Some("pair") => Some(SequenceSurfaceKind::Pair),
-        Some(IMPORT_BINDING_TAG) => Some(SequenceSurfaceKind::ImportBinding),
-        Some(IMPORT_NAMESPACE_TAG) => Some(SequenceSurfaceKind::ImportNamespace),
         Some("record_guard") => Some(SequenceSurfaceKind::RecordGuard),
         Some("own_property_guard") => Some(SequenceSurfaceKind::OwnPropertyGuard),
         Some("composite_literal") if lang == Lang::Go => {
@@ -337,20 +330,6 @@ fn seq_surface_contract_for_tag(
         },
         SequenceSurfaceKind::Pair => SeqSurfaceContract {
             value_tag: SEQ_VALUE_PAIR,
-            exact_tree_safe: true,
-            membership_collection: false,
-            map_entry_list: false,
-            imported_literal: false,
-        },
-        SequenceSurfaceKind::ImportBinding => SeqSurfaceContract {
-            value_tag: SEQ_VALUE_IMPORT_BINDING,
-            exact_tree_safe: true,
-            membership_collection: false,
-            map_entry_list: false,
-            imported_literal: false,
-        },
-        SequenceSurfaceKind::ImportNamespace => SeqSurfaceContract {
-            value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
@@ -739,9 +718,6 @@ pub enum ImportFactKind {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ImportFactContract {
     pub kind: ImportFactKind,
-    pub tag: &'static str,
-    pub coordinate_count: usize,
-    pub value_tag: u64,
     pub channel: ChannelEligibility,
 }
 
@@ -749,31 +725,13 @@ pub fn import_fact_contract(kind: ImportFactKind) -> ImportFactContract {
     match kind {
         ImportFactKind::Binding => ImportFactContract {
             kind,
-            tag: IMPORT_BINDING_TAG,
-            coordinate_count: 2,
-            value_tag: SEQ_VALUE_IMPORT_BINDING,
             channel: ChannelEligibility::ExactProven,
         },
         ImportFactKind::Namespace => ImportFactContract {
             kind,
-            tag: IMPORT_NAMESPACE_TAG,
-            coordinate_count: 1,
-            value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
             channel: ChannelEligibility::ExactProven,
         },
     }
-}
-
-pub fn import_fact_contract_for_tag(tag: &str) -> Option<ImportFactContract> {
-    match tag {
-        IMPORT_BINDING_TAG => Some(import_fact_contract(ImportFactKind::Binding)),
-        IMPORT_NAMESPACE_TAG => Some(import_fact_contract(ImportFactKind::Namespace)),
-        _ => None,
-    }
-}
-
-pub fn import_fact_tag(kind: ImportFactKind) -> &'static str {
-    import_fact_contract(kind).tag
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -808,9 +766,9 @@ fn import_fact_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolut
     )
 }
 
-/// Evidence-only import fact resolution for semantic consumers. This intentionally
-/// does not parse the legacy raw `Seq("import_*")` payload: callers that use this
-/// helper are relying on a provider-owned evidence record, not on tag spelling.
+/// Evidence-only import fact resolution for semantic consumers. Import proof is
+/// intentionally not encoded in the lowered `Seq` payload; callers rely on a
+/// provider-owned evidence record, not on tag spelling.
 pub fn import_fact_evidence_rhs(il: &Il, rhs: NodeId) -> Option<ImportFact> {
     if il.kind(rhs) != NodeKind::Seq {
         return None;
@@ -895,62 +853,6 @@ fn evidence_record_by_id(il: &Il, id: EvidenceId) -> Option<&EvidenceRecord> {
         .get(id.0 as usize)
         .filter(|record| record.id == id)
         .or_else(|| il.evidence.iter().find(|record| record.id == id))
-}
-
-pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {
-    if il.kind(rhs) != NodeKind::Seq {
-        return None;
-    }
-    match import_fact_evidence_at_sequence_span(il, il.node(rhs).span) {
-        EvidenceResolution::Found(fact) => return Some(fact),
-        EvidenceResolution::Ambiguous => return None,
-        EvidenceResolution::Missing => {}
-    }
-    let Payload::Name(tag) = il.node(rhs).payload else {
-        return None;
-    };
-    let contract = import_fact_contract_for_tag(interner.resolve(tag))?;
-    let coords = il.children(rhs);
-    if coords.len() != contract.coordinate_count {
-        return None;
-    }
-    let module_hash = literal_string_hash(il, coords[0])?;
-    let exported_hash = match contract.kind {
-        ImportFactKind::Binding => Some(literal_string_hash(il, coords[1])?),
-        ImportFactKind::Namespace => None,
-    };
-    Some(ImportFact {
-        kind: contract.kind,
-        module_hash,
-        exported_hash,
-    })
-}
-
-pub fn import_binding_rhs_matches(
-    il: &Il,
-    interner: &Interner,
-    rhs: NodeId,
-    module: &str,
-    exported: &str,
-) -> bool {
-    import_fact_rhs(il, interner, rhs).is_some_and(|fact| {
-        fact.kind == ImportFactKind::Binding
-            && fact.module_hash == stable_symbol_hash(module)
-            && fact.exported_hash == Some(stable_symbol_hash(exported))
-    })
-}
-
-pub fn import_namespace_rhs_matches(
-    il: &Il,
-    interner: &Interner,
-    rhs: NodeId,
-    module: &str,
-) -> bool {
-    import_fact_rhs(il, interner, rhs).is_some_and(|fact| {
-        fact.kind == ImportFactKind::Namespace
-            && fact.module_hash == stable_symbol_hash(module)
-            && fact.exported_hash.is_none()
-    })
 }
 
 fn symbol_evidence_at_node(il: &Il, node: NodeId) -> EvidenceResolution<SymbolEvidenceKind> {
@@ -6505,11 +6407,8 @@ mod tests {
     }
 
     #[test]
-    fn import_fact_contracts_parse_typed_binding_and_namespace_proofs() {
-        let interner = Interner::new();
+    fn import_fact_contracts_resolve_evidence_only_binding_and_namespace_proofs() {
         let mut b = IlBuilder::new(FileId(0));
-        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
-        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
         let collections = b.add(
             NodeKind::Lit,
             Payload::LitStr(stable_symbol_hash("collections")),
@@ -6522,70 +6421,70 @@ mod tests {
             sp(1),
             &[],
         );
-        let binding = b.add(
-            NodeKind::Seq,
-            Payload::Name(binding_tag),
-            sp(1),
-            &[collections, deque],
-        );
+        let binding = b.add(NodeKind::Seq, Payload::None, sp(1), &[collections, deque]);
         let math = b.add(
             NodeKind::Lit,
             Payload::LitStr(stable_symbol_hash("math")),
             sp(2),
             &[],
         );
-        let namespace = b.add(NodeKind::Seq, Payload::Name(namespace_tag), sp(2), &[math]);
-        let malformed_binding = b.add(NodeKind::Seq, Payload::Name(binding_tag), sp(3), &[math]);
+        let namespace = b.add(NodeKind::Seq, Payload::None, sp(2), &[math]);
+        let raw_coordinates = b.add(NodeKind::Seq, Payload::None, sp(3), &[math]);
         let root = b.add(
             NodeKind::Module,
             Payload::None,
             sp(1),
-            &[binding, namespace, malformed_binding],
+            &[binding, namespace, raw_coordinates],
         );
-        let il = finish_il(b, root, Lang::Python);
+        let mut il = finish_il(b, root, Lang::Python);
 
         assert_eq!(
             import_fact_contract(ImportFactKind::Binding).channel,
             ChannelEligibility::ExactProven
         );
-        assert!(import_binding_rhs_matches(
-            &il,
-            &interner,
-            binding,
-            "collections",
-            "deque"
-        ));
         assert_eq!(import_fact_evidence_rhs(&il, binding), None);
-        assert!(!import_binding_rhs_matches(
-            &il,
-            &interner,
-            namespace,
-            "collections",
-            "deque"
+        assert_eq!(import_fact_evidence_rhs(&il, namespace), None);
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(1)),
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash("collections"),
+                exported_hash: stable_symbol_hash("deque"),
+            }),
+            EvidenceStatus::Asserted,
         ));
-        assert!(!import_binding_rhs_matches(
-            &il,
-            &interner,
-            malformed_binding,
-            "math",
-            "prod"
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::sequence(sp(2)),
+            EvidenceKind::Import(ImportEvidenceKind::Namespace {
+                module_hash: stable_symbol_hash("math"),
+            }),
+            EvidenceStatus::Asserted,
         ));
-        assert!(import_namespace_rhs_matches(
-            &il, &interner, namespace, "math"
-        ));
-        assert!(!import_namespace_rhs_matches(
-            &il,
-            &interner,
-            binding,
-            "collections"
-        ));
+
+        assert_eq!(
+            import_fact_evidence_rhs(&il, binding),
+            Some(ImportFact {
+                kind: ImportFactKind::Binding,
+                module_hash: stable_symbol_hash("collections"),
+                exported_hash: Some(stable_symbol_hash("deque")),
+            })
+        );
+        assert_eq!(
+            import_fact_evidence_rhs(&il, namespace),
+            Some(ImportFact {
+                kind: ImportFactKind::Namespace,
+                module_hash: stable_symbol_hash("math"),
+                exported_hash: None,
+            })
+        );
+        assert_eq!(import_fact_evidence_rhs(&il, raw_coordinates), None);
     }
 
     #[test]
-    fn import_evidence_records_are_fail_closed_before_raw_seq_fallback() {
-        let interner = Interner::new();
+    fn ambiguous_import_evidence_stays_closed_without_raw_seq_fallback() {
         let mut b = IlBuilder::new(FileId(0));
-        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
         let module = b.add(
             NodeKind::Lit,
             Payload::LitStr(stable_symbol_hash("collections")),
@@ -6598,12 +6497,7 @@ mod tests {
             sp(10),
             &[],
         );
-        let binding = b.add(
-            NodeKind::Seq,
-            Payload::Name(binding_tag),
-            sp(10),
-            &[module, exported],
-        );
+        let binding = b.add(NodeKind::Seq, Payload::None, sp(10), &[module, exported]);
         let root = b.add(NodeKind::Module, Payload::None, sp(10), &[binding]);
         let mut il = finish_il(b, root, Lang::Python);
         il.evidence.push(evidence(
@@ -6615,16 +6509,14 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
 
-        assert!(!import_binding_rhs_matches(
-            &il,
-            &interner,
-            binding,
-            "collections",
-            "deque"
-        ));
-        assert!(import_namespace_rhs_matches(
-            &il, &interner, binding, "math"
-        ));
+        assert_eq!(
+            import_fact_evidence_rhs(&il, binding),
+            Some(ImportFact {
+                kind: ImportFactKind::Namespace,
+                module_hash: stable_symbol_hash("math"),
+                exported_hash: None,
+            })
+        );
 
         il.evidence.push(evidence(
             1,
@@ -6635,7 +6527,6 @@ mod tests {
             }),
             EvidenceStatus::Asserted,
         ));
-        assert_eq!(import_fact_rhs(&il, &interner, binding), None);
         assert_eq!(import_fact_evidence_rhs(&il, binding), None);
     }
 
@@ -6644,7 +6535,6 @@ mod tests {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let local = interner.intern("deque");
-        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
         let module = b.add(
             NodeKind::Lit,
             Payload::LitStr(stable_symbol_hash("collections")),
@@ -6658,12 +6548,7 @@ mod tests {
             &[],
         );
         let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(30), &[]);
-        let rhs = b.add(
-            NodeKind::Seq,
-            Payload::Name(binding_tag),
-            sp(30),
-            &[module, exported],
-        );
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(30), &[module, exported]);
         let assignment = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, rhs]);
         let use_site = b.add(NodeKind::Var, Payload::Name(local), sp(31), &[]);
         let root = b.add(
@@ -6674,13 +6559,7 @@ mod tests {
         );
         let mut il = finish_il(b, root, Lang::Python);
 
-        assert!(import_binding_rhs_matches(
-            &il,
-            &interner,
-            rhs,
-            "collections",
-            "deque"
-        ));
+        assert_eq!(import_fact_evidence_rhs(&il, rhs), None);
         assert!(!imported_binding_symbol(
             &il,
             &interner,
@@ -6771,13 +6650,7 @@ mod tests {
             sp(21),
             &[],
         );
-        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
-        let rhs = b.add(
-            NodeKind::Seq,
-            Payload::Name(namespace_tag),
-            sp(21),
-            &[module],
-        );
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(21), &[module]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp(21), &[lhs, rhs]);
         let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(22), &[]);
         let root = b.add(NodeKind::Module, Payload::None, sp(21), &[assign, receiver]);
@@ -6806,13 +6679,7 @@ mod tests {
             sp(24),
             &[],
         );
-        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
-        let rhs = b.add(
-            NodeKind::Seq,
-            Payload::Name(namespace_tag),
-            sp(24),
-            &[module],
-        );
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(24), &[module]);
         let import_assign = b.add(NodeKind::Assign, Payload::None, sp(24), &[lhs, rhs]);
         let rebound_lhs = b.add(NodeKind::Var, Payload::Name(local), sp(25), &[]);
         let rebound_rhs = b.add(NodeKind::Lit, Payload::LitInt(0), sp(25), &[]);

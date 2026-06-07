@@ -90,13 +90,14 @@ side tables.
 - Compatibility fallback is allowed only when no relevant evidence record exists,
   and only for explicitly legacy compatibility helpers.
 
-This is stricter than a name or tag check. For example, a raw
-`Seq("import_binding")` is still serialized for compatibility, but import
-contracts first consult `Import` evidence. If that evidence is ambiguous, exact
-import proof stays closed instead of falling back to the raw sequence payload.
-Value-graph import identity goes further: it consumes only sequence `Import`
-evidence and materializes dedicated internal import values, never raw
-`ValOp::Seq("import_*")` proof objects.
+This is stricter than a name or tag check. For example, static import lowering
+keeps an assignment RHS with only untagged module/export coordinate literals;
+the coordinates are not a proof channel. Import contracts consume only
+`Import` evidence. If that evidence is missing or ambiguous, exact import proof
+stays closed instead of falling back to the raw sequence shape. Value-graph
+import identity likewise consumes only sequence `Import` evidence and
+materializes dedicated internal import values, never raw `ValOp::Seq` proof
+objects.
 
 Symbol identity follows the same rule. A method selector such as `abs` or a
 receiver spelling such as `Math` is not proof. Exact consumers must require a

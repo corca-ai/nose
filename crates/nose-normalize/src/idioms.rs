@@ -948,7 +948,6 @@ mod tests {
         ParamSemantic, ParamTypeFact, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
         UnitKind,
     };
-    use nose_semantics::{import_fact_tag, ImportFactKind};
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)
@@ -1329,8 +1328,7 @@ mod tests {
                 sp(),
                 &[],
             );
-            let tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
-            let rhs = b.add(NodeKind::Seq, Payload::Name(tag), sp(), &[module]);
+            let rhs = b.add(NodeKind::Seq, Payload::None, sp(), &[module]);
             module_kids.push(b.add(NodeKind::Assign, Payload::None, sp(), &[lhs, rhs]));
         }
         let receiver = b.add(

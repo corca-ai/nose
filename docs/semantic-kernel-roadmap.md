@@ -120,8 +120,10 @@ and pack ecosystem.
   provider-side stdlib proofs such as `java.util.Map` for Java static imports
   only when that provider evidence exists. Replacement records
   `ImportedLiteralSnapshot` provenance depending on the importer static import
-  proof and copied provider evidence, and raw `Seq("import_binding")` spelling
-  no longer proves cross-file replacement.
+  proof and copied provider evidence. Static import identity now requires
+  `EvidenceRecord::Import`; frontends keep only untagged coordinate sequences
+  in the assignment carrier, and raw sequence spelling no longer proves
+  cross-file replacement or value-graph import identity.
 - JS-like `Map`/`Set` constructor contracts now require construct-syntax proof.
   They were initially closed while construct-vs-call evidence was missing; the
   source-fact slice reopened proof-backed `new Map(...)`/`new Set(...)` while

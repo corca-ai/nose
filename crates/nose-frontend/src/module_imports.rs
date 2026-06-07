@@ -1,9 +1,10 @@
 //! Corpus-level import proof facts that need more than one lowered file.
 //!
-//! Frontends lower a static import as `local = import_binding(module, exported)`.
-//! Once the whole corpus is available, a sibling module can prove that this binding
-//! names a single immutable literal value. In that narrow case we replace the import
-//! fact RHS with a cloned literal subtree, so the existing per-file value-graph
+//! Frontends lower a static import as an assignment whose RHS carries only module
+//! coordinates; `EvidenceKind::Import` records prove those coordinates. Once the
+//! whole corpus is available, a sibling module can prove that this binding names a
+//! single immutable literal value. In that narrow case we replace the import fact
+//! RHS with a cloned literal subtree, so the existing per-file value-graph
 //! module-binding seed can reuse its mutation and canonicalization logic.
 
 use nose_il::{
@@ -1110,7 +1111,7 @@ mod tests {
         );
     }
 
-    fn raw_import_binding_assignment(
+    fn coordinate_import_binding_assignment(
         file: FileId,
         lang: Lang,
     ) -> (Il, Interner, Span, NodeId, NodeId) {
@@ -1131,8 +1132,7 @@ mod tests {
             span,
             &[],
         );
-        let tag = interner.intern(nose_semantics::import_fact_tag(ImportFactKind::Binding));
-        let rhs = b.add(NodeKind::Seq, Payload::Name(tag), span, &[module, exported]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, span, &[module, exported]);
         let assign = b.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
         let root = b.add(NodeKind::Module, Payload::None, span, &[assign]);
         let il = b.finish(
@@ -1174,11 +1174,11 @@ mod tests {
     #[test]
     fn import_binding_key_requires_asserted_import_evidence() {
         let (mut il, _interner, span, assign, _rhs) =
-            raw_import_binding_assignment(FileId(0), Lang::Java);
+            coordinate_import_binding_assignment(FileId(0), Lang::Java);
         assert_eq!(
             import_binding_key(&il, assign),
             None,
-            "raw import_binding Seq tags must not prove import coordinates"
+            "raw import coordinate Seqs must not prove import identity"
         );
 
         add_import_binding_evidence(&mut il, span, EvidenceStatus::Asserted);
@@ -1189,9 +1189,9 @@ mod tests {
     }
 
     #[test]
-    fn import_binding_key_rejects_ambiguous_import_evidence_even_with_raw_seq() {
+    fn import_binding_key_rejects_ambiguous_import_evidence_even_with_coordinates() {
         let (mut il, _interner, span, assign, _rhs) =
-            raw_import_binding_assignment(FileId(0), Lang::Java);
+            coordinate_import_binding_assignment(FileId(0), Lang::Java);
         add_import_binding_evidence(&mut il, span, EvidenceStatus::Ambiguous);
 
         assert_eq!(
@@ -1202,9 +1202,9 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_append_does_not_mint_import_or_symbol_evidence_from_raw_seq() {
+    fn snapshot_append_does_not_mint_import_or_symbol_evidence_from_coordinates() {
         let (provider, _interner, _span, assign, _rhs) =
-            raw_import_binding_assignment(FileId(0), Lang::Java);
+            coordinate_import_binding_assignment(FileId(0), Lang::Java);
         let snapshot = snapshot_subtree(&provider, assign);
 
         let mut b = IlBuilder::new(FileId(1));
@@ -1396,10 +1396,9 @@ mod tests {
             import_span,
             &[],
         );
-        let import_tag = interner.intern(nose_semantics::import_fact_tag(ImportFactKind::Binding));
         let import_rhs = b.add(
             NodeKind::Seq,
-            Payload::Name(import_tag),
+            Payload::None,
             import_span,
             &[module, exported],
         );

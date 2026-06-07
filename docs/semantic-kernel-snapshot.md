@@ -297,13 +297,14 @@ migrated.
   shadowed constructor names remain exact-closed.
 - Static import proof facts now have a typed `ImportFactKind`/`ImportFact`
   facade in `nose-semantics`. First-party frontends emit import binding and
-  namespace facts through that contract. Value-graph import identity consumes
-  sequence `Import` evidence into dedicated `ImportNamespace`/`ImportBinding`
-  value ops, so raw import `Seq` payloads can no longer become proof-bearing
-  value nodes by tag shape. Imported literal replacement also consumes
-  evidence-only import facts; raw `Seq("import_binding")` payloads remain as
-  compatibility mirrors, but missing or ambiguous `Import` evidence no longer
-  proves a cross-file replacement.
+  namespace facts through that contract. The lowered RHS keeps only structural
+  coordinate literals; proof lives in `EvidenceRecord::Import` and binding
+  `Symbol` evidence. Value-graph import identity consumes sequence `Import`
+  evidence into dedicated `ImportNamespace`/`ImportBinding` value ops, so raw
+  import coordinate sequences can no longer become proof-bearing value nodes by
+  tag shape. Imported literal replacement also consumes evidence-only import
+  facts; missing or ambiguous `Import` evidence no longer proves a cross-file
+  replacement.
 - Symbol identity evidence now covers static imported binding/namespace aliases
   and JS/TS static-global value occurrences such as `Math`, `console`, `Array`,
   `Map`, `Set`, and `undefined` when the frontend proves no local shadow.
@@ -343,11 +344,12 @@ Semantic knowledge still appears in several forms outside the facade:
   still first-party JS/TS lowering code, and broader guard families, richer
   source/API dependency records, and pack-facing dependency validation remain
   open;
-- IL still stores import facts as `Seq("import_binding")` /
-  `Seq("import_namespace")` payloads for compatibility. Frontends also emit
-  `EvidenceRecord::Import`, and value-graph import identity plus imported
-  literal replacement are now evidence-only, but the raw IL storage shape and
-  some compatibility consumers have not been removed;
+- IL no longer stores import proof as `Seq("import_binding")` /
+  `Seq("import_namespace")` payloads. Frontends keep an assignment plus
+  untagged coordinate literals for structural similarity and nearby syntax, but
+  import identity is proven only by `EvidenceRecord::Import` and associated
+  `Symbol` evidence. Module/export dependency and provider-scope validation are
+  still local to `nose-frontend`;
 - module/import proof logic for immutable sibling-module literal bindings is
   still local to `nose-frontend`, although replacement now copies the provider's
   closed evidence subgraph into the importer, remaps spans/dependency ids, and
@@ -435,8 +437,10 @@ The first high-value targets for semantic-kernel extraction are:
 - broader pack-facing field/place/effect evidence for all field reads and
   writes, building on the initial append/index/self-field effect substrate and
   the receiver-aware value-graph field state now used for same-unit caching;
-- full import/module fact migration to remove the remaining raw
-  `Seq("import_binding")` and `Seq("import_namespace")` compatibility payloads;
+- full import/module fact migration beyond raw payload removal: provider/export
+  dependency records, module scope, wildcard/conflict handling, copied evidence
+  provenance, and pack-facing validation still need to move behind explicit
+  extension contracts;
 - richer sequence/aggregate evidence for factories, nested entries, iterator
   views, and exported-literal eligibility beyond the current first
   `SequenceSurface` substrate;

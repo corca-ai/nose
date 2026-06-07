@@ -390,8 +390,6 @@ pub enum SequenceSurfaceKind {
     Tuple,
     Map,
     Pair,
-    ImportBinding,
-    ImportNamespace,
     RecordGuard,
     OwnPropertyGuard,
     GoCompositeMapLiteral,
