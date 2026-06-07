@@ -6,7 +6,6 @@ summary = "IL validation requires root, unit roots, and child edges to stay insi
 [rust]
 files = ["crates/nose-il/src/lib.rs"]
 symbols = ["validate", "IlBuilder"]
-markers = ["il.arena.validity"]
 
 [lean]
 proof = "Proof.lean"

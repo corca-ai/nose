@@ -31,7 +31,7 @@ namespaces such as:
 - `oracle.*` — behavioral-oracle independence contracts such as the normalization cutoff.
 
 The linter has a required-surface list for proof-sensitive areas whose omission would be
-easy to miss. Those obligations must list the expected Rust files, symbols, and markers in
+easy to miss. Those obligations must list the expected Rust files and symbols in
 `meta.toml`; otherwise CI fails even if a Lean file exists somewhere else.
 
 Every Rust-backed obligation must also be marked from the Rust side:
@@ -40,9 +40,11 @@ Every Rust-backed obligation must also be marked from the Rust side:
 //! proof-obligation: normalize.recursion.structural_fold
 ```
 
-The linter checks both directions. A marker without a matching `meta.toml` fails, and a
-`meta.toml` whose `rust.markers` entry is not present in one of its `rust.files` fails. This
-keeps proof-sensitive code from drifting away from the registry.
+The linter checks both directions. A marker without a matching `meta.toml` fails, and an
+obligation whose `// proof-obligation: <id>` marker is absent from its `rust.files` fails. The
+marker IS the obligation id — there is no `rust.markers` field to repeat it (a `canonicalize_*`
+fn is likewise required to appear in some obligation's `rust.symbols`). This keeps
+proof-sensitive code from drifting away from the registry.
 
 ## Named rule modules
 

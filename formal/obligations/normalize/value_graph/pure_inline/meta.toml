@@ -6,7 +6,6 @@ summary = "Inlining a call to a PURE, single-`return` function is beta-substitut
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs"]
 symbols = ["eval_inlined_call"]
-markers = ["normalize.value_graph.pure_inline"]
 
 [lean]
 proof = "Proof.lean"

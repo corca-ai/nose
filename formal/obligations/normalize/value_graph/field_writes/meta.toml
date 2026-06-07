@@ -6,7 +6,6 @@ summary = "Field writes are interpreted as final field state with last-write-win
 [rust]
 files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/interp.rs"]
 symbols = ["flush_fields", "field_env"]
-markers = ["normalize.value_graph.field_writes"]
 
 [lean]
 proof = "Proof.lean"

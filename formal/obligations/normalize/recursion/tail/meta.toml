@@ -6,7 +6,6 @@ summary = "Tail-recursive self calls and their emitted while loop reach the same
 [rust]
 files = ["crates/nose-normalize/src/recursion/tail.rs"]
 symbols = ["recognize", "build_body"]
-markers = ["normalize.recursion.tail"]
 
 [lean]
 proof = "Proof.lean"

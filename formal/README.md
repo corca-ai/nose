@@ -33,8 +33,9 @@ Some semantic surfaces are required even when they are not one-file rule modules
 currently requires obligations for IL arena validity/deep-copy, recursion rewrites, exact
 fragment effect/place and wrapper contracts, and the oracle cutoff.
 
-Every Rust-backed obligation must list `rust.markers = ["<obligation id>"]`, and one of the
-listed Rust files must contain the matching comment marker:
+Every Rust-backed obligation must carry a comment marker — `// proof-obligation: <obligation id>`
+— in one of its listed Rust files. The marker IS the obligation id, so there is no separate
+`rust.markers` field (the linter derives the expected marker from the id):
 
 ```rust
 //! proof-obligation: detect.fragment.effect_place

@@ -18,6 +18,13 @@
 //! This is a *detection substrate*, not an IL rewrite: it returns a fingerprint
 //! the detector can use instead of (or alongside) subtree shapes.
 //!
+//! CONVENTION: a meaning-preserving *canonicalization* (a value rewrite) needs Lean evidence.
+//! Name it `canonicalize_*` and list it in an obligation's `[rust].symbols` — the formal
+//! obligation gate (`scripts/check-formal-obligations.py`) ENFORCES that every `canonicalize_*`
+//! fn is covered by some obligation (the name is the declaration; no separate marker needed). A
+//! canon under another name must be registered in that script's REQUIRED_OBLIGATIONS, or it
+//! skips the gate (the gap that let `.then`/`pure_inline` slip).
+//!
 //! proof-obligation: normalize.control_flow.guard_returns
 //! proof-obligation: normalize.value_graph.algebra
 //! proof-obligation: normalize.value_graph.bool_reduce
