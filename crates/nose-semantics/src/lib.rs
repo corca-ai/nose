@@ -891,6 +891,13 @@ pub fn method_call_contract(
         ),
         (Lang::Go, "Min", 2) => (Builtin::Min, Receiver::ImportedNamespace("math"), Args::All),
         (Lang::Go, "Max", 2) => (Builtin::Max, Receiver::ImportedNamespace("math"), Args::All),
+        (Lang::Java, "abs", 1) => (
+            Builtin::Abs,
+            Receiver::UnshadowedGlobal("Math"),
+            Args::First,
+        ),
+        (Lang::Java, "min", 2) => (Builtin::Min, Receiver::UnshadowedGlobal("Math"), Args::All),
+        (Lang::Java, "max", 2) => (Builtin::Max, Receiver::UnshadowedGlobal("Math"), Args::All),
         (Lang::Rust, "zip", 1) => (
             Builtin::Zip,
             Receiver::ExactProtocolPairArgument,
@@ -2106,6 +2113,22 @@ mod tests {
                 semantic: MethodSemanticContract::Builtin(Builtin::Abs),
                 receiver: MethodReceiverContract::ImportedNamespace("math"),
                 args: MethodBuiltinArgs::First,
+            })
+        );
+        assert_eq!(
+            method_call_contract(Lang::Java, "abs", 1),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Abs),
+                receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+                args: MethodBuiltinArgs::First,
+            })
+        );
+        assert_eq!(
+            method_call_contract(Lang::Java, "min", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Min),
+                receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+                args: MethodBuiltinArgs::All,
             })
         );
         assert_eq!(

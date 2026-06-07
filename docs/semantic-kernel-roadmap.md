@@ -117,6 +117,8 @@ and pack ecosystem.
 - Python `math.prod` product-reduction recognition moved behind an imported
   namespace function contract with missing-import and overwritten-binding hard
   negatives.
+- Java `Math.abs`/`Math.min`/`Math.max` moved out of frontend text-only lowering
+  and into method contracts that require an unshadowed `Math` receiver.
 
 ## Phase 0: documentation and vocabulary
 

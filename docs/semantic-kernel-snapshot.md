@@ -102,6 +102,9 @@ migrated.
 - Imported namespace function contracts now cover Python `math.prod` as a product
   reduction only when the receiver is proven to be the imported `math` namespace.
   Bare globals named `math` and overwritten module bindings stay exact-closed.
+- Java `Math.abs`/`Math.min`/`Math.max` now lower through method contracts with an
+  unshadowed `Math` receiver requirement instead of frontend text-only builtin
+  lowering.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

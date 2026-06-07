@@ -8,8 +8,8 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    Payload, Span, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -754,25 +754,6 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let name_node = node.child_by_field_name("name");
-    let object_node = node.child_by_field_name("object");
-    let math_builtin = name_node
-        .and_then(|n| match lo.text(n) {
-            "abs" => Some((Builtin::Abs, 1)),
-            "min" => Some((Builtin::Min, 2)),
-            "max" => Some((Builtin::Max, 2)),
-            _ => None,
-        })
-        .filter(|_| object_node.is_some_and(|o| lo.text(o) == "Math"));
-    if let Some((builtin, arity)) = math_builtin {
-        if let Some(args) = node.child_by_field_name("arguments") {
-            let args = Lowering::named_children(args);
-            if args.len() == arity {
-                let lowered: Vec<NodeId> =
-                    args.into_iter().map(|arg| lower_expr(lo, arg)).collect();
-                return lo.add(NodeKind::Call, Payload::Builtin(builtin), span, &lowered);
-            }
-        }
-    }
     let name = name_node.map(|n| lo.sym(lo.text(n)));
     let callee = match node.child_by_field_name("object") {
         Some(o) => {

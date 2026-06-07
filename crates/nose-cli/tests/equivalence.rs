@@ -1086,6 +1086,7 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
         "pub fn f(value: i64, other: i64) -> i64 { let magnitude = value.abs(); magnitude + other }\n";
     let shadowed_js = "function f(Math, value, other) { const magnitude = Math.abs(value); return magnitude + other; }";
     let local_shadowed_js = "function f(value, other) { const Math = { abs: function(_value) { return 0; } }; const magnitude = Math.abs(value); return magnitude + other; }";
+    let java_shadowed_math_param = "class Math { int abs(int value) { return 0; } }\nclass C { static int f(Math Math, int value, int other) { int magnitude = Math.abs(value); return magnitude + other; } }\n";
     let ts_number_method_abs = "function f(value: number, other: number): number { const magnitude = value.abs(); return magnitude + other; }";
     let rust_float_abs = "pub fn f(value: f64, other: f64) -> f64 { let magnitude = value.abs(); magnitude + other }\n";
     let custom_rust_abs = "struct Wrap(i64);\nimpl Wrap { fn abs(&self) -> i64 { 0 } }\npub fn f(value: Wrap) -> i64 { let magnitude = value.abs(); magnitude + 1 }\n";
@@ -1098,6 +1099,10 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
     assert_eq!(fp, value_fp(&i, rust_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, local_shadowed_js, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp_named(&i, java_shadowed_math_param, Lang::Java, "f")
+    );
     assert_ne!(fp, value_fp(&i, ts_number_method_abs, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, rust_float_abs, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_abs, Lang::Rust));
@@ -1126,6 +1131,7 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     let py_shadowed_min =
         "def min(_left, _right):\n    return 0\n\ndef f(left, right, other):\n    selected = min(left, right)\n    return selected + other\n";
     let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
+    let java_shadowed_math_type = "class C { static int f(int left, int right, int other) { int selected = Math.min(left, right); return selected + other; } }\nclass Math { static int min(int left, int right) { return 0; } }\n";
     let ts_number_method_min = "function f(left: number, right: number, other: number): number { const selected = left.min(right); return selected + other; }";
     let rust_float_min = "pub fn f(left: f64, right: f64, other: f64) -> f64 { let selected = left.min(right); selected + other }\n";
     let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
@@ -1152,6 +1158,10 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     assert_ne!(fp, value_fp(&i, py_wrong_value, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_shadowed_min, Lang::Python));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp_named(&i, java_shadowed_math_type, Lang::Java, "f")
+    );
     assert_ne!(fp, value_fp(&i, ts_number_method_min, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, rust_float_min, Lang::Rust));
     assert_ne!(fp, value_fp(&i, custom_rust_min, Lang::Rust));
