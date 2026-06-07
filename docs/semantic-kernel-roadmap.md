@@ -281,6 +281,12 @@ and pack ecosystem.
   `Arrays.stream`, and existing language-scoped method-call gates now share the
   same API-contract source across normalize, value-graph, and strict exact
   consumers.
+- The first `LibraryApi` occurrence evidence vertical landed for selected
+  JS-like static/global APIs. First-party lowering emits dependency-backed call
+  evidence for `Array.from`, `Array.isArray`, `Boolean`, `new Map`, and
+  `new Set`; value-graph and strict exact consumers for those surfaces consult
+  it first and close legacy fallback on conflicting, ambiguous, or
+  dependency-broken records.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -338,7 +344,8 @@ Remaining in this phase:
 - Continue replacing remaining local exact-fragment proof helpers with
   versioned pack-facing evidence records, especially broader field/read/write
   place facts and receiver-sensitive mutation/effect proofs.
-- Continue moving library API recognition into `LibraryApiContract` records.
+- Continue moving library API recognition into `LibraryApiContract` rows and
+  `LibraryApi` occurrence evidence.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -347,13 +354,16 @@ Remaining in this phase:
   views and wrappers, map `get`, map defaulting method calls, static JS-like
   helpers, regex-literal `.test`, Python `math.prod`, promise `.then`, iterator
   identity adapters, Java `Arrays.stream`, and existing language-scoped method
-  call contracts.
+  call contracts. The first occurrence-evidence slice covers selected JS-like
+  static/global APIs only; broader stdlib and ecosystem APIs still need
+  dependency-backed occurrence records before they become pack-facing.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
-  `LibraryApiContract` identity/result rows. Remaining API work is to move
-  remaining raw sequence/tag dependencies into explicit evidence records, then
-  cover broader reduction/HOF and ecosystem APIs only after demand, receiver,
-  and effect obligations are expressible.
+  `LibraryApiContract` identity/result rows, and selected JS-like static/global
+  calls now additionally share `LibraryApi` occurrence evidence. Remaining API
+  work is to move remaining raw sequence/tag and local callee-proof dependencies
+  into explicit evidence records, then cover broader reduction/HOF and ecosystem
+  APIs only after demand, receiver, and effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph

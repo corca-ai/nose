@@ -375,6 +375,15 @@ pub enum EffectEvidenceKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum LibraryApiEvidenceKind {
+    Contract {
+        contract_hash: u64,
+        callee_hash: u64,
+        arity: u16,
+    },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SequenceSurfaceKind {
     Untagged,
     Collection,
@@ -398,6 +407,7 @@ pub enum EvidenceKind {
     Guard(GuardEvidenceKind),
     Place(PlaceEvidenceKind),
     Effect(EffectEvidenceKind),
+    LibraryApi(LibraryApiEvidenceKind),
     SequenceSurface(SequenceSurfaceKind),
 }
 

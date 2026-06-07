@@ -1294,9 +1294,8 @@ fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {
             kids.push(lower_expr(lo, a));
         }
     }
-    let call = lo.add(NodeKind::Call, Payload::None, span, &kids);
     lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
-    call
+    lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1949,7 +1948,13 @@ mod tests {
     use super::*;
     use nose_il::{
         stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, GuardEvidenceKind, Interner,
-        JsRecordGuardComparison, JsRecordGuardNullCheck, SymbolEvidenceKind,
+        JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
+        SymbolEvidenceKind,
+    };
+    use nose_semantics::{
+        library_api_callee_contract_hash, library_api_contract_id_hash,
+        library_js_array_is_array_contract, library_js_like_map_constructor_contract,
+        library_js_like_set_constructor_contract, library_map_key_view_wrapper_contract,
     };
 
     fn lower_js(src: &str) -> Il {
@@ -1996,6 +2001,39 @@ mod tests {
                 )
             })
             .count()
+    }
+
+    fn library_api_evidence_count(
+        il: &Il,
+        contract_hash: u64,
+        callee_hash: u64,
+        arity: u16,
+    ) -> usize {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash: actual_contract,
+                        callee_hash: actual_callee,
+                        arity: actual_arity,
+                    }) if actual_contract == contract_hash
+                        && actual_callee == callee_hash
+                        && actual_arity == arity
+                )
+            })
+            .count()
+    }
+
+    fn library_api_dependency_counts(il: &Il) -> Vec<usize> {
+        il.evidence
+            .iter()
+            .filter_map(|record| {
+                matches!(record.kind, EvidenceKind::LibraryApi(_))
+                    .then_some(record.dependencies.len())
+            })
+            .collect()
     }
 
     fn js_record_shape_guard_evidence(il: &Il) -> Vec<&nose_il::EvidenceRecord> {
@@ -2100,6 +2138,40 @@ mod tests {
                 "missing global evidence for {name}"
             );
         }
+        let map = library_js_like_map_constructor_contract(Lang::JavaScript, "Map").unwrap();
+        assert!(
+            library_api_evidence_count(
+                &il,
+                library_api_contract_id_hash(map.id),
+                library_api_callee_contract_hash(map.callee),
+                1,
+            ) >= 1
+        );
+        let set = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
+        assert!(
+            library_api_evidence_count(
+                &il,
+                library_api_contract_id_hash(set.id),
+                library_api_callee_contract_hash(set.callee),
+                1,
+            ) >= 1
+        );
+        let is_array =
+            library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1).unwrap();
+        assert!(
+            library_api_evidence_count(
+                &il,
+                library_api_contract_id_hash(is_array.id),
+                library_api_callee_contract_hash(is_array.callee),
+                1,
+            ) >= 1
+        );
+        assert!(
+            library_api_dependency_counts(&il)
+                .into_iter()
+                .all(|count| count >= 2),
+            "selected JS API evidence should depend on source/symbol proof"
+        );
         assert!(
             !il.nodes
                 .iter()
@@ -2153,6 +2225,28 @@ mod tests {
         );
         assert_eq!(
             qualified_global_evidence_count(&il, "Array.isArray", NodeKind::Field),
+            1
+        );
+        let from =
+            library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1).unwrap();
+        let is_array =
+            library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1).unwrap();
+        assert_eq!(
+            library_api_evidence_count(
+                &il,
+                library_api_contract_id_hash(from.id),
+                library_api_callee_contract_hash(from.callee),
+                1,
+            ),
+            1
+        );
+        assert_eq!(
+            library_api_evidence_count(
+                &il,
+                library_api_contract_id_hash(is_array.id),
+                library_api_callee_contract_hash(is_array.callee),
+                1,
+            ),
             1
         );
     }
@@ -2271,6 +2365,12 @@ mod tests {
         assert_eq!(
             qualified_global_evidence_count(&il, "Array.from", NodeKind::Field),
             0
+        );
+        assert!(
+            il.evidence
+                .iter()
+                .all(|record| !matches!(record.kind, EvidenceKind::LibraryApi(_))),
+            "shadowed JS static globals must not emit API contract evidence"
         );
         assert!(js_own_property_guard_evidence(&il).is_empty());
     }
