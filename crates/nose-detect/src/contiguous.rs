@@ -234,6 +234,7 @@ pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> V
         groups.push(crate::Group {
             score: 1.0,
             members: members.iter().map(|&m| locs[m].clone()).collect(),
+            abstraction_witness: None,
         });
     }
     groups

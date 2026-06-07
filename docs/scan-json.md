@@ -150,6 +150,7 @@ schema version 1:
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
 | `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling. This is ranking/presentation policy, not detector exactness. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
+| `abstraction_witness` | object, optional | Experimental weak-claim witness emitted only for `--mode abstraction` families that share a normalized template with one supported literal leaf hole. |
 
 Each `locations[]` item has:
 
@@ -189,11 +190,40 @@ The optional `enclosing_unit` object has:
 | `name` | string, optional | Enclosing symbol name when recoverable. |
 | `unit_key` | string | Stable key built from file, kind, span, and name for grouping/review context. |
 
-Do not confuse fragment `reason_code` with future family/actionability reason codes from
-[#11](https://github.com/corca-ai/nose/issues/11). Fragment `reason_code` answers why this
-sub-function fragment was accepted as exact-safe. Future family/actionability reason codes
-answer why a clone family is worth refactoring or reviewing. They intentionally do not
-share one field.
+Do not confuse fragment `reason_code` with family-level witness reason codes. Fragment
+`reason_code` answers why this sub-function fragment was accepted as exact-safe. Future
+family/actionability reason codes answer why a clone family is worth refactoring or
+reviewing. The experimental `abstraction_witness.reason_code` below is a weak-template
+reason, not exact-fragment proof.
+
+### Abstraction witnesses
+
+`abstraction_witness` is present only for the hidden experimental
+`scan --mode abstraction[:T]` surface. It is a sibling claim to `semantic`, not a
+relaxed semantic clone verdict: the family is a refactoring-template candidate whose
+representative pair has identical normalized structure except for one supported literal
+leaf. Operator swaps, call-shape differences, and multi-hole diffs do not receive a
+witness.
+
+The object has:
+
+| field | type | meaning |
+|---|---|---|
+| `reason_code` | string | Stable weak-template reason. Current values are `type-parametric` for int/float literal holes and `literal-abstracted` for same-class int, float, or string literal holes. |
+| `template` | array of strings | Pre-order normalized IL template tokens with `<hole 1: literal>` at the abstracted leaf. This is intentionally internal and machine-oriented, not source text. |
+| `holes` | array | Typed hole metadata for the representative pair. v1 emits exactly one hole. |
+| `caveats` | array of strings | Caveats attached to the weak claim. `numeric-domain-sensitive` is emitted for int/float literal holes. |
+
+Each `holes[]` item has:
+
+| field | type | meaning |
+|---|---|---|
+| `index` | integer | 1-based hole index in the template. |
+| `kind` | string | Hole kind; currently `literal`. |
+| `left` | string | Left representative leaf class, such as `int-literal`, `float-literal`, or `string-literal`. |
+| `right` | string | Right representative leaf class. |
+| `left_line` | integer | Source line for the left representative leaf when known. |
+| `right_line` | integer | Source line for the right representative leaf when known. |
 
 `proof_facts` are not part of the stable scan JSON contract. They remain internal
 diagnostic facts unless a future schema explicitly adds an unstable diagnostics namespace.

@@ -87,6 +87,10 @@ nose capabilities
 }
 ```
 
+`scan.modes` lists stable scan modes only. Hidden experimental modes such as
+`abstraction` may be accepted by a development binary without appearing here; wrappers
+should treat absence from `scan.modes` as "not stable for automation."
+
 `tool.version` is shown as the `<version>` placeholder because the field always reports the
 installed binary's own version (`nose --version`); the example deliberately does not pin a
 release so it can't drift.

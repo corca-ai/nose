@@ -10,7 +10,7 @@ use nose_il::{
 };
 use nose_normalize::{
     module_facts::{collect_module_mutations, mutating_method_name},
-    node_tag,
+    node_tag, node_tag_valued,
 };
 use nose_semantics::{
     builder_append_call_args, construct_syntax_proof,
@@ -66,6 +66,13 @@ pub struct UnitFeat {
     pub minhash: Vec<u64>,
     /// Pre-order node-tag sequence, for alignment scoring.
     pub linear: Vec<u64>,
+    /// Pre-order typed tokens used only by the experimental abstraction witness layer.
+    ///
+    /// Unlike `linear`, this keeps a value-sensitive literal tag so a pair that differs
+    /// only by `0` vs `1` can be explained as one literal hole without weakening the
+    /// exact semantic fingerprint.
+    #[serde(default)]
+    pub(crate) abstraction_tokens: Vec<AbstractionToken>,
     /// Sorted multiset of literal (`Const`) value hashes. A high `lits/value`
     /// ratio marks a "data-table" unit (constant-dominated, e.g. a locale map),
     /// where the constants must match for a clone.
@@ -100,6 +107,189 @@ pub struct UnitFeat {
     /// [`fragment_kind`](Self::fragment_kind) is `Some`.
     #[serde(default)]
     pub proof_facts: Option<ProofFacts>,
+}
+
+#[derive(Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub(crate) struct AbstractionToken {
+    kind: NodeKind,
+    arity: u16,
+    shape_tag: u64,
+    exact_tag: u64,
+    literal: Option<AbstractionLiteral>,
+    line: u32,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+enum AbstractionLiteral {
+    Int,
+    Float,
+    Str,
+}
+
+impl AbstractionLiteral {
+    fn label(self) -> &'static str {
+        match self {
+            AbstractionLiteral::Int => "int-literal",
+            AbstractionLiteral::Float => "float-literal",
+            AbstractionLiteral::Str => "string-literal",
+        }
+    }
+}
+
+fn abstraction_literal(payload: Payload) -> Option<AbstractionLiteral> {
+    match payload {
+        Payload::LitInt(_) | Payload::Lit(LitClass::Int) => Some(AbstractionLiteral::Int),
+        Payload::LitFloat(_) | Payload::Lit(LitClass::Float) => Some(AbstractionLiteral::Float),
+        Payload::LitStr(_) | Payload::Lit(LitClass::Str) => Some(AbstractionLiteral::Str),
+        _ => None,
+    }
+}
+
+fn abstraction_token(
+    il: &Il,
+    interner: &Interner,
+    nid: NodeId,
+    shape_tag: u64,
+) -> AbstractionToken {
+    let n = il.node(nid);
+    AbstractionToken {
+        kind: n.kind,
+        arity: il.children(nid).len().min(u16::MAX as usize) as u16,
+        shape_tag,
+        exact_tag: node_tag_valued(n.kind, n.payload, interner),
+        literal: abstraction_literal(n.payload),
+        line: n.span.start_line,
+    }
+}
+
+pub(crate) fn abstraction_witness(a: &UnitFeat, b: &UnitFeat) -> Option<crate::AbstractionWitness> {
+    if a.lang != b.lang || a.kind != b.kind {
+        return None;
+    }
+    if a.abstraction_tokens.len() != b.abstraction_tokens.len() || a.abstraction_tokens.is_empty() {
+        return None;
+    }
+
+    let mut hole_index = None;
+    let mut reason_code = None;
+    let mut caveats: Vec<&'static str> = Vec::new();
+    for (idx, (left, right)) in a
+        .abstraction_tokens
+        .iter()
+        .zip(&b.abstraction_tokens)
+        .enumerate()
+    {
+        if same_abstraction_token(left, right) {
+            continue;
+        }
+        if hole_index.is_some() {
+            return None;
+        }
+        let (reason, hole_caveats) = literal_hole_reason(left, right)?;
+        hole_index = Some(idx);
+        reason_code = Some(reason);
+        caveats = hole_caveats;
+    }
+
+    let hole_index = hole_index?;
+    let left = a.abstraction_tokens[hole_index];
+    let right = b.abstraction_tokens[hole_index];
+    let template = a
+        .abstraction_tokens
+        .iter()
+        .enumerate()
+        .map(|(idx, token)| {
+            if idx == hole_index {
+                "<hole 1: literal>".to_string()
+            } else {
+                abstraction_token_label(token).to_string()
+            }
+        })
+        .collect();
+
+    Some(crate::AbstractionWitness {
+        reason_code: reason_code?,
+        template,
+        holes: vec![crate::AbstractionHole {
+            index: 1,
+            kind: "literal",
+            left: left.literal?.label(),
+            right: right.literal?.label(),
+            left_line: left.line,
+            right_line: right.line,
+        }],
+        caveats,
+    })
+}
+
+fn same_abstraction_token(a: &AbstractionToken, b: &AbstractionToken) -> bool {
+    a.kind == b.kind && a.arity == b.arity && a.exact_tag == b.exact_tag
+}
+
+fn literal_hole_reason(
+    a: &AbstractionToken,
+    b: &AbstractionToken,
+) -> Option<(&'static str, Vec<&'static str>)> {
+    if a.kind != NodeKind::Lit || b.kind != NodeKind::Lit || a.arity != 0 || b.arity != 0 {
+        return None;
+    }
+    let left = a.literal?;
+    let right = b.literal?;
+    let shape_compatible = a.shape_tag == b.shape_tag
+        || matches!(
+            (left, right),
+            (AbstractionLiteral::Int, AbstractionLiteral::Float)
+                | (AbstractionLiteral::Float, AbstractionLiteral::Int)
+        );
+    if !shape_compatible {
+        return None;
+    }
+    match (left, right) {
+        (AbstractionLiteral::Int, AbstractionLiteral::Float)
+        | (AbstractionLiteral::Float, AbstractionLiteral::Int) => {
+            Some(("type-parametric", vec!["numeric-domain-sensitive"]))
+        }
+        (AbstractionLiteral::Int, AbstractionLiteral::Int)
+        | (AbstractionLiteral::Float, AbstractionLiteral::Float)
+        | (AbstractionLiteral::Str, AbstractionLiteral::Str) => {
+            Some(("literal-abstracted", Vec::new()))
+        }
+        _ => None,
+    }
+}
+
+fn abstraction_token_label(token: &AbstractionToken) -> &'static str {
+    match token.literal {
+        Some(AbstractionLiteral::Int) => "Lit<Int>",
+        Some(AbstractionLiteral::Float) => "Lit<Float>",
+        Some(AbstractionLiteral::Str) => "Lit<String>",
+        None => match token.kind {
+            NodeKind::Module => "Module",
+            NodeKind::Func => "Func",
+            NodeKind::Param => "Param",
+            NodeKind::Block => "Block",
+            NodeKind::Assign => "Assign",
+            NodeKind::ExprStmt => "ExprStmt",
+            NodeKind::Return => "Return",
+            NodeKind::If => "If",
+            NodeKind::Loop => "Loop",
+            NodeKind::Break => "Break",
+            NodeKind::Continue => "Continue",
+            NodeKind::Throw => "Throw",
+            NodeKind::Try => "Try",
+            NodeKind::Var => "Var",
+            NodeKind::Lit => "Lit",
+            NodeKind::Call => "Call",
+            NodeKind::BinOp => "BinOp",
+            NodeKind::UnOp => "UnOp",
+            NodeKind::Index => "Index",
+            NodeKind::Field => "Field",
+            NodeKind::Lambda => "Lambda",
+            NodeKind::Seq => "Seq",
+            NodeKind::HoF => "HoF",
+            NodeKind::Raw => "Raw",
+        },
+    }
 }
 
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -376,6 +566,12 @@ struct UnitRoot {
     fragment_kind: Option<FragmentKind>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ExtractFeatures {
+    pub(crate) shape_features: bool,
+    pub(crate) abstraction_witnesses: bool,
+}
+
 /// Extract all units of `il` passing the size gates, with features computed.
 pub(crate) fn extract(
     il: &Il,
@@ -384,7 +580,7 @@ pub(crate) fn extract(
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
-    shape_features: bool,
+    features: ExtractFeatures,
 ) -> Vec<UnitFeat> {
     // Frontend-tagged functions/methods/classes, and (when enabled) substantial
     // sub-function blocks (loops / ifs / try) plus exact-safe statement fragments.
@@ -524,13 +720,21 @@ pub(crate) fn extract(
             continue;
         }
         let feature_start = unit_timer.start();
-        let (shapes, shape_minhash, linear) = if shape_features {
+        let (shapes, shape_minhash, linear, abstraction_tokens) = if features.shape_features {
             let mut shapes = Vec::with_capacity(pre.len());
             let mut linear = Vec::with_capacity(pre.len());
+            let mut abstraction_tokens = if features.abstraction_witnesses {
+                Vec::with_capacity(pre.len())
+            } else {
+                Vec::new()
+            };
             for &nid in &pre {
                 let n = il.node(nid);
                 let tag = node_tag(n.kind, n.payload, interner);
                 linear.push(tag);
+                if features.abstraction_witnesses {
+                    abstraction_tokens.push(abstraction_token(il, interner, nid, tag));
+                }
                 let mut shape = tag;
                 for &c in il.children(nid) {
                     let cn = il.node(c);
@@ -545,14 +749,25 @@ pub(crate) fn extract(
                 shapes,
                 crate::minhash::sign(&distinct_shapes, seeds),
                 linear,
+                abstraction_tokens,
             )
+        } else if features.abstraction_witnesses {
+            let abstraction_tokens = pre
+                .iter()
+                .map(|&nid| {
+                    let n = il.node(nid);
+                    let tag = node_tag(n.kind, n.payload, interner);
+                    abstraction_token(il, interner, nid, tag)
+                })
+                .collect();
+            (Vec::new(), Vec::new(), Vec::new(), abstraction_tokens)
         } else {
-            (Vec::new(), Vec::new(), Vec::new())
+            (Vec::new(), Vec::new(), Vec::new(), Vec::new())
         };
 
         // Candidate generation keys on the value graph when present (so clones
         // that converge only semantically still become candidates).
-        let minhash = if value.is_empty() && !shape_features {
+        let minhash = if value.is_empty() && !features.shape_features {
             Vec::new()
         } else {
             let mut distinct = if value.is_empty() {
@@ -599,6 +814,7 @@ pub(crate) fn extract(
             value,
             minhash,
             linear,
+            abstraction_tokens,
             lits,
             returns,
             anchors,
@@ -4458,22 +4674,83 @@ mod tests {
         ));
     }
 
-    fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
+    fn lowered_java_unit_with_features(
+        src: &str,
+        interner: &Interner,
+        kind: UnitKind,
+        name: &str,
+        shape_features: bool,
+        abstraction_witnesses: bool,
+    ) -> UnitFeat {
         let raw =
             nose_frontend::lower_source(FileId(0), "T.java", src.as_bytes(), Lang::Java, interner)
                 .expect("lower Java source");
         let il =
             nose_normalize::normalize(&raw, interner, &nose_normalize::NormalizeOptions::default());
         let seeds = crate::minhash::seeds(64);
-        let units = extract(&il, interner, &seeds, 1, 1, true, false);
+        let units = extract(
+            &il,
+            interner,
+            &seeds,
+            1,
+            1,
+            true,
+            ExtractFeatures {
+                shape_features,
+                abstraction_witnesses,
+            },
+        );
         units
             .into_iter()
             .find(|unit| unit.kind == kind && unit.name.as_deref() == Some(name))
             .expect("requested Java unit")
     }
 
+    fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
+        lowered_java_unit_with_features(src, interner, kind, name, false, false)
+    }
+
     fn lowered_java_method_unit(src: &str, interner: &Interner) -> UnitFeat {
         lowered_java_unit(src, interner, UnitKind::Method, "f")
+    }
+
+    #[test]
+    fn abstraction_tokens_do_not_depend_on_shape_features() {
+        let interner = Interner::new();
+        let left = lowered_java_unit_with_features(
+            "class Left { static int f() { return 1; } }\n",
+            &interner,
+            UnitKind::Method,
+            "f",
+            false,
+            true,
+        );
+        let right = lowered_java_unit_with_features(
+            "class Right { static int f() { return 2; } }\n",
+            &interner,
+            UnitKind::Method,
+            "f",
+            false,
+            true,
+        );
+
+        assert!(
+            left.shapes.is_empty(),
+            "shape features should stay disabled"
+        );
+        assert!(
+            left.linear.is_empty(),
+            "linear shape features should stay disabled"
+        );
+        assert!(
+            !left.abstraction_tokens.is_empty() && !right.abstraction_tokens.is_empty(),
+            "abstraction witnesses need their own tokens even when shape features are off"
+        );
+        let witness = abstraction_witness(&left, &right)
+            .expect("one changed integer literal should produce an abstraction witness");
+        assert_eq!(witness.reason_code, "literal-abstracted");
+        assert_eq!(witness.holes[0].left, "int-literal");
+        assert_eq!(witness.holes[0].right, "int-literal");
     }
 
     #[test]

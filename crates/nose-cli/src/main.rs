@@ -133,8 +133,8 @@ enum Cmd {
         config: Option<PathBuf>,
         /// Detection channels to run. Omit for `syntax,semantic`. If present, this
         /// replaces the default; pass a comma-list or repeat it, e.g.
-        /// `--mode syntax,near` or `--mode syntax --mode semantic`. The `near` channel
-        /// takes an optional acceptance threshold inline: `--mode near:0.8` (default 0.70).
+        /// `--mode syntax,near` or `--mode syntax --mode semantic`. Fuzzy channels
+        /// take an optional acceptance threshold inline: `--mode near:0.8`.
         #[arg(
             long,
             value_delimiter = ',',
@@ -373,8 +373,9 @@ pub(crate) enum ReportFormat {
     Sarif,
 }
 
-/// One `--mode` channel. `near` carries its own acceptance threshold (`near:0.8`),
-/// so there is no separate `--threshold` flag to mis-combine.
+/// One `--mode` channel. Fuzzy modes carry their acceptance threshold inline
+/// (`near:0.8` / `abstraction:0.5`), so there is no separate `--threshold` flag
+/// to mis-combine.
 #[derive(Clone, Copy, PartialEq, serde::Deserialize)]
 #[serde(try_from = "String")]
 enum ScanMode {
@@ -384,6 +385,8 @@ enum ScanMode {
     Semantic,
     /// Fuzzy Type-3 near-duplicate candidates, with an optional acceptance threshold.
     Near(Option<f64>),
+    /// Experimental weak refactoring-template witnesses over near candidates.
+    Abstraction(Option<f64>),
 }
 
 impl std::str::FromStr for ScanMode {
@@ -394,6 +397,7 @@ impl std::str::FromStr for ScanMode {
             "syntax" => Ok(ScanMode::Syntax),
             "semantic" => Ok(ScanMode::Semantic),
             "near" => Ok(ScanMode::Near(None)),
+            "abstraction" => Ok(ScanMode::Abstraction(None)),
             _ => {
                 if let Some(t) = s.strip_prefix("near:") {
                     let v: f64 = t
@@ -403,9 +407,17 @@ impl std::str::FromStr for ScanMode {
                         return Err(format!("near threshold must be in [0,1], got {v}"));
                     }
                     Ok(ScanMode::Near(Some(v)))
+                } else if let Some(t) = s.strip_prefix("abstraction:") {
+                    let v: f64 = t
+                        .parse()
+                        .map_err(|_| format!("invalid abstraction threshold in `{s}`"))?;
+                    if !(0.0..=1.0).contains(&v) {
+                        return Err(format!("abstraction threshold must be in [0,1], got {v}"));
+                    }
+                    Ok(ScanMode::Abstraction(Some(v)))
                 } else {
                     Err(format!(
-                        "unknown mode `{s}` (expected syntax, semantic, near, or near:T)"
+                        "unknown mode `{s}` (expected syntax, semantic, near, near:T, abstraction, or abstraction:T)"
                     ))
                 }
             }
@@ -436,7 +448,8 @@ struct ScanChannels {
     syntax: bool,
     semantic: bool,
     near: bool,
-    /// The `near:T` threshold, if one was given in the mode spec.
+    abstraction: bool,
+    /// The shared fuzzy acceptance threshold, if one was given in the mode spec.
     threshold: Option<f64>,
 }
 
@@ -453,6 +466,7 @@ impl ScanChannels {
             syntax: false,
             semantic: false,
             near: false,
+            abstraction: false,
             threshold: None,
         };
         for mode in selected {
@@ -461,43 +475,87 @@ impl ScanChannels {
                 ScanMode::Semantic => channels.semantic = true,
                 ScanMode::Near(t) => {
                     channels.near = true;
-                    if t.is_some() {
-                        channels.threshold = t;
-                    }
+                    channels.set_threshold("near", t)?;
+                }
+                ScanMode::Abstraction(t) => {
+                    channels.abstraction = true;
+                    channels.set_threshold("abstraction", t)?;
                 }
             }
         }
-        if !channels.syntax && !channels.semantic && !channels.near {
-            anyhow::bail!("--mode must include at least one of syntax, semantic, or near");
+        if !channels.syntax && !channels.semantic && !channels.near && !channels.abstraction {
+            anyhow::bail!(
+                "--mode must include at least one of syntax, semantic, near, or abstraction"
+            );
         }
         Ok(channels)
     }
 
+    fn set_threshold(&mut self, mode: &'static str, threshold: Option<f64>) -> Result<()> {
+        let Some(next) = threshold else {
+            return Ok(());
+        };
+        if let Some(prev) = self.threshold {
+            if (prev - next).abs() > f64::EPSILON {
+                anyhow::bail!(
+                    "conflicting --mode thresholds: near and abstraction share one acceptance threshold; got {prev} and {mode}:{next}"
+                );
+            }
+        }
+        self.threshold = Some(next);
+        Ok(())
+    }
+
     fn structural(self) -> bool {
-        self.semantic || self.near
+        self.semantic || self.near || self.abstraction
     }
 
     fn report_label(self, count: usize) -> &'static str {
         let singular = count == 1;
-        match (self.syntax, self.semantic, self.near, singular) {
-            (true, false, false, true) => "syntax clone family",
-            (true, false, false, false) => "syntax clone families",
-            (false, true, false, true) => "semantic clone family",
-            (false, true, false, false) => "semantic clone families",
-            (false, false, true, true) => "near-duplicate family",
-            (false, false, true, false) => "near-duplicate families",
-            (_, _, _, true) => "clone family",
-            (_, _, _, false) => "clone families",
+        match (
+            self.syntax,
+            self.semantic,
+            self.near,
+            self.abstraction,
+            singular,
+        ) {
+            (true, false, false, false, true) => "syntax clone family",
+            (true, false, false, false, false) => "syntax clone families",
+            (false, true, false, false, true) => "semantic clone family",
+            (false, true, false, false, false) => "semantic clone families",
+            (false, false, true, false, true) => "near-duplicate family",
+            (false, false, true, false, false) => "near-duplicate families",
+            (false, false, false, true, true) => "abstraction candidate family",
+            (false, false, false, true, false) => "abstraction candidate families",
+            (_, _, _, _, true) => "clone family",
+            (_, _, _, _, false) => "clone families",
         }
     }
 
     fn markdown_title(self) -> &'static str {
-        match (self.syntax, self.semantic, self.near) {
-            (true, false, false) => "Syntax Clone Families",
-            (false, true, false) => "Semantic Clone Families",
-            (false, false, true) => "Near-Duplicate Families",
+        match (self.syntax, self.semantic, self.near, self.abstraction) {
+            (true, false, false, false) => "Syntax Clone Families",
+            (false, true, false, false) => "Semantic Clone Families",
+            (false, false, true, false) => "Near-Duplicate Families",
+            (false, false, false, true) => "Abstraction Candidate Families",
             _ => "Clone Families",
         }
+    }
+
+    fn threshold(self) -> f64 {
+        if self.near || self.abstraction {
+            self.threshold.unwrap_or(if self.abstraction && !self.near {
+                0.50
+            } else {
+                0.70
+            })
+        } else {
+            1.0
+        }
+    }
+
+    fn abstraction_only(self) -> bool {
+        self.abstraction && !self.syntax && !self.semantic && !self.near
     }
 }
 
@@ -1055,6 +1113,21 @@ fn family_summary(f: &nose_detect::RefactorFamily) -> String {
         f.members,
         removable_lines(f)
     )
+}
+
+fn abstraction_witness_summary(witness: &nose_detect::AbstractionWitness) -> String {
+    let caveats = if witness.caveats.is_empty() {
+        "no caveats".to_string()
+    } else {
+        format!("caveats: {}", witness.caveats.join(", "))
+    };
+    let holes = witness
+        .holes
+        .iter()
+        .map(|hole| format!("{} {}->{}", hole.kind, hole.left, hole.right))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("{} · {} · {}", witness.reason_code, holes, caveats)
 }
 
 /// Lines you'd actually delete by extracting one shared copy. For same-language
@@ -2361,11 +2434,7 @@ pub(crate) fn detect_families(
 ) -> Result<Vec<nose_detect::RefactorFamily>> {
     let refs = paths_as_refs(paths);
     let channels = ScanChannels::resolve(mode, cfg_mode)?;
-    let threshold = if channels.near {
-        channels.threshold.unwrap_or(0.70)
-    } else {
-        1.0
-    };
+    let threshold = channels.threshold();
     let opts = nose_detect::DetectOptions {
         threshold,
         min_lines,
@@ -2377,15 +2446,20 @@ pub(crate) fn detect_families(
         // Near also generates VALUE candidates so behaviorally-convergent but shape-divergent
         // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
         // they share no shape band, so shape-LSH alone would never propose them.
-        value_candidates: channels.semantic || channels.near,
-        shape_candidates: channels.near,
-        shape_features: channels.near,
+        value_candidates: channels.semantic || channels.near || channels.abstraction,
+        shape_candidates: channels.near || channels.abstraction,
+        shape_features: channels.near || channels.abstraction,
+        abstraction_witnesses: channels.abstraction,
         ..Default::default()
     };
     let detector = scan_detector(channels, &opts);
     let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
     let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
-    Ok(nose_detect::rank_families(&report))
+    let mut families = nose_detect::rank_families(&report);
+    if channels.abstraction_only() {
+        families.retain(|f| f.abstraction_witness.is_some());
+    }
+    Ok(families)
 }
 
 fn scan_detector(
@@ -2396,7 +2470,7 @@ fn scan_detector(
     if channels.semantic {
         detectors.push(Box::new(nose_detect::ExactBehaviorDetector));
     }
-    if channels.near {
+    if channels.near || channels.abstraction {
         detectors.push(Box::new(
             nose_detect::StructuralDetector::candidates(opts.jaccard_weight)
                 .without_exact_behavior()
@@ -2408,7 +2482,13 @@ fn scan_detector(
         0 => Box::new(nose_detect::CopyPasteDetector),
         1 => detectors.pop().expect("one detector"),
         _ => Box::new(ChannelDetector {
-            name: "semantic+near",
+            name: if channels.abstraction && !channels.near {
+                "semantic+abstraction"
+            } else if channels.abstraction {
+                "semantic+near+abstraction"
+            } else {
+                "semantic+near"
+            },
             detectors,
         }),
     }
@@ -2477,11 +2557,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let min_value = args.min_value.or(cfg.min_value).unwrap_or(0.0);
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
     let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
-    let threshold = if channels.near {
-        channels.threshold.unwrap_or(0.70)
-    } else {
-        1.0
-    };
+    let threshold = channels.threshold();
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let ignore_file = args.ignore_file.or(cfg.ignore_file);
@@ -2504,9 +2580,10 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         // Near also generates VALUE candidates so behaviorally-convergent but shape-divergent
         // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
         // they share no shape band, so shape-LSH alone would never propose them.
-        value_candidates: channels.semantic || channels.near,
-        shape_candidates: channels.near,
-        shape_features: channels.near,
+        value_candidates: channels.semantic || channels.near || channels.abstraction,
+        shape_candidates: channels.near || channels.abstraction,
+        shape_features: channels.near || channels.abstraction,
+        abstraction_witnesses: channels.abstraction,
         ..Default::default()
     };
     let detector = scan_detector(channels, &opts);
@@ -2539,6 +2616,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     };
 
     let mut families = nose_detect::rank_families(&report);
+    if channels.abstraction_only() {
+        families.retain(|f| f.abstraction_witness.is_some());
+    }
     families.retain(|f| f.members >= min_members && f.value >= min_value);
     // Show paths relative to the working directory — absolute paths are unreadable
     // in CI logs and reviews, and relative ones are clickable and portable.
@@ -3064,6 +3144,9 @@ fn print_refactor_human(
             family_summary(f)
         );
         println!("    → {}", family_hint(f));
+        if let Some(witness) = &f.abstraction_witness {
+            println!("    witness {}", abstraction_witness_summary(witness));
+        }
         for l in f.locations.iter().take(SITE_CAP) {
             let name = l
                 .name
@@ -3461,6 +3544,9 @@ fn print_refactor_markdown(
             xlang
         );
         println!("\n*{}*\n", family_hint(f));
+        if let Some(witness) = &f.abstraction_witness {
+            println!("_witness: {}_\n", abstraction_witness_summary(witness));
+        }
         for l in &f.locations {
             let name = l
                 .name
@@ -3756,6 +3842,7 @@ mod tests {
             mean_sem: 50.0,
             scope: "prod",
             discount: 1.0,
+            abstraction_witness: None,
         }
     }
 

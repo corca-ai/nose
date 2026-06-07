@@ -709,6 +709,7 @@ index 1111111..2222222 100644
             mean_sem: 4.0,
             scope: "prod",
             discount: 1.0,
+            abstraction_witness: None,
         }
     }
 

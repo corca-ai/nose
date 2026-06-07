@@ -9,7 +9,7 @@
 //!   - **design-level spread** — a family spanning many files / modules signals a
 //!     missing abstraction, weighted above a local copy-paste.
 
-use crate::{Group, Loc, Report};
+use crate::{AbstractionWitness, Group, Loc, Report};
 use serde::Serialize;
 use std::path::Path;
 
@@ -61,6 +61,11 @@ pub struct RefactorFamily {
     /// all-type-definition and all-generated families. Applied to *both* `value` and
     /// `extractability` so the default ranking honors it too.
     pub discount: f64,
+    /// Experimental weak-claim witness for `abstraction` mode. This records a typed
+    /// template and caveats for near candidates that share structure but differ by one
+    /// supported literal leaf. It is not a semantic-equivalence proof.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub abstraction_witness: Option<AbstractionWitness>,
 }
 
 impl RefactorFamily {
@@ -481,6 +486,7 @@ fn family_of(group: &Group) -> RefactorFamily {
         mean_sem,
         scope,
         discount,
+        abstraction_witness: group.abstraction_witness.clone(),
     }
 }
 
@@ -660,6 +666,7 @@ mod tests {
             mean_sem: 50.0,
             scope: "prod",
             discount: 1.0,
+            abstraction_witness: None,
         }
     }
 
@@ -878,6 +885,7 @@ mod tests {
                 loc("a.rs", 1, 20, "rust"),
                 loc("b.rs", 1, 20, "rust"),
             ],
+            abstraction_witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -894,10 +902,12 @@ mod tests {
         let outer = Group {
             score: 0.9,
             members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
+            abstraction_witness: None,
         };
         let inner = Group {
             score: 1.0,
             members: vec![loc("a.rs", 15, 25, "rust"), loc("b.rs", 15, 25, "rust")],
+            abstraction_witness: None,
         };
         let fams = rank_families(&report(vec![inner, outer]));
         assert_eq!(fams.len(), 1, "the contained family should be dropped");
@@ -916,6 +926,7 @@ mod tests {
         let mk = |f1: &'static str, f2: &'static str| Group {
             score: 1.0,
             members: vec![loc(f1, 1, 20, "rust"), loc(f2, 1, 20, "rust")],
+            abstraction_witness: None,
         };
         let keys = |groups| {
             rank_families(&report(groups))
@@ -950,6 +961,7 @@ mod tests {
                 loc("con.py", 143, 167, "python"),
                 loc("con.py", 144, 167, "python"), // off-by-one near-duplicate
             ],
+            abstraction_witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -969,6 +981,7 @@ mod tests {
                 loc("p.py", 763, 794, "python"),
                 loc("p.py", 795, 818, "python"),
             ],
+            abstraction_witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -987,6 +1000,7 @@ mod tests {
                 loc("y/b.rs", 1, 10, "rust"),
                 loc("z/c.rs", 1, 10, "rust"),
             ],
+            abstraction_witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(f.members, 3);
@@ -1003,10 +1017,12 @@ mod tests {
             members: (0..10)
                 .map(|i| loc(&format!("m{i}/f.rs"), 1, 30, "rust"))
                 .collect(),
+            abstraction_witness: None,
         };
         let small = Group {
             score: 1.0,
             members: vec![loc("p/a.rs", 1, 6, "rust"), loc("p/b.rs", 1, 6, "rust")],
+            abstraction_witness: None,
         };
         let fams = rank_families(&report(vec![small, big]));
         assert!(
@@ -1021,6 +1037,7 @@ mod tests {
         let mono = Group {
             score: 0.9,
             members: vec![loc("a.py", 1, 10, "python"), loc("b.py", 1, 10, "python")],
+            abstraction_witness: None,
         };
         let cross = Group {
             score: 0.9,
@@ -1028,6 +1045,7 @@ mod tests {
                 loc("a.py", 1, 10, "python"),
                 loc("b.ts", 1, 10, "typescript"),
             ],
+            abstraction_witness: None,
         };
         let fm = family_of(&mono);
         let fc = family_of(&cross);
@@ -1048,6 +1066,7 @@ mod tests {
                 loc("src/a.rs", 1, 30, "rust"),
                 loc("src/b.rs", 1, 30, "rust"),
             ],
+            abstraction_witness: None,
         };
         let test = Group {
             score: 1.0,
@@ -1055,6 +1074,7 @@ mod tests {
                 loc("tests/a.rs", 1, 30, "rust"),
                 loc("tests/b.rs", 1, 30, "rust"),
             ],
+            abstraction_witness: None,
         };
         let fp = family_of(&prod);
         let ft = family_of(&test);
@@ -1078,6 +1098,7 @@ mod tests {
         let mixed = Group {
             score: 1.0,
             members: vec![loc("src/a.rs", 1, 30, "rust"), test_named],
+            abstraction_witness: None,
         };
         let pure = Group {
             score: 1.0,
@@ -1085,6 +1106,7 @@ mod tests {
                 loc("src/a.rs", 1, 30, "rust"),
                 loc("src/b.rs", 1, 30, "rust"),
             ],
+            abstraction_witness: None,
         };
         let fmixed = family_of(&mixed);
         let fpure = family_of(&pure);
@@ -1204,6 +1226,7 @@ mod tests {
                 loc_k("src/a.rs", 1, 30, Class, 5),
                 loc_k("src/b.rs", 1, 30, Class, 5),
             ],
+            abstraction_witness: None,
         };
         // A behavior-rich class of the same size is a genuine candidate.
         let rich = Group {
@@ -1212,6 +1235,7 @@ mod tests {
                 loc_k("src/c.rs", 1, 30, Class, 80),
                 loc_k("src/d.rs", 1, 30, Class, 80),
             ],
+            abstraction_witness: None,
         };
         let ftd = family_of(&typedef);
         let frich = family_of(&rich);
@@ -1226,6 +1250,7 @@ mod tests {
                 loc_k("src/e.rs", 1, 30, Function, 5),
                 loc_k("src/f.rs", 1, 30, Function, 5),
             ],
+            abstraction_witness: None,
         };
         assert!(
             family_of(&func).value > ftd.value,
@@ -1242,10 +1267,12 @@ mod tests {
                 loc("a/vendor/x.go", 1, 30, "go"),
                 loc("b/vendor/y.go", 1, 30, "go"),
             ],
+            abstraction_witness: None,
         };
         let owned = Group {
             score: 1.0,
             members: vec![loc("src/x.go", 1, 30, "go"), loc("src/y.go", 1, 30, "go")],
+            abstraction_witness: None,
         };
         assert!(
             family_of(&owned).value > family_of(&vendored).value,

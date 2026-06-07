@@ -43,6 +43,12 @@ still being migrated toward it.
 The current model already enforces the main product principle: exact semantic
 matches must be fail-closed and false merges are bugs.
 
+An experimental `abstraction` scan mode now exists as a weak sibling surface over
+`near`, not as an exact semantic relaxation. It keeps only same-language candidates
+whose normalized IL differs by exactly one supported literal leaf and emits an
+`abstraction_witness` with a typed hole, a reason code, and caveats such as
+`numeric-domain-sensitive`.
+
 ## Implemented facade contracts
 
 The current facade is compiled Rust, not an external manifest schema. It is

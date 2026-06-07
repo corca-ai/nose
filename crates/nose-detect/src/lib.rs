@@ -83,6 +83,10 @@ pub struct DetectOptions {
     /// structural scoring. Exact semantic scans do not need them: candidate generation
     /// and scoring both use the value graph only.
     pub shape_features: bool,
+    /// Attach experimental abstraction witnesses to near-derived families whose normalized
+    /// structure differs by exactly one supported literal leaf. This is a weak refactoring
+    /// claim and never participates in exact semantic acceptance.
+    pub abstraction_witnesses: bool,
 }
 
 impl Default for DetectOptions {
@@ -110,6 +114,7 @@ impl Default for DetectOptions {
             value_candidates: true,
             shape_candidates: false,
             shape_features: true,
+            abstraction_witnesses: false,
         }
     }
 }
@@ -552,10 +557,30 @@ pub struct DupPair {
     pub cross_language: bool,
 }
 
+#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+pub struct AbstractionWitness {
+    pub reason_code: &'static str,
+    pub template: Vec<String>,
+    pub holes: Vec<AbstractionHole>,
+    pub caveats: Vec<&'static str>,
+}
+
+#[derive(Serialize, Clone, PartialEq, Eq, Debug)]
+pub struct AbstractionHole {
+    pub index: u32,
+    pub kind: &'static str,
+    pub left: &'static str,
+    pub right: &'static str,
+    pub left_line: u32,
+    pub right_line: u32,
+}
+
 #[derive(Serialize)]
 pub struct Group {
     pub score: f64,
     pub members: Vec<Loc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub abstraction_witness: Option<AbstractionWitness>,
 }
 
 #[derive(Serialize)]
@@ -768,7 +793,10 @@ pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<
         opts.min_lines,
         opts.min_tokens,
         opts.block_units,
-        opts.shape_features,
+        units::ExtractFeatures {
+            shape_features: opts.shape_features,
+            abstraction_witnesses: opts.abstraction_witnesses,
+        },
     )
 }
 
@@ -803,7 +831,10 @@ pub fn detect_with_dump(
                     opts.min_lines,
                     opts.min_tokens,
                     opts.block_units,
-                    opts.shape_features,
+                    units::ExtractFeatures {
+                        shape_features: opts.shape_features,
+                        abstraction_witnesses: opts.abstraction_witnesses,
+                    },
                 )
             } else {
                 Vec::new()
@@ -933,13 +964,32 @@ pub fn detect_from_units(
         e.0 += s;
         e.1 += 1;
     }
+    let mut abstraction_by_root: rustc_hash::FxHashMap<
+        usize,
+        (f64, usize, usize, AbstractionWitness),
+    > = rustc_hash::FxHashMap::default();
+    if opts.abstraction_witnesses {
+        for &(i, j, s) in &accepted {
+            if let Some(witness) = units::abstraction_witness(&units[i], &units[j]) {
+                let root = uf.find(i);
+                let replace =
+                    abstraction_by_root
+                        .get(&root)
+                        .is_none_or(|(best_score, best_i, best_j, _)| {
+                            s.total_cmp(best_score).is_gt()
+                                || (s == *best_score && (i, j) < (*best_i, *best_j))
+                        });
+                if replace {
+                    abstraction_by_root.insert(root, (s, i, j, witness));
+                }
+            }
+        }
+    }
     let groups: Vec<Group> = raw_groups
         .iter()
         .map(|members| {
-            let (sum, n) = by_root
-                .get(&uf.find(members[0]))
-                .copied()
-                .unwrap_or((0.0, 0));
+            let root = uf.find(members[0]);
+            let (sum, n) = by_root.get(&root).copied().unwrap_or((0.0, 0));
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
             let mut locs: Vec<Loc> = members
                 .iter()
@@ -960,6 +1010,9 @@ pub fn detect_from_units(
             Group {
                 score: round3(score),
                 members: locs,
+                abstraction_witness: abstraction_by_root
+                    .get(&root)
+                    .map(|(_, _, _, witness)| witness.clone()),
             }
         })
         .collect();

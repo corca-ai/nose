@@ -19,7 +19,7 @@ use std::path::Path;
 /// cache entries then live under a different directory and are ignored. (v5: exact
 /// Type-4 features include the newly modeled record, membership, flag-loop, and ordered
 /// string-builder idioms.)
-const SCHEMA: u32 = 5;
+const SCHEMA: u32 = 6;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,
@@ -141,6 +141,7 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         opts.dce as u64,
         opts.minhash_k as u64,
         opts.shape_features as u64,
+        opts.abstraction_witnesses as u64,
     ] {
         h = crate::fnv::mix(h, v);
     }

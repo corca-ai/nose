@@ -304,6 +304,10 @@ and pack ecosystem.
   dependencies when spans survive normalization, and Java map provider proofs no
   longer replace current receiver identity except for imported literal snapshots
   already validated in the provider module.
+- An experimental `abstraction` scan mode landed as a weak sibling claim over a
+  narrow `near` subset. It emits typed literal-hole witnesses and caveats for
+  refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
+  kernel admission.
 
 ## Phase 0: documentation and vocabulary (landed)
 

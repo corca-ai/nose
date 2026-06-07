@@ -62,6 +62,13 @@ The `near` channel's acceptance threshold rides on the `mode` value itself —
 There is no separate threshold setting, so it can never be mis-applied to the exact
 `syntax`/`semantic` channels.
 
+The hidden experimental `abstraction[:T]` mode is also accepted in `mode`, but it is
+not a stable project-policy surface and is intentionally absent from
+[capabilities](capabilities.md)' stable mode list. Prefer it for local research or
+tooling experiments, not CI gates. If `near:T` and `abstraction:T` appear together,
+they must name the same threshold because both modes share one fuzzy acceptance
+cutoff.
+
 ```sh
 nose scan src --mode syntax,semantic,near:0.70
 ```
