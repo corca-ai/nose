@@ -1042,8 +1042,8 @@ const ANCHOR_PAIR_CAP: usize = 64;
 fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
     let mut buckets: HashMap<u64, Vec<usize>> = HashMap::new();
     for (idx, unit) in units.iter().enumerate() {
-        for &(hash, _weight) in &unit.anchors {
-            buckets.entry(hash).or_default().push(idx);
+        for a in &unit.anchors {
+            buckets.entry(a.hash).or_default().push(idx);
         }
     }
     let max_df = anchor_max_df();
@@ -1069,14 +1069,14 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
 /// The weight of the LARGEST sub-DAG the two units share (0 if none) — a shared anchor is a
 /// shared extractable sub-computation, and a bigger one is a stronger partial-clone signal.
 /// Both anchor lists are sorted by hash, so this is a linear merge.
-fn shared_anchor_weight(a: &[(u64, u32)], b: &[(u64, u32)]) -> u32 {
+fn shared_anchor_weight(a: &[nose_normalize::Anchor], b: &[nose_normalize::Anchor]) -> u32 {
     let (mut i, mut j, mut best) = (0, 0, 0);
     while i < a.len() && j < b.len() {
-        match a[i].0.cmp(&b[j].0) {
+        match a[i].hash.cmp(&b[j].hash) {
             std::cmp::Ordering::Less => i += 1,
             std::cmp::Ordering::Greater => j += 1,
             std::cmp::Ordering::Equal => {
-                best = best.max(a[i].1.min(b[j].1));
+                best = best.max(a[i].weight.min(b[j].weight));
                 i += 1;
                 j += 1;
             }

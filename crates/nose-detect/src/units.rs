@@ -49,13 +49,13 @@ pub struct UnitFeat {
     /// clones return the same computed values; used to demote near-identical units
     /// that differ only in their result (`<` vs `<=`, an extra effect).
     pub returns: Vec<u64>,
-    /// The unit's heavy sub-DAG ANCHORS as `(hash, weight)`, sorted/deduped by hash
-    /// (sub-computations of ≥ `ANCHOR_MIN_WEIGHT` value-nodes). Two units sharing a rare anchor
-    /// share an extractable common sub-computation — a partial / sub-DAG clone that whole-unit
-    /// Jaccard misses; the weight (sub-DAG size) lets the candidate (`near`) channel RANK a
-    /// shared sub-DAG by how big the shared computation is.
+    /// The unit's heavy sub-DAG ANCHORS (sub-computations of ≥ `ANCHOR_MIN_WEIGHT` value-nodes),
+    /// sorted/deduped by hash. Two units sharing a rare anchor share an extractable common
+    /// sub-computation — a partial / sub-DAG clone that whole-unit Jaccard misses. Each carries
+    /// its weight (to RANK the shared sub-DAG by size) and the source line range (to SHOW where
+    /// the shared computation lives).
     #[serde(default)]
-    pub anchors: Vec<(u64, u32)>,
+    pub anchors: Vec<nose_normalize::Anchor>,
     /// Whether the value fingerprint is safe to use as a strict semantic proof.
     ///
     /// `semantic` mode must not report units whose fingerprint passed through lossy

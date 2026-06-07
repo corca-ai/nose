@@ -8,6 +8,7 @@ rust-version.workspace = true
 [dependencies]
 nose-il = { workspace = true }
 rustc-hash = { workspace = true }
+serde = { workspace = true }
 
 [lints]
 workspace = true

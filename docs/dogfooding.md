@@ -101,3 +101,12 @@ source — chiefly the per-grammar frontend helpers and the `proven_*` value-gra
 factories (genuinely parallel functions, like the frontend parallelism already accepted here).
 These are dedup candidates, not duplication introduced by the PR. The gate budget is re-baselined
 to 20 so it keeps ratcheting against NEW duplication on top of the stronger detector.
+
+## Budget 20 → 21 and sub-DAG anchors with line ranges
+
+A later PR weight-grades the sub-DAG score (a larger shared computation scores higher), which
+lifts one pre-existing partial-clone family past the substantial threshold — budget re-baselined
+20 → 21. Each sub-DAG anchor also now carries the **source line range** of the shared computation
+(stamped from the enclosing expression during value-graph evaluation), exposed per unit in
+`nose features --format json` (`anchors[].line_start` / `line_end`) — so a partial / sub-DAG clone
+can point at *where* the shared computation lives in each member, not just that one exists.

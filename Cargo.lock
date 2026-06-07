@@ -530,6 +530,7 @@ version = "0.5.0"
 dependencies = [
  "nose-il",
  "rustc-hash",
+ "serde",
 ]
 
 [[package]]

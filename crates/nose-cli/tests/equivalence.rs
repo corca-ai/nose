@@ -2510,12 +2510,59 @@ fn value_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<u64> {
     let n = normalize(&il, interner, &NormalizeOptions::default());
     nose_normalize::value_anchors(&n, first_func(&n), interner)
         .into_iter()
-        .map(|(hash, _weight)| hash)
+        .map(|anchor| anchor.hash)
         .collect()
 }
 
 fn shares_any(a: &[u64], b: &[u64]) -> bool {
     a.iter().any(|x| b.contains(x))
+}
+
+fn full_anchors(interner: &Interner, src: &str, lang: Lang) -> Vec<nose_normalize::Anchor> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    nose_normalize::value_anchors(&n, first_func(&n), interner)
+}
+
+#[test]
+fn sub_dag_anchor_carries_source_line_range_of_the_shared_computation() {
+    // A heavy sub-DAG anchor records WHERE its computation lives (line range), so a partial clone
+    // can report the shared lines. The SAME computation placed on different lines in two functions
+    // yields the same anchor hash but each unit's own line range.
+    let i = Interner::new();
+    let body = |head: &str| {
+        format!(
+            "{head}\n  const totals = items.map(i => i.price * i.qty).reduce((s, x) => s + x, 0);\n  const tax = totals * 0.1;\n  const shipping = totals > 100 ? 0 : 15;\n  const grand = totals + tax + shipping;\n  log(grand);\n  return grand;\n}}\n"
+        )
+    };
+    // Same heavy computation, but two extra lines push it down in `g`.
+    let a = body("function f(items) {");
+    let b = body("function g(items) {\n  log(1);\n  log(2);");
+    let aa = full_anchors(&i, &a, Lang::TypeScript);
+    let bb = full_anchors(&i, &b, Lang::TypeScript);
+    // At least one anchor carries a real (non-zero) line range.
+    assert!(
+        aa.iter().any(|x| x.line_start > 0),
+        "an anchor should record its source line range, got {aa:?}",
+    );
+    // The shared computation produces the same hash in both, on each unit's own line.
+    let sh = aa
+        .iter()
+        .filter(|x| bb.iter().any(|y| y.hash == x.hash))
+        .max_by_key(|x| x.weight)
+        .expect("the shared computation should produce a common anchor hash");
+    let in_b = bb.iter().find(|y| y.hash == sh.hash).unwrap();
+    // Each unit reports the shared computation at ITS OWN location: the two leading `log` lines in
+    // `g` shift every line down by exactly 2.
+    assert!(
+        sh.line_start > 0 && in_b.line_start > 0,
+        "both carry a real line: {sh:?} / {in_b:?}"
+    );
+    assert_eq!(
+        in_b.line_start,
+        sh.line_start + 2,
+        "g's shared computation is 2 lines below f's (the two extra `log` lines)",
+    );
 }
 
 fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {

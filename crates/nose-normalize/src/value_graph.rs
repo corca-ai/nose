@@ -46,7 +46,7 @@ use crate::module_facts::{
 use crate::types::Ty;
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, Symbol, UnitKind,
+    ParamSemantic, Payload, Span, Symbol, UnitKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -78,8 +78,19 @@ const FREE_NAME_COLLECTION_FACTORIES: &[CollectionFactoryRow] = &[
     ),
 ];
 
-/// A unit's heavy sub-DAG anchors as `(structural hash, sub-DAG weight)`, sorted/deduped by hash.
-pub type Anchors = Vec<(u64, u32)>;
+/// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
+/// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
+/// so a partial / sub-DAG clone can report WHERE the shared computation lives in each unit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Anchor {
+    pub hash: u64,
+    pub weight: u32,
+    pub line_start: u32,
+    pub line_end: u32,
+}
+
+/// A unit's heavy sub-DAG anchors, sorted/deduped by hash.
+pub type Anchors = Vec<Anchor>;
 
 /// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
 /// heavy sub-DAG [`Anchors`].
@@ -376,6 +387,13 @@ struct Builder<'a> {
     nodes: Vec<ValNode>,
     /// Structural hash per value node, kept in lockstep with `nodes`.
     vhash: Vec<u64>,
+    /// Source span of the IL subtree that produced each value node (lockstep with `nodes`), so a
+    /// sub-DAG anchor can report WHERE the shared computation lives. Stamped at creation from
+    /// `cur_span` (the enclosing expression being evaluated).
+    node_span: Vec<Option<Span>>,
+    /// The source span of the expression currently being evaluated (set by `eval`), used to stamp
+    /// `node_span` for every node `mk` creates while evaluating it.
+    cur_span: Option<Span>,
     intern: FxHashMap<(ValOp, Vec<ValueId>), ValueId>,
     sinks: Vec<Sink>,
     opaque_ctr: u32,
@@ -500,6 +518,8 @@ impl<'a> Builder<'a> {
             interner,
             nodes: Vec::new(),
             vhash: Vec::new(),
+            node_span: Vec::new(),
+            cur_span: None,
             intern: FxHashMap::default(),
             sinks: Vec::new(),
             opaque_ctr: 0,
@@ -1993,6 +2013,7 @@ impl<'a> Builder<'a> {
         self.nodes.push(ValNode { op, args });
         self.vhash.push(h);
         self.vty.push(ty);
+        self.node_span.push(self.cur_span);
         self.intern.insert(key, id);
         id
     }
@@ -6745,6 +6766,17 @@ impl<'a> Builder<'a> {
     }
 
     fn eval(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
+        // Track the enclosing source expression so EVERY node created while evaluating it (the top
+        // node AND the intermediate nodes a reduce/map unfolds via `mk`) is stamped with its span
+        // at creation — those intermediates are exactly what a heavy sub-DAG anchor points at.
+        let prev = self.cur_span;
+        self.cur_span = Some(self.il.node(expr).span);
+        let v = self.eval_inner(expr, env);
+        self.cur_span = prev;
+        v
+    }
+
+    fn eval_inner(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
         let node = *self.il.node(expr);
         match node.kind {
             NodeKind::Var => match node.payload {
@@ -7276,7 +7308,7 @@ impl<'a> Builder<'a> {
             }
             weight[i] = w.min(WEIGHT_CAP);
         }
-        let mut out: Vec<(u64, u32)> = Vec::new();
+        let mut out: Anchors = Vec::new();
         for i in 0..n {
             if reachable[i]
                 && weight[i] >= min_weight
@@ -7285,13 +7317,24 @@ impl<'a> Builder<'a> {
                     ValOp::Const(_) | ValOp::Input(_) | ValOp::Elem(_)
                 )
             {
-                out.push((self.vhash[i], weight[i]));
+                let (line_start, line_end) = self
+                    .node_span
+                    .get(i)
+                    .copied()
+                    .flatten()
+                    .map_or((0, 0), |s| (s.start_line, s.end_line));
+                out.push(Anchor {
+                    hash: self.vhash[i],
+                    weight: weight[i],
+                    line_start,
+                    line_end,
+                });
             }
         }
         // Dedup by hash (a given sub-DAG hash has a deterministic weight); sort hash-asc,
         // weight-desc so the kept entry is the largest if a hash ever recurs.
-        out.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
-        out.dedup_by_key(|&mut (h, _)| h);
+        out.sort_unstable_by(|a, b| a.hash.cmp(&b.hash).then(b.weight.cmp(&a.weight)));
+        out.dedup_by_key(|a| a.hash);
         out
     }
 
