@@ -460,6 +460,12 @@ pub struct Loc {
     pub reason_code: Option<&'static str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub enclosing_unit: Option<EnclosingUnit>,
+    /// For a sub-DAG (partial) clone, the inclusive source line range AT THIS SITE of the heavy
+    /// shared computation the family is grouped on (the anchor present in every member). `None`
+    /// when the family shares no heavy sub-DAG, or the anchor carries no source span. Lets a
+    /// partial clone point at *where* the shared computation lives in each copy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shared_subdag: Option<(u32, u32)>,
 }
 
 /// Inclusive source-line range used to construct a [`Loc`].
@@ -533,6 +539,7 @@ impl Loc {
             fragment_kind: None,
             reason_code: None,
             enclosing_unit: None,
+            shared_subdag: None,
         }
     }
 }
@@ -934,12 +941,25 @@ pub fn detect_from_units(
                 .copied()
                 .unwrap_or((0.0, 0));
             let score = if n == 0 { 0.0 } else { sum / n as f64 };
+            let mut locs: Vec<Loc> = members
+                .iter()
+                .map(|&m| loc_of(&units[m], enclosing[m].clone()))
+                .collect();
+            // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each
+            // site with its OWN source range for that shared computation — so the report can point
+            // at where the shared logic lives in each copy, not just that one exists.
+            if let Some(hash) = shared_subdag_hash(members, &units) {
+                for (&m, loc) in members.iter().zip(locs.iter_mut()) {
+                    if let Some(a) = units[m].anchors.iter().find(|a| a.hash == hash) {
+                        if a.line_start > 0 || a.line_end > 0 {
+                            loc.shared_subdag = Some((a.line_start, a.line_end));
+                        }
+                    }
+                }
+            }
             Group {
                 score: round3(score),
-                members: members
-                    .iter()
-                    .map(|&m| loc_of(&units[m], enclosing[m].clone()))
-                    .collect(),
+                members: locs,
             }
         })
         .collect();
@@ -1064,6 +1084,25 @@ fn anchor_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {
         }
     }
     out
+}
+
+/// The heaviest sub-DAG anchor present in EVERY member of a group (`None` if none is shared by
+/// all) — the shared computation the report annotates each site with. For a 2-member partial clone
+/// this is the shared anchor; for a larger family it is the common heavy computation.
+fn shared_subdag_hash(members: &[usize], units: &[UnitFeat]) -> Option<u64> {
+    if members.len() < 2 {
+        return None;
+    }
+    units[members[0]]
+        .anchors
+        .iter()
+        .filter(|a| {
+            members[1..]
+                .iter()
+                .all(|&m| units[m].anchors.iter().any(|b| b.hash == a.hash))
+        })
+        .max_by_key(|a| a.weight)
+        .map(|a| a.hash)
 }
 
 /// The weight of the LARGEST sub-DAG the two units share (0 if none) — a shared anchor is a

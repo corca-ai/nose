@@ -93,6 +93,44 @@ fn rust_clones_group_decoy_excluded() {
 }
 
 #[test]
+fn sub_dag_family_annotates_each_site_with_shared_computation_lines() {
+    // Two functions that share a heavy computation but differ elsewhere — a partial / sub-DAG
+    // clone caught by the anchor (near) channel. Each site must report ITS OWN source range for
+    // the shared computation, so the report can point at where the shared logic lives in each copy.
+    let a = "function reportA(items) {\n  const totals = items.map(i => i.price * i.qty).reduce((s, x) => s + x, 0);\n  const tax = totals * 0.1;\n  const grand = totals + tax;\n  logA(grand);\n  return grand;\n}\n";
+    let b = "function reportB(items) {\n  warmup();\n  warmup2();\n  const totals = items.map(i => i.price * i.qty).reduce((s, x) => s + x, 0);\n  const tax = totals * 0.1;\n  const grand = totals + tax;\n  saveB(grand);\n  notifyB(grand);\n}\n";
+    let corpus = build(&[("a.ts", a, Lang::TypeScript), ("b.ts", b, Lang::TypeScript)]);
+    let opts = DetectOptions {
+        threshold: 0.70,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let report = detect(
+        &corpus,
+        &opts,
+        &StructuralDetector::candidates(opts.jaccard_weight),
+    );
+    let families = rank_families(&report);
+    let fam = families
+        .iter()
+        .find(|f| f.locations.iter().any(|l| l.shared_subdag.is_some()))
+        .expect("a sub-DAG family annotated with shared-computation lines must exist");
+    let site = |file: &str| {
+        fam.locations
+            .iter()
+            .find(|l| l.file == file)
+            .and_then(|l| l.shared_subdag)
+    };
+    let sa = site("a.ts").expect("a.ts site is annotated");
+    let sb = site("b.ts").expect("b.ts site is annotated");
+    assert_eq!(
+        sb.0,
+        sa.0 + 2,
+        "each site reports the shared computation at its OWN location (b is two lines lower)",
+    );
+}
+
+#[test]
 fn cross_language_family_groups_six_languages() {
     // The same guarded-accumulator loop, written idiomatically in all six
     // foreach-convergent languages, must land in ONE cross-language family — the
