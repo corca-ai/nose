@@ -13,6 +13,7 @@
 
 use crate::commutative::subtree_hashes;
 use nose_il::{Il, IlBuilder, Interner, NodeId, NodeKind, Op, Payload};
+use nose_semantics::semantics;
 use rustc_hash::FxHashMap;
 
 // ----------------------------------------------------------------------------
@@ -217,13 +218,13 @@ fn invert_comparison(il: &Il, cond: NodeId) -> Option<(Op, bool)> {
         return None;
     }
     match n.payload {
-        Payload::Op(op) => Some(match op {
-            Op::Eq => (Op::Ne, false),
-            Op::Ne => (Op::Eq, false),
-            Op::Lt => (Op::Le, true),
-            Op::Le => (Op::Lt, true),
-            _ => return None,
-        }),
+        Payload::Op(op) if matches!(op, Op::Eq | Op::Ne | Op::Lt | Op::Le) => {
+            semantics(il.meta.lang)
+                .operators()
+                .canonical_negated_comparison(op)
+                .map(|contract| (contract.output, contract.swap_operands))
+        }
+        Payload::Op(_) => None,
         _ => None,
     }
 }

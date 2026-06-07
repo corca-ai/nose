@@ -17,15 +17,14 @@ use nose_semantics::{
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
     go_zero_map_lookup_contract, import_binding_rhs_matches, import_namespace_rhs_matches,
-    index_membership_threshold_contract, iterator_identity_adapter_contract,
-    java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
-    js_array_is_array_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
-    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
-    rust_vec_new_factory_contract, semantics, seq_surface_contract,
-    static_index_membership_contract, typeof_operator_contract, IndexMembershipThreshold,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, StaticIndexMembershipKind,
+    iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
+    java_map_factory_contract, js_array_is_array_contract, js_like_map_constructor_contract,
+    js_like_set_constructor_contract, map_get_contract, map_key_view_contract,
+    map_key_view_wrapper_contract, method_call_contract, nullish_global_contract,
+    regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    seq_surface_contract, static_index_membership_contract, typeof_operator_contract,
+    IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -928,7 +927,9 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         NodeKind::BinOp if strict_exact_static_index_membership_safe(il, interner, facts, node) => {
             true
         }
-        NodeKind::BinOp if strict_exact_in_membership_safe(il, interner, facts, node) => true,
+        NodeKind::BinOp if matches!(il.node(node).payload, Payload::Op(Op::In)) => {
+            strict_exact_in_membership_safe(il, interner, facts, node)
+        }
         NodeKind::Lit => exact_literal_safe(il, node),
         NodeKind::Var => {
             strict_exact_safe_var(il, facts, node)
@@ -950,6 +951,13 @@ fn strict_exact_in_membership_safe(
     let Payload::Op(Op::In) = il.node(node).payload else {
         return false;
     };
+    if semantics(il.meta.lang)
+        .operators()
+        .membership_operator(Op::In)
+        .is_none()
+    {
+        return false;
+    }
     let kids = il.children(node);
     kids.len() == 2
         && strict_exact_safe_tree(il, interner, facts, kids[0])
@@ -1066,18 +1074,24 @@ fn strict_exact_index_membership_threshold(
     threshold: NodeId,
 ) -> bool {
     if strict_exact_minus_one_literal(il, threshold) {
-        return index_membership_threshold_contract(
-            op,
-            index_call_on_right,
-            IndexMembershipThreshold::MinusOne,
-        );
+        return semantics(il.meta.lang)
+            .operators()
+            .static_index_membership_threshold(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::MinusOne,
+            )
+            .is_some();
     }
     if matches!(il.node(threshold).payload, Payload::LitInt(0)) {
-        return index_membership_threshold_contract(
-            op,
-            index_call_on_right,
-            IndexMembershipThreshold::Zero,
-        );
+        return semantics(il.meta.lang)
+            .operators()
+            .static_index_membership_threshold(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::Zero,
+            )
+            .is_some();
     }
     false
 }

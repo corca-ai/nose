@@ -408,12 +408,265 @@ pub struct OperatorSemantics {
     lang: Lang,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ComparisonLaw {
+    DirectionCanon,
+    Negation,
+    EqualityCommutativity,
+    LatticeLeNeToLt,
+    LatticeLtEqToLe,
+    LatticeStrictAbsorbsNonstrict,
+    AbsSignTernary,
+    MinMaxTernary,
+    SelectionReductionGuard,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum OperatorEvidence {
+    ModeledIlOperator,
+    PrimitiveTotalOrder,
+    StaticCardinalityThreshold,
+    JsLikeStaticIndexMembershipThreshold,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct OperatorLawContract {
+    pub law: ComparisonLaw,
+    pub channel: ChannelEligibility,
+    pub evidence: OperatorEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ComparisonTransformContract {
+    pub law: ComparisonLaw,
+    pub input: Op,
+    pub output: Op,
+    pub swap_operands: bool,
+    pub channel: ChannelEligibility,
+    pub evidence: OperatorEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CardinalityThreshold {
+    Zero,
+    One,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CardinalityPredicate {
+    Empty,
+    NonEmpty,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct CardinalityThresholdContract {
+    pub threshold: CardinalityThreshold,
+    pub predicate: CardinalityPredicate,
+    pub channel: ChannelEligibility,
+    pub evidence: OperatorEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticIndexMembershipThresholdContract {
+    pub threshold: IndexMembershipThreshold,
+    pub channel: ChannelEligibility,
+    pub evidence: OperatorEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MembershipOperatorReceiverContract {
+    ExactCollectionOrMap,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MembershipOperatorContract {
+    pub operator: Op,
+    pub receiver: MembershipOperatorReceiverContract,
+    pub channel: ChannelEligibility,
+    pub evidence: OperatorEvidence,
+}
+
 impl OperatorSemantics {
+    pub fn comparison_law(self, law: ComparisonLaw) -> Option<OperatorLawContract> {
+        let evidence = match law {
+            ComparisonLaw::LatticeStrictAbsorbsNonstrict => {
+                if !matches!(self.lang, Lang::C | Lang::Go | Lang::Java) {
+                    return None;
+                }
+                OperatorEvidence::PrimitiveTotalOrder
+            }
+            ComparisonLaw::DirectionCanon
+            | ComparisonLaw::Negation
+            | ComparisonLaw::EqualityCommutativity
+            | ComparisonLaw::LatticeLeNeToLt
+            | ComparisonLaw::LatticeLtEqToLe
+            | ComparisonLaw::AbsSignTernary
+            | ComparisonLaw::MinMaxTernary
+            | ComparisonLaw::SelectionReductionGuard => OperatorEvidence::ModeledIlOperator,
+        };
+        Some(OperatorLawContract {
+            law,
+            channel: ChannelEligibility::ExactProven,
+            evidence,
+        })
+    }
+
+    pub fn comparison_direction(self, op: Op) -> Option<ComparisonTransformContract> {
+        let output = match op {
+            Op::Gt => Op::Lt,
+            Op::Ge => Op::Le,
+            _ => return None,
+        };
+        let law = self.comparison_law(ComparisonLaw::DirectionCanon)?;
+        Some(ComparisonTransformContract {
+            law: law.law,
+            input: op,
+            output,
+            swap_operands: true,
+            channel: law.channel,
+            evidence: law.evidence,
+        })
+    }
+
+    pub fn comparison_reverse(self, op: Op) -> Option<ComparisonTransformContract> {
+        let output = match op {
+            Op::Lt => Op::Gt,
+            Op::Le => Op::Ge,
+            Op::Gt => Op::Lt,
+            Op::Ge => Op::Le,
+            Op::Eq => Op::Eq,
+            Op::Ne => Op::Ne,
+            _ => return None,
+        };
+        let law = self.comparison_law(ComparisonLaw::DirectionCanon)?;
+        Some(ComparisonTransformContract {
+            law: law.law,
+            input: op,
+            output,
+            swap_operands: true,
+            channel: law.channel,
+            evidence: law.evidence,
+        })
+    }
+
+    pub fn comparison_complement(self, op: Op) -> Option<ComparisonTransformContract> {
+        let output = match op {
+            Op::Lt => Op::Ge,
+            Op::Le => Op::Gt,
+            Op::Gt => Op::Le,
+            Op::Ge => Op::Lt,
+            Op::Eq => Op::Ne,
+            Op::Ne => Op::Eq,
+            _ => return None,
+        };
+        let law = self.comparison_law(ComparisonLaw::Negation)?;
+        Some(ComparisonTransformContract {
+            law: law.law,
+            input: op,
+            output,
+            swap_operands: false,
+            channel: law.channel,
+            evidence: law.evidence,
+        })
+    }
+
+    pub fn canonical_negated_comparison(self, op: Op) -> Option<ComparisonTransformContract> {
+        let (output, swap_operands) = match op {
+            Op::Eq => (Op::Ne, false),
+            Op::Ne => (Op::Eq, false),
+            Op::Lt => (Op::Le, true),
+            Op::Le => (Op::Lt, true),
+            Op::Gt => (Op::Le, false),
+            Op::Ge => (Op::Lt, false),
+            _ => return None,
+        };
+        let law = self.comparison_law(ComparisonLaw::Negation)?;
+        Some(ComparisonTransformContract {
+            law: law.law,
+            input: op,
+            output,
+            swap_operands,
+            channel: law.channel,
+            evidence: law.evidence,
+        })
+    }
+
     /// Source comparison operators are primitive total-order comparisons rather
     /// than receiver-overloadable/user-dispatched comparisons. This gates lattice
     /// comparison absorption rules.
     pub fn primitive_order_comparisons(self) -> bool {
-        matches!(self.lang, Lang::C | Lang::Go | Lang::Java)
+        self.comparison_law(ComparisonLaw::LatticeStrictAbsorbsNonstrict)
+            .is_some()
+    }
+
+    pub fn zero_cardinality_equality(self, op: Op) -> Option<CardinalityThresholdContract> {
+        let predicate = match op {
+            Op::Eq => CardinalityPredicate::Empty,
+            Op::Ne => CardinalityPredicate::NonEmpty,
+            _ => return None,
+        };
+        Some(CardinalityThresholdContract {
+            threshold: CardinalityThreshold::Zero,
+            predicate,
+            channel: ChannelEligibility::ExactProven,
+            evidence: OperatorEvidence::StaticCardinalityThreshold,
+        })
+    }
+
+    pub fn cardinality_threshold(
+        self,
+        op: Op,
+        count_on_right: bool,
+        threshold: CardinalityThreshold,
+        predicate: CardinalityPredicate,
+    ) -> Option<CardinalityThresholdContract> {
+        let matches = match (predicate, threshold) {
+            (CardinalityPredicate::NonEmpty, CardinalityThreshold::Zero) => {
+                threshold_excludes_floor(op, count_on_right)
+            }
+            (CardinalityPredicate::NonEmpty, CardinalityThreshold::One) => {
+                threshold_reaches_floor(op, count_on_right)
+            }
+            (CardinalityPredicate::Empty, CardinalityThreshold::Zero) => {
+                threshold_at_or_below_floor(op, count_on_right)
+            }
+            (CardinalityPredicate::Empty, CardinalityThreshold::One) => {
+                threshold_below_floor(op, count_on_right)
+            }
+        };
+        matches.then_some(CardinalityThresholdContract {
+            threshold,
+            predicate,
+            channel: ChannelEligibility::ExactProven,
+            evidence: OperatorEvidence::StaticCardinalityThreshold,
+        })
+    }
+
+    pub fn static_index_membership_threshold(
+        self,
+        op: Op,
+        index_call_on_right: bool,
+        threshold: IndexMembershipThreshold,
+    ) -> Option<StaticIndexMembershipThresholdContract> {
+        if !js_like_lang(self.lang) {
+            return None;
+        }
+        index_membership_threshold_matches(op, index_call_on_right, threshold).then_some(
+            StaticIndexMembershipThresholdContract {
+                threshold,
+                channel: ChannelEligibility::ExactProven,
+                evidence: OperatorEvidence::JsLikeStaticIndexMembershipThreshold,
+            },
+        )
+    }
+
+    pub fn membership_operator(self, op: Op) -> Option<MembershipOperatorContract> {
+        (self.lang == Lang::Python && op == Op::In).then_some(MembershipOperatorContract {
+            operator: op,
+            receiver: MembershipOperatorReceiverContract::ExactCollectionOrMap,
+            channel: ChannelEligibility::ExactProven,
+            evidence: OperatorEvidence::ModeledIlOperator,
+        })
     }
 
     /// C unsigned byte/word packing contracts are currently first-party only for
@@ -421,6 +674,22 @@ impl OperatorSemantics {
     pub fn c_integer_byte_pack_contracts(self) -> bool {
         self.lang == Lang::C
     }
+}
+
+fn threshold_excludes_floor(op: Op, value_on_right: bool) -> bool {
+    op == Op::Ne || (!value_on_right && op == Op::Gt) || (value_on_right && op == Op::Lt)
+}
+
+fn threshold_reaches_floor(op: Op, value_on_right: bool) -> bool {
+    (!value_on_right && op == Op::Ge) || (value_on_right && op == Op::Le)
+}
+
+fn threshold_at_or_below_floor(op: Op, value_on_right: bool) -> bool {
+    op == Op::Eq || (!value_on_right && op == Op::Le) || (value_on_right && op == Op::Ge)
+}
+
+fn threshold_below_floor(op: Op, value_on_right: bool) -> bool {
+    (!value_on_right && op == Op::Lt) || (value_on_right && op == Op::Gt)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1828,21 +2097,23 @@ pub enum IndexMembershipThreshold {
     Zero,
 }
 
-pub fn index_membership_threshold_contract(
+fn index_membership_threshold_matches(
     op: Op,
     index_call_on_right: bool,
     threshold: IndexMembershipThreshold,
 ) -> bool {
     match threshold {
-        IndexMembershipThreshold::MinusOne => {
-            op == Op::Ne
-                || (!index_call_on_right && op == Op::Gt)
-                || (index_call_on_right && op == Op::Lt)
-        }
-        IndexMembershipThreshold::Zero => {
-            (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le)
-        }
+        IndexMembershipThreshold::MinusOne => threshold_excludes_floor(op, index_call_on_right),
+        IndexMembershipThreshold::Zero => threshold_reaches_floor(op, index_call_on_right),
     }
+}
+
+pub fn index_membership_threshold_contract(
+    op: Op,
+    index_call_on_right: bool,
+    threshold: IndexMembershipThreshold,
+) -> bool {
+    index_membership_threshold_matches(op, index_call_on_right, threshold)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3163,6 +3434,118 @@ mod tests {
     }
 
     #[test]
+    fn operator_law_contracts_preserve_comparison_gates() {
+        for &lang in ALL_LANGS {
+            let profile = semantics(lang);
+            assert_eq!(
+                profile
+                    .operators()
+                    .comparison_law(ComparisonLaw::LatticeStrictAbsorbsNonstrict)
+                    .is_some(),
+                matches!(lang, Lang::C | Lang::Go | Lang::Java)
+            );
+            assert_eq!(
+                profile
+                    .operators()
+                    .comparison_law(ComparisonLaw::LatticeLeNeToLt),
+                Some(OperatorLawContract {
+                    law: ComparisonLaw::LatticeLeNeToLt,
+                    channel: ChannelEligibility::ExactProven,
+                    evidence: OperatorEvidence::ModeledIlOperator,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn comparison_transform_contracts_carry_outputs_and_operand_swaps() {
+        let ops = semantics(Lang::Python).operators();
+        assert_eq!(
+            ops.comparison_direction(Op::Gt),
+            Some(ComparisonTransformContract {
+                law: ComparisonLaw::DirectionCanon,
+                input: Op::Gt,
+                output: Op::Lt,
+                swap_operands: true,
+                channel: ChannelEligibility::ExactProven,
+                evidence: OperatorEvidence::ModeledIlOperator,
+            })
+        );
+        assert_eq!(
+            ops.comparison_complement(Op::Lt)
+                .map(|contract| (contract.output, contract.swap_operands)),
+            Some((Op::Ge, false))
+        );
+        assert_eq!(
+            ops.canonical_negated_comparison(Op::Lt)
+                .map(|contract| (contract.output, contract.swap_operands)),
+            Some((Op::Le, true))
+        );
+        assert_eq!(ops.comparison_direction(Op::Eq), None);
+    }
+
+    #[test]
+    fn cardinality_threshold_contracts_name_existing_operator_shapes() {
+        let ops = semantics(Lang::JavaScript).operators();
+        assert_eq!(
+            ops.zero_cardinality_equality(Op::Eq),
+            Some(CardinalityThresholdContract {
+                threshold: CardinalityThreshold::Zero,
+                predicate: CardinalityPredicate::Empty,
+                channel: ChannelEligibility::ExactProven,
+                evidence: OperatorEvidence::StaticCardinalityThreshold,
+            })
+        );
+        assert_eq!(ops.zero_cardinality_equality(Op::Gt), None);
+        assert_eq!(
+            ops.cardinality_threshold(
+                Op::Gt,
+                false,
+                CardinalityThreshold::Zero,
+                CardinalityPredicate::NonEmpty,
+            )
+            .map(|contract| contract.predicate),
+            Some(CardinalityPredicate::NonEmpty)
+        );
+        assert_eq!(
+            ops.cardinality_threshold(
+                Op::Eq,
+                false,
+                CardinalityThreshold::One,
+                CardinalityPredicate::NonEmpty,
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn membership_operator_contract_is_language_scoped() {
+        assert_eq!(
+            semantics(Lang::Python)
+                .operators()
+                .membership_operator(Op::In),
+            Some(MembershipOperatorContract {
+                operator: Op::In,
+                receiver: MembershipOperatorReceiverContract::ExactCollectionOrMap,
+                channel: ChannelEligibility::ExactProven,
+                evidence: OperatorEvidence::ModeledIlOperator,
+            })
+        );
+        assert_eq!(
+            semantics(Lang::JavaScript)
+                .operators()
+                .membership_operator(Op::In),
+            None
+        );
+        assert_eq!(
+            semantics(Lang::Python)
+                .operators()
+                .membership_operator(Op::Eq),
+            None
+        );
+    }
+
+    #[test]
     fn static_index_membership_contracts_are_js_like_and_threshold_constrained() {
         assert_eq!(
             static_index_membership_contract(Lang::JavaScript, "indexOf", 1),
@@ -3192,21 +3575,29 @@ mod tests {
             static_index_membership_contract(Lang::JavaScript, "includes", 1),
             None
         );
-        assert!(index_membership_threshold_contract(
-            Op::Ne,
-            false,
-            IndexMembershipThreshold::MinusOne
-        ));
-        assert!(index_membership_threshold_contract(
-            Op::Le,
-            true,
-            IndexMembershipThreshold::Zero
-        ));
-        assert!(!index_membership_threshold_contract(
-            Op::Eq,
-            false,
-            IndexMembershipThreshold::MinusOne
-        ));
+        assert_eq!(
+            semantics(Lang::JavaScript)
+                .operators()
+                .static_index_membership_threshold(
+                    Op::Ne,
+                    false,
+                    IndexMembershipThreshold::MinusOne
+                )
+                .map(|contract| contract.evidence),
+            Some(OperatorEvidence::JsLikeStaticIndexMembershipThreshold)
+        );
+        assert!(semantics(Lang::TypeScript)
+            .operators()
+            .static_index_membership_threshold(Op::Le, true, IndexMembershipThreshold::Zero)
+            .is_some());
+        assert!(semantics(Lang::Python)
+            .operators()
+            .static_index_membership_threshold(Op::Ne, false, IndexMembershipThreshold::MinusOne)
+            .is_none());
+        assert!(semantics(Lang::JavaScript)
+            .operators()
+            .static_index_membership_threshold(Op::Eq, false, IndexMembershipThreshold::MinusOne)
+            .is_none());
     }
 
     #[test]

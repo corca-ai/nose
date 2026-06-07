@@ -6015,6 +6015,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("js_in_array_a.js"),
+        "function jsInArrayA(value, other) {\n  return value in [\"red\", \"blue\"];\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("js_in_array_b.js"),
+        "function jsInArrayB(value, other) {\n  return value in [\"red\", \"blue\"];\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("membership.go"),
         "package p\n\nimport \"slices\"\n\nfunc Membership(value string, other string) bool {\n    return slices.Contains([]string{\"red\", \"blue\"}, value)\n}\n",
     )
@@ -6230,6 +6240,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_indexof_ne_zero.js"),
+        "function arrayIndexOfNeZero(value, other) {\n  return [\"red\", \"blue\"].indexOf(value) !== 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_indexof_reversed_gt_zero.js"),
+        "function arrayIndexOfReversedGtZero(value, other) {\n  return 0 < [\"red\", \"blue\"].indexOf(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_findindex_wrong_element.js"),
         "function arrayFindIndexWrongElement(value, other, third) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value + third + other) !== -1;\n}\n",
     )
@@ -6242,6 +6262,11 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     fs::write(
         dir.join("array_findindex_value.js"),
         "function arrayFindIndexValue(value, other) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_findindex_ne_zero.js"),
+        "function arrayFindIndexNeZero(value, other) {\n  return [\"red\", \"blue\"].findIndex((item) => item === value) !== 0;\n}\n",
     )
     .unwrap();
     fs::write(
@@ -6503,14 +6528,19 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     for unexpected in [
         "wrong_element.py",
         "wrong_collection.js",
+        "js_in_array_a.js",
+        "js_in_array_b.js",
         "array_some_wrong_element.js",
         "array_some_wrong_collection.ts",
         "array_indexof_wrong_element.js",
         "array_indexof_wrong_collection.ts",
         "array_indexof_value.js",
+        "array_indexof_ne_zero.js",
+        "array_indexof_reversed_gt_zero.js",
         "array_findindex_wrong_element.js",
         "array_findindex_wrong_collection.ts",
         "array_findindex_value.js",
+        "array_findindex_ne_zero.js",
         "array_filter_length_wrong_element.js",
         "array_filter_length_wrong_collection.ts",
         "array_filter_length_value.js",
@@ -6551,6 +6581,10 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
             "semantic mode must preserve literal membership boundaries: {semantic}"
         );
     }
+    assert!(
+        !semantic_text.contains("js_in_array_a.js") && !semantic_text.contains("js_in_array_b.js"),
+        "semantic mode must not treat JavaScript `in` as collection membership: {semantic}"
+    );
     let absence_family = semantic_families
         .iter()
         .map(serde_json::Value::to_string)
