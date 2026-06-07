@@ -20,7 +20,7 @@ use nose_semantics::{
     iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
     java_map_factory_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
     map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    nullish_global_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
     static_index_membership_contract, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
     MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
@@ -876,7 +876,10 @@ fn function_binding_safe(
         NodeKind::Call => matches!(il.node(node).payload, Payload::Builtin(_)),
         NodeKind::Seq => strict_exact_safe_seq(il, interner, node),
         NodeKind::Lit => exact_literal_safe(il, node),
-        NodeKind::Var => strict_exact_safe_var(il, facts, node),
+        NodeKind::Var => {
+            strict_exact_safe_var(il, facts, node)
+                || strict_exact_nullish_global_safe(il, interner, node)
+        }
         _ => il
             .children(node)
             .iter()
@@ -905,7 +908,10 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         }
         NodeKind::BinOp if strict_exact_in_membership_safe(il, interner, facts, node) => true,
         NodeKind::Lit => exact_literal_safe(il, node),
-        NodeKind::Var => strict_exact_safe_var(il, facts, node),
+        NodeKind::Var => {
+            strict_exact_safe_var(il, facts, node)
+                || strict_exact_nullish_global_safe(il, interner, node)
+        }
         _ => il
             .children(node)
             .iter()
@@ -1143,6 +1149,17 @@ fn strict_exact_safe_var(il: &Il, facts: &StrictFacts, node: NodeId) -> bool {
         Payload::Name(name) => facts.proven_name(name),
         _ => false,
     }
+}
+
+fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    let (NodeKind::Var, Payload::Name(name)) = (il.kind(node), il.node(node).payload) else {
+        return false;
+    };
+    let name = interner.resolve(name);
+    let Some(contract) = nullish_global_contract(il.meta.lang, name) else {
+        return false;
+    };
+    !contract.requires_unshadowed || !file_defines_name(il, interner, contract.name)
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -1996,23 +2013,19 @@ fn strict_exact_java_collection_factory_safe(
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(receiver_name) = il.node(receiver).payload else {
-        return false;
-    };
     let method = interner.resolve(method);
-    let receiver_name = interner.resolve(receiver_name);
-    let Some(contract) = java_collection_factory_contract(il.meta.lang, receiver_name, method)
+    let Some(()) = ["List", "Set", "Arrays"]
+        .into_iter()
+        .find_map(|receiver_name| {
+            let contract = java_collection_factory_contract(il.meta.lang, receiver_name, method)?;
+            strict_exact_java_std_var_name(il, interner, receiver, contract.receiver).then_some(())
+        })
     else {
         return false;
     };
-    !java_file_defines_type_name(il, interner, contract.receiver)
-        && kids
-            .iter()
-            .skip(1)
-            .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
+    kids.iter()
+        .skip(1)
+        .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
 }
 
 fn java_file_defines_type_name(il: &Il, interner: &Interner, name: &str) -> bool {
@@ -2051,11 +2064,23 @@ fn strict_exact_java_std_var_name(
     if il.kind(node) != NodeKind::Var {
         return false;
     }
-    let Payload::Name(name) = il.node(node).payload else {
+    if java_file_defines_type_name(il, interner, expected) {
         return false;
+    }
+    let symbol = match il.node(node).payload {
+        Payload::Name(name) => name,
+        Payload::Cid(cid) => {
+            let Some(&name) = il.cid_names.get(cid as usize) else {
+                return false;
+            };
+            name
+        }
+        _ => return false,
     };
-    let name = interner.resolve(name);
-    name == expected && !java_file_defines_type_name(il, interner, name)
+    interner.resolve(symbol) == expected
+        && top_level_assignment_count(il, symbol) == 1
+        && top_level_assignment_rhs(il, symbol)
+            .is_some_and(|rhs| import_binding_rhs_matches(il, interner, rhs, "java.util", expected))
 }
 
 fn strict_exact_java_map_factory_safe(

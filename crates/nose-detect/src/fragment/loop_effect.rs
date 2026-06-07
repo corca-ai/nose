@@ -302,45 +302,41 @@ fn temp_chain_consumed_by_effect(
     all_temps.insert(second_cid);
     let mut final_temp = FxHashSet::default();
     final_temp.insert(second_cid);
-    effect_consumes_chained_temp(
-        il,
-        interner,
-        effect,
+    let evidence = TempChainEvidence {
         iter_cids,
-        &all_temps,
-        &final_temp,
-        &first_temp,
-        effects,
-    )
+        all_temps: &all_temps,
+        final_temp: &final_temp,
+        prior_temp: &first_temp,
+    };
+    effect_consumes_chained_temp(il, interner, effect, evidence, effects)
+}
+
+#[derive(Clone, Copy)]
+struct TempChainEvidence<'a> {
+    iter_cids: &'a FxHashSet<u32>,
+    all_temps: &'a FxHashSet<u32>,
+    final_temp: &'a FxHashSet<u32>,
+    prior_temp: &'a FxHashSet<u32>,
 }
 
 fn effect_consumes_chained_temp(
     il: &Il,
     interner: &Interner,
     node: NodeId,
-    iter_cids: &FxHashSet<u32>,
-    all_temps: &FxHashSet<u32>,
-    final_temp: &FxHashSet<u32>,
-    prior_temp: &FxHashSet<u32>,
+    evidence: TempChainEvidence<'_>,
     effects: &mut Vec<EffectSite>,
 ) -> bool {
     match il.kind(node) {
         NodeKind::ExprStmt => {
             let kids = il.children(node);
-            if kids.len() == 1
-                && append_consumes_chained_temp(
-                    il, interner, kids[0], iter_cids, all_temps, final_temp, prior_temp,
-                )
-            {
+            if kids.len() == 1 && append_consumes_chained_temp(il, interner, kids[0], evidence) {
                 effects.push(EffectSite::observable(Effect::Append));
                 return true;
             }
             false
         }
         NodeKind::Assign => {
-            if index_assignment_consumes_chained_temp(
-                il, node, iter_cids, all_temps, final_temp, prior_temp,
-            ) {
+            if index_assignment_consumes_chained_temp(il, node, evidence) {
                 effects.push(EffectSite::observable(Effect::IndexWrite));
                 return true;
             }
@@ -354,38 +350,34 @@ fn append_consumes_chained_temp(
     il: &Il,
     interner: &Interner,
     node: NodeId,
-    iter_cids: &FxHashSet<u32>,
-    all_temps: &FxHashSet<u32>,
-    final_temp: &FxHashSet<u32>,
-    prior_temp: &FxHashSet<u32>,
+    evidence: TempChainEvidence<'_>,
 ) -> bool {
     let Some((recv, value)) = append_call_args(il, interner, node) else {
         return false;
     };
-    !mentions_any(il, recv, iter_cids)
-        && !mentions_any(il, recv, all_temps)
-        && mentions_any(il, value, final_temp)
-        && !mentions_any(il, value, prior_temp)
+    !mentions_any(il, recv, evidence.iter_cids)
+        && !mentions_any(il, recv, evidence.all_temps)
+        && mentions_any(il, value, evidence.final_temp)
+        && !mentions_any(il, value, evidence.prior_temp)
 }
 
 fn index_assignment_consumes_chained_temp(
     il: &Il,
     node: NodeId,
-    iter_cids: &FxHashSet<u32>,
-    all_temps: &FxHashSet<u32>,
-    final_temp: &FxHashSet<u32>,
-    prior_temp: &FxHashSet<u32>,
+    evidence: TempChainEvidence<'_>,
 ) -> bool {
     let Some((receiver, key, value)) = index_assignment_parts(il, node) else {
         return false;
     };
-    if mentions_any(il, receiver, iter_cids) || mentions_any(il, receiver, all_temps) {
+    if mentions_any(il, receiver, evidence.iter_cids)
+        || mentions_any(il, receiver, evidence.all_temps)
+    {
         return false;
     }
-    let key_final = key.is_some_and(|k| mentions_any(il, k, final_temp));
-    let key_prior = key.is_some_and(|k| mentions_any(il, k, prior_temp));
-    let value_final = mentions_any(il, value, final_temp);
-    let value_prior = mentions_any(il, value, prior_temp);
+    let key_final = key.is_some_and(|k| mentions_any(il, k, evidence.final_temp));
+    let key_prior = key.is_some_and(|k| mentions_any(il, k, evidence.prior_temp));
+    let value_final = mentions_any(il, value, evidence.final_temp);
+    let value_prior = mentions_any(il, value, evidence.prior_temp);
     (key_final || value_final) && !key_prior && !value_prior
 }
 
