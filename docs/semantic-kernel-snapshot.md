@@ -99,6 +99,9 @@ migrated.
   contracts, including the static non-float literal collection requirement and
   accepted `-1`/`0` threshold comparisons. Callers still prove the receiver and
   lambda equality shape before exact normalization/detection accepts them.
+- Imported namespace function contracts now cover Python `math.prod` as a product
+  reduction only when the receiver is proven to be the imported `math` namespace.
+  Bare globals named `math` and overwritten module bindings stay exact-closed.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

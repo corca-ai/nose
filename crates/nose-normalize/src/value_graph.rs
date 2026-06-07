@@ -50,16 +50,17 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, index_membership_threshold_contract,
-    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
-    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
-    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
-    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, imported_namespace_function_contract,
+    index_membership_threshold_contract, iterator_identity_adapter_contract,
+    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
+    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
+    map_key_view_wrapper_contract_by_hash, method_call_contract, reduction_builtin_contract,
+    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
     scalar_integer_method_contract, semantics, static_index_membership_contract, DomainEvidence,
-    GoZeroMapDefaultKind, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    GoZeroMapDefaultKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
+    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
     StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -6435,22 +6436,23 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "prod" {
-            return None;
-        }
+        let contract = imported_namespace_function_contract(
+            self.il.meta.lang,
+            self.interner.resolve(name),
+            kids.len().saturating_sub(1),
+        )?;
         let base = *self.il.children(callee).first()?;
-        if !matches!(
-            (self.il.kind(base), self.il.node(base).payload),
-            (NodeKind::Var, Payload::Name(s)) if self.interner.resolve(s) == "math"
-        ) {
+        if !self.is_import_namespace_expr(base, contract.module, env) {
             return None;
         }
+        let ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } =
+            contract.semantic;
         let coll = self.eval(*kids.get(1)?, env);
-        let (op, args) = {
+        let (coll_op, args) = {
             let n = &self.nodes[coll as usize];
             (n.op.clone(), n.args.clone())
         };
-        let contrib = match op {
+        let contrib = match coll_op {
             ValOp::Hof(k) if k == HoFKind::Map as u32 && args.len() >= 2 => {
                 let one = self.int_const(1);
                 self.mk(ValOp::Phi, vec![args[1], args[0], one])
@@ -6461,8 +6463,8 @@ impl<'a> Builder<'a> {
         let init = kids
             .get(2)
             .map(|&i| self.eval(i, env))
-            .unwrap_or_else(|| self.int_const(1));
-        Some(self.mk(ValOp::Reduce(Op::Mul as u32), vec![init, contrib]))
+            .unwrap_or_else(|| self.int_const(identity));
+        Some(self.mk(ValOp::Reduce(op as u32), vec![init, contrib]))
     }
 
     fn eval_iterator_identity_adapter(

@@ -854,11 +854,18 @@ fn python_math_prod_converges_with_product_loop() {
     let loop_py = "def f(xs):\n    product = 1\n    for x in xs:\n        if x > 0:\n            product *= x\n    return product\n";
     let prod_py =
         "import math\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let aliased_prod_py =
+        "import math as m\n\ndef f(xs):\n    return m.prod((x for x in xs if x > 0), start=1)\n";
     let bad_seed =
         "import math\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=2)\n";
+    let missing_import = "def f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let shadowed_math = "import math\nmath = object()\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
     let loop_fp = value_fp(&i, loop_py, Lang::Python);
     assert_eq!(loop_fp, value_fp(&i, prod_py, Lang::Python));
+    assert_eq!(loop_fp, value_fp(&i, aliased_prod_py, Lang::Python));
     assert_ne!(loop_fp, value_fp(&i, bad_seed, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, missing_import, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, shadowed_math, Lang::Python));
 }
 
 #[test]

@@ -114,6 +114,9 @@ and pack ecosystem.
   provenance and enablement policy, not a semantic channel.
 - Newly migrated selector contracts started carrying explicit receiver/proof
   requirements so extension APIs do not look like name-only semantic guesses.
+- Python `math.prod` product-reduction recognition moved behind an imported
+  namespace function contract with missing-import and overwritten-binding hard
+  negatives.
 
 ## Phase 0: documentation and vocabulary
 

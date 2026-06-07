@@ -1432,6 +1432,38 @@ pub fn index_membership_threshold_contract(
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ImportedNamespaceFunctionSemantic {
+    ProductReduction { op: Op, identity: u32 },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportedNamespaceFunctionContract {
+    pub module: &'static str,
+    pub function: &'static str,
+    pub receiver: MethodReceiverContract,
+    pub semantic: ImportedNamespaceFunctionSemantic,
+}
+
+pub fn imported_namespace_function_contract(
+    lang: Lang,
+    function: &str,
+    arg_count: usize,
+) -> Option<ImportedNamespaceFunctionContract> {
+    Some(match (lang, function, arg_count) {
+        (Lang::Python, "prod", 1 | 2) => ImportedNamespaceFunctionContract {
+            module: "math",
+            function: "prod",
+            receiver: MethodReceiverContract::ImportedNamespace("math"),
+            semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                op: Op::Mul,
+                identity: 1,
+            },
+        },
+        _ => return None,
+    })
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2476,6 +2508,42 @@ mod tests {
             false,
             IndexMembershipThreshold::MinusOne
         ));
+    }
+
+    #[test]
+    fn imported_namespace_function_contracts_carry_module_and_receiver_proof() {
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 1),
+            Some(ImportedNamespaceFunctionContract {
+                module: "math",
+                function: "prod",
+                receiver: MethodReceiverContract::ImportedNamespace("math"),
+                semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                    op: Op::Mul,
+                    identity: 1,
+                },
+            })
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 2)
+                .map(|contract| contract.semantic),
+            Some(ImportedNamespaceFunctionSemantic::ProductReduction {
+                op: Op::Mul,
+                identity: 1,
+            })
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::JavaScript, "prod", 1),
+            None
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "prod", 3),
+            None
+        );
+        assert_eq!(
+            imported_namespace_function_contract(Lang::Python, "sum", 1),
+            None
+        );
     }
 
     #[test]
