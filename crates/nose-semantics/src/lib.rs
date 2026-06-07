@@ -126,6 +126,9 @@ pub const SEQ_VALUE_IMPORT_NAMESPACE: u64 = 6;
 pub const SEQ_VALUE_RECORD_GUARD: u64 = 7;
 pub const SEQ_VALUE_OWN_PROPERTY_GUARD: u64 = 8;
 
+pub const IMPORT_BINDING_TAG: &str = "import_binding";
+pub const IMPORT_NAMESPACE_TAG: &str = "import_namespace";
+
 /// Kernel contract for a lowered `Seq` surface tag.
 ///
 /// This is deliberately not just a value-graph tag table. The same surface may be
@@ -200,14 +203,14 @@ pub fn seq_surface_contract(lang: Lang, tag: Option<&str>) -> Option<SeqSurfaceC
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("import_binding") => SeqSurfaceContract {
+        Some(IMPORT_BINDING_TAG) => SeqSurfaceContract {
             value_tag: SEQ_VALUE_IMPORT_BINDING,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("import_namespace") => SeqSurfaceContract {
+        Some(IMPORT_NAMESPACE_TAG) => SeqSurfaceContract {
             value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
             exact_tree_safe: true,
             membership_collection: false,
@@ -238,6 +241,117 @@ pub fn seq_surface_contract(lang: Lang, tag: Option<&str>) -> Option<SeqSurfaceC
         _ => return None,
     };
     Some(contract)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ImportFactKind {
+    Binding,
+    Namespace,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportFactContract {
+    pub kind: ImportFactKind,
+    pub tag: &'static str,
+    pub coordinate_count: usize,
+    pub value_tag: u64,
+    pub channel: ChannelEligibility,
+}
+
+pub fn import_fact_contract(kind: ImportFactKind) -> ImportFactContract {
+    match kind {
+        ImportFactKind::Binding => ImportFactContract {
+            kind,
+            tag: IMPORT_BINDING_TAG,
+            coordinate_count: 2,
+            value_tag: SEQ_VALUE_IMPORT_BINDING,
+            channel: ChannelEligibility::ExactProven,
+        },
+        ImportFactKind::Namespace => ImportFactContract {
+            kind,
+            tag: IMPORT_NAMESPACE_TAG,
+            coordinate_count: 1,
+            value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
+            channel: ChannelEligibility::ExactProven,
+        },
+    }
+}
+
+pub fn import_fact_contract_for_tag(tag: &str) -> Option<ImportFactContract> {
+    match tag {
+        IMPORT_BINDING_TAG => Some(import_fact_contract(ImportFactKind::Binding)),
+        IMPORT_NAMESPACE_TAG => Some(import_fact_contract(ImportFactKind::Namespace)),
+        _ => None,
+    }
+}
+
+pub fn import_fact_tag(kind: ImportFactKind) -> &'static str {
+    import_fact_contract(kind).tag
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ImportFact {
+    pub kind: ImportFactKind,
+    pub module_hash: u64,
+    pub exported_hash: Option<u64>,
+}
+
+pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {
+    if il.kind(rhs) != NodeKind::Seq {
+        return None;
+    }
+    let Payload::Name(tag) = il.node(rhs).payload else {
+        return None;
+    };
+    let contract = import_fact_contract_for_tag(interner.resolve(tag))?;
+    let coords = il.children(rhs);
+    if coords.len() != contract.coordinate_count {
+        return None;
+    }
+    let module_hash = literal_string_hash(il, coords[0])?;
+    let exported_hash = match contract.kind {
+        ImportFactKind::Binding => Some(literal_string_hash(il, coords[1])?),
+        ImportFactKind::Namespace => None,
+    };
+    Some(ImportFact {
+        kind: contract.kind,
+        module_hash,
+        exported_hash,
+    })
+}
+
+pub fn import_binding_rhs_matches(
+    il: &Il,
+    interner: &Interner,
+    rhs: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    import_fact_rhs(il, interner, rhs).is_some_and(|fact| {
+        fact.kind == ImportFactKind::Binding
+            && fact.module_hash == stable_symbol_hash(module)
+            && fact.exported_hash == Some(stable_symbol_hash(exported))
+    })
+}
+
+pub fn import_namespace_rhs_matches(
+    il: &Il,
+    interner: &Interner,
+    rhs: NodeId,
+    module: &str,
+) -> bool {
+    import_fact_rhs(il, interner, rhs).is_some_and(|fact| {
+        fact.kind == ImportFactKind::Namespace
+            && fact.module_hash == stable_symbol_hash(module)
+            && fact.exported_hash.is_none()
+    })
+}
+
+fn literal_string_hash(il: &Il, node: NodeId) -> Option<u64> {
+    match il.node(node).payload {
+        Payload::LitStr(hash) => Some(hash),
+        _ => None,
+    }
 }
 
 /// A first-party language profile. Keep this cheap and copyable; callers use it as a
@@ -2187,6 +2301,82 @@ mod tests {
         assert!(seq_surface_contract(Lang::Python, Some("composite_literal")).is_none());
         assert!(imported_literal_seq_tag_safe(Lang::Python, "dictionary"));
         assert!(!imported_literal_seq_tag_safe(Lang::Ruby, "hash"));
+    }
+
+    #[test]
+    fn import_fact_contracts_parse_typed_binding_and_namespace_proofs() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
+        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
+        let collections = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("collections")),
+            sp(1),
+            &[],
+        );
+        let deque = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("deque")),
+            sp(1),
+            &[],
+        );
+        let binding = b.add(
+            NodeKind::Seq,
+            Payload::Name(binding_tag),
+            sp(1),
+            &[collections, deque],
+        );
+        let math = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("math")),
+            sp(2),
+            &[],
+        );
+        let namespace = b.add(NodeKind::Seq, Payload::Name(namespace_tag), sp(2), &[math]);
+        let malformed_binding = b.add(NodeKind::Seq, Payload::Name(binding_tag), sp(3), &[math]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(1),
+            &[binding, namespace, malformed_binding],
+        );
+        let il = finish_il(b, root, Lang::Python);
+
+        assert_eq!(
+            import_fact_contract(ImportFactKind::Binding).channel,
+            ChannelEligibility::ExactProven
+        );
+        assert!(import_binding_rhs_matches(
+            &il,
+            &interner,
+            binding,
+            "collections",
+            "deque"
+        ));
+        assert!(!import_binding_rhs_matches(
+            &il,
+            &interner,
+            namespace,
+            "collections",
+            "deque"
+        ));
+        assert!(!import_binding_rhs_matches(
+            &il,
+            &interner,
+            malformed_binding,
+            "math",
+            "prod"
+        ));
+        assert!(import_namespace_rhs_matches(
+            &il, &interner, namespace, "math"
+        ));
+        assert!(!import_namespace_rhs_matches(
+            &il,
+            &interner,
+            binding,
+            "collections"
+        ));
     }
 
     #[test]

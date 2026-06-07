@@ -154,6 +154,9 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
 fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let span = lo.span(node);
     let text = lo.text(node).trim().trim_end_matches(';').trim();
+    if text.starts_with("import type ") {
+        return None;
+    }
     let module = quoted_after_from(text)?;
     let mut assigns = Vec::new();
 
@@ -167,6 +170,9 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     } else if let Some((start, end)) = brace_range(text) {
         let inner = &text[start + 1..end];
         for part in inner.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+            if part.starts_with("type ") {
+                continue;
+            }
             let (exported, local) = js_import_specifier(part)?;
             assigns.push(crate::lower::import_binding(
                 lo, span, local, module, exported,

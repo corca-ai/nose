@@ -6,6 +6,7 @@ use nose_il::{
     FileId, FileMeta, Il, IlBuilder, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
     ParamTypeFact, Payload, Span, Symbol, Unit, UnitKind,
 };
+use nose_semantics::{import_fact_tag, ImportFactKind};
 use tree_sitter::Node as TsNode;
 
 /// Mutable state threaded through a single file's lowering.
@@ -243,13 +244,19 @@ pub(crate) fn import_binding(
     module: &str,
     exported: &str,
 ) -> NodeId {
-    import_fact(lo, span, local, "import_binding", &[module, exported])
+    import_fact(
+        lo,
+        span,
+        local,
+        ImportFactKind::Binding,
+        &[module, exported],
+    )
 }
 
 /// A strict semantic proof fact for a static namespace import:
 /// local namespace → module coordinate.
 pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {
-    import_fact(lo, span, local, "import_namespace", &[module])
+    import_fact(lo, span, local, ImportFactKind::Namespace, &[module])
 }
 
 /// Shared shape of the static-import proof facts: `local = Seq[tag](str_lit(c) for c in
@@ -257,10 +264,16 @@ pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, modul
 /// only in the Seq tag and the coordinate count. The node-allocation order — lhs var, then
 /// each coordinate string, then the Seq, then the Assign — is preserved identically to the
 /// original two functions.
-fn import_fact(lo: &mut Lowering, span: Span, local: &str, tag: &str, coords: &[&str]) -> NodeId {
+fn import_fact(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    kind: ImportFactKind,
+    coords: &[&str],
+) -> NodeId {
     let lhs = lo.var(local, span);
     let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
-    let tag = lo.sym(tag);
+    let tag = lo.sym(import_fact_tag(kind));
     let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &strs);
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }

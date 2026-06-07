@@ -10,8 +10,8 @@ use nose_il::{
     stable_symbol_hash, Il, Interner, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    java_map_entry_contract, java_map_factory_contract, semantics, ImportedMapFactoryContract,
-    JavaMapFactoryKind,
+    import_fact_rhs, java_map_entry_contract, java_map_factory_contract, semantics, ImportFactKind,
+    ImportedMapFactoryContract, JavaMapFactoryKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
@@ -159,7 +159,7 @@ fn collect_statement_exports(
         if counts.get(&name).copied().unwrap_or(0) != 1 {
             continue;
         }
-        if binding_mutated(il, interner, name, stmt) {
+        if exported_binding_unsafe(il, interner, name, stmt) {
             continue;
         }
         let Some(rhs) = assignment_rhs(il, stmt) else {
@@ -258,30 +258,8 @@ fn assignment_rhs(il: &Il, stmt: NodeId) -> Option<NodeId> {
 
 fn import_binding_key(il: &Il, interner: &Interner, stmt: NodeId) -> Option<(u64, u64)> {
     let rhs = assignment_rhs(il, stmt)?;
-    if il.kind(rhs) != NodeKind::Seq {
-        return None;
-    }
-    let Payload::Name(tag) = il.node(rhs).payload else {
-        return None;
-    };
-    if interner.resolve(tag) != "import_binding" {
-        return None;
-    }
-    let kids = il.children(rhs);
-    if kids.len() != 2 {
-        return None;
-    }
-    Some((
-        literal_string_hash(il, kids[0])?,
-        literal_string_hash(il, kids[1])?,
-    ))
-}
-
-fn literal_string_hash(il: &Il, node: NodeId) -> Option<u64> {
-    match il.node(node).payload {
-        Payload::LitStr(hash) => Some(hash),
-        _ => None,
-    }
+    let fact = import_fact_rhs(il, interner, rhs)?;
+    (fact.kind == ImportFactKind::Binding).then_some((fact.module_hash, fact.exported_hash?))
 }
 
 fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -306,10 +284,8 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
     match il.kind(node) {
         NodeKind::Lit => true,
         NodeKind::Seq => {
-            if let Payload::Name(tag) = il.node(node).payload {
-                if matches!(interner.resolve(tag), "import_binding" | "import_namespace") {
-                    return false;
-                }
+            if import_fact_rhs(il, interner, node).is_some() {
+                return false;
             }
             il.children(node)
                 .iter()
@@ -481,6 +457,28 @@ fn binding_mutated(il: &Il, interner: &Interner, name: Symbol, defining_stmt: No
             _ => false,
         }
     })
+}
+
+fn exported_binding_unsafe(
+    il: &Il,
+    interner: &Interner,
+    name: Symbol,
+    defining_stmt: NodeId,
+) -> bool {
+    binding_mutated(il, interner, name, defining_stmt)
+        || il.nodes.iter().enumerate().any(|(idx, node)| {
+            let node_id = NodeId(idx as u32);
+            node_id != defining_stmt
+                && node.kind == NodeKind::Call
+                && call_argument_escapes_binding(il, node_id, name)
+        })
+}
+
+fn call_argument_escapes_binding(il: &Il, call: NodeId, name: Symbol) -> bool {
+    il.children(call)
+        .iter()
+        .skip(1)
+        .any(|&arg| node_contains_symbol(il, arg, name))
 }
 
 fn field_mutates_binding(il: &Il, interner: &Interner, field: NodeId, name: Symbol) -> bool {

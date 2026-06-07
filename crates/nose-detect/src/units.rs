@@ -16,15 +16,16 @@ use nose_semantics::{
     builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
-    go_zero_map_lookup_contract, index_membership_threshold_contract,
-    iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
-    java_map_factory_contract, js_array_is_array_contract, js_like_map_constructor_contract,
-    js_like_set_constructor_contract, map_get_contract, map_key_view_contract,
-    map_key_view_wrapper_contract, method_call_contract, nullish_global_contract,
-    regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
-    seq_surface_contract, static_index_membership_contract, typeof_operator_contract,
-    IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    go_zero_map_lookup_contract, import_binding_rhs_matches, import_namespace_rhs_matches,
+    index_membership_threshold_contract, iterator_identity_adapter_contract,
+    java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
+    js_array_is_array_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
+    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
+    rust_vec_new_factory_contract, semantics, seq_surface_contract,
+    static_index_membership_contract, typeof_operator_contract, IndexMembershipThreshold,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -604,6 +605,8 @@ pub(crate) fn extract(
 struct StrictFacts {
     immutable_names: FxHashSet<Symbol>,
     function_names: FxHashSet<Symbol>,
+    collection_names: FxHashSet<Symbol>,
+    map_names: FxHashSet<Symbol>,
     collection_cids: FxHashSet<u32>,
     map_cids: FxHashSet<u32>,
 }
@@ -660,10 +663,18 @@ impl StrictFacts {
                 continue;
             }
             let safe_literal = immutable_binding_safe(il, &env, &self.immutable_names, kids[1]);
-            let safe_proven_container =
-                strict_exact_module_container_binding_safe(il, interner, self, kids[1]);
-            if safe_literal || safe_proven_container {
+            let safe_collection_container =
+                strict_exact_module_collection_binding_safe(il, interner, self, kids[1]);
+            let safe_map_container =
+                strict_exact_module_map_binding_safe(il, interner, self, kids[1]);
+            if safe_literal || safe_collection_container || safe_map_container {
                 self.immutable_names.insert(name);
+                if safe_collection_container {
+                    self.collection_names.insert(name);
+                }
+                if safe_map_container {
+                    self.map_names.insert(name);
+                }
                 if let Payload::Cid(cid) = il.node(kids[0]).payload {
                     env.insert(cid);
                 }
@@ -788,7 +799,22 @@ fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
     il.cid_names.get(cid as usize).copied()
 }
 
-fn strict_exact_module_container_binding_safe(
+fn strict_exact_module_collection_binding_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    strict_exact_literal_collection_receiver_safe(il, interner, facts, node)
+        || strict_exact_python_collection_factory_safe(il, interner, facts, node)
+        || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
+        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
+        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
+        || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
+        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
+}
+
+fn strict_exact_module_map_binding_safe(
     il: &Il,
     interner: &Interner,
     facts: &StrictFacts,
@@ -797,12 +823,6 @@ fn strict_exact_module_container_binding_safe(
     strict_exact_map_constructor_entries_safe(il, interner, facts, node)
         || strict_exact_java_map_factory_safe(il, interner, facts, node)
         || strict_exact_rust_std_map_factory_safe(il, interner, facts, node)
-        || strict_exact_python_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
-        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
-        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
 }
 
 fn strict_exact_local_collection_binding_safe(
@@ -1648,6 +1668,9 @@ fn strict_exact_proven_collection_receiver_safe(
     matches!(
         (il.kind(receiver), il.node(receiver).payload),
         (NodeKind::Var, Payload::Cid(cid)) if facts.collection_cids.contains(&cid)
+    ) || matches!(
+        (il.kind(receiver), il.node(receiver).payload),
+        (NodeKind::Var, Payload::Name(name)) if facts.collection_names.contains(&name)
     )
 }
 
@@ -1675,6 +1698,9 @@ fn strict_exact_proven_map_receiver_safe(il: &Il, facts: &StrictFacts, receiver:
     matches!(
         (il.kind(receiver), il.node(receiver).payload),
         (NodeKind::Var, Payload::Cid(cid)) if facts.map_cids.contains(&cid)
+    ) || matches!(
+        (il.kind(receiver), il.node(receiver).payload),
+        (NodeKind::Var, Payload::Name(name)) if facts.map_names.contains(&name)
     )
 }
 
@@ -1786,7 +1812,7 @@ fn strict_exact_membership_collection_safe(
         {
             return true;
         }
-        return strict_exact_safe_tree(il, interner, facts, node);
+        return false;
     }
     let tag = match il.node(node).payload {
         Payload::None => None,
@@ -1935,33 +1961,20 @@ fn top_level_assignment_rhs(il: &Il, symbol: Symbol) -> Option<NodeId> {
     })
 }
 
-fn import_binding_rhs_matches(
-    il: &Il,
-    interner: &Interner,
-    rhs: NodeId,
-    module: &str,
-    exported: &str,
-) -> bool {
-    let kids = il.children(rhs);
-    il.kind(rhs) == NodeKind::Seq
-        && matches!(
-            il.node(rhs).payload,
-            Payload::Name(seq_name) if interner.resolve(seq_name) == "import_binding"
-        )
-        && kids.len() == 2
-        && matches!(il.node(kids[0]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(module))
-        && matches!(il.node(kids[1]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(exported))
-}
-
-fn import_namespace_rhs_matches(il: &Il, interner: &Interner, rhs: NodeId, module: &str) -> bool {
-    let kids = il.children(rhs);
-    il.kind(rhs) == NodeKind::Seq
-        && matches!(
-            il.node(rhs).payload,
-            Payload::Name(seq_name) if interner.resolve(seq_name) == "import_namespace"
-        )
-        && kids.len() == 1
-        && matches!(il.node(kids[0]).payload, Payload::LitStr(hash) if hash == stable_symbol_hash(module))
+fn top_level_assignment_cid(il: &Il, symbol: Symbol) -> Option<u32> {
+    top_level_statements(il).into_iter().find_map(|stmt| {
+        if assignment_name(il, stmt).is_none_or(|name| name != symbol) {
+            return None;
+        }
+        let kids = il.children(stmt);
+        if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
+            return None;
+        }
+        match il.node(kids[0]).payload {
+            Payload::Cid(cid) => Some(cid),
+            _ => None,
+        }
+    })
 }
 
 fn strict_exact_ruby_set_factory_safe(
@@ -2192,6 +2205,9 @@ fn strict_exact_java_std_var_name(
             let Some(&name) = il.cid_names.get(cid as usize) else {
                 return false;
             };
+            if top_level_assignment_cid(il, name) != Some(cid) {
+                return false;
+            }
             name
         }
         _ => return false,

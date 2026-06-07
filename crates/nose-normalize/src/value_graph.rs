@@ -51,21 +51,20 @@ use nose_il::{
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
     free_function_builtin_contract, go_zero_map_default_kind, go_zero_map_lookup_contract,
-    imported_namespace_function_contract, index_membership_threshold_contract,
-    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
-    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
-    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
-    nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
-    rust_option_and_then_contract, rust_option_none_sentinel_contract,
-    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract,
+    import_fact_contract, import_namespace_rhs_matches, imported_namespace_function_contract,
+    index_membership_threshold_contract, iterator_identity_adapter_contract,
+    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
+    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
+    map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
+    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics, seq_surface_contract,
     static_index_membership_contract, BuiltinArgContract, DomainEvidence, GoZeroMapDefaultKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
-    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_IMPORT_BINDING,
-    SEQ_VALUE_IMPORT_NAMESPACE, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
-    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    ImportFactKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
+    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    SeqSurfaceContract, StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
+    SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1017,7 +1016,10 @@ impl<'a> Builder<'a> {
 
     fn is_import_namespace_value(&self, value: ValueId, module: &str) -> bool {
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(SEQ_VALUE_IMPORT_NAMESPACE)) || node.args.len() != 1 {
+        let contract = import_fact_contract(ImportFactKind::Namespace);
+        if !matches!(node.op, ValOp::Seq(tag) if tag == contract.value_tag)
+            || node.args.len() != contract.coordinate_count
+        {
             return false;
         }
         matches!(
@@ -1028,7 +1030,10 @@ impl<'a> Builder<'a> {
 
     fn is_import_binding_value(&self, value: ValueId, module: &str, exported: &str) -> bool {
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(SEQ_VALUE_IMPORT_BINDING)) || node.args.len() != 2 {
+        let contract = import_fact_contract(ImportFactKind::Binding);
+        if !matches!(node.op, ValOp::Seq(tag) if tag == contract.value_tag)
+            || node.args.len() != contract.coordinate_count
+        {
             return false;
         }
         matches!(
@@ -1055,22 +1060,7 @@ impl<'a> Builder<'a> {
                 return false;
             }
             let kids = self.il.children(stmt);
-            if kids.len() != 2 || self.il.kind(kids[1]) != NodeKind::Seq {
-                return false;
-            }
-            let Payload::Name(seq_name) = self.il.node(kids[1]).payload else {
-                return false;
-            };
-            if self.interner.resolve(seq_name) != "import_namespace" {
-                return false;
-            }
-            let Some(&module_node) = self.il.children(kids[1]).first() else {
-                return false;
-            };
-            matches!(
-                self.il.node(module_node).payload,
-                Payload::LitStr(hash) if hash == stable_symbol_hash(module)
-            )
+            kids.len() == 2 && import_namespace_rhs_matches(self.il, self.interner, kids[1], module)
         })
     }
 
@@ -7381,7 +7371,8 @@ impl<'a> Builder<'a> {
                             }
                         }
                         let receiver = &self.nodes[a[0] as usize];
-                        if matches!(receiver.op, ValOp::Seq(SEQ_VALUE_IMPORT_NAMESPACE))
+                        let namespace = import_fact_contract(ImportFactKind::Namespace);
+                        if matches!(receiver.op, ValOp::Seq(tag) if tag == namespace.value_tag)
                             && receiver.args.len() == 1
                         {
                             let module = receiver.args[0];
@@ -7389,8 +7380,8 @@ impl<'a> Builder<'a> {
                                 ValOp::Const(stable_string_const_key(self.interner.resolve(s))),
                                 vec![],
                             );
-                            return self
-                                .mk(ValOp::Seq(SEQ_VALUE_IMPORT_BINDING), vec![module, exported]);
+                            let binding = import_fact_contract(ImportFactKind::Binding);
+                            return self.mk(ValOp::Seq(binding.value_tag), vec![module, exported]);
                         }
                     }
                 }

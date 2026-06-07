@@ -967,12 +967,18 @@ fn python_math_prod_converges_with_product_loop() {
         "import math\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=2)\n";
     let missing_import = "def f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
     let shadowed_math = "import math\nmath = object()\n\ndef f(xs):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let parameter_shadowed_math =
+        "import math\n\ndef f(xs, math):\n    return math.prod((x for x in xs if x > 0), start=1)\n";
+    let local_shadowed_math =
+        "import math\n\ndef f(xs):\n    math = object()\n    return math.prod((x for x in xs if x > 0), start=1)\n";
     let loop_fp = value_fp(&i, loop_py, Lang::Python);
     assert_eq!(loop_fp, value_fp(&i, prod_py, Lang::Python));
     assert_eq!(loop_fp, value_fp(&i, aliased_prod_py, Lang::Python));
     assert_ne!(loop_fp, value_fp(&i, bad_seed, Lang::Python));
     assert_ne!(loop_fp, value_fp(&i, missing_import, Lang::Python));
     assert_ne!(loop_fp, value_fp(&i, shadowed_math, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, parameter_shadowed_math, Lang::Python));
+    assert_ne!(loop_fp, value_fp(&i, local_shadowed_math, Lang::Python));
 }
 
 #[test]
@@ -3548,6 +3554,9 @@ fn import_named_and_namespace_member_coordinates_converge() {
     let js_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.helper(value + 1); }\n";
     let js_wrong_member = "import * as mathOps from \"./shared-math\";\nfunction f(value) { return mathOps.otherHelper(value + 1); }\n";
     let ts_namespace = "import * as mathOps from \"./shared-math\";\nfunction f(value: number): number { return mathOps.helper(value + 1); }\n";
+    let ts_type_only =
+        "import type { helper } from \"./shared-math\";\nfunction f(value: number): number { return helper(value + 1); }\n";
+    let ts_mixed_type_only = "import { helper, type otherHelper } from \"./shared-math\";\nfunction f(value: number): number { return otherHelper(value + 1); }\n";
     let py_named =
         "from shared_math import helper\n\ndef f(value):\n    return helper(value + 1)\n";
     let py_namespace =
@@ -3559,6 +3568,8 @@ fn import_named_and_namespace_member_coordinates_converge() {
     assert_eq!(fp, value_fp(&i, js_namespace, Lang::JavaScript));
     assert_eq!(fp, value_fp(&i, ts_namespace, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, js_wrong_member, Lang::JavaScript));
+    assert_ne!(fp, value_fp(&i, ts_type_only, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, ts_mixed_type_only, Lang::TypeScript));
 
     let py_fp = value_fp(&i, py_named, Lang::Python);
     assert_eq!(py_fp, value_fp(&i, py_namespace, Lang::Python));
@@ -4183,12 +4194,17 @@ fn java_arrays_aslist_single_argument_respects_array_provenance() {
     let array_membership = "import java.util.Arrays;\n\nclass C { static boolean f(String[] values, String value) { return Arrays.asList(values).contains(value); } }\n";
     let list_membership = "import java.util.Arrays;\nimport java.util.List;\n\nclass C { static boolean f(List<String> values, String value) { return Arrays.asList(values).contains(value); } }\n";
     let singleton_list_membership = "import java.util.List;\n\nclass C { static boolean f(String[] values, String value) { return List.of(values).contains(value); } }\n";
+    let parameter_shadowed_arrays = "import java.util.Arrays;\n\nclass FakeArrays { java.util.List<String> asList(String[] values) { return java.util.List.of(\"green\"); } }\nclass C { static boolean f(FakeArrays Arrays, String[] values, String value) { return Arrays.asList(values).contains(value); } }\n";
 
     let array_fp = value_fp(&i, array_membership, Lang::Java);
     assert_ne!(array_fp, value_fp(&i, list_membership, Lang::Java));
     assert_ne!(
         array_fp,
         value_fp(&i, singleton_list_membership, Lang::Java)
+    );
+    assert_ne!(
+        array_fp,
+        value_fp(&i, parameter_shadowed_arrays, Lang::Java)
     );
 }
 
@@ -4458,6 +4474,11 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
     )
     .unwrap();
     std::fs::write(
+        dir.join("escaped_tables.py"),
+        "LOOKUP = {\"red\": 1, \"blue\": 2}\nmutate(LOOKUP)\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("imported_mutated_provider.py"),
         "from mutated_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
     )
@@ -4465,6 +4486,11 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
     std::fs::write(
         dir.join("imported_mutated_index_provider.py"),
         "from mutated_index_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("imported_escaped_provider.py"),
+        "from escaped_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
     )
     .unwrap();
     std::fs::write(
@@ -4499,6 +4525,11 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
         local,
         corpus_value_fp(&corpus, "imported_mutated_index_provider.py", "lookup"),
         "provider index write must block imported literal provenance"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "imported_escaped_provider.py", "lookup"),
+        "provider opaque argument escape must block imported literal provenance"
     );
     assert_ne!(
         local,
