@@ -88,6 +88,10 @@ migrated.
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
   contract before it can feed exact membership.
+- Go literal map default lookup is represented by a shared contract for the
+  `composite_literal`/`keyed_element` surface and the supported zero-default
+  payload classes. The value graph still constructs the canonical default value,
+  and detect still checks exact-safe keys and entries.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
 
@@ -97,9 +101,8 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
-- library/API recognizers that still lack shared contracts, especially Go
-  zero-map lookup surfaces and remaining language-specific import or module proof
-  mechanics;
+- language-specific import or module proof mechanics that are still local to
+  frontend, normalize, or detect callers;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -176,7 +179,6 @@ The first high-value targets for semantic-kernel extraction are:
   closed contracts waiting on construct-vs-call proof;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
   path/name plus shadow-proof contracts;
-- shared contracts for Go composite map literal/default-zero lookup rules;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
 - versioned receiver/domain evidence records to replace the current

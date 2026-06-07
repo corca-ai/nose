@@ -50,14 +50,15 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
-    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
-    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
-    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
-    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, iterator_identity_adapter_contract,
+    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
+    java_map_factory_contract_by_hash, map_key_view_contract_by_hash,
+    map_key_view_wrapper_contract_by_hash, method_call_contract, reduction_builtin_contract,
+    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, DomainEvidence, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    scalar_integer_method_contract, semantics, DomainEvidence, GoZeroMapDefaultKind,
+    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1324,8 +1325,9 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_go_literal_zero_map_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
+        let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("go_literal_zero_map"))
+        if !matches!(node.op, ValOp::Seq(tag) if tag == stable_symbol_hash(contract.canonical_value_tag))
             || node.args.len() != 2
         {
             return None;
@@ -1338,16 +1340,11 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         args: &[ValueId],
     ) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang)
-            .stdlib()
-            .go_literal_zero_map_lookup()
-        {
-            return None;
-        }
+        let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
         let Payload::Name(name) = self.il.node(expr).payload else {
             return None;
         };
-        if self.interner.resolve(name) != "composite_literal" || args.is_empty() {
+        if self.interner.resolve(name) != contract.map_literal_tag || args.is_empty() {
             return None;
         }
         let entry_nodes = self.il.children(expr).to_vec();
@@ -1364,7 +1361,7 @@ impl<'a> Builder<'a> {
             let Payload::Name(entry_name) = self.il.node(entry_node_id).payload else {
                 return None;
             };
-            if self.interner.resolve(entry_name) != "keyed_element" {
+            if self.interner.resolve(entry_name) != contract.entry_tag {
                 return None;
             }
             let kv_nodes = self.il.children(entry_node_id);
@@ -1373,8 +1370,9 @@ impl<'a> Builder<'a> {
             {
                 return None;
             }
-            let (kind, value_default) =
-                self.go_literal_zero_default_from_payload(self.il.node(kv_nodes[1]).payload)?;
+            let kind =
+                go_zero_map_default_kind(self.il.meta.lang, self.il.node(kv_nodes[1]).payload)?;
+            let value_default = self.go_literal_zero_default_value(kind);
             match value_kind {
                 Some(current_kind) if current_kind != kind => return None,
                 Some(_) => {}
@@ -1384,7 +1382,7 @@ impl<'a> Builder<'a> {
                 }
             }
             let entry_value_node = &self.nodes[entry_value as usize];
-            if !matches!(entry_value_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash("keyed_element"))
+            if !matches!(entry_value_node.op, ValOp::Seq(tag) if tag == stable_symbol_hash(contract.entry_tag))
                 || entry_value_node.args.len() != 2
             {
                 return None;
@@ -1393,25 +1391,22 @@ impl<'a> Builder<'a> {
         }
         let map = self.mk(ValOp::Seq(3), canonical_entries);
         Some(self.mk(
-            ValOp::Seq(stable_symbol_hash("go_literal_zero_map")),
+            ValOp::Seq(stable_symbol_hash(contract.canonical_value_tag)),
             vec![default?, map],
         ))
     }
 
-    fn go_literal_zero_default_from_payload(&mut self, payload: Payload) -> Option<(u8, ValueId)> {
-        match payload {
-            Payload::LitInt(_) => Some((1, self.int_const(0))),
-            Payload::LitStr(_) => Some((
-                2,
-                self.mk(ValOp::Const(stable_string_const_key("")), vec![]),
-            )),
-            Payload::LitBool(_) => Some((3, self.mk(ValOp::Const(0x3000_0001), vec![]))),
-            Payload::LitFloat(_) => Some((
-                4,
-                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![]),
-            )),
-            Payload::Lit(nose_il::LitClass::Null) => Some((5, self.null_const())),
-            _ => None,
+    fn go_literal_zero_default_value(&mut self, kind: GoZeroMapDefaultKind) -> ValueId {
+        match kind {
+            GoZeroMapDefaultKind::Int => self.int_const(0),
+            GoZeroMapDefaultKind::String => {
+                self.mk(ValOp::Const(stable_string_const_key("")), vec![])
+            }
+            GoZeroMapDefaultKind::Bool => self.mk(ValOp::Const(0x3000_0001), vec![]),
+            GoZeroMapDefaultKind::Float => {
+                self.mk(ValOp::Const(stable_float_const_key("0.0")), vec![])
+            }
+            GoZeroMapDefaultKind::Null => self.null_const(),
         }
     }
 

@@ -103,6 +103,8 @@ and pack ecosystem.
 - Map key-view recognition moved behind contracts that distinguish collection
   views from iterator views. JS-like `Map.keys()` now requires an
   `Array.from(...)` wrapper before exact membership can consume it.
+- Go composite map literal/default-zero lookup recognition moved behind a shared
+  contract for literal/entry tags and supported zero-default payload classes.
 
 ## Phase 0: documentation and vocabulary
 
@@ -132,8 +134,6 @@ and pack ecosystem.
   versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
-- Move Go composite map literal/default-zero lookup contracts into shared kernel
-  contracts.
 - Replace the current `DomainEvidence` facade with versioned, pack-facing
   receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while

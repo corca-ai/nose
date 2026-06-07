@@ -15,7 +15,8 @@ use nose_normalize::{
 use nose_semantics::{
     builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, iterator_identity_adapter_contract,
+    exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
+    go_zero_map_lookup_contract, iterator_identity_adapter_contract,
     java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_key_view_contract,
     map_key_view_wrapper_contract, method_call_contract, ruby_set_factory_contract,
@@ -2174,11 +2175,7 @@ fn strict_exact_go_literal_zero_map_index_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if !semantics(il.meta.lang)
-        .stdlib()
-        .go_literal_zero_map_lookup()
-        || il.kind(node) != NodeKind::Index
-    {
+    if go_zero_map_lookup_contract(il.meta.lang).is_none() || il.kind(node) != NodeKind::Index {
         return false;
     }
     let kids = il.children(node);
@@ -2193,13 +2190,16 @@ fn strict_exact_go_literal_zero_map_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
+    let Some(contract) = go_zero_map_lookup_contract(il.meta.lang) else {
+        return false;
+    };
     if il.kind(node) != NodeKind::Seq {
         return false;
     }
     let Payload::Name(name) = il.node(node).payload else {
         return false;
     };
-    if interner.resolve(name) != "composite_literal" || il.children(node).is_empty() {
+    if interner.resolve(name) != contract.map_literal_tag || il.children(node).is_empty() {
         return false;
     }
     let mut value_kind = None;
@@ -2211,14 +2211,14 @@ fn strict_exact_go_literal_zero_map_safe(
             return false;
         };
         let kv = il.children(entry);
-        if interner.resolve(entry_name) != "keyed_element"
+        if interner.resolve(entry_name) != contract.entry_tag
             || kv.len() != 2
             || !matches!(il.node(kv[0]).payload, Payload::LitStr(_))
             || !strict_exact_safe_tree(il, interner, facts, kv[0])
         {
             return false;
         }
-        let Some(kind) = strict_exact_go_zero_value_kind(il.node(kv[1]).payload) else {
+        let Some(kind) = go_zero_map_default_kind(il.meta.lang, il.node(kv[1]).payload) else {
             return false;
         };
         match value_kind {
@@ -2230,17 +2230,6 @@ fn strict_exact_go_literal_zero_map_safe(
             }
         }
     })
-}
-
-fn strict_exact_go_zero_value_kind(payload: Payload) -> Option<u8> {
-    match payload {
-        Payload::LitInt(_) => Some(1),
-        Payload::LitStr(_) => Some(2),
-        Payload::LitBool(_) => Some(3),
-        Payload::LitFloat(_) => Some(4),
-        Payload::Lit(LitClass::Null) => Some(5),
-        _ => None,
-    }
 }
 
 fn strict_exact_call_args_safe(

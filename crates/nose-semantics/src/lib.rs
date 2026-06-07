@@ -7,8 +7,8 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, ParamSemantic,
-    Payload,
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind,
+    ParamSemantic, Payload,
 };
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
@@ -1288,6 +1288,44 @@ pub fn map_key_view_wrapper_contract_by_hash(
         .flatten()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct GoZeroMapLookupContract {
+    pub map_literal_tag: &'static str,
+    pub entry_tag: &'static str,
+    pub canonical_value_tag: &'static str,
+}
+
+pub fn go_zero_map_lookup_contract(lang: Lang) -> Option<GoZeroMapLookupContract> {
+    (lang == Lang::Go).then_some(GoZeroMapLookupContract {
+        map_literal_tag: "composite_literal",
+        entry_tag: "keyed_element",
+        canonical_value_tag: "go_literal_zero_map",
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum GoZeroMapDefaultKind {
+    Int,
+    String,
+    Bool,
+    Float,
+    Null,
+}
+
+pub fn go_zero_map_default_kind(lang: Lang, payload: Payload) -> Option<GoZeroMapDefaultKind> {
+    if lang != Lang::Go {
+        return None;
+    }
+    Some(match payload {
+        Payload::LitInt(_) => GoZeroMapDefaultKind::Int,
+        Payload::LitStr(_) => GoZeroMapDefaultKind::String,
+        Payload::LitBool(_) => GoZeroMapDefaultKind::Bool,
+        Payload::LitFloat(_) => GoZeroMapDefaultKind::Float,
+        Payload::Lit(LitClass::Null) => GoZeroMapDefaultKind::Null,
+        _ => return None,
+    })
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2227,6 +2265,36 @@ mod tests {
             1,
         )
         .is_some());
+    }
+
+    #[test]
+    fn go_zero_map_contracts_are_go_surface_and_default_constrained() {
+        assert_eq!(
+            go_zero_map_lookup_contract(Lang::Go),
+            Some(GoZeroMapLookupContract {
+                map_literal_tag: "composite_literal",
+                entry_tag: "keyed_element",
+                canonical_value_tag: "go_literal_zero_map",
+            })
+        );
+        assert_eq!(go_zero_map_lookup_contract(Lang::Python), None);
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::LitInt(1)),
+            Some(GoZeroMapDefaultKind::Int)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::LitStr(stable_symbol_hash("x"))),
+            Some(GoZeroMapDefaultKind::String)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::Go, Payload::Lit(LitClass::Null)),
+            Some(GoZeroMapDefaultKind::Null)
+        );
+        assert_eq!(
+            go_zero_map_default_kind(Lang::JavaScript, Payload::LitInt(1)),
+            None
+        );
+        assert_eq!(go_zero_map_default_kind(Lang::Go, Payload::None), None);
     }
 
     #[test]
