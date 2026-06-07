@@ -2556,6 +2556,7 @@ impl<'a> Builder<'a> {
     /// function, so `f(args)` ≡ the function's body with `args` substituted (the extract-method /
     /// interprocedural-summary equivalence). Returns `None` for non-direct calls, unknown/
     /// ambiguous callees, or arity mismatch — leaving the opaque-call fallback to run.
+    // proof-obligation: normalize.value_graph.pure_inline
     fn eval_inlined_call(
         &mut self,
         kids: &[NodeId],
@@ -6385,6 +6386,7 @@ impl<'a> Builder<'a> {
     /// two-argument `.then(onOk, onErr)`, and `.catch`/`.finally` (error/cleanup continuations
     /// whose parameter is the error, not the resolved value) are left opaque. Promises wrap
     /// external async values, so this is a NEAR-channel recall extension, never an exact merge.
+    // proof-obligation: normalize.value_graph.promise_then
     fn eval_promise_then(
         &mut self,
         expr: NodeId,

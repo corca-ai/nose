@@ -102,6 +102,20 @@ REQUIRED_OBLIGATIONS = (
         ("crates/nose-normalize/src/lib.rs",),
         ("NormalizeOptions", "oracle", "recursion::run"),
     ),
+    # Semantic canons that live INLINE in value_graph.rs (not in the `value_graph/rules/`
+    # directory the RULE_ROOTS convention auto-requires) — registered here so the gate enforces
+    # their Lean evidence and marker exactly like a rule module. Without this, a canon added
+    # inline carries no proof obligation and the gate stays silent (the gap this PR closes).
+    RequiredObligation(
+        "normalize.value_graph.promise_then",
+        ("crates/nose-normalize/src/value_graph.rs",),
+        ("eval_promise_then",),
+    ),
+    RequiredObligation(
+        "normalize.value_graph.pure_inline",
+        ("crates/nose-normalize/src/value_graph.rs",),
+        ("eval_inlined_call",),
+    ),
 )
 
 

@@ -1,0 +1,16 @@
+id = "normalize.value_graph.promise_then"
+status = "proven"
+kind = "soundness"
+summary = "A settled Promise is modeled by its resolved value (the value graph strips `await` to its operand), so `p.then(λr. body r)` is the continuation applied to that value — `let r = await p; body r`. Beta-reducing the `.then` callback over the receiver is therefore meaning-preserving, and a `.then`-chain equals the nested sequential-await composition."
+
+[rust]
+files = ["crates/nose-normalize/src/value_graph.rs"]
+symbols = ["eval_promise_then"]
+markers = ["normalize.value_graph.promise_then"]
+
+[lean]
+proof = "Proof.lean"
+theorems = [
+  "NosePromiseThen.then_eq_await_bind",
+  "NosePromiseThen.then_chain",
+]
