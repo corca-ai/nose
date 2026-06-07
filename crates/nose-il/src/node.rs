@@ -302,6 +302,16 @@ pub enum ImportEvidenceKind {
     Namespace {
         module_hash: u64,
     },
+    ImmutableLiteralExport {
+        module_hash: u64,
+        exported_hash: u64,
+        root_kind: NodeKind,
+    },
+    ImportedLiteralSnapshot {
+        module_hash: u64,
+        exported_hash: u64,
+        root_kind: NodeKind,
+    },
 }
 
 /// Kernel-facing proof that a source-level symbol denotes a specific global or

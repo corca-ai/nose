@@ -167,11 +167,15 @@ migrated.
   `receiver.stream()` requires an exact iterable receiver, while
   `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local
   `Arrays` type shadow.
-- Cross-file immutable import replacement now preserves import-binding
-  dependencies used by the exported literal expression, so a Java static import
+- Cross-file immutable import replacement now copies the provider's closed
+  evidence subgraph for the exported literal expression, so a Java static import
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
-  the importing file. Provider and importer module-binding mutation proof now
-  rejects direct binding mutations and direct place writes such as
+  the importing file only when the provider emitted that import proof. The
+  copied evidence remaps anchors/dependency ids to the importer file, and the
+  replacement records `ImportedLiteralSnapshot` provenance depending on the
+  importer static import proof plus copied provider evidence. Provider and
+  importer module-binding mutation proof now rejects direct binding mutations
+  and direct place writes such as
   `LOOKUP.clear()`, `LOOKUP.push(...)`, and `LOOKUP[key] = value`, and
   provider-side opaque argument escapes such as `mutate(LOOKUP)`, before
   imported literal provenance can enter exact matching.
@@ -268,8 +272,10 @@ migrated.
   namespace facts through that contract. Value-graph import identity consumes
   sequence `Import` evidence into dedicated `ImportNamespace`/`ImportBinding`
   value ops, so raw import `Seq` payloads can no longer become proof-bearing
-  value nodes by tag shape. Imported literal replacement still uses the typed
-  compatibility helper while raw IL mirrors remain.
+  value nodes by tag shape. Imported literal replacement also consumes
+  evidence-only import facts; raw `Seq("import_binding")` payloads remain as
+  compatibility mirrors, but missing or ambiguous `Import` evidence no longer
+  proves a cross-file replacement.
 - Symbol identity evidence now covers static imported binding/namespace aliases
   and JS/TS static-global value occurrences such as `Math`, `console`, `Array`,
   `Map`, `Set`, and `undefined` when the frontend proves no local shadow.
@@ -311,13 +317,14 @@ Semantic knowledge still appears in several forms outside the facade:
   open;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
-  `EvidenceRecord::Import`, and value-graph import identity is now evidence-only,
-  but the raw IL storage shape and some compatibility consumers have not been
-  removed;
-- module/import proof logic for immutable sibling-module literal bindings;
-- imported-literal snapshot provenance and evidence copying for cross-file
-  replacement, especially avoiding raw import `Seq` fallback when provider
-  evidence is missing or ambiguous;
+  `EvidenceRecord::Import`, and value-graph import identity plus imported
+  literal replacement are now evidence-only, but the raw IL storage shape and
+  some compatibility consumers have not been removed;
+- module/import proof logic for immutable sibling-module literal bindings is
+  still local to `nose-frontend`, although replacement now copies the provider's
+  closed evidence subgraph into the importer, remaps spans/dependency ids, and
+  records `ImportedLiteralSnapshot` provenance tied to the importer static
+  import proof;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
   instead of versioned `LawPack` records;

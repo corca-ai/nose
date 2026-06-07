@@ -54,17 +54,17 @@ use nose_semantics::{
     exact_static_membership_predicate_operator, free_function_builtin_contract,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
-    imported_namespace_symbol, library_api_free_name_shadow_safe,
-    library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
-    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_iterator_identity_adapter_contract, library_java_collection_factory_contract_by_hash,
-    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
-    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
-    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
-    library_rust_vec_new_factory_contract, nullish_global_contract,
-    own_property_guard_evidence_at_span, qualified_global_symbol_at_span,
+    imported_literal_producer_evidence_at_span, imported_namespace_symbol,
+    library_api_free_name_shadow_safe, library_free_name_collection_factory_contracts,
+    library_free_name_map_factory_contracts, library_imported_collection_factory_contracts,
+    library_imported_namespace_function_contract, library_iterator_identity_adapter_contract,
+    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
+    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
+    library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
+    library_method_call_contract, library_ruby_set_factory_contract_by_hash,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    nullish_global_contract, own_property_guard_evidence_at_span, qualified_global_symbol_at_span,
     record_shape_guard_for_node, reduction_builtin_contract, rust_option_and_then_contract,
     rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
     scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
@@ -1392,7 +1392,8 @@ impl<'a> Builder<'a> {
         else {
             return None;
         };
-        if !self.is_imported_java_util_name(callee.args[0], expected_receiver) {
+        let provider_proven = self.imported_literal_producer_proven(value, NodeKind::Call);
+        if !provider_proven && !self.is_imported_java_util_name(callee.args[0], expected_receiver) {
             return None;
         }
         let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
@@ -1412,7 +1413,7 @@ impl<'a> Builder<'a> {
         if kind == JavaMapFactoryKind::OfEntries {
             let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
             for entry in args.iter().skip(1).copied() {
-                let kv = self.proven_java_map_entry_pair(entry)?;
+                let kv = self.proven_java_map_entry_pair(entry, provider_proven)?;
                 canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
             }
             return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
@@ -1420,7 +1421,11 @@ impl<'a> Builder<'a> {
         None
     }
 
-    fn proven_java_map_entry_pair(&self, value: ValueId) -> Option<Vec<ValueId>> {
+    fn proven_java_map_entry_pair(
+        &self,
+        value: ValueId,
+        provider_proven: bool,
+    ) -> Option<Vec<ValueId>> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 3 {
             return None;
@@ -1438,12 +1443,18 @@ impl<'a> Builder<'a> {
         else {
             return None;
         };
-        if callee.args.len() != 1
-            || !self.is_imported_java_util_name(callee.args[0], expected_receiver)
-        {
+        if callee.args.len() != 1 {
+            return None;
+        }
+        if !provider_proven && !self.is_imported_java_util_name(callee.args[0], expected_receiver) {
             return None;
         }
         Some(args[1..].to_vec())
+    }
+
+    fn imported_literal_producer_proven(&self, value: ValueId, kind: NodeKind) -> bool {
+        self.node_span[value as usize]
+            .is_some_and(|span| imported_literal_producer_evidence_at_span(self.il, span, kind))
     }
 
     fn eval_js_like_constructed_collection_or_map(

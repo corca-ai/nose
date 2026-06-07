@@ -58,7 +58,7 @@ The current implemented kinds are:
 |---|---|
 | `Source` | construct syntax, regex literal provenance, and source operator family |
 | `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
-| `Import` | static import binding and namespace proof |
+| `Import` | static import binding/namespace proof and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
@@ -163,8 +163,12 @@ callers:
 
 - source-fact lookup for construct syntax, regex literal, and operator provenance;
 - parameter domain lookup used by normalize and strict exact receiver gates;
-- import proof parsing for compatibility helpers and imported literal
-  replacement, with value-graph import identity consuming evidence-only facts;
+- import proof parsing for compatibility helpers, with value-graph import
+  identity and imported literal replacement consuming evidence-only facts;
+- cross-file imported literal replacement copies the provider's closed evidence
+  subgraph into the importer with remapped anchors/dependency ids, then records
+  `Import(ImportedLiteralSnapshot)` provenance that depends on the importer
+  import proof and copied provider evidence;
 - imported namespace/binding symbol proof for normalize idiom admission,
   value-graph namespace fallbacks, and strict exact gates, without raw assignment
   fallback;
@@ -201,5 +205,5 @@ callers:
 
 Field/place/effect facts, receiver/protocol evidence beyond parameter domains,
 full scope-resolution and namespace-member evidence, broader guard evidence,
-cross-module imported-literal snapshot provenance and evidence copying,
-report-level provenance, and external manifest loading are still open work.
+general cross-module dependency manifests, report-level provenance, and external
+manifest loading are still open work.

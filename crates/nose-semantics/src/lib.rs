@@ -7,11 +7,11 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    contains_js_identifier, stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind,
-    EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il, ImportEvidenceKind, Interner,
-    Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload, SequenceSurfaceKind,
-    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span,
-    SymbolEvidenceKind,
+    contains_js_identifier, stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceEmitter,
+    EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il,
+    ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    Span, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -387,6 +387,30 @@ pub fn seq_surface_contract_for_node(
         }
         EvidenceResolution::Ambiguous => None,
         EvidenceResolution::Missing => seq_surface_contract(il.meta.lang, raw_tag),
+    }
+}
+
+/// Evidence-only `Seq` surface resolution for consumers that must not infer a
+/// semantic surface from tag spelling alone.
+pub fn seq_surface_contract_evidence_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<SeqSurfaceContract> {
+    if il.kind(node) != NodeKind::Seq {
+        return None;
+    }
+    let raw_tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return None,
+    };
+    let (raw_kind, raw_contract) = seq_surface_contract_for_tag(il.meta.lang, raw_tag)?;
+    match sequence_surface_evidence_at_sequence_span(il, il.node(node).span) {
+        EvidenceResolution::Found(kind) if kind == raw_kind => Some(raw_contract),
+        EvidenceResolution::Found(_)
+        | EvidenceResolution::Ambiguous
+        | EvidenceResolution::Missing => None,
     }
 }
 
@@ -769,6 +793,66 @@ pub fn import_fact_evidence_rhs(il: &Il, rhs: NodeId) -> Option<ImportFact> {
         EvidenceResolution::Found(fact) => Some(fact),
         EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
+}
+
+/// Prove that `span/kind` is a first-party imported-literal producer or copied
+/// snapshot whose recorded dependencies are all asserted. This proof preserves a
+/// provider-scope literal producer after cross-file replacement; consumers must
+/// still check the expression shape/result contract they are about to build.
+pub fn imported_literal_producer_evidence_at_span(il: &Il, span: Span, kind: NodeKind) -> bool {
+    il.evidence.iter().any(|record| {
+        record.status == EvidenceStatus::Asserted
+            && first_party_record(record)
+            && record.anchor == EvidenceAnchor::node(span, kind)
+            && matches!(
+                record.kind,
+                EvidenceKind::Import(
+                    ImportEvidenceKind::ImmutableLiteralExport {
+                        root_kind,
+                        ..
+                    } | ImportEvidenceKind::ImportedLiteralSnapshot {
+                        root_kind,
+                        ..
+                    }
+                ) if root_kind == kind
+            )
+            && evidence_dependencies_asserted(il, record)
+    })
+}
+
+pub fn imported_literal_producer_evidence_for_node(il: &Il, node: NodeId) -> bool {
+    imported_literal_producer_evidence_at_span(il, il.node(node).span, il.kind(node))
+}
+
+fn first_party_record(record: &EvidenceRecord) -> bool {
+    record.provenance.emitter == EvidenceEmitter::FirstParty
+        && record.provenance.pack_hash == Some(stable_symbol_hash(FIRST_PARTY_PACK_ID))
+}
+
+fn evidence_dependencies_asserted(il: &Il, record: &EvidenceRecord) -> bool {
+    let mut stack = record.dependencies.clone();
+    let mut seen = Vec::new();
+    while let Some(id) = stack.pop() {
+        if seen.contains(&id) {
+            continue;
+        }
+        seen.push(id);
+        let Some(dep) = evidence_record_by_id(il, id) else {
+            return false;
+        };
+        if dep.status != EvidenceStatus::Asserted {
+            return false;
+        }
+        stack.extend_from_slice(&dep.dependencies);
+    }
+    true
+}
+
+fn evidence_record_by_id(il: &Il, id: EvidenceId) -> Option<&EvidenceRecord> {
+    il.evidence
+        .get(id.0 as usize)
+        .filter(|record| record.id == id)
+        .or_else(|| il.evidence.iter().find(|record| record.id == id))
 }
 
 pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {

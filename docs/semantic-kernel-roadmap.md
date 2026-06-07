@@ -113,9 +113,13 @@ and pack ecosystem.
 - Java stream source adapters are now proof-gated: receiver `.stream()` requires
   exact iterable evidence, and static `Arrays.stream(xs)` requires the
   `java.util.Arrays` import binding with no local `Arrays` type shadow.
-- Cross-file immutable import replacement now copies import-binding dependencies
-  required by the exported literal expression, preserving provider-side stdlib
-  proofs such as `java.util.Map` for Java static imports.
+- Cross-file immutable import replacement now copies the provider's closed
+  evidence subgraph required by the exported literal expression, preserving
+  provider-side stdlib proofs such as `java.util.Map` for Java static imports
+  only when that provider evidence exists. Replacement records
+  `ImportedLiteralSnapshot` provenance depending on the importer static import
+  proof and copied provider evidence, and raw `Seq("import_binding")` spelling
+  no longer proves cross-file replacement.
 - JS-like `Map`/`Set` constructor contracts now require construct-syntax proof.
   They were initially closed while construct-vs-call evidence was missing; the
   source-fact slice reopened proof-backed `new Map(...)`/`new Set(...)` while
@@ -195,6 +199,11 @@ and pack ecosystem.
   imported immutable literal replacement, normalize idiom gates, value-graph
   import proof, and strict exact gates initially moved behind that shared facade
   instead of parsing raw import `Seq` tags locally.
+- Imported immutable literal replacement now consumes evidence-only import facts,
+  copies provider evidence with remapped anchors/dependency ids, and records
+  `ImportedLiteralSnapshot` provenance. This closes raw import-tag fallback and
+  missing-provider-proof cases such as Java `Map.of(...)` without
+  `import java.util.Map`.
 - TypeScript type-only imports no longer emit runtime import facts: whole
   `import type ...` declarations and type-only named specifiers stay outside
   exact library/API proof.
@@ -339,16 +348,16 @@ Remaining in this phase:
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
   `LibraryApiContract` identity/result rows. Remaining API work is to move
-  imported-literal producer provenance and other raw sequence/tag dependencies
-  into explicit evidence records, then cover broader reduction/HOF and ecosystem
-  APIs only after demand, receiver, and effect obligations are expressible.
+  remaining raw sequence/tag dependencies into explicit evidence records, then
+  cover broader reduction/HOF and ecosystem APIs only after demand, receiver,
+  and effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph
   import identity and imported-symbol exact proof are now evidence-only, and
-  selected JS/TS `QualifiedGlobal` paths are covered, but general
-  qualified-member, namespace export identity, and cross-module dependency
-  evidence are not.
+  imported literal replacement copies provider evidence, and selected JS/TS
+  `QualifiedGlobal` paths are covered, but general qualified-member, namespace
+  export identity, and manifest-level cross-module dependency evidence are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.

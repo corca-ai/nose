@@ -4631,6 +4631,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
     )
     .unwrap();
     std::fs::write(
+        dir.join("JavaImportedWithLocalMapShadow.java"),
+        "import static Tables.LOOKUP;\n\nclass JavaImportedWithLocalMapShadow {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n\nclass Map {}\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("WrongTables.java"),
         "import java.util.Map;\n\nclass WrongTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 9, \"blue\", 2);\n}\n",
     )
@@ -4638,6 +4643,16 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
     std::fs::write(
         dir.join("JavaImportedWrongMap.java"),
         "import static WrongTables.LOOKUP;\n\nclass JavaImportedWrongMap {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("MissingMapImportTables.java"),
+        "class MissingMapImportTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("JavaImportedMissingMapImport.java"),
+        "import static MissingMapImportTables.LOOKUP;\n\nclass JavaImportedMissingMapImport {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
     )
     .unwrap();
     std::fs::write(
@@ -4685,6 +4700,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
     );
     assert_eq!(
         local,
+        corpus_value_fp(&corpus, "JavaImportedWithLocalMapShadow.java", "lookup"),
+        "provider-proven Java static import should not be invalidated by importer-local Map shadowing"
+    );
+    assert_eq!(
+        local,
         corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
         "Rust use-imported const entries should prove the same map/default coordinates"
     );
@@ -4712,6 +4732,11 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         local,
         corpus_value_fp(&corpus, "JavaImportedWrongMap.java", "lookup"),
         "different Java imported map contents must stay distinct"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "JavaImportedMissingMapImport.java", "lookup"),
+        "Java imported Map.of provider must require java.util.Map proof"
     );
     assert_ne!(
         local,

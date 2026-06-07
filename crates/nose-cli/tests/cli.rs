@@ -7777,6 +7777,11 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("module_map_missing_java_import.java"),
+        "class JavaModuleMapMissingImport {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n\n  static int wrong(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("module_map_mutated.js"),
         "const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\nLOOKUP.set(\"red\", 9);\n\nfunction wrong(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
     )
@@ -8070,6 +8075,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "wrong_java_map.java",
         "shadowed_java_map.java",
         "local_java_map_type.java",
+        "module_map_missing_java_import.java",
         "module_map_mutated.js",
         "module_map_shadowed.ts",
         "module_map_shadowed.java",

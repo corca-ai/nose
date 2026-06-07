@@ -19,13 +19,14 @@ use nose_semantics::{
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, imported_binding_symbol,
-    imported_member_symbol, library_api_free_name_shadow_safe,
-    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
-    library_java_collection_factory_contract, library_java_map_entry_contract,
-    library_java_map_factory_contract, library_js_array_is_array_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
+    imported_literal_producer_evidence_for_node, imported_member_symbol,
+    library_api_free_name_shadow_safe, library_free_name_collection_factory_contract,
+    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
+    library_iterator_identity_adapter_contract, library_java_collection_factory_contract,
+    library_java_map_entry_contract, library_java_map_factory_contract,
+    library_js_array_is_array_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_get_contract,
+    library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     nullish_global_contract, own_property_guard_for_node, qualified_global_symbol,
@@ -2254,7 +2255,10 @@ fn strict_exact_java_map_factory_safe(
     else {
         return false;
     };
-    if !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver) {
+    let provider_proven = imported_literal_producer_evidence_for_node(il, node);
+    if !provider_proven
+        && !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+    {
         return false;
     }
     let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
@@ -2268,10 +2272,9 @@ fn strict_exact_java_map_factory_safe(
                     .iter()
                     .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
         }
-        JavaMapFactoryKind::OfEntries => kids
-            .iter()
-            .skip(1)
-            .all(|&entry| strict_exact_java_map_entry_safe(il, interner, facts, entry)),
+        JavaMapFactoryKind::OfEntries => kids.iter().skip(1).all(|&entry| {
+            strict_exact_java_map_entry_safe(il, interner, facts, entry, provider_proven)
+        }),
     }
 }
 
@@ -2280,6 +2283,7 @@ fn strict_exact_java_map_entry_safe(
     interner: &Interner,
     facts: &StrictFacts,
     node: NodeId,
+    provider_proven: bool,
 ) -> bool {
     if il.kind(node) != NodeKind::Call {
         return false;
@@ -2305,7 +2309,7 @@ fn strict_exact_java_map_entry_safe(
     else {
         return false;
     };
-    strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+    (provider_proven || strict_exact_java_std_var_name(il, interner, receiver, expected_receiver))
         && kids
             .iter()
             .skip(1)
