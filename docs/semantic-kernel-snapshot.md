@@ -115,6 +115,11 @@ migrated.
 - Java `Math.abs`/`Math.min`/`Math.max` now lower through method contracts with an
   unshadowed `Math` receiver requirement instead of frontend text-only builtin
   lowering.
+- JS-like `typeof` exact-safety now consumes a language- and arity-constrained
+  operator contract. A same-named function from another language or unresolved
+  provider is not treated as the JS operator.
+- JS-like `Array.isArray(...)` exact-safety now consumes a static-global method
+  contract and requires the `Array` global to be unshadowed.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
@@ -186,6 +191,8 @@ this worktree because the required evidence is not yet modeled:
   receiver proof exists.
 - Plain JS/TS `Map` and `Set` constructor semantics do not enter exact matching
   until constructor-vs-call proof exists.
+- JS/TS regex literal `.test(...)` does not enter exact matching until lowering
+  preserves regex-literal provenance distinct from ordinary string literals.
 - Untyped JS/TS array method chains do not enter exact higher-order contracts
   unless the receiver is a literal/proven collection surface.
 - Nested element method chains such as `xs.map(...)` inside a flat-map callback
@@ -211,6 +218,7 @@ The first high-value targets for semantic-kernel extraction are:
   state with receiver-aware proof;
 - constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
   closed contracts waiting on construct-vs-call proof;
+- regex literal provenance for JS/TS `.test(...)`;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
   path/name plus shadow-proof contracts;
 - nested collection element proofs for iterator chains and builder convergence;

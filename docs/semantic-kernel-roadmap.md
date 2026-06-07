@@ -132,6 +132,10 @@ and pack ecosystem.
 - Strict exact gates now consume the same nullish-global proof, so temp-bound
   JS/TS `Map.get(...)` defaulting remains exact-eligible only when `undefined`
   is the unshadowed JS-like sentinel.
+- Strict exact call gates for JS-like `typeof` and `Array.isArray(...)` moved
+  behind language/arity/global-shadow contracts, and literal `.test(...)` remains
+  exact-closed until regex-literal provenance exists. This closes raw-name
+  bypasses found after PR #101.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -182,6 +186,8 @@ Remaining in this phase:
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add construct/call distinction facts so constructor-only contracts such as
   JS/TS `new Map` and `new Set` can be reopened safely.
+- Add regex literal provenance so JS/TS `.test(...)` can be reopened safely
+  without treating ordinary string literals or monkey-patched methods as regexes.
 - Add receiver/place facts so field read/write and property contracts are not
   field-name-only.
 - Add provenance fields internally before exposing them in scan JSON.

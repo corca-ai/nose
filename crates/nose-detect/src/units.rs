@@ -18,11 +18,13 @@ use nose_semantics::{
     exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
     go_zero_map_lookup_contract, index_membership_threshold_contract,
     iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
-    java_map_factory_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
-    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    nullish_global_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
-    static_index_membership_contract, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    java_map_factory_contract, js_array_is_array_contract, js_like_map_constructor_contract,
+    js_like_set_constructor_contract, map_get_contract, map_key_view_contract,
+    map_key_view_wrapper_contract, method_call_contract, nullish_global_contract,
+    regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    static_index_membership_contract, typeof_operator_contract, IndexMembershipThreshold,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1231,8 +1233,8 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     let Some(&callee) = il.children(node).first() else {
         return false;
     };
-    if strict_exact_callee_name(il, interner, callee, "typeof") {
-        return strict_exact_call_args_safe(il, interner, facts, node);
+    if strict_exact_typeof_operator_safe(il, interner, facts, node, callee) {
+        return true;
     }
     if il.kind(callee) != NodeKind::Field {
         return strict_exact_callee_identity(il, facts, callee)
@@ -1242,16 +1244,11 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         return false;
     };
     let method = interner.resolve(name);
-    if method == "test" {
-        let Some(&receiver) = il.children(callee).first() else {
-            return false;
-        };
-        return matches!(il.node(receiver).payload, Payload::LitStr(_))
-            && strict_exact_call_args_safe(il, interner, facts, node);
+    if strict_exact_requires_regex_literal_proof(il, node, callee, method) {
+        return false;
     }
-    if method == "isArray" {
-        return strict_exact_field_receiver_name(il, interner, callee, "Array")
-            && strict_exact_call_args_safe(il, interner, facts, node);
+    if strict_exact_js_array_is_array_safe(il, interner, facts, node, callee, method) {
+        return true;
     }
     if strict_exact_collection_contains_call_safe(il, interner, facts, node, callee, method) {
         return true;
@@ -1273,6 +1270,77 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     // convergence still has to pass the proof-backed contracts above or in normalization.
     strict_exact_callee_identity(il, facts, callee)
         && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_typeof_operator_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+) -> bool {
+    let (NodeKind::Var, Payload::Name(name)) = (il.kind(callee), il.node(callee).payload) else {
+        return false;
+    };
+    typeof_operator_contract(
+        il.meta.lang,
+        interner.resolve(name),
+        il.children(node).len().saturating_sub(1),
+    )
+    .is_some()
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_requires_regex_literal_proof(
+    il: &Il,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(contract) = regex_test_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if !contract.requires_regex_literal_proof {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    matches!(il.node(receiver).payload, Payload::LitStr(_))
+}
+
+fn strict_exact_js_array_is_array_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    let (NodeKind::Var, Payload::Name(receiver_name)) =
+        (il.kind(receiver), il.node(receiver).payload)
+    else {
+        return false;
+    };
+    let Some(contract) = js_array_is_array_contract(
+        il.meta.lang,
+        interner.resolve(receiver_name),
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if contract.requires_unshadowed_receiver && file_defines_name(il, interner, contract.receiver) {
+        return false;
+    }
+    strict_exact_call_args_safe(il, interner, facts, node)
 }
 
 fn strict_exact_collection_contains_call_safe(
@@ -2310,24 +2378,6 @@ fn strict_exact_call_args_safe(
         .iter()
         .skip(1)
         .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
-}
-
-fn strict_exact_field_receiver_name(
-    il: &Il,
-    interner: &Interner,
-    field: NodeId,
-    expected: &str,
-) -> bool {
-    let Some(&receiver) = il.children(field).first() else {
-        return false;
-    };
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(name) = il.node(receiver).payload else {
-        return false;
-    };
-    interner.resolve(name) == expected
 }
 
 fn strict_exact_callee_name(il: &Il, interner: &Interner, callee: NodeId, expected: &str) -> bool {

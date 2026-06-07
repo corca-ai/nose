@@ -140,6 +140,21 @@ fn scan_families(json: &serde_json::Value) -> &[serde_json::Value] {
         .expect("scan JSON should contain families array")
 }
 
+fn family_contains_all(json: &serde_json::Value, suffixes: &[&str]) -> bool {
+    scan_families(json).iter().any(|family| {
+        let Some(locations) = family["locations"].as_array() else {
+            return false;
+        };
+        suffixes.iter().all(|suffix| {
+            locations.iter().any(|loc| {
+                loc["file"]
+                    .as_str()
+                    .is_some_and(|file| file.ends_with(suffix))
+            })
+        })
+    })
+}
+
 fn json_array_strings<'a>(value: &'a serde_json::Value, key: &str) -> Vec<&'a str> {
     value[key]
         .as_array()
@@ -5304,15 +5319,8 @@ fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
-        1,
-        "semantic mode should report only the same-regex exact family: {semantic}"
-    );
-    let semantic_text = semantic_json.to_string();
-    assert!(
-        semantic_text.contains("dot-only.ts")
-            && semantic_text.contains("dot-only-copy.ts")
-            && !semantic_text.contains("markdown-link.ts"),
-        "semantic mode must distinguish regex pattern semantics: {semantic}"
+        0,
+        "semantic mode must keep literal .test exact-closed until regex literal provenance exists: {semantic}"
     );
 
     let near = run(&[
@@ -5385,6 +5393,146 @@ fn scan_mode_semantic_allows_proved_js_static_builtins() {
             && semantic_text.contains("array_b.ts")
             && !semantic_text.contains("typeof_negative.ts"),
         "semantic mode must keep static builtin calls exact: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_rejects_unproved_typeof_function_name() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_unproved_typeof_function_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("provider_a.py"),
+        "def typeof(value):\n    return 1\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("provider_b.py"),
+        "def typeof(value):\n    return 2\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("raw_typeof_a.py"),
+        "from provider_a import *\n\ndef classify(value):\n    return typeof(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("raw_typeof_b.py"),
+        "from provider_b import *\n\ndef classify(value):\n    return typeof(value)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    assert!(
+        !family_contains_all(
+            &semantic_json,
+            &["raw_typeof_a.py", "raw_typeof_b.py"]
+        ),
+        "semantic mode must not treat an arbitrary typeof function as the JS typeof operator: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_rejects_unproved_array_isarray_name() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_unproved_array_isarray_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("array_a.py"),
+        "class Array:\n    @staticmethod\n    def isArray(value):\n        return True\n\ndef check(value):\n    return Array.isArray(value)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_b.py"),
+        "class Array:\n    @staticmethod\n    def isArray(value):\n        return False\n\ndef check(value):\n    return Array.isArray(value)\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    assert!(
+        !family_contains_all(&semantic_json, &["array_a.py", "array_b.py"]),
+        "semantic mode must not treat an arbitrary Array.isArray method as the JS static builtin: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_rejects_unproved_literal_test_method_name() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_unproved_literal_test_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("literal_test_a.rb"),
+        "class String\n  def test(value)\n    true\n  end\nend\n\ndef accepts(value)\n  \"rule\".test(value)\nend\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("literal_test_b.rb"),
+        "class String\n  def test(value)\n    false\n  end\nend\n\ndef accepts(value)\n  \"rule\".test(value)\nend\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    assert!(
+        !family_contains_all(
+            &semantic_json,
+            &["literal_test_a.rb", "literal_test_b.rb"]
+        ),
+        "semantic mode must not treat an arbitrary literal .test method as JS regex semantics: {semantic}"
     );
 
     let _ = fs::remove_dir_all(&dir);

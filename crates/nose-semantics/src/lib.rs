@@ -1411,6 +1411,59 @@ pub fn map_get_contract_by_hash(
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TypeofOperatorContract {
+    pub name: &'static str,
+}
+
+pub fn typeof_operator_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<TypeofOperatorContract> {
+    (js_like_lang(lang) && name == "typeof" && arg_count == 1)
+        .then_some(TypeofOperatorContract { name: "typeof" })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticGlobalMethodContract {
+    pub receiver: &'static str,
+    pub method: &'static str,
+    pub requires_unshadowed_receiver: bool,
+}
+
+pub fn js_array_is_array_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<StaticGlobalMethodContract> {
+    (js_like_lang(lang) && receiver == "Array" && method == "isArray" && arg_count == 1).then_some(
+        StaticGlobalMethodContract {
+            receiver: "Array",
+            method: "isArray",
+            requires_unshadowed_receiver: true,
+        },
+    )
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct RegexTestContract {
+    pub method: &'static str,
+    pub requires_regex_literal_proof: bool,
+}
+
+pub fn regex_test_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<RegexTestContract> {
+    (js_like_lang(lang) && method == "test" && arg_count == 1).then_some(RegexTestContract {
+        method: "test",
+        requires_regex_literal_proof: true,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StaticIndexMembershipKind {
     IndexOf,
     FindIndex,
@@ -2573,6 +2626,43 @@ mod tests {
         assert_eq!(map_get_contract(Lang::Python, "get", 1), None);
         assert_eq!(map_get_contract(Lang::Rust, "get", 2), None);
         assert_eq!(map_get_contract(Lang::Java, "getOrDefault", 1), None);
+    }
+
+    #[test]
+    fn js_static_builtin_contracts_are_language_and_arity_constrained() {
+        assert_eq!(
+            typeof_operator_contract(Lang::TypeScript, "typeof", 1),
+            Some(TypeofOperatorContract { name: "typeof" })
+        );
+        assert_eq!(typeof_operator_contract(Lang::Python, "typeof", 1), None);
+        assert_eq!(
+            typeof_operator_contract(Lang::JavaScript, "typeof", 2),
+            None
+        );
+        assert_eq!(
+            js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1),
+            Some(StaticGlobalMethodContract {
+                receiver: "Array",
+                method: "isArray",
+                requires_unshadowed_receiver: true,
+            })
+        );
+        assert_eq!(
+            js_array_is_array_contract(Lang::Python, "Array", "isArray", 1),
+            None
+        );
+        assert_eq!(
+            js_array_is_array_contract(Lang::TypeScript, "Array", "isArray", 2),
+            None
+        );
+        assert_eq!(
+            regex_test_contract(Lang::JavaScript, "test", 1),
+            Some(RegexTestContract {
+                method: "test",
+                requires_regex_literal_proof: true,
+            })
+        );
+        assert_eq!(regex_test_contract(Lang::Ruby, "test", 1), None);
     }
 
     #[test]
