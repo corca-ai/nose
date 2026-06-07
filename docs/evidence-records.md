@@ -167,6 +167,11 @@ callers:
   guard normalization and strict exact safety require evidence for
   `Object.hasOwn` or `Object.prototype.hasOwnProperty.call`, and map-key view
   wrappers require evidence for `Array.from`;
+- `LibraryApiContract` consumers for factory and selected non-factory API
+  surfaces now use these evidence helpers for their local obligations. The
+  contract rows name API identity and result semantics, while `Symbol`,
+  `Import`, `Source`, `Domain`, and `SequenceSurface` records still provide the
+  proof facts consumed by normalize, value-graph, and strict exact gates;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by

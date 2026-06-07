@@ -18,21 +18,21 @@ use nose_semantics::{
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_lookup_contract, imported_binding_symbol,
-    imported_member_symbol, iterator_identity_adapter_contract, js_array_is_array_contract,
-    library_api_free_name_shadow_safe, library_free_name_collection_factory_contract,
-    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
+    imported_member_symbol, library_api_free_name_shadow_safe,
+    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
+    library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
     library_java_collection_factory_contract, library_java_map_entry_contract,
-    library_java_map_factory_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_ruby_set_factory_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
+    library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    nullish_global_contract, qualified_global_symbol, record_shape_guard_for_node,
-    regex_test_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
-    source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
-    unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    StaticIndexMembershipKind,
+    nullish_global_contract, qualified_global_symbol, record_shape_guard_for_node, semantics,
+    seq_surface_contract_for_node, source_fact_at_node, source_operator_at_node,
+    static_index_membership_contract, typeof_operator_contract, unshadowed_global_symbol,
+    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1347,11 +1347,12 @@ fn strict_exact_regex_test_safe(
     callee: NodeId,
     method: &str,
 ) -> Option<bool> {
-    let contract = regex_test_contract(
+    let contract = library_regex_test_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
-    )?;
+    )?
+    .result;
     let Some(&receiver) = il.children(callee).first() else {
         return Some(false);
     };
@@ -1377,7 +1378,7 @@ fn strict_exact_js_array_is_array_safe(
     else {
         return false;
     };
-    let Some(contract) = js_array_is_array_contract(
+    let Some(contract) = library_js_array_is_array_contract(
         il.meta.lang,
         interner.resolve(receiver_name),
         method,
@@ -1385,6 +1386,7 @@ fn strict_exact_js_array_is_array_safe(
     ) else {
         return false;
     };
+    let contract = contract.result;
     if contract.requires_unshadowed_receiver
         && !unshadowed_global_symbol(il, interner, receiver, contract.receiver)
     {
@@ -1404,13 +1406,14 @@ fn strict_exact_collection_contains_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = method_call_contract(
+    let Some(contract) = library_method_call_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
     ) else {
         return false;
     };
+    let contract = contract.result;
     if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
         || contract.args != MethodBuiltinArgs::FirstThenReceiver
     {
@@ -1452,13 +1455,14 @@ fn strict_exact_map_contains_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = method_call_contract(
+    let Some(contract) = library_method_call_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
     ) else {
         return false;
     };
+    let contract = contract.result;
     if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
         || contract.args != MethodBuiltinArgs::FirstThenReceiver
         || !matches!(
@@ -1488,7 +1492,7 @@ fn strict_exact_map_get_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    if map_get_contract(
+    if library_map_get_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
@@ -1514,13 +1518,14 @@ fn strict_exact_map_get_default_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = method_call_contract(
+    let Some(contract) = library_method_call_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
     ) else {
         return false;
     };
+    let contract = contract.result;
     if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
         || contract.receiver != MethodReceiverContract::ExactMap
         || !matches!(
@@ -1604,7 +1609,7 @@ fn strict_exact_iterator_identity_adapter_call_safe(
     let Some(arg_count) = kids.len().checked_sub(1) else {
         return false;
     };
-    if iterator_identity_adapter_contract(il.meta.lang, method, arg_count).is_none() {
+    if library_iterator_identity_adapter_contract(il.meta.lang, method, arg_count).is_none() {
         return false;
     }
     if il.kind(callee) != NodeKind::Field {
@@ -1748,9 +1753,11 @@ fn strict_exact_map_key_view_safe_matching(
     let Payload::Name(method) = il.node(kids[0]).payload else {
         return false;
     };
-    let Some(contract) = map_key_view_contract(il.meta.lang, interner.resolve(method), 0) else {
+    let Some(contract) = library_map_key_view_contract(il.meta.lang, interner.resolve(method), 0)
+    else {
         return false;
     };
+    let contract = contract.result;
     if !accepts(contract.kind) {
         return false;
     }
@@ -1783,10 +1790,11 @@ fn strict_exact_map_key_view_collection_safe(
         return false;
     };
     let Some(contract) =
-        map_key_view_wrapper_contract(il.meta.lang, "Array", interner.resolve(method), 1)
+        library_map_key_view_wrapper_contract(il.meta.lang, "Array", interner.resolve(method), 1)
     else {
         return false;
     };
+    let contract = contract.result;
     qualified_global_symbol(il, kids[0], contract.qualified_path)
         && strict_exact_map_key_view_safe_matching(il, interner, facts, kids[1], |kind| {
             kind == MapKeyViewKind::Iterator

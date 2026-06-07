@@ -1882,6 +1882,14 @@ pub fn method_call_contract(
     name: &str,
     arg_count: usize,
 ) -> Option<MethodCallContract> {
+    library_method_call_contract(lang, name, arg_count).map(|contract| contract.result)
+}
+
+fn method_call_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodCallContract> {
     use MethodBuiltinArgs as Args;
     use MethodReceiverContract as Receiver;
     use MethodSemanticContract as Semantic;
@@ -2140,18 +2148,7 @@ pub fn promise_then_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<PromiseThenContract> {
-    if matches!(
-        lang,
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html
-    ) && method == "then"
-        && arg_count == 1
-    {
-        Some(PromiseThenContract {
-            receiver: AsyncReceiverContract::ExactPromiseLike,
-        })
-    } else {
-        None
-    }
+    library_promise_then_contract(lang, method, arg_count).map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2169,20 +2166,8 @@ pub fn iterator_identity_adapter_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<IteratorIdentityAdapterContract> {
-    if lang == Lang::Rust
-        && arg_count == 0
-        && matches!(
-            method,
-            "iter" | "into_iter" | "iter_mut" | "collect" | "to_vec" | "copied" | "cloned"
-        )
-        || lang == Lang::Java && method == "stream" && arg_count == 0
-    {
-        Some(IteratorIdentityAdapterContract {
-            receiver: IteratorAdapterReceiverContract::ExactIterableValue,
-        })
-    } else {
-        None
-    }
+    library_iterator_identity_adapter_contract(lang, method, arg_count)
+        .map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2197,12 +2182,8 @@ pub fn static_collection_adapter_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<StaticCollectionAdapterContract> {
-    (lang == Lang::Java && receiver == "Arrays" && method == "stream" && arg_count == 1).then_some(
-        StaticCollectionAdapterContract {
-            module: "java.util",
-            exported: "Arrays",
-        },
-    )
+    library_static_collection_adapter_contract(lang, receiver, method, arg_count)
+        .map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2510,26 +2491,7 @@ pub fn map_key_view_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<MapKeyViewContract> {
-    if arg_count != 0 {
-        return None;
-    }
-    Some(match (lang, method) {
-        (Lang::Python | Lang::Ruby, "keys") => MapKeyViewContract {
-            method: "keys",
-            kind: MapKeyViewKind::Collection,
-        },
-        (Lang::Java, "keySet") => MapKeyViewContract {
-            method: "keySet",
-            kind: MapKeyViewKind::Collection,
-        },
-        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "keys") => {
-            MapKeyViewContract {
-                method: "keys",
-                kind: MapKeyViewKind::Iterator,
-            }
-        }
-        _ => return None,
-    })
+    library_map_key_view_contract(lang, method, arg_count).map(|contract| contract.result)
 }
 
 pub fn map_key_view_contract_by_hash(
@@ -2557,13 +2519,8 @@ pub fn map_key_view_wrapper_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<MapKeyViewWrapperContract> {
-    (js_like_lang(lang) && receiver == "Array" && method == "from" && arg_count == 1).then_some(
-        MapKeyViewWrapperContract {
-            receiver: "Array",
-            method: "from",
-            qualified_path: "Array.from",
-        },
-    )
+    library_map_key_view_wrapper_contract(lang, receiver, method, arg_count)
+        .map(|contract| contract.result)
 }
 
 pub fn map_key_view_wrapper_contract_by_hash(
@@ -2622,22 +2579,7 @@ pub struct MapGetContract {
 }
 
 pub fn map_get_contract(lang: Lang, method: &str, arg_count: usize) -> Option<MapGetContract> {
-    matches!(
-        lang,
-        Lang::Java
-            | Lang::Rust
-            | Lang::JavaScript
-            | Lang::TypeScript
-            | Lang::Vue
-            | Lang::Svelte
-            | Lang::Html
-    )
-    .then_some(())
-    .filter(|_| method == "get" && arg_count == 1)
-    .map(|_| MapGetContract {
-        method: "get",
-        receiver: MethodReceiverContract::ExactMap,
-    })
+    library_map_get_contract(lang, method, arg_count).map(|contract| contract.result)
 }
 
 pub fn map_get_contract_by_hash(
@@ -2740,12 +2682,7 @@ pub fn js_boolean_coercion_contract(
     function: &str,
     arg_count: usize,
 ) -> Option<StaticGlobalFunctionContract> {
-    (js_like_lang(lang) && function == "Boolean" && arg_count == 1).then_some(
-        StaticGlobalFunctionContract {
-            function: "Boolean",
-            requires_unshadowed_function: true,
-        },
-    )
+    library_js_boolean_coercion_contract(lang, function, arg_count).map(|contract| contract.result)
 }
 
 pub fn js_array_is_array_contract(
@@ -2754,14 +2691,8 @@ pub fn js_array_is_array_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<StaticGlobalMethodContract> {
-    (js_like_lang(lang) && receiver == "Array" && method == "isArray" && arg_count == 1).then_some(
-        StaticGlobalMethodContract {
-            receiver: "Array",
-            method: "isArray",
-            qualified_path: "Array.isArray",
-            requires_unshadowed_receiver: true,
-        },
-    )
+    library_js_array_is_array_contract(lang, receiver, method, arg_count)
+        .map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2775,10 +2706,7 @@ pub fn regex_test_contract(
     method: &str,
     arg_count: usize,
 ) -> Option<RegexTestContract> {
-    (js_like_lang(lang) && method == "test" && arg_count == 1).then_some(RegexTestContract {
-        method: "test",
-        required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
-    })
+    library_regex_test_contract(lang, method, arg_count).map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -2865,18 +2793,8 @@ pub fn imported_namespace_function_contract(
     function: &str,
     arg_count: usize,
 ) -> Option<ImportedNamespaceFunctionContract> {
-    Some(match (lang, function, arg_count) {
-        (Lang::Python, "prod", 1 | 2) => ImportedNamespaceFunctionContract {
-            module: "math",
-            function: "prod",
-            receiver: MethodReceiverContract::ImportedNamespace("math"),
-            semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
-                op: Op::Mul,
-                identity: 1,
-            },
-        },
-        _ => return None,
-    })
+    library_imported_namespace_function_contract(lang, function, arg_count)
+        .map(|contract| contract.result)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3105,6 +3023,17 @@ pub enum LibraryApiContractId {
     RubySetFactory,
     JsLikeSetConstructor,
     JsLikeMapConstructor,
+    MapKeyView(MapKeyViewKind),
+    MapKeyViewWrapper,
+    MapGet,
+    JsArrayIsArray,
+    JsBooleanCoercion,
+    RegexTest,
+    ImportedNamespaceFunction(ImportedNamespaceFunctionSemantic),
+    PromiseThen,
+    IteratorIdentityAdapter,
+    StaticCollectionAdapter,
+    MethodCall(MethodSemanticContract),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3155,6 +3084,36 @@ pub enum LibraryApiCalleeContract {
         receiver: &'static str,
         requires_unshadowed_global: bool,
     },
+    Method {
+        method: &'static str,
+        receiver: MethodReceiverContract,
+    },
+    StaticGlobalMethod {
+        receiver: &'static str,
+        method: &'static str,
+        qualified_path: &'static str,
+        requires_unshadowed_receiver: bool,
+    },
+    StaticGlobalFunction {
+        function: &'static str,
+        requires_unshadowed_function: bool,
+    },
+    RegexLiteralMethod {
+        method: &'static str,
+        required_receiver_fact: SourceFactKind,
+    },
+    ImportedNamespaceFunction {
+        module: &'static str,
+        function: &'static str,
+    },
+    AsyncMethod {
+        method: &'static str,
+        receiver: AsyncReceiverContract,
+    },
+    IteratorAdapterMethod {
+        method: &'static str,
+        receiver: IteratorAdapterReceiverContract,
+    },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -3189,6 +3148,83 @@ pub struct LibraryMapFactoryContract {
 pub struct LibraryMapEntryFactoryContract {
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMapKeyViewContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: MapKeyViewContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMapKeyViewWrapperContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: MapKeyViewWrapperContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMapGetContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: MapGetContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryStaticGlobalMethodContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: StaticGlobalMethodContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryStaticGlobalFunctionContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: StaticGlobalFunctionContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryRegexTestContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: RegexTestContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryImportedNamespaceFunctionContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: ImportedNamespaceFunctionContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryPromiseThenContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: PromiseThenContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryIteratorIdentityAdapterContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: IteratorIdentityAdapterContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryStaticCollectionAdapterContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: StaticCollectionAdapterContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryMethodCallContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: MethodCallContract,
 }
 
 pub fn library_free_name_collection_factory_contract(
@@ -3488,6 +3524,404 @@ pub fn library_rust_vec_new_factory_contract(
             shadow: LibraryApiShadowPolicy::ExplicitRoot(contract.shadow_root),
         },
         result: LibraryCollectionFactoryResult::EmptySequence,
+    })
+}
+
+pub fn library_map_key_view_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewContract> {
+    if arg_count != 0 {
+        return None;
+    }
+    let result = match (lang, method) {
+        (Lang::Python | Lang::Ruby, "keys") => MapKeyViewContract {
+            method: "keys",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::Java, "keySet") => MapKeyViewContract {
+            method: "keySet",
+            kind: MapKeyViewKind::Collection,
+        },
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "keys") => {
+            MapKeyViewContract {
+                method: "keys",
+                kind: MapKeyViewKind::Iterator,
+            }
+        }
+        _ => return None,
+    };
+    Some(LibraryMapKeyViewContract {
+        id: LibraryApiContractId::MapKeyView(result.kind),
+        callee: LibraryApiCalleeContract::Method {
+            method: result.method,
+            receiver: MethodReceiverContract::ExactMap,
+        },
+        result,
+    })
+}
+
+pub fn library_map_key_view_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewContract> {
+    ["keys", "keySet"].into_iter().find_map(|method| {
+        (stable_symbol_hash(method) == method_hash)
+            .then(|| library_map_key_view_contract(lang, method, arg_count))
+            .flatten()
+    })
+}
+
+pub fn library_map_key_view_wrapper_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewWrapperContract> {
+    if !js_like_lang(lang) || receiver != "Array" || method != "from" || arg_count != 1 {
+        return None;
+    }
+    let result = MapKeyViewWrapperContract {
+        receiver: "Array",
+        method: "from",
+        qualified_path: "Array.from",
+    };
+    Some(LibraryMapKeyViewWrapperContract {
+        id: LibraryApiContractId::MapKeyViewWrapper,
+        callee: LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver: result.receiver,
+            method: result.method,
+            qualified_path: result.qualified_path,
+            requires_unshadowed_receiver: true,
+        },
+        result,
+    })
+}
+
+pub fn library_map_key_view_wrapper_contract_by_hash(
+    lang: Lang,
+    receiver: &str,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<LibraryMapKeyViewWrapperContract> {
+    (method_hash == stable_symbol_hash("from"))
+        .then(|| library_map_key_view_wrapper_contract(lang, receiver, "from", arg_count))
+        .flatten()
+}
+
+pub fn library_map_get_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryMapGetContract> {
+    if !matches!(
+        lang,
+        Lang::Java
+            | Lang::Rust
+            | Lang::JavaScript
+            | Lang::TypeScript
+            | Lang::Vue
+            | Lang::Svelte
+            | Lang::Html
+    ) || method != "get"
+        || arg_count != 1
+    {
+        return None;
+    }
+    let result = MapGetContract {
+        method: "get",
+        receiver: MethodReceiverContract::ExactMap,
+    };
+    Some(LibraryMapGetContract {
+        id: LibraryApiContractId::MapGet,
+        callee: LibraryApiCalleeContract::Method {
+            method: result.method,
+            receiver: result.receiver,
+        },
+        result,
+    })
+}
+
+pub fn library_map_get_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<LibraryMapGetContract> {
+    (method_hash == stable_symbol_hash("get"))
+        .then(|| library_map_get_contract(lang, "get", arg_count))
+        .flatten()
+}
+
+pub fn library_js_array_is_array_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryStaticGlobalMethodContract> {
+    if !js_like_lang(lang) || receiver != "Array" || method != "isArray" || arg_count != 1 {
+        return None;
+    }
+    let result = StaticGlobalMethodContract {
+        receiver: "Array",
+        method: "isArray",
+        qualified_path: "Array.isArray",
+        requires_unshadowed_receiver: true,
+    };
+    Some(LibraryStaticGlobalMethodContract {
+        id: LibraryApiContractId::JsArrayIsArray,
+        callee: LibraryApiCalleeContract::StaticGlobalMethod {
+            receiver: result.receiver,
+            method: result.method,
+            qualified_path: result.qualified_path,
+            requires_unshadowed_receiver: result.requires_unshadowed_receiver,
+        },
+        result,
+    })
+}
+
+pub fn library_js_boolean_coercion_contract(
+    lang: Lang,
+    function: &str,
+    arg_count: usize,
+) -> Option<LibraryStaticGlobalFunctionContract> {
+    if !js_like_lang(lang) || function != "Boolean" || arg_count != 1 {
+        return None;
+    }
+    let result = StaticGlobalFunctionContract {
+        function: "Boolean",
+        requires_unshadowed_function: true,
+    };
+    Some(LibraryStaticGlobalFunctionContract {
+        id: LibraryApiContractId::JsBooleanCoercion,
+        callee: LibraryApiCalleeContract::StaticGlobalFunction {
+            function: result.function,
+            requires_unshadowed_function: result.requires_unshadowed_function,
+        },
+        result,
+    })
+}
+
+pub fn library_regex_test_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryRegexTestContract> {
+    if !js_like_lang(lang) || method != "test" || arg_count != 1 {
+        return None;
+    }
+    let result = RegexTestContract {
+        method: "test",
+        required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
+    };
+    Some(LibraryRegexTestContract {
+        id: LibraryApiContractId::RegexTest,
+        callee: LibraryApiCalleeContract::RegexLiteralMethod {
+            method: result.method,
+            required_receiver_fact: result.required_receiver_fact,
+        },
+        result,
+    })
+}
+
+pub fn library_imported_namespace_function_contract(
+    lang: Lang,
+    function: &str,
+    arg_count: usize,
+) -> Option<LibraryImportedNamespaceFunctionContract> {
+    let result = match (lang, function, arg_count) {
+        (Lang::Python, "prod", 1 | 2) => ImportedNamespaceFunctionContract {
+            module: "math",
+            function: "prod",
+            receiver: MethodReceiverContract::ImportedNamespace("math"),
+            semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                op: Op::Mul,
+                identity: 1,
+            },
+        },
+        _ => return None,
+    };
+    Some(LibraryImportedNamespaceFunctionContract {
+        id: LibraryApiContractId::ImportedNamespaceFunction(result.semantic),
+        callee: LibraryApiCalleeContract::ImportedNamespaceFunction {
+            module: result.module,
+            function: result.function,
+        },
+        result,
+    })
+}
+
+pub fn library_promise_then_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryPromiseThenContract> {
+    if !js_like_lang(lang) || method != "then" || arg_count != 1 {
+        return None;
+    }
+    let result = PromiseThenContract {
+        receiver: AsyncReceiverContract::ExactPromiseLike,
+    };
+    Some(LibraryPromiseThenContract {
+        id: LibraryApiContractId::PromiseThen,
+        callee: LibraryApiCalleeContract::AsyncMethod {
+            method: "then",
+            receiver: result.receiver,
+        },
+        result,
+    })
+}
+
+pub fn library_iterator_identity_adapter_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryIteratorIdentityAdapterContract> {
+    let method = if lang == Lang::Rust && arg_count == 0 {
+        match method {
+            "iter" => "iter",
+            "into_iter" => "into_iter",
+            "iter_mut" => "iter_mut",
+            "collect" => "collect",
+            "to_vec" => "to_vec",
+            "copied" => "copied",
+            "cloned" => "cloned",
+            _ => return None,
+        }
+    } else if lang == Lang::Java && method == "stream" && arg_count == 0 {
+        "stream"
+    } else {
+        return None;
+    };
+    let result = IteratorIdentityAdapterContract {
+        receiver: IteratorAdapterReceiverContract::ExactIterableValue,
+    };
+    Some(LibraryIteratorIdentityAdapterContract {
+        id: LibraryApiContractId::IteratorIdentityAdapter,
+        callee: LibraryApiCalleeContract::IteratorAdapterMethod {
+            method,
+            receiver: result.receiver,
+        },
+        result,
+    })
+}
+
+pub fn library_static_collection_adapter_contract(
+    lang: Lang,
+    receiver: &str,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryStaticCollectionAdapterContract> {
+    if lang != Lang::Java || receiver != "Arrays" || method != "stream" || arg_count != 1 {
+        return None;
+    }
+    let result = StaticCollectionAdapterContract {
+        module: "java.util",
+        exported: "Arrays",
+    };
+    Some(LibraryStaticCollectionAdapterContract {
+        id: LibraryApiContractId::StaticCollectionAdapter,
+        callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: result.exported,
+            method: "stream",
+        },
+        result,
+    })
+}
+
+pub fn library_method_call_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryMethodCallContract> {
+    let result = method_call_contract_shape(lang, name, arg_count)?;
+    let method = library_method_selector_name(name)?;
+    Some(LibraryMethodCallContract {
+        id: LibraryApiContractId::MethodCall(result.semantic),
+        callee: LibraryApiCalleeContract::Method {
+            method,
+            receiver: result.receiver,
+        },
+        result,
+    })
+}
+
+fn library_method_selector_name(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "__contains__" => "__contains__",
+        "Abs" => "Abs",
+        "Contains" => "Contains",
+        "HasPrefix" => "HasPrefix",
+        "HasSuffix" => "HasSuffix",
+        "Max" => "Max",
+        "Min" => "Min",
+        "Print" => "Print",
+        "Printf" => "Printf",
+        "Println" => "Println",
+        "abs" => "abs",
+        "all" => "all",
+        "all?" => "all?",
+        "allMatch" => "allMatch",
+        "any" => "any",
+        "any?" => "any?",
+        "anyMatch" => "anyMatch",
+        "append" => "append",
+        "collect" => "collect",
+        "contains" => "contains",
+        "containsKey" => "containsKey",
+        "contains_key" => "contains_key",
+        "count" => "count",
+        "debug" => "debug",
+        "empty?" => "empty?",
+        "end_with?" => "end_with?",
+        "endsWith" => "endsWith",
+        "ends_with" => "ends_with",
+        "endswith" => "endswith",
+        "every" => "every",
+        "fetch" => "fetch",
+        "filter" => "filter",
+        "filter_map" => "filter_map",
+        "flatMap" => "flatMap",
+        "flat_map" => "flat_map",
+        "fold" => "fold",
+        "get" => "get",
+        "getOrDefault" => "getOrDefault",
+        "has" => "has",
+        "has_key?" => "has_key?",
+        "include?" => "include?",
+        "includes" => "includes",
+        "info" => "info",
+        "inject" => "inject",
+        "isEmpty" => "isEmpty",
+        "is_empty" => "is_empty",
+        "is_none" => "is_none",
+        "is_some" => "is_some",
+        "join" => "join",
+        "key?" => "key?",
+        "len" => "len",
+        "length" => "length",
+        "log" => "log",
+        "map" => "map",
+        "map_or" => "map_or",
+        "max" => "max",
+        "member?" => "member?",
+        "min" => "min",
+        "nil?" => "nil?",
+        "push" => "push",
+        "reduce" => "reduce",
+        "select" => "select",
+        "size" => "size",
+        "some" => "some",
+        "start_with?" => "start_with?",
+        "startsWith" => "startsWith",
+        "starts_with" => "starts_with",
+        "startswith" => "startswith",
+        "sum" => "sum",
+        "unwrap_or" => "unwrap_or",
+        "unwrap_or_else" => "unwrap_or_else",
+        "zip" => "zip",
+        _ => return None,
     })
 }
 
@@ -4816,6 +5250,256 @@ mod tests {
         );
         assert_eq!(
             library_java_map_factory_contract(Lang::Java, "List", "of"),
+            None
+        );
+    }
+
+    #[test]
+    fn library_non_factory_api_contracts_carry_identity_and_result_obligations() {
+        assert_eq!(
+            library_map_key_view_contract(Lang::TypeScript, "keys", 0),
+            Some(LibraryMapKeyViewContract {
+                id: LibraryApiContractId::MapKeyView(MapKeyViewKind::Iterator),
+                callee: LibraryApiCalleeContract::Method {
+                    method: "keys",
+                    receiver: MethodReceiverContract::ExactMap,
+                },
+                result: MapKeyViewContract {
+                    method: "keys",
+                    kind: MapKeyViewKind::Iterator,
+                },
+            })
+        );
+        assert_eq!(
+            library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1),
+            Some(LibraryMapKeyViewWrapperContract {
+                id: LibraryApiContractId::MapKeyViewWrapper,
+                callee: LibraryApiCalleeContract::StaticGlobalMethod {
+                    receiver: "Array",
+                    method: "from",
+                    qualified_path: "Array.from",
+                    requires_unshadowed_receiver: true,
+                },
+                result: MapKeyViewWrapperContract {
+                    receiver: "Array",
+                    method: "from",
+                    qualified_path: "Array.from",
+                },
+            })
+        );
+        assert_eq!(
+            library_map_get_contract(Lang::Rust, "get", 1),
+            Some(LibraryMapGetContract {
+                id: LibraryApiContractId::MapGet,
+                callee: LibraryApiCalleeContract::Method {
+                    method: "get",
+                    receiver: MethodReceiverContract::ExactMap,
+                },
+                result: MapGetContract {
+                    method: "get",
+                    receiver: MethodReceiverContract::ExactMap,
+                },
+            })
+        );
+        assert_eq!(
+            library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1),
+            Some(LibraryStaticGlobalMethodContract {
+                id: LibraryApiContractId::JsArrayIsArray,
+                callee: LibraryApiCalleeContract::StaticGlobalMethod {
+                    receiver: "Array",
+                    method: "isArray",
+                    qualified_path: "Array.isArray",
+                    requires_unshadowed_receiver: true,
+                },
+                result: StaticGlobalMethodContract {
+                    receiver: "Array",
+                    method: "isArray",
+                    qualified_path: "Array.isArray",
+                    requires_unshadowed_receiver: true,
+                },
+            })
+        );
+        assert_eq!(
+            library_js_boolean_coercion_contract(Lang::TypeScript, "Boolean", 1),
+            Some(LibraryStaticGlobalFunctionContract {
+                id: LibraryApiContractId::JsBooleanCoercion,
+                callee: LibraryApiCalleeContract::StaticGlobalFunction {
+                    function: "Boolean",
+                    requires_unshadowed_function: true,
+                },
+                result: StaticGlobalFunctionContract {
+                    function: "Boolean",
+                    requires_unshadowed_function: true,
+                },
+            })
+        );
+        assert_eq!(
+            library_regex_test_contract(Lang::JavaScript, "test", 1),
+            Some(LibraryRegexTestContract {
+                id: LibraryApiContractId::RegexTest,
+                callee: LibraryApiCalleeContract::RegexLiteralMethod {
+                    method: "test",
+                    required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
+                },
+                result: RegexTestContract {
+                    method: "test",
+                    required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
+                },
+            })
+        );
+        assert_eq!(
+            library_imported_namespace_function_contract(Lang::Python, "prod", 2),
+            Some(LibraryImportedNamespaceFunctionContract {
+                id: LibraryApiContractId::ImportedNamespaceFunction(
+                    ImportedNamespaceFunctionSemantic::ProductReduction {
+                        op: Op::Mul,
+                        identity: 1,
+                    },
+                ),
+                callee: LibraryApiCalleeContract::ImportedNamespaceFunction {
+                    module: "math",
+                    function: "prod",
+                },
+                result: ImportedNamespaceFunctionContract {
+                    module: "math",
+                    function: "prod",
+                    receiver: MethodReceiverContract::ImportedNamespace("math"),
+                    semantic: ImportedNamespaceFunctionSemantic::ProductReduction {
+                        op: Op::Mul,
+                        identity: 1,
+                    },
+                },
+            })
+        );
+        assert_eq!(
+            library_promise_then_contract(Lang::Vue, "then", 1),
+            Some(LibraryPromiseThenContract {
+                id: LibraryApiContractId::PromiseThen,
+                callee: LibraryApiCalleeContract::AsyncMethod {
+                    method: "then",
+                    receiver: AsyncReceiverContract::ExactPromiseLike,
+                },
+                result: PromiseThenContract {
+                    receiver: AsyncReceiverContract::ExactPromiseLike,
+                },
+            })
+        );
+        assert_eq!(
+            library_iterator_identity_adapter_contract(Lang::Rust, "collect", 0),
+            Some(LibraryIteratorIdentityAdapterContract {
+                id: LibraryApiContractId::IteratorIdentityAdapter,
+                callee: LibraryApiCalleeContract::IteratorAdapterMethod {
+                    method: "collect",
+                    receiver: IteratorAdapterReceiverContract::ExactIterableValue,
+                },
+                result: IteratorIdentityAdapterContract {
+                    receiver: IteratorAdapterReceiverContract::ExactIterableValue,
+                },
+            })
+        );
+        assert_eq!(
+            library_static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 1),
+            Some(LibraryStaticCollectionAdapterContract {
+                id: LibraryApiContractId::StaticCollectionAdapter,
+                callee: LibraryApiCalleeContract::JavaUtilStaticMember {
+                    receiver: "Arrays",
+                    method: "stream",
+                },
+                result: StaticCollectionAdapterContract {
+                    module: "java.util",
+                    exported: "Arrays",
+                },
+            })
+        );
+        assert_eq!(
+            library_method_call_contract(Lang::Go, "Contains", 2),
+            Some(LibraryMethodCallContract {
+                id: LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(
+                    Builtin::Contains,
+                )),
+                callee: LibraryApiCalleeContract::Method {
+                    method: "Contains",
+                    receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                },
+                result: MethodCallContract {
+                    semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                    receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                    args: MethodBuiltinArgs::GoSliceContains,
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn library_non_factory_api_contracts_reject_raw_name_only_matches() {
+        assert_eq!(
+            library_map_key_view_contract(Lang::JavaScript, "keySet", 0),
+            None
+        );
+        assert_eq!(library_map_key_view_contract(Lang::Python, "keys", 1), None);
+        assert_eq!(
+            library_map_key_view_wrapper_contract(Lang::Python, "Array", "from", 1),
+            None
+        );
+        assert_eq!(
+            library_map_key_view_wrapper_contract(Lang::TypeScript, "Array", "from", 2),
+            None
+        );
+        assert_eq!(library_map_get_contract(Lang::Python, "get", 1), None);
+        assert_eq!(library_map_get_contract(Lang::Rust, "get", 2), None);
+        assert_eq!(
+            library_js_array_is_array_contract(Lang::Python, "Array", "isArray", 1),
+            None
+        );
+        assert_eq!(
+            library_js_array_is_array_contract(Lang::TypeScript, "Array", "isArray", 2),
+            None
+        );
+        assert_eq!(
+            library_js_boolean_coercion_contract(Lang::Python, "Boolean", 1),
+            None
+        );
+        assert_eq!(
+            library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 2),
+            None
+        );
+        assert_eq!(library_regex_test_contract(Lang::Ruby, "test", 1), None);
+        assert_eq!(
+            library_imported_namespace_function_contract(Lang::JavaScript, "prod", 1),
+            None
+        );
+        assert_eq!(
+            library_imported_namespace_function_contract(Lang::Python, "prod", 3),
+            None
+        );
+        assert_eq!(library_promise_then_contract(Lang::Python, "then", 1), None);
+        assert_eq!(
+            library_promise_then_contract(Lang::TypeScript, "then", 2),
+            None
+        );
+        assert_eq!(
+            library_iterator_identity_adapter_contract(Lang::JavaScript, "collect", 0),
+            None
+        );
+        assert_eq!(
+            library_iterator_identity_adapter_contract(Lang::Rust, "collect", 1),
+            None
+        );
+        assert_eq!(
+            library_static_collection_adapter_contract(Lang::JavaScript, "Arrays", "stream", 1),
+            None
+        );
+        assert_eq!(
+            library_static_collection_adapter_contract(Lang::Java, "Arrays", "stream", 0),
+            None
+        );
+        assert_eq!(library_method_call_contract(Lang::Python, "min", 2), None);
+        assert_eq!(
+            library_method_call_contract(Lang::JavaScript, "min", 1),
+            None
+        );
+        assert_eq!(
+            library_method_call_contract(Lang::JavaScript, "Contains", 2),
             None
         );
     }

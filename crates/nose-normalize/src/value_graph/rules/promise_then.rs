@@ -9,7 +9,7 @@
 
 use super::super::{Builder, ValueId};
 use nose_il::{NodeId, NodeKind, Payload};
-use nose_semantics::{promise_then_contract, AsyncReceiverContract};
+use nose_semantics::{library_promise_then_contract, AsyncReceiverContract};
 use rustc_hash::FxHashMap;
 
 pub(in super::super) fn apply(
@@ -28,7 +28,8 @@ pub(in super::super) fn apply(
     let Payload::Name(s) = builder.il.node(callee).payload else {
         return None;
     };
-    let contract = promise_then_contract(builder.il.meta.lang, builder.interner.resolve(s), 1)?;
+    let contract =
+        library_promise_then_contract(builder.il.meta.lang, builder.interner.resolve(s), 1)?.result;
     let cb = kids[1];
     if builder.il.kind(cb) != NodeKind::Lambda {
         return None;
