@@ -226,21 +226,7 @@ impl<'a> Lowering<'a> {
         callee: NodeId,
         arg_count: usize,
     ) -> Option<LibraryApiEvidencePlan> {
-        if self.b.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.b.payload(callee) else {
-            return None;
-        };
-        let receiver_node = self.b.children(callee).first().copied()?;
-        let Payload::Name(receiver_name) = self.b.payload(receiver_node) else {
-            return None;
-        };
-        if self.b.kind(receiver_node) != NodeKind::Var {
-            return None;
-        }
-        let receiver = self.interner.resolve(receiver_name);
-        let method = self.interner.resolve(method);
+        let (receiver_node, receiver, method) = self.static_member_callee(callee)?;
         let contract = library_js_array_is_array_contract(self.lang, receiver, method, arg_count)
             .map(|contract| {
                 (
@@ -272,6 +258,27 @@ impl<'a> Lowering<'a> {
             dependencies.push(self.unshadowed_global_evidence_id(receiver_node, contract.4)?);
         }
         Some((contract.0, contract.1, dependencies, contract.5))
+    }
+
+    fn static_member_callee(&self, callee: NodeId) -> Option<(NodeId, &str, &str)> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        let receiver_node = self.b.children(callee).first().copied()?;
+        if self.b.kind(receiver_node) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(receiver_name) = self.b.payload(receiver_node) else {
+            return None;
+        };
+        Some((
+            receiver_node,
+            self.interner.resolve(receiver_name),
+            self.interner.resolve(method),
+        ))
     }
 
     fn static_global_function_api_contract(
@@ -397,53 +404,19 @@ impl<'a> Lowering<'a> {
         callee: NodeId,
         arg_count: usize,
     ) -> Option<LibraryApiEvidencePlan> {
-        if self.b.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.b.payload(callee) else {
-            return None;
-        };
-        let receiver_node = self.b.children(callee).first().copied()?;
-        if self.b.kind(receiver_node) != NodeKind::Var {
-            return None;
-        }
-        let Payload::Name(receiver_name) = self.b.payload(receiver_node) else {
-            return None;
-        };
-        let receiver = self.interner.resolve(receiver_name);
-        let method = self.interner.resolve(method);
-        let (id, callee_contract, expected_receiver, rule) =
+        let (receiver_node, receiver, method) = self.static_member_callee(callee)?;
+        let (id, callee_contract, rule) =
             library_java_collection_factory_contract(self.lang, receiver, method)
                 .map(|contract| {
-                    let LibraryApiCalleeContract::JavaUtilStaticMember {
-                        receiver: expected_receiver,
-                        ..
-                    } = contract.callee
-                    else {
-                        unreachable!("java collection factories use JavaUtilStaticMember")
-                    };
                     (
                         contract.id,
                         contract.callee,
-                        expected_receiver,
                         "library_api_java_collection_factory",
                     )
                 })
                 .or_else(|| {
                     library_java_map_factory_contract(self.lang, receiver, method).map(|contract| {
-                        let LibraryApiCalleeContract::JavaUtilStaticMember {
-                            receiver: expected_receiver,
-                            ..
-                        } = contract.callee
-                        else {
-                            unreachable!("java map factories use JavaUtilStaticMember")
-                        };
-                        (
-                            contract.id,
-                            contract.callee,
-                            expected_receiver,
-                            "library_api_java_map_factory",
-                        )
+                        (contract.id, contract.callee, "library_api_java_map_factory")
                     })
                 })
                 .or_else(|| {
@@ -451,17 +424,9 @@ impl<'a> Lowering<'a> {
                         .then(|| library_java_map_entry_contract(self.lang, receiver, method))
                         .flatten()
                         .map(|contract| {
-                            let LibraryApiCalleeContract::JavaUtilStaticMember {
-                                receiver: expected_receiver,
-                                ..
-                            } = contract.callee
-                            else {
-                                unreachable!("java map entries use JavaUtilStaticMember")
-                            };
                             (
                                 contract.id,
                                 contract.callee,
-                                expected_receiver,
                                 "library_api_java_map_entry_factory",
                             )
                         })
@@ -471,21 +436,30 @@ impl<'a> Lowering<'a> {
                         self.lang, receiver, method, arg_count,
                     )
                     .map(|contract| {
-                        let LibraryApiCalleeContract::JavaUtilStaticMember {
-                            receiver: expected_receiver,
-                            ..
-                        } = contract.callee
-                        else {
-                            unreachable!("java static adapters use JavaUtilStaticMember")
-                        };
                         (
                             contract.id,
                             contract.callee,
-                            expected_receiver,
                             "library_api_java_static_collection_adapter",
                         )
                     })
                 })?;
+        self.java_util_static_member_evidence_plan(receiver_node, id, callee_contract, rule)
+    }
+
+    fn java_util_static_member_evidence_plan(
+        &mut self,
+        receiver_node: NodeId,
+        id: LibraryApiContractId,
+        callee_contract: LibraryApiCalleeContract,
+        rule: &'static str,
+    ) -> Option<LibraryApiEvidencePlan> {
+        let LibraryApiCalleeContract::JavaUtilStaticMember {
+            receiver: expected_receiver,
+            ..
+        } = callee_contract
+        else {
+            return None;
+        };
         let dependency = self.record_imported_binding_symbol_for_node(
             receiver_node,
             "java.util",

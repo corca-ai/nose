@@ -5618,7 +5618,7 @@ mod tests {
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
         ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck,
         LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact,
-        Span, SymbolEvidenceKind, Unit, UnitKind,
+        Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
     };
 
     const ALL_LANGS: &[Lang] = &[
@@ -6993,6 +6993,60 @@ mod tests {
         )
     }
 
+    fn java_list_of_import_evidence_il(
+        interner: &Interner,
+        import_in_root: bool,
+    ) -> (Il, NodeId, NodeId, Symbol, LibraryCollectionFactoryContract) {
+        let mut b = IlBuilder::new(FileId(0));
+        let local = interner.intern("List");
+        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(30), &[]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(30), &[]);
+        let import = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, rhs]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(31), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp(32),
+            &[receiver],
+        );
+        let arg = b.add(NodeKind::Lit, Payload::LitInt(1), sp(33), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(34), &[callee, arg]);
+        let root = if import_in_root {
+            b.add(NodeKind::Module, Payload::None, sp(29), &[import, call])
+        } else {
+            b.add(NodeKind::Func, Payload::None, sp(35), &[call])
+        };
+        let mut il = finish_il(b, root, Lang::Java);
+        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
+            .expect("List.of contract");
+        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("java.util"),
+            exported_hash: stable_symbol_hash("List"),
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(30), stable_symbol_hash("List")),
+            binding_symbol,
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::node(sp(31), NodeKind::Var),
+            binding_symbol,
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(0)],
+        ));
+        il.evidence.push(library_api_record(
+            2,
+            sp(34),
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[1],
+        ));
+        (il, call, root, local, contract)
+    }
+
     #[test]
     fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         let interner = Interner::new();
@@ -7351,49 +7405,8 @@ mod tests {
     #[test]
     fn library_api_evidence_resolution_accepts_import_binding_outside_unit_root() {
         let interner = Interner::new();
-        let mut b = IlBuilder::new(FileId(0));
-        let local = interner.intern("List");
-        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(30), &[]);
-        let rhs = b.add(NodeKind::Seq, Payload::None, sp(30), &[]);
-        let _import = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, rhs]);
-        let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(31), &[]);
-        let callee = b.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("of")),
-            sp(32),
-            &[receiver],
-        );
-        let arg = b.add(NodeKind::Lit, Payload::LitInt(1), sp(33), &[]);
-        let call = b.add(NodeKind::Call, Payload::None, sp(34), &[callee, arg]);
-        let root = b.add(NodeKind::Func, Payload::None, sp(35), &[call]);
-        let mut il = finish_il(b, root, Lang::Java);
-        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
-            .expect("List.of contract");
-        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
-            module_hash: stable_symbol_hash("java.util"),
-            exported_hash: stable_symbol_hash("List"),
-        });
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::binding(sp(30), stable_symbol_hash("List")),
-            binding_symbol,
-            EvidenceStatus::Asserted,
-        ));
-        il.evidence.push(evidence_with_dependencies(
-            1,
-            EvidenceAnchor::node(sp(31), NodeKind::Var),
-            binding_symbol,
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(0)],
-        ));
-        il.evidence.push(library_api_record(
-            2,
-            sp(34),
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[1],
-        ));
+        let (mut il, call, _root, _local, contract) =
+            java_list_of_import_evidence_il(&interner, false);
         assert_eq!(
             library_api_contract_evidence_for_call(
                 &il,
@@ -7461,49 +7474,8 @@ mod tests {
     #[test]
     fn library_api_evidence_resolution_rejects_shadowed_java_static_members() {
         let interner = Interner::new();
-        let mut b = IlBuilder::new(FileId(0));
-        let local = interner.intern("List");
-        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(30), &[]);
-        let rhs = b.add(NodeKind::Seq, Payload::None, sp(30), &[]);
-        let import = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, rhs]);
-        let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(31), &[]);
-        let callee = b.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("of")),
-            sp(32),
-            &[receiver],
-        );
-        let arg = b.add(NodeKind::Lit, Payload::LitInt(1), sp(33), &[]);
-        let call = b.add(NodeKind::Call, Payload::None, sp(34), &[callee, arg]);
-        let root = b.add(NodeKind::Module, Payload::None, sp(29), &[import, call]);
-        let mut il = finish_il(b, root, Lang::Java);
-        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
-            .expect("List.of contract");
-        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
-            module_hash: stable_symbol_hash("java.util"),
-            exported_hash: stable_symbol_hash("List"),
-        });
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::binding(sp(30), stable_symbol_hash("List")),
-            binding_symbol,
-            EvidenceStatus::Asserted,
-        ));
-        il.evidence.push(evidence_with_dependencies(
-            1,
-            EvidenceAnchor::node(sp(31), NodeKind::Var),
-            binding_symbol,
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(0)],
-        ));
-        il.evidence.push(library_api_record(
-            2,
-            sp(34),
-            contract.id,
-            contract.callee,
-            EvidenceStatus::Asserted,
-            &[1],
-        ));
+        let (mut il, call, root, local, contract) =
+            java_list_of_import_evidence_il(&interner, true);
         assert_eq!(
             library_api_contract_evidence_for_call(
                 &il,

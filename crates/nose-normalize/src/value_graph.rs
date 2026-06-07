@@ -8593,7 +8593,7 @@ mod tests {
         import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
         library_imported_collection_factory_contract, library_java_collection_factory_contract,
         library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-        FIRST_PARTY_PACK_ID,
+        LibraryApiContractId, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -8634,6 +8634,100 @@ mod tests {
             dependencies,
             status: EvidenceStatus::Asserted,
         }
+    }
+
+    fn imported_binding_symbol(module: &str, exported: &str) -> EvidenceKind {
+        EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash(module),
+            exported_hash: stable_symbol_hash(exported),
+        })
+    }
+
+    fn imported_namespace_symbol_kind(module: &str) -> EvidenceKind {
+        EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+            module_hash: stable_symbol_hash(module),
+        })
+    }
+
+    fn push_imported_binding_use(
+        il: &mut Il,
+        binding_id: u32,
+        binding_span: Span,
+        occurrence_id: u32,
+        occurrence_span: Span,
+        module: &str,
+        exported: &str,
+    ) {
+        let symbol = imported_binding_symbol(module, exported);
+        il.evidence.push(evidence(
+            binding_id,
+            EvidenceAnchor::binding(binding_span, stable_symbol_hash(exported)),
+            symbol,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            occurrence_id,
+            EvidenceAnchor::node(occurrence_span, NodeKind::Var),
+            symbol,
+            vec![EvidenceId(binding_id)],
+        ));
+    }
+
+    fn push_imported_namespace_use(
+        il: &mut Il,
+        binding_id: u32,
+        binding_span: Span,
+        occurrence_id: u32,
+        occurrence_span: Span,
+        module: &str,
+    ) {
+        let symbol = imported_namespace_symbol_kind(module);
+        il.evidence.push(evidence(
+            binding_id,
+            EvidenceAnchor::binding(binding_span, stable_symbol_hash(module)),
+            symbol,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            occurrence_id,
+            EvidenceAnchor::node(occurrence_span, NodeKind::Var),
+            symbol,
+            vec![EvidenceId(binding_id)],
+        ));
+    }
+
+    fn collection_sequence_evidence(id: u32, span: Span) -> EvidenceRecord {
+        evidence(
+            id,
+            EvidenceAnchor::sequence(span),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+        )
+    }
+
+    fn library_api_contract_evidence(
+        id: u32,
+        call_span: Span,
+        contract_id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+        arity: u16,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(call_span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract_id),
+                callee_hash: library_api_callee_contract_hash(callee),
+                arity,
+            }),
+            dependencies,
+        )
+    }
+
+    fn eval_proven_collection_op(il: &Il, interner: &Interner, call: NodeId) -> Option<ValOp> {
+        let mut builder = Builder::new(il, interner);
+        let raw = builder.eval(call, &FxHashMap::default());
+        builder
+            .proven_collection_value(raw)
+            .map(|value| builder.nodes[value as usize].op.clone())
     }
 
     #[derive(Clone, Copy)]
@@ -8907,56 +9001,28 @@ mod tests {
         let contract =
             library_imported_collection_factory_contract(Lang::Python, "collections", "deque")
                 .expect("deque contract");
-        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
-            module_hash: stable_symbol_hash("collections"),
-            exported_hash: stable_symbol_hash("deque"),
-        });
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::binding(sp(60), stable_symbol_hash("deque")),
-            binding_symbol,
-        ));
-        il.evidence.push(evidence_with_dependencies(
-            1,
-            EvidenceAnchor::node(sp(61), NodeKind::Var),
-            binding_symbol,
-            vec![EvidenceId(0)],
-        ));
-        il.evidence.push(evidence(
-            2,
-            EvidenceAnchor::sequence(sp(63)),
-            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-        ));
-        il.evidence.push(evidence_with_dependencies(
+        push_imported_binding_use(&mut il, 0, sp(60), 1, sp(61), "collections", "deque");
+        il.evidence.push(collection_sequence_evidence(2, sp(63)));
+        il.evidence.push(library_api_contract_evidence(
             3,
-            EvidenceAnchor::node(sp(64), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(contract.id),
-                callee_hash: library_api_callee_contract_hash(contract.callee),
-                arity: 1,
-            }),
+            sp(64),
+            contract.id,
+            contract.callee,
+            1,
             vec![EvidenceId(1)],
         ));
-        let mut builder = Builder::new(&il, &interner);
-        let raw = builder.eval(call, &FxHashMap::default());
-        let admitted = builder
-            .proven_collection_value(raw)
+        let admitted = eval_proven_collection_op(&il, &interner, call)
             .expect("admitted LibraryApi evidence should prove the factory");
-        assert!(matches!(
-            builder.nodes[admitted as usize].op,
-            ValOp::Seq(SEQ_VALUE_COLLECTION)
-        ));
+        assert!(matches!(admitted, ValOp::Seq(SEQ_VALUE_COLLECTION)));
 
         let wrong = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
         il.evidence.pop();
-        il.evidence.push(evidence_with_dependencies(
+        il.evidence.push(library_api_contract_evidence(
             3,
-            EvidenceAnchor::node(sp(64), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(wrong.id),
-                callee_hash: library_api_callee_contract_hash(wrong.callee),
-                arity: 1,
-            }),
+            sp(64),
+            wrong.id,
+            wrong.callee,
+            1,
             vec![EvidenceId(1)],
         ));
         let mut builder = Builder::new(&il, &interner);
@@ -8991,40 +9057,18 @@ mod tests {
         let mut il = finish_test_il(b, root, Lang::Java);
         let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
             .expect("List.of contract");
-        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
-            module_hash: stable_symbol_hash("java.util"),
-            exported_hash: stable_symbol_hash("List"),
-        });
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::binding(sp(70), stable_symbol_hash("List")),
-            binding_symbol,
-        ));
-        il.evidence.push(evidence_with_dependencies(
-            1,
-            EvidenceAnchor::node(sp(71), NodeKind::Var),
-            binding_symbol,
-            vec![EvidenceId(0)],
-        ));
-        il.evidence.push(evidence_with_dependencies(
+        push_imported_binding_use(&mut il, 0, sp(70), 1, sp(71), "java.util", "List");
+        il.evidence.push(library_api_contract_evidence(
             2,
-            EvidenceAnchor::node(sp(75), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(contract.id),
-                callee_hash: library_api_callee_contract_hash(contract.callee),
-                arity: 2,
-            }),
+            sp(75),
+            contract.id,
+            contract.callee,
+            2,
             vec![EvidenceId(1)],
         ));
-        let mut builder = Builder::new(&il, &interner);
-        let raw = builder.eval(call, &FxHashMap::default());
-        let admitted = builder
-            .proven_collection_value(raw)
+        let admitted = eval_proven_collection_op(&il, &interner, call)
             .expect("admitted LibraryApi evidence should prove the Java factory");
-        assert!(matches!(
-            builder.nodes[admitted as usize].op,
-            ValOp::Seq(SEQ_VALUE_COLLECTION)
-        ));
+        assert!(matches!(admitted, ValOp::Seq(SEQ_VALUE_COLLECTION)));
     }
 
     #[test]
@@ -9075,9 +9119,6 @@ mod tests {
         let contract =
             library_imported_collection_factory_contract(Lang::Python, "collections", "deque")
                 .expect("deque contract");
-        let namespace_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
-            module_hash: stable_symbol_hash("collections"),
-        });
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::sequence(sp(80)),
@@ -9085,30 +9126,14 @@ mod tests {
                 module_hash: stable_symbol_hash("collections"),
             }),
         ));
-        il.evidence.push(evidence(
-            1,
-            EvidenceAnchor::binding(sp(80), stable_symbol_hash("collections")),
-            namespace_symbol,
-        ));
-        il.evidence.push(evidence_with_dependencies(
-            2,
-            EvidenceAnchor::node(sp(81), NodeKind::Var),
-            namespace_symbol,
-            vec![EvidenceId(1)],
-        ));
-        il.evidence.push(evidence(
-            3,
-            EvidenceAnchor::sequence(sp(84)),
-            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-        ));
-        il.evidence.push(evidence_with_dependencies(
+        push_imported_namespace_use(&mut il, 1, sp(80), 2, sp(81), "collections");
+        il.evidence.push(collection_sequence_evidence(3, sp(84)));
+        il.evidence.push(library_api_contract_evidence(
             4,
-            EvidenceAnchor::node(sp(85), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(contract.id),
-                callee_hash: library_api_callee_contract_hash(contract.callee),
-                arity: 1,
-            }),
+            sp(85),
+            contract.id,
+            contract.callee,
+            1,
             vec![EvidenceId(2)],
         ));
         let mut builder = Builder::new(&il, &interner);
@@ -9235,11 +9260,7 @@ mod tests {
                 name_hash: stable_symbol_hash("Set"),
             }),
         ));
-        il.evidence.push(evidence(
-            2,
-            EvidenceAnchor::sequence(sp(72)),
-            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-        ));
+        il.evidence.push(collection_sequence_evidence(2, sp(72)));
         (il, call)
     }
 
@@ -9256,14 +9277,12 @@ mod tests {
         ));
 
         let wrong = library_js_like_map_constructor_contract(Lang::JavaScript, "Map").unwrap();
-        il.evidence.push(evidence_with_dependencies(
+        il.evidence.push(library_api_contract_evidence(
             3,
-            EvidenceAnchor::node(sp(73), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(wrong.id),
-                callee_hash: library_api_callee_contract_hash(wrong.callee),
-                arity: 1,
-            }),
+            sp(73),
+            wrong.id,
+            wrong.callee,
+            1,
             vec![EvidenceId(0), EvidenceId(1)],
         ));
         let mut builder = Builder::new(&il, &interner);
@@ -9275,14 +9294,12 @@ mod tests {
 
         let (mut il, call) = js_new_set_il(&interner);
         let set = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
-        il.evidence.push(evidence_with_dependencies(
+        il.evidence.push(library_api_contract_evidence(
             3,
-            EvidenceAnchor::node(sp(73), NodeKind::Call),
-            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                contract_hash: library_api_contract_id_hash(set.id),
-                callee_hash: library_api_callee_contract_hash(set.callee),
-                arity: 1,
-            }),
+            sp(73),
+            set.id,
+            set.callee,
+            1,
             vec![EvidenceId(0), EvidenceId(1)],
         ));
         let mut builder = Builder::new(&il, &interner);
