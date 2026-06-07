@@ -9,8 +9,11 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Builtin, Il, Interner, NodeId, NodeKind, Payload};
-use nose_semantics::{builder_append_method_contract, semantics};
+use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
+use nose_semantics::{
+    builder_append_call_args, exact_java_this_field, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, semantics,
+};
 use rustc_hash::FxHashSet;
 
 pub(crate) fn recognize_conditional_guard(
@@ -507,7 +510,7 @@ fn self_field_assignment_site(il: &Il, interner: &Interner, node: NodeId) -> Opt
         .exact_fragments()
         .java_this_field_place()
         && kids.len() == 2
-        && is_java_this_field(il, interner, kids[0])
+        && exact_java_this_field(il, interner, kids[0])
     {
         let place = super::recognize::resolve_place(il, interner, kids[0]);
         return place
@@ -551,12 +554,7 @@ fn append_statement(il: &Il, interner: &Interner, stmt: NodeId) -> bool {
 }
 
 fn index_assignment(il: &Il, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-        && il.kind(node) == NodeKind::Assign
-        && il.children(node).len() == 2
-        && il.kind(il.children(node)[0]) == NodeKind::Index
+    exact_non_overloadable_index_assignment(il, node)
 }
 
 fn loop_effect_sites(il: &Il, interner: &Interner, node: NodeId) -> Option<Vec<EffectSite>> {
@@ -793,44 +791,15 @@ fn block_children_exact_len(il: &Il, node: NodeId, len: usize) -> Option<&[NodeI
 }
 
 fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if !is_append_call(il, interner, node) {
-        return None;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return Some((kids[0], kids[1]));
-    }
-    let receiver = *il.children(kids[0]).first()?;
-    Some((receiver, kids[1]))
+    builder_append_call_args(il, interner, node)
 }
 
 fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.kind(node) != NodeKind::Call {
-        return false;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return kids.len() == 2;
-    }
-    let Some((&callee, args)) = kids.split_first() else {
-        return false;
-    };
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len())
+    builder_append_call_args(il, interner, node).is_some()
 }
 
 fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-    if !index_assignment(il, node) {
-        return None;
-    }
-    let kids = il.children(node);
-    let target = il.children(kids[0]);
-    Some((*target.first()?, target.get(1).copied(), kids[1]))
+    exact_non_overloadable_index_assignment_parts(il, node)
 }
 
 fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
@@ -853,30 +822,6 @@ fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
         return None;
     }
     Some((cid, kids[1]))
-}
-
-fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Field
-    {
-        return false;
-    }
-    if !matches!(il.node(node).payload, Payload::Name(_)) {
-        return false;
-    }
-    il.children(node)
-        .first()
-        .is_some_and(|&receiver| is_java_this_var(il, interner, receiver))
-}
-
-fn is_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && il.kind(node) == NodeKind::Var
-        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
 }
 
 fn mentions_any(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {

@@ -6,7 +6,7 @@
 //! extend this contract surface rather than letting packs mint fingerprints or
 //! approve exact clone matches directly.
 
-use nose_il::{Builtin, HoFKind, Lang};
+use nose_il::{Builtin, HoFKind, Il, Interner, Lang, NodeId, NodeKind, Payload};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
@@ -123,6 +123,71 @@ impl FragmentSemantics {
     pub fn java_this_field_place(self) -> bool {
         EffectSemantics { lang: self.lang }.java_this_field_place()
     }
+}
+
+/// Exact Java `this` receiver proof for first-party self-field fragments.
+pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        && il.kind(node) == NodeKind::Var
+        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
+}
+
+/// Exact Java `this.field` place proof for receiver-free field-write fingerprints.
+pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Field
+    {
+        return false;
+    }
+    if !matches!(il.node(node).payload, Payload::Name(_)) {
+        return false;
+    }
+    il.children(node)
+        .first()
+        .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver))
+}
+
+/// Exact Java `return this` proof used by self-field body fragments.
+pub fn exact_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .java_this_field_place()
+        || il.kind(node) != NodeKind::Return
+    {
+        return false;
+    }
+    let kids = il.children(node);
+    kids.len() == 1 && exact_java_this_var(il, interner, kids[0])
+}
+
+/// `(receiver, key, value)` of a first-party exact-safe index assignment.
+///
+/// This is intentionally language-gated: languages with overloadable/user-dispatched index
+/// assignment remain fail-closed until a pack supplies a stronger receiver proof.
+pub fn exact_non_overloadable_index_assignment_parts(
+    il: &Il,
+    node: NodeId,
+) -> Option<(NodeId, Option<NodeId>, NodeId)> {
+    if !semantics(il.meta.lang)
+        .exact_fragments()
+        .non_overloadable_index_assignment()
+    {
+        return None;
+    }
+    let kids = il.children(node);
+    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
+        return None;
+    }
+    let target = il.children(kids[0]);
+    Some((*target.first()?, target.get(1).copied(), kids[1]))
+}
+
+pub fn exact_non_overloadable_index_assignment(il: &Il, node: NodeId) -> bool {
+    exact_non_overloadable_index_assignment_parts(il, node).is_some()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -841,6 +906,38 @@ pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize
     )
 }
 
+/// `(receiver, value)` of a single-item append-like builder call admitted by first-party
+/// language/library contracts.
+pub fn builder_append_call_args(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<(NodeId, NodeId)> {
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let kids = il.children(node);
+    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
+        return (kids.len() == 2).then(|| (kids[0], kids[1]));
+    }
+    let (&callee, args) = kids.split_first()?;
+    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return None;
+    };
+    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
+        return None;
+    }
+    let receiver = *il.children(callee).first()?;
+    Some((receiver, args[0]))
+}
+
+pub fn builder_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    builder_append_call_args(il, interner, node).is_some()
+}
+
 pub fn method_fold_name(lang: Lang, name: &str) -> bool {
     matches!(
         (lang, name),
@@ -1064,6 +1161,7 @@ pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, Span, Unit, UnitKind};
 
     const ALL_LANGS: &[Lang] = &[
         Lang::Python,
@@ -1106,6 +1204,26 @@ mod tests {
         Builtin::Join,
         Builtin::UnsignedCast32,
     ];
+
+    fn sp(line: u32) -> Span {
+        Span::new(FileId(0), line, line, 1, 1)
+    }
+
+    fn finish_il(builder: IlBuilder, root: NodeId, lang: Lang) -> Il {
+        builder.finish(
+            root,
+            FileMeta {
+                path: "t".into(),
+                lang,
+            },
+            vec![Unit {
+                root,
+                kind: UnitKind::Function,
+                name: None,
+            }],
+            Vec::new(),
+        )
+    }
 
     #[test]
     fn first_party_profile_wraps_each_language() {
@@ -1483,5 +1601,102 @@ mod tests {
         assert!(builder_append_method_contract(Lang::JavaScript, "push", 1));
         assert!(builder_append_method_contract(Lang::Python, "append", 1));
         assert!(!builder_append_method_contract(Lang::Ruby, "push", 1));
+    }
+
+    #[test]
+    fn exact_java_this_helpers_are_language_and_shape_constrained() {
+        let interner = Interner::default();
+        let this = interner.intern("this");
+        let field_name = interner.intern("value");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Name(this), sp(1), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            sp(1),
+            &[receiver],
+        );
+        let ret = b.add(NodeKind::Return, Payload::None, sp(2), &[receiver]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(1), &[field, ret]);
+        let il = finish_il(b, root, Lang::Java);
+
+        assert!(exact_java_this_var(&il, &interner, receiver));
+        assert!(exact_java_this_field(&il, &interner, field));
+        assert!(exact_java_return_this(&il, &interner, ret));
+
+        let mut js_il = il.clone();
+        js_il.meta.lang = Lang::JavaScript;
+        assert!(!exact_java_this_var(&js_il, &interner, receiver));
+        assert!(!exact_java_this_field(&js_il, &interner, field));
+        assert!(!exact_java_return_this(&js_il, &interner, ret));
+    }
+
+    #[test]
+    fn exact_index_assignment_parts_are_language_constrained() {
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let key = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp(1), &[receiver, key]);
+        let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(1), &[target, value]);
+        let il = finish_il(b, assign, Lang::Go);
+
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            Some((receiver, Some(key), value))
+        );
+        assert!(exact_non_overloadable_index_assignment(&il, assign));
+
+        let mut ruby_il = il.clone();
+        ruby_il.meta.lang = Lang::Ruby;
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&ruby_il, assign),
+            None
+        );
+        assert!(!exact_non_overloadable_index_assignment(&ruby_il, assign));
+    }
+
+    #[test]
+    fn builder_append_call_args_are_language_arity_and_receiver_constrained() {
+        let interner = Interner::default();
+        let append = interner.intern("append");
+        let push = interner.intern("push");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let value = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let builtin = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp(1),
+            &[receiver, value],
+        );
+        let method = b.add(NodeKind::Field, Payload::Name(append), sp(2), &[receiver]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(2), &[method, value]);
+        let push_method = b.add(NodeKind::Field, Payload::Name(push), sp(3), &[receiver]);
+        let push_call = b.add(NodeKind::Call, Payload::None, sp(3), &[push_method, value]);
+        let root = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp(1),
+            &[builtin, call, push_call],
+        );
+        let il = finish_il(b, root, Lang::Python);
+
+        assert_eq!(
+            builder_append_call_args(&il, &interner, builtin),
+            Some((receiver, value))
+        );
+        assert_eq!(
+            builder_append_call_args(&il, &interner, call),
+            Some((receiver, value))
+        );
+        assert_eq!(builder_append_call_args(&il, &interner, push_call), None);
+
+        let mut rust_il = il.clone();
+        rust_il.meta.lang = Lang::Rust;
+        assert_eq!(
+            builder_append_call_args(&rust_il, &interner, push_call),
+            Some((receiver, value))
+        );
     }
 }

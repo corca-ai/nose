@@ -77,6 +77,10 @@ and pack ecosystem.
   language-, signature-, and integer-domain-constrained first-party contract
   instead of a bare method-name recognizer. Float/NaN-sensitive methods remain a
   separate future contract.
+- Exact fragment IL-surface proofs for Java `this.field`, Java `return this`,
+  non-overloadable C/Go/Java index assignment, and single-item builder append
+  calls moved into `nose-semantics`, so predicate and contract paths no longer
+  duplicate those language/API gates.
 
 ## Phase 0: documentation and vocabulary
 
@@ -102,9 +106,12 @@ and pack ecosystem.
 ## Phase 2: shared contracts for duplicated gates
 
 - Move primitive comparison gates behind `OperatorSemantics`.
-- Move index assignment and Java self-field exact gates behind `EffectSemantics`.
+- Expand the exact fragment facade from first-party helper functions into
+  versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
+- Replace `ParamSemantic` with kernel evidence records for receiver/domain
+  proofs while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add construct/call distinction facts so constructor-only contracts such as

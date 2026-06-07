@@ -4,7 +4,7 @@ Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
 
-Snapshot date: 2026-06-07, `feature/semantic-kernel-packs` worktree against
+Snapshot date: 2026-06-07, `feature/semantic-kernel-migration` worktree against
 `origin/main`.
 
 ## What exists today
@@ -53,6 +53,10 @@ migrated.
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
+- Exact fragment surface proofs for Java `this.field`, Java `return this`,
+  non-overloadable C/Go/Java index assignment, and single-item builder append
+  calls are now shared through `nose-semantics`; predicate and contract paths
+  consume the same IL-level proof helpers.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
@@ -77,7 +81,8 @@ Semantic knowledge still appears in several forms outside the facade:
   instead of versioned `LawPack` records;
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,
   HOFs, nullish defaulting, recursion, and effect traces;
-- duplicated strict exact gates in value-graph and unit/fragment extraction paths.
+- duplicated receiver/domain and library/API proof gates in desugaring,
+  idiom lowering, value-graph, and strict exact paths.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -147,6 +152,11 @@ The first high-value targets for semantic-kernel extraction are:
   heuristics;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
+- receiver/domain evidence records to replace `ParamSemantic` as the internal
+  proof vocabulary for collection, map, option, string, integer, and byte-array
+  domains;
+- demand/protocol contracts that distinguish eager arrays, lazy iterators,
+  streams, callbacks, futures/promises, and call-by-need thunks;
 - demand/error contracts for language-core oracle behavior such as non-iterable
   `for`/`foreach` evaluation;
 - LawPack-facing ids for named value-graph rules, with the existing formal

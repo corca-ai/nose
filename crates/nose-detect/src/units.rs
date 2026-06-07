@@ -13,7 +13,9 @@ use nose_normalize::{
     node_tag,
 };
 use nose_semantics::{
-    builder_append_method_contract, iterator_identity_adapter_contract, semantics,
+    builder_append_call_args, exact_java_return_this, exact_java_this_field,
+    exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
+    iterator_identity_adapter_contract, semantics,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -2914,15 +2916,8 @@ fn exact_index_assignment_consumes_temp(
     temp_cid: u32,
     forbidden_cids: Option<&FxHashSet<u32>>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, stmt) {
-        return false;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, stmt)
+    else {
         return false;
     };
 
@@ -2934,19 +2929,15 @@ fn exact_index_assignment_consumes_temp(
         return false;
     }
 
-    let key_uses_temp = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, &temp));
-    let value_uses_temp = node_mentions_any_cid(il, kids[1], &temp);
+    let key_uses_temp = key.is_some_and(|key| node_mentions_any_cid(il, key, &temp));
+    let value_uses_temp = node_mentions_any_cid(il, value, &temp);
     if !(key_uses_temp || value_uses_temp) {
         return false;
     }
     match forbidden_cids {
         Some(cids) => {
-            !target_kids
-                .get(1)
-                .is_some_and(|&key| node_mentions_any_cid(il, key, cids))
-                && !node_mentions_any_cid(il, kids[1], cids)
+            !key.is_some_and(|key| node_mentions_any_cid(il, key, cids))
+                && !node_mentions_any_cid(il, value, cids)
         }
         None => true,
     }
@@ -2974,14 +2965,7 @@ fn exact_assignment_fragment_kind(
 }
 
 fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 2 && il.kind(kids[0]) == NodeKind::Index
+    exact_non_overloadable_index_assignment(il, node)
 }
 
 // Field-write fingerprints intentionally model final self-field state without a receiver
@@ -2999,41 +2983,8 @@ fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node:
     kids.len() == 2 && exact_java_this_field(il, interner, kids[0])
 }
 
-pub(crate) fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Field
-    {
-        return false;
-    }
-    if !matches!(il.node(node).payload, Payload::Name(_)) {
-        return false;
-    }
-    let Some(&receiver) = il.children(node).first() else {
-        return false;
-    };
-    exact_java_this_var(il, interner, receiver)
-}
-
-pub(crate) fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && il.kind(node) == NodeKind::Var
-        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
-}
-
 fn exact_java_return_this_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Return
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 1 && exact_java_this_var(il, interner, kids[0])
+    exact_java_return_this(il, interner, node)
 }
 
 fn exact_function_body_self_field_fragment_root(
@@ -3491,15 +3442,8 @@ fn index_assignment_effect_consumes_temp(
     iter_cids: &FxHashSet<u32>,
     temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids)
@@ -3507,10 +3451,8 @@ fn index_assignment_effect_consumes_temp(
     {
         return false;
     }
-    target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, temp_cids))
-        || node_mentions_any_cid(il, kids[1], temp_cids)
+    key.is_some_and(|key| node_mentions_any_cid(il, key, temp_cids))
+        || node_mentions_any_cid(il, value, temp_cids)
 }
 
 fn index_assignment_effect_consumes_chained_temp(
@@ -3521,15 +3463,8 @@ fn index_assignment_effect_consumes_chained_temp(
     final_temp_cids: &FxHashSet<u32>,
     prior_temp_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids)
@@ -3537,14 +3472,10 @@ fn index_assignment_effect_consumes_chained_temp(
     {
         return false;
     }
-    let key_uses_final = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, final_temp_cids));
-    let key_uses_prior = target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, prior_temp_cids));
-    let value_uses_final = node_mentions_any_cid(il, kids[1], final_temp_cids);
-    let value_uses_prior = node_mentions_any_cid(il, kids[1], prior_temp_cids);
+    let key_uses_final = key.is_some_and(|key| node_mentions_any_cid(il, key, final_temp_cids));
+    let key_uses_prior = key.is_some_and(|key| node_mentions_any_cid(il, key, prior_temp_cids));
+    let value_uses_final = node_mentions_any_cid(il, value, final_temp_cids);
+    let value_uses_prior = node_mentions_any_cid(il, value, prior_temp_cids);
     (key_uses_final || value_uses_final) && !key_uses_prior && !value_uses_prior
 }
 
@@ -3561,25 +3492,7 @@ fn append_effect_depends_on_iter(
 }
 
 fn append_call_args(il: &Il, interner: &Interner, node: NodeId) -> Option<(NodeId, NodeId)> {
-    if il.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return (kids.len() == 2).then(|| (kids[0], kids[1]));
-    }
-    let (&callee, args) = kids.split_first()?;
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return None;
-    };
-    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
-        return None;
-    }
-    let receiver = *il.children(callee).first()?;
-    Some((receiver, args[0]))
+    builder_append_call_args(il, interner, node)
 }
 
 fn index_assignment_effect_depends_on_iter(
@@ -3588,24 +3501,15 @@ fn index_assignment_effect_depends_on_iter(
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
 ) -> bool {
-    if !exact_index_assignment_fragment_root(il, node) {
-        return false;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Index {
-        return false;
-    }
-    let target_kids = il.children(kids[0]);
-    let Some(&receiver) = target_kids.first() else {
+    let Some((receiver, key, value)) = exact_non_overloadable_index_assignment_parts(il, node)
+    else {
         return false;
     };
     if node_mentions_any_cid(il, receiver, iter_cids) {
         return false;
     }
-    target_kids
-        .get(1)
-        .is_some_and(|&key| node_mentions_any_cid(il, key, iter_cids))
-        || node_mentions_any_cid(il, kids[1], iter_cids)
+    key.is_some_and(|key| node_mentions_any_cid(il, key, iter_cids))
+        || node_mentions_any_cid(il, value, iter_cids)
 }
 
 pub(crate) fn top_level_statement_fragment_context_safe(

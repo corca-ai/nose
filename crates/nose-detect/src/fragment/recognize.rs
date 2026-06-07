@@ -16,9 +16,8 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind, Place};
-use crate::units::{exact_java_this_field, exact_java_this_var};
-use nose_il::{stable_symbol_hash, Builtin, Il, Interner, NodeId, NodeKind, Payload};
-use nose_semantics::{builder_append_method_contract, semantics};
+use nose_il::{stable_symbol_hash, Il, Interner, NodeId, NodeKind, Payload};
+use nose_semantics::{builder_append_call, exact_java_this_field, exact_java_this_var, semantics};
 
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
@@ -161,23 +160,7 @@ fn expr_effect_shape(il: &Il, kids: &[NodeId]) -> bool {
 }
 
 fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if il.kind(node) != NodeKind::Call {
-        return false;
-    }
-    let kids = il.children(node);
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
-        return kids.len() == 2;
-    }
-    let Some((&callee, args)) = kids.split_first() else {
-        return false;
-    };
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len())
+    builder_append_call(il, interner, node)
 }
 
 fn effect_contract(

@@ -10,8 +10,8 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
-use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
-use nose_semantics::semantics;
+use nose_il::{Il, Interner, NodeId, NodeKind};
+use nose_semantics::{exact_java_return_this, exact_java_this_field, semantics};
 
 pub(crate) fn recognize_self_field_body(
     il: &Il,
@@ -38,7 +38,7 @@ pub(crate) fn recognize_self_field_body(
     let mut effects = Vec::new();
     let mut has_field_effect = false;
     for (idx, &child) in kids.iter().enumerate() {
-        if is_java_return_this(il, interner, child) {
+        if exact_java_return_this(il, interner, child) {
             if idx + 1 != kids.len() {
                 return None;
             }
@@ -117,7 +117,7 @@ fn self_field_assign(
     effects: &mut Vec<EffectSite>,
 ) -> Option<()> {
     let kids = il.children(node);
-    if kids.len() != 2 || !is_java_this_field(il, interner, kids[0]) {
+    if kids.len() != 2 || !exact_java_this_field(il, interner, kids[0]) {
         return None;
     }
     let place = super::recognize::resolve_place(il, interner, kids[0]);
@@ -126,40 +126,4 @@ fn self_field_assign(
     }
     effects.push(EffectSite::at(Effect::FieldWrite, place));
     Some(())
-}
-
-fn is_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Field
-    {
-        return false;
-    }
-    if !matches!(il.node(node).payload, Payload::Name(_)) {
-        return false;
-    }
-    il.children(node)
-        .first()
-        .is_some_and(|&receiver| is_java_this_var(il, interner, receiver))
-}
-
-fn is_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && il.kind(node) == NodeKind::Var
-        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
-}
-
-fn is_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Return
-    {
-        return false;
-    }
-    let kids = il.children(node);
-    kids.len() == 1 && is_java_this_var(il, interner, kids[0])
 }
