@@ -4,8 +4,12 @@ kind = "soundness"
 summary = "Clamp min/max compositions and two-comparison forms agree only under the lo <= hi precondition."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs"]
-symbols = ["minmax_pattern", "canonicalize_proof_backed_clamp"]
+rule_module = true
+files = [
+  "crates/nose-normalize/src/value_graph/rules/clamp.rs",
+  "crates/nose-normalize/src/value_graph.rs",
+]
+symbols = ["apply", "minmax_pattern"]
 
 [lean]
 proof = "Proof.lean"

@@ -4,5 +4,6 @@
 //! `formal/obligations/normalize/value_graph/<rule>/meta.toml` entry. The
 //! formal-obligation linter checks that directory/file pairing mechanically.
 
+pub(super) mod clamp;
 pub(super) mod factor_distribute;
 pub(super) mod promise_then;
