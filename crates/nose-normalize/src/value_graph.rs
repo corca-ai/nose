@@ -822,21 +822,17 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn is_map_param_value(&self, value: ValueId) -> bool {
-        let ValOp::Input(cid) = self.nodes[value as usize].op else {
-            return false;
-        };
-        matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Map))
+    /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate semantic. Replaces
+    /// the per-semantic `is_map`/`is_integer`/`is_byte_array` recognizers (identical but for the
+    /// variant). `is_array` adds the `ArrayParam` op on top.
+    fn is_param_value(&self, value: ValueId, sem: ParamSemantic) -> bool {
+        matches!(self.nodes[value as usize].op, ValOp::Input(cid)
+            if self.param_semantic.get(&cid) == Some(&sem))
     }
 
     fn is_array_param_value(&self, value: ValueId) -> bool {
-        match self.nodes[value as usize].op {
-            ValOp::ArrayParam => true,
-            ValOp::Input(cid) => {
-                matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Array))
-            }
-            _ => false,
-        }
+        matches!(self.nodes[value as usize].op, ValOp::ArrayParam)
+            || self.is_param_value(value, ParamSemantic::Array)
     }
 
     fn param_domain_value(&mut self, value: ValueId) -> ValueId {
@@ -1436,7 +1432,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let map = callee.args[0];
-        let map = if self.is_map_param_value(map) {
+        let map = if self.is_param_value(map, ParamSemantic::Map) {
             map
         } else {
             self.proven_map_value(map)?
@@ -1458,7 +1454,7 @@ impl<'a> Builder<'a> {
                 return None;
             }
             let map = callee.args[0];
-            return if self.is_map_param_value(map) {
+            return if self.is_param_value(map, ParamSemantic::Map) {
                 Some(map)
             } else {
                 self.proven_map_value(map)
@@ -3299,15 +3295,8 @@ impl<'a> Builder<'a> {
             .any(|&(fact_lo, fact_hi)| fact_lo == lo && fact_hi == hi)
     }
 
-    fn is_integer_param_value(&self, value: ValueId) -> bool {
-        let ValOp::Input(cid) = self.nodes[value as usize].op else {
-            return false;
-        };
-        matches!(self.param_semantic.get(&cid), Some(ParamSemantic::Integer))
-    }
-
     fn is_safe_clamp_integer_value(&self, value: ValueId) -> bool {
-        self.int_const_value(value).is_some() || self.is_integer_param_value(value)
+        self.int_const_value(value).is_some() || self.is_param_value(value, ParamSemantic::Integer)
     }
 
     fn proof_backed_clamp_value(
@@ -5139,7 +5128,7 @@ impl<'a> Builder<'a> {
             if base == low_base
                 && high_index == 0
                 && low_index == 1
-                && self.is_byte_array_param_value(base)
+                && self.is_param_value(base, ParamSemantic::ByteArray)
             {
                 let zero = self.int_const(0);
                 let one = self.int_const(1);
@@ -5179,7 +5168,7 @@ impl<'a> Builder<'a> {
             return None;
         }
         let base = base?;
-        if !self.is_byte_array_param_value(base) {
+        if !self.is_param_value(base, ParamSemantic::ByteArray) {
             return None;
         }
         let zero = self.int_const(0);
@@ -5251,16 +5240,6 @@ impl<'a> Builder<'a> {
         } else {
             None
         }
-    }
-
-    fn is_byte_array_param_value(&self, value: ValueId) -> bool {
-        let ValOp::Input(cid) = self.nodes[value as usize].op else {
-            return false;
-        };
-        matches!(
-            self.param_semantic.get(&cid),
-            Some(ParamSemantic::ByteArray)
-        )
     }
 
     fn int_const_eq(&self, value: ValueId, expected: i64) -> bool {
