@@ -707,7 +707,7 @@ fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> boo
     nose_semantics::semantics(old.meta.lang)
         .collections()
         .free_name_map_factories()
-        .any(|factory| factory.names.iter().any(|name| *name == callee))
+        .any(|factory| factory.names.contains(&callee))
 }
 
 /// Canonical sync name for a known async counterpart, so behaviorally-equivalent

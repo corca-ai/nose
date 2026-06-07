@@ -97,8 +97,8 @@ fn sub_dag_family_annotates_each_site_with_shared_computation_lines() {
     // Two functions that share a heavy computation but differ elsewhere — a partial / sub-DAG
     // clone caught by the anchor (near) channel. Each site must report ITS OWN source range for
     // the shared computation, so the report can point at where the shared logic lives in each copy.
-    let a = "function reportA(items) {\n  const totals = items.map(i => i.price * i.qty).reduce((s, x) => s + x, 0);\n  const tax = totals * 0.1;\n  const grand = totals + tax;\n  logA(grand);\n  return grand;\n}\n";
-    let b = "function reportB(items) {\n  warmup();\n  warmup2();\n  const totals = items.map(i => i.price * i.qty).reduce((s, x) => s + x, 0);\n  const tax = totals * 0.1;\n  const grand = totals + tax;\n  saveB(grand);\n  notifyB(grand);\n}\n";
+    let a = "function reportA(items) {\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  renderInvoice(grand);\n  return grand;\n}\n";
+    let b = "function reportB(items) {\n  warmup();\n  warmup2();\n  const subtotal = items.map(x => x.price * x.qty).reduce((s, x) => s + x, 0);\n  const tax = subtotal * rate;\n  const ship = subtotal > 100 ? 0 : 15;\n  const grand = subtotal + tax + ship;\n  saveOrder(grand);\n  notify(grand);\n}\n";
     let corpus = build(&[("a.ts", a, Lang::TypeScript), ("b.ts", b, Lang::TypeScript)]);
     let opts = DetectOptions {
         threshold: 0.70,

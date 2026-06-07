@@ -595,6 +595,18 @@ fn java_arraylist_add_builder_loop_converges_with_comprehension() {
 }
 
 #[test]
+fn java_static_final_map_field_converges_with_inline_factory_lookup() {
+    let i = Interner::new();
+    let inline = "import java.util.Map;\n\nclass JavaMapOf {\n  static int lookup(String key, String other) {\n    return Map.of(\"red\", 1, \"blue\", 2).getOrDefault(key, 0);\n  }\n}\n";
+    let field = "import java.util.Map;\n\nclass JavaModuleMap {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n";
+    assert_eq!(
+        value_fp(&i, inline, Lang::Java),
+        value_fp(&i, field, Lang::Java),
+        "Java static final literal map fields must seed method-level map proof"
+    );
+}
+
+#[test]
 fn go_functional_append_builder_loop_converges_with_comprehension() {
     // Go builds a list with `out := []T{}; for … { out = append(out, e) }` — a FUNCTIONAL
     // append (reassignment), not the effect-form `out.append(e)` of Python/JS. Recognizing the
@@ -4546,6 +4558,7 @@ fn map_default_lookup_converges_cross_language_with_boundaries() {
     let ts_wrong_default = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return lookup.get(key) ?? other_default; }\n";
     let ts_wrong_map = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return other_lookup.get(key) ?? fallback; }\n";
     let ts_untyped = "function f(lookup, other_lookup, key, other_key, fallback, other_default) { return lookup.get(key) ?? fallback; }\n";
+    let ts_temp_shadowed_undefined = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number, undefined: number): number { const selected = lookup.get(key); return selected === undefined ? fallback : selected; }\n";
     let py_wrong_key = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n";
     let py_wrong_default = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n";
     let py_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n";
@@ -4583,6 +4596,10 @@ fn map_default_lookup_converges_cross_language_with_boundaries() {
     assert_ne!(fp, value_fp(&i, ts_wrong_default, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, ts_wrong_map, Lang::TypeScript));
     assert_ne!(fp, value_fp(&i, ts_untyped, Lang::TypeScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, ts_temp_shadowed_undefined, Lang::TypeScript)
+    );
     assert_ne!(fp, value_fp(&i, py_wrong_key, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_wrong_default, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_wrong_map, Lang::Python));

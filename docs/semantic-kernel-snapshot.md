@@ -117,7 +117,9 @@ migrated.
   lowering.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
-  unshadowed-global contract.
+  unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
+  consume that same proof, so temp-bound `Map.get(...)` defaulting can stay open
+  without admitting shadowed `undefined` bindings.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

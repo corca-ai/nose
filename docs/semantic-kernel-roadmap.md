@@ -129,6 +129,9 @@ and pack ecosystem.
   and into method contracts that require an unshadowed `Math` receiver.
 - JS-like `undefined` moved from unconditional frontend null lowering to an
   unshadowed-global nullish contract, preserving shadowed binding hard negatives.
+- Strict exact gates now consume the same nullish-global proof, so temp-bound
+  JS/TS `Map.get(...)` defaulting remains exact-eligible only when `undefined`
+  is the unshadowed JS-like sentinel.
 
 ## Phase 0: documentation and vocabulary
 
