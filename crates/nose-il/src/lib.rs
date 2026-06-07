@@ -16,8 +16,11 @@ mod sexpr;
 
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
-    Builtin, HoFKind, LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact,
-    Payload, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+    EvidenceProvenance, EvidenceRecord, EvidenceStatus, HoFKind, ImportEvidenceKind, LitClass,
+    LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload,
+    SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind,
+    SourceOperatorKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 
@@ -67,6 +70,11 @@ pub struct Il {
     /// connect these facts to canonical parameter ids for strict proof-gated rewrites.
     #[serde(default)]
     pub param_type_facts: Vec<ParamTypeFact>,
+    /// Pack-facing semantic evidence records keyed by stable source anchors.
+    /// Existing source/param/import side tables are mirrored here for compatibility
+    /// today; future language/library packs should emit this record shape directly.
+    #[serde(default)]
+    pub evidence: Vec<EvidenceRecord>,
     /// Source-origin evidence facts keyed by source span. These preserve facts that the
     /// shared IL shape intentionally abstracts away, such as construct syntax, regex
     /// literal syntax, and the original equality/operator family.
@@ -207,6 +215,7 @@ impl IlBuilder {
             cid_names,
             suppressed: Vec::new(),
             param_type_facts: Vec::new(),
+            evidence: Vec::new(),
             source_facts: Vec::new(),
         }
     }

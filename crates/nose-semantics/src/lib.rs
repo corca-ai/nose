@@ -7,9 +7,13 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, EvidenceStatus, HoFKind, Il,
+    ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    Span,
 };
+
+pub use nose_il::DomainEvidence;
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
@@ -47,47 +51,126 @@ pub fn source_fact_contract(kind: SourceFactKind) -> SourceFactContract {
     }
 }
 
+enum EvidenceResolution<T> {
+    Missing,
+    Found(T),
+    Ambiguous,
+}
+
+fn unique_evidence_at<T: Copy + Eq>(
+    il: &Il,
+    anchor_matches: impl Fn(EvidenceAnchor) -> bool,
+    project: impl Fn(EvidenceKind) -> Option<T>,
+) -> EvidenceResolution<T> {
+    let mut found = None;
+    for record in &il.evidence {
+        if !anchor_matches(record.anchor) {
+            continue;
+        }
+        let Some(value) = project(record.kind) else {
+            continue;
+        };
+        if record.status != EvidenceStatus::Asserted {
+            return EvidenceResolution::Ambiguous;
+        }
+        match found {
+            None => found = Some(value),
+            Some(existing) if existing == value => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn evidence_at_span<T: Copy + Eq>(
+    il: &Il,
+    span: Span,
+    project: impl Fn(EvidenceKind) -> Option<T>,
+) -> EvidenceResolution<T> {
+    unique_evidence_at(il, |anchor| anchor.matches_span(span), project)
+}
+
 pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool {
-    let span = il.node(node).span;
-    il.source_facts
-        .iter()
-        .any(|fact| fact.span == span && fact.kind == kind)
+    match kind {
+        SourceFactKind::Operator(operator) => source_operator_at_node(il, node) == Some(operator),
+        SourceFactKind::Call(call) => source_call_at_node(il, node) == Some(call),
+        SourceFactKind::Literal(literal) => source_literal_at_node(il, node) == Some(literal),
+    }
 }
 
 pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {
     let span = il.node(node).span;
-    il.source_facts.iter().find_map(|fact| {
-        (fact.span == span)
-            .then_some(fact.kind)
-            .and_then(|kind| match kind {
-                SourceFactKind::Operator(operator) => Some(operator),
-                SourceFactKind::Call(_) | SourceFactKind::Literal(_) => None,
-            })
-    })
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Operator(operator)) => Some(operator),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(operator) => Some(operator),
+        EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => {
+            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
+                (fact.span == span)
+                    .then_some(fact.kind)
+                    .and_then(|kind| match kind {
+                        SourceFactKind::Operator(operator) => Some(operator),
+                        SourceFactKind::Call(_) | SourceFactKind::Literal(_) => None,
+                    })
+            }))
+        }
+    }
 }
 
 pub fn source_call_at_node(il: &Il, node: NodeId) -> Option<SourceCallKind> {
     let span = il.node(node).span;
-    il.source_facts.iter().find_map(|fact| {
-        (fact.span == span)
-            .then_some(fact.kind)
-            .and_then(|kind| match kind {
-                SourceFactKind::Call(call) => Some(call),
-                SourceFactKind::Operator(_) | SourceFactKind::Literal(_) => None,
-            })
-    })
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Call(call)) => Some(call),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(call) => Some(call),
+        EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => {
+            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
+                (fact.span == span)
+                    .then_some(fact.kind)
+                    .and_then(|kind| match kind {
+                        SourceFactKind::Call(call) => Some(call),
+                        SourceFactKind::Operator(_) | SourceFactKind::Literal(_) => None,
+                    })
+            }))
+        }
+    }
 }
 
 pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind> {
     let span = il.node(node).span;
-    il.source_facts.iter().find_map(|fact| {
-        (fact.span == span)
-            .then_some(fact.kind)
-            .and_then(|kind| match kind {
-                SourceFactKind::Literal(literal) => Some(literal),
-                SourceFactKind::Operator(_) | SourceFactKind::Call(_) => None,
-            })
-    })
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Literal(literal)) => Some(literal),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(literal) => Some(literal),
+        EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => {
+            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
+                (fact.span == span)
+                    .then_some(fact.kind)
+                    .and_then(|kind| match kind {
+                        SourceFactKind::Literal(literal) => Some(literal),
+                        SourceFactKind::Operator(_) | SourceFactKind::Call(_) => None,
+                    })
+            }))
+        }
+    }
+}
+
+fn unique_legacy_source_fact<T: Copy + Eq>(facts: impl Iterator<Item = T>) -> Option<T> {
+    let mut found = None;
+    for fact in facts {
+        match found {
+            None => found = Some(fact),
+            Some(existing) if existing == fact => {}
+            Some(_) => return None,
+        }
+    }
+    found
 }
 
 pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {
@@ -111,89 +194,36 @@ pub fn exact_static_membership_predicate_operator(
         )
 }
 
-/// Kernel-facing domain evidence recovered from source facts, type inference, or future packs.
-///
-/// `nose-il::ParamSemantic` is the current frontend storage format for source-level parameter
-/// annotations. Exact gates should consume this semantic-kernel vocabulary instead, so future
-/// packs can provide equivalent evidence without becoming coupled to frontend syntax facts.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum DomainEvidence {
-    Array,
-    ByteArray,
-    Collection,
-    Integer,
-    Map,
-    Number,
-    Option,
-    Set,
-    String,
-}
-
-impl DomainEvidence {
-    pub fn from_param_semantic(semantic: ParamSemantic) -> Self {
-        match semantic {
-            ParamSemantic::Array => DomainEvidence::Array,
-            ParamSemantic::ByteArray => DomainEvidence::ByteArray,
-            ParamSemantic::Collection => DomainEvidence::Collection,
-            ParamSemantic::Integer => DomainEvidence::Integer,
-            ParamSemantic::Map => DomainEvidence::Map,
-            ParamSemantic::Number => DomainEvidence::Number,
-            ParamSemantic::Option => DomainEvidence::Option,
-            ParamSemantic::Set => DomainEvidence::Set,
-            ParamSemantic::String => DomainEvidence::String,
-        }
-    }
-
-    pub fn is_array(self) -> bool {
-        self == DomainEvidence::Array
-    }
-
-    pub fn is_byte_array(self) -> bool {
-        self == DomainEvidence::ByteArray
-    }
-
-    pub fn is_collection_or_set(self) -> bool {
-        matches!(self, DomainEvidence::Collection | DomainEvidence::Set)
-    }
-
-    pub fn is_array_or_collection(self) -> bool {
-        matches!(self, DomainEvidence::Array | DomainEvidence::Collection)
-    }
-
-    pub fn is_array_collection_or_set(self) -> bool {
-        matches!(
-            self,
-            DomainEvidence::Array | DomainEvidence::Collection | DomainEvidence::Set
-        )
-    }
-
-    pub fn is_set(self) -> bool {
-        self == DomainEvidence::Set
-    }
-
-    pub fn is_map(self) -> bool {
-        self == DomainEvidence::Map
-    }
-
-    pub fn is_option(self) -> bool {
-        self == DomainEvidence::Option
-    }
-
-    pub fn is_string(self) -> bool {
-        self == DomainEvidence::String
-    }
-
-    pub fn is_integer(self) -> bool {
-        self == DomainEvidence::Integer
-    }
-
-    pub fn is_integer_or_number(self) -> bool {
-        matches!(self, DomainEvidence::Integer | DomainEvidence::Number)
-    }
-}
-
 pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvidence {
     DomainEvidence::from_param_semantic(semantic)
+}
+
+pub fn domain_evidence_at_span(il: &Il, span: Span) -> Option<DomainEvidence> {
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Domain(domain) => Some(domain),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(domain) => Some(domain),
+        EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => {
+            let mut found = None;
+            for fact in il.param_type_facts.iter().filter(|fact| fact.span == span) {
+                let domain = domain_evidence_from_param_semantic(fact.semantic);
+                match found {
+                    None => found = Some(domain),
+                    Some(existing) if existing == domain => {}
+                    Some(_) => return None,
+                }
+            }
+            found
+        }
+    }
+}
+
+pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidence> {
+    (il.kind(param) == NodeKind::Param)
+        .then_some(il.node(param).span)
+        .and_then(|span| domain_evidence_at_span(il, span))
 }
 
 pub const SEQ_VALUE_UNTAGGED: u64 = 0;
@@ -225,102 +255,137 @@ pub struct SeqSurfaceContract {
     pub imported_literal: bool,
 }
 
-pub fn seq_surface_contract(lang: Lang, tag: Option<&str>) -> Option<SeqSurfaceContract> {
-    let contract = match tag {
-        None => SeqSurfaceContract {
+pub fn sequence_surface_kind_for_tag(lang: Lang, tag: Option<&str>) -> Option<SequenceSurfaceKind> {
+    match tag {
+        None => Some(SequenceSurfaceKind::Untagged),
+        Some("array" | "array_expression" | "list") => Some(SequenceSurfaceKind::Collection),
+        Some("tuple" | "tuple_expression") => Some(SequenceSurfaceKind::Tuple),
+        Some("dictionary" | "object" | "hash") => Some(SequenceSurfaceKind::Map),
+        Some("pair") => Some(SequenceSurfaceKind::Pair),
+        Some(IMPORT_BINDING_TAG) => Some(SequenceSurfaceKind::ImportBinding),
+        Some(IMPORT_NAMESPACE_TAG) => Some(SequenceSurfaceKind::ImportNamespace),
+        Some("record_guard") => Some(SequenceSurfaceKind::RecordGuard),
+        Some("own_property_guard") => Some(SequenceSurfaceKind::OwnPropertyGuard),
+        Some("composite_literal") if lang == Lang::Go => {
+            Some(SequenceSurfaceKind::GoCompositeMapLiteral)
+        }
+        _ => None,
+    }
+}
+
+fn seq_surface_contract_for_tag(
+    lang: Lang,
+    tag: Option<&str>,
+) -> Option<(SequenceSurfaceKind, SeqSurfaceContract)> {
+    let kind = sequence_surface_kind_for_tag(lang, tag)?;
+    let contract = match kind {
+        SequenceSurfaceKind::Untagged => SeqSurfaceContract {
             value_tag: SEQ_VALUE_UNTAGGED,
             exact_tree_safe: false,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("array" | "array_expression") => SeqSurfaceContract {
+        SequenceSurfaceKind::Collection => SeqSurfaceContract {
             value_tag: SEQ_VALUE_COLLECTION,
             exact_tree_safe: true,
             membership_collection: true,
             map_entry_list: true,
-            imported_literal: true,
+            imported_literal: matches!(tag, Some("array" | "array_expression")),
         },
-        Some("list") => SeqSurfaceContract {
-            value_tag: SEQ_VALUE_COLLECTION,
-            exact_tree_safe: true,
-            membership_collection: true,
-            map_entry_list: true,
-            imported_literal: false,
-        },
-        Some("tuple") => SeqSurfaceContract {
+        SequenceSurfaceKind::Tuple => SeqSurfaceContract {
             value_tag: SEQ_VALUE_TUPLE,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
-            imported_literal: false,
+            imported_literal: matches!(tag, Some("tuple_expression")),
         },
-        Some("tuple_expression") => SeqSurfaceContract {
-            value_tag: SEQ_VALUE_TUPLE,
-            exact_tree_safe: true,
-            membership_collection: false,
-            map_entry_list: false,
-            imported_literal: true,
-        },
-        Some("dictionary" | "object") => SeqSurfaceContract {
+        SequenceSurfaceKind::Map => SeqSurfaceContract {
             value_tag: SEQ_VALUE_MAP,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
-            imported_literal: true,
+            imported_literal: matches!(tag, Some("dictionary" | "object")),
         },
-        Some("hash") => SeqSurfaceContract {
-            value_tag: SEQ_VALUE_MAP,
-            exact_tree_safe: true,
-            membership_collection: false,
-            map_entry_list: false,
-            imported_literal: false,
-        },
-        Some("pair") => SeqSurfaceContract {
+        SequenceSurfaceKind::Pair => SeqSurfaceContract {
             value_tag: SEQ_VALUE_PAIR,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some(IMPORT_BINDING_TAG) => SeqSurfaceContract {
+        SequenceSurfaceKind::ImportBinding => SeqSurfaceContract {
             value_tag: SEQ_VALUE_IMPORT_BINDING,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some(IMPORT_NAMESPACE_TAG) => SeqSurfaceContract {
+        SequenceSurfaceKind::ImportNamespace => SeqSurfaceContract {
             value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("record_guard") => SeqSurfaceContract {
+        SequenceSurfaceKind::RecordGuard => SeqSurfaceContract {
             value_tag: SEQ_VALUE_RECORD_GUARD,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("own_property_guard") => SeqSurfaceContract {
+        SequenceSurfaceKind::OwnPropertyGuard => SeqSurfaceContract {
             value_tag: SEQ_VALUE_OWN_PROPERTY_GUARD,
             exact_tree_safe: true,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
-        Some("composite_literal") if lang == Lang::Go => SeqSurfaceContract {
+        SequenceSurfaceKind::GoCompositeMapLiteral => SeqSurfaceContract {
             value_tag: stable_symbol_hash("go_composite_map_literal"),
             exact_tree_safe: false,
             membership_collection: false,
             map_entry_list: false,
             imported_literal: false,
         },
+    };
+    Some((kind, contract))
+}
+
+pub fn seq_surface_contract(lang: Lang, tag: Option<&str>) -> Option<SeqSurfaceContract> {
+    seq_surface_contract_for_tag(lang, tag).map(|(_, contract)| contract)
+}
+
+pub fn seq_surface_contract_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<SeqSurfaceContract> {
+    if il.kind(node) != NodeKind::Seq {
+        return None;
+    }
+    let raw_tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
         _ => return None,
     };
-    Some(contract)
+    let span = il.node(node).span;
+    match unique_evidence_at(
+        il,
+        |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
+        |evidence| match evidence {
+            EvidenceKind::SequenceSurface(kind) => Some(kind),
+            _ => None,
+        },
+    ) {
+        EvidenceResolution::Found(kind) => {
+            let (raw_kind, raw_contract) = seq_surface_contract_for_tag(il.meta.lang, raw_tag)?;
+            (kind == raw_kind).then_some(raw_contract)
+        }
+        EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => seq_surface_contract(il.meta.lang, raw_tag),
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -379,6 +444,33 @@ pub struct ImportFact {
 pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {
     if il.kind(rhs) != NodeKind::Seq {
         return None;
+    }
+    let span = il.node(rhs).span;
+    match unique_evidence_at(
+        il,
+        |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
+        |evidence| match evidence {
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash,
+                exported_hash,
+            }) => Some(ImportFact {
+                kind: ImportFactKind::Binding,
+                module_hash,
+                exported_hash: Some(exported_hash),
+            }),
+            EvidenceKind::Import(ImportEvidenceKind::Namespace { module_hash }) => {
+                Some(ImportFact {
+                    kind: ImportFactKind::Namespace,
+                    module_hash,
+                    exported_hash: None,
+                })
+            }
+            _ => None,
+        },
+    ) {
+        EvidenceResolution::Found(fact) => return Some(fact),
+        EvidenceResolution::Ambiguous => return None,
+        EvidenceResolution::Missing => {}
     }
     let Payload::Name(tag) = il.node(rhs).payload else {
         return None;
@@ -2527,7 +2619,11 @@ pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, ParamSemantic, SourceFact, Span, Unit, UnitKind};
+    use nose_il::{
+        EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind,
+        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, Unit, UnitKind,
+    };
 
     const ALL_LANGS: &[Lang] = &[
         Lang::Python,
@@ -2591,6 +2687,26 @@ mod tests {
         )
     }
 
+    fn evidence(
+        id: u32,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        status: EvidenceStatus,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("test")),
+            },
+            dependencies: Vec::new(),
+            status,
+        }
+    }
+
     #[test]
     fn first_party_profile_wraps_each_language() {
         for &lang in ALL_LANGS {
@@ -2623,6 +2739,55 @@ mod tests {
     }
 
     #[test]
+    fn domain_evidence_records_are_preferred_over_legacy_param_facts() {
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::None, sp(3), &[]);
+        let root = b.add(NodeKind::Func, Payload::None, sp(3), &[param]);
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.param_type_facts.push(ParamTypeFact {
+            span: sp(3),
+            semantic: ParamSemantic::Set,
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(sp(3)),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_param(&il, param),
+            Some(DomainEvidence::Map)
+        );
+    }
+
+    #[test]
+    fn ambiguous_domain_evidence_blocks_legacy_fallback() {
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::None, sp(4), &[]);
+        let root = b.add(NodeKind::Func, Payload::None, sp(4), &[param]);
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.param_type_facts.push(ParamTypeFact {
+            span: sp(4),
+            semantic: ParamSemantic::Set,
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(sp(4)),
+            EvidenceKind::Domain(DomainEvidence::Set),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::param(sp(4)),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(domain_evidence_for_param(&il, param), None);
+    }
+
+    #[test]
     fn sequence_surface_contracts_keep_value_and_exact_axes_separate() {
         let array = seq_surface_contract(Lang::JavaScript, Some("array")).unwrap();
         assert_eq!(array.value_tag, SEQ_VALUE_COLLECTION);
@@ -2652,6 +2817,32 @@ mod tests {
         assert!(seq_surface_contract(Lang::Python, Some("composite_literal")).is_none());
         assert!(imported_literal_seq_tag_safe(Lang::Python, "dictionary"));
         assert!(!imported_literal_seq_tag_safe(Lang::Ruby, "hash"));
+    }
+
+    #[test]
+    fn sequence_surface_evidence_must_match_the_lowered_surface() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let array = interner.intern("array");
+        let seq = b.add(NodeKind::Seq, Payload::Name(array), sp(5), &[]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(5), &[seq]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(5)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(seq_surface_contract_for_node(&il, &interner, seq)
+            .is_some_and(|contract| contract.membership_collection));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::sequence(sp(5)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(seq_surface_contract_for_node(&il, &interner, seq), None);
     }
 
     #[test]
@@ -2728,6 +2919,63 @@ mod tests {
             binding,
             "collections"
         ));
+    }
+
+    #[test]
+    fn import_evidence_records_are_fail_closed_before_raw_seq_fallback() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("collections")),
+            sp(10),
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("deque")),
+            sp(10),
+            &[],
+        );
+        let binding = b.add(
+            NodeKind::Seq,
+            Payload::Name(binding_tag),
+            sp(10),
+            &[module, exported],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp(10), &[binding]);
+        let mut il = finish_il(b, root, Lang::Python);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(10)),
+            EvidenceKind::Import(ImportEvidenceKind::Namespace {
+                module_hash: stable_symbol_hash("math"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert!(!import_binding_rhs_matches(
+            &il,
+            &interner,
+            binding,
+            "collections",
+            "deque"
+        ));
+        assert!(import_namespace_rhs_matches(
+            &il, &interner, binding, "math"
+        ));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::sequence(sp(10)),
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash("collections"),
+                exported_hash: stable_symbol_hash("deque"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(import_fact_rhs(&il, &interner, binding), None);
     }
 
     #[test]
@@ -3873,6 +4121,36 @@ mod tests {
             source_fact_contract(SourceFactKind::Call(SourceCallKind::Construct)).channel,
             ChannelEligibility::ExactProven
         );
+    }
+
+    #[test]
+    fn source_fact_evidence_conflicts_fail_closed() {
+        let mut b = IlBuilder::new(FileId(0));
+        let op = b.add(NodeKind::BinOp, Payload::Op(Op::Eq), sp(9), &[]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(9), &[op]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+        il.source_facts.push(SourceFact {
+            span: sp(9),
+            kind: SourceFactKind::Operator(SourceOperatorKind::StrictEquality),
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::source_span(sp(9)),
+            EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::StrictEquality)),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            source_operator_at_node(&il, op),
+            Some(SourceOperatorKind::StrictEquality)
+        );
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::source_span(sp(9)),
+            EvidenceKind::Source(SourceFactKind::Operator(SourceOperatorKind::LooseEquality)),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(source_operator_at_node(&il, op), None);
     }
 
     #[test]

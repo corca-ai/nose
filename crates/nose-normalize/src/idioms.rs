@@ -9,10 +9,10 @@
 
 use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    domain_evidence_from_param_semantic, free_function_builtin_contract,
-    import_binding_rhs_matches, import_namespace_rhs_matches, iterator_identity_adapter_contract,
-    map_get_contract, map_key_view_contract, method_call_contract, method_hof_contract,
-    rust_option_some_constructor_contract, seq_surface_contract,
+    domain_evidence_for_param, free_function_builtin_contract, import_binding_rhs_matches,
+    import_namespace_rhs_matches, iterator_identity_adapter_contract, map_get_contract,
+    map_key_view_contract, method_call_contract, method_hof_contract,
+    rust_option_some_constructor_contract, seq_surface_contract_for_node,
     static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
     MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
@@ -544,10 +544,11 @@ fn domain_evidence_for_var(old: &Il, node: NodeId) -> Option<DomainEvidence> {
         _ => None,
     };
     param_span.and_then(|span| {
-        old.param_type_facts
-            .iter()
-            .find(|fact| fact.span == span)
-            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
+        old.nodes.iter().enumerate().find_map(|(idx, candidate)| {
+            (candidate.kind == NodeKind::Param && candidate.span == span)
+                .then(|| domain_evidence_for_param(old, NodeId(idx as u32)))
+                .flatten()
+        })
     })
 }
 
@@ -630,12 +631,8 @@ fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool
     if old.kind(node) != NodeKind::Seq {
         return false;
     }
-    let tag = match old.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return false,
-    };
-    seq_surface_contract(old.meta.lang, tag).is_some_and(|contract| contract.membership_collection)
+    seq_surface_contract_for_node(old, interner, node)
+        .is_some_and(|contract| contract.membership_collection)
 }
 
 fn exact_option_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {

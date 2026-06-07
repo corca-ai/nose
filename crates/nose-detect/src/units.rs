@@ -13,8 +13,9 @@ use nose_normalize::{
     node_tag,
 };
 use nose_semantics::{
-    builder_append_call_args, construct_syntax_proof, domain_evidence_from_param_semantic,
-    exact_java_return_this, exact_java_this_field, exact_non_overloadable_index_assignment,
+    builder_append_call_args, construct_syntax_proof,
+    domain_evidence_for_param as semantic_domain_evidence_for_param, exact_java_return_this,
+    exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_lookup_contract, import_binding_rhs_matches,
     import_namespace_rhs_matches, iterator_identity_adapter_contract,
@@ -22,10 +23,10 @@ use nose_semantics::{
     js_array_is_array_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
     map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
     nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
-    rust_vec_new_factory_contract, semantics, seq_surface_contract, source_fact_at_node,
+    rust_vec_new_factory_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
     source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
-    IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1171,12 +1172,7 @@ fn strict_exact_static_non_float_collection(il: &Il, interner: &Interner, node: 
     if il.kind(node) != NodeKind::Seq {
         return false;
     }
-    let tag = match il.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return false,
-    };
-    if !seq_surface_contract(il.meta.lang, tag)
+    if !seq_surface_contract_for_node(il, interner, node)
         .is_some_and(|contract| contract.membership_collection)
     {
         return false;
@@ -1214,12 +1210,8 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    let tag = match il.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return false,
-    };
-    seq_surface_contract(il.meta.lang, tag).is_some_and(|contract| contract.exact_tree_safe)
+    seq_surface_contract_for_node(il, interner, node)
+        .is_some_and(|contract| contract.exact_tree_safe)
 }
 
 fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
@@ -1645,37 +1637,28 @@ fn strict_exact_iterator_identity_adapter_node_safe(
 }
 
 fn strict_exact_typed_set_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
-        return false;
-    };
-    il.nodes.iter().any(|node| {
-        node.kind == NodeKind::Param
-            && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && il.param_type_facts.iter().any(|fact| {
-                fact.span == node.span
-                    && domain_evidence_from_param_semantic(fact.semantic).is_set()
-            })
-    })
+    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_set)
 }
 
 fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
+    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_array_collection_or_set)
+}
+
+fn strict_exact_typed_param_receiver_safe(
+    il: &Il,
+    receiver: NodeId,
+    accepts: impl Fn(DomainEvidence) -> bool,
+) -> bool {
     if il.kind(receiver) != NodeKind::Var {
         return false;
     }
     let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
         return false;
     };
-    il.nodes.iter().any(|node| {
+    il.nodes.iter().enumerate().any(|(idx, node)| {
         node.kind == NodeKind::Param
             && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && il.param_type_facts.iter().any(|fact| {
-                fact.span == node.span
-                    && domain_evidence_from_param_semantic(fact.semantic)
-                        .is_array_collection_or_set()
-            })
+            && semantic_domain_evidence_for_param(il, NodeId(idx as u32)).is_some_and(&accepts)
     })
 }
 
@@ -1697,20 +1680,7 @@ fn strict_exact_proven_collection_receiver_safe(
 }
 
 fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
-        return false;
-    };
-    il.nodes.iter().any(|node| {
-        node.kind == NodeKind::Param
-            && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && il.param_type_facts.iter().any(|fact| {
-                fact.span == node.span
-                    && domain_evidence_from_param_semantic(fact.semantic).is_map()
-            })
-    })
+    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_map)
 }
 
 fn strict_exact_proven_map_receiver_safe(il: &Il, facts: &StrictFacts, receiver: NodeId) -> bool {
@@ -1836,12 +1806,7 @@ fn strict_exact_membership_collection_safe(
         }
         return false;
     }
-    let tag = match il.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return false,
-    };
-    let tag_safe = seq_surface_contract(il.meta.lang, tag)
+    let tag_safe = seq_surface_contract_for_node(il, interner, node)
         .is_some_and(|contract| contract.membership_collection);
     tag_safe
         && il
@@ -2400,10 +2365,7 @@ fn strict_exact_map_entries_safe(
     if il.kind(node) != NodeKind::Seq {
         return false;
     }
-    let Payload::Name(name) = il.node(node).payload else {
-        return false;
-    };
-    if !seq_surface_contract(il.meta.lang, Some(interner.resolve(name)))
+    if !seq_surface_contract_for_node(il, interner, node)
         .is_some_and(|contract| contract.map_entry_list)
     {
         return false;

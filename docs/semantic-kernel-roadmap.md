@@ -222,6 +222,12 @@ and pack ecosystem.
   `new Map(...)`/`new Set(...)`, regex literal `.test(...)`, and strict JS-like
   static membership callbacks while closing plain constructor calls, string
   `.test(...)`, loose equality, and `instanceof` for those exact contracts.
+- The first shared `EvidenceRecord` substrate landed for source, domain, import,
+  and sequence-surface facts. First-party frontends now mirror compatibility
+  `SourceFact`, `ParamTypeFact`, raw import `Seq`, and lowered `Seq` surface
+  facts into records with ids, anchors, provenance, dependencies, and status.
+  `nose-semantics` lookups fail closed on ambiguous/conflicting evidence before
+  falling back to compatibility storage.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -267,23 +273,25 @@ Remaining in this phase:
   A later source-fact slice preserves selected JS/TS and Python equality-like
   source operators, but broader operator dispatch, overload semantics, and
   pack-facing consumers remain open.
-- Replace the current internal span-keyed `SourceFact` storage with pack-facing
-  source-fact records that carry stable fact ids, emitter/pack provenance, scope,
-  dependencies, ambiguity status, and contract provenance.
+- Continue migrating compatibility source/domain/import/sequence storage onto
+  `EvidenceRecord` consumers, then remove the old mirrors once no exact gate
+  depends on them.
+- Add scope, dependency, and ambiguity validation for evidence records before
+  they become a stable external extension surface.
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records.
 - Continue replacing any remaining local exact-fragment proof helpers with
   versioned pack-facing evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
-- Replace the remaining raw import/module proof IL payload storage with
-  pack-facing `ImportFact` records. The current compiled facade already provides
-  shared typed parsing for frontend, normalize, detect, and imported-literal
-  consumers.
-- Replace the compiled `SeqSurfaceContract` facade with pack-facing
-  sequence/aggregate surface records and named kernel constructors.
-- Replace the current `DomainEvidence` facade with versioned, pack-facing
-  receiver/domain evidence records while preserving the current precision gates.
+- Remove the remaining raw import/module proof IL payload storage after import
+  evidence records can carry every consumer obligation, including module export
+  dependencies and mutation proof.
+- Expand the first `SequenceSurface` evidence into sequence/aggregate records for
+  factories, nested entries, iterator views, and exported-literal eligibility.
+- Expand domain evidence from parameter annotations into receiver/protocol
+  evidence records for exact collection/map/set/option/string/integer proofs,
+  immutable local/module bindings, and mutation exclusion.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add receiver/place facts so field read/write and property contracts are not

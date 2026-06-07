@@ -3,7 +3,9 @@
 Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
 recorded in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and
 remaining work are tracked in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md). The shared internal record
+shape for all semantic evidence is described in
+[evidence-records](evidence-records.md).
 
 Source facts are the bridge between source syntax and semantic contracts. They
 preserve source-origin distinctions that the shared IL intentionally abstracts
@@ -33,8 +35,8 @@ preconditions.
 - Do not use broad heuristics such as "a function named `map` means Map
   semantics" or "a method named `test` means regex semantics".
 - Do not expose raw CST nodes as the pack interface.
-- Do not promise that the current span-keyed storage is the final scan JSON
-  contract.
+- Do not promise that the current internal evidence records are the final scan
+  JSON or external pack manifest contract.
 - Do not make nose responsible for certifying external pack correctness. nose
   validates the extension shape and fails closed; external providers own their
   claims, and users own the decision to enable them.
@@ -43,16 +45,16 @@ preconditions.
 
 | term | meaning |
 |---|---|
-| `SourceFact` | Current internal IL record keyed by source span and fact kind. |
-| Evidence record | Future pack-facing form of a source or semantic fact, with stable ids, scope, dependencies, and provenance. |
+| `SourceFact` | Compatibility mirror keyed by source span and fact kind. |
+| Evidence record | Current internal form of a source or semantic fact, with stable ids, anchors, dependencies, status, and provenance. The external pack manifest is not defined yet. |
 | Contract | Kernel rule that maps a proven source/API surface to a semantic operation or law under explicit preconditions. |
 | Pack provenance | The pack id, provider, trust policy, version range, contract id, and evidence status behind an admitted fact or contract. |
 
 ## Evidence flow
 
 1. A frontend or language pack parses source, lowers to IL, and emits
-   kernel-defined source facts for source distinctions that would otherwise be
-   lost.
+   kernel-defined evidence records for source distinctions that would otherwise
+   be lost.
 2. The semantic kernel validates the fact shape and the surrounding obligations:
    language, arity, receiver, symbol/import proof, shadowing, scope, version,
    mutation, demand, and effects.
@@ -81,8 +83,9 @@ The pack-facing vocabulary should cover at least these classes.
 
 ## Current internal slice
 
-The current implementation has the first internal `SourceFact` storage in
-`nose-il` and source-fact helpers in `nose-semantics`.
+The current implementation has `Il::evidence` records in `nose-il` and
+source-fact helpers in `nose-semantics`. `SourceFact` still exists as a
+compatibility mirror while consumers migrate to evidence records.
 
 - JS/TS lowering emits source facts for construct syntax, regex literals, strict
   equality, strict inequality, loose equality, loose inequality, and

@@ -3,10 +3,12 @@
 //! mechanics live in one place.
 
 use nose_il::{
-    FileId, FileMeta, Il, IlBuilder, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
+    stable_symbol_hash, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+    EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, Il, IlBuilder,
+    ImportEvidenceKind, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
     ParamTypeFact, Payload, SourceFact, SourceFactKind, Span, Symbol, Unit, UnitKind,
 };
-use nose_semantics::{import_fact_tag, ImportFactKind};
+use nose_semantics::{import_fact_tag, sequence_surface_kind_for_tag, ImportFactKind};
 use tree_sitter::Node as TsNode;
 
 /// Mutable state threaded through a single file's lowering.
@@ -17,6 +19,7 @@ pub(crate) struct Lowering<'a> {
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
     pub param_type_facts: Vec<ParamTypeFact>,
+    pub evidence: Vec<EvidenceRecord>,
     pub source_facts: Vec<SourceFact>,
     pub param_semantic_aliases: Vec<(String, ParamSemantic)>,
     pub unsigned_32_aliases: Vec<String>,
@@ -31,6 +34,7 @@ impl<'a> Lowering<'a> {
             interner,
             units: Vec::new(),
             param_type_facts: Vec::new(),
+            evidence: Vec::new(),
             source_facts: Vec::new(),
             param_semantic_aliases: Vec::new(),
             unsigned_32_aliases: Vec::new(),
@@ -64,15 +68,61 @@ impl<'a> Lowering<'a> {
         span: Span,
         children: &[NodeId],
     ) -> NodeId {
-        self.b.add(kind, payload, span, children)
+        let id = self.b.add(kind, payload, span, children);
+        if kind == NodeKind::Seq {
+            let tag = match payload {
+                Payload::None => None,
+                Payload::Name(symbol) => Some(self.interner.resolve(symbol)),
+                _ => return id,
+            };
+            if let Some(surface) = sequence_surface_kind_for_tag(self.lang, tag) {
+                self.record_evidence(
+                    EvidenceAnchor::sequence(span),
+                    EvidenceKind::SequenceSurface(surface),
+                    "sequence_surface",
+                );
+            }
+        }
+        id
     }
 
     pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
         self.param_type_facts.push(ParamTypeFact { span, semantic });
+        self.record_evidence(
+            EvidenceAnchor::param(span),
+            EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
+            "param_semantic",
+        );
     }
 
     pub(crate) fn record_source_fact(&mut self, span: Span, kind: SourceFactKind) {
         self.source_facts.push(SourceFact { span, kind });
+        self.record_evidence(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Source(kind),
+            "source_fact",
+        );
+    }
+
+    pub(crate) fn record_evidence(
+        &mut self,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        rule: &str,
+    ) {
+        let id = EvidenceId(self.evidence.len() as u32);
+        self.evidence.push(EvidenceRecord {
+            id,
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash(rule)),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        });
     }
 
     pub(crate) fn record_param_semantic_alias(&mut self, local: &str, semantic: ParamSemantic) {
@@ -175,7 +225,7 @@ impl<'a> Lowering<'a> {
     /// behavior-DISTINCT in the value graph (`3.14` ≠ `2.71`). The structural tag stays the
     /// abstract `Float` class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn float_lit(&mut self, text: &str, span: Span) -> NodeId {
-        let h = nose_il::stable_symbol_hash(text.trim().trim_end_matches(['f', 'F', 'd', 'D']));
+        let h = stable_symbol_hash(text.trim().trim_end_matches(['f', 'F', 'd', 'D']));
         self.b.add(NodeKind::Lit, Payload::LitFloat(h), span, &[])
     }
 
@@ -185,7 +235,7 @@ impl<'a> Lowering<'a> {
     /// class (see `node_tag`), so shape similarity is unaffected.
     pub(crate) fn str_lit(&mut self, text: &str, span: Span) -> NodeId {
         let content = text.trim_matches(|c| c == '"' || c == '\'' || c == '`');
-        let h = nose_il::stable_symbol_hash(content);
+        let h = stable_symbol_hash(content);
         self.b.add(NodeKind::Lit, Payload::LitStr(h), span, &[])
     }
 
@@ -281,6 +331,28 @@ fn import_fact(
     let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
     let tag = lo.sym(import_fact_tag(kind));
     let rhs = lo.add(NodeKind::Seq, Payload::Name(tag), span, &strs);
+    let evidence_kind = match kind {
+        ImportFactKind::Binding if coords.len() == 2 => {
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash(coords[0]),
+                exported_hash: stable_symbol_hash(coords[1]),
+            })
+        }
+        ImportFactKind::Namespace if coords.len() == 1 => {
+            EvidenceKind::Import(ImportEvidenceKind::Namespace {
+                module_hash: stable_symbol_hash(coords[0]),
+            })
+        }
+        _ => {
+            return lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        }
+    };
+    lo.record_evidence(EvidenceAnchor::sequence(span), evidence_kind, "import_fact");
+    lo.record_evidence(
+        EvidenceAnchor::binding(span, stable_symbol_hash(local)),
+        evidence_kind,
+        "import_binding_subject",
+    );
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
@@ -358,9 +430,11 @@ pub(crate) fn lower_file_with_setup(
     };
     let units = std::mem::take(&mut lo.units);
     let param_type_facts = std::mem::take(&mut lo.param_type_facts);
+    let evidence = std::mem::take(&mut lo.evidence);
     let source_facts = std::mem::take(&mut lo.source_facts);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
     il.param_type_facts = param_type_facts;
+    il.evidence = evidence;
     il.source_facts = source_facts;
     drop_suppressed_units(&mut il, src);
     Ok(il)

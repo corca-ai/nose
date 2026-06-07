@@ -3,7 +3,9 @@
 Back to [home](home.md). Current implementation status is in
 [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
 work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source
-origin evidence is detailed in [source-facts](source-facts.md).
+origin evidence is detailed in [source-facts](source-facts.md); the shared
+internal evidence substrate is described in
+[evidence-records](evidence-records.md).
 
 ## Context
 
@@ -23,10 +25,12 @@ The semantic kernel is the boundary that all exact semantic reasoning must cross
 The first internal facade now lives in `nose-semantics`; it is still a compiled
 first-party implementation, not a loadable external pack runtime.
 
-Source facts are one kernel input at that boundary. They preserve source
-distinctions that the IL deliberately abstracts away, but they do not approve
-semantic equivalence by themselves. See [source-facts](source-facts.md) for the
-fact vocabulary, pack boundary, and current implementation slice.
+Evidence records are one kernel input at that boundary. They preserve facts that
+the IL deliberately abstracts away, but they do not approve semantic equivalence
+by themselves. Source facts are one evidence class; domain, import, and sequence
+surface facts now use the same internal substrate. See
+[evidence-records](evidence-records.md) for the record shape and
+[source-facts](source-facts.md) for the source-origin vocabulary.
 
 ## Goal
 

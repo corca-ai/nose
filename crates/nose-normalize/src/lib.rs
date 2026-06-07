@@ -154,6 +154,7 @@ pub(crate) fn finalize_rebuild(
     };
     let mut out = builder.finish(new_root, meta, units, cid_names);
     out.param_type_facts = old.param_type_facts.clone();
+    out.evidence = old.evidence.clone();
     out.source_facts = old.source_facts.clone();
     out
 }

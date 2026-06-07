@@ -14,7 +14,7 @@
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
-use nose_semantics::{domain_evidence_from_param_semantic, seq_surface_contract, DomainEvidence};
+use nose_semantics::{domain_evidence_for_param, seq_surface_contract_for_node, DomainEvidence};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -276,12 +276,8 @@ fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId
     if il.kind(node) != NodeKind::Seq {
         return false;
     }
-    let tag = match il.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return false,
-    };
-    seq_surface_contract(il.meta.lang, tag).is_some_and(|contract| contract.membership_collection)
+    seq_surface_contract_for_node(il, interner, node)
+        .is_some_and(|contract| contract.membership_collection)
 }
 
 fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
@@ -291,14 +287,11 @@ fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
     let Payload::Cid(cid) = il.node(node).payload else {
         return None;
     };
-    let span = il.nodes.iter().find_map(|candidate| {
+    il.nodes.iter().enumerate().find_map(|(idx, candidate)| {
         (candidate.kind == NodeKind::Param && candidate.payload == Payload::Cid(cid))
-            .then_some(candidate.span)
-    })?;
-    il.param_type_facts
-        .iter()
-        .find(|fact| fact.span == span)
-        .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
+            .then(|| domain_evidence_for_param(il, NodeId(idx as u32)))
+            .flatten()
+    })
 }
 
 fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) -> bool {

@@ -50,9 +50,10 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
-    domain_evidence_from_param_semantic, exact_static_membership_predicate_operator,
-    free_function_builtin_contract, go_zero_map_default_kind, go_zero_map_lookup_contract,
-    import_fact_contract, import_namespace_rhs_matches, imported_namespace_function_contract,
+    domain_evidence_for_param as semantic_domain_evidence_for_param,
+    exact_static_membership_predicate_operator, free_function_builtin_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_contract,
+    import_namespace_rhs_matches, imported_namespace_function_contract,
     iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
     java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract_by_hash,
@@ -60,14 +61,15 @@ use nose_semantics::{
     nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
     rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract, source_operator_at_node,
-    static_index_membership_contract, BuiltinArgContract, CardinalityPredicate,
-    CardinalityThreshold, ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
-    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
-    SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
+    source_operator_at_node, static_index_membership_contract, BuiltinArgContract,
+    CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
+    ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind, SEQ_VALUE_COLLECTION,
+    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE,
+    SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -729,12 +731,7 @@ impl<'a> Builder<'a> {
     }
 
     fn domain_evidence_for_param(&self, param: NodeId) -> Option<DomainEvidence> {
-        let span = self.il.node(param).span;
-        self.il
-            .param_type_facts
-            .iter()
-            .find(|fact| fact.span == span)
-            .map(|fact| domain_evidence_from_param_semantic(fact.semantic))
+        semantic_domain_evidence_for_param(self.il, param)
     }
 
     fn seed_param_domains(&mut self, root: NodeId) {
@@ -7940,13 +7937,7 @@ impl<'a> Builder<'a> {
     }
 
     fn seq_surface(&self, node: NodeId) -> Option<SeqSurfaceContract> {
-        match self.il.node(node).payload {
-            Payload::None => seq_surface_contract(self.il.meta.lang, None),
-            Payload::Name(s) => {
-                seq_surface_contract(self.il.meta.lang, Some(self.interner.resolve(s)))
-            }
-            _ => None,
-        }
+        seq_surface_contract_for_node(self.il, self.interner, node)
     }
 }
 

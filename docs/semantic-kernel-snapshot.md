@@ -2,13 +2,15 @@
 
 Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
+record substrate is described in [evidence-records](evidence-records.md).
 
 Snapshot date: 2026-06-07, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
 sequence-surface contracts, proof-backed append fragment evidence, and the first
 operator-law contracts, typed import facts, and source-fact gates for construct,
-literal, and equality/operator provenance.
+literal, equality/operator provenance, and the first shared evidence-record
+substrate for source, domain, import, and sequence-surface facts.
 
 ## What exists today
 
@@ -16,8 +18,8 @@ nose now has a first internal semantic-kernel facade, but most of the engine is
 still being migrated toward it.
 
 - `nose-il` defines a compact shared IL, `Lang`, `Builtin`, `HoFKind`, operators,
-  literals, source spans, units, parameter semantic facts, and source-origin
-  facts.
+  literals, source spans, units, compatibility parameter/source facts, and
+  pack-facing internal `EvidenceRecord` facts.
 - `nose-semantics` defines the first-party semantic profile facade: language,
   source-fact, operator, effect, fragment, module, stdlib, builtin, method-call,
   property, async, iterator-adapter, builder-append, and factory contracts.
@@ -46,6 +48,12 @@ migrated.
 - The first-party profile exposes pack id and trust policy separately from
   channel eligibility. `ChannelEligibility` describes where a fact may be used;
   first-party/default status is pack provenance, not an analysis channel.
+- `Il::evidence` is now the shared internal substrate for source, domain, import,
+  and sequence-surface proof facts. Records carry ids, stable source anchors,
+  kind, provenance, dependencies, and asserted/ambiguous status. Lookups in
+  `nose-semantics` fail closed on ambiguous or conflicting evidence and use older
+  side tables only as compatibility fallback when no relevant evidence record is
+  present.
 - `OperatorSemantics` now owns the first shared operator contracts:
   comparison-direction transforms, comparison negation, equality operand
   commutativity, comparison-lattice laws, abs/min/max/selection guard laws,
@@ -56,23 +64,22 @@ migrated.
   The old `primitive_order_comparisons()` helper remains as a compatibility
   wrapper around the stricter lattice law contract.
 - Source facts are now first-class internal evidence for source distinctions that
-  the shared IL erases. The current `SourceFact` storage is span-keyed and covers
-  operator, call-shape, and literal-surface facts. JS/TS frontends emit construct
-  syntax, regex literal, strict/loose equality, strict/loose inequality, and
-  `instanceof` facts. Python emits value equality/inequality and identity
-  equality/inequality facts. `nose-semantics` exposes source-fact contract and
-  lookup helpers; normalize and detect consume them only where a semantic
-  contract requires that exact source surface.
+  the shared IL erases. JS/TS frontends emit construct syntax, regex literal,
+  strict/loose equality, strict/loose inequality, and `instanceof` facts. Python
+  emits value equality/inequality and identity equality/inequality facts. These
+  are mirrored into `EvidenceRecord::Source`; the older `SourceFact` vector
+  remains a compatibility fallback. Normalize and detect consume source facts
+  only where a semantic contract requires that exact source surface.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
-- Source-level `ParamSemantic` facts are translated into `nose-semantics`
-  `DomainEvidence` before normalize/detect receiver-domain gates consume them.
-  This preserves the current Array/Collection/Set/Map/Option/String/Integer/
-  Number/ByteArray distinctions while moving the proof vocabulary into the
-  kernel facade.
+- Source-level `ParamSemantic` facts are mirrored into
+  `EvidenceRecord::Domain`, and normalize/detect receiver-domain gates consume
+  domain evidence through `nose-semantics` helpers. This preserves the current
+  Array/Collection/Set/Map/Option/String/Integer/Number/ByteArray distinctions
+  while moving the proof storage toward the pack-facing evidence substrate.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
@@ -238,17 +245,16 @@ Semantic knowledge still appears in several forms outside the facade:
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
 - source operator provenance now exists for selected JS/TS and Python
-  equality-shaped surfaces, but the storage is still internal and span-keyed, and
-  consumption is limited to narrow contracts such as JS-like static membership
-  callbacks. General equality dispatch, report provenance, and pack-facing
-  source-fact records remain open;
+  equality-shaped surfaces, but consumption is limited to narrow contracts such
+  as JS-like static membership callbacks. General equality dispatch, report
+  provenance, and external pack manifests remain open;
 - language-specific import or module proof mechanics that are still local to
   frontend, normalize, or detect callers;
 - IL still stores import facts as `Seq("import_binding")` /
-  `Seq("import_namespace")` payloads for compatibility, but the semantic
-  interpretation now flows through typed `ImportFact` helpers in
-  `nose-semantics`. A future pack-facing representation should replace the raw IL
-  storage shape as well;
+  `Seq("import_namespace")` payloads for compatibility. Frontends also emit
+  `EvidenceRecord::Import`, and semantic interpretation flows through typed
+  `ImportFact` helpers in `nose-semantics`, but the raw IL storage shape has not
+  been removed;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -325,22 +331,20 @@ The first high-value targets for semantic-kernel extraction are:
 
 - pack-facing field/place evidence for all field reads and writes, building on
   the receiver-aware value-graph field state now used for same-unit caching;
-- pack-facing import/module fact records to replace the remaining raw
-  `Seq("import_binding")` and `Seq("import_namespace")` IL storage shape; current
-  consumers already parse these through the typed internal `ImportFact` facade;
-- pack-facing sequence/aggregate surface records to replace the current compiled
-  `SeqSurfaceContract` facade and private value-graph `Seq` tag registry;
-- pack-facing source-fact records to replace the current internal span-keyed
-  `SourceFact` storage for construct, literal, and operator provenance;
-- source-fact dependency, scope, and ambiguity validation before facts become a
+- full import/module fact migration to remove the remaining raw
+  `Seq("import_binding")` and `Seq("import_namespace")` compatibility payloads;
+- richer sequence/aggregate evidence for factories, nested entries, iterator
+  views, and exported-literal eligibility beyond the current first
+  `SequenceSurface` substrate;
+- dependency, scope, and ambiguity validation before evidence records become a
   stable external extension surface;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
   path/name plus shadow-proof contracts;
 - nested collection element proofs for iterator chains and builder convergence;
 - Promise/future/thenable receiver facts;
-- versioned receiver/domain evidence records to replace the current
-  `DomainEvidence` facade as the pack-facing proof vocabulary for collection,
-  map, option, string, integer, and byte-array domains;
+- receiver/protocol evidence records beyond parameter-domain facts, including
+  exact collection/map/set/option/string/integer receiver proofs, immutable
+  local/module bindings, and mutation exclusion;
 - demand/protocol contracts that distinguish eager arrays, lazy iterators,
   streams, callbacks, futures/promises, and call-by-need thunks;
 - demand/error contracts for language-core oracle behavior such as non-iterable
