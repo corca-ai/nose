@@ -105,6 +105,9 @@ and pack ecosystem.
   `Array.from(...)` wrapper before exact membership can consume it.
 - Go composite map literal/default-zero lookup recognition moved behind a shared
   contract for literal/entry tags and supported zero-default payload classes.
+- Map `get(key)` lookup surfaces for Java, Rust, and JS-like typed/proven maps
+  moved behind an explicit map-get contract. Defaulting surfaces continue through
+  the existing `GetOrDefault` method contract.
 
 ## Phase 0: documentation and vocabulary
 

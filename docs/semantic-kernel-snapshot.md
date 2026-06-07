@@ -88,6 +88,10 @@ migrated.
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
   contract before it can feed exact membership.
+- Map lookup surfaces that return a value/option are now explicit contracts for
+  proven Java/Rust/JS-like map receivers. Python `dict.get(key, default)`,
+  Ruby `fetch(key, default)`, and Java `getOrDefault` still use the
+  `GetOrDefault` method contract.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

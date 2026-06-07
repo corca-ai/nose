@@ -1326,6 +1326,37 @@ pub fn go_zero_map_default_kind(lang: Lang, payload: Payload) -> Option<GoZeroMa
     })
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MapGetContract {
+    pub method: &'static str,
+}
+
+pub fn map_get_contract(lang: Lang, method: &str, arg_count: usize) -> Option<MapGetContract> {
+    matches!(
+        lang,
+        Lang::Java
+            | Lang::Rust
+            | Lang::JavaScript
+            | Lang::TypeScript
+            | Lang::Vue
+            | Lang::Svelte
+            | Lang::Html
+    )
+    .then_some(())
+    .filter(|_| method == "get" && arg_count == 1)
+    .map(|_| MapGetContract { method: "get" })
+}
+
+pub fn map_get_contract_by_hash(
+    lang: Lang,
+    method_hash: u64,
+    arg_count: usize,
+) -> Option<MapGetContract> {
+    (method_hash == stable_symbol_hash("get"))
+        .then(|| map_get_contract(lang, "get", arg_count))
+        .flatten()
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2295,6 +2326,25 @@ mod tests {
             None
         );
         assert_eq!(go_zero_map_default_kind(Lang::Go, Payload::None), None);
+    }
+
+    #[test]
+    fn map_get_contracts_are_language_and_arity_constrained() {
+        assert_eq!(
+            map_get_contract(Lang::Rust, "get", 1),
+            Some(MapGetContract { method: "get" })
+        );
+        assert_eq!(
+            map_get_contract_by_hash(Lang::Java, stable_symbol_hash("get"), 1),
+            Some(MapGetContract { method: "get" })
+        );
+        assert_eq!(
+            map_get_contract(Lang::TypeScript, "get", 1),
+            Some(MapGetContract { method: "get" })
+        );
+        assert_eq!(map_get_contract(Lang::Python, "get", 1), None);
+        assert_eq!(map_get_contract(Lang::Rust, "get", 2), None);
+        assert_eq!(map_get_contract(Lang::Java, "getOrDefault", 1), None);
     }
 
     #[test]

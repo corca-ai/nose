@@ -52,7 +52,7 @@ use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
     go_zero_map_default_kind, go_zero_map_lookup_contract, iterator_identity_adapter_contract,
     java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
-    java_map_factory_contract_by_hash, map_key_view_contract_by_hash,
+    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
     map_key_view_wrapper_contract_by_hash, method_call_contract, reduction_builtin_contract,
     ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
@@ -1429,9 +1429,11 @@ impl<'a> Builder<'a> {
         }
         let args = node.args.clone();
         let callee = &self.nodes[node.args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("get"))
-            || callee.args.len() != 1
-        {
+        let ValOp::Field(method) = callee.op else {
+            return None;
+        };
+        map_get_contract_by_hash(self.il.meta.lang, method, args.len().saturating_sub(1))?;
+        if callee.args.len() != 1 {
             return None;
         }
         let map = callee.args[0];
@@ -1637,7 +1639,15 @@ impl<'a> Builder<'a> {
         let Payload::Name(name) = self.il.node(callee).payload else {
             return None;
         };
-        if !matches!(self.interner.resolve(name), "get" | "getOrDefault") {
+        let contract = method_call_contract(
+            self.il.meta.lang,
+            self.interner.resolve(name),
+            kids.len().saturating_sub(1),
+        )?;
+        if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+            || contract.receiver != MethodReceiverContract::ExactMap
+            || contract.args != MethodBuiltinArgs::MapGetDefault
+        {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;
@@ -6228,7 +6238,10 @@ impl<'a> Builder<'a> {
             return false;
         }
         let callee = &self.nodes[args[0] as usize];
-        if !matches!(callee.op, ValOp::Field(name) if name == stable_symbol_hash("get"))
+        let ValOp::Field(method) = callee.op else {
+            return false;
+        };
+        if map_get_contract_by_hash(self.il.meta.lang, method, 1).is_none()
             || callee.args.len() != 1
         {
             return false;

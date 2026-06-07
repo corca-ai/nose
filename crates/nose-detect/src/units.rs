@@ -18,10 +18,10 @@ use nose_semantics::{
     exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
     go_zero_map_lookup_contract, iterator_identity_adapter_contract,
     java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
-    js_like_map_constructor_contract, js_like_set_constructor_contract, map_key_view_contract,
-    map_key_view_wrapper_contract, method_call_contract, ruby_set_factory_contract,
-    rust_vec_new_factory_contract, semantics, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract,
+    map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics, JavaMapFactoryKind,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1235,31 +1235,11 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     if strict_exact_map_contains_call_safe(il, interner, facts, node, callee, method) {
         return true;
     }
-    if matches!(method, "get" | "getOrDefault") {
-        let Some(&receiver) = il.children(callee).first() else {
-            return false;
-        };
-        if method == "get"
-            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
-            && matches!(il.children(node).len(), 2 | 3)
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if method == "getOrDefault"
-            && strict_exact_proven_map_receiver_safe(il, facts, receiver)
-            && il.children(node).len() == 3
-        {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_set_constructor_collection_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_java_map_factory_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
-        if strict_exact_map_constructor_entries_safe(il, interner, facts, receiver) {
-            return strict_exact_call_args_safe(il, interner, facts, node);
-        }
+    if strict_exact_map_get_call_safe(il, interner, facts, node, callee, method) {
+        return true;
+    }
+    if strict_exact_map_get_default_call_safe(il, interner, facts, node, callee, method) {
+        return true;
     }
     if strict_exact_iterator_identity_adapter_call_safe(il, interner, facts, node, callee, method) {
         return true;
@@ -1350,6 +1330,62 @@ fn strict_exact_map_contains_call_safe(
     (strict_exact_proven_map_receiver_safe(il, facts, receiver)
         || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
         || strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_map_get_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    if map_get_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    )
+    .is_none()
+    {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+        && strict_exact_call_args_safe(il, interner, facts, node)
+}
+
+fn strict_exact_map_get_default_call_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    callee: NodeId,
+    method: &str,
+) -> bool {
+    let Some(contract) = method_call_contract(
+        il.meta.lang,
+        method,
+        il.children(node).len().saturating_sub(1),
+    ) else {
+        return false;
+    };
+    if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+        || contract.receiver != MethodReceiverContract::ExactMap
+        || contract.args != MethodBuiltinArgs::MapGetDefault
+    {
+        return false;
+    }
+    let Some(&receiver) = il.children(callee).first() else {
+        return false;
+    };
+    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
         || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
