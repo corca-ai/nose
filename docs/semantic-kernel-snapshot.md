@@ -5,16 +5,16 @@ implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
 record substrate is described in [evidence-records](evidence-records.md).
 
-Snapshot date: 2026-06-08, current implementation after the semantic-kernel
-foundation and follow-up facade migrations through receiver-aware field state
-sequence-surface contracts, proof-backed append fragment evidence, and the first
-operator-law contracts, typed import facts, and source-fact gates for construct,
-literal, equality/operator provenance, and the shared evidence-record substrate
-for source, domain, import, symbol-identity, guard, place/effect, selected
-library API occurrence, and sequence-surface facts. Library/API identity is now
-consolidated further through internal `LibraryApiContract` rows for factory,
-constructor, and selected non-factory method/view surfaces, with the first
-occurrence evidence vertical covering selected JS-like static/global APIs.
+Snapshot date: 2026-06-08. The current implementation has an internal
+semantic-kernel facade, receiver-aware field state, sequence-surface contracts,
+proof-backed append fragment evidence, operator-law contracts, typed import
+facts, source-fact gates for construct/literal/operator provenance, and a shared
+evidence-record substrate for source, domain, import, symbol-identity, guard,
+place/effect, selected library API occurrence, and sequence-surface facts.
+Library/API identity is consolidated through internal `LibraryApiContract` rows
+for factory, constructor, and selected non-factory method/view surfaces, with
+occurrence evidence covering selected JS-like static/global APIs plus selected
+import/source-backed Python, Java, and JS regex API calls.
 
 ## What exists today
 
@@ -129,19 +129,24 @@ migrated.
   identity and result obligations; local consumers still prove receiver domain,
   import/symbol identity, source facts, exact-safe arguments, fallback demand
   shape, and mutation safety.
-- Selected JS-like API call occurrences now also have `LibraryApi` evidence
-  records when they remain as raw call nodes. First-party lowering emits
-  occurrence evidence for `Array.from(...)`, `Array.isArray(...)`,
-  `Boolean(...)`, `new Map(...)`, and `new Set(...)`, depending on the relevant
-  `QualifiedGlobal`, `UnshadowedGlobal`, and/or construct-syntax `Source`
+- Selected API call occurrences now also have `LibraryApi` evidence records when
+  they remain as raw call nodes. First-party lowering emits occurrence evidence
+  for JS-like `Array.from(...)`, `Array.isArray(...)`, `Boolean(...)`,
+  `new Map(...)`, and `new Set(...)`; Python `collections.deque(...)` when the
+  callee is proven through `from collections import deque` or
+  `import collections; collections.deque(...)`; Python `import math;
+  math.prod(...)`; Java `java.util` static factories/adapters such as `List.of`,
+  `Set.of`, `Arrays.asList`, `Map.of`, `Map.ofEntries`, `Map.entry`, and
+  `Arrays.stream`; and JS-like regex-literal `.test(...)`. These records depend
+  on the relevant `QualifiedGlobal`, `UnshadowedGlobal`, import-backed
+  call-site `Symbol`, construct-syntax `Source`, or regex-literal `Source`
   evidence. Calls collapsed into specialized guard surfaces emit guard evidence
   instead. `nose-semantics` resolves these records with a three-state result:
-  admitted, missing, or rejected. Value-graph and strict exact consumers for
-  `Array.from(map.keys())`, `Array.isArray`, and JS-like `new Map`/`new Set`
-  consult this occurrence evidence first; conflicting or dependency-broken API
-  evidence closes the legacy path. The record proves API identity only;
-  receiver/domain, source, exact-safe argument, result-shape, and mutation
-  obligations remain separate.
+  admitted, missing, or rejected. Value-graph, idiom, and strict exact consumers
+  for the migrated surfaces consult this occurrence evidence first; conflicting
+  or dependency-broken API evidence closes the legacy path. The record proves
+  API identity only; receiver/domain, source, exact-safe argument, result-shape,
+  and mutation obligations remain separate.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require `java.util` import proof and no
@@ -354,10 +359,12 @@ Semantic knowledge still appears in several forms outside the facade:
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,
   HOFs, nullish defaulting, recursion, and effect traces;
 - duplicated receiver/domain and library/API proof gates in desugaring,
-  idiom lowering, value-graph, and strict exact paths. The first JS-like
-  `LibraryApi` occurrence evidence reduces this for selected static/global APIs,
-  but Python/Java/Rust/Ruby factory and method occurrences still mostly rely on
-  contract rows plus local proof.
+  idiom lowering, value-graph, and strict exact paths. `LibraryApi` occurrence
+  evidence now reduces this for selected JS-like static/global APIs,
+  import-backed Python factories/functions, Java `java.util` static
+  factories/adapters, and JS regex literals, but Rust free-name/path factories,
+  Ruby `require "set"; Set.new(...)`, Java empty constructors, and broad
+  receiver-method surfaces still rely on contract rows plus local proof.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -379,8 +386,9 @@ language.
 
 - Language semantics are not first-class. Many rules ask "which language is this?"
   instead of "which semantic capability has been proven?"
-- Library semantics are embedded in engine code rather than declared as versioned
-  API contracts.
+- Library semantics are still compiled into engine/first-party facade code.
+  Internal `LibraryApiContract` rows exist, but they are not yet versioned
+  external pack manifest contracts.
 - Evaluation strategy is not a shared model. Eager, short-circuit, pull-lazy,
   call-by-need, async, and observable behavior are not represented by a common
   demand/effect abstraction.
@@ -432,10 +440,10 @@ The first high-value targets for semantic-kernel extraction are:
 - richer sequence/aggregate evidence for factories, nested entries, iterator
   views, and exported-literal eligibility beyond the current first
   `SequenceSurface` substrate;
-- broader `LibraryApi` occurrence evidence for Java/Rust/Python/Ruby stdlib
-  factories, imported namespace functions, map get/defaulting, iterator
-  adapters, and method-call surfaces now represented only by contract rows plus
-  local proof;
+- broader `LibraryApi` occurrence evidence for remaining Java/Rust/Python/Ruby
+  stdlib factories, map get/defaulting, iterator adapters, and method-call
+  surfaces that still need receiver/domain, require/import, or path-root proof
+  records before they can move beyond contract rows plus local proof;
 - generalized guard evidence beyond the first JS/TS record-shape contract,
   including richer source/API dependency records and validation;
 - dependency, scope, and ambiguity validation before evidence records become a

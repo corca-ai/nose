@@ -57,6 +57,7 @@ wiki so claims have one source of truth:
 - [Clone types](docs/clone-types.md)
 - [Benchmark](docs/benchmark.md)
 - [Architecture](docs/architecture.md)
+- [Semantic kernel](docs/semantic-kernel.md)
 - [Scan JSON schema](docs/scan-json.md)
 
 ## License

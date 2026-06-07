@@ -10,14 +10,15 @@
 use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     domain_evidence_for_param, free_function_builtin_contract, imported_binding_symbol,
-    imported_namespace_symbol, library_api_free_name_shadow_safe,
-    library_free_name_map_factory_contract, library_iterator_identity_adapter_contract,
-    library_map_get_contract, library_map_key_view_contract, library_method_call_contract,
+    imported_namespace_symbol, library_api_contract_evidence_for_call,
+    library_api_free_name_shadow_safe, library_free_name_map_factory_contract,
+    library_iterator_identity_adapter_contract, library_map_get_contract,
+    library_map_key_view_contract, library_method_call_contract,
     library_static_collection_adapter_contract, method_hof_contract,
     rust_option_some_constructor_contract, seq_surface_contract_for_node, unshadowed_global_symbol,
-    BuiltinArgContract, DomainEvidence, LibraryApiCalleeContract, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
-    MethodSemanticContract, SEQ_VALUE_MAP,
+    BuiltinArgContract, DomainEvidence, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract,
+    MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -416,9 +417,9 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
                 if let Payload::Name(s) = old.node(callee).payload {
                     let method = interner.resolve(s);
                     if let Some(&base) = old.children(callee).first() {
-                        if let Some(arg) =
-                            static_collection_adapter_arg(old, interner, base, method, call_kids)
-                        {
+                        if let Some(arg) = static_collection_adapter_arg(
+                            old, interner, node, base, method, call_kids,
+                        ) {
                             return arg;
                         }
                     }
@@ -465,7 +466,7 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
     let Some(&receiver) = old.children(callee).first() else {
         return false;
     };
-    if let Some(arg) = static_collection_adapter_arg(old, interner, receiver, method, kids) {
+    if let Some(arg) = static_collection_adapter_arg(old, interner, node, receiver, method, kids) {
         return exact_collection_receiver(old, interner, arg);
     }
     if let Some(contract) = library_method_call_contract(old.meta.lang, method, kids.len() - 1) {
@@ -494,6 +495,7 @@ fn exact_collection_param(old: &Il, node: NodeId) -> bool {
 fn static_collection_adapter_arg(
     old: &Il,
     interner: &Interner,
+    call: NodeId,
     receiver: NodeId,
     method: &str,
     call_kids: &[NodeId],
@@ -505,11 +507,29 @@ fn static_collection_adapter_arg(
         method,
         call_kids.len().saturating_sub(1),
     )?;
-    let contract = contract.result;
-    if file_defines_type_name(old, interner, receiver_name)
-        || !imported_binding_symbol(old, interner, receiver, contract.module, contract.exported)
-    {
-        return None;
+    match library_api_contract_evidence_for_call(
+        old,
+        interner,
+        call,
+        contract.id,
+        contract.callee,
+        call_kids.len().saturating_sub(1),
+    ) {
+        LibraryApiEvidenceStatus::Admitted => {}
+        LibraryApiEvidenceStatus::Rejected => return None,
+        LibraryApiEvidenceStatus::Missing => {
+            if file_defines_type_name(old, interner, receiver_name)
+                || !imported_binding_symbol(
+                    old,
+                    interner,
+                    receiver,
+                    contract.result.module,
+                    contract.result.exported,
+                )
+            {
+                return None;
+            }
+        }
     }
     call_kids.get(1).copied()
 }

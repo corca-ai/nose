@@ -6,10 +6,11 @@ remaining work are tracked in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source-origin facts are
 covered in [source-facts](source-facts.md).
 
-Evidence records are the internal substrate that lets language and library packs
-emit proof facts without giving those packs authority to approve exact clones.
-They are facts, not verdicts. Contracts in `nose-semantics` decide whether a fact
-can satisfy an exact-channel precondition.
+Evidence records are the internal substrate that lets current first-party
+frontends, and future language/library packs, emit proof facts without giving
+those producers authority to approve exact clones. They are facts, not verdicts.
+Contracts in `nose-semantics` decide whether a fact can satisfy an exact-channel
+precondition.
 
 ## Goal
 
@@ -63,7 +64,7 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs |
+| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs plus selected import/source-backed Python, Java, and regex APIs |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
@@ -149,6 +150,14 @@ record proves only API identity; exact consumers still separately prove
 receiver/domain facts, source-surface requirements, argument safety, result
 shape, mutation safety, and demand/effect obligations.
 
+Imported API occurrence evidence is not a broad name guess. A call-site
+`Symbol(ImportedBinding)` or `Symbol(ImportedNamespace)` dependency must itself
+depend on the matching binding-anchor symbol, pass rebinding and local/parameter
+shadow checks, and match the current receiver/callee span when that span is
+available. If normalization erases an import occurrence into a seeded import
+value, consumers pass no occurrence span and rely on that validated dependency
+instead of accepting an unrelated imported symbol elsewhere in the file.
+
 ## Current Producers
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
@@ -178,14 +187,20 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   writes, and `Effect(BuilderAppendCall)` for canonical `Builtin::Append`.
   Self-field place/write evidence records include dependencies that link the
   write proof back to the receiver proof;
-- first-party JS/TS lowering emits `LibraryApi` evidence for selected
-  static/global API calls that remain as raw call nodes: `Array.from(...)`,
-  `Array.isArray(...)`, `Boolean(...)`, `new Map(...)`, and `new Set(...)`.
-  These records depend on the relevant `QualifiedGlobal`, `UnshadowedGlobal`,
-  and/or construct-syntax `Source` evidence. Calls collapsed into specialized
-  guard surfaces emit their guard evidence instead. Shadowed roots, plain
-  `Map(...)`/`Set(...)` calls, and unsupported static paths do not emit API
-  occurrence evidence;
+- first-party lowering emits `LibraryApi` evidence for selected API calls that
+  remain as raw call nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
+  `Boolean(...)`, `new Map(...)`, and `new Set(...)`; Python
+  `collections.deque(...)` through imported binding/namespace proof; Python
+  `math.prod(...)` through imported namespace proof; Java `java.util` static
+  factories/adapters including `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
+  `Map.ofEntries`, `Map.entry`, and `Arrays.stream`; and JS-like regex-literal
+  `.test(...)`. These records depend on the relevant `QualifiedGlobal`,
+  `UnshadowedGlobal`, import-backed call-site `Symbol`, construct-syntax
+  `Source`, or regex-literal `Source` evidence. Calls collapsed into specialized
+  guard surfaces emit their guard evidence instead. Shadowed roots, unsupported
+  arities, unsupported static paths, raw free-name/path factories without a
+  resolved symbol fact, and Ruby `require`-based APIs without require evidence
+  do not emit API occurrence evidence;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
   literal and Go map-entry surfaces where those tags carry first-party meaning.
 
@@ -223,13 +238,13 @@ callers:
   guard evidence depends on `Object.hasOwn` or
   `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
   evidence for `Array.from`;
-- selected JS-like `LibraryApiContract` consumers now consult `LibraryApi`
-  occurrence evidence first for `Array.from`, `Array.isArray`, `Boolean`,
-  `new Map`, and `new Set`; conflicting or dependency-broken API evidence keeps
-  the value-graph and strict exact paths closed. When no relevant API evidence is
-  present, the current compatibility path still uses the older symbol/source
-  proof helpers. Other factory and method/view contract rows still name API
-  identity/result semantics while local consumers prove their current
+- selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
+  evidence first for the migrated JS-like, Python imported, Java static, and
+  regex-literal surfaces; conflicting or dependency-broken API evidence keeps
+  the value-graph, idiom, and strict exact paths closed. When no relevant API
+  evidence is present, the current compatibility path still uses the older
+  symbol/source proof helpers. Other factory and method/view contract rows still
+  name API identity/result semantics while local consumers prove their current
   `Symbol`, `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
@@ -250,8 +265,9 @@ callers:
   language-gated helper only when no relevant evidence record exists. Ambiguous
   or conflicting evidence keeps the exact path closed.
 
-Broader field/place/effect facts, `LibraryApi` occurrence evidence beyond the
-selected JS-like static/global APIs, receiver/protocol evidence beyond parameter
-domains, full scope-resolution and namespace-member evidence, broader guard
-evidence, general cross-module dependency manifests, report-level provenance,
-and external manifest loading are still open work.
+Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
+free-name/path/receiver-method APIs, receiver/protocol evidence beyond parameter
+domains, full scope-resolution and namespace-member evidence, require/import
+evidence for surfaces such as Ruby `Set.new`, broader guard evidence, general
+cross-module dependency manifests, report-level provenance, and external
+manifest loading are still open work.

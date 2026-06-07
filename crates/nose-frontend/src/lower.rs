@@ -11,10 +11,13 @@ use nose_il::{
 };
 use nose_semantics::{
     import_fact_tag, library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_js_array_is_array_contract, library_js_boolean_coercion_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_key_view_wrapper_contract, sequence_surface_kind_for_tag, ImportFactKind,
-    LibraryApiCalleeContract, LibraryApiContractId,
+    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_boolean_coercion_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_key_view_wrapper_contract,
+    library_regex_test_contract, library_static_collection_adapter_contract,
+    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
 };
 use tree_sitter::Node as TsNode;
 
@@ -189,7 +192,7 @@ impl<'a> Lowering<'a> {
     }
 
     fn library_api_contract_for_call(
-        &self,
+        &mut self,
         span: Span,
         callee: NodeId,
         arg_count: usize,
@@ -201,6 +204,18 @@ impl<'a> Lowering<'a> {
             return Some(result);
         }
         if let Some(result) = self.static_global_function_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        if let Some(result) = self.imported_collection_factory_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        if let Some(result) = self.imported_namespace_function_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        if let Some(result) = self.java_util_static_member_api_contract(callee, arg_count) {
+            return Some(result);
+        }
+        if let Some(result) = self.regex_literal_method_api_contract(callee, arg_count) {
             return Some(result);
         }
         self.js_global_constructor_api_contract(span, callee, arg_count)
@@ -285,6 +300,230 @@ impl<'a> Lowering<'a> {
         ))
     }
 
+    fn imported_collection_factory_api_contract(
+        &mut self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if arg_count != 1 {
+            return None;
+        }
+        match self.b.kind(callee) {
+            NodeKind::Var => {
+                let Payload::Name(name) = self.b.payload(callee) else {
+                    return None;
+                };
+                let exported = self.interner.resolve(name);
+                library_imported_collection_factory_contracts(self.lang).find_map(|contract| {
+                    let LibraryApiCalleeContract::ImportedBinding {
+                        module,
+                        exported: expected,
+                    } = contract.callee
+                    else {
+                        return None;
+                    };
+                    if exported != expected {
+                        return None;
+                    }
+                    let dependency =
+                        self.record_imported_binding_symbol_for_node(callee, module, expected)?;
+                    Some((
+                        contract.id,
+                        contract.callee,
+                        vec![dependency],
+                        "library_api_imported_collection_factory",
+                    ))
+                })
+            }
+            NodeKind::Field => {
+                let Payload::Name(method) = self.b.payload(callee) else {
+                    return None;
+                };
+                let method = self.interner.resolve(method);
+                let receiver = self.b.children(callee).first().copied()?;
+                library_imported_collection_factory_contracts(self.lang).find_map(|contract| {
+                    let LibraryApiCalleeContract::ImportedBinding { module, exported } =
+                        contract.callee
+                    else {
+                        return None;
+                    };
+                    if method != exported {
+                        return None;
+                    }
+                    let dependency =
+                        self.record_imported_namespace_symbol_for_node(receiver, module)?;
+                    Some((
+                        contract.id,
+                        contract.callee,
+                        vec![dependency],
+                        "library_api_imported_collection_factory",
+                    ))
+                })
+            }
+            _ => None,
+        }
+    }
+
+    fn imported_namespace_function_api_contract(
+        &mut self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        let function = self.interner.resolve(method);
+        let contract =
+            library_imported_namespace_function_contract(self.lang, function, arg_count)?;
+        let LibraryApiCalleeContract::ImportedNamespaceFunction { module, .. } = contract.callee
+        else {
+            return None;
+        };
+        let receiver = self.b.children(callee).first().copied()?;
+        let dependency = self.record_imported_namespace_symbol_for_node(receiver, module)?;
+        Some((
+            contract.id,
+            contract.callee,
+            vec![dependency],
+            "library_api_imported_namespace_function",
+        ))
+    }
+
+    fn java_util_static_member_api_contract(
+        &mut self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        let receiver_node = self.b.children(callee).first().copied()?;
+        if self.b.kind(receiver_node) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(receiver_name) = self.b.payload(receiver_node) else {
+            return None;
+        };
+        let receiver = self.interner.resolve(receiver_name);
+        let method = self.interner.resolve(method);
+        let (id, callee_contract, expected_receiver, rule) =
+            library_java_collection_factory_contract(self.lang, receiver, method)
+                .map(|contract| {
+                    let LibraryApiCalleeContract::JavaUtilStaticMember {
+                        receiver: expected_receiver,
+                        ..
+                    } = contract.callee
+                    else {
+                        unreachable!("java collection factories use JavaUtilStaticMember")
+                    };
+                    (
+                        contract.id,
+                        contract.callee,
+                        expected_receiver,
+                        "library_api_java_collection_factory",
+                    )
+                })
+                .or_else(|| {
+                    library_java_map_factory_contract(self.lang, receiver, method).map(|contract| {
+                        let LibraryApiCalleeContract::JavaUtilStaticMember {
+                            receiver: expected_receiver,
+                            ..
+                        } = contract.callee
+                        else {
+                            unreachable!("java map factories use JavaUtilStaticMember")
+                        };
+                        (
+                            contract.id,
+                            contract.callee,
+                            expected_receiver,
+                            "library_api_java_map_factory",
+                        )
+                    })
+                })
+                .or_else(|| {
+                    (arg_count == 2)
+                        .then(|| library_java_map_entry_contract(self.lang, receiver, method))
+                        .flatten()
+                        .map(|contract| {
+                            let LibraryApiCalleeContract::JavaUtilStaticMember {
+                                receiver: expected_receiver,
+                                ..
+                            } = contract.callee
+                            else {
+                                unreachable!("java map entries use JavaUtilStaticMember")
+                            };
+                            (
+                                contract.id,
+                                contract.callee,
+                                expected_receiver,
+                                "library_api_java_map_entry_factory",
+                            )
+                        })
+                })
+                .or_else(|| {
+                    library_static_collection_adapter_contract(
+                        self.lang, receiver, method, arg_count,
+                    )
+                    .map(|contract| {
+                        let LibraryApiCalleeContract::JavaUtilStaticMember {
+                            receiver: expected_receiver,
+                            ..
+                        } = contract.callee
+                        else {
+                            unreachable!("java static adapters use JavaUtilStaticMember")
+                        };
+                        (
+                            contract.id,
+                            contract.callee,
+                            expected_receiver,
+                            "library_api_java_static_collection_adapter",
+                        )
+                    })
+                })?;
+        let dependency = self.record_imported_binding_symbol_for_node(
+            receiver_node,
+            "java.util",
+            expected_receiver,
+        )?;
+        Some((id, callee_contract, vec![dependency], rule))
+    }
+
+    fn regex_literal_method_api_contract(
+        &self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        let method = self.interner.resolve(method);
+        let contract = library_regex_test_contract(self.lang, method, arg_count)?;
+        let LibraryApiCalleeContract::RegexLiteralMethod {
+            required_receiver_fact,
+            ..
+        } = contract.callee
+        else {
+            return None;
+        };
+        let receiver = self.b.children(callee).first().copied()?;
+        let dependency = self.source_fact_evidence_id(receiver, required_receiver_fact)?;
+        Some((
+            contract.id,
+            contract.callee,
+            vec![dependency],
+            "library_api_regex_literal_method",
+        ))
+    }
+
     fn js_global_constructor_api_contract(
         &self,
         span: Span,
@@ -334,10 +573,85 @@ impl<'a> Lowering<'a> {
         Some((contract.0, contract.1, dependencies, contract.3))
     }
 
+    fn source_fact_evidence_id(
+        &self,
+        node: NodeId,
+        expected: SourceFactKind,
+    ) -> Option<EvidenceId> {
+        let span = self.b.node(node).span;
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::source_span(span)
+                && record.kind == EvidenceKind::Source(expected)
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
     fn source_call_evidence_id(&self, span: Span, call: SourceCallKind) -> Option<EvidenceId> {
         self.evidence.iter().find_map(|record| {
             (record.anchor == EvidenceAnchor::source_span(span)
                 && record.kind == EvidenceKind::Source(SourceFactKind::Call(call))
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
+    fn record_imported_binding_symbol_for_node(
+        &mut self,
+        node: NodeId,
+        module: &str,
+        exported: &str,
+    ) -> Option<EvidenceId> {
+        let expected = SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash(module),
+            exported_hash: stable_symbol_hash(exported),
+        };
+        let dependency = self.binding_symbol_evidence_id(node, expected)?;
+        Some(self.record_evidence_with_dependencies(
+            EvidenceAnchor::node(self.b.node(node).span, NodeKind::Var),
+            EvidenceKind::Symbol(expected),
+            "symbol_imported_binding_occurrence",
+            vec![dependency],
+        ))
+    }
+
+    fn record_imported_namespace_symbol_for_node(
+        &mut self,
+        node: NodeId,
+        module: &str,
+    ) -> Option<EvidenceId> {
+        let expected = SymbolEvidenceKind::ImportedNamespace {
+            module_hash: stable_symbol_hash(module),
+        };
+        let dependency = self.binding_symbol_evidence_id(node, expected)?;
+        Some(self.record_evidence_with_dependencies(
+            EvidenceAnchor::node(self.b.node(node).span, NodeKind::Var),
+            EvidenceKind::Symbol(expected),
+            "symbol_imported_namespace_occurrence",
+            vec![dependency],
+        ))
+    }
+
+    fn binding_symbol_evidence_id(
+        &self,
+        node: NodeId,
+        expected: SymbolEvidenceKind,
+    ) -> Option<EvidenceId> {
+        if self.b.kind(node) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(local) = self.b.payload(node) else {
+            return None;
+        };
+        let local_hash = stable_symbol_hash(self.interner.resolve(local));
+        self.evidence.iter().find_map(|record| {
+            (matches!(
+                record.anchor,
+                EvidenceAnchor::Binding {
+                    local_hash: anchor_hash,
+                    ..
+                } if anchor_hash == local_hash
+            ) && record.kind == EvidenceKind::Symbol(expected)
                 && record.status == EvidenceStatus::Asserted)
                 .then_some(record.id)
         })
@@ -1421,6 +1735,130 @@ mod tests {
             EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace { module_hash })
                 if module_hash == stable_symbol_hash("math")
         )));
+    }
+
+    fn library_api_evidence_count(lo: &Lowering, contract_hash: u64, callee_hash: u64) -> usize {
+        lo.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash: actual_contract,
+                        callee_hash: actual_callee,
+                        ..
+                    }) if actual_contract == contract_hash && actual_callee == callee_hash
+                )
+            })
+            .count()
+    }
+
+    #[test]
+    fn core_lowering_emits_import_backed_library_api_occurrences() {
+        let interner = Interner::new();
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
+        import_binding(&mut lo, sp_at(1), "deque", "collections", "deque");
+        let callee = lo.var("deque", sp_at(2));
+        let seq = lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp_at(3),
+            &[],
+        );
+        lo.add(NodeKind::Call, Payload::None, sp_at(4), &[callee, seq]);
+
+        let contract = nose_semantics::library_imported_collection_factory_contract(
+            Lang::Python,
+            "collections",
+            "deque",
+        )
+        .expect("deque contract");
+        assert_eq!(
+            library_api_evidence_count(
+                &lo,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            1
+        );
+
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
+        import_namespace(&mut lo, sp_at(10), "math", "math");
+        let math = lo.var("math", sp_at(11));
+        let callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("prod")),
+            sp_at(12),
+            &[math],
+        );
+        let seq = lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp_at(13),
+            &[],
+        );
+        lo.add(NodeKind::Call, Payload::None, sp_at(14), &[callee, seq]);
+        let contract = library_imported_namespace_function_contract(Lang::Python, "prod", 1)
+            .expect("math.prod contract");
+        assert_eq!(
+            library_api_evidence_count(
+                &lo,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            1
+        );
+    }
+
+    #[test]
+    fn core_lowering_emits_java_and_regex_library_api_occurrences() {
+        let interner = Interner::new();
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Java, &interner);
+        import_binding(&mut lo, sp_at(1), "List", "java.util", "List");
+        let list = lo.var("List", sp_at(2));
+        let callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp_at(3),
+            &[list],
+        );
+        let item = lo.int_lit("1", sp_at(4));
+        lo.add(NodeKind::Call, Payload::None, sp_at(5), &[callee, item]);
+        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
+            .expect("List.of contract");
+        assert_eq!(
+            library_api_evidence_count(
+                &lo,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            1
+        );
+
+        let mut lo = Lowering::new(FileId(0), b"", Lang::JavaScript, &interner);
+        let regex = lo.str_lit("/x/", sp_at(10));
+        lo.record_source_fact(
+            sp_at(10),
+            SourceFactKind::Literal(nose_il::SourceLiteralKind::Regex),
+        );
+        let callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("test")),
+            sp_at(11),
+            &[regex],
+        );
+        let subject = lo.var("subject", sp_at(12));
+        lo.add(NodeKind::Call, Payload::None, sp_at(13), &[callee, subject]);
+        let contract =
+            library_regex_test_contract(Lang::JavaScript, "test", 1).expect("regex test contract");
+        assert_eq!(
+            library_api_evidence_count(
+                &lo,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            1
+        );
     }
 
     #[test]

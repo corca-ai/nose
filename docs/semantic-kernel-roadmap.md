@@ -13,9 +13,11 @@ and pack ecosystem.
    into nose, but they should use the same pack contracts as external languages.
 
 2. **nose certifies only first-party packs.** External pack providers own their
-   semantic claims. Users own the decision to enable them. nose owns the extension
-   contract, validation of pack structure, fail-closed execution, and provenance
-   reporting.
+   semantic claims. Users own the decision to enable them. nose owns the
+   extension contract, schema and structural validation, fail-closed execution,
+   and provenance reporting. Semantic correctness, conformance evidence, and
+   enablement risk for external packs stay with the provider and user, except
+   for first-party/default packs that nose ships and tests.
 
 3. **Packs emit evidence, not verdicts.** A pack can emit facts, contracts, and
    protocol operations. It cannot mint fingerprints, bypass laws, or approve exact
@@ -287,6 +289,19 @@ and pack ecosystem.
   `new Set`; value-graph and strict exact consumers for those surfaces consult
   it first and close legacy fallback on conflicting, ambiguous, or
   dependency-broken records.
+- The next `LibraryApi` occurrence evidence slice extended the same
+  dependency-backed path to selected import/source-backed APIs: Python
+  `collections.deque`, Python `math.prod`, Java `java.util` static
+  factories/adapters (`List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
+  `Map.ofEntries`, `Map.entry`, `Arrays.stream`), and JS-like regex-literal
+  `.test`. Producers emit call-site `Symbol` dependencies for imported
+  binding/namespace occurrences or `Source` dependencies for regex literals;
+  value-graph, idiom, and strict exact consumers consult these records first and
+  close fallback on rejected records. Imported occurrence symbols now require
+  binding-anchor dependencies, rebinding/local-shadow validation, span-matched
+  dependencies when spans survive normalization, and Java map provider proofs no
+  longer replace current receiver identity except for imported literal snapshots
+  already validated in the provider module.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -354,16 +369,20 @@ Remaining in this phase:
   views and wrappers, map `get`, map defaulting method calls, static JS-like
   helpers, regex-literal `.test`, Python `math.prod`, promise `.then`, iterator
   identity adapters, Java `Arrays.stream`, and existing language-scoped method
-  call contracts. The first occurrence-evidence slice covers selected JS-like
-  static/global APIs only; broader stdlib and ecosystem APIs still need
-  dependency-backed occurrence records before they become pack-facing.
+  call contracts. Occurrence-evidence slices now cover selected JS-like
+  static/global APIs, import-backed Python factories/functions, Java `java.util`
+  static factories/adapters, and JS regex literals. Remaining stdlib and
+  ecosystem APIs still need dependency-backed occurrence records before they
+  become pack-facing.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
-  `LibraryApiContract` identity/result rows, and selected JS-like static/global
-  calls now additionally share `LibraryApi` occurrence evidence. Remaining API
-  work is to move remaining raw sequence/tag and local callee-proof dependencies
-  into explicit evidence records, then cover broader reduction/HOF and ecosystem
-  APIs only after demand, receiver, and effect obligations are expressible.
+  `LibraryApiContract` identity/result rows, and selected JS-like,
+  import-backed Python, Java `java.util`, and regex calls now additionally share
+  `LibraryApi` occurrence evidence. Remaining API work is to move raw
+  sequence/tag, Ruby `require`, Rust free-name/path-root, Java constructor, and
+  broad receiver-method proof dependencies into explicit evidence records, then
+  cover broader reduction/HOF and ecosystem APIs only after demand, receiver,
+  and effect obligations are expressible.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   module export dependencies, scope, rebinding, and mutation proof. Value-graph

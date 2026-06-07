@@ -19,7 +19,7 @@ use nose_semantics::{
     exact_self_field_write_assignment, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, imported_binding_symbol,
-    imported_literal_producer_evidence_for_node, imported_member_symbol,
+    imported_literal_snapshot_evidence_at_span, imported_member_symbol,
     library_api_contract_evidence_for_call, library_api_free_name_shadow_safe,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
@@ -1354,15 +1354,27 @@ fn strict_exact_regex_test_safe(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
-    )?
-    .result;
+    )?;
     let Some(&receiver) = il.children(callee).first() else {
         return Some(false);
     };
-    Some(
-        source_fact_at_node(il, receiver, contract.required_receiver_fact)
-            && strict_exact_call_args_safe(il, interner, facts, node),
-    )
+    match library_api_contract_evidence_for_call(
+        il,
+        interner,
+        node,
+        contract.id,
+        contract.callee,
+        il.children(node).len().saturating_sub(1),
+    ) {
+        LibraryApiEvidenceStatus::Admitted => {}
+        LibraryApiEvidenceStatus::Rejected => return Some(false),
+        LibraryApiEvidenceStatus::Missing => {
+            if !source_fact_at_node(il, receiver, contract.result.required_receiver_fact) {
+                return Some(false);
+            }
+        }
+    }
+    Some(strict_exact_call_args_safe(il, interner, facts, node))
 }
 
 fn strict_exact_js_array_is_array_safe(
@@ -1986,7 +1998,20 @@ fn strict_exact_python_collection_factory_safe(
             else {
                 return false;
             };
-            strict_exact_python_imported_factory_name(il, interner, kids[0], module, exported)
+            match library_api_contract_evidence_for_call(
+                il,
+                interner,
+                node,
+                contract.id,
+                contract.callee,
+                1,
+            ) {
+                LibraryApiEvidenceStatus::Admitted => true,
+                LibraryApiEvidenceStatus::Rejected => false,
+                LibraryApiEvidenceStatus::Missing => strict_exact_python_imported_factory_name(
+                    il, interner, kids[0], module, exported,
+                ),
+            }
         });
     (builtin || imported_stdlib_factory)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
@@ -2210,8 +2235,21 @@ fn strict_exact_java_collection_factory_safe(
             else {
                 return None;
             };
-            strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
-                .then_some(contract)
+            match library_api_contract_evidence_for_call(
+                il,
+                interner,
+                node,
+                contract.id,
+                contract.callee,
+                kids.len().saturating_sub(1),
+            ) {
+                LibraryApiEvidenceStatus::Admitted => Some(contract),
+                LibraryApiEvidenceStatus::Rejected => None,
+                LibraryApiEvidenceStatus::Missing => {
+                    strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+                        .then_some(contract)
+                }
+            }
         })
     else {
         return false;
@@ -2299,11 +2337,25 @@ fn strict_exact_java_map_factory_safe(
     else {
         return false;
     };
-    let provider_proven = imported_literal_producer_evidence_for_node(il, node);
-    if !provider_proven
-        && !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
-    {
-        return false;
+    let snapshot_proven =
+        imported_literal_snapshot_evidence_at_span(il, il.node(node).span, NodeKind::Call);
+    match library_api_contract_evidence_for_call(
+        il,
+        interner,
+        node,
+        contract.id,
+        contract.callee,
+        kids.len().saturating_sub(1),
+    ) {
+        LibraryApiEvidenceStatus::Admitted => {}
+        LibraryApiEvidenceStatus::Rejected => return false,
+        LibraryApiEvidenceStatus::Missing => {
+            if !snapshot_proven
+                && !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+            {
+                return false;
+            }
+        }
     }
     let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
         return false;
@@ -2317,7 +2369,7 @@ fn strict_exact_java_map_factory_safe(
                     .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
         }
         JavaMapFactoryKind::OfEntries => kids.iter().skip(1).all(|&entry| {
-            strict_exact_java_map_entry_safe(il, interner, facts, entry, provider_proven)
+            strict_exact_java_map_entry_safe(il, interner, facts, entry, snapshot_proven)
         }),
     }
 }
@@ -2327,7 +2379,7 @@ fn strict_exact_java_map_entry_safe(
     interner: &Interner,
     facts: &StrictFacts,
     node: NodeId,
-    provider_proven: bool,
+    snapshot_proven: bool,
 ) -> bool {
     if il.kind(node) != NodeKind::Call {
         return false;
@@ -2353,11 +2405,27 @@ fn strict_exact_java_map_entry_safe(
     else {
         return false;
     };
-    (provider_proven || strict_exact_java_std_var_name(il, interner, receiver, expected_receiver))
-        && kids
-            .iter()
-            .skip(1)
-            .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
+    match library_api_contract_evidence_for_call(
+        il,
+        interner,
+        node,
+        contract.id,
+        contract.callee,
+        2,
+    ) {
+        LibraryApiEvidenceStatus::Admitted => {}
+        LibraryApiEvidenceStatus::Rejected => return false,
+        LibraryApiEvidenceStatus::Missing => {
+            if !snapshot_proven
+                && !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+            {
+                return false;
+            }
+        }
+    }
+    kids.iter()
+        .skip(1)
+        .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
 }
 
 fn strict_exact_map_constructor_entries_safe(
@@ -4097,13 +4165,14 @@ mod tests {
     use super::*;
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, LibraryApiEvidenceKind,
-        SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span, SymbolEvidenceKind,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind,
+        LibraryApiEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span,
+        SymbolEvidenceKind, UnitKind,
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
-        library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-        FIRST_PARTY_PACK_ID,
+        library_java_collection_factory_contract, library_js_like_map_constructor_contract,
+        library_js_like_set_constructor_contract, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -4220,5 +4289,223 @@ mod tests {
         assert!(strict_exact_set_constructor_collection_safe(
             &il, &interner, &facts, call
         ));
+    }
+
+    #[test]
+    fn strict_exact_java_collection_factory_uses_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let list = interner.intern("List");
+        let lhs = b.add(NodeKind::Var, Payload::Name(list), sp(20), &[]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, sp(20), &[]);
+        let import = b.add(NodeKind::Assign, Payload::None, sp(20), &[lhs, rhs]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(list), sp(21), &[]);
+        let factory_callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp(22),
+            &[receiver],
+        );
+        let left = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("red")),
+            sp(23),
+            &[],
+        );
+        let right = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("blue")),
+            sp(24),
+            &[],
+        );
+        let factory = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(25),
+            &[factory_callee, left, right],
+        );
+        let contains_callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("contains")),
+            sp(26),
+            &[factory],
+        );
+        let value = b.add(NodeKind::Var, Payload::Cid(0), sp(27), &[]);
+        let contains = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(28),
+            &[contains_callee, value],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(20), &[import, contains]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of")
+            .expect("List.of contract");
+        let binding_symbol = EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+            module_hash: stable_symbol_hash("java.util"),
+            exported_hash: stable_symbol_hash("List"),
+        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(20), stable_symbol_hash("List")),
+            binding_symbol,
+            Vec::new(),
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(21), NodeKind::Var),
+            binding_symbol,
+            vec![EvidenceId(0)],
+        ));
+        il.evidence.push(evidence(
+            2,
+            EvidenceAnchor::node(sp(25), NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract.id),
+                callee_hash: library_api_callee_contract_hash(contract.callee),
+                arity: 2,
+            }),
+            vec![EvidenceId(1)],
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_java_collection_factory_safe(
+            &il, &interner, &facts, factory
+        ));
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, contains));
+
+        let wrong = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
+        il.evidence.pop();
+        il.evidence.push(evidence(
+            2,
+            EvidenceAnchor::node(sp(25), NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(wrong.id),
+                callee_hash: library_api_callee_contract_hash(wrong.callee),
+                arity: 2,
+            }),
+            vec![EvidenceId(1)],
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(!strict_exact_java_collection_factory_safe(
+            &il, &interner, &facts, factory
+        ));
+        assert!(!strict_exact_safe_tree(&il, &interner, &facts, contains));
+    }
+
+    #[test]
+    fn strict_exact_java_map_provider_proof_does_not_replace_receiver_identity() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("FakeMap")),
+            sp(30),
+            &[],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp(31),
+            &[receiver],
+        );
+        let key = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("k")),
+            sp(32),
+            &[],
+        );
+        let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(33), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(34), &[callee, key, value]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(34), &[call]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(34), NodeKind::Call),
+            EvidenceKind::Import(ImportEvidenceKind::ImmutableLiteralExport {
+                module_hash: stable_symbol_hash("t"),
+                exported_hash: stable_symbol_hash("VALUES"),
+                root_kind: NodeKind::Call,
+            }),
+            Vec::new(),
+        ));
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(!strict_exact_java_map_factory_safe(
+            &il, &interner, &facts, call
+        ));
+    }
+
+    fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
+        let raw =
+            nose_frontend::lower_source(FileId(0), "T.java", src.as_bytes(), Lang::Java, interner)
+                .expect("lower Java source");
+        let il =
+            nose_normalize::normalize(&raw, interner, &nose_normalize::NormalizeOptions::default());
+        let seeds = crate::minhash::seeds(64);
+        let units = extract(&il, interner, &seeds, 1, 1, true, false);
+        units
+            .into_iter()
+            .find(|unit| unit.kind == kind && unit.name.as_deref() == Some(name))
+            .expect("requested Java unit")
+    }
+
+    fn lowered_java_method_unit(src: &str, interner: &Interner) -> UnitFeat {
+        lowered_java_unit(src, interner, UnitKind::Method, "f")
+    }
+
+    #[test]
+    fn lowered_java_static_collection_factories_share_exact_fingerprint() {
+        let interner = Interner::new();
+        let list = lowered_java_method_unit(
+            "import java.util.List;\n\nclass JavaListOf { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }\n",
+            &interner,
+        );
+        let set = lowered_java_method_unit(
+            "import java.util.Set;\n\nclass JavaSetOf { static boolean f(String value, String other) { return Set.of(\"red\", \"blue\").contains(value); } }\n",
+            &interner,
+        );
+        let arrays = lowered_java_method_unit(
+            "import java.util.Arrays;\n\nclass JavaArraysAsList { static boolean f(String value, String other) { return Arrays.asList(\"red\", \"blue\").contains(value); } }\n",
+            &interner,
+        );
+        let module_method = lowered_java_unit(
+            "import java.util.List;\n\nclass ModuleList {\n    static final List<String> VALUES = List.of(\"red\", \"blue\");\n\n    static boolean moduleList(String value, String other) {\n        return VALUES.contains(value);\n    }\n}\n",
+            &interner,
+            UnitKind::Method,
+            "moduleList",
+        );
+        assert!(list.exact_safe, "List.of method must stay exact-safe");
+        assert!(set.exact_safe, "Set.of method must stay exact-safe");
+        assert!(
+            arrays.exact_safe,
+            "Arrays.asList method must stay exact-safe"
+        );
+        assert!(
+            module_method.exact_safe,
+            "class-level List.of binding must stay exact-safe"
+        );
+        assert!(
+            list.value.len() >= EXACT_VALUE_MIN,
+            "List.of method should produce a dense semantic fingerprint"
+        );
+        assert_eq!(list.value, set.value);
+        assert_eq!(list.value, arrays.value);
+        assert_eq!(list.value, module_method.value);
     }
 }
