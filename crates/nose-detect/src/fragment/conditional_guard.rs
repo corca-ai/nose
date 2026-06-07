@@ -11,8 +11,8 @@ use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    builder_append_call_args, exact_java_this_field, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, semantics,
+    builder_append_call_args, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, exact_self_field_write_assignment, semantics,
 };
 use rustc_hash::FxHashSet;
 
@@ -506,12 +506,7 @@ fn assignment_effect_site(il: &Il, interner: &Interner, node: NodeId) -> Option<
 
 fn self_field_assignment_site(il: &Il, interner: &Interner, node: NodeId) -> Option<EffectSite> {
     let kids = il.children(node);
-    if semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && kids.len() == 2
-        && exact_java_this_field(il, interner, kids[0])
-    {
+    if kids.len() == 2 && exact_self_field_write_assignment(il, interner, node) {
         let place = super::recognize::resolve_place(il, interner, kids[0]);
         return place
             .is_exact_safe()

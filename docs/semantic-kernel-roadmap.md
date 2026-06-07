@@ -332,9 +332,12 @@ Remaining in this phase:
 - Add scope, dependency, and ambiguity validation for evidence records before
   they become a stable external extension surface.
 - Expand the exact fragment facade from first-party helper functions into
-  versioned pack-facing effect/place evidence records.
-- Continue replacing any remaining local exact-fragment proof helpers with
-  versioned pack-facing evidence records.
+  versioned pack-facing effect/place evidence records. The first substrate now
+  covers canonical append calls, C/Go/Java non-overloadable index writes, and
+  Java self-receiver/self-field writes through `Effect`/`Place` evidence.
+- Continue replacing remaining local exact-fragment proof helpers with
+  versioned pack-facing evidence records, especially broader field/read/write
+  place facts and receiver-sensitive mutation/effect proofs.
 - Continue moving library API recognition into `LibraryApiContract` records.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the

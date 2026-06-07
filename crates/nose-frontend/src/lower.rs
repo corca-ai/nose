@@ -3,11 +3,11 @@
 //! mechanics live in one place.
 
 use nose_il::{
-    stable_symbol_hash, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
-    EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, Il, IlBuilder,
-    ImportEvidenceKind, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    ParamTypeFact, Payload, SourceFact, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit,
-    UnitKind,
+    stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
+    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
+    FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LoopKind, NodeId,
+    NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind, SourceFact,
+    SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
 use nose_semantics::{import_fact_tag, sequence_surface_kind_for_tag, ImportFactKind};
 use tree_sitter::Node as TsNode;
@@ -70,6 +70,7 @@ impl<'a> Lowering<'a> {
         children: &[NodeId],
     ) -> NodeId {
         let id = self.b.add(kind, payload, span, children);
+        self.record_core_semantic_evidence(kind, payload, span, children);
         if kind == NodeKind::Seq {
             let tag = match payload {
                 Payload::None => None,
@@ -85,6 +86,109 @@ impl<'a> Lowering<'a> {
             }
         }
         id
+    }
+
+    fn record_core_semantic_evidence(
+        &mut self,
+        kind: NodeKind,
+        payload: Payload,
+        span: Span,
+        children: &[NodeId],
+    ) {
+        match kind {
+            NodeKind::Var if self.lang == Lang::Java => {
+                if matches!(payload, Payload::Name(name) if self.interner.resolve(name) == "this") {
+                    self.record_evidence(
+                        EvidenceAnchor::node(span, kind),
+                        EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver),
+                        "place_self_receiver",
+                    );
+                }
+            }
+            NodeKind::Call => {
+                if matches!(payload, Payload::Builtin(Builtin::Append)) && children.len() == 2 {
+                    self.record_evidence(
+                        EvidenceAnchor::node(span, kind),
+                        EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
+                        "effect_builder_append",
+                    );
+                }
+            }
+            NodeKind::Field if self.lang == Lang::Java => {
+                if let (Payload::Name(field), [receiver]) = (payload, children) {
+                    if let Some(receiver_evidence) = self.self_receiver_evidence_id(*receiver) {
+                        let field_hash = stable_symbol_hash(self.interner.resolve(field));
+                        self.record_evidence_with_dependencies(
+                            EvidenceAnchor::node(span, kind),
+                            EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash }),
+                            "place_self_field",
+                            vec![receiver_evidence],
+                        );
+                    }
+                }
+            }
+            NodeKind::Assign => {
+                if let [target, _value] = children {
+                    if self.non_overloadable_index_assignment_target(*target) {
+                        self.record_evidence(
+                            EvidenceAnchor::node(span, kind),
+                            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
+                            "effect_non_overloadable_index_write",
+                        );
+                    } else if let Some((field_hash, place_evidence)) =
+                        self.self_field_assignment_target(*target)
+                    {
+                        self.record_evidence_with_dependencies(
+                            EvidenceAnchor::node(span, kind),
+                            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash }),
+                            "effect_self_field_write",
+                            vec![place_evidence],
+                        );
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn node_is_java_this_var(&self, node: NodeId) -> bool {
+        self.lang == Lang::Java
+            && self.b.kind(node) == NodeKind::Var
+            && matches!(self.b.payload(node), Payload::Name(name) if self.interner.resolve(name) == "this")
+    }
+
+    fn self_receiver_evidence_id(&self, node: NodeId) -> Option<EvidenceId> {
+        if !self.node_is_java_this_var(node) {
+            return None;
+        }
+        let span = self.b.node(node).span;
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::node(span, NodeKind::Var)
+                && record.kind == EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver)
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
+    fn non_overloadable_index_assignment_target(&self, node: NodeId) -> bool {
+        matches!(self.lang, Lang::C | Lang::Go | Lang::Java) && self.b.kind(node) == NodeKind::Index
+    }
+
+    fn self_field_assignment_target(&self, node: NodeId) -> Option<(u64, EvidenceId)> {
+        if self.lang != Lang::Java || self.b.kind(node) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(field) = self.b.payload(node) else {
+            return None;
+        };
+        let span = self.b.node(node).span;
+        let field_hash = stable_symbol_hash(self.interner.resolve(field));
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::node(span, NodeKind::Field)
+                && record.kind == EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash })
+                && record.status == EvidenceStatus::Asserted)
+                .then_some((field_hash, record.id))
+        })
     }
 
     pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
@@ -1072,6 +1176,10 @@ mod tests {
         Span::new(FileId(0), 0, 1, 1, 1)
     }
 
+    fn sp_at(line: u32) -> Span {
+        Span::new(FileId(0), line, line + 1, line, line)
+    }
+
     #[test]
     fn import_lowering_emits_symbol_identity_evidence_for_aliases() {
         let interner = Interner::new();
@@ -1093,5 +1201,80 @@ mod tests {
             EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace { module_hash })
                 if module_hash == stable_symbol_hash("math")
         )));
+    }
+
+    #[test]
+    fn core_lowering_emits_effect_and_place_evidence() {
+        let interner = Interner::new();
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Java, &interner);
+
+        let receiver = lo.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("this")),
+            sp_at(1),
+            &[],
+        );
+        let field = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("value")),
+            sp_at(2),
+            &[receiver],
+        );
+        let value = lo.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("next")),
+            sp_at(3),
+            &[],
+        );
+        let assign = lo.add(NodeKind::Assign, Payload::None, sp_at(4), &[field, value]);
+        let index = lo.add(NodeKind::Index, Payload::None, sp_at(5), &[receiver, value]);
+        let index_assign = lo.add(NodeKind::Assign, Payload::None, sp_at(6), &[index, value]);
+        let append = lo.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp_at(7),
+            &[receiver, value],
+        );
+
+        let field_hash = stable_symbol_hash("value");
+        let self_receiver = lo
+            .evidence
+            .iter()
+            .find(|record| {
+                record.anchor == EvidenceAnchor::node(sp_at(1), NodeKind::Var)
+                    && record.kind == EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver)
+            })
+            .expect("Java this should emit self-receiver place evidence");
+        let self_field = lo
+            .evidence
+            .iter()
+            .find(|record| {
+                record.anchor == EvidenceAnchor::node(sp_at(2), NodeKind::Field)
+                    && record.kind
+                        == EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash })
+            })
+            .expect("Java this.field should emit self-field place evidence");
+        assert_eq!(self_field.dependencies, vec![self_receiver.id]);
+        let self_field_write = lo
+            .evidence
+            .iter()
+            .find(|record| {
+                record.anchor == EvidenceAnchor::node(sp_at(4), NodeKind::Assign)
+                    && record.kind
+                        == EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash })
+            })
+            .expect("Java this.field assignment should emit self-field write evidence");
+        assert_eq!(self_field_write.dependencies, vec![self_field.id]);
+        assert!(lo.evidence.iter().any(|record| {
+            record.anchor == EvidenceAnchor::node(sp_at(6), NodeKind::Assign)
+                && record.kind
+                    == EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite)
+        }));
+        assert!(lo.evidence.iter().any(|record| {
+            record.anchor == EvidenceAnchor::node(sp_at(7), NodeKind::Call)
+                && record.kind == EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall)
+        }));
+        assert_ne!(assign, index_assign);
+        assert_ne!(append, receiver);
     }
 }

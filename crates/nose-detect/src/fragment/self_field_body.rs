@@ -11,7 +11,7 @@ use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
 use nose_il::{Il, Interner, NodeId, NodeKind};
-use nose_semantics::{exact_java_return_this, exact_java_this_field, semantics};
+use nose_semantics::{exact_java_return_this, exact_self_field_write_assignment};
 
 pub(crate) fn recognize_self_field_body(
     il: &Il,
@@ -19,11 +19,7 @@ pub(crate) fn recognize_self_field_body(
     parents: &[Option<NodeId>],
     node: NodeId,
 ) -> Option<FragmentContract> {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Block
-    {
+    if il.kind(node) != NodeKind::Block {
         return None;
     }
     let func = parents.get(node.0 as usize).copied().flatten()?;
@@ -117,7 +113,7 @@ fn self_field_assign(
     effects: &mut Vec<EffectSite>,
 ) -> Option<()> {
     let kids = il.children(node);
-    if kids.len() != 2 || !exact_java_this_field(il, interner, kids[0]) {
+    if kids.len() != 2 || !exact_self_field_write_assignment(il, interner, node) {
         return None;
     }
     let place = super::recognize::resolve_place(il, interner, kids[0]);

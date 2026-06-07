@@ -94,8 +94,9 @@ name. Exact append fragments consume canonical `Builtin::Append` evidence:
 frontends and normalizers must first prove the language/library receiver or
 active-builder contract for the specific surface (`Array.push`, Python
 `list.append`, Java builder `add`, Rust builder `push`, etc.) and lower it to
-that canonical form. A raw selector-only call can still be compared under the
-separate opaque-call policy as `Other`, but it does not prove append semantics.
+that canonical form, or a pack/frontend must attach `Effect(BuilderAppendCall)`
+to the call. A raw selector-only call can still be compared under the separate
+opaque-call policy as `Other`, but it does not prove append semantics.
 
 A field write is the one case whose final-state slot is receiver-bearing, so a field write is
 exact-safe only when its receiver resolves to a proven place. This is exactly why a fixed
@@ -163,7 +164,7 @@ and adding it to that gate — it does **not** change production output.
 | `DirectReturn`, `DirectThrow` | yes — value/control sinks |
 | `IndexAssignEffect`, `SelfFieldAssign`, `ExprEffect` | yes — single-effect writes |
 | `LoopEffect` | yes — for-each iteration-dependent effect body |
-| `SelfFieldBody` | yes — fixed-`this` Java field-write body |
+| `SelfFieldBody` | yes — fixed self-field-write body |
 | `ConditionalGuard` | yes — recursive branch admissibility matrix |
 
 `LoopEffect` is the first multi-statement-body migration: its independent recognizer lives in
@@ -173,19 +174,21 @@ binding-aware free-input + multi-statement-lowering substrate, with no reuse of 
 acceptance helpers.
 
 `SelfFieldBody` is the only migrated shape whose acceptance boundary intentionally bypasses
-the shared top-level context gate: it proves self-containment through fixed Java `this` field
-writes, allows conditional `this.field = ...` statements, and permits a terminal
-`return this`. That bypass is scoped to this kind only.
+the shared top-level context gate: it proves self-containment through fixed self-field
+writes, allows conditional self-field statements, and permits a terminal `return this` in
+the current first-party Java compatibility path. The evidence path requires matching
+`Effect(SelfFieldWrite)` plus `Place(SelfField)`/`Place(SelfReceiver)` proof. That bypass is
+scoped to this kind only.
 
 `ConditionalGuard` re-expresses the full recursive branch admissibility matrix on the
 contract path: empty branches, direct return/throw/effect branches, branch-local temp
 consumption, bounded ordered effect sequences, loop-effect branches, conditional direct-effect
 branches, and nested conditional guards. After that migration base, `ConditionalGuard` also
-admits a narrow ordered Java self-field branch body: exactly two or three
-`this.field = ...` assignments. The invariant is the same as `SelfFieldAssign` and
-`SelfFieldBody`: every field write resolves to a proven `Place::This` field path, and the
-oracle observes the final field-state map. A sibling branch containing `other.field = ...`
-or an implicit field/local assignment stays rejected because receiver identity is not proven.
+admits a narrow ordered self-field branch body: exactly two or three fixed self-field
+assignments. The invariant is the same as `SelfFieldAssign` and `SelfFieldBody`: every field
+write resolves to a proven `Place::This` field path, and the oracle observes the final
+field-state map. A sibling branch containing `other.field = ...` or an implicit field/local
+assignment stays rejected because receiver identity is not proven.
 The interim "branch-local temp", "ordered multi-effect", and ordered self-field branch
 shapes remain proof mechanisms *inside* existing kinds, not new `FragmentKind` variants or
 reason codes.

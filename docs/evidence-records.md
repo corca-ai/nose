@@ -13,8 +13,8 @@ can satisfy an exact-channel precondition.
 
 ## Goal
 
-- Give source, domain, import, symbol-identity, guard, and sequence-surface proof
-  facts one shared shape.
+- Give source, domain, import, symbol-identity, guard, place/effect, and
+  sequence-surface proof facts one shared shape.
 - Make facts carry stable ids, anchors, provenance, dependencies, and status.
 - Keep exact matching fail-closed when evidence is missing, ambiguous, or
   conflicting.
@@ -35,8 +35,8 @@ can satisfy an exact-channel precondition.
   helpers.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
-- Do not model place/effect/demand evidence completely in this slice. Those are
-  next consumers of the same record substrate.
+- Do not model demand evidence or every place/effect family in this slice. The
+  current place/effect records cover the first exact-fragment substrate only.
 
 ## Record Shape
 
@@ -61,6 +61,8 @@ The current implemented kinds are:
 | `Import` | static import binding/namespace proof and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
+| `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
+| `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApiContract` is deliberately not listed here yet. It is currently an
@@ -124,6 +126,17 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
 
+Place and effect evidence are also authoritative where present. For example,
+raw method selectors such as `push`, `append`, or `add` do not prove an append
+effect; a consumer needs `Effect(BuilderAppendCall)` or the legacy canonical
+`Builtin::Append` compatibility path when no effect evidence exists. Likewise,
+non-overloadable index writes and fixed self-field writes are admitted through
+`Effect` records, with `Place(SelfReceiver)` and `Place(SelfField)` proving the
+receiver/place side. First-party `Place(SelfField)` depends on the matching
+`Place(SelfReceiver)`, and `Effect(SelfFieldWrite)` depends on the matching
+`Place(SelfField)`. Conflicting or ambiguous place/effect evidence blocks the
+legacy language-gated fallback.
+
 ## Current Producers
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
@@ -147,14 +160,21 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   null/truthiness clause kind, whether JS loose equality was admitted, and
   asserted dependencies for the required `Array.isArray` API proof plus optional
   `Boolean` proof;
+- first-party lowering emits `Place(SelfReceiver)` for Java `this`,
+  `Place(SelfField)` for Java `this.field`, `Effect(SelfFieldWrite)` for Java
+  `this.field = ...`, `Effect(NonOverloadableIndexWrite)` for C/Go/Java index
+  writes, and `Effect(BuilderAppendCall)` for canonical `Builtin::Append`.
+  Self-field place/write evidence records include dependencies that link the
+  write proof back to the receiver proof;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
   literal and Go map-entry surfaces where those tags carry first-party meaning.
 
 The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
 compatibility mirrors. First-party JS/TS record-shape guards now have dedicated
-guard evidence, but broader guard families, richer source-clause dependencies,
-and general evidence validation remain open. These mirrors are not the desired
-pack boundary.
+guard evidence, and exact-fragment append/index/self-field gates now have the
+first place/effect evidence substrate. Broader guard families, richer
+source-clause dependencies, richer receiver/place families, and general evidence
+validation remain open. These mirrors are not the desired pack boundary.
 
 ## Current Consumers
 
@@ -201,9 +221,13 @@ callers:
   dedicated guard helper instead. Go zero-map literal lookup also requires
   `SequenceSurface(GoCompositeMapLiteral)` and `SequenceSurface(GoMapEntry)`,
   so `composite_literal`/`keyed_element` tag spelling alone no longer admits the
-  exact map-default path.
+  exact map-default path;
+- exact-fragment append, non-overloadable index-write, and self-field-write
+  gates now consult `Effect`/`Place` evidence first, falling back to the legacy
+  language-gated helper only when no relevant evidence record exists. Ambiguous
+  or conflicting evidence keeps the exact path closed.
 
-Field/place/effect facts, receiver/protocol evidence beyond parameter domains,
-full scope-resolution and namespace-member evidence, broader guard evidence,
-general cross-module dependency manifests, report-level provenance, and external
-manifest loading are still open work.
+Broader field/place/effect facts, receiver/protocol evidence beyond parameter
+domains, full scope-resolution and namespace-member evidence, broader guard
+evidence, general cross-module dependency manifests, report-level provenance,
+and external manifest loading are still open work.

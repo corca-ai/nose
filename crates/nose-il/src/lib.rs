@@ -21,12 +21,12 @@ pub use ident::{
 };
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
-    Builtin, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
-    EvidenceProvenance, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind,
+    Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
+    EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind,
     ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LitClass, LoopKind, Node,
-    NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, SequenceSurfaceKind,
-    SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
-    SymbolEvidenceKind,
+    NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind,
+    SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind,
+    SourceOperatorKind, SymbolEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 
@@ -198,6 +198,28 @@ impl IlBuilder {
     /// Number of nodes allocated so far.
     pub fn len(&self) -> usize {
         self.nodes.len()
+    }
+
+    #[inline]
+    pub fn node(&self, id: NodeId) -> &Node {
+        &self.nodes[id.0 as usize]
+    }
+
+    #[inline]
+    pub fn kind(&self, id: NodeId) -> NodeKind {
+        self.node(id).kind
+    }
+
+    #[inline]
+    pub fn payload(&self, id: NodeId) -> Payload {
+        self.node(id).payload
+    }
+
+    #[inline]
+    pub fn children(&self, id: NodeId) -> &[NodeId] {
+        let n = self.node(id);
+        let s = n.child_start as usize;
+        &self.edges[s..s + n.child_len as usize]
     }
 
     pub fn is_empty(&self) -> bool {

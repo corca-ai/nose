@@ -151,6 +151,14 @@ migrated.
   but not `b.x`, and final field-write sinks preserve the receiver identity.
   Same-unit value-graph readback uses syntactic receiver/place evidence only; it
   does not assume aliasing or computed call-result receivers.
+- Exact-fragment place/effect gates now have the first pack-facing evidence
+  substrate. First-party lowering emits `Place(SelfReceiver)` and
+  `Place(SelfField)` for Java `this`/`this.field`, plus `Effect` evidence for
+  canonical builder append calls, C/Go/Java non-overloadable index writes, and
+  Java self-field writes. Fragment recognizers consume these records first and
+  use legacy language gates only when no relevant place/effect evidence exists.
+  Self-field place/write records depend on the matching receiver/place records,
+  and conflicting or ambiguous place/effect evidence closes the exact path.
 - `SeqSurfaceContract` now centralizes first-party lowered sequence tags and
   keeps separate axes for exact-tree safety, membership-collection admission,
   map-entry-list admission, imported-literal eligibility, and value-graph
@@ -398,7 +406,8 @@ until packs can emit the missing facts.
 
 The first high-value targets for semantic-kernel extraction are:
 
-- pack-facing field/place evidence for all field reads and writes, building on
+- broader pack-facing field/place/effect evidence for all field reads and
+  writes, building on the initial append/index/self-field effect substrate and
   the receiver-aware value-graph field state now used for same-unit caching;
 - full import/module fact migration to remove the remaining raw
   `Seq("import_binding")` and `Seq("import_namespace")` compatibility payloads;

@@ -362,6 +362,19 @@ pub enum GuardEvidenceKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum PlaceEvidenceKind {
+    SelfReceiver,
+    SelfField { field_hash: u64 },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum EffectEvidenceKind {
+    BuilderAppendCall,
+    NonOverloadableIndexWrite,
+    SelfFieldWrite { field_hash: u64 },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SequenceSurfaceKind {
     Untagged,
     Collection,
@@ -383,6 +396,8 @@ pub enum EvidenceKind {
     Import(ImportEvidenceKind),
     Symbol(SymbolEvidenceKind),
     Guard(GuardEvidenceKind),
+    Place(PlaceEvidenceKind),
+    Effect(EffectEvidenceKind),
     SequenceSurface(SequenceSurfaceKind),
 }
 
