@@ -228,17 +228,19 @@ migrated.
   shadowed constructor names remain exact-closed.
 - Static import proof facts now have a typed `ImportFactKind`/`ImportFact`
   facade in `nose-semantics`. First-party frontends emit import binding and
-  namespace facts through that contract, and imported literal replacement,
-  normalize idiom admission, value-graph import proof, and strict exact gates
-  parse import proof RHS nodes through the shared helper instead of local raw
-  tag checks.
+  namespace facts through that contract. Value-graph import identity consumes
+  sequence `Import` evidence into dedicated `ImportNamespace`/`ImportBinding`
+  value ops, so raw import `Seq` payloads can no longer become proof-bearing
+  value nodes by tag shape. Imported literal replacement still uses the typed
+  compatibility helper while raw IL mirrors remain.
 - Symbol identity evidence now covers static imported binding/namespace aliases
   and JS/TS static-global value occurrences such as `Math`, `console`, `Array`,
   `Map`, `Set`, and `undefined` when the frontend proves no local shadow.
   Normalize idiom admission, value-graph namespace fallbacks, and strict exact
-  gates consume `nose-semantics` symbol-proof helpers instead of each re-scanning
-  raw import assignment or global shadow shapes. Selected JS/TS qualified static
-  global paths now emit `QualifiedGlobal` evidence as well: `Object.hasOwn` and
+  gates consume `nose-semantics` symbol-proof helpers; imported binding/namespace
+  symbol helpers no longer fall back to raw import assignment RHS parsing.
+  Selected JS/TS qualified static global paths now emit `QualifiedGlobal`
+  evidence as well: `Object.hasOwn` and
   `Object.prototype.hasOwnProperty.call` gate own-property guards, while
   `Array.from` gates JS-like map-key iterator wrappers. This does not cover all
   qualified members or namespace exports.
@@ -271,9 +273,9 @@ Semantic knowledge still appears in several forms outside the facade:
   subject identity;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
-  `EvidenceRecord::Import`, and semantic interpretation flows through typed
-  `ImportFact` helpers in `nose-semantics`, but the raw IL storage shape has not
-  been removed;
+  `EvidenceRecord::Import`, and value-graph import identity is now evidence-only,
+  but the raw IL storage shape and some compatibility consumers have not been
+  removed;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts

@@ -7,11 +7,13 @@
 //! module-binding seed can reuse its mutation and canonicalization logic.
 
 use nose_il::{
-    stable_symbol_hash, Il, Interner, Node, NodeId, NodeKind, Payload, Span, Symbol, UnitKind,
+    stable_symbol_hash, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+    EvidenceProvenance, EvidenceRecord, EvidenceStatus, Il, ImportEvidenceKind, Interner, Node,
+    NodeId, NodeKind, Payload, Span, Symbol, SymbolEvidenceKind, UnitKind,
 };
 use nose_semantics::{
     import_fact_rhs, java_map_entry_contract, java_map_factory_contract, semantics, ImportFactKind,
-    ImportedMapFactoryContract, JavaMapFactoryKind,
+    ImportedMapFactoryContract, JavaMapFactoryKind, FIRST_PARTY_PACK_ID,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::path::Path;
@@ -73,6 +75,11 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         for (stmt, deps, snapshot) in file_replacements {
             for dep in deps {
                 let dep_stmt = append_snapshot(&mut files[file_idx], &dep);
+                mirror_import_fact_evidence_for_assignment(
+                    &mut files[file_idx],
+                    interner,
+                    dep_stmt,
+                );
                 prepend_root_statement(&mut files[file_idx], dep_stmt);
             }
             let rhs = append_snapshot(&mut files[file_idx], &snapshot);
@@ -686,6 +693,91 @@ fn replace_assignment_rhs(il: &mut Il, stmt: NodeId, rhs: NodeId) {
     }
 }
 
+fn mirror_import_fact_evidence_for_assignment(il: &mut Il, interner: &Interner, stmt: NodeId) {
+    if il.kind(stmt) != NodeKind::Assign {
+        return;
+    }
+    let kids = il.children(stmt);
+    let [lhs, rhs] = kids else {
+        return;
+    };
+    let local = match il.node(*lhs).payload {
+        Payload::Name(symbol) => Some(stable_symbol_hash(interner.resolve(symbol))),
+        Payload::Cid(cid) => il
+            .cid_names
+            .get(cid as usize)
+            .map(|&symbol| stable_symbol_hash(interner.resolve(symbol))),
+        _ => None,
+    };
+    let Some(local_hash) = local else {
+        return;
+    };
+    let Some(fact) = import_fact_rhs(il, interner, *rhs) else {
+        return;
+    };
+    let import_kind = match fact.kind {
+        ImportFactKind::Binding => {
+            let Some(exported_hash) = fact.exported_hash else {
+                return;
+            };
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: fact.module_hash,
+                exported_hash,
+            })
+        }
+        ImportFactKind::Namespace => EvidenceKind::Import(ImportEvidenceKind::Namespace {
+            module_hash: fact.module_hash,
+        }),
+    };
+    let symbol_kind = match fact.kind {
+        ImportFactKind::Binding => {
+            let Some(exported_hash) = fact.exported_hash else {
+                return;
+            };
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                module_hash: fact.module_hash,
+                exported_hash,
+            })
+        }
+        ImportFactKind::Namespace => EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+            module_hash: fact.module_hash,
+        }),
+    };
+    push_first_party_evidence(
+        il,
+        EvidenceAnchor::sequence(il.node(*rhs).span),
+        import_kind,
+        "module_import_snapshot_import",
+    );
+    push_first_party_evidence(
+        il,
+        EvidenceAnchor::binding(il.node(stmt).span, local_hash),
+        import_kind,
+        "module_import_snapshot_binding_import",
+    );
+    push_first_party_evidence(
+        il,
+        EvidenceAnchor::binding(il.node(stmt).span, local_hash),
+        symbol_kind,
+        "module_import_snapshot_symbol",
+    );
+}
+
+fn push_first_party_evidence(il: &mut Il, anchor: EvidenceAnchor, kind: EvidenceKind, rule: &str) {
+    il.evidence.push(EvidenceRecord {
+        id: EvidenceId(il.evidence.len() as u32),
+        anchor,
+        kind,
+        provenance: EvidenceProvenance {
+            emitter: EvidenceEmitter::FirstParty,
+            pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+            rule_hash: Some(stable_symbol_hash(rule)),
+        },
+        dependencies: Vec::new(),
+        status: EvidenceStatus::Asserted,
+    });
+}
+
 fn prepend_root_statement(il: &mut Il, stmt: NodeId) {
     let old_root = il.root;
     let old_root_node = *il.node(old_root);
@@ -762,5 +854,60 @@ mod tests {
             !binding_mutated(&il, &interner, lookup, assign),
             "read-only lookup methods should not block immutable import replacement"
         );
+    }
+
+    #[test]
+    fn import_snapshot_assignment_regenerates_import_and_symbol_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let span = Span::new(FileId(0), 0, 1, 1, 1);
+        let map = interner.intern("Map");
+        let lhs = b.add(NodeKind::Var, Payload::Name(map), span, &[]);
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("java.util")),
+            span,
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("Map")),
+            span,
+            &[],
+        );
+        let tag = interner.intern(nose_semantics::import_fact_tag(ImportFactKind::Binding));
+        let rhs = b.add(NodeKind::Seq, Payload::Name(tag), span, &[module, exported]);
+        let assign = b.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        let root = b.add(NodeKind::Module, Payload::None, span, &[assign]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "imported.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+
+        mirror_import_fact_evidence_for_assignment(&mut il, &interner, assign);
+
+        assert!(il.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash,
+                exported_hash,
+            }) if record.anchor == EvidenceAnchor::sequence(span)
+                && module_hash == stable_symbol_hash("java.util")
+                && exported_hash == stable_symbol_hash("Map")
+        )));
+        assert!(il.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                module_hash,
+                exported_hash,
+            }) if record.anchor == EvidenceAnchor::binding(span, stable_symbol_hash("Map"))
+                && module_hash == stable_symbol_hash("java.util")
+                && exported_hash == stable_symbol_hash("Map")
+        )));
     }
 }
