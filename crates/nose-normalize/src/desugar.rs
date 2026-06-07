@@ -14,7 +14,7 @@
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
-use nose_semantics::{domain_evidence_from_param_semantic, DomainEvidence};
+use nose_semantics::{domain_evidence_from_param_semantic, seq_surface_contract, DomainEvidence};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -266,10 +266,22 @@ impl Rebuilder<'_> {
 }
 
 fn property_receiver_exact_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    il.kind(node) == NodeKind::Seq
+    seq_receiver_exact_collection_safe(il, interner, node)
         || domain_evidence_for_var(il, node).is_some_and(DomainEvidence::is_array_or_collection)
         || property_receiver_exact_hof_node(il, interner, node)
         || property_receiver_exact_hof_call(il, interner, node)
+}
+
+fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    let tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
+    };
+    seq_surface_contract(il.meta.lang, tag).is_some_and(|contract| contract.membership_collection)
 }
 
 fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {

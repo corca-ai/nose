@@ -736,7 +736,7 @@ fn lower_empty_java_collection_constructor(
     if uses_simple_type {
         let root = java_root(node);
         if contract.requires_import_for_simple_type
-            && !java_tree_imports_type(lo, root, contract.module, contract.simple_type)
+            && !java_tree_resolves_simple_type(lo, root, contract.module, contract.simple_type)
         {
             return None;
         }
@@ -770,19 +770,64 @@ fn java_root(mut node: TsNode) -> TsNode {
     node
 }
 
-fn java_tree_imports_type(lo: &Lowering, node: TsNode, module: &str, simple_type: &str) -> bool {
+fn java_tree_resolves_simple_type(
+    lo: &Lowering,
+    node: TsNode,
+    module: &str,
+    simple_type: &str,
+) -> bool {
+    let mut saw_wildcard = false;
+    let mut saw_exact = false;
+    let mut saw_conflict = false;
+    java_tree_import_resolution(
+        lo,
+        node,
+        module,
+        simple_type,
+        &mut saw_wildcard,
+        &mut saw_exact,
+        &mut saw_conflict,
+    );
+    (saw_exact || saw_wildcard) && !saw_conflict
+}
+
+fn java_tree_import_resolution(
+    lo: &Lowering,
+    node: TsNode,
+    module: &str,
+    simple_type: &str,
+    saw_wildcard: &mut bool,
+    saw_exact: &mut bool,
+    saw_conflict: &mut bool,
+) {
     if node.kind() == "import_declaration" {
         let compact: String = lo
             .text(node)
             .chars()
             .filter(|c| !c.is_whitespace())
             .collect();
-        return compact == format!("import{module}.{simple_type};")
-            || compact == format!("import{module}.*;");
+        let exact = format!("import{module}.{simple_type};");
+        let wildcard = format!("import{module}.*;");
+        if compact == exact {
+            *saw_exact = true;
+        } else if compact == wildcard {
+            *saw_wildcard = true;
+        } else if compact.starts_with("import") && compact.ends_with(&format!(".{simple_type};")) {
+            *saw_conflict = true;
+        }
+        return;
     }
-    Lowering::named_children(node)
-        .into_iter()
-        .any(|child| java_tree_imports_type(lo, child, module, simple_type))
+    for child in Lowering::named_children(node) {
+        java_tree_import_resolution(
+            lo,
+            child,
+            module,
+            simple_type,
+            saw_wildcard,
+            saw_exact,
+            saw_conflict,
+        );
+    }
 }
 
 fn java_tree_declares_type(lo: &Lowering, node: TsNode, simple_type: &str) -> bool {

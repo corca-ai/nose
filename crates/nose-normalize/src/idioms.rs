@@ -12,8 +12,9 @@ use nose_semantics::{
     domain_evidence_from_param_semantic, free_function_builtin_contract,
     iterator_identity_adapter_contract, map_get_contract, map_key_view_contract,
     method_call_contract, method_hof_contract, rust_option_some_constructor_contract,
-    static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
-    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    seq_surface_contract, static_collection_adapter_contract, BuiltinArgContract, DomainEvidence,
+    MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
+    MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -627,14 +628,12 @@ fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool
     if old.kind(node) != NodeKind::Seq {
         return false;
     }
-    match old.node(node).payload {
-        Payload::None => true,
-        Payload::Name(name) => matches!(
-            interner.resolve(name),
-            "array" | "array_expression" | "list" | "tuple" | "tuple_expression"
-        ),
-        _ => false,
-    }
+    let tag = match old.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
+    };
+    seq_surface_contract(old.meta.lang, tag).is_some_and(|contract| contract.membership_collection)
 }
 
 fn exact_option_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -1071,7 +1070,12 @@ mod tests {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let receiver = if literal_receiver {
-            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+            b.add(
+                NodeKind::Seq,
+                Payload::Name(interner.intern("array")),
+                sp(),
+                &[],
+            )
         } else {
             b.add(
                 NodeKind::Var,
@@ -1114,7 +1118,12 @@ mod tests {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let receiver = if literal_receiver {
-            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+            b.add(
+                NodeKind::Seq,
+                Payload::Name(interner.intern("array")),
+                sp(),
+                &[],
+            )
         } else {
             b.add(
                 NodeKind::Var,
@@ -1152,7 +1161,12 @@ mod tests {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let receiver = if literal_receiver {
-            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+            b.add(
+                NodeKind::Seq,
+                Payload::Name(interner.intern("array")),
+                sp(),
+                &[],
+            )
         } else {
             b.add(
                 NodeKind::Var,
@@ -1168,7 +1182,12 @@ mod tests {
             &[receiver],
         );
         let arg = if literal_arg {
-            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+            b.add(
+                NodeKind::Seq,
+                Payload::Name(interner.intern("array")),
+                sp(),
+                &[],
+            )
         } else {
             b.add(
                 NodeKind::Var,

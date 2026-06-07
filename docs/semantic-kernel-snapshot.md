@@ -4,8 +4,9 @@ Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
 
-Snapshot date: 2026-06-07, current `main` after the semantic-kernel foundation
-and proof-gated exact-scan follow-up landed in PR #100 and PR #101.
+Snapshot date: 2026-06-07, current implementation after the semantic-kernel
+foundation and follow-up facade migrations through receiver-aware field state
+and sequence-surface contracts.
 
 ## What exists today
 
@@ -54,7 +55,7 @@ migrated.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
-  value.
+  value. JS object `.length` remains a property read, not collection cardinality.
 - Promise `.then` has a JS-like surface contract, but exact beta-reduction is
   closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
@@ -80,8 +81,9 @@ migrated.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` only for the Java `java.util` list types. Simple names
   require `java.util` import proof and no local type declaration with the same
-  simple name; fully-qualified `java.util.*List` names carry the namespace proof
-  in the selector itself.
+  simple name. A `java.util.*` wildcard import is not enough when another
+  package explicitly imports the same simple type; fully-qualified
+  `java.util.*List` names carry the namespace proof in the selector itself.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
@@ -91,6 +93,17 @@ migrated.
 - Value-graph and oracle same-unit field state are receiver-aware: a cached write
   is keyed by receiver/place plus field name, so `a.x = v` can satisfy `a.x`
   but not `b.x`, and final field-write sinks preserve the receiver identity.
+  Same-unit value-graph readback uses syntactic receiver/place evidence only; it
+  does not assume aliasing or computed call-result receivers.
+- `SeqSurfaceContract` now centralizes first-party lowered sequence tags and
+  keeps separate axes for exact-tree safety, membership-collection admission,
+  map-entry-list admission, imported-literal eligibility, and value-graph
+  canonical tags. Strict exact gates, value-graph sequence lowering, and
+  sibling-module literal export checks consume this contract instead of local
+  string allowlists. Untagged `Seq` remains an internal grouping surface and
+  does not itself prove exact collection semantics; the older Python empty
+  sequence collection case is handled only by the explicit collection profile
+  path.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
@@ -151,8 +164,16 @@ migrated.
   without admitting shadowed `undefined` bindings.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
-  payload classes. The value graph still constructs the canonical default value,
-  and detect still checks exact-safe keys and entries.
+  payload classes. Go `composite_literal` no longer falls back to a generic
+  collection sequence tag; it is consumed only by the Go map contract or left as
+  a distinct surface.
+- Static JS-like `indexOf`/`findIndex` membership requires a receiver whose
+  sequence surface has membership-collection admission. Untagged sequence
+  expressions, destructuring surfaces, and other positional groupings do not
+  become static array membership merely because their children are literals.
+- JS/TS object literals preserve static property keys in exact map/object
+  semantics, but computed property names are exact-closed until a future
+  contract can prove key evaluation, coercion, order, and side-effect behavior.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
 
@@ -164,6 +185,9 @@ Semantic knowledge still appears in several forms outside the facade:
   rules that have not yet been expressed as shared contracts;
 - language-specific import or module proof mechanics that are still local to
   frontend, normalize, or detect callers;
+- raw IL `Seq("import_binding")` / `Seq("import_namespace")` payloads still carry
+  import facts. They pass through the surface contract now, but they are not yet
+  typed `ImportFact` records shared by frontend, normalize, detect, and idioms;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -240,6 +264,11 @@ The first high-value targets for semantic-kernel extraction are:
 
 - pack-facing field/place evidence for all field reads and writes, building on
   the receiver-aware value-graph field state now used for same-unit caching;
+- typed import/module facts to replace raw `Seq("import_binding")` and
+  `Seq("import_namespace")` payload parsing across frontend, normalize, detect,
+  and idiom lowering;
+- pack-facing sequence/aggregate surface records to replace the current compiled
+  `SeqSurfaceContract` facade and private value-graph `Seq` tag registry;
 - constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
   closed contracts waiting on construct-vs-call proof;
 - regex literal provenance for JS/TS `.test(...)`;
