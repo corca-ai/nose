@@ -147,6 +147,9 @@ claim is weaker than `semantic`: it reports a refactoring-template witness with 
 typed hole and caveats such as `numeric-domain-sensitive`; it does not say the two
 copies are behavior-equivalent. Use `--format json --top 0` to consume the
 `abstraction_witness` field documented in [scan-json](scan-json.md#abstraction-witnesses).
+When `near:T` and `abstraction:T` are combined in one scan, they share one fuzzy
+acceptance threshold; giving different inline values is rejected instead of silently
+choosing the last one.
 
 The `syntax` channel is the CPD floor: it finds same-language duplicated token runs even
 when they start or end in the middle of a function. The normalized unit channels

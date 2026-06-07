@@ -141,6 +141,7 @@ fn options_signature(opts: &DetectOptions) -> u64 {
         opts.dce as u64,
         opts.minhash_k as u64,
         opts.shape_features as u64,
+        opts.abstraction_witnesses as u64,
     ] {
         h = crate::fnv::mix(h, v);
     }

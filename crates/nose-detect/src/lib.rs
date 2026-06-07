@@ -793,7 +793,10 @@ pub fn units_of_file(il: &Il, interner: &Interner, opts: &DetectOptions) -> Vec<
         opts.min_lines,
         opts.min_tokens,
         opts.block_units,
-        opts.shape_features,
+        units::ExtractFeatures {
+            shape_features: opts.shape_features,
+            abstraction_witnesses: opts.abstraction_witnesses,
+        },
     )
 }
 
@@ -828,7 +831,10 @@ pub fn detect_with_dump(
                     opts.min_lines,
                     opts.min_tokens,
                     opts.block_units,
-                    opts.shape_features,
+                    units::ExtractFeatures {
+                        shape_features: opts.shape_features,
+                        abstraction_witnesses: opts.abstraction_witnesses,
+                    },
                 )
             } else {
                 Vec::new()

@@ -133,8 +133,8 @@ enum Cmd {
         config: Option<PathBuf>,
         /// Detection channels to run. Omit for `syntax,semantic`. If present, this
         /// replaces the default; pass a comma-list or repeat it, e.g.
-        /// `--mode syntax,near` or `--mode syntax --mode semantic`. The `near` channel
-        /// takes an optional acceptance threshold inline: `--mode near:0.8` (default 0.70).
+        /// `--mode syntax,near` or `--mode syntax --mode semantic`. Fuzzy channels
+        /// take an optional acceptance threshold inline: `--mode near:0.8`.
         #[arg(
             long,
             value_delimiter = ',',
@@ -373,8 +373,9 @@ pub(crate) enum ReportFormat {
     Sarif,
 }
 
-/// One `--mode` channel. `near` carries its own acceptance threshold (`near:0.8`),
-/// so there is no separate `--threshold` flag to mis-combine.
+/// One `--mode` channel. Fuzzy modes carry their acceptance threshold inline
+/// (`near:0.8` / `abstraction:0.5`), so there is no separate `--threshold` flag
+/// to mis-combine.
 #[derive(Clone, Copy, PartialEq, serde::Deserialize)]
 #[serde(try_from = "String")]
 enum ScanMode {
@@ -416,7 +417,7 @@ impl std::str::FromStr for ScanMode {
                     Ok(ScanMode::Abstraction(Some(v)))
                 } else {
                     Err(format!(
-                        "unknown mode `{s}` (expected syntax, semantic, near, or near:T)"
+                        "unknown mode `{s}` (expected syntax, semantic, near, near:T, abstraction, or abstraction:T)"
                     ))
                 }
             }
@@ -448,7 +449,7 @@ struct ScanChannels {
     semantic: bool,
     near: bool,
     abstraction: bool,
-    /// The `near:T` threshold, if one was given in the mode spec.
+    /// The shared fuzzy acceptance threshold, if one was given in the mode spec.
     threshold: Option<f64>,
 }
 
@@ -474,22 +475,35 @@ impl ScanChannels {
                 ScanMode::Semantic => channels.semantic = true,
                 ScanMode::Near(t) => {
                     channels.near = true;
-                    if t.is_some() {
-                        channels.threshold = t;
-                    }
+                    channels.set_threshold("near", t)?;
                 }
                 ScanMode::Abstraction(t) => {
                     channels.abstraction = true;
-                    if t.is_some() {
-                        channels.threshold = t;
-                    }
+                    channels.set_threshold("abstraction", t)?;
                 }
             }
         }
         if !channels.syntax && !channels.semantic && !channels.near && !channels.abstraction {
-            anyhow::bail!("--mode must include at least one of syntax, semantic, or near");
+            anyhow::bail!(
+                "--mode must include at least one of syntax, semantic, near, or abstraction"
+            );
         }
         Ok(channels)
+    }
+
+    fn set_threshold(&mut self, mode: &'static str, threshold: Option<f64>) -> Result<()> {
+        let Some(next) = threshold else {
+            return Ok(());
+        };
+        if let Some(prev) = self.threshold {
+            if (prev - next).abs() > f64::EPSILON {
+                anyhow::bail!(
+                    "conflicting --mode thresholds: near and abstraction share one acceptance threshold; got {prev} and {mode}:{next}"
+                );
+            }
+        }
+        self.threshold = Some(next);
+        Ok(())
     }
 
     fn structural(self) -> bool {

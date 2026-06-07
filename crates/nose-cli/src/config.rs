@@ -5,7 +5,7 @@
 //! ```toml
 //! [scan]
 //! exclude = ["tests/**", "**/*.generated.ts", "vendor/**"]
-//! mode = ["syntax", "semantic", "near:0.8"] # near's threshold rides on the mode
+//! mode = ["syntax", "semantic", "near:0.8"] # fuzzy thresholds ride on the mode
 //! min-value = 200
 //! sort = "extractability"
 //! min-members = 3

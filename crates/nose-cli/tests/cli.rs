@@ -9366,6 +9366,10 @@ fn non_near_scan_modes_reject_similarity_thresholds() {
             stderr.contains("unknown mode"),
             "specific error explains the invalid threshold for {mode}: {stderr}"
         );
+        assert!(
+            stderr.contains("abstraction:T"),
+            "unknown-mode help should include the hidden abstraction threshold spelling: {stderr}"
+        );
     }
     let _ = fs::remove_dir_all(&dir);
 }
@@ -9414,6 +9418,55 @@ fn abstraction_scan_mode_accepts_similarity_threshold() {
         out.status.success(),
         "abstraction mode should accept inline abstraction:T thresholds: {}",
         String::from_utf8_lossy(&out.stderr)
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn combined_fuzzy_modes_accept_one_shared_threshold() {
+    let dir = make_mode_project("shared_threshold");
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--mode",
+            "near:0.5,abstraction:0.5",
+            "--min-size",
+            "12",
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("run nose");
+    assert!(
+        out.status.success(),
+        "near and abstraction should accept the same shared threshold: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn combined_fuzzy_modes_reject_conflicting_thresholds() {
+    let dir = make_mode_project("conflicting_thresholds");
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--mode",
+            "near:0.8,abstraction:0.5",
+        ])
+        .output()
+        .expect("run nose");
+    assert!(
+        !out.status.success(),
+        "conflicting near/abstraction thresholds should not silently overwrite each other"
+    );
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(
+        stderr.contains("conflicting --mode thresholds")
+            && stderr.contains("share one acceptance threshold"),
+        "error should explain the shared fuzzy threshold: {stderr}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

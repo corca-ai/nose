@@ -145,6 +145,23 @@ fn abstraction_literal(payload: Payload) -> Option<AbstractionLiteral> {
     }
 }
 
+fn abstraction_token(
+    il: &Il,
+    interner: &Interner,
+    nid: NodeId,
+    shape_tag: u64,
+) -> AbstractionToken {
+    let n = il.node(nid);
+    AbstractionToken {
+        kind: n.kind,
+        arity: il.children(nid).len().min(u16::MAX as usize) as u16,
+        shape_tag,
+        exact_tag: node_tag_valued(n.kind, n.payload, interner),
+        literal: abstraction_literal(n.payload),
+        line: n.span.start_line,
+    }
+}
+
 pub(crate) fn abstraction_witness(a: &UnitFeat, b: &UnitFeat) -> Option<crate::AbstractionWitness> {
     if a.lang != b.lang || a.kind != b.kind {
         return None;
@@ -549,6 +566,12 @@ struct UnitRoot {
     fragment_kind: Option<FragmentKind>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct ExtractFeatures {
+    pub(crate) shape_features: bool,
+    pub(crate) abstraction_witnesses: bool,
+}
+
 /// Extract all units of `il` passing the size gates, with features computed.
 pub(crate) fn extract(
     il: &Il,
@@ -557,7 +580,7 @@ pub(crate) fn extract(
     min_lines: u32,
     min_tokens: usize,
     block_units: bool,
-    shape_features: bool,
+    features: ExtractFeatures,
 ) -> Vec<UnitFeat> {
     // Frontend-tagged functions/methods/classes, and (when enabled) substantial
     // sub-function blocks (loops / ifs / try) plus exact-safe statement fragments.
@@ -697,22 +720,21 @@ pub(crate) fn extract(
             continue;
         }
         let feature_start = unit_timer.start();
-        let (shapes, shape_minhash, linear, abstraction_tokens) = if shape_features {
+        let (shapes, shape_minhash, linear, abstraction_tokens) = if features.shape_features {
             let mut shapes = Vec::with_capacity(pre.len());
             let mut linear = Vec::with_capacity(pre.len());
-            let mut abstraction_tokens = Vec::with_capacity(pre.len());
+            let mut abstraction_tokens = if features.abstraction_witnesses {
+                Vec::with_capacity(pre.len())
+            } else {
+                Vec::new()
+            };
             for &nid in &pre {
                 let n = il.node(nid);
                 let tag = node_tag(n.kind, n.payload, interner);
                 linear.push(tag);
-                abstraction_tokens.push(AbstractionToken {
-                    kind: n.kind,
-                    arity: il.children(nid).len().min(u16::MAX as usize) as u16,
-                    shape_tag: tag,
-                    exact_tag: node_tag_valued(n.kind, n.payload, interner),
-                    literal: abstraction_literal(n.payload),
-                    line: n.span.start_line,
-                });
+                if features.abstraction_witnesses {
+                    abstraction_tokens.push(abstraction_token(il, interner, nid, tag));
+                }
                 let mut shape = tag;
                 for &c in il.children(nid) {
                     let cn = il.node(c);
@@ -729,13 +751,23 @@ pub(crate) fn extract(
                 linear,
                 abstraction_tokens,
             )
+        } else if features.abstraction_witnesses {
+            let abstraction_tokens = pre
+                .iter()
+                .map(|&nid| {
+                    let n = il.node(nid);
+                    let tag = node_tag(n.kind, n.payload, interner);
+                    abstraction_token(il, interner, nid, tag)
+                })
+                .collect();
+            (Vec::new(), Vec::new(), Vec::new(), abstraction_tokens)
         } else {
             (Vec::new(), Vec::new(), Vec::new(), Vec::new())
         };
 
         // Candidate generation keys on the value graph when present (so clones
         // that converge only semantically still become candidates).
-        let minhash = if value.is_empty() && !shape_features {
+        let minhash = if value.is_empty() && !features.shape_features {
             Vec::new()
         } else {
             let mut distinct = if value.is_empty() {
@@ -4642,22 +4674,83 @@ mod tests {
         ));
     }
 
-    fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
+    fn lowered_java_unit_with_features(
+        src: &str,
+        interner: &Interner,
+        kind: UnitKind,
+        name: &str,
+        shape_features: bool,
+        abstraction_witnesses: bool,
+    ) -> UnitFeat {
         let raw =
             nose_frontend::lower_source(FileId(0), "T.java", src.as_bytes(), Lang::Java, interner)
                 .expect("lower Java source");
         let il =
             nose_normalize::normalize(&raw, interner, &nose_normalize::NormalizeOptions::default());
         let seeds = crate::minhash::seeds(64);
-        let units = extract(&il, interner, &seeds, 1, 1, true, false);
+        let units = extract(
+            &il,
+            interner,
+            &seeds,
+            1,
+            1,
+            true,
+            ExtractFeatures {
+                shape_features,
+                abstraction_witnesses,
+            },
+        );
         units
             .into_iter()
             .find(|unit| unit.kind == kind && unit.name.as_deref() == Some(name))
             .expect("requested Java unit")
     }
 
+    fn lowered_java_unit(src: &str, interner: &Interner, kind: UnitKind, name: &str) -> UnitFeat {
+        lowered_java_unit_with_features(src, interner, kind, name, false, false)
+    }
+
     fn lowered_java_method_unit(src: &str, interner: &Interner) -> UnitFeat {
         lowered_java_unit(src, interner, UnitKind::Method, "f")
+    }
+
+    #[test]
+    fn abstraction_tokens_do_not_depend_on_shape_features() {
+        let interner = Interner::new();
+        let left = lowered_java_unit_with_features(
+            "class Left { static int f() { return 1; } }\n",
+            &interner,
+            UnitKind::Method,
+            "f",
+            false,
+            true,
+        );
+        let right = lowered_java_unit_with_features(
+            "class Right { static int f() { return 2; } }\n",
+            &interner,
+            UnitKind::Method,
+            "f",
+            false,
+            true,
+        );
+
+        assert!(
+            left.shapes.is_empty(),
+            "shape features should stay disabled"
+        );
+        assert!(
+            left.linear.is_empty(),
+            "linear shape features should stay disabled"
+        );
+        assert!(
+            !left.abstraction_tokens.is_empty() && !right.abstraction_tokens.is_empty(),
+            "abstraction witnesses need their own tokens even when shape features are off"
+        );
+        let witness = abstraction_witness(&left, &right)
+            .expect("one changed integer literal should produce an abstraction witness");
+        assert_eq!(witness.reason_code, "literal-abstracted");
+        assert_eq!(witness.holes[0].left, "int-literal");
+        assert_eq!(witness.holes[0].right, "int-literal");
     }
 
     #[test]
