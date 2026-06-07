@@ -45,17 +45,33 @@ pub enum Value {
     Err,
 }
 
+/// A receiver identity proven by the IL shape during interpretation.
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub enum FieldPlace {
+    Name(i64),
+    Param(u32),
+    Field(Box<FieldPlace>, i64),
+    Index(Box<FieldPlace>, i64),
+}
+
+/// A concrete final field-state slot: receiver identity plus field name.
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+pub struct FieldKey {
+    pub receiver: FieldPlace,
+    pub field: i64,
+}
+
 /// The observable behavior of one run: the returned value, an ordered I/O effect trace
-/// (appended/printed values, in order — order IS observable), and the final per-field
-/// object state (`self.x = …`) as a name→value map in canonical name order. Field state
-/// is order-INSENSITIVE across distinct fields (writing two distinct fields commutes —
-/// the resulting object is identical) but reflects last-write-wins per field. Two units
-/// are behaviorally equal on an input iff all three components match.
+/// (appended/printed values, in order — order IS observable), and the final per-place
+/// object state (`self.x = …`) as a receiver+name→value map in canonical place order.
+/// Field state is order-INSENSITIVE across distinct places but reflects
+/// last-write-wins per receiver+field. Two units are behaviorally equal on an input iff
+/// all three components match.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Behavior {
     pub ret: Value,
     pub effects: Vec<Value>,
-    pub fields: Vec<(i64, Value)>,
+    pub fields: Vec<(FieldKey, Value)>,
 }
 
 /// Marker: the unit hit a construct the interpreter does not model. The whole unit is
@@ -85,7 +101,7 @@ struct Interp<'a> {
     il: &'a Il,
     steps: u64,
     effects: Vec<Value>,
-    fields: FxHashMap<i64, Value>,
+    fields: FxHashMap<FieldKey, Value>,
     /// Parameter cids — appending to one is a caller-visible mutation (an effect); appending
     /// to a LOCAL list var builds that list's value (faithful, converges with a comprehension).
     params: FxHashSet<u32>,
@@ -166,8 +182,8 @@ pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
         Ok(_) => Value::Null,
         Err(_) => return None,
     };
-    let mut fields: Vec<(i64, Value)> = it.fields.into_iter().collect();
-    fields.sort_by_key(|&(k, _)| k);
+    let mut fields: Vec<(FieldKey, Value)> = it.fields.into_iter().collect();
+    fields.sort_by(|(left, _), (right, _)| left.cmp(right));
     Some(Behavior {
         ret,
         effects: it.effects,
@@ -182,6 +198,47 @@ impl<'a> Interp<'a> {
             Err(Unsupported)
         } else {
             Ok(())
+        }
+    }
+
+    fn field_place(&self, node: NodeId) -> Option<FieldPlace> {
+        match self.il.kind(node) {
+            NodeKind::Var => match self.il.node(node).payload {
+                Payload::Cid(cid) => Some(FieldPlace::Param(cid)),
+                Payload::Name(name) => Some(FieldPlace::Name(nose_il::symbol_index(name) as i64)),
+                _ => None,
+            },
+            NodeKind::Field => {
+                let receiver = self.il.children(node).first().copied()?;
+                let receiver = self.field_place(receiver)?;
+                let Payload::Name(field) = self.il.node(node).payload else {
+                    return None;
+                };
+                Some(FieldPlace::Field(
+                    Box::new(receiver),
+                    nose_il::symbol_index(field) as i64,
+                ))
+            }
+            NodeKind::Index => {
+                let kids = self.il.children(node);
+                let receiver = kids.first().copied()?;
+                let receiver = self.field_place(receiver)?;
+                let key = kids
+                    .get(1)
+                    .and_then(|&key| self.field_place_key_hash(key))?;
+                Some(FieldPlace::Index(Box::new(receiver), key))
+            }
+            _ => None,
+        }
+    }
+
+    fn field_place_key_hash(&self, node: NodeId) -> Option<i64> {
+        match self.il.node(node).payload {
+            Payload::LitInt(value) => Some(value),
+            Payload::LitStr(hash) => Some(hash as i64),
+            Payload::Name(symbol) => Some(nose_il::symbol_index(symbol) as i64),
+            Payload::Cid(cid) if self.il.kind(node) == NodeKind::Var => Some(i64::from(cid)),
+            _ => None,
         }
     }
 
@@ -386,25 +443,28 @@ impl<'a> Interp<'a> {
                 }
                 Ok(false)
             }
-            // A store into a field/index is an effect; record *what* is written to as
-            // well as the value, so `self.a = x` and `self.b = x` (or `xs[i]=` vs
-            // `xs[j]=`) are distinguished — otherwise field-blindness conflates
-            // near-twin setters and pollutes the completeness signal with false leads.
-            // A field store updates per-field object state (last-write-wins), keyed by
-            // field name — NOT an ordered effect. Writing distinct fields commutes (same
-            // resulting object), so `self.a=x; self.b=y` and the swap are behaviorally
-            // equal; same-field overwrites keep the last value. (Previously pushed to the
-            // ordered effect trace, which wrongly made commuting field-write order
-            // observable — splitting equivalent constructors the value graph merges.)
+            // A field store updates per-place object state (last-write-wins), keyed by
+            // receiver identity plus field name. Writing distinct receiver+field places
+            // commutes; same-place overwrites keep the last value.
             NodeKind::Field => {
-                if let Some(&receiver) = self.il.children(target).first() {
-                    let receiver = self.eval(receiver, env)?;
-                    if matches!(receiver, Value::Err) {
-                        return Ok(true);
-                    }
+                let Some(&receiver) = self.il.children(target).first() else {
+                    return Err(Unsupported);
+                };
+                let receiver_value = self.eval(receiver, env)?;
+                if matches!(receiver_value, Value::Err) {
+                    return Ok(true);
                 }
                 if let Payload::Name(sym) = self.il.node(target).payload {
-                    self.fields.insert(nose_il::symbol_index(sym) as i64, val);
+                    let Some(receiver) = self.field_place(receiver) else {
+                        return Err(Unsupported);
+                    };
+                    self.fields.insert(
+                        FieldKey {
+                            receiver,
+                            field: nose_il::symbol_index(sym) as i64,
+                        },
+                        val,
+                    );
                     Ok(false)
                 } else {
                     Err(Unsupported)
@@ -527,18 +587,26 @@ impl<'a> Interp<'a> {
                 Ok(Value::List(out))
             }
             NodeKind::Field => {
-                if let Some(&receiver) = self.il.children(node).first() {
-                    let receiver = self.eval(receiver, env)?;
-                    if matches!(receiver, Value::Err) {
-                        return Ok(Value::Err);
-                    }
+                let Some(&receiver) = self.il.children(node).first() else {
+                    return Err(Unsupported);
+                };
+                let receiver_value = self.eval(receiver, env)?;
+                if matches!(receiver_value, Value::Err) {
+                    return Ok(Value::Err);
                 }
                 match n.payload {
-                    Payload::Name(sym) => self
-                        .fields
-                        .get(&(nose_il::symbol_index(sym) as i64))
-                        .cloned()
-                        .ok_or(Unsupported),
+                    Payload::Name(sym) => {
+                        let Some(receiver) = self.field_place(receiver) else {
+                            return Err(Unsupported);
+                        };
+                        self.fields
+                            .get(&FieldKey {
+                                receiver,
+                                field: nose_il::symbol_index(sym) as i64,
+                            })
+                            .cloned()
+                            .ok_or(Unsupported)
+                    }
                     _ => Err(Unsupported),
                 }
             }
@@ -1458,20 +1526,25 @@ mod tests {
         assert_eq!(run_throw_then_return(), Value::Err);
     }
 
-    fn run_field_write_read() -> (Behavior, i64) {
+    fn run_field_write_read() -> (Behavior, FieldKey) {
         let sp = Span::synthetic(FileId(0));
         let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
-        let base = b.add(NodeKind::Lit, Payload::Lit(LitClass::Null), sp, &[]);
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
         let field_name = interner.intern("x");
-        let field_key = nose_il::symbol_index(field_name) as i64;
+        let field_key = FieldKey {
+            receiver: FieldPlace::Param(0),
+            field: nose_il::symbol_index(field_name) as i64,
+        };
         let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
         let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
-        let read_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
+        let read_base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let read_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[read_base]);
         let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
         let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
         let il = b.finish(
             func,
             FileMeta {
@@ -1496,7 +1569,8 @@ mod tests {
         let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
         let field_name = interner.intern("x");
-        let base = b.add(NodeKind::Lit, Payload::Lit(LitClass::Null), sp, &[]);
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
         let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
         let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
@@ -1511,7 +1585,7 @@ mod tests {
         );
         let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
         let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[block]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
         let il = b.finish(
             func,
             FileMeta {
@@ -1566,6 +1640,63 @@ mod tests {
         let behavior = run_field_write_with_error_receiver();
         assert_eq!(behavior.ret, Value::Err);
         assert!(behavior.fields.is_empty());
+    }
+
+    fn run_receiver_field_writes(swapped: bool) -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let field_name = interner.intern("x");
+        let param_a = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+        let param_b = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
+        let a = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let b_var = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
+        let a_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[a]);
+        let b_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[b_var]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+        let (left_target, left_value, right_target, right_value) = if swapped {
+            (b_x, one, a_x, two)
+        } else {
+            (a_x, one, b_x, two)
+        };
+        let left = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp,
+            &[left_target, left_value],
+        );
+        let right = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp,
+            &[right_target, right_value],
+        );
+        let block = b.add(NodeKind::Block, Payload::None, sp, &[left, right]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            sp,
+            &[param_a, param_b, block],
+        );
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, func, &[]).expect("receiver field writes should interpret")
+    }
+
+    #[test]
+    fn field_state_preserves_receiver_identity() {
+        assert_ne!(
+            run_receiver_field_writes(false).fields,
+            run_receiver_field_writes(true).fields
+        );
     }
 
     fn run_try(body_stmt: NodeId, handler_stmt: NodeId, mut b: IlBuilder, sp: Span) -> Value {

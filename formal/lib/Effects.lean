@@ -3,7 +3,7 @@ Shared model for exact-fragment observable effects.
 
 This is a small Lean mirror of `fragment/contract.rs`: append/index effects are
 observed directly by the behavior trace, while field writes need a proven receiver
-place because the interpreter's field-state map is keyed by field name only.
+place because final field state is keyed by receiver+field place.
 -/
 
 namespace NoseFormal.Effects

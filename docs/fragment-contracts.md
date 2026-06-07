@@ -84,13 +84,13 @@ obligation — it does not treat every mutation as append-like:
 |---|---|---|
 | `Append` | ordered effect trace (the appended values, in order) | not required |
 | `IndexWrite` | ordered effect trace (key then value) | not required |
-| `FieldWrite` | field-state map, keyed by **field name only** | **required (proven place)** |
+| `FieldWrite` | final field-state map, keyed by **receiver+field place** | **required (proven place)** |
 | `Other` | established by running the fragment | — |
 
-A field write is the one case where the interpreter does **not** observe the receiver (the
-field-state map is keyed by name), so a field write is exact-safe only when its receiver is a
-proven place. This is exactly why a fixed `this` is the only admitted field receiver — not a
-special case, but a consequence of the algebra. The boundary is registered as
+A field write is the one case whose final-state slot is receiver-bearing, so a field write is
+exact-safe only when its receiver resolves to a proven place. This is exactly why a fixed
+`this` is the only admitted field receiver — not a special case, but a consequence of the
+algebra. The boundary is registered as
 [detect.fragment.effect_place](../formal/obligations/detect/fragment/effect_place/Proof.lean);
 free-input extraction and wrapper synthesis are tracked by
 [detect.fragment.free_inputs](../formal/obligations/detect/fragment/free_inputs/Proof.lean)

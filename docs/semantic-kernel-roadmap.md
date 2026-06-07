@@ -157,6 +157,10 @@ and pack ecosystem.
 - Imported immutable literal replacement and exact module-binding gates now share
   stronger mutation evidence for top-level place writes such as
   `LOOKUP[key] = value`, closing importer-side direct-write false exact cases.
+- Value-graph and oracle field state now preserve receiver+field identity instead
+  of caching by field name alone. Same-place readback and distinct-field
+  commutation remain open, while cross-receiver reads/writes with the same field
+  name stay exact-distinct.
 
 ## Phase 0: documentation and vocabulary (landed)
 

@@ -300,6 +300,12 @@ pub fn value_fingerprint_and_contracts(
 
 type ValueId = u32;
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct FieldStateKey {
+    receiver: ValueId,
+    field: u64,
+}
+
 #[derive(Clone, PartialEq, Eq, Hash)]
 enum ValOp {
     Input(u32),      // a parameter or free variable, keyed by canonical id
@@ -381,15 +387,14 @@ struct Builder<'a> {
     intern: FxHashMap<(ValOp, Vec<ValueId>), ValueId>,
     sinks: Vec<Sink>,
     opaque_ctr: u32,
-    /// Object field writes (`self.x = v`), keyed by field name → its CURRENT value
-    /// (last-write-wins). Flushed to sinks at the end as one (field, final-value) sink
-    /// each. This makes the fingerprint depend on the *final per-field state* — order-
-    /// insensitive across DISTINCT fields (so two constructors that assign the same
-    /// fields in swapped order converge, as they must: distinct field writes commute),
-    /// yet correct for same-field overwrites (`x=1;x=2` ≠ `x=2;x=1` — last value wins).
+    /// Object field writes (`self.x = v`), keyed by receiver identity plus field name → its
+    /// CURRENT value (last-write-wins). Flushed to sinks at the end as one
+    /// (receiver, field, final-value) sink each. This makes the fingerprint depend on the
+    /// final per-place state — order-insensitive across DISTINCT places, yet correct for
+    /// same-place overwrites (`x=1;x=2` ≠ `x=2;x=1` — last value wins).
     /// The old order-independent effect multiset got BOTH wrong (it split commuting
     /// swaps — false split vs the oracle — and merged same-field overwrites — unsound).
-    field_env: FxHashMap<u64, ValueId>,
+    field_env: FxHashMap<FieldStateKey, ValueId>,
     /// Lazily-computed subtree hash per IL node (kind + payload + children), used to
     /// key unlowered `Raw` constructs and lambda bodies by content. Computed once per
     /// graph (the whole-IL pass is O(n)); `None` until first needed.
@@ -616,13 +621,19 @@ impl<'a> Builder<'a> {
         }
     }
 
-    /// Flush accumulated object-field writes to sinks: one (field-name, final-value)
-    /// sink per distinct field, in canonical name order. See `field_env`.
+    /// Flush accumulated object-field writes to sinks: one (receiver, field-name,
+    /// final-value) sink per distinct place, in canonical place order. See `field_env`.
     fn flush_fields(&mut self) {
-        let mut entries: Vec<(u64, ValueId)> = self.field_env.drain().collect();
-        entries.sort_unstable_by_key(|(k, _)| *k);
-        for (name, v) in entries {
-            let f = self.mk(ValOp::Field(name), vec![v]);
+        let mut entries: Vec<(FieldStateKey, ValueId)> = self.field_env.drain().collect();
+        entries.sort_unstable_by_key(|(key, _)| {
+            (
+                self.vhash[key.receiver as usize],
+                key.field,
+                key.receiver as u64,
+            )
+        });
+        for (key, v) in entries {
+            let f = self.mk(ValOp::Field(key.field), vec![key.receiver, v]);
             self.sinks.push(Sink::new(SinkKind::Effect, f));
         }
     }
@@ -1881,6 +1892,24 @@ impl<'a> Builder<'a> {
     fn emit_throw(&mut self, v: ValueId) {
         let g = self.guarded(v);
         self.sinks.push(Sink::new(SinkKind::Throw, g));
+    }
+
+    fn field_state_key(
+        &mut self,
+        target: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<FieldStateKey> {
+        if self.il.kind(target) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(field) = self.il.node(target).payload else {
+            return None;
+        };
+        let receiver = self.il.children(target).first().copied()?;
+        Some(FieldStateKey {
+            receiver: self.eval(receiver, env),
+            field: self.interner.symbol_hash(field),
+        })
     }
 
     /// Tag a value with the current path condition: under branch conditions, the
@@ -4022,16 +4051,14 @@ impl<'a> Builder<'a> {
                             return;
                         }
                     }
-                    // A field write (`self.x = v`) updates per-field state (last-write-
-                    // wins), flushed as a (field, final-value) sink later — order-
-                    // insensitive across distinct fields, correct for overwrites.
-                    if self.il.kind(kids[0]) == NodeKind::Field {
-                        if let Payload::Name(s) = self.il.node(kids[0]).payload {
-                            let name = self.interner.symbol_hash(s);
-                            let g = self.guarded(rhs);
-                            self.field_env.insert(name, g);
-                            return;
-                        }
+                    // A field write (`self.x = v`) updates per-place state
+                    // (last-write-wins), flushed as a (receiver, field, final-value) sink
+                    // later — order-insensitive across distinct places, correct for
+                    // same-place overwrites.
+                    if let Some(key) = self.field_state_key(kids[0], env) {
+                        let g = self.guarded(rhs);
+                        self.field_env.insert(key, g);
+                        return;
                     }
                     // `d[k] = v` to an ACTIVE dict-builder records a `DictEntry` contribution
                     // (so the loop becomes a `Map` of entries, converging with `{k:v for x}`).
@@ -7288,8 +7315,14 @@ impl<'a> Builder<'a> {
                         }
                     }
                 }
-                if let Some(&written) = self.field_env.get(&name) {
-                    return written;
+                if a.len() == 1 {
+                    let key = FieldStateKey {
+                        receiver: a[0],
+                        field: name,
+                    };
+                    if let Some(&written) = self.field_env.get(&key) {
+                        return written;
+                    }
                 }
                 self.mk(ValOp::Field(name), a)
             }

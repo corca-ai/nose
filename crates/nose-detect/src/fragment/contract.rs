@@ -161,10 +161,10 @@ impl FragmentContract {
 ///   *ordered effect trace*: the written key/value is observable, so two fragments that
 ///   write different keys or values diverge in [`Behavior`](nose_normalize::Behavior)
 ///   without needing receiver-identity proof.
-/// - [`Effect::FieldWrite`] is recorded in the interpreter's *field-state map*, keyed by
-///   field name only — the receiver identity is **not** observed. A field write is
-///   therefore exact-safe only when its [`Place`] receiver is proven (fail-closed); this is
-///   why only a fixed `this` receiver is admitted today.
+/// - [`Effect::FieldWrite`] is recorded in the interpreter's final *field-state map*, keyed
+///   by receiver+field place. A field write is therefore exact-safe only when its
+///   [`Place`] receiver is proven (fail-closed); this is why only a fixed `this` receiver
+///   is admitted today.
 /// - [`Effect::Other`] is any other proven single effect (e.g. a generic effectful call
 ///   statement) whose observability the oracle establishes by running it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -173,8 +173,8 @@ pub enum Effect {
     Append,
     /// An index/key assignment `target[key] = value`; key and value are observable.
     IndexWrite,
-    /// A field assignment `receiver.field = value`; final per-field state, receiver
-    /// identity unobserved — requires a proven [`Place`].
+    /// A field assignment `receiver.field = value`; final per-place state, requiring a
+    /// proven [`Place`].
     FieldWrite,
     /// Any other single proven observable effect.
     Other,
@@ -182,8 +182,8 @@ pub enum Effect {
 
 impl Effect {
     /// Whether soundness for this effect requires the write target's [`Place`] to be a
-    /// proven (exact-safe) receiver. Only field writes do: the interpreter does not observe
-    /// the receiver of a field write, so an unproven receiver could falsely merge.
+    /// proven (exact-safe) receiver. Only field writes do: their final state is keyed by
+    /// receiver-bearing place, so an unproven receiver stays fail-closed.
     pub fn requires_proven_place(self) -> bool {
         matches!(self, Effect::FieldWrite)
     }

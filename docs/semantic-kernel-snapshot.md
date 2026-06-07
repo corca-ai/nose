@@ -88,6 +88,9 @@ migrated.
   non-overloadable C/Go/Java index assignment, and single-item builder append
   calls are now shared through `nose-semantics`; predicate and contract paths
   consume the same IL-level proof helpers.
+- Value-graph and oracle same-unit field state are receiver-aware: a cached write
+  is keyed by receiver/place plus field name, so `a.x = v` can satisfy `a.x`
+  but not `b.x`, and final field-write sinks preserve the receiver identity.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through exact protocol receiver contracts, not
   through a bare method-name check.
@@ -235,8 +238,8 @@ until packs can emit the missing facts.
 
 The first high-value targets for semantic-kernel extraction are:
 
-- field/place identity for field reads and writes, replacing field-name-only
-  state with receiver-aware proof;
+- pack-facing field/place evidence for all field reads and writes, building on
+  the receiver-aware value-graph field state now used for same-unit caching;
 - constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
   closed contracts waiting on construct-vs-call proof;
 - regex literal provenance for JS/TS `.test(...)`;

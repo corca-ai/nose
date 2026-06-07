@@ -365,6 +365,42 @@ fn fail_on_any_ignores_hidden_exact_fragments() {
 }
 
 #[test]
+fn scan_mode_semantic_rejects_cross_receiver_field_state() {
+    let dir = std::env::temp_dir().join(format!("nose_field_place_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("read_other.py"),
+        "def f(a, b):\n    a.x = 7\n    return b.x\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("read_written.py"),
+        "def f(a, b):\n    a.x = 7\n    return a.x\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+    ]));
+    assert!(
+        scan_families(&json).is_empty(),
+        "same-named fields on different receivers must not report as exact semantic clones: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_human_hides_generated_header_families() {
     let dir = make_generated_header_project("human");
 

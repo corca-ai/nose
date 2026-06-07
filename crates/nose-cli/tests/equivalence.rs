@@ -2928,10 +2928,36 @@ fn value_graph_reads_field_written_in_unit() {
     let i = Interner::new();
     let read_field = "def f(self):\n    self.x = 7\n    return self.x\n";
     let return_value = "def f(self):\n    self.x = 7\n    return 7\n";
+    let read_other_receiver = "def f(a, b):\n    a.x = 7\n    return b.x\n";
+    let read_written_receiver = "def f(a, b):\n    a.x = 7\n    return a.x\n";
     assert_eq!(
         value_fp(&i, read_field, Lang::Python),
         value_fp(&i, return_value, Lang::Python),
         "a field read after a same-unit field write should resolve to the written value"
+    );
+    assert_ne!(
+        value_fp(&i, read_other_receiver, Lang::Python),
+        value_fp(&i, read_written_receiver, Lang::Python),
+        "a same-named field write on one receiver must not satisfy a read on another receiver"
+    );
+}
+
+#[test]
+fn value_graph_field_state_is_receiver_aware() {
+    let i = Interner::new();
+    let same_receiver_order_a = "def f(self):\n    self.x = 1\n    self.y = 2\n";
+    let same_receiver_order_b = "def f(self):\n    self.y = 2\n    self.x = 1\n";
+    let crossed_receivers_a = "def f(a, b):\n    a.x = 1\n    b.x = 2\n";
+    let crossed_receivers_b = "def f(a, b):\n    b.x = 1\n    a.x = 2\n";
+    assert_eq!(
+        value_fp(&i, same_receiver_order_a, Lang::Python),
+        value_fp(&i, same_receiver_order_b, Lang::Python),
+        "final writes to distinct fields on the same receiver should still commute"
+    );
+    assert_ne!(
+        value_fp(&i, crossed_receivers_a, Lang::Python),
+        value_fp(&i, crossed_receivers_b, Lang::Python),
+        "same-named field writes on different receivers must preserve receiver identity"
     );
 }
 

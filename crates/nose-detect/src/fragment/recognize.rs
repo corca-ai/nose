@@ -127,9 +127,9 @@ fn recognize_assignment_effect(
         && exact_java_this_field(il, interner, target)
     {
         let place = resolve_place(il, interner, target);
-        // Field writes do not observe their receiver in the oracle (the field-state map is
-        // keyed by name only), so the write is exact-safe only with a proven receiver. The
-        // `this.field` recognizer guarantees this; assert the invariant fail-closed.
+        // Field-write final state is keyed by receiver+field place, so the write is exact-safe
+        // only with a proven receiver. The `this.field` recognizer guarantees this; assert the
+        // invariant fail-closed.
         debug_assert!(
             place.is_exact_safe(),
             "self-field write must resolve to a proven place, got {place:?}"
