@@ -77,6 +77,11 @@ migrated.
   `Map.entry`, and Ruby `require "set"; Set.new(...)`. Callers still prove the
   local import, require, shadowing, entry-shape, mutation, and exact-safety
   obligations.
+- Java empty collection constructor contracts cover `new ArrayList<>()` and
+  `new LinkedList<>()` only for the Java `java.util` list types. Simple names
+  require `java.util` import proof and no local type declaration with the same
+  simple name; fully-qualified `java.util.*List` names carry the namespace proof
+  in the selector itself.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
@@ -92,7 +97,10 @@ migrated.
 - Cross-file immutable import replacement now preserves import-binding
   dependencies used by the exported literal expression, so a Java static import
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
-  the importing file.
+  the importing file. Provider and importer module-binding mutation proof now
+  rejects direct binding mutations and direct place writes such as
+  `LOOKUP.clear()` and `LOOKUP[key] = value` before imported literal provenance
+  can enter exact matching.
 - Membership and map-key membership selectors now consume language-scoped method
   contracts before normalize/detect treat them as semantic containment. A method
   named `contains` is Java/Rust collection membership only; JavaScript
@@ -107,8 +115,10 @@ migrated.
   contract before it can feed exact membership.
 - Map lookup surfaces that return a value/option are now explicit contracts for
   Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
-  `dict.get(key, default)`, Ruby `fetch(key, default)`, and Java `getOrDefault`
-  still use the `GetOrDefault` method contract.
+  `dict.get(key, default)`, Java `getOrDefault`, and Ruby `fetch` still use the
+  `GetOrDefault` method contract. Ruby `fetch(key) { fallback }` carries a
+  separate zero-arg-lambda fallback argument contract, so block fallback demand
+  is not inferred from the selector name in normalize/detect.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
   contracts, including the static non-float literal collection requirement and
   accepted `-1`/`0` threshold comparisons. Callers still prove the receiver and

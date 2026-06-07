@@ -1469,7 +1469,10 @@ fn strict_exact_map_get_default_call_safe(
     };
     if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
         || contract.receiver != MethodReceiverContract::ExactMap
-        || contract.args != MethodBuiltinArgs::MapGetDefault
+        || !matches!(
+            contract.args,
+            MethodBuiltinArgs::MapGetDefault | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
+        )
     {
         return false;
     }
@@ -1479,7 +1482,60 @@ fn strict_exact_map_get_default_call_safe(
     (strict_exact_proven_map_receiver_safe(il, facts, receiver)
         || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
         || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
-        && strict_exact_call_args_safe(il, interner, facts, node)
+        && strict_exact_map_get_default_args_safe(il, interner, facts, node, contract.args)
+}
+
+fn strict_exact_map_get_default_args_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+    contract: MethodBuiltinArgs,
+) -> bool {
+    let kids = il.children(node);
+    let [_, key, default] = kids else {
+        return false;
+    };
+    strict_exact_safe_tree(il, interner, facts, *key)
+        && match contract {
+            MethodBuiltinArgs::MapGetDefault => {
+                strict_exact_safe_tree(il, interner, facts, *default)
+            }
+            MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda => {
+                strict_exact_map_default_value_arg_safe(il, interner, facts, *default)
+            }
+            _ => false,
+        }
+}
+
+fn strict_exact_map_default_value_arg_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    default: NodeId,
+) -> bool {
+    if il.kind(default) != NodeKind::Lambda {
+        return strict_exact_safe_tree(il, interner, facts, default);
+    }
+    let kids = il.children(default);
+    let [body] = kids else {
+        return false;
+    };
+    let value = implicit_single_value_body(il, *body).unwrap_or(*body);
+    strict_exact_safe_tree(il, interner, facts, value)
+}
+
+fn implicit_single_value_body(il: &Il, body: NodeId) -> Option<NodeId> {
+    if il.kind(body) != NodeKind::Block {
+        return None;
+    }
+    let [stmt] = il.children(body) else {
+        return None;
+    };
+    match il.kind(*stmt) {
+        NodeKind::ExprStmt | NodeKind::Return => il.children(*stmt).first().copied(),
+        _ => None,
+    }
 }
 
 fn strict_exact_iterator_identity_adapter_call_safe(

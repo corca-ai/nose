@@ -90,7 +90,7 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                     else {
                         return CallCanon::None;
                     };
-                    return apply_method_contract(old, interner, fname, contract, proven, args);
+                    return apply_method_contract(old, interner, contract, proven, args);
                 }
             }
         }
@@ -188,7 +188,6 @@ fn prove_method_receiver(
 fn apply_method_contract(
     old: &Il,
     interner: &Interner,
-    method: &str,
     contract: MethodCallContract,
     receiver: ProvenReceiver,
     args: &[NodeId],
@@ -271,7 +270,16 @@ fn apply_method_contract(
             let Some(base) = direct else {
                 return CallCanon::None;
             };
-            let fallback = if method == "fetch" && old.kind(args[1]) == NodeKind::Lambda {
+            CallCanon::Builtin {
+                op,
+                arg_olds: vec![base, args[0], args[1]],
+            }
+        }
+        MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda => {
+            let Some(base) = direct else {
+                return CallCanon::None;
+            };
+            let fallback = if old.kind(args[1]) == NodeKind::Lambda {
                 let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
                     return CallCanon::None;
                 };
@@ -1183,6 +1191,57 @@ mod tests {
         (il, interner, call)
     }
 
+    fn map_get_default_call_il(
+        lang: Lang,
+        method: &str,
+        default_lambda: bool,
+        lambda_param: bool,
+    ) -> (Il, Interner, NodeId, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("hash")),
+            sp(),
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            sp(),
+            &[receiver],
+        );
+        let key = b.add(NodeKind::Lit, Payload::LitStr(1), sp(), &[]);
+        let fallback_value = b.add(NodeKind::Lit, Payload::LitInt(0), sp(), &[]);
+        let fallback = if default_lambda {
+            if lambda_param {
+                let param = b.add(NodeKind::Param, Payload::Cid(0), sp(), &[]);
+                b.add(
+                    NodeKind::Lambda,
+                    Payload::None,
+                    sp(),
+                    &[param, fallback_value],
+                )
+            } else {
+                b.add(NodeKind::Lambda, Payload::None, sp(), &[fallback_value])
+            }
+        } else {
+            fallback_value
+        };
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, key, fallback]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, call, fallback_value)
+    }
+
     fn typed_method_call_il(
         lang: Lang,
         method: &str,
@@ -1382,6 +1441,39 @@ mod tests {
                 kind: HoFKind::Map,
                 ..
             }
+        ));
+    }
+
+    #[test]
+    fn map_get_default_lambda_fallback_is_contract_controlled() {
+        let (ruby, ruby_interner, ruby_call, ruby_fallback_value) =
+            map_get_default_call_il(Lang::Ruby, "fetch", true, false);
+        assert!(matches!(
+            canon_call(&ruby, &ruby_interner, ruby_call),
+            CallCanon::Builtin {
+                op: Builtin::GetOrDefault,
+                arg_olds
+            } if arg_olds.len() == 3 && arg_olds[2] == ruby_fallback_value
+        ));
+
+        let (ruby_param, ruby_param_interner, ruby_param_call, _) =
+            map_get_default_call_il(Lang::Ruby, "fetch", true, true);
+        assert!(
+            matches!(
+                canon_call(&ruby_param, &ruby_param_interner, ruby_param_call),
+                CallCanon::None
+            ),
+            "Ruby fetch block fallback must be zero-arg before exact canonicalization"
+        );
+
+        let (python, python_interner, python_call, python_fallback_value) =
+            map_get_default_call_il(Lang::Python, "get", true, false);
+        assert!(matches!(
+            canon_call(&python, &python_interner, python_call),
+            CallCanon::Builtin {
+                op: Builtin::GetOrDefault,
+                arg_olds
+            } if arg_olds.len() == 3 && arg_olds[2] != python_fallback_value
         ));
     }
 

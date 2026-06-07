@@ -115,16 +115,21 @@ pub(crate) fn collect_module_mutations_in_scope(
                     );
                 }
             }
-            NodeKind::Assign if !is_top_level.get(idx).copied().unwrap_or(false) => {
+            NodeKind::Assign => {
                 if let Some(lhs) = il.children(node_id).first().copied() {
-                    collect_unshadowed_node_symbols(
-                        il,
-                        lhs,
-                        candidates,
-                        &shadowed,
-                        local_scope,
-                        &mut mutated,
-                    );
+                    let direct_top_level_definition =
+                        is_top_level.get(idx).copied().unwrap_or(false)
+                            && assignment_name_in_scope(il, node_id, local_scope).is_some();
+                    if !direct_top_level_definition {
+                        collect_unshadowed_node_symbols(
+                            il,
+                            lhs,
+                            candidates,
+                            &shadowed,
+                            local_scope,
+                            &mut mutated,
+                        );
+                    }
                 }
             }
             _ => {}
@@ -377,5 +382,46 @@ mod tests {
         let mutated =
             collect_module_mutations(&fixture.il, &fixture.interner, &candidates, &is_top_level);
         assert!(mutated.contains(&fixture.arr));
+    }
+
+    #[test]
+    fn top_level_place_assignment_marks_module_binding_mutated() {
+        let interner = Interner::new();
+        let arr = interner.intern("arr");
+        let mut b = IlBuilder::new(FileId(0));
+        let arr_def = b.add(NodeKind::Var, Payload::Cid(0), sp(1), &[]);
+        let empty_array = b.add(NodeKind::Seq, Payload::None, sp(1), &[]);
+        let assign_arr = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(1),
+            &[arr_def, empty_array],
+        );
+
+        let arr_ref = b.add(NodeKind::Var, Payload::Name(arr), sp(2), &[]);
+        let index = b.add(NodeKind::Lit, Payload::LitInt(0), sp(2), &[]);
+        let place = b.add(NodeKind::Index, Payload::None, sp(2), &[arr_ref, index]);
+        let value = b.add(NodeKind::Lit, Payload::LitInt(9), sp(2), &[]);
+        let write = b.add(NodeKind::Assign, Payload::None, sp(2), &[place, value]);
+        let module = b.add(NodeKind::Module, Payload::None, sp(1), &[assign_arr, write]);
+        let il = b.finish(
+            module,
+            FileMeta {
+                path: "t.js".to_string(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            vec![arr],
+        );
+
+        let mut candidates = FxHashSet::default();
+        candidates.insert(arr);
+        let top_level = top_level_statements_for(&il);
+        let mut is_top_level = vec![false; il.nodes.len()];
+        for stmt in top_level {
+            is_top_level[stmt.0 as usize] = true;
+        }
+        let mutated = collect_module_mutations(&il, &interner, &candidates, &is_top_level);
+        assert!(mutated.contains(&arr));
     }
 }

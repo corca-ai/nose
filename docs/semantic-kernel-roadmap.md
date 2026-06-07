@@ -95,6 +95,10 @@ and pack ecosystem.
   behind shared `nose-semantics` contracts. Normalize, strict exact gates, and
   corpus import proof now consume the same selector source while keeping local
   import, require, shadow, mutation, and entry-shape proof at the caller.
+- Java empty `ArrayList`/`LinkedList` constructor lowering now consumes a
+  `java.util` constructor contract instead of a raw simple-name check. Simple
+  names need import proof and no local type shadow before they can seed exact
+  builder-loop equivalence.
 - Membership and map-key membership recognition now uses language-scoped method
   contracts before normalization or strict exact matching assigns containment
   semantics. This intentionally closes old name-only paths such as JavaScript
@@ -146,6 +150,13 @@ and pack ecosystem.
 - Value-graph two-argument free `min(...)`/`max(...)` now consumes the Python
   free-function builtin contract instead of the raw callee name, closing
   unqualified JS `min(...)` and local-shadowing false positives.
+- Ruby `fetch(key) { fallback }` map-default handling now consumes an explicit
+  zero-arg-lambda fallback argument contract, and Go `slices.Contains` value-graph
+  membership proof consumes the imported namespace carried by the method contract
+  instead of spelling the namespace locally.
+- Imported immutable literal replacement and exact module-binding gates now share
+  stronger mutation evidence for top-level place writes such as
+  `LOOKUP[key] = value`, closing importer-side direct-write false exact cases.
 
 ## Phase 0: documentation and vocabulary (landed)
 

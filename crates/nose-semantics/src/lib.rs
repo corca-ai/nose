@@ -648,6 +648,7 @@ pub enum MethodBuiltinArgs {
     FirstThenReceiver,
     GoSliceContains,
     MapGetDefault,
+    MapGetDefaultOrZeroArgLambda,
     RustMapGetOrOptionDefault,
     RustOptionDefaultLambda,
     RustOptionMapOrIdentity,
@@ -858,10 +859,15 @@ pub fn method_call_contract(
             Receiver::LiteralString,
             Args::ReceiverAndFirst,
         ),
-        (Lang::Python, "get", 2) | (Lang::Ruby, "fetch", 2) => (
+        (Lang::Python, "get", 2) => (
             Builtin::GetOrDefault,
             Receiver::ExactMap,
             Args::MapGetDefault,
+        ),
+        (Lang::Ruby, "fetch", 2) => (
+            Builtin::GetOrDefault,
+            Receiver::ExactMap,
+            Args::MapGetDefaultOrZeroArgLambda,
         ),
         (Lang::Java, "getOrDefault", 2) => (
             Builtin::GetOrDefault,
@@ -1136,6 +1142,48 @@ pub fn java_collection_factory_contract_by_hash(
         (stable_symbol_hash(method) == method_hash)
             .then(|| java_collection_factory_contract(lang, receiver, method))
             .flatten()
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum JavaCollectionConstructorKind {
+    EmptyList,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct JavaCollectionConstructorContract {
+    pub simple_type: &'static str,
+    pub qualified_type: &'static str,
+    pub module: &'static str,
+    pub kind: JavaCollectionConstructorKind,
+    pub requires_import_for_simple_type: bool,
+    pub requires_no_local_type_shadow: bool,
+}
+
+pub fn java_collection_constructor_contract(
+    lang: Lang,
+    type_name: &str,
+    arg_count: usize,
+) -> Option<JavaCollectionConstructorContract> {
+    if lang != Lang::Java || arg_count != 0 {
+        return None;
+    }
+    let simple_type = match type_name {
+        "ArrayList" | "java.util.ArrayList" => "ArrayList",
+        "LinkedList" | "java.util.LinkedList" => "LinkedList",
+        _ => return None,
+    };
+    Some(JavaCollectionConstructorContract {
+        simple_type,
+        qualified_type: match simple_type {
+            "ArrayList" => "java.util.ArrayList",
+            "LinkedList" => "java.util.LinkedList",
+            _ => return None,
+        },
+        module: "java.util",
+        kind: JavaCollectionConstructorKind::EmptyList,
+        requires_import_for_simple_type: true,
+        requires_no_local_type_shadow: true,
     })
 }
 
@@ -2259,6 +2307,14 @@ mod tests {
             })
         );
         assert_eq!(
+            method_call_contract(Lang::Go, "Contains", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Contains),
+                receiver: MethodReceiverContract::ImportedNamespace("slices"),
+                args: MethodBuiltinArgs::GoSliceContains,
+            })
+        );
+        assert_eq!(
             method_call_contract(Lang::Java, "abs", 1),
             Some(MethodCallContract {
                 semantic: MethodSemanticContract::Builtin(Builtin::Abs),
@@ -2305,6 +2361,22 @@ mod tests {
                 semantic: MethodSemanticContract::Builtin(Builtin::GetOrDefault),
                 receiver: MethodReceiverContract::ExactMap,
                 args: MethodBuiltinArgs::MapGetDefault,
+            })
+        );
+        assert_eq!(
+            method_call_contract(Lang::Python, "get", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::GetOrDefault),
+                receiver: MethodReceiverContract::ExactMap,
+                args: MethodBuiltinArgs::MapGetDefault,
+            })
+        );
+        assert_eq!(
+            method_call_contract(Lang::Ruby, "fetch", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::GetOrDefault),
+                receiver: MethodReceiverContract::ExactMap,
+                args: MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda,
             })
         );
         assert_eq!(method_call_contract(Lang::JavaScript, "abs", 0), None);
@@ -2490,6 +2562,30 @@ mod tests {
         );
         assert_eq!(
             java_collection_factory_contract(Lang::Java, "Map", "of"),
+            None
+        );
+        assert_eq!(
+            java_collection_constructor_contract(Lang::Java, "ArrayList", 0),
+            Some(JavaCollectionConstructorContract {
+                simple_type: "ArrayList",
+                qualified_type: "java.util.ArrayList",
+                module: "java.util",
+                kind: JavaCollectionConstructorKind::EmptyList,
+                requires_import_for_simple_type: true,
+                requires_no_local_type_shadow: true,
+            })
+        );
+        assert_eq!(
+            java_collection_constructor_contract(Lang::Java, "java.util.LinkedList", 0)
+                .map(|contract| contract.kind),
+            Some(JavaCollectionConstructorKind::EmptyList)
+        );
+        assert_eq!(
+            java_collection_constructor_contract(Lang::Java, "ArrayList", 1),
+            None
+        );
+        assert_eq!(
+            java_collection_constructor_contract(Lang::JavaScript, "ArrayList", 0),
             None
         );
         assert_eq!(

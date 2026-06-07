@@ -11,6 +11,7 @@ use nose_il::{
     FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
     Span, UnitKind,
 };
+use nose_semantics::{java_collection_constructor_contract, JavaCollectionConstructorKind};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
@@ -537,20 +538,9 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     kids.push(lower_expr(lo, a));
                 }
             }
-            // `new ArrayList<>()` / `new LinkedList<>()` with no args is an empty ordered list —
-            // model it as the empty `array` Seq (like `[]`) so a List builder loop
-            // (`out = new ArrayList<>(); for … out.add(e)`) converges with the comprehension /
-            // `.map` form. Scoped to List types (NOT Set/Map) so the builder's empty-Seq-seed
-            // requirement keeps `set.add` / `map.put` out of the Map-build recognition.
-            if kids.is_empty() {
-                if let Some(ty) = node.child_by_field_name("type") {
-                    let tn = lo.text(ty);
-                    let base = tn.split('<').next().unwrap_or(tn).trim();
-                    if matches!(base, "ArrayList" | "LinkedList") {
-                        let tag = lo.sym("array");
-                        return lo.add(NodeKind::Seq, Payload::Name(tag), span, &[]);
-                    }
-                }
+            if let Some(list) = lower_empty_java_collection_constructor(lo, node, kids.len(), span)
+            {
+                return list;
             }
             lo.add(NodeKind::Call, Payload::None, span, &kids)
         }
@@ -731,6 +721,87 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_empty_java_collection_constructor(
+    lo: &mut Lowering,
+    node: TsNode,
+    arg_count: usize,
+    span: Span,
+) -> Option<NodeId> {
+    let ty = node.child_by_field_name("type")?;
+    let type_name = java_constructor_type_name(lo.text(ty));
+    let contract = java_collection_constructor_contract(lo.lang, &type_name, arg_count)?;
+    let uses_simple_type = type_name == contract.simple_type;
+    if uses_simple_type {
+        let root = java_root(node);
+        if contract.requires_import_for_simple_type
+            && !java_tree_imports_type(lo, root, contract.module, contract.simple_type)
+        {
+            return None;
+        }
+        if contract.requires_no_local_type_shadow
+            && java_tree_declares_type(lo, root, contract.simple_type)
+        {
+            return None;
+        }
+    }
+    match contract.kind {
+        JavaCollectionConstructorKind::EmptyList => {
+            let tag = lo.sym("array");
+            Some(lo.add(NodeKind::Seq, Payload::Name(tag), span, &[]))
+        }
+    }
+}
+
+fn java_constructor_type_name(text: &str) -> String {
+    text.split('<')
+        .next()
+        .unwrap_or(text)
+        .chars()
+        .filter(|c| !c.is_whitespace())
+        .collect()
+}
+
+fn java_root(mut node: TsNode) -> TsNode {
+    while let Some(parent) = node.parent() {
+        node = parent;
+    }
+    node
+}
+
+fn java_tree_imports_type(lo: &Lowering, node: TsNode, module: &str, simple_type: &str) -> bool {
+    if node.kind() == "import_declaration" {
+        let compact: String = lo
+            .text(node)
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
+        return compact == format!("import{module}.{simple_type};")
+            || compact == format!("import{module}.*;");
+    }
+    Lowering::named_children(node)
+        .into_iter()
+        .any(|child| java_tree_imports_type(lo, child, module, simple_type))
+}
+
+fn java_tree_declares_type(lo: &Lowering, node: TsNode, simple_type: &str) -> bool {
+    if matches!(
+        node.kind(),
+        "class_declaration"
+            | "interface_declaration"
+            | "enum_declaration"
+            | "record_declaration"
+            | "annotation_type_declaration"
+    ) && node
+        .child_by_field_name("name")
+        .is_some_and(|name| lo.text(name) == simple_type)
+    {
+        return true;
+    }
+    Lowering::named_children(node)
+        .into_iter()
+        .any(|child| java_tree_declares_type(lo, child, simple_type))
 }
 
 fn lambda_single_param_from_text(text: &str) -> Option<&str> {

@@ -50,9 +50,13 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
             collect_top_level_statements(il)
                 .into_iter()
                 .filter_map(|stmt| {
+                    let local = assignment_name(il, stmt)?;
                     let key = import_binding_key(il, interner, stmt)?;
                     let export = exports.get(&key)?;
                     if export.file_idx == file_idx {
+                        return None;
+                    }
+                    if binding_mutated(il, interner, local, stmt) {
                         return None;
                     }
                     Some((

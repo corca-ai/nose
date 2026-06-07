@@ -580,17 +580,35 @@ fn java_arraylist_add_builder_loop_converges_with_comprehension() {
     let i = Interner::new();
     let py_comp = "def f(xs):\n    return [x * x for x in xs]\n";
     let java_build = "import java.util.*;\nclass C { static List<Integer> f(int[] xs) { List<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
+    let java_qualified_build = "class C { static java.util.List<Integer> f(int[] xs) { java.util.List<Integer> out = new java.util.ArrayList<>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
     let java_build_diff = "import java.util.*;\nclass C { static List<Integer> f(int[] xs) { List<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x + 1); } return out; } }\n";
+    let java_unimported_arraylist = "class C { static Object f(int[] xs) { var out = new ArrayList<Integer>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
+    let java_shadowed_arraylist = "import java.util.*;\nclass ArrayList<T> { void add(T value) {} }\nclass C { static ArrayList<Integer> f(int[] xs) { ArrayList<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
     let comp_fp = value_fp(&i, py_comp, Lang::Python);
     assert_eq!(
         comp_fp,
         value_fp(&i, java_build, Lang::Java),
         "java ArrayList+add builder loop must converge with the python comprehension"
     );
+    assert_eq!(
+        comp_fp,
+        value_fp(&i, java_qualified_build, Lang::Java),
+        "fully-qualified java.util.ArrayList must not require a separate import proof"
+    );
     assert_ne!(
         comp_fp,
         value_fp(&i, java_build_diff, Lang::Java),
         "a different per-element contribution must stay distinct"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, java_unimported_arraylist, Lang::Java),
+        "simple ArrayList constructors need a java.util import proof before exact builder seeding"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, java_shadowed_arraylist, Lang::Java),
+        "a local ArrayList type must not mint the java.util empty-list builder seed"
     );
 }
 
@@ -4318,13 +4336,28 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
     )
     .unwrap();
     std::fs::write(
+        dir.join("mutated_index_tables.py"),
+        "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP[\"red\"] = 9\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("imported_mutated_provider.py"),
         "from mutated_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
     )
     .unwrap();
     std::fs::write(
+        dir.join("imported_mutated_index_provider.py"),
+        "from mutated_index_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
         dir.join("imported_mutated_receiver.py"),
         "from tables import LOOKUP\nLOOKUP.clear()\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+    )
+    .unwrap();
+    std::fs::write(
+        dir.join("imported_mutated_index_receiver.py"),
+        "from tables import LOOKUP\nLOOKUP[\"red\"] = 9\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
     )
     .unwrap();
 
@@ -4347,8 +4380,18 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
     );
     assert_ne!(
         local,
+        corpus_value_fp(&corpus, "imported_mutated_index_provider.py", "lookup"),
+        "provider index write must block imported literal provenance"
+    );
+    assert_ne!(
+        local,
         corpus_value_fp(&corpus, "imported_mutated_receiver.py", "lookup"),
         "importer mutation must block imported literal provenance"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "imported_mutated_index_receiver.py", "lookup"),
+        "importer index write must block imported literal provenance"
     );
 
     let _ = std::fs::remove_dir_all(&dir);

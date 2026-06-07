@@ -1599,8 +1599,11 @@ impl<'a> Builder<'a> {
             None
         } else if contract.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
             let receiver = receiver?;
-            if !self.is_import_namespace_expr(receiver, "slices", env)
-                && !self.file_imports_namespace(receiver, "slices")
+            let MethodReceiverContract::ImportedNamespace(module) = contract.receiver else {
+                return None;
+            };
+            if !self.is_import_namespace_expr(receiver, module, env)
+                && !self.file_imports_namespace(receiver, module)
             {
                 return None;
             }
@@ -1678,7 +1681,10 @@ impl<'a> Builder<'a> {
         )?;
         if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
             || contract.receiver != MethodReceiverContract::ExactMap
-            || contract.args != MethodBuiltinArgs::MapGetDefault
+            || !matches!(
+                contract.args,
+                MethodBuiltinArgs::MapGetDefault | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
+            )
         {
             return None;
         }
@@ -1690,11 +1696,44 @@ impl<'a> Builder<'a> {
             self.proven_map_value(receiver_value)?
         };
         let key = self.eval(kids[1], env);
-        let default = self.eval(kids[2], env);
+        let default = self.eval_map_get_default_arg(contract.args, kids[2], env)?;
         Some(self.mk(
             ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
             vec![map, key, default],
         ))
+    }
+
+    fn eval_map_get_default_arg(
+        &mut self,
+        contract: MethodBuiltinArgs,
+        default: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        match contract {
+            MethodBuiltinArgs::MapGetDefault => Some(self.eval(default, env)),
+            MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda => {
+                if self.il.kind(default) == NodeKind::Lambda {
+                    return self.eval_zero_arg_lambda_body(default, env);
+                }
+                Some(self.eval(default, env))
+            }
+            _ => None,
+        }
+    }
+
+    fn eval_zero_arg_lambda_body(
+        &mut self,
+        lambda: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if self.il.kind(lambda) != NodeKind::Lambda {
+            return None;
+        }
+        let kids = self.il.children(lambda);
+        if kids.len() != 1 {
+            return None;
+        }
+        self.eval_lambda_body(lambda, &[], env)
     }
 
     fn eval_proven_integer_method_call(
