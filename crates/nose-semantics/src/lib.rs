@@ -7,10 +7,10 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind, EvidenceStatus, HoFKind, Il,
-    ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
-    Span,
+    contains_js_identifier, stable_symbol_hash, Builtin, EvidenceAnchor, EvidenceKind,
+    EvidenceStatus, HoFKind, Il, ImportEvidenceKind, Interner, Lang, LitClass, NodeId, NodeKind,
+    Op, ParamSemantic, Payload, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, Span, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -517,6 +517,292 @@ pub fn import_namespace_rhs_matches(
             && fact.module_hash == stable_symbol_hash(module)
             && fact.exported_hash.is_none()
     })
+}
+
+fn symbol_evidence_at_node(il: &Il, node: NodeId) -> EvidenceResolution<SymbolEvidenceKind> {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    unique_evidence_at(
+        il,
+        |anchor| {
+            matches!(
+                anchor,
+                EvidenceAnchor::Node {
+                    span: anchor_span,
+                    kind: anchor_kind,
+                } if anchor_span == span && anchor_kind == kind
+            )
+        },
+        |evidence| match evidence {
+            EvidenceKind::Symbol(symbol) => Some(symbol),
+            _ => None,
+        },
+    )
+}
+
+fn symbol_evidence_for_binding(
+    il: &Il,
+    local_hash: u64,
+    span: Span,
+) -> EvidenceResolution<SymbolEvidenceKind> {
+    unique_evidence_at(
+        il,
+        |anchor| {
+            matches!(
+                anchor,
+                EvidenceAnchor::Binding {
+                    span: anchor_span,
+                    local_hash: anchor_hash,
+                } if anchor_hash == local_hash && anchor_span == span
+            )
+        },
+        |evidence| match evidence {
+            EvidenceKind::Symbol(symbol) => Some(symbol),
+            _ => None,
+        },
+    )
+}
+
+fn symbol_identity_at_node_matches(
+    il: &Il,
+    node: NodeId,
+    expected: SymbolEvidenceKind,
+) -> EvidenceResolution<bool> {
+    match symbol_evidence_at_node(il, node) {
+        EvidenceResolution::Found(actual) => EvidenceResolution::Found(actual == expected),
+        EvidenceResolution::Ambiguous => EvidenceResolution::Ambiguous,
+        EvidenceResolution::Missing => EvidenceResolution::Missing,
+    }
+}
+
+fn binding_identity_matches(
+    il: &Il,
+    local_hash: u64,
+    span: Span,
+    expected: SymbolEvidenceKind,
+) -> EvidenceResolution<bool> {
+    match symbol_evidence_for_binding(il, local_hash, span) {
+        EvidenceResolution::Found(actual) => EvidenceResolution::Found(actual == expected),
+        EvidenceResolution::Ambiguous => EvidenceResolution::Ambiguous,
+        EvidenceResolution::Missing => EvidenceResolution::Missing,
+    }
+}
+
+/// Prove that `node` denotes a language-defined unshadowed global with the exact
+/// requested name. The raw spelling is not enough: when symbol evidence exists it
+/// is authoritative, and ambiguous/conflicting evidence keeps the exact path
+/// closed instead of falling back to spelling checks.
+pub fn unshadowed_global_symbol(il: &Il, interner: &Interner, node: NodeId, name: &str) -> bool {
+    if il.kind(node) != NodeKind::Var {
+        return false;
+    }
+    let expected = SymbolEvidenceKind::UnshadowedGlobal {
+        name_hash: stable_symbol_hash(name),
+    };
+    match symbol_identity_at_node_matches(il, node, expected) {
+        EvidenceResolution::Found(matches) => return matches,
+        EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    node_name(il, interner, node) == Some(name) && !file_defines_name(il, interner, name)
+}
+
+/// Prove that `node` denotes a static imported namespace for `module`.
+pub fn imported_namespace_symbol(il: &Il, interner: &Interner, node: NodeId, module: &str) -> bool {
+    let expected = SymbolEvidenceKind::ImportedNamespace {
+        module_hash: stable_symbol_hash(module),
+    };
+    imported_symbol(il, interner, node, expected, |rhs| {
+        import_namespace_rhs_matches(il, interner, rhs, module)
+    })
+}
+
+/// Prove that `node` denotes a static imported binding for `module.exported`.
+pub fn imported_binding_symbol(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    let expected = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash(module),
+        exported_hash: stable_symbol_hash(exported),
+    };
+    imported_symbol(il, interner, node, expected, |rhs| {
+        import_binding_rhs_matches(il, interner, rhs, module, exported)
+    })
+}
+
+/// Prove either `from module import exported as local; local(...)` or
+/// `import module as ns; ns.exported(...)`.
+pub fn imported_member_symbol(
+    il: &Il,
+    interner: &Interner,
+    callee: NodeId,
+    module: &str,
+    exported: &str,
+) -> bool {
+    match il.kind(callee) {
+        NodeKind::Var => imported_binding_symbol(il, interner, callee, module, exported),
+        NodeKind::Field => {
+            let Payload::Name(method) = il.node(callee).payload else {
+                return false;
+            };
+            if interner.resolve(method) != exported {
+                return false;
+            }
+            il.children(callee)
+                .first()
+                .copied()
+                .is_some_and(|receiver| imported_namespace_symbol(il, interner, receiver, module))
+        }
+        _ => false,
+    }
+}
+
+fn imported_symbol(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: SymbolEvidenceKind,
+    legacy_rhs_matches: impl Fn(NodeId) -> bool,
+) -> bool {
+    if il.kind(node) != NodeKind::Var {
+        return false;
+    }
+    match symbol_identity_at_node_matches(il, node, expected) {
+        EvidenceResolution::Found(matches) => return matches,
+        EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    let Some(local_hash) = node_name_hash(il, interner, node) else {
+        return false;
+    };
+    if unit_defines_hash(il, interner, local_hash) {
+        return false;
+    }
+    let statements = top_level_statements(il);
+    let matching_assignments = statements
+        .iter()
+        .copied()
+        .filter(|&stmt| assignment_alias_hash(il, interner, stmt) == Some(local_hash))
+        .collect::<Vec<_>>();
+    let [assignment] = matching_assignments.as_slice() else {
+        return false;
+    };
+    match binding_identity_matches(il, local_hash, il.node(*assignment).span, expected) {
+        EvidenceResolution::Found(matches) => return matches,
+        EvidenceResolution::Ambiguous => return false,
+        EvidenceResolution::Missing => {}
+    }
+    assignment_rhs(il, *assignment).is_some_and(&legacy_rhs_matches)
+}
+
+fn top_level_statements(il: &Il) -> Vec<NodeId> {
+    il.children(il.root)
+        .iter()
+        .copied()
+        .fold(Vec::new(), |mut statements, node| {
+            if il.kind(node) == NodeKind::Block {
+                statements.extend_from_slice(il.children(node));
+            } else {
+                statements.push(node);
+            }
+            statements
+        })
+}
+
+fn assignment_rhs(il: &Il, stmt: NodeId) -> Option<NodeId> {
+    assignment_parts(il, stmt).map(|(_, rhs)| rhs)
+}
+
+fn assignment_alias_hash(il: &Il, interner: &Interner, stmt: NodeId) -> Option<u64> {
+    let (lhs, _) = assignment_parts(il, stmt)?;
+    (il.kind(lhs) == NodeKind::Var)
+        .then(|| node_name_hash(il, interner, lhs))
+        .flatten()
+}
+
+fn assignment_parts(il: &Il, stmt: NodeId) -> Option<(NodeId, NodeId)> {
+    if il.kind(stmt) != NodeKind::Assign {
+        return None;
+    }
+    let [lhs, rhs] = il.children(stmt) else {
+        return None;
+    };
+    Some((*lhs, *rhs))
+}
+
+fn node_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
+    if il.kind(node) != NodeKind::Var {
+        return None;
+    }
+    match il.node(node).payload {
+        Payload::Name(symbol) => Some(interner.resolve(symbol)),
+        Payload::Cid(cid) => il
+            .cid_names
+            .get(cid as usize)
+            .map(|&symbol| interner.resolve(symbol)),
+        _ => None,
+    }
+}
+
+fn node_name_hash(il: &Il, interner: &Interner, node: NodeId) -> Option<u64> {
+    node_name(il, interner, node).map(stable_symbol_hash)
+}
+
+fn unit_defines_hash(il: &Il, interner: &Interner, name_hash: u64) -> bool {
+    il.units.iter().any(|unit| {
+        unit.name
+            .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
+    })
+}
+
+fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
+    let name_hash = stable_symbol_hash(name);
+    il.units.iter().any(|unit| {
+        unit.name.is_some_and(|symbol| {
+            symbol_defines_name(il.meta.lang, interner.resolve(symbol), name, name_hash)
+        })
+    }) || il
+        .nodes
+        .iter()
+        .enumerate()
+        .any(|(idx, node)| match node.kind {
+            NodeKind::Module | NodeKind::Block | NodeKind::Param => {
+                node_defines_name(il, interner, NodeId(idx as u32), name, name_hash)
+            }
+            NodeKind::Assign => il
+                .children(NodeId(idx as u32))
+                .first()
+                .copied()
+                .is_some_and(|lhs| node_defines_name(il, interner, lhs, name, name_hash)),
+            _ => false,
+        })
+}
+
+fn node_defines_name(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    name: &str,
+    name_hash: u64,
+) -> bool {
+    match il.node(node).payload {
+        Payload::Name(symbol) => {
+            symbol_defines_name(il.meta.lang, interner.resolve(symbol), name, name_hash)
+        }
+        Payload::Cid(cid) => il.cid_names.get(cid as usize).is_some_and(|symbol| {
+            symbol_defines_name(il.meta.lang, interner.resolve(*symbol), name, name_hash)
+        }),
+        _ => false,
+    }
+}
+
+fn symbol_defines_name(lang: Lang, text: &str, name: &str, name_hash: u64) -> bool {
+    stable_symbol_hash(text) == name_hash
+        || (js_like_lang(lang) && contains_js_identifier(text, name))
 }
 
 fn literal_string_hash(il: &Il, node: NodeId) -> Option<u64> {
@@ -2622,7 +2908,8 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind,
-        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, Unit, UnitKind,
+        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact, Span, SymbolEvidenceKind,
+        Unit, UnitKind,
     };
 
     const ALL_LANGS: &[Lang] = &[
@@ -2976,6 +3263,145 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         assert_eq!(import_fact_rhs(&il, &interner, binding), None);
+    }
+
+    #[test]
+    fn direct_symbol_evidence_proves_imported_namespace_without_raw_assignment() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("m")),
+            sp(20),
+            &[],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp(20), &[receiver]);
+        let mut il = finish_il(b, root, Lang::Python);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(20), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                module_hash: stable_symbol_hash("math"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert!(imported_namespace_symbol(&il, &interner, receiver, "math"));
+        assert!(!imported_namespace_symbol(
+            &il,
+            &interner,
+            receiver,
+            "collections"
+        ));
+    }
+
+    #[test]
+    fn symbol_evidence_blocks_import_assignment_fallback() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let local = interner.intern("math");
+        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(21), &[]);
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("math")),
+            sp(21),
+            &[],
+        );
+        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
+        let rhs = b.add(
+            NodeKind::Seq,
+            Payload::Name(namespace_tag),
+            sp(21),
+            &[module],
+        );
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(21), &[lhs, rhs]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(22), &[]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(21), &[assign, receiver]);
+        let mut il = finish_il(b, root, Lang::Python);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(21), stable_symbol_hash("math")),
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                module_hash: stable_symbol_hash("other"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert!(!imported_namespace_symbol(&il, &interner, receiver, "math"));
+    }
+
+    #[test]
+    fn binding_symbol_evidence_does_not_prove_rebound_alias_uses() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let local = interner.intern("math");
+        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(24), &[]);
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("math")),
+            sp(24),
+            &[],
+        );
+        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
+        let rhs = b.add(
+            NodeKind::Seq,
+            Payload::Name(namespace_tag),
+            sp(24),
+            &[module],
+        );
+        let import_assign = b.add(NodeKind::Assign, Payload::None, sp(24), &[lhs, rhs]);
+        let rebound_lhs = b.add(NodeKind::Var, Payload::Name(local), sp(25), &[]);
+        let rebound_rhs = b.add(NodeKind::Lit, Payload::LitInt(0), sp(25), &[]);
+        let rebound = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            sp(25),
+            &[rebound_lhs, rebound_rhs],
+        );
+        let receiver = b.add(NodeKind::Var, Payload::Name(local), sp(26), &[]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(24),
+            &[import_assign, rebound, receiver],
+        );
+        let mut il = finish_il(b, root, Lang::Python);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(24), stable_symbol_hash("math")),
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                module_hash: stable_symbol_hash("math"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert!(!imported_namespace_symbol(&il, &interner, receiver, "math"));
+    }
+
+    #[test]
+    fn ambiguous_global_symbol_evidence_blocks_name_fallback() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let math = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Math")),
+            sp(23),
+            &[],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp(23), &[math]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+
+        assert!(unshadowed_global_symbol(&il, &interner, math, "Math"));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(23), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Math"),
+            }),
+            EvidenceStatus::Ambiguous,
+        ));
+        assert!(!unshadowed_global_symbol(&il, &interner, math, "Math"));
     }
 
     #[test]

@@ -6,7 +6,8 @@ use nose_il::{
     stable_symbol_hash, DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
     EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, Il, IlBuilder,
     ImportEvidenceKind, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    ParamTypeFact, Payload, SourceFact, SourceFactKind, Span, Symbol, Unit, UnitKind,
+    ParamTypeFact, Payload, SourceFact, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit,
+    UnitKind,
 };
 use nose_semantics::{import_fact_tag, sequence_surface_kind_for_tag, ImportFactKind};
 use tree_sitter::Node as TsNode;
@@ -347,11 +348,32 @@ fn import_fact(
             return lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
         }
     };
+    let symbol_kind = match kind {
+        ImportFactKind::Binding if coords.len() == 2 => {
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                module_hash: stable_symbol_hash(coords[0]),
+                exported_hash: stable_symbol_hash(coords[1]),
+            })
+        }
+        ImportFactKind::Namespace if coords.len() == 1 => {
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                module_hash: stable_symbol_hash(coords[0]),
+            })
+        }
+        _ => {
+            return lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+        }
+    };
     lo.record_evidence(EvidenceAnchor::sequence(span), evidence_kind, "import_fact");
     lo.record_evidence(
         EvidenceAnchor::binding(span, stable_symbol_hash(local)),
         evidence_kind,
         "import_binding_subject",
+    );
+    lo.record_evidence(
+        EvidenceAnchor::binding(span, stable_symbol_hash(local)),
+        symbol_kind,
+        "symbol_import_identity",
     );
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
@@ -998,4 +1020,36 @@ pub(crate) fn common_bin_op(text: &str) -> Option<Op> {
         ">>" => Op::Shr,
         _ => return None,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sp() -> Span {
+        Span::new(FileId(0), 0, 1, 1, 1)
+    }
+
+    #[test]
+    fn import_lowering_emits_symbol_identity_evidence_for_aliases() {
+        let interner = Interner::new();
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
+
+        import_binding(&mut lo, sp(), "deque", "collections", "deque");
+        import_namespace(&mut lo, sp(), "math", "math");
+
+        assert!(lo.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                module_hash,
+                exported_hash,
+            }) if module_hash == stable_symbol_hash("collections")
+                && exported_hash == stable_symbol_hash("deque")
+        )));
+        assert!(lo.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace { module_hash })
+                if module_hash == stable_symbol_hash("math")
+        )));
+    }
 }

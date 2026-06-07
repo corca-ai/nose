@@ -37,23 +37,23 @@
 
 mod rules;
 
+use crate::combine;
 use crate::module_facts::{
     assignment_name_in_scope, collect_all_node_symbols_in_scope, collect_module_mutations_in_scope,
     local_scope_nodes, mutating_method_name, node_symbol_in_scope,
     shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
 use crate::types::Ty;
-use crate::{combine, contains_js_ident};
 use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    Payload, Span, Symbol, UnitKind,
+    contains_js_identifier, stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind,
+    NodeId, NodeKind, Op, Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_static_membership_predicate_operator, free_function_builtin_contract,
     go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_contract,
-    import_namespace_rhs_matches, imported_namespace_function_contract,
+    imported_namespace_function_contract, imported_namespace_symbol,
     iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
     java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract_by_hash,
@@ -1046,22 +1046,10 @@ impl<'a> Builder<'a> {
     }
 
     fn file_imports_namespace(&self, expr: NodeId, module: &str) -> bool {
-        if !semantics(self.il.meta.lang)
+        semantics(self.il.meta.lang)
             .modules()
             .go_import_namespace_facts()
-        {
-            return false;
-        }
-        let Some(alias) = self.node_symbol(expr) else {
-            return false;
-        };
-        self.top_level_statements().iter().any(|&stmt| {
-            if self.assignment_name(stmt) != Some(alias) {
-                return false;
-            }
-            let kids = self.il.children(stmt);
-            kids.len() == 2 && import_namespace_rhs_matches(self.il, self.interner, kids[1], module)
-        })
+            && imported_namespace_symbol(self.il, self.interner, expr, module)
     }
 
     fn java_file_defines_type_name(&self, name: &str) -> bool {
@@ -1116,7 +1104,7 @@ impl<'a> Builder<'a> {
 
     fn symbol_defines_name(&self, symbol: Symbol, name: &str) -> bool {
         let text = self.interner.resolve(symbol);
-        text == name || (self.is_js_like_lang() && contains_js_ident(text, name))
+        text == name || (self.is_js_like_lang() && contains_js_identifier(text, name))
     }
 
     fn ruby_file_requires_module(&self, module: &str) -> bool {

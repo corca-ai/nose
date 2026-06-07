@@ -10,7 +10,8 @@ foundation and follow-up facade migrations through receiver-aware field state
 sequence-surface contracts, proof-backed append fragment evidence, and the first
 operator-law contracts, typed import facts, and source-fact gates for construct,
 literal, equality/operator provenance, and the first shared evidence-record
-substrate for source, domain, import, and sequence-surface facts.
+substrate for source, domain, import, symbol-identity, and sequence-surface
+facts.
 
 ## What exists today
 
@@ -49,11 +50,11 @@ migrated.
   channel eligibility. `ChannelEligibility` describes where a fact may be used;
   first-party/default status is pack provenance, not an analysis channel.
 - `Il::evidence` is now the shared internal substrate for source, domain, import,
-  and sequence-surface proof facts. Records carry ids, stable source anchors,
-  kind, provenance, dependencies, and asserted/ambiguous status. Lookups in
-  `nose-semantics` fail closed on ambiguous or conflicting evidence and use older
-  side tables only as compatibility fallback when no relevant evidence record is
-  present.
+  symbol-identity, and sequence-surface proof facts. Records carry ids, stable
+  source anchors, kind, provenance, dependencies, and asserted/ambiguous status.
+  Lookups in `nose-semantics` fail closed on ambiguous or conflicting evidence
+  and use older side tables only as compatibility fallback when no relevant
+  evidence record is present.
 - `OperatorSemantics` now owns the first shared operator contracts:
   comparison-direction transforms, comparison negation, equality operand
   commutativity, comparison-lattice laws, abs/min/max/selection guard laws,
@@ -149,9 +150,9 @@ migrated.
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
   the importing file. Provider and importer module-binding mutation proof now
   rejects direct binding mutations and direct place writes such as
-  `LOOKUP.clear()` and `LOOKUP[key] = value`, and provider-side opaque argument
-  escapes such as `mutate(LOOKUP)`, before imported literal provenance can enter
-  exact matching.
+  `LOOKUP.clear()`, `LOOKUP.push(...)`, and `LOOKUP[key] = value`, and
+  provider-side opaque argument escapes such as `mutate(LOOKUP)`, before
+  imported literal provenance can enter exact matching.
 - Membership and map-key membership selectors now consume language-scoped method
   contracts before normalize/detect treat them as semantic containment. A method
   named `contains` is Java/Rust collection membership only; JavaScript
@@ -230,6 +231,15 @@ migrated.
   normalize idiom admission, value-graph import proof, and strict exact gates
   parse import proof RHS nodes through the shared helper instead of local raw
   tag checks.
+- Symbol identity evidence now covers static imported binding/namespace aliases,
+  and the same helper surface defines the next unshadowed-global record path.
+  Normalize idiom admission, value-graph Go namespace fallbacks, and strict exact
+  gates consume `nose-semantics` symbol-proof helpers instead of each re-scanning
+  raw import assignment shapes. First-party global producers have not landed yet,
+  so global proof still uses compatibility shadow scans behind the helper.
+  A spelling such as `Math`, `fmt`, or `deque` is still only a selector; exact
+  consumers need symbol identity proof plus the language/API contract. Binding
+  evidence does not prove later uses if the alias is rebound or ambiguous.
 - TypeScript `import type ...` and type-only named import specifiers are erased
   for runtime import proof; they remain unavailable to exact semantic library
   contracts.
@@ -248,8 +258,8 @@ Semantic knowledge still appears in several forms outside the facade:
   equality-shaped surfaces, but consumption is limited to narrow contracts such
   as JS-like static membership callbacks. General equality dispatch, report
   provenance, and external pack manifests remain open;
-- language-specific import or module proof mechanics that are still local to
-  frontend, normalize, or detect callers;
+- language-specific import, symbol, or module proof mechanics that are still
+  local to frontend, normalize, detect, or value-graph callers;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
   `EvidenceRecord::Import`, and semantic interpretation flows through typed
