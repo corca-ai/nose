@@ -16,12 +16,13 @@ use nose_semantics::{
     builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
-    go_zero_map_lookup_contract, iterator_identity_adapter_contract,
-    java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
-    js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract,
-    map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics, JavaMapFactoryKind,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    go_zero_map_lookup_contract, index_membership_threshold_contract,
+    iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
+    java_map_factory_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
+    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    static_index_membership_contract, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1020,14 +1021,14 @@ fn strict_exact_static_index_membership_parts(
     if !strict_exact_static_non_float_collection(il, receiver) {
         return None;
     }
-    if method == "indexOf" {
-        return Some((kids[1], receiver));
+    let contract = static_index_membership_contract(il.meta.lang, method, kids.len() - 1)?;
+    match contract.kind {
+        StaticIndexMembershipKind::IndexOf => Some((kids[1], receiver)),
+        StaticIndexMembershipKind::FindIndex => {
+            let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;
+            Some((element, receiver))
+        }
     }
-    if method == "findIndex" {
-        let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;
-        return Some((element, receiver));
-    }
-    None
 }
 
 fn strict_exact_index_membership_threshold(
@@ -1037,12 +1038,18 @@ fn strict_exact_index_membership_threshold(
     threshold: NodeId,
 ) -> bool {
     if strict_exact_minus_one_literal(il, threshold) {
-        return op == Op::Ne
-            || (!index_call_on_right && op == Op::Gt)
-            || (index_call_on_right && op == Op::Lt);
+        return index_membership_threshold_contract(
+            op,
+            index_call_on_right,
+            IndexMembershipThreshold::MinusOne,
+        );
     }
     if matches!(il.node(threshold).payload, Payload::LitInt(0)) {
-        return (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le);
+        return index_membership_threshold_contract(
+            op,
+            index_call_on_right,
+            IndexMembershipThreshold::Zero,
+        );
     }
     false
 }

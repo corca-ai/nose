@@ -7,7 +7,7 @@
 //! approve exact clone matches directly.
 
 use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind,
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op,
     ParamSemantic, Payload,
 };
 
@@ -1357,6 +1357,62 @@ pub fn map_get_contract_by_hash(
         .flatten()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StaticIndexMembershipKind {
+    IndexOf,
+    FindIndex,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticIndexMembershipContract {
+    pub method: &'static str,
+    pub kind: StaticIndexMembershipKind,
+}
+
+pub fn static_index_membership_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<StaticIndexMembershipContract> {
+    if !js_like_lang(lang) || arg_count != 1 {
+        return None;
+    }
+    Some(match method {
+        "indexOf" => StaticIndexMembershipContract {
+            method: "indexOf",
+            kind: StaticIndexMembershipKind::IndexOf,
+        },
+        "findIndex" => StaticIndexMembershipContract {
+            method: "findIndex",
+            kind: StaticIndexMembershipKind::FindIndex,
+        },
+        _ => return None,
+    })
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IndexMembershipThreshold {
+    MinusOne,
+    Zero,
+}
+
+pub fn index_membership_threshold_contract(
+    op: Op,
+    index_call_on_right: bool,
+    threshold: IndexMembershipThreshold,
+) -> bool {
+    match threshold {
+        IndexMembershipThreshold::MinusOne => {
+            op == Op::Ne
+                || (!index_call_on_right && op == Op::Gt)
+                || (index_call_on_right && op == Op::Lt)
+        }
+        IndexMembershipThreshold::Zero => {
+            (!index_call_on_right && op == Op::Ge) || (index_call_on_right && op == Op::Le)
+        }
+    }
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -2345,6 +2401,51 @@ mod tests {
         assert_eq!(map_get_contract(Lang::Python, "get", 1), None);
         assert_eq!(map_get_contract(Lang::Rust, "get", 2), None);
         assert_eq!(map_get_contract(Lang::Java, "getOrDefault", 1), None);
+    }
+
+    #[test]
+    fn static_index_membership_contracts_are_js_like_and_threshold_constrained() {
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "indexOf", 1),
+            Some(StaticIndexMembershipContract {
+                method: "indexOf",
+                kind: StaticIndexMembershipKind::IndexOf,
+            })
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::TypeScript, "findIndex", 1),
+            Some(StaticIndexMembershipContract {
+                method: "findIndex",
+                kind: StaticIndexMembershipKind::FindIndex,
+            })
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::Python, "indexOf", 1),
+            None
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "indexOf", 2),
+            None
+        );
+        assert_eq!(
+            static_index_membership_contract(Lang::JavaScript, "includes", 1),
+            None
+        );
+        assert!(index_membership_threshold_contract(
+            Op::Ne,
+            false,
+            IndexMembershipThreshold::MinusOne
+        ));
+        assert!(index_membership_threshold_contract(
+            Op::Le,
+            true,
+            IndexMembershipThreshold::Zero
+        ));
+        assert!(!index_membership_threshold_contract(
+            Op::Eq,
+            false,
+            IndexMembershipThreshold::MinusOne
+        ));
     }
 
     #[test]

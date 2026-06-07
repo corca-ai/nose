@@ -92,6 +92,9 @@ migrated.
   proven Java/Rust/JS-like map receivers. Python `dict.get(key, default)`,
   Ruby `fetch(key, default)`, and Java `getOrDefault` still use the
   `GetOrDefault` method contract.
+- JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
+  contracts, including the accepted `-1`/`0` threshold comparisons. Callers still
+  prove the static non-float literal collection and lambda equality shape.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

@@ -50,15 +50,17 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, iterator_identity_adapter_contract,
-    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
-    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
-    map_key_view_wrapper_contract_by_hash, method_call_contract, reduction_builtin_contract,
-    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, index_membership_threshold_contract,
+    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
+    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
+    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, DomainEvidence, GoZeroMapDefaultKind,
-    IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    scalar_integer_method_contract, semantics, static_index_membership_contract, DomainEvidence,
+    GoZeroMapDefaultKind, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -5926,7 +5928,7 @@ impl<'a> Builder<'a> {
 
     fn eval_static_index_membership_comparison(
         &mut self,
-        op: u32,
+        op: Op,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -5966,34 +5968,42 @@ impl<'a> Builder<'a> {
         if !self.is_static_non_float_collection_expr(receiver) {
             return None;
         }
-        if method == "indexOf" {
-            let element = self.eval(kids[1], env);
-            let collection = self.eval_membership_collection(receiver, env);
-            return Some((element, collection));
+        let contract = static_index_membership_contract(self.il.meta.lang, method, kids.len() - 1)?;
+        match contract.kind {
+            StaticIndexMembershipKind::IndexOf => {
+                let element = self.eval(kids[1], env);
+                let collection = self.eval_membership_collection(receiver, env);
+                Some((element, collection))
+            }
+            StaticIndexMembershipKind::FindIndex if self.il.kind(kids[1]) == NodeKind::Lambda => {
+                let collection = self.eval(receiver, env);
+                let elem = self.elem(collection);
+                let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
+                self.static_literal_membership_predicate(pred)
+            }
+            StaticIndexMembershipKind::FindIndex => None,
         }
-        if method == "findIndex" && self.il.kind(kids[1]) == NodeKind::Lambda {
-            let collection = self.eval(receiver, env);
-            let elem = self.elem(collection);
-            let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
-            return self.static_literal_membership_predicate(pred);
-        }
-        None
     }
 
     fn is_index_membership_threshold(
         &self,
-        op: u32,
+        op: Op,
         index_call_on_right: bool,
         threshold: NodeId,
     ) -> bool {
         if self.is_minus_one_literal(threshold) {
-            return op == Op::Ne as u32
-                || (!index_call_on_right && op == Op::Gt as u32)
-                || (index_call_on_right && op == Op::Lt as u32);
+            return index_membership_threshold_contract(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::MinusOne,
+            );
         }
         if self.is_zero_literal(threshold) {
-            return (!index_call_on_right && op == Op::Ge as u32)
-                || (index_call_on_right && op == Op::Le as u32);
+            return index_membership_threshold_contract(
+                op,
+                index_call_on_right,
+                IndexMembershipThreshold::Zero,
+            );
         }
         false
     }
@@ -7027,8 +7037,12 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_len_zero_comparison(op, &kids, env) {
                     return v;
                 }
-                if let Some(v) = self.eval_static_index_membership_comparison(op, &kids, env) {
-                    return v;
+                if let Payload::Op(op_kind) = node.payload {
+                    if let Some(v) =
+                        self.eval_static_index_membership_comparison(op_kind, &kids, env)
+                    {
+                        return v;
+                    }
                 }
                 if op == Op::Add as u32 || op == Op::Sub as u32 {
                     let mut operands = Vec::new();

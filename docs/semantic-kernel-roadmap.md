@@ -108,6 +108,8 @@ and pack ecosystem.
 - Map `get(key)` lookup surfaces for Java, Rust, and JS-like typed/proven maps
   moved behind an explicit map-get contract. Defaulting surfaces continue through
   the existing `GetOrDefault` method contract.
+- JS-like static array `indexOf`/`findIndex` membership and their accepted
+  threshold comparisons moved behind shared semantic contracts.
 
 ## Phase 0: documentation and vocabulary
 
