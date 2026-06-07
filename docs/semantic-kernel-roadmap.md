@@ -196,6 +196,11 @@ and pack ecosystem.
   collection and map bindings are tracked separately from generic immutable names,
   preserving supported module-level collection cases while closing unproven
   receiver expressions.
+- Exact fragment append-effect recognition now consumes canonical append evidence
+  instead of raw method selectors. Untyped `push`/`append`/`add` calls no longer
+  prove append fragments by name; first-party language/library paths must first
+  prove the receiver or active-builder contract and lower the call to
+  `Builtin::Append`.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -238,9 +243,8 @@ Remaining in this phase:
 - Move primitive comparison gates behind `OperatorSemantics`.
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records.
-- Move exact fragment append-effect classification off selector-only
-  `push`/`add` recognition and onto receiver/builder evidence shared with the
-  normal semantic contracts.
+- Continue replacing any remaining local exact-fragment proof helpers with
+  versioned pack-facing evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
 - Replace the remaining raw import/module proof IL payload storage with

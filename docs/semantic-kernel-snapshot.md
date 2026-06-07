@@ -6,7 +6,7 @@ implementation shape; planned work and decision history live in
 
 Snapshot date: 2026-06-07, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
-and sequence-surface contracts.
+sequence-surface contracts, and proof-backed append fragment evidence.
 
 ## What exists today
 
@@ -84,12 +84,18 @@ migrated.
   simple name. A `java.util.*` wildcard import is not enough when another
   package explicitly imports the same simple type; fully-qualified
   `java.util.*List` names carry the namespace proof in the selector itself.
-- Builder append contracts are separate from arbitrary method calls: Java `add`
-  and Rust `push` are admitted only for active builder proofs.
+- Builder append contracts are separate from arbitrary method calls. A selector
+  such as `push`, `append`, or `add` is not proof by itself. First-party
+  frontend/normalize paths must prove the receiver or active-builder contract and
+  lower the call to canonical `Builtin::Append` before exact fragments can treat
+  it as an append effect. Value-graph active list-builder paths still consume the
+  method selector only after a local builder seed is active.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
   non-overloadable C/Go/Java index assignment, and single-item builder append
   calls are now shared through `nose-semantics`; predicate and contract paths
-  consume the same IL-level proof helpers.
+  consume the same IL-level proof helpers. Raw selector-only append calls stay
+  exact-closed as append effects, though they may still participate in the
+  separate opaque-call policy as generic `Other` effect context.
 - Value-graph and oracle same-unit field state are receiver-aware: a cached write
   is keyed by receiver/place plus field name, so `a.x = v` can satisfy `a.x`
   but not `b.x`, and final field-write sinks preserve the receiver identity.

@@ -48,7 +48,8 @@ The contract carries only what the oracle needs to build a runnable wrapper. Tha
 forcing function: **a contract that cannot be lowered into a wrapper is underspecified**, so
 the model cannot drift into describing fragments the oracle can't vouch for. The
 `writes_proven` check is the fail-closed gate over the effect sequence: every field write must
-resolve to a proven [`Place`] (an append/index write carries no such obligation).
+resolve to a proven [`Place`]. Append and index writes carry no field-place obligation after
+they have already been classified by their own proof gates.
 
 ### 3. The oracle — wrapper synthesis
 
@@ -86,6 +87,15 @@ obligation — it does not treat every mutation as append-like:
 | `IndexWrite` | ordered effect trace (key then value) | not required |
 | `FieldWrite` | final field-state map, keyed by **receiver+field place** | **required (proven place)** |
 | `Other` | established by running the fragment | — |
+
+The `Append` row is deliberately about receiver *place* identity after an append
+has been proven. It is not permission to infer append semantics from a method
+name. Exact append fragments consume canonical `Builtin::Append` evidence:
+frontends and normalizers must first prove the language/library receiver or
+active-builder contract for the specific surface (`Array.push`, Python
+`list.append`, Java builder `add`, Rust builder `push`, etc.) and lower it to
+that canonical form. A raw selector-only call can still be compared under the
+separate opaque-call policy as `Other`, but it does not prove append semantics.
 
 A field write is the one case whose final-state slot is receiver-bearing, so a field write is
 exact-safe only when its receiver resolves to a proven place. This is exactly why a fixed

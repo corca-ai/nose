@@ -1771,116 +1771,120 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
 
     let fixtures = [
         (
-            "loop_push_square_a.js",
-            "function loopPushSquareLeft(xs, out) {\n  for (const x of xs) {\n    out.push(x * x);\n  }\n  audit(xs);\n}\n",
+            "loop_push_square_a.ts",
+            "function loopPushSquareLeft(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    out.push(x * x);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_push_square_b.js",
-            "function loopPushSquareRight(ys, dst) {\n  for (const y of ys) {\n    dst.push(y * y);\n  }\n  trace(ys);\n}\n",
+            "loop_push_square_b.ts",
+            "function loopPushSquareRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    dst.push(y * y);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "loop_push_square_mutated.js",
-            "function loopPushSquareMutated(zs, out) {\n  out.push(0);\n  for (const z of zs) {\n    out.push(z * z);\n  }\n  audit(zs);\n}\n",
+            "loop_push_square_mutated.ts",
+            "function loopPushSquareMutated(zs: number[], out: number[]): void {\n  out.push(0);\n  for (const z of zs) {\n    out.push(z * z);\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "loop_push_square_wrong_receiver.js",
-            "function loopPushSquareWrongReceiver(xs, out) {\n  for (const x of xs) {\n    xs.push(x * x);\n  }\n  audit(xs);\n}\n",
+            "loop_push_square_wrong_receiver.ts",
+            "function loopPushSquareWrongReceiver(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    xs.push(x * x);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_push_product_a.js",
-            "function loopPushProductLeft(xs, out) {\n  for (const x of xs) {\n    out.push((x + 1) * 2);\n  }\n  audit(xs);\n}\n",
+            "loop_push_product_a.ts",
+            "function loopPushProductLeft(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    out.push((x + 1) * 2);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_push_product_b.js",
-            "function loopPushProductRight(ys, dst) {\n  for (const y of ys) {\n    dst.push(2 * (1 + y));\n  }\n  trace(ys);\n}\n",
+            "loop_push_product_b.ts",
+            "function loopPushProductRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    dst.push(2 * (1 + y));\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "loop_push_product_neg.js",
-            "function loopPushProductWrong(zs, out) {\n  for (const z of zs) {\n    out.push((z + 2) * 2);\n  }\n  audit(zs);\n}\n",
+            "loop_push_product_neg.ts",
+            "function loopPushProductWrong(zs: number[], out: number[]): void {\n  for (const z of zs) {\n    out.push((z + 2) * 2);\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "loop_push_guard_a.js",
-            "function loopPushGuardLeft(xs, out) {\n  for (const x of xs) {\n    if (x > 0) out.push(x + 1);\n  }\n  audit(xs);\n}\n",
+            "loop_push_guard_a.ts",
+            "function loopPushGuardLeft(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    if (x > 0) out.push(x + 1);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_push_guard_b.js",
-            "function loopPushGuardRight(ys, dst) {\n  for (const y of ys) {\n    if (0 < y) dst.push(1 + y);\n  }\n  trace(ys);\n}\n",
+            "loop_push_guard_b.ts",
+            "function loopPushGuardRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    if (0 < y) dst.push(1 + y);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "loop_push_guard_neg.js",
-            "function loopPushGuardWrong(zs, out) {\n  for (const z of zs) {\n    if (z >= 0) out.push(z + 1);\n  }\n  audit(zs);\n}\n",
+            "loop_push_guard_neg.ts",
+            "function loopPushGuardWrong(zs: number[], out: number[]): void {\n  for (const z of zs) {\n    if (z >= 0) out.push(z + 1);\n  }\n  audit(zs);\n}\n",
         ),
         (
-            "loop_temp_push_square_a.js",
-            "function loopTempPushSquareLeft(xs, out) {\n  for (const x of xs) {\n    const squared = x * x;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_push_square_a.ts",
+            "function loopTempPushSquareLeft(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    const squared = x * x;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_temp_push_square_b.js",
-            "function loopTempPushSquareRight(ys, dst) {\n  for (const y of ys) {\n    const result = y * y;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
+            "loop_temp_push_square_b.ts",
+            "function loopTempPushSquareRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    const result = y * y;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "loop_temp_push_square_wrong.js",
-            "function loopTempPushSquareWrong(zs, out) {\n  for (const z of zs) {\n    const squared = z + z;\n    out.push(squared);\n  }\n  audit(zs);\n}\n",
+            "loop_temp_push_square_wrong.ts",
+            "function loopTempPushSquareWrong(zs: number[], out: number[]): void {\n  for (const z of zs) {\n    const squared = z + z;\n    out.push(squared);\n  }\n  audit(zs);\n}\n",
         ),
         (
             "loop_temp_append_py_a.py",
-            "def loop_temp_append_left(xs, out):\n    for x in xs:\n        value = x + 1\n        out.append(value)\n    audit(xs)\n",
+            "def loop_temp_append_left(xs: list[int], out: list[int]):\n    for x in xs:\n        value = x + 1\n        out.append(value)\n    audit(xs)\n",
         ),
         (
             "loop_temp_append_py_b.py",
-            "def loop_temp_append_right(ys, dst):\n    for y in ys:\n        item = 1 + y\n        dst.append(item)\n    trace(ys)\n",
+            "def loop_temp_append_right(ys: list[int], dst: list[int]):\n    for y in ys:\n        item = 1 + y\n        dst.append(item)\n    trace(ys)\n",
         ),
         (
             "loop_temp_append_py_wrong.py",
-            "def loop_temp_append_wrong(zs, out):\n    for z in zs:\n        value = z + 2\n        out.append(value)\n    audit(zs)\n",
+            "def loop_temp_append_wrong(zs: list[int], out: list[int]):\n    for z in zs:\n        value = z + 2\n        out.append(value)\n    audit(zs)\n",
         ),
         (
-            "loop_temp_chain_push_a.js",
-            "function loopTempChainPushLeft(xs, out) {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = shifted * shifted;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_chain_push_a.ts",
+            "function loopTempChainPushLeft(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = shifted * shifted;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_temp_chain_push_b.js",
-            "function loopTempChainPushRight(ys, dst) {\n  for (const y of ys) {\n    const offset = 1 + y;\n    const result = offset * offset;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
+            "loop_temp_chain_push_b.ts",
+            "function loopTempChainPushRight(ys: number[], dst: number[]): void {\n  for (const y of ys) {\n    const offset = 1 + y;\n    const result = offset * offset;\n    dst.push(result);\n  }\n  trace(ys);\n}\n",
         ),
         (
-            "loop_temp_chain_push_wrong.js",
-            "function loopTempChainPushWrong(zs, out) {\n  for (const z of zs) {\n    const shifted = z + 2;\n    const squared = shifted * shifted;\n    out.push(squared);\n  }\n  audit(zs);\n}\n",
+            "loop_temp_chain_push_wrong.ts",
+            "function loopTempChainPushWrong(zs: number[], out: number[]): void {\n  for (const z of zs) {\n    const shifted = z + 2;\n    const squared = shifted * shifted;\n    out.push(squared);\n  }\n  audit(zs);\n}\n",
         ),
         (
             "loop_temp_chain_append_py_a.py",
-            "def loop_temp_chain_append_left(xs, out):\n    for x in xs:\n        shifted = x + 1\n        value = shifted * shifted\n        out.append(value)\n    audit(xs)\n",
+            "def loop_temp_chain_append_left(xs: list[int], out: list[int]):\n    for x in xs:\n        shifted = x + 1\n        value = shifted * shifted\n        out.append(value)\n    audit(xs)\n",
         ),
         (
             "loop_temp_chain_append_py_b.py",
-            "def loop_temp_chain_append_right(ys, dst):\n    for y in ys:\n        offset = 1 + y\n        item = offset * offset\n        dst.append(item)\n    trace(ys)\n",
+            "def loop_temp_chain_append_right(ys: list[int], dst: list[int]):\n    for y in ys:\n        offset = 1 + y\n        item = offset * offset\n        dst.append(item)\n    trace(ys)\n",
         ),
         (
             "loop_temp_chain_append_py_wrong.py",
-            "def loop_temp_chain_append_wrong(zs, out):\n    for z in zs:\n        shifted = z + 1\n        value = shifted + shifted\n        out.append(value)\n    audit(zs)\n",
+            "def loop_temp_chain_append_wrong(zs: list[int], out: list[int]):\n    for z in zs:\n        shifted = z + 1\n        value = shifted + shifted\n        out.append(value)\n    audit(zs)\n",
         ),
         (
-            "loop_temp_chain_unconsumed.js",
-            "function loopTempChainUnconsumed(xs, out) {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = x * x;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_chain_unconsumed.ts",
+            "function loopTempChainUnconsumed(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = x * x;\n    out.push(squared);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_temp_chain_uses_prior.js",
-            "function loopTempChainUsesPrior(xs, out) {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = shifted * shifted;\n    out.push(squared + shifted);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_chain_uses_prior.ts",
+            "function loopTempChainUsesPrior(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    const shifted = x + 1;\n    const squared = shifted * shifted;\n    out.push(squared + shifted);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_temp_unused.js",
-            "function loopTempUnused(xs, out) {\n  for (const x of xs) {\n    const constant = 1;\n    out.push(constant);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_unused.ts",
+            "function loopTempUnused(xs: number[], out: number[]): void {\n  for (const x of xs) {\n    const constant = 1;\n    out.push(constant);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_temp_rebind_iter.js",
-            "function loopTempRebindIter(xs, out) {\n  for (let x of xs) {\n    x = x + 1;\n    out.push(x);\n  }\n  audit(xs);\n}\n",
+            "loop_temp_rebind_iter.ts",
+            "function loopTempRebindIter(xs: number[], out: number[]): void {\n  for (let x of xs) {\n    x = x + 1;\n    out.push(x);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "loop_unused_effect.js",
-            "function loopUnusedEffect(xs, out) {\n  for (const unused of xs) {\n    out.push(1);\n  }\n  audit(xs);\n}\n",
+            "loop_unused_effect.ts",
+            "function loopUnusedEffect(xs: number[], out: number[]): void {\n  for (const unused of xs) {\n    out.push(1);\n  }\n  audit(xs);\n}\n",
         ),
         (
-            "direct_unused_effect.js",
-            "function directUnusedEffect(out) {\n  out.push(1);\n  audit(out);\n}\n",
+            "direct_unused_effect.ts",
+            "function directUnusedEffect(out: number[]): void {\n  out.push(1);\n  audit(out);\n}\n",
+        ),
+        (
+            "loop_untyped_push_square.js",
+            "function loopUntypedPushSquare(xs, out) {\n  for (const x of xs) {\n    out.push(x * x);\n  }\n  audit(xs);\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -1953,39 +1957,39 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         });
         assert!(
             !has_pair,
-            "foreach append effect that ignores the iteration value must not merge with a single effect: {left}/{right}: {out}"
+            "foreach append effect boundary must not merge {left}/{right}: {out}"
         );
     };
 
     assert_loop_family(
-        "loop_push_square_a.js",
-        "loop_push_square_b.js",
-        "loop_push_square_mutated.js",
+        "loop_push_square_a.ts",
+        "loop_push_square_b.ts",
+        "loop_push_square_mutated.ts",
         2,
         4,
     );
     assert_no_pair(
-        "loop_push_square_a.js",
-        "loop_push_square_wrong_receiver.js",
+        "loop_push_square_a.ts",
+        "loop_push_square_wrong_receiver.ts",
     );
     assert_loop_family(
-        "loop_push_product_a.js",
-        "loop_push_product_b.js",
-        "loop_push_product_neg.js",
+        "loop_push_product_a.ts",
+        "loop_push_product_b.ts",
+        "loop_push_product_neg.ts",
         2,
         4,
     );
     assert_loop_family(
-        "loop_push_guard_a.js",
-        "loop_push_guard_b.js",
-        "loop_push_guard_neg.js",
+        "loop_push_guard_a.ts",
+        "loop_push_guard_b.ts",
+        "loop_push_guard_neg.ts",
         2,
         4,
     );
     assert_loop_family(
-        "loop_temp_push_square_a.js",
-        "loop_temp_push_square_b.js",
-        "loop_temp_push_square_wrong.js",
+        "loop_temp_push_square_a.ts",
+        "loop_temp_push_square_b.ts",
+        "loop_temp_push_square_wrong.ts",
         2,
         5,
     );
@@ -1997,9 +2001,9 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         4,
     );
     assert_loop_family(
-        "loop_temp_chain_push_a.js",
-        "loop_temp_chain_push_b.js",
-        "loop_temp_chain_push_wrong.js",
+        "loop_temp_chain_push_a.ts",
+        "loop_temp_chain_push_b.ts",
+        "loop_temp_chain_push_wrong.ts",
         2,
         6,
     );
@@ -2010,11 +2014,12 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
         2,
         5,
     );
-    assert_no_pair("loop_unused_effect.js", "direct_unused_effect.js");
-    assert_no_pair("loop_temp_unused.js", "direct_unused_effect.js");
-    assert_no_pair("loop_temp_append_py_a.py", "loop_temp_rebind_iter.js");
-    assert_no_pair("loop_temp_chain_unconsumed.js", "loop_temp_chain_push_b.js");
-    assert_no_pair("loop_temp_chain_uses_prior.js", "loop_temp_chain_push_b.js");
+    assert_no_pair("loop_unused_effect.ts", "direct_unused_effect.ts");
+    assert_no_pair("loop_temp_unused.ts", "direct_unused_effect.ts");
+    assert_no_pair("loop_temp_append_py_a.py", "loop_temp_rebind_iter.ts");
+    assert_no_pair("loop_temp_chain_unconsumed.ts", "loop_temp_chain_push_b.ts");
+    assert_no_pair("loop_temp_chain_uses_prior.ts", "loop_temp_chain_push_b.ts");
+    assert_no_pair("loop_untyped_push_square.js", "loop_push_square_a.ts");
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -2256,52 +2261,52 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
 
     let fixtures = [
         (
-            "cond_loop_square_a.js",
-            "function condLoopSquareLeft(enabled, xs, out) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_loop_square_a.ts",
+            "function condLoopSquareLeft(enabled: boolean, xs: number[], out: number[]): void {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_loop_square_b.js",
-            "function condLoopSquareRight(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_square_b.ts",
+            "function condLoopSquareRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_square_wrong_guard.js",
-            "function condLoopSquareWrongGuard(flag, ys, dst) {\n  if (!flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_square_wrong_guard.ts",
+            "function condLoopSquareWrongGuard(flag: boolean, ys: number[], dst: number[]): void {\n  if (!flag) {\n    for (const y of ys) {\n      dst.push(y * y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_else_a.js",
-            "function condLoopElseLeft(skip, xs, out) {\n  if (skip) {\n  } else {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n  }\n  audit(skip);\n}\n",
+            "cond_loop_else_a.ts",
+            "function condLoopElseLeft(skip: boolean, xs: number[], out: number[]): void {\n  if (skip) {\n  } else {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n  }\n  audit(skip);\n}\n",
         ),
         (
-            "cond_loop_else_b.js",
-            "function condLoopElseRight(flag, ys, dst) {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_else_b.ts",
+            "function condLoopElseRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_else_wrong_receiver.js",
-            "function condLoopElseWrongReceiver(flag, ys, dst) {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      ys.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_else_wrong_receiver.ts",
+            "function condLoopElseWrongReceiver(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n  } else {\n    for (const y of ys) {\n      ys.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_guard_a.js",
-            "function condLoopGuardLeft(enabled, xs, out) {\n  if (enabled) {\n    for (const x of xs) {\n      if (x > 0) out.push(x + 1);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_loop_guard_a.ts",
+            "function condLoopGuardLeft(enabled: boolean, xs: number[], out: number[]): void {\n  if (enabled) {\n    for (const x of xs) {\n      if (x > 0) out.push(x + 1);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_loop_guard_b.js",
-            "function condLoopGuardRight(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_guard_b.ts",
+            "function condLoopGuardRight(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_guard_wrong_value.js",
-            "function condLoopGuardWrongValue(flag, ys, dst) {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(2 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_loop_guard_wrong_value.ts",
+            "function condLoopGuardWrongValue(flag: boolean, ys: number[], dst: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      if (0 < y) dst.push(2 + y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_loop_mutated.js",
-            "function condLoopMutated(enabled, xs, out) {\n  out.push(0);\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_loop_mutated.ts",
+            "function condLoopMutated(enabled: boolean, xs: number[], out: number[]): void {\n  out.push(0);\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x * x);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_loop_unused.js",
-            "function condLoopUnused(enabled, xs, out) {\n  if (enabled) {\n    for (const unused of xs) {\n      out.push(1);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_loop_unused.ts",
+            "function condLoopUnused(enabled: boolean, xs: number[], out: number[]): void {\n  if (enabled) {\n    for (const unused of xs) {\n      out.push(1);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_direct_unused.js",
-            "function condDirectUnused(enabled, out) {\n  if (enabled) {\n    out.push(1);\n  }\n  audit(enabled);\n}\n",
+            "cond_direct_unused.ts",
+            "function condDirectUnused(enabled: boolean, out: number[]): void {\n  if (enabled) {\n    out.push(1);\n  }\n  audit(enabled);\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -2382,28 +2387,28 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
     };
 
     assert_conditional_loop_family(
-        "cond_loop_square_a.js",
-        "cond_loop_square_b.js",
-        "cond_loop_square_wrong_guard.js",
+        "cond_loop_square_a.ts",
+        "cond_loop_square_b.ts",
+        "cond_loop_square_wrong_guard.ts",
         2,
         6,
     );
-    assert_no_pair("cond_loop_square_a.js", "cond_loop_mutated.js");
+    assert_no_pair("cond_loop_square_a.ts", "cond_loop_mutated.ts");
     assert_conditional_loop_family(
-        "cond_loop_else_a.js",
-        "cond_loop_else_b.js",
-        "cond_loop_else_wrong_receiver.js",
+        "cond_loop_else_a.ts",
+        "cond_loop_else_b.ts",
+        "cond_loop_else_wrong_receiver.ts",
         2,
         7,
     );
     assert_conditional_loop_family(
-        "cond_loop_guard_a.js",
-        "cond_loop_guard_b.js",
-        "cond_loop_guard_wrong_value.js",
+        "cond_loop_guard_a.ts",
+        "cond_loop_guard_b.ts",
+        "cond_loop_guard_wrong_value.ts",
         2,
         6,
     );
-    assert_no_pair("cond_loop_unused.js", "cond_direct_unused.js");
+    assert_no_pair("cond_loop_unused.ts", "cond_direct_unused.ts");
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -2418,40 +2423,40 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
 
     let fixtures = [
         (
-            "cond_two_loops_a.js",
-            "function condTwoLoopsLeft(enabled, xs, ys, out) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_two_loops_a.ts",
+            "function condTwoLoopsLeft(enabled: boolean, xs: number[], ys: number[], out: number[]): void {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_two_loops_b.js",
-            "function condTwoLoopsRight(flag, as, bs, dst) {\n  if (flag) {\n    for (const a of as) {\n      dst.push(1 + a);\n    }\n    for (const b of bs) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_two_loops_b.ts",
+            "function condTwoLoopsRight(flag: boolean, as: number[], bs: number[], dst: number[]): void {\n  if (flag) {\n    for (const a of as) {\n      dst.push(1 + a);\n    }\n    for (const b of bs) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_two_loops_wrong_order.js",
-            "function condTwoLoopsWrongOrder(flag, xs, ys, out) {\n  if (flag) {\n    for (const y of ys) {\n      out.push(y * y);\n    }\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n  }\n  audit(flag);\n}\n",
+            "cond_two_loops_wrong_order.ts",
+            "function condTwoLoopsWrongOrder(flag: boolean, xs: number[], ys: number[], out: number[]): void {\n  if (flag) {\n    for (const y of ys) {\n      out.push(y * y);\n    }\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n  }\n  audit(flag);\n}\n",
         ),
         (
-            "cond_two_loops_wrong_receiver.js",
-            "function condTwoLoopsWrongReceiver(flag, xs, ys, out) {\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      ys.push(y * y);\n    }\n  }\n  audit(flag);\n}\n",
+            "cond_two_loops_wrong_receiver.ts",
+            "function condTwoLoopsWrongReceiver(flag: boolean, xs: number[], ys: number[], out: number[]): void {\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      ys.push(y * y);\n    }\n  }\n  audit(flag);\n}\n",
         ),
         (
-            "cond_two_loops_mutated.js",
-            "function condTwoLoopsMutated(flag, xs, ys, out) {\n  out.push(0);\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n  }\n  audit(flag);\n}\n",
+            "cond_two_loops_mutated.ts",
+            "function condTwoLoopsMutated(flag: boolean, xs: number[], ys: number[], out: number[]): void {\n  out.push(0);\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n  }\n  audit(flag);\n}\n",
         ),
         (
-            "cond_three_loops.js",
-            "function condThreeLoops(flag, xs, ys, zs, out) {\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n    for (const z of zs) {\n      out.push(z + 3);\n    }\n  }\n  audit(flag);\n}\n",
+            "cond_three_loops.ts",
+            "function condThreeLoops(flag: boolean, xs: number[], ys: number[], zs: number[], out: number[]): void {\n  if (flag) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    for (const y of ys) {\n      out.push(y * y);\n    }\n    for (const z of zs) {\n      out.push(z + 3);\n    }\n  }\n  audit(flag);\n}\n",
         ),
         (
             "cond_two_temp_loops_a.py",
-            "def cond_two_temp_loops_left(flag, xs, ys, out):\n    if flag:\n        for x in xs:\n            value = x + 1\n            out.append(value * value)\n        for y in ys:\n            out.append(y + 2)\n    audit(flag)\n",
+            "def cond_two_temp_loops_left(flag: bool, xs: list[int], ys: list[int], out: list[int]):\n    if flag:\n        for x in xs:\n            value = x + 1\n            out.append(value * value)\n        for y in ys:\n            out.append(y + 2)\n    audit(flag)\n",
         ),
         (
             "cond_two_temp_loops_b.py",
-            "def cond_two_temp_loops_right(enabled, as_, bs, dst):\n    if enabled:\n        for a in as_:\n            item = 1 + a\n            dst.append(item * item)\n        for b in bs:\n            dst.append(2 + b)\n    trace(enabled)\n",
+            "def cond_two_temp_loops_right(enabled: bool, as_: list[int], bs: list[int], dst: list[int]):\n    if enabled:\n        for a in as_:\n            item = 1 + a\n            dst.append(item * item)\n        for b in bs:\n            dst.append(2 + b)\n    trace(enabled)\n",
         ),
         (
             "cond_two_temp_loops_wrong.py",
-            "def cond_two_temp_loops_wrong(flag, xs, ys, out):\n    if flag:\n        for x in xs:\n            value = x + 2\n            out.append(value * value)\n        for y in ys:\n            out.append(y + 2)\n    audit(flag)\n",
+            "def cond_two_temp_loops_wrong(flag: bool, xs: list[int], ys: list[int], out: list[int]):\n    if flag:\n        for x in xs:\n            value = x + 2\n            out.append(value * value)\n        for y in ys:\n            out.append(y + 2)\n    audit(flag)\n",
         ),
         (
             "cond_two_index_loops_a.go",
@@ -2556,9 +2561,9 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
     };
 
     assert_branch_pair(
-        "cond_two_loops_a.js",
-        "cond_two_loops_b.js",
-        "cond_two_loops_wrong_order.js",
+        "cond_two_loops_a.ts",
+        "cond_two_loops_b.ts",
+        "cond_two_loops_wrong_order.ts",
         2,
         9,
     );
@@ -2577,30 +2582,30 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
         10,
     );
     assert_no_branch_pair(
-        "cond_two_loops_a.js",
-        "cond_two_loops_wrong_order.js",
+        "cond_two_loops_a.ts",
+        "cond_two_loops_wrong_order.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "cond_two_loops_a.js",
-        "cond_two_loops_wrong_receiver.js",
+        "cond_two_loops_a.ts",
+        "cond_two_loops_wrong_receiver.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "cond_two_loops_a.js",
-        "cond_two_loops_mutated.js",
+        "cond_two_loops_a.ts",
+        "cond_two_loops_mutated.ts",
         2,
         9,
         3,
         10,
     );
-    assert_no_branch_pair("cond_two_loops_a.js", "cond_three_loops.js", 2, 9, 2, 12);
+    assert_no_branch_pair("cond_two_loops_a.ts", "cond_three_loops.ts", 2, 9, 2, 12);
     assert_no_branch_pair(
         "cond_two_temp_loops_a.py",
         "cond_two_temp_loops_wrong.py",
@@ -2640,44 +2645,44 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
 
     let fixtures = [
         (
-            "mixed_loop_append_a.js",
-            "function mixedLoopAppendLeft(enabled, xs, out, seed) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    out.push(seed * seed);\n  }\n  audit(enabled);\n}\n",
+            "mixed_loop_append_a.ts",
+            "function mixedLoopAppendLeft(enabled: boolean, xs: number[], out: number[], seed: number): void {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    out.push(seed * seed);\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "mixed_loop_append_b.js",
-            "function mixedLoopAppendRight(flag, ys, dst, base) {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "mixed_loop_append_b.ts",
+            "function mixedLoopAppendRight(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "mixed_loop_append_wrong_order.js",
-            "function mixedLoopAppendWrongOrder(flag, ys, dst, base) {\n  if (flag) {\n    dst.push(base * base);\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
+            "mixed_loop_append_wrong_order.ts",
+            "function mixedLoopAppendWrongOrder(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    dst.push(base * base);\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "mixed_loop_append_wrong_receiver.js",
-            "function mixedLoopAppendWrongReceiver(flag, ys, dst, base) {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    ys.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "mixed_loop_append_wrong_receiver.ts",
+            "function mixedLoopAppendWrongReceiver(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    ys.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "mixed_loop_append_mutated.js",
-            "function mixedLoopAppendMutated(flag, ys, dst, base) {\n  dst.push(0);\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
+            "mixed_loop_append_mutated.ts",
+            "function mixedLoopAppendMutated(flag: boolean, ys: number[], dst: number[], base: number): void {\n  dst.push(0);\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "mixed_loop_append_third_effect.js",
-            "function mixedLoopAppendThirdEffect(flag, ys, dst, base) {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n    dst.push(base + 1);\n  }\n  trace(flag);\n}\n",
+            "mixed_loop_append_third_effect.ts",
+            "function mixedLoopAppendThirdEffect(flag: boolean, ys: number[], dst: number[], base: number): void {\n  if (flag) {\n    for (const y of ys) {\n      dst.push(1 + y);\n    }\n    dst.push(base * base);\n    dst.push(base + 1);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "mixed_append_loop_a.py",
-            "def mixed_append_loop_left(flag, xs, out, seed):\n    if flag:\n        out.append(seed + 1)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n    audit(flag)\n",
+            "def mixed_append_loop_left(flag: bool, xs: list[int], out: list[int], seed: int):\n    if flag:\n        out.append(seed + 1)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n    audit(flag)\n",
         ),
         (
             "mixed_append_loop_b.py",
-            "def mixed_append_loop_right(enabled, ys, dst, base):\n    if enabled:\n        dst.append(1 + base)\n        for y in ys:\n            item = 1 + y\n            dst.append(item)\n    trace(enabled)\n",
+            "def mixed_append_loop_right(enabled: bool, ys: list[int], dst: list[int], base: int):\n    if enabled:\n        dst.append(1 + base)\n        for y in ys:\n            item = 1 + y\n            dst.append(item)\n    trace(enabled)\n",
         ),
         (
             "mixed_append_loop_wrong_temp.py",
-            "def mixed_append_loop_wrong_temp(flag, ys, dst, base):\n    if flag:\n        dst.append(1 + base)\n        for y in ys:\n            item = 2 + y\n            dst.append(item)\n    trace(flag)\n",
+            "def mixed_append_loop_wrong_temp(flag: bool, ys: list[int], dst: list[int], base: int):\n    if flag:\n        dst.append(1 + base)\n        for y in ys:\n            item = 2 + y\n            dst.append(item)\n    trace(flag)\n",
         ),
         (
             "mixed_append_loop_wrong_order.py",
-            "def mixed_append_loop_wrong_order(flag, ys, dst, base):\n    if flag:\n        for y in ys:\n            item = 1 + y\n            dst.append(item)\n        dst.append(1 + base)\n    trace(flag)\n",
+            "def mixed_append_loop_wrong_order(flag: bool, ys: list[int], dst: list[int], base: int):\n    if flag:\n        for y in ys:\n            item = 1 + y\n            dst.append(item)\n        dst.append(1 + base)\n    trace(flag)\n",
         ),
         (
             "mixed_index_loop_a.go",
@@ -2782,9 +2787,9 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
     };
 
     assert_branch_pair(
-        "mixed_loop_append_a.js",
-        "mixed_loop_append_b.js",
-        "mixed_loop_append_wrong_order.js",
+        "mixed_loop_append_a.ts",
+        "mixed_loop_append_b.ts",
+        "mixed_loop_append_wrong_order.ts",
         2,
         7,
     );
@@ -2804,32 +2809,32 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
     );
 
     assert_no_branch_pair(
-        "mixed_loop_append_a.js",
-        "mixed_loop_append_wrong_order.js",
+        "mixed_loop_append_a.ts",
+        "mixed_loop_append_wrong_order.ts",
         2,
         7,
         2,
         7,
     );
     assert_no_branch_pair(
-        "mixed_loop_append_a.js",
-        "mixed_loop_append_wrong_receiver.js",
+        "mixed_loop_append_a.ts",
+        "mixed_loop_append_wrong_receiver.ts",
         2,
         7,
         2,
         7,
     );
     assert_no_branch_pair(
-        "mixed_loop_append_a.js",
-        "mixed_loop_append_mutated.js",
+        "mixed_loop_append_a.ts",
+        "mixed_loop_append_mutated.ts",
         2,
         7,
         3,
         8,
     );
     assert_no_branch_pair(
-        "mixed_loop_append_a.js",
-        "mixed_loop_append_third_effect.js",
+        "mixed_loop_append_a.ts",
+        "mixed_loop_append_third_effect.ts",
         2,
         7,
         2,
@@ -2882,44 +2887,44 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
 
     let fixtures = [
         (
-            "cond_pair_append_a.js",
-            "function condPairAppendLeft(enabled, x, y, out) {\n  if (enabled) {\n    if (x > 0) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
+            "cond_pair_append_a.ts",
+            "function condPairAppendLeft(enabled: boolean, x: number, y: number, out: number[]): void {\n  if (enabled) {\n    if (x > 0) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_pair_append_b.js",
-            "function condPairAppendRight(flag, a, b, dst) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_pair_append_b.ts",
+            "function condPairAppendRight(flag: boolean, a: number, b: number, dst: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_pair_append_wrong_order.js",
-            "function condPairAppendWrongOrder(flag, a, b, dst) {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_pair_append_wrong_order.ts",
+            "function condPairAppendWrongOrder(flag: boolean, a: number, b: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_pair_append_wrong_receiver.js",
-            "function condPairAppendWrongReceiver(flag, a, b, dst, other) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_pair_append_wrong_receiver.ts",
+            "function condPairAppendWrongReceiver(flag: boolean, a: number, b: number, dst: number[], other: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_pair_append_mutated.js",
-            "function condPairAppendMutated(flag, a, b, dst) {\n  dst.push(0);\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_pair_append_mutated.ts",
+            "function condPairAppendMutated(flag: boolean, a: number, b: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_pair_append_third.js",
-            "function condPairAppendThird(flag, a, b, c, dst) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    if (c > 0) {\n      dst.push(c + 3);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_pair_append_third.ts",
+            "function condPairAppendThird(flag: boolean, a: number, b: number, c: number, dst: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    if (c > 0) {\n      dst.push(c + 3);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_pair_append_a.py",
-            "def cond_pair_append_left(flag, x, y, out):\n    if flag:\n        if x > 0:\n            out.append(x + 1)\n        if y > 0:\n            out.append(y * y)\n    audit(flag)\n",
+            "def cond_pair_append_left(flag: bool, x: int, y: int, out: list[int]):\n    if flag:\n        if x > 0:\n            out.append(x + 1)\n        if y > 0:\n            out.append(y * y)\n    audit(flag)\n",
         ),
         (
             "cond_pair_append_b.py",
-            "def cond_pair_append_right(enabled, a, b, dst):\n    if enabled:\n        if 0 < a:\n            dst.append(1 + a)\n        if b > 0:\n            dst.append(b * b)\n    trace(enabled)\n",
+            "def cond_pair_append_right(enabled: bool, a: int, b: int, dst: list[int]):\n    if enabled:\n        if 0 < a:\n            dst.append(1 + a)\n        if b > 0:\n            dst.append(b * b)\n    trace(enabled)\n",
         ),
         (
             "cond_pair_append_wrong_guard.py",
-            "def cond_pair_append_wrong_guard(flag, a, b, dst):\n    if flag:\n        if 0 < a:\n            dst.append(1 + a)\n        if b >= 0:\n            dst.append(b * b)\n    trace(flag)\n",
+            "def cond_pair_append_wrong_guard(flag: bool, a: int, b: int, dst: list[int]):\n    if flag:\n        if 0 < a:\n            dst.append(1 + a)\n        if b >= 0:\n            dst.append(b * b)\n    trace(flag)\n",
         ),
         (
             "cond_pair_append_wrong_order.py",
-            "def cond_pair_append_wrong_order(flag, a, b, dst):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        if 0 < a:\n            dst.append(1 + a)\n    trace(flag)\n",
+            "def cond_pair_append_wrong_order(flag: bool, a: int, b: int, dst: list[int]):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        if 0 < a:\n            dst.append(1 + a)\n    trace(flag)\n",
         ),
         (
             "cond_pair_index_a.go",
@@ -3024,9 +3029,9 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
     };
 
     assert_branch_pair(
-        "cond_pair_append_a.js",
-        "cond_pair_append_b.js",
-        "cond_pair_append_wrong_order.js",
+        "cond_pair_append_a.ts",
+        "cond_pair_append_b.ts",
+        "cond_pair_append_wrong_order.ts",
         2,
         9,
     );
@@ -3046,32 +3051,32 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
     );
 
     assert_no_branch_pair(
-        "cond_pair_append_a.js",
-        "cond_pair_append_wrong_order.js",
+        "cond_pair_append_a.ts",
+        "cond_pair_append_wrong_order.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "cond_pair_append_a.js",
-        "cond_pair_append_wrong_receiver.js",
+        "cond_pair_append_a.ts",
+        "cond_pair_append_wrong_receiver.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "cond_pair_append_a.js",
-        "cond_pair_append_mutated.js",
+        "cond_pair_append_a.ts",
+        "cond_pair_append_mutated.ts",
         2,
         9,
         3,
         10,
     );
     assert_no_branch_pair(
-        "cond_pair_append_a.js",
-        "cond_pair_append_third.js",
+        "cond_pair_append_a.ts",
+        "cond_pair_append_third.ts",
         2,
         9,
         2,
@@ -3124,48 +3129,48 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
 
     let fixtures = [
         (
-            "cond_mixed_append_a.js",
-            "function condMixedAppendLeft(enabled, x, y, out) {\n  if (enabled) {\n    if (x > 0) {\n      out.push(x + 1);\n    }\n    out.push(y * y);\n  }\n  audit(enabled);\n}\n",
+            "cond_mixed_append_a.ts",
+            "function condMixedAppendLeft(enabled: boolean, x: number, y: number, out: number[]): void {\n  if (enabled) {\n    if (x > 0) {\n      out.push(x + 1);\n    }\n    out.push(y * y);\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "cond_mixed_append_b.js",
-            "function condMixedAppendRight(flag, a, b, dst) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_b.ts",
+            "function condMixedAppendRight(flag: boolean, a: number, b: number, dst: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_mixed_append_wrong_order.js",
-            "function condMixedAppendWrongOrder(flag, a, b, dst) {\n  if (flag) {\n    dst.push(b * b);\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_wrong_order.ts",
+            "function condMixedAppendWrongOrder(flag: boolean, a: number, b: number, dst: number[]): void {\n  if (flag) {\n    dst.push(b * b);\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_mixed_append_wrong_guard.js",
-            "function condMixedAppendWrongGuard(flag, a, b, dst) {\n  if (flag) {\n    if (0 <= a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_wrong_guard.ts",
+            "function condMixedAppendWrongGuard(flag: boolean, a: number, b: number, dst: number[]): void {\n  if (flag) {\n    if (0 <= a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_mixed_append_wrong_receiver.js",
-            "function condMixedAppendWrongReceiver(flag, a, b, dst, other) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    other.push(b * b);\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_wrong_receiver.ts",
+            "function condMixedAppendWrongReceiver(flag: boolean, a: number, b: number, dst: number[], other: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    other.push(b * b);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_mixed_append_mutated.js",
-            "function condMixedAppendMutated(flag, a, b, dst) {\n  dst.push(0);\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_mutated.ts",
+            "function condMixedAppendMutated(flag: boolean, a: number, b: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "cond_mixed_append_third.js",
-            "function condMixedAppendThird(flag, a, b, c, dst) {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
+            "cond_mixed_append_third.ts",
+            "function condMixedAppendThird(flag: boolean, a: number, b: number, c: number, dst: number[]): void {\n  if (flag) {\n    if (0 < a) {\n      dst.push(1 + a);\n    }\n    dst.push(b * b);\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "cond_mixed_append_a.py",
-            "def cond_mixed_append_left(flag, x, y, out):\n    if flag:\n        out.append(y * y)\n        if x > 0:\n            out.append(x + 1)\n    audit(flag)\n",
+            "def cond_mixed_append_left(flag: bool, x: int, y: int, out: list[int]):\n    if flag:\n        out.append(y * y)\n        if x > 0:\n            out.append(x + 1)\n    audit(flag)\n",
         ),
         (
             "cond_mixed_append_b.py",
-            "def cond_mixed_append_right(enabled, a, b, dst):\n    if enabled:\n        dst.append(b * b)\n        if 0 < a:\n            dst.append(1 + a)\n    trace(enabled)\n",
+            "def cond_mixed_append_right(enabled: bool, a: int, b: int, dst: list[int]):\n    if enabled:\n        dst.append(b * b)\n        if 0 < a:\n            dst.append(1 + a)\n    trace(enabled)\n",
         ),
         (
             "cond_mixed_append_wrong_order.py",
-            "def cond_mixed_append_wrong_order(flag, a, b, dst):\n    if flag:\n        if 0 < a:\n            dst.append(1 + a)\n        dst.append(b * b)\n    trace(flag)\n",
+            "def cond_mixed_append_wrong_order(flag: bool, a: int, b: int, dst: list[int]):\n    if flag:\n        if 0 < a:\n            dst.append(1 + a)\n        dst.append(b * b)\n    trace(flag)\n",
         ),
         (
             "cond_mixed_append_wrong_guard.py",
-            "def cond_mixed_append_wrong_guard(flag, a, b, dst):\n    if flag:\n        dst.append(b * b)\n        if 0 <= a:\n            dst.append(1 + a)\n    trace(flag)\n",
+            "def cond_mixed_append_wrong_guard(flag: bool, a: int, b: int, dst: list[int]):\n    if flag:\n        dst.append(b * b)\n        if 0 <= a:\n            dst.append(1 + a)\n    trace(flag)\n",
         ),
         (
             "cond_mixed_index_a.go",
@@ -3273,9 +3278,9 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
     };
 
     assert_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_b.js",
-        "cond_mixed_append_wrong_order.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_b.ts",
+        "cond_mixed_append_wrong_order.ts",
         2,
         7,
     );
@@ -3295,40 +3300,40 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
     );
 
     assert_no_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_wrong_order.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_wrong_order.ts",
         2,
         7,
         2,
         7,
     );
     assert_no_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_wrong_guard.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_wrong_guard.ts",
         2,
         7,
         2,
         7,
     );
     assert_no_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_wrong_receiver.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_wrong_receiver.ts",
         2,
         7,
         2,
         7,
     );
     assert_no_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_mutated.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_mutated.ts",
         2,
         7,
         3,
         8,
     );
     assert_no_branch_pair(
-        "cond_mixed_append_a.js",
-        "cond_mixed_append_third.js",
+        "cond_mixed_append_a.ts",
+        "cond_mixed_append_third.ts",
         2,
         7,
         2,
@@ -3381,48 +3386,48 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
 
     let fixtures = [
         (
-            "loop_cond_append_a.js",
-            "function loopCondAppendLeft(enabled, xs, y, out) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
+            "loop_cond_append_a.ts",
+            "function loopCondAppendLeft(enabled: boolean, xs: number[], y: number, out: number[]): void {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "loop_cond_append_b.js",
-            "function loopCondAppendRight(flag, ys, b, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_b.ts",
+            "function loopCondAppendRight(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_append_wrong_order.js",
-            "function loopCondAppendWrongOrder(flag, ys, b, dst) {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_wrong_order.ts",
+            "function loopCondAppendWrongOrder(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_append_wrong_guard.js",
-            "function loopCondAppendWrongGuard(flag, ys, b, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_wrong_guard.ts",
+            "function loopCondAppendWrongGuard(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_append_wrong_receiver.js",
-            "function loopCondAppendWrongReceiver(flag, ys, b, dst, other) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_wrong_receiver.ts",
+            "function loopCondAppendWrongReceiver(flag: boolean, ys: number[], b: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      other.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_append_mutated.js",
-            "function loopCondAppendMutated(flag, ys, b, dst) {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_mutated.ts",
+            "function loopCondAppendMutated(flag: boolean, ys: number[], b: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_append_third.js",
-            "function loopCondAppendThird(flag, ys, b, c, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_append_third.ts",
+            "function loopCondAppendThird(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(c + 3);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_append_a.py",
-            "def loop_cond_append_left(flag, xs, y, out):\n    if flag:\n        if y > 0:\n            out.append(y * y)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n    audit(flag)\n",
+            "def loop_cond_append_left(flag: bool, xs: list[int], y: int, out: list[int]):\n    if flag:\n        if y > 0:\n            out.append(y * y)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n    audit(flag)\n",
         ),
         (
             "loop_cond_append_b.py",
-            "def loop_cond_append_right(enabled, ys, b, dst):\n    if enabled:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n    trace(enabled)\n",
+            "def loop_cond_append_right(enabled: bool, ys: list[int], b: int, dst: list[int]):\n    if enabled:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n    trace(enabled)\n",
         ),
         (
             "loop_cond_append_wrong_order.py",
-            "def loop_cond_append_wrong_order(flag, ys, b, dst):\n    if flag:\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        if b > 0:\n            dst.append(b * b)\n    trace(flag)\n",
+            "def loop_cond_append_wrong_order(flag: bool, ys: list[int], b: int, dst: list[int]):\n    if flag:\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        if b > 0:\n            dst.append(b * b)\n    trace(flag)\n",
         ),
         (
             "loop_cond_append_wrong_temp.py",
-            "def loop_cond_append_wrong_temp(flag, ys, b, dst):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 2 + a\n            dst.append(item)\n    trace(flag)\n",
+            "def loop_cond_append_wrong_temp(flag: bool, ys: list[int], b: int, dst: list[int]):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 2 + a\n            dst.append(item)\n    trace(flag)\n",
         ),
         (
             "loop_cond_index_a.go",
@@ -3530,9 +3535,9 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
     };
 
     assert_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_b.js",
-        "loop_cond_append_wrong_order.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_b.ts",
+        "loop_cond_append_wrong_order.ts",
         2,
         9,
     );
@@ -3552,40 +3557,40 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
     );
 
     assert_no_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_wrong_order.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_wrong_order.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_wrong_guard.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_wrong_guard.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_wrong_receiver.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_wrong_receiver.ts",
         2,
         9,
         2,
         9,
     );
     assert_no_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_mutated.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_mutated.ts",
         2,
         9,
         3,
         10,
     );
     assert_no_branch_pair(
-        "loop_cond_append_a.js",
-        "loop_cond_append_third.js",
+        "loop_cond_append_a.ts",
+        "loop_cond_append_third.ts",
         2,
         9,
         2,
@@ -3638,48 +3643,48 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
 
     let fixtures = [
         (
-            "loop_cond_mixed_append_a.js",
-            "function loopCondMixedLeft(enabled, xs, y, z, out) {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n    out.push(z + 3);\n  }\n  audit(enabled);\n}\n",
+            "loop_cond_mixed_append_a.ts",
+            "function loopCondMixedLeft(enabled: boolean, xs: number[], y: number, z: number, out: number[]): void {\n  if (enabled) {\n    for (const x of xs) {\n      out.push(x + 1);\n    }\n    if (y > 0) {\n      out.push(y * y);\n    }\n    out.push(z + 3);\n  }\n  audit(enabled);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_b.js",
-            "function loopCondMixedRight(flag, ys, b, c, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_b.ts",
+            "function loopCondMixedRight(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_wrong_order.js",
-            "function loopCondMixedWrongOrder(flag, ys, b, c, dst) {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_wrong_order.ts",
+            "function loopCondMixedWrongOrder(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_wrong_guard.js",
-            "function loopCondMixedWrongGuard(flag, ys, b, c, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_wrong_guard.ts",
+            "function loopCondMixedWrongGuard(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b >= 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_wrong_receiver.js",
-            "function loopCondMixedWrongReceiver(flag, ys, b, c, dst, other) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    other.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_wrong_receiver.ts",
+            "function loopCondMixedWrongReceiver(flag: boolean, ys: number[], b: number, c: number, dst: number[], other: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    other.push(3 + c);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_mutated.js",
-            "function loopCondMixedMutated(flag, ys, b, c, dst) {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_mutated.ts",
+            "function loopCondMixedMutated(flag: boolean, ys: number[], b: number, c: number, dst: number[]): void {\n  dst.push(0);\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n  }\n  trace(flag);\n}\n",
         ),
         (
-            "loop_cond_mixed_append_fourth.js",
-            "function loopCondMixedFourth(flag, ys, b, c, d, dst) {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n    dst.push(d + 4);\n  }\n  trace(flag);\n}\n",
+            "loop_cond_mixed_append_fourth.ts",
+            "function loopCondMixedFourth(flag: boolean, ys: number[], b: number, c: number, d: number, dst: number[]): void {\n  if (flag) {\n    for (const a of ys) {\n      dst.push(1 + a);\n    }\n    if (b > 0) {\n      dst.push(b * b);\n    }\n    dst.push(3 + c);\n    dst.push(d + 4);\n  }\n  trace(flag);\n}\n",
         ),
         (
             "loop_cond_mixed_append_a.py",
-            "def loop_cond_mixed_left(flag, xs, y, z, out):\n    if flag:\n        if y > 0:\n            out.append(y * y)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n        out.append(z + 3)\n    audit(flag)\n",
+            "def loop_cond_mixed_left(flag: bool, xs: list[int], y: int, z: int, out: list[int]):\n    if flag:\n        if y > 0:\n            out.append(y * y)\n        for x in xs:\n            value = x + 1\n            out.append(value)\n        out.append(z + 3)\n    audit(flag)\n",
         ),
         (
             "loop_cond_mixed_append_b.py",
-            "def loop_cond_mixed_right(enabled, ys, b, c, dst):\n    if enabled:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        dst.append(3 + c)\n    trace(enabled)\n",
+            "def loop_cond_mixed_right(enabled: bool, ys: list[int], b: int, c: int, dst: list[int]):\n    if enabled:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        dst.append(3 + c)\n    trace(enabled)\n",
         ),
         (
             "loop_cond_mixed_append_wrong_order.py",
-            "def loop_cond_mixed_wrong_order(flag, ys, b, c, dst):\n    if flag:\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        if b > 0:\n            dst.append(b * b)\n        dst.append(3 + c)\n    trace(flag)\n",
+            "def loop_cond_mixed_wrong_order(flag: bool, ys: list[int], b: int, c: int, dst: list[int]):\n    if flag:\n        for a in ys:\n            item = 1 + a\n            dst.append(item)\n        if b > 0:\n            dst.append(b * b)\n        dst.append(3 + c)\n    trace(flag)\n",
         ),
         (
             "loop_cond_mixed_append_wrong_temp.py",
-            "def loop_cond_mixed_wrong_temp(flag, ys, b, c, dst):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 2 + a\n            dst.append(item)\n        dst.append(3 + c)\n    trace(flag)\n",
+            "def loop_cond_mixed_wrong_temp(flag: bool, ys: list[int], b: int, c: int, dst: list[int]):\n    if flag:\n        if b > 0:\n            dst.append(b * b)\n        for a in ys:\n            item = 2 + a\n            dst.append(item)\n        dst.append(3 + c)\n    trace(flag)\n",
         ),
         (
             "loop_cond_mixed_index_a.go",
@@ -3787,9 +3792,9 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
     };
 
     assert_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_b.js",
-        "loop_cond_mixed_append_wrong_order.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_b.ts",
+        "loop_cond_mixed_append_wrong_order.ts",
         2,
         10,
     );
@@ -3809,40 +3814,40 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
     );
 
     assert_no_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_wrong_order.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_wrong_order.ts",
         2,
         10,
         2,
         10,
     );
     assert_no_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_wrong_guard.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_wrong_guard.ts",
         2,
         10,
         2,
         10,
     );
     assert_no_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_wrong_receiver.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_wrong_receiver.ts",
         2,
         10,
         2,
         10,
     );
     assert_no_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_mutated.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_mutated.ts",
         2,
         10,
         3,
         11,
     );
     assert_no_branch_pair(
-        "loop_cond_mixed_append_a.js",
-        "loop_cond_mixed_append_fourth.js",
+        "loop_cond_mixed_append_a.ts",
+        "loop_cond_mixed_append_fourth.ts",
         2,
         10,
         2,
@@ -3895,64 +3900,64 @@ fn semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments() {
 
     let fixtures = [
         (
-            "append_pair_a.js",
-            "function appendPairLeft(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_pair_a.ts",
+            "function appendPairLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_pair_b.js",
-            "function appendPairRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_pair_b.ts",
+            "function appendPairRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_pair_wrong_order.js",
-            "function appendPairWrongOrder(flag, out, x) {\n  if (flag) {\n    out.push(x + 2);\n    out.push(x + 1);\n  }\n  audit(/opaque/);\n}\n",
+            "append_pair_wrong_order.ts",
+            "function appendPairWrongOrder(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 2);\n    out.push(x + 1);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_pair_wrong_receiver.js",
-            "function appendPairWrongReceiver(flag, out, other, x) {\n  if (flag) {\n    out.push(x + 1);\n    other.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_pair_wrong_receiver.ts",
+            "function appendPairWrongReceiver(flag: boolean, out: number[], other: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    other.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_pair_mutated.js",
-            "function appendPairMutated(flag, out, x) {\n  out.push(0);\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_pair_mutated.ts",
+            "function appendPairMutated(flag: boolean, out: number[], x: number): void {\n  out.push(0);\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_temp_pair_a.js",
-            "function appendTempPairLeft(flag, out, x) {\n  if (flag) {\n    const first = x + 1;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_temp_pair_a.ts",
+            "function appendTempPairLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const first = x + 1;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_temp_pair_b.js",
-            "function appendTempPairRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_temp_pair_b.ts",
+            "function appendTempPairRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_temp_pair_wrong.js",
-            "function appendTempPairWrong(flag, out, x) {\n  if (flag) {\n    const first = x + 3;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_temp_pair_wrong.ts",
+            "function appendTempPairWrong(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const first = x + 3;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_chain_pair_a.js",
-            "function appendChainPairLeft(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_chain_pair_a.ts",
+            "function appendChainPairLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_chain_pair_b.js",
-            "function appendChainPairRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_chain_pair_b.ts",
+            "function appendChainPairRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_chain_pair_wrong.js",
-            "function appendChainPairWrong(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base + base;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_chain_pair_wrong.ts",
+            "function appendChainPairWrong(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base + base;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_chain_pair_uses_prior.js",
-            "function appendChainPairUsesPrior(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first + base);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_chain_pair_uses_prior.ts",
+            "function appendChainPairUsesPrior(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first + base);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_chain_pair_forward_ref.js",
-            "function appendChainPairForwardRef(flag, out, x) {\n  if (flag) {\n    const base = first + 1;\n    const first = x * x;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_chain_pair_forward_ref.ts",
+            "function appendChainPairForwardRef(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = first + 1;\n    const first = x * x;\n    out.push(first);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_cond_before.js",
-            "function appendCondBefore(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n  }\n  out.push(x + 2);\n}\n",
+            "append_cond_before.ts",
+            "function appendCondBefore(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n  }\n  out.push(x + 2);\n}\n",
         ),
         (
-            "append_cond_after.js",
-            "function appendCondAfter(flag, out, x) {\n  out.push(x + 2);\n  if (flag) {\n    out.push(x + 1);\n  }\n}\n",
+            "append_cond_after.ts",
+            "function appendCondAfter(flag: boolean, out: number[], x: number): void {\n  out.push(x + 2);\n  if (flag) {\n    out.push(x + 1);\n  }\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -4022,36 +4027,36 @@ fn semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments() {
     };
 
     assert_block_pair(
-        "append_pair_a.js",
-        "append_pair_b.js",
-        "append_pair_wrong_order.js",
+        "append_pair_a.ts",
+        "append_pair_b.ts",
+        "append_pair_wrong_order.ts",
     );
     assert_block_pair(
-        "append_temp_pair_a.js",
-        "append_temp_pair_b.js",
-        "append_temp_pair_wrong.js",
+        "append_temp_pair_a.ts",
+        "append_temp_pair_b.ts",
+        "append_temp_pair_wrong.ts",
     );
     assert_block_pair(
-        "append_chain_pair_a.js",
-        "append_chain_pair_b.js",
-        "append_chain_pair_wrong.js",
+        "append_chain_pair_a.ts",
+        "append_chain_pair_b.ts",
+        "append_chain_pair_wrong.ts",
     );
-    assert_no_merge("append_pair_a.js", "append_pair_wrong_order.js", None);
-    assert_no_merge("append_pair_a.js", "append_pair_wrong_receiver.js", None);
-    assert_no_merge("append_pair_a.js", "append_pair_mutated.js", None);
+    assert_no_merge("append_pair_a.ts", "append_pair_wrong_order.ts", None);
+    assert_no_merge("append_pair_a.ts", "append_pair_wrong_receiver.ts", None);
+    assert_no_merge("append_pair_a.ts", "append_pair_mutated.ts", None);
     assert_no_merge(
-        "append_chain_pair_a.js",
-        "append_chain_pair_uses_prior.js",
+        "append_chain_pair_a.ts",
+        "append_chain_pair_uses_prior.ts",
         None,
     );
     assert_no_merge(
-        "append_chain_pair_a.js",
-        "append_chain_pair_forward_ref.js",
+        "append_chain_pair_a.ts",
+        "append_chain_pair_forward_ref.ts",
         None,
     );
     assert_no_merge(
-        "append_cond_before.js",
-        "append_cond_after.js",
+        "append_cond_before.ts",
+        "append_cond_after.ts",
         Some("Function"),
     );
 
@@ -4069,56 +4074,56 @@ fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
 
     let fixtures = [
         (
-            "append_three_a.js",
-            "function appendThreeLeft(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_a.ts",
+            "function appendThreeLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_b.js",
-            "function appendThreeRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_three_b.ts",
+            "function appendThreeRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push(1 + y);\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_three_wrong_order.js",
-            "function appendThreeWrongOrder(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 3);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_wrong_order.ts",
+            "function appendThreeWrongOrder(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 3);\n    out.push(x + 2);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_wrong_receiver.js",
-            "function appendThreeWrongReceiver(flag, out, other, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    other.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_wrong_receiver.ts",
+            "function appendThreeWrongReceiver(flag: boolean, out: number[], other: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    other.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_mutated.js",
-            "function appendThreeMutated(flag, out, x) {\n  out.push(0);\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_mutated.ts",
+            "function appendThreeMutated(flag: boolean, out: number[], x: number): void {\n  out.push(0);\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_temp_a.js",
-            "function appendThreeTempLeft(flag, out, x) {\n  if (flag) {\n    const first = x + 1;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_temp_a.ts",
+            "function appendThreeTempLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const first = x + 1;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_temp_b.js",
-            "function appendThreeTempRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_three_temp_b.ts",
+            "function appendThreeTempRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_three_temp_wrong.js",
-            "function appendThreeTempWrong(flag, out, x) {\n  if (flag) {\n    const first = x + 4;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_temp_wrong.ts",
+            "function appendThreeTempWrong(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const first = x + 4;\n    out.push(first * first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_chain_a.js",
-            "function appendThreeChainLeft(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_chain_a.ts",
+            "function appendThreeChainLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_chain_b.js",
-            "function appendThreeChainRight(enabled, dst, y) {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
+            "append_three_chain_b.ts",
+            "function appendThreeChainRight(enabled: boolean, dst: number[], y: number): void {\n  if (enabled) {\n    dst.push((1 + y) * (1 + y));\n    dst.push(2 + y);\n    dst.push(3 + y);\n  }\n  trace(/opaque/);\n}\n",
         ),
         (
-            "append_three_chain_wrong.js",
-            "function appendThreeChainWrong(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base + base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_chain_wrong.ts",
+            "function appendThreeChainWrong(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base + base;\n    out.push(first);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_three_chain_uses_prior.js",
-            "function appendThreeChainUsesPrior(flag, out, x) {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first + base);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
+            "append_three_chain_uses_prior.ts",
+            "function appendThreeChainUsesPrior(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    const base = x + 1;\n    const first = base * base;\n    out.push(first + base);\n    out.push(x + 2);\n    out.push(x + 3);\n  }\n  audit(/opaque/);\n}\n",
         ),
         (
-            "append_four_a.js",
-            "function appendFourLeft(flag, out, x) {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n    out.push(x + 4);\n  }\n  audit(/opaque/);\n}\n",
+            "append_four_a.ts",
+            "function appendFourLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n    out.push(x + 4);\n  }\n  audit(/opaque/);\n}\n",
         ),
     ];
     for (name, src) in fixtures {
@@ -4187,28 +4192,28 @@ fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
     };
 
     assert_block_pair(
-        "append_three_a.js",
-        "append_three_b.js",
-        "append_three_wrong_order.js",
+        "append_three_a.ts",
+        "append_three_b.ts",
+        "append_three_wrong_order.ts",
     );
     assert_block_pair(
-        "append_three_temp_a.js",
-        "append_three_temp_b.js",
-        "append_three_temp_wrong.js",
+        "append_three_temp_a.ts",
+        "append_three_temp_b.ts",
+        "append_three_temp_wrong.ts",
     );
     assert_block_pair(
-        "append_three_chain_a.js",
-        "append_three_chain_b.js",
-        "append_three_chain_wrong.js",
+        "append_three_chain_a.ts",
+        "append_three_chain_b.ts",
+        "append_three_chain_wrong.ts",
     );
-    assert_no_merge("append_three_a.js", "append_three_wrong_order.js");
-    assert_no_merge("append_three_a.js", "append_three_wrong_receiver.js");
-    assert_no_merge("append_three_a.js", "append_three_mutated.js");
+    assert_no_merge("append_three_a.ts", "append_three_wrong_order.ts");
+    assert_no_merge("append_three_a.ts", "append_three_wrong_receiver.ts");
+    assert_no_merge("append_three_a.ts", "append_three_mutated.ts");
     assert_no_merge(
-        "append_three_chain_a.js",
-        "append_three_chain_uses_prior.js",
+        "append_three_chain_a.ts",
+        "append_three_chain_uses_prior.ts",
     );
-    assert_no_merge("append_three_a.js", "append_four_a.js");
+    assert_no_merge("append_three_a.ts", "append_four_a.ts");
 
     let _ = fs::remove_dir_all(&dir);
 }

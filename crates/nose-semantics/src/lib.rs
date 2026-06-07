@@ -1906,9 +1906,14 @@ pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize
 
 /// `(receiver, value)` of a single-item append-like builder call admitted by first-party
 /// language/library contracts.
+///
+/// This intentionally reads only the canonical `Builtin::Append` surface. Raw method
+/// selectors such as `push`, `append`, or `add` are not proof by themselves; callers that
+/// see those selectors must first prove the receiver/builder contract and lower the call to
+/// the canonical builtin.
 pub fn builder_append_call_args(
     il: &Il,
-    interner: &Interner,
+    _interner: &Interner,
     node: NodeId,
 ) -> Option<(NodeId, NodeId)> {
     if il.kind(node) != NodeKind::Call {
@@ -1918,18 +1923,7 @@ pub fn builder_append_call_args(
     if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) {
         return (kids.len() == 2).then(|| (kids[0], kids[1]));
     }
-    let (&callee, args) = kids.split_first()?;
-    if args.len() != 1 || il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return None;
-    };
-    if !builder_append_method_contract(il.meta.lang, interner.resolve(method), args.len()) {
-        return None;
-    }
-    let receiver = *il.children(callee).first()?;
-    Some((receiver, args[0]))
+    None
 }
 
 pub fn builder_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -3335,7 +3329,7 @@ mod tests {
     }
 
     #[test]
-    fn builder_append_call_args_are_language_arity_and_receiver_constrained() {
+    fn builder_append_call_args_require_canonical_append_proof() {
         let interner = Interner::default();
         let append = interner.intern("append");
         let push = interner.intern("push");
@@ -3364,17 +3358,14 @@ mod tests {
             builder_append_call_args(&il, &interner, builtin),
             Some((receiver, value))
         );
-        assert_eq!(
-            builder_append_call_args(&il, &interner, call),
-            Some((receiver, value))
-        );
+        assert_eq!(builder_append_call_args(&il, &interner, call), None);
         assert_eq!(builder_append_call_args(&il, &interner, push_call), None);
 
         let mut rust_il = il.clone();
         rust_il.meta.lang = Lang::Rust;
         assert_eq!(
             builder_append_call_args(&rust_il, &interner, push_call),
-            Some((receiver, value))
+            None
         );
     }
 }
