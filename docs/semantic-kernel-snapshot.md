@@ -99,14 +99,19 @@ migrated.
   normalize/detect still perform the local scope shadow check. The Rust
   frontend preserves bare `None` as a name rather than lowering it directly to
   null, so Option absence is admitted only through the contract.
-- Collection and map factory contracts have started moving into the facade.
-  Shared rows now cover Python free-name factories (`list`, `set`,
-  `frozenset`, `tuple`), Python imported `collections.deque`, Rust
-  `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from`,
-  Java `List.of`/`Set.of`/`Arrays.asList`, Java `Map.of`/`Map.ofEntries`/
-  `Map.entry`, and Ruby `require "set"; Set.new(...)`. Callers still prove the
-  local import, require, shadowing, entry-shape, mutation, and exact-safety
-  obligations.
+- Collection and map factory identity now has an internal `LibraryApiContract`
+  shape in `nose-semantics`. It separates API identity from result eligibility,
+  so callers can distinguish "this is Java `Arrays.asList`" from "this argument
+  can be canonicalized as a membership collection." Shared contracts cover
+  Python free-name factories (`list`, `set`, `frozenset`, `tuple`), Python
+  imported `collections.deque`, Rust
+  `std::collections::{HashSet,BTreeSet,VecDeque,HashMap,BTreeMap}::from`, Rust
+  `vec!`/`Vec::new`, Java `List.of`/`Set.of`/`Arrays.asList`, Java `Map.of`/
+  `Map.ofEntries`/`Map.entry`, Ruby `require "set"; Set.new(...)`, and JS-like
+  `new Set(...)`/`new Map(...)`. Normalize and strict exact gates consume this
+  shared contract source while still proving local import, require, shadowing,
+  constructor syntax, entry-shape, mutation, and exact-safety obligations at the
+  caller.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` only for the Java `java.util` list types. Simple names
   require `java.util` import proof and no local type declaration with the same

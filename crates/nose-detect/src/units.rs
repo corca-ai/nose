@@ -18,16 +18,21 @@ use nose_semantics::{
     exact_java_this_field, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_lookup_contract, imported_binding_symbol,
-    imported_member_symbol, iterator_identity_adapter_contract, java_collection_factory_contract,
-    java_map_entry_contract, java_map_factory_contract, js_array_is_array_contract,
-    js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract,
-    map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    imported_member_symbol, iterator_identity_adapter_contract, js_array_is_array_contract,
+    library_api_free_name_shadow_safe, library_free_name_collection_factory_contract,
+    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_ruby_set_factory_contract,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
     nullish_global_contract, qualified_global_symbol, record_shape_guard_for_node,
-    regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
-    seq_surface_contract_for_node, source_fact_at_node, source_operator_at_node,
-    static_index_membership_contract, typeof_operator_contract, unshadowed_global_symbol,
-    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    regex_test_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
+    source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
+    unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1858,13 +1863,20 @@ fn strict_exact_set_constructor_collection_safe(
     let Some((callee, name, collection)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
-    let Some(contract) = js_like_set_constructor_contract(il.meta.lang, interner.resolve(name))
+    let Some(contract) =
+        library_js_like_set_constructor_contract(il.meta.lang, interner.resolve(name))
     else {
         return false;
     };
-    contract.receiver == "Set"
-        && (!contract.requires_unshadowed_global
-            || unshadowed_global_symbol(il, interner, callee, contract.receiver))
+    let LibraryApiCalleeContract::JsGlobalConstructor {
+        receiver,
+        requires_unshadowed_global,
+    } = contract.callee
+    else {
+        return false;
+    };
+    receiver == "Set"
+        && (!requires_unshadowed_global || unshadowed_global_symbol(il, interner, callee, receiver))
         && strict_exact_static_non_float_collection(il, interner, collection)
 }
 
@@ -1886,36 +1898,40 @@ fn strict_exact_python_collection_factory_safe(
         return false;
     }
     let builtin = if il.kind(kids[0]) == NodeKind::Var {
-        let Payload::Name(name) = il.node(kids[0]).payload else {
-            return false;
-        };
-        let name = interner.resolve(name);
-        semantics(il.meta.lang)
-            .collections()
-            .free_name_collection_factories()
-            .any(|factory| {
-                factory.names.contains(&name)
-                    && strict_exact_free_name_factory_shadow_safe(
-                        il,
-                        interner,
-                        name,
-                        factory.shadow_guard,
-                    )
-            })
+        match il.node(kids[0]).payload {
+            Payload::Name(name) => {
+                let name = interner.resolve(name);
+                library_free_name_collection_factory_contract(il.meta.lang, name).is_some_and(
+                    |contract| {
+                        let LibraryApiCalleeContract::FreeName {
+                            name: expected_name,
+                            shadow,
+                        } = contract.callee
+                        else {
+                            return false;
+                        };
+                        expected_name == name
+                            && library_api_free_name_shadow_safe(
+                                il.meta.lang,
+                                name,
+                                shadow,
+                                |candidate| file_defines_name(il, interner, candidate),
+                            )
+                    },
+                )
+            }
+            _ => false,
+        }
     } else {
         false
     };
-    let imported_stdlib_factory = semantics(il.meta.lang)
-        .collections()
-        .imported_collection_factories()
-        .any(|factory| {
-            strict_exact_python_imported_factory_name(
-                il,
-                interner,
-                kids[0],
-                factory.module,
-                factory.exported,
-            )
+    let imported_stdlib_factory =
+        library_imported_collection_factory_contracts(il.meta.lang).any(|contract| {
+            let LibraryApiCalleeContract::ImportedBinding { module, exported } = contract.callee
+            else {
+                return false;
+            };
+            strict_exact_python_imported_factory_name(il, interner, kids[0], module, exported)
         });
     (builtin || imported_stdlib_factory)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
@@ -1958,12 +1974,22 @@ fn strict_exact_ruby_set_factory_safe(
         return false;
     };
     let receiver_name = interner.resolve(receiver_name);
-    let Some(contract) = ruby_set_factory_contract(il.meta.lang, receiver_name, method, 1) else {
+    let Some(contract) = library_ruby_set_factory_contract(il.meta.lang, receiver_name, method, 1)
+    else {
         return false;
     };
-    ruby_file_requires_module(il, interner, contract.required_module)
-        && !file_defines_name(il, interner, contract.shadow_root)
-        && strict_exact_callee_name(il, interner, receiver, contract.receiver)
+    let LibraryApiCalleeContract::RubyRequireStaticMember {
+        receiver: expected_receiver,
+        required_module,
+        shadow_root,
+        ..
+    } = contract.callee
+    else {
+        return false;
+    };
+    ruby_file_requires_module(il, interner, required_module)
+        && !file_defines_name(il, interner, shadow_root)
+        && strict_exact_callee_name(il, interner, receiver, expected_receiver)
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
 
@@ -2012,8 +2038,16 @@ fn strict_exact_rust_vec_macro_collection_safe(
     let Some(&callee) = kids.first() else {
         return false;
     };
-    strict_exact_callee_name(il, interner, callee, "vec")
-        && !file_defines_name(il, interner, "vec")
+    let Some(contract) = library_rust_vec_macro_factory_contract(il.meta.lang, "vec") else {
+        return false;
+    };
+    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        return false;
+    };
+    strict_exact_callee_name(il, interner, callee, name)
+        && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+            file_defines_name(il, interner, candidate)
+        })
         && kids
             .iter()
             .skip(1)
@@ -2040,8 +2074,15 @@ fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) ->
 }
 
 fn strict_exact_rust_vec_new_name(il: &Il, interner: &Interner, text: &str) -> bool {
-    rust_vec_new_factory_contract(il.meta.lang, text)
-        .is_some_and(|contract| !file_defines_name(il, interner, contract.shadow_root))
+    library_rust_vec_new_factory_contract(il.meta.lang, text).is_some_and(|contract| {
+        let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+            return false;
+        };
+        name == text
+            && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                file_defines_name(il, interner, candidate)
+            })
+    })
 }
 
 fn strict_exact_rust_std_collection_factory_safe(
@@ -2060,14 +2101,21 @@ fn strict_exact_rust_std_collection_factory_safe(
         return false;
     };
     let name = interner.resolve(name);
-    let factory = semantics(il.meta.lang)
-        .collections()
-        .free_name_collection_factories()
-        .find(|factory| factory.names.contains(&name));
-    let Some(factory) = factory else {
+    let Some(contract) = library_free_name_collection_factory_contract(il.meta.lang, name) else {
         return false;
     };
-    if !strict_exact_free_name_factory_shadow_safe(il, interner, name, factory.shadow_guard) {
+    let LibraryApiCalleeContract::FreeName {
+        name: expected_name,
+        shadow,
+    } = contract.callee
+    else {
+        return false;
+    };
+    if expected_name != name
+        || !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+            file_defines_name(il, interner, candidate)
+        })
+    {
         return false;
     }
     strict_exact_membership_collection_safe(il, interner, facts, collection)
@@ -2095,15 +2143,30 @@ fn strict_exact_java_collection_factory_safe(
         return false;
     };
     let method = interner.resolve(method);
-    let Some(()) = ["List", "Set", "Arrays"]
+    let Some(contract) = ["List", "Set", "Arrays"]
         .into_iter()
         .find_map(|receiver_name| {
-            let contract = java_collection_factory_contract(il.meta.lang, receiver_name, method)?;
-            strict_exact_java_std_var_name(il, interner, receiver, contract.receiver).then_some(())
+            let contract =
+                library_java_collection_factory_contract(il.meta.lang, receiver_name, method)?;
+            let LibraryApiCalleeContract::JavaUtilStaticMember {
+                receiver: expected_receiver,
+                ..
+            } = contract.callee
+            else {
+                return None;
+            };
+            strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
+                .then_some(contract)
         })
     else {
         return false;
     };
+    if !matches!(
+        contract.result,
+        LibraryCollectionFactoryResult::VariadicElements { .. }
+    ) {
+        return false;
+    }
     kids.iter()
         .skip(1)
         .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
@@ -2171,13 +2234,23 @@ fn strict_exact_java_map_factory_safe(
         return false;
     };
     let method = interner.resolve(method);
-    let Some(contract) = java_map_factory_contract(il.meta.lang, "Map", method) else {
+    let Some(contract) = library_java_map_factory_contract(il.meta.lang, "Map", method) else {
         return false;
     };
-    if !strict_exact_java_std_var_name(il, interner, receiver, contract.receiver) {
+    let LibraryApiCalleeContract::JavaUtilStaticMember {
+        receiver: expected_receiver,
+        ..
+    } = contract.callee
+    else {
+        return false;
+    };
+    if !strict_exact_java_std_var_name(il, interner, receiver, expected_receiver) {
         return false;
     }
-    match contract.kind {
+    let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
+        return false;
+    };
+    match kind {
         JavaMapFactoryKind::Of => {
             let entries = &kids[1..];
             entries.len() % 2 == 0
@@ -2212,8 +2285,17 @@ fn strict_exact_java_map_entry_safe(
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    java_map_entry_contract(il.meta.lang, "Map", method)
-        && strict_exact_java_std_var_name(il, interner, receiver, "Map")
+    let Some(contract) = library_java_map_entry_contract(il.meta.lang, "Map", method) else {
+        return false;
+    };
+    let LibraryApiCalleeContract::JavaUtilStaticMember {
+        receiver: expected_receiver,
+        ..
+    } = contract.callee
+    else {
+        return false;
+    };
+    strict_exact_java_std_var_name(il, interner, receiver, expected_receiver)
         && kids
             .iter()
             .skip(1)
@@ -2232,13 +2314,24 @@ fn strict_exact_map_constructor_entries_safe(
     let Some((callee, name, entries)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
-    let Some(contract) = js_like_map_constructor_contract(il.meta.lang, interner.resolve(name))
+    let Some(contract) =
+        library_js_like_map_constructor_contract(il.meta.lang, interner.resolve(name))
     else {
         return false;
     };
-    contract.receiver == "Map"
-        && (!contract.requires_unshadowed_global
-            || unshadowed_global_symbol(il, interner, callee, contract.receiver))
+    let LibraryApiCalleeContract::JsGlobalConstructor {
+        receiver,
+        requires_unshadowed_global,
+    } = contract.callee
+    else {
+        return false;
+    };
+    receiver == "Map"
+        && matches!(
+            contract.result,
+            LibraryMapFactoryResult::EntrySequence { .. }
+        )
+        && (!requires_unshadowed_global || unshadowed_global_symbol(il, interner, callee, receiver))
         && strict_exact_map_entries_safe(il, interner, facts, entries)
 }
 
@@ -2255,32 +2348,28 @@ fn strict_exact_rust_std_map_factory_safe(
         return false;
     };
     let name = interner.resolve(name);
-    let factory = semantics(il.meta.lang)
-        .collections()
-        .free_name_map_factories()
-        .find(|factory| factory.names.contains(&name));
-    if factory.is_none() {
+    let Some(contract) = library_free_name_map_factory_contract(il.meta.lang, name) else {
         return false;
-    }
-    if !strict_exact_free_name_factory_shadow_safe(il, interner, name, false) {
+    };
+    let LibraryApiCalleeContract::FreeName {
+        name: expected_name,
+        shadow,
+    } = contract.callee
+    else {
+        return false;
+    };
+    if expected_name != name
+        || !matches!(
+            contract.result,
+            LibraryMapFactoryResult::EntrySequence { .. }
+        )
+        || !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+            file_defines_name(il, interner, candidate)
+        })
+    {
         return false;
     }
     strict_exact_map_entries_safe(il, interner, facts, entries)
-}
-
-fn strict_exact_free_name_factory_shadow_safe(
-    il: &Il,
-    interner: &Interner,
-    name: &str,
-    shadow_guard: bool,
-) -> bool {
-    if shadow_guard {
-        return !file_defines_name(il, interner, name);
-    }
-    if il.meta.lang == Lang::Rust && name.starts_with("std::") {
-        return !file_defines_name(il, interner, "std");
-    }
-    true
 }
 
 fn strict_exact_map_entries_safe(
