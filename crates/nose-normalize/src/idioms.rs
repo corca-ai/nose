@@ -926,8 +926,9 @@ mod tests {
     use nose_il::stable_symbol_hash;
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, Lang, ParamSemantic,
-        ParamTypeFact, SequenceSurfaceKind, Span, Unit, UnitKind,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
+        ParamSemantic, ParamTypeFact, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
+        UnitKind,
     };
     use nose_semantics::{import_fact_tag, ImportFactKind};
 
@@ -1335,7 +1336,7 @@ mod tests {
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
         module_kids.push(call);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1344,6 +1345,24 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        if with_import {
+            il.evidence.push(evidence(
+                0,
+                EvidenceAnchor::sequence(sp()),
+                EvidenceKind::Import(ImportEvidenceKind::Namespace {
+                    module_hash: stable_symbol_hash("math"),
+                }),
+                EvidenceStatus::Asserted,
+            ));
+            il.evidence.push(evidence(
+                1,
+                EvidenceAnchor::binding(sp(), stable_symbol_hash("math")),
+                EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                    module_hash: stable_symbol_hash("math"),
+                }),
+                EvidenceStatus::Asserted,
+            ));
+        }
         (il, interner, call)
     }
 

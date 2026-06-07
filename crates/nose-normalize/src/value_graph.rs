@@ -52,7 +52,7 @@ use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_static_membership_predicate_operator, free_function_builtin_contract,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_contract,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_namespace_function_contract, imported_namespace_symbol,
     iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
     java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
@@ -315,16 +315,23 @@ struct FieldStateKey {
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 enum ValOp {
-    Input(u32),      // a parameter or free variable, keyed by canonical id
-    Const(u32),      // literal class
-    Bin(u32),        // binary operator
-    Un(u32),         // unary operator
-    Field(u64),      // field access, keyed by content hash of the name
-    Index,           // base[index]
-    Call(u32),       // 0 = opaque callee; otherwise builtin discriminant + 1
-    Hof(u32),        // higher-order op kind
-    Clamp,           // numeric clamp over proven integer bounds: args = [x, lo, hi]
-    Seq(u64),        // aggregate literal, keyed by lowered sequence kind
+    Input(u32), // a parameter or free variable, keyed by canonical id
+    Const(u32), // literal class
+    Bin(u32),   // binary operator
+    Un(u32),    // unary operator
+    Field(u64), // field access, keyed by content hash of the name
+    Index,      // base[index]
+    Call(u32),  // 0 = opaque callee; otherwise builtin discriminant + 1
+    Hof(u32),   // higher-order op kind
+    Clamp,      // numeric clamp over proven integer bounds: args = [x, lo, hi]
+    Seq(u64),   // aggregate literal, keyed by lowered sequence kind
+    ImportNamespace {
+        module_hash: u64,
+    },
+    ImportBinding {
+        module_hash: u64,
+        exported_hash: u64,
+    },
     CollectionParam, // proven collection parameter, distinct from map-like key membership
     ArrayParam,      // proven array parameter, distinct from receiver-provided collections
     StringParam,     // proven string parameter, distinct from collection emptiness
@@ -1016,33 +1023,42 @@ impl<'a> Builder<'a> {
 
     fn is_import_namespace_value(&self, value: ValueId, module: &str) -> bool {
         let node = &self.nodes[value as usize];
-        let contract = import_fact_contract(ImportFactKind::Namespace);
-        if !matches!(node.op, ValOp::Seq(tag) if tag == contract.value_tag)
-            || node.args.len() != contract.coordinate_count
-        {
-            return false;
-        }
         matches!(
-            self.nodes[node.args[0] as usize].op,
-            ValOp::Const(k) if k == stable_string_const_key(module)
+            node.op,
+            ValOp::ImportNamespace { module_hash }
+                if module_hash == stable_symbol_hash(module)
         )
     }
 
     fn is_import_binding_value(&self, value: ValueId, module: &str, exported: &str) -> bool {
         let node = &self.nodes[value as usize];
-        let contract = import_fact_contract(ImportFactKind::Binding);
-        if !matches!(node.op, ValOp::Seq(tag) if tag == contract.value_tag)
-            || node.args.len() != contract.coordinate_count
-        {
-            return false;
-        }
         matches!(
-            self.nodes[node.args[0] as usize].op,
-            ValOp::Const(k) if k == stable_string_const_key(module)
-        ) && matches!(
-            self.nodes[node.args[1] as usize].op,
-            ValOp::Const(k) if k == stable_string_const_key(exported)
+            node.op,
+            ValOp::ImportBinding {
+                module_hash,
+                exported_hash,
+            } if module_hash == stable_symbol_hash(module)
+                && exported_hash == stable_symbol_hash(exported)
         )
+    }
+
+    fn import_fact_value(&mut self, expr: NodeId) -> Option<ValueId> {
+        let fact = import_fact_evidence_rhs(self.il, expr)?;
+        match fact.kind {
+            ImportFactKind::Namespace => Some(self.mk(
+                ValOp::ImportNamespace {
+                    module_hash: fact.module_hash,
+                },
+                vec![],
+            )),
+            ImportFactKind::Binding => Some(self.mk(
+                ValOp::ImportBinding {
+                    module_hash: fact.module_hash,
+                    exported_hash: fact.exported_hash?,
+                },
+                vec![],
+            )),
+        }
     }
 
     fn file_imports_namespace(&self, expr: NodeId, module: &str) -> bool {
@@ -7508,17 +7524,14 @@ impl<'a> Builder<'a> {
                             }
                         }
                         let receiver = &self.nodes[a[0] as usize];
-                        let namespace = import_fact_contract(ImportFactKind::Namespace);
-                        if matches!(receiver.op, ValOp::Seq(tag) if tag == namespace.value_tag)
-                            && receiver.args.len() == 1
-                        {
-                            let module = receiver.args[0];
-                            let exported = self.mk(
-                                ValOp::Const(stable_string_const_key(self.interner.resolve(s))),
+                        if let ValOp::ImportNamespace { module_hash } = receiver.op {
+                            return self.mk(
+                                ValOp::ImportBinding {
+                                    module_hash,
+                                    exported_hash: stable_symbol_hash(self.interner.resolve(s)),
+                                },
                                 vec![],
                             );
-                            let binding = import_fact_contract(ImportFactKind::Binding);
-                            return self.mk(ValOp::Seq(binding.value_tag), vec![module, exported]);
                         }
                     }
                 }
@@ -7775,6 +7788,9 @@ impl<'a> Builder<'a> {
                 }
             }
             NodeKind::Seq => {
+                if let Some(value) = self.import_fact_value(expr) {
+                    return value;
+                }
                 let kids = self.il.children(expr).to_vec();
                 let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                 if matches!(node.payload, Payload::Builtin(Builtin::DictEntry)) {
@@ -7866,7 +7882,11 @@ impl<'a> Builder<'a> {
                 && weight[i] >= min_weight
                 && !matches!(
                     self.nodes[i].op,
-                    ValOp::Const(_) | ValOp::Input(_) | ValOp::Elem(_)
+                    ValOp::Const(_)
+                        | ValOp::Input(_)
+                        | ValOp::Elem(_)
+                        | ValOp::ImportNamespace { .. }
+                        | ValOp::ImportBinding { .. }
                 )
             {
                 let (line_start, line_end) = self
@@ -8243,6 +8263,11 @@ fn op_tag(op: &ValOp) -> u64 {
         ValOp::Hof(h) => (8, *h as u64),
         ValOp::Clamp => (20, 0),
         ValOp::Seq(t) => (9, *t),
+        ValOp::ImportNamespace { module_hash } => (21, *module_hash),
+        ValOp::ImportBinding {
+            module_hash,
+            exported_hash,
+        } => (22, combine(*module_hash, *exported_hash)),
         ValOp::CollectionParam => (17, 0),
         ValOp::ArrayParam => (18, 0),
         ValOp::StringParam => (19, 0),
@@ -8272,11 +8297,41 @@ fn stable_float_const_key(value: &str) -> u32 {
 mod tests {
     use super::*;
     use nose_il::{
-        FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span, Unit, UnitKind,
+        EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
+        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
+        ParamSemantic, ParamTypeFact, Span, Unit, UnitKind,
     };
+    use nose_semantics::{import_fact_tag, FIRST_PARTY_PACK_ID};
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)
+    }
+
+    fn finish_test_il(builder: IlBuilder, root: NodeId, lang: Lang) -> Il {
+        builder.finish(
+            root,
+            FileMeta {
+                path: "t".into(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        )
+    }
+
+    fn evidence(id: u32, anchor: EvidenceAnchor, kind: EvidenceKind) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("test")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        }
     }
 
     #[derive(Clone, Copy)]
@@ -8439,6 +8494,93 @@ mod tests {
             builder.clamp_candidate_count,
             builder.clamp_proof_backed_candidate_count,
         )
+    }
+
+    #[test]
+    fn import_binding_value_requires_sequence_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("collections")),
+            sp(40),
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("deque")),
+            sp(40),
+            &[],
+        );
+        let binding = b.add(
+            NodeKind::Seq,
+            Payload::Name(tag),
+            sp(40),
+            &[module, exported],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(40), &[binding]);
+        let mut il = finish_test_il(b, root, Lang::Python);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(binding, &FxHashMap::default());
+        assert!(matches!(builder.nodes[raw as usize].op, ValOp::Seq(_)));
+        assert!(!builder.is_import_binding_value(raw, "collections", "deque"));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(40)),
+            EvidenceKind::Import(ImportEvidenceKind::Binding {
+                module_hash: stable_symbol_hash("collections"),
+                exported_hash: stable_symbol_hash("deque"),
+            }),
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(binding, &FxHashMap::default());
+        assert!(matches!(
+            builder.nodes[proven as usize].op,
+            ValOp::ImportBinding { .. }
+        ));
+        assert!(builder.is_import_binding_value(proven, "collections", "deque"));
+    }
+
+    #[test]
+    fn namespace_member_import_binding_requires_proven_namespace_value() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let namespace_tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
+        let prod = interner.intern("prod");
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("math")),
+            sp(50),
+            &[],
+        );
+        let namespace = b.add(
+            NodeKind::Seq,
+            Payload::Name(namespace_tag),
+            sp(50),
+            &[module],
+        );
+        let field = b.add(NodeKind::Field, Payload::Name(prod), sp(51), &[namespace]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(50), &[field]);
+        let mut il = finish_test_il(b, root, Lang::Python);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(field, &FxHashMap::default());
+        assert!(matches!(builder.nodes[raw as usize].op, ValOp::Field(_)));
+        assert!(!builder.is_import_binding_value(raw, "math", "prod"));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(50)),
+            EvidenceKind::Import(ImportEvidenceKind::Namespace {
+                module_hash: stable_symbol_hash("math"),
+            }),
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(field, &FxHashMap::default());
+        assert!(builder.is_import_binding_value(proven, "math", "prod"));
     }
 
     #[test]

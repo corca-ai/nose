@@ -441,12 +441,8 @@ pub struct ImportFact {
     pub exported_hash: Option<u64>,
 }
 
-pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {
-    if il.kind(rhs) != NodeKind::Seq {
-        return None;
-    }
-    let span = il.node(rhs).span;
-    match unique_evidence_at(
+fn import_fact_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolution<ImportFact> {
+    unique_evidence_at(
         il,
         |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
         |evidence| match evidence {
@@ -467,7 +463,27 @@ pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<Impo
             }
             _ => None,
         },
-    ) {
+    )
+}
+
+/// Evidence-only import fact resolution for semantic consumers. This intentionally
+/// does not parse the legacy raw `Seq("import_*")` payload: callers that use this
+/// helper are relying on a provider-owned evidence record, not on tag spelling.
+pub fn import_fact_evidence_rhs(il: &Il, rhs: NodeId) -> Option<ImportFact> {
+    if il.kind(rhs) != NodeKind::Seq {
+        return None;
+    }
+    match import_fact_evidence_at_sequence_span(il, il.node(rhs).span) {
+        EvidenceResolution::Found(fact) => Some(fact),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn import_fact_rhs(il: &Il, interner: &Interner, rhs: NodeId) -> Option<ImportFact> {
+    if il.kind(rhs) != NodeKind::Seq {
+        return None;
+    }
+    match import_fact_evidence_at_sequence_span(il, il.node(rhs).span) {
         EvidenceResolution::Found(fact) => return Some(fact),
         EvidenceResolution::Ambiguous => return None,
         EvidenceResolution::Missing => {}
@@ -620,9 +636,7 @@ pub fn imported_namespace_symbol(il: &Il, interner: &Interner, node: NodeId, mod
     let expected = SymbolEvidenceKind::ImportedNamespace {
         module_hash: stable_symbol_hash(module),
     };
-    imported_symbol(il, interner, node, expected, |rhs| {
-        import_namespace_rhs_matches(il, interner, rhs, module)
-    })
+    imported_symbol(il, interner, node, expected)
 }
 
 /// Prove that `node` denotes a static imported binding for `module.exported`.
@@ -637,9 +651,7 @@ pub fn imported_binding_symbol(
         module_hash: stable_symbol_hash(module),
         exported_hash: stable_symbol_hash(exported),
     };
-    imported_symbol(il, interner, node, expected, |rhs| {
-        import_binding_rhs_matches(il, interner, rhs, module, exported)
-    })
+    imported_symbol(il, interner, node, expected)
 }
 
 /// Prove either `from module import exported as local; local(...)` or
@@ -710,7 +722,6 @@ fn imported_symbol(
     interner: &Interner,
     node: NodeId,
     expected: SymbolEvidenceKind,
-    legacy_rhs_matches: impl Fn(NodeId) -> bool,
 ) -> bool {
     if il.kind(node) != NodeKind::Var {
         return false;
@@ -740,7 +751,7 @@ fn imported_symbol(
         EvidenceResolution::Ambiguous => return false,
         EvidenceResolution::Missing => {}
     }
-    assignment_rhs(il, *assignment).is_some_and(&legacy_rhs_matches)
+    false
 }
 
 fn top_level_statements(il: &Il) -> Vec<NodeId> {
@@ -755,10 +766,6 @@ fn top_level_statements(il: &Il) -> Vec<NodeId> {
             }
             statements
         })
-}
-
-fn assignment_rhs(il: &Il, stmt: NodeId) -> Option<NodeId> {
-    assignment_parts(il, stmt).map(|(_, rhs)| rhs)
 }
 
 fn assignment_alias_hash(il: &Il, interner: &Interner, stmt: NodeId) -> Option<u64> {
@@ -3288,6 +3295,7 @@ mod tests {
             "collections",
             "deque"
         ));
+        assert_eq!(import_fact_evidence_rhs(&il, binding), None);
         assert!(!import_binding_rhs_matches(
             &il,
             &interner,
@@ -3368,6 +3376,75 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         assert_eq!(import_fact_rhs(&il, &interner, binding), None);
+        assert_eq!(import_fact_evidence_rhs(&il, binding), None);
+    }
+
+    #[test]
+    fn imported_symbol_identity_does_not_fall_back_to_raw_import_seq() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let local = interner.intern("deque");
+        let binding_tag = interner.intern(import_fact_tag(ImportFactKind::Binding));
+        let module = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("collections")),
+            sp(30),
+            &[],
+        );
+        let exported = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("deque")),
+            sp(30),
+            &[],
+        );
+        let lhs = b.add(NodeKind::Var, Payload::Name(local), sp(30), &[]);
+        let rhs = b.add(
+            NodeKind::Seq,
+            Payload::Name(binding_tag),
+            sp(30),
+            &[module, exported],
+        );
+        let assignment = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, rhs]);
+        let use_site = b.add(NodeKind::Var, Payload::Name(local), sp(31), &[]);
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            sp(30),
+            &[assignment, use_site],
+        );
+        let mut il = finish_il(b, root, Lang::Python);
+
+        assert!(import_binding_rhs_matches(
+            &il,
+            &interner,
+            rhs,
+            "collections",
+            "deque"
+        ));
+        assert!(!imported_binding_symbol(
+            &il,
+            &interner,
+            use_site,
+            "collections",
+            "deque"
+        ));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(30), stable_symbol_hash("deque")),
+            EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                module_hash: stable_symbol_hash("collections"),
+                exported_hash: stable_symbol_hash("deque"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(imported_binding_symbol(
+            &il,
+            &interner,
+            use_site,
+            "collections",
+            "deque"
+        ));
     }
 
     #[test]

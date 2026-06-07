@@ -191,8 +191,8 @@ and pack ecosystem.
 - Import binding and namespace proof interpretation now goes through a typed
   `ImportFactKind`/`ImportFact` facade in `nose-semantics`. Frontend emitters,
   imported immutable literal replacement, normalize idiom gates, value-graph
-  import proof, and strict exact gates now share the same tag, coordinate-count,
-  and module/export hash checks instead of parsing raw import `Seq` tags locally.
+  import proof, and strict exact gates initially moved behind that shared facade
+  instead of parsing raw import `Seq` tags locally.
 - TypeScript type-only imports no longer emit runtime import facts: whole
   `import type ...` declarations and type-only named specifiers stay outside
   exact library/API proof.
@@ -245,6 +245,11 @@ and pack ecosystem.
   wrappers. `Array.isArray` emits the same path evidence for strict exact call
   gates. Full namespace-member resolution and record-shape multi-obligation
   guard evidence remain open.
+- Value-graph import identity now consumes sequence `Import` evidence into
+  dedicated internal `ImportNamespace`/`ImportBinding` value ops instead of
+  treating raw `ValOp::Seq(import_*)` shapes as proof objects. Imported
+  binding/namespace symbol helpers also no longer accept raw import assignment
+  RHS parsing as an exact proof fallback.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -303,9 +308,11 @@ Remaining in this phase:
 - Make value-graph and strict exact gates consume the same contract source.
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
-  namespace-member resolution, module export dependencies, scope, rebinding, and
-  mutation proof. Selected JS/TS `QualifiedGlobal` paths are now covered, but
-  general qualified-member and namespace export identity is not.
+  module export dependencies, scope, rebinding, and mutation proof. Value-graph
+  import identity and imported-symbol exact proof are now evidence-only, and
+  selected JS/TS `QualifiedGlobal` paths are covered, but general
+  qualified-member, namespace export identity, and cross-module dependency
+  evidence are not.
 - Add dedicated guard evidence for multi-obligation guards such as JS/TS
   record-shape checks, where one lowered guard depends on source operator facts,
   several qualified/static API facts, subject identity, and truthiness/null

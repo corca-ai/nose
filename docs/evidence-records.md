@@ -31,7 +31,8 @@ can satisfy an exact-channel precondition.
   scan JSON schema.
 - Do not remove compatibility mirrors in the first slice. `SourceFact`,
   `ParamTypeFact`, and raw import `Seq` payloads still exist while consumers are
-  migrated.
+  migrated, though new proof-bearing consumers should prefer evidence-only
+  helpers.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
 - Do not model place/effect/demand evidence completely in this slice. Those are
@@ -72,20 +73,24 @@ side tables.
 - `Ambiguous` evidence is treated as missing evidence.
 - If any relevant ambiguous/conflicting evidence exists, compatibility fallback
   must not reopen the exact path.
-- Compatibility fallback is allowed only when no relevant evidence record exists.
+- Compatibility fallback is allowed only when no relevant evidence record exists,
+  and only for explicitly legacy compatibility helpers.
 
 This is stricter than a name or tag check. For example, a raw
 `Seq("import_binding")` is still serialized for compatibility, but import
 contracts first consult `Import` evidence. If that evidence is ambiguous, exact
 import proof stays closed instead of falling back to the raw sequence payload.
+Value-graph import identity goes further: it consumes only sequence `Import`
+evidence and materializes dedicated internal import values, never raw
+`ValOp::Seq("import_*")` proof objects.
 
 Symbol identity follows the same rule. A method selector such as `abs` or a
 receiver spelling such as `Math` is not proof. Exact consumers must require a
-language-scoped contract plus symbol evidence, or a compatibility fallback that
-proves the same import/global/shadowing obligations. Binding-level import
-evidence does not by itself prove every use of the same local name; if the alias
-is rebound or ambiguous, the exact path stays closed until a node-level symbol
-fact or stronger scope-resolution evidence exists.
+language-scoped contract plus symbol evidence. Imported binding/namespace symbol
+helpers no longer accept a raw import assignment RHS as proof. Binding-level
+import evidence does not by itself prove every use of the same local name; if the
+alias is rebound or ambiguous, the exact path stays closed until a node-level
+symbol fact or stronger scope-resolution evidence exists.
 
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
@@ -122,10 +127,14 @@ callers:
 
 - source-fact lookup for construct syntax, regex literal, and operator provenance;
 - parameter domain lookup used by normalize and strict exact receiver gates;
-- import proof parsing for normalize, value graph, imported literal replacement,
-  and strict exact gates;
+- import proof parsing for compatibility helpers and imported literal
+  replacement, with value-graph import identity consuming evidence-only facts;
 - imported namespace/binding symbol proof for normalize idiom admission,
-  value-graph namespace fallbacks, and strict exact gates;
+  value-graph namespace fallbacks, and strict exact gates, without raw assignment
+  fallback;
+- value-graph internal import identity now uses dedicated
+  `ImportNamespace`/`ImportBinding` value ops derived from `Import` evidence, so
+  raw import `Seq` payloads cannot hash-cons with proof-bearing import values;
 - unshadowed-global symbol proof for JS/TS `Math.*` method contracts,
   `new Map(...)`/`new Set(...)` constructor contracts, static `Array.isArray`
   exact gates, and `undefined` nullish-default handling, with compatibility
