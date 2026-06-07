@@ -58,11 +58,14 @@ use nose_semantics::{
     nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
     rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, static_index_membership_contract,
-    BuiltinArgContract, DomainEvidence, GoZeroMapDefaultKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
-    ScalarIntegerMethod, StaticIndexMembershipKind,
+    scalar_integer_method_contract, semantics, seq_surface_contract,
+    static_index_membership_contract, BuiltinArgContract, DomainEvidence, GoZeroMapDefaultKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_IMPORT_BINDING,
+    SEQ_VALUE_IMPORT_NAMESPACE, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
+    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -832,6 +835,10 @@ impl<'a> Builder<'a> {
 
     fn free_name_input_key(&self, name: &str) -> u32 {
         let sym = self.interner.intern(name);
+        self.free_name_key(sym)
+    }
+
+    fn free_name_key(&self, sym: Symbol) -> u32 {
         0x8000_0000u32 | (self.interner.symbol_hash(sym) as u32)
     }
 
@@ -842,7 +849,8 @@ impl<'a> Builder<'a> {
         )
     }
 
-    /// Shared skeleton of the collection-factory recognizers: a `Call(0, [callee, Seq(1)])`
+    /// Shared skeleton of the collection-factory recognizers: a collection sequence literal
+    /// call `Call(0, [callee, Seq(collection)])`
     /// whose `callee` passes `is_factory` wraps the sequence literal `args[1]`; return it. The
     /// per-language recognizers differ ONLY in their callee predicate, so this collapses the
     /// identical skeletons that nose's own duplication gate flagged across them.
@@ -856,7 +864,10 @@ impl<'a> Builder<'a> {
             return None;
         }
         let (callee, seq) = (node.args[0], node.args[1]);
-        if !matches!(self.nodes[seq as usize].op, ValOp::Seq(1)) {
+        if !matches!(
+            self.nodes[seq as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ) {
             return None;
         }
         is_factory(self, callee).then_some(seq)
@@ -950,7 +961,7 @@ impl<'a> Builder<'a> {
             }
             return None;
         }
-        Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
+        Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
@@ -986,7 +997,7 @@ impl<'a> Builder<'a> {
         if !self.is_free_name_value(args[0], "vec") || self.file_defines_name("vec") {
             return None;
         }
-        Some(self.mk(ValOp::Seq(1), args[1..].to_vec()))
+        Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
     }
 
     fn is_imported_java_util_name(&self, value: ValueId, name: &str) -> bool {
@@ -1006,7 +1017,7 @@ impl<'a> Builder<'a> {
 
     fn is_import_namespace_value(&self, value: ValueId, module: &str) -> bool {
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(6)) || node.args.len() != 1 {
+        if !matches!(node.op, ValOp::Seq(SEQ_VALUE_IMPORT_NAMESPACE)) || node.args.len() != 1 {
             return false;
         }
         matches!(
@@ -1017,7 +1028,7 @@ impl<'a> Builder<'a> {
 
     fn is_import_binding_value(&self, value: ValueId, module: &str, exported: &str) -> bool {
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(5)) || node.args.len() != 2 {
+        if !matches!(node.op, ValOp::Seq(SEQ_VALUE_IMPORT_BINDING)) || node.args.len() != 2 {
             return false;
         }
         matches!(
@@ -1150,17 +1161,23 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
-        if matches!(self.nodes[value as usize].op, ValOp::Seq(1)) {
+        if matches!(
+            self.nodes[value as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ) {
             return Some(value);
         }
-        if matches!(self.nodes[value as usize].op, ValOp::Seq(2))
+        if matches!(self.nodes[value as usize].op, ValOp::Seq(SEQ_VALUE_TUPLE))
             || (semantics(self.il.meta.lang)
                 .collections()
                 .empty_sequence_is_collection()
-                && matches!(self.nodes[value as usize].op, ValOp::Seq(0)))
+                && matches!(
+                    self.nodes[value as usize].op,
+                    ValOp::Seq(SEQ_VALUE_UNTAGGED)
+                ))
         {
             let items = self.nodes[value as usize].args.clone();
-            return Some(self.mk(ValOp::Seq(1), items));
+            return Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items));
         }
         self.proven_free_name_collection_factory(value)
             .or_else(|| self.proven_java_collection_factory_value(value))
@@ -1271,7 +1288,10 @@ impl<'a> Builder<'a> {
             return None;
         }
         let (callee, seq) = (node.args[0], node.args[1]);
-        if !matches!(self.nodes[seq as usize].op, ValOp::Seq(1)) {
+        if !matches!(
+            self.nodes[seq as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ) {
             return None;
         }
         let entry_tag = semantics(self.il.meta.lang)
@@ -1287,9 +1307,8 @@ impl<'a> Builder<'a> {
         self.map_factory_from_seq(seq, entry_tag)
     }
 
-    /// Canonicalize a `Seq(1)` of 2-element entries (each a `Seq(entry_tag)` of `[key, value]`) to
-    /// the canonical map shape `Seq(3)` of `Seq(4)` pairs. Shared by the free-name and (entry-wise)
-    /// other map factories.
+    /// Canonicalize a collection sequence of 2-element entries to the canonical map shape.
+    /// Shared by the free-name and (entry-wise) other map factories.
     fn map_factory_from_seq(&mut self, seq: ValueId, entry_tag: u64) -> Option<ValueId> {
         let entries = self.nodes[seq as usize].args.clone();
         let mut canonical_entries = Vec::with_capacity(entries.len());
@@ -1301,9 +1320,9 @@ impl<'a> Builder<'a> {
                 return None;
             }
             let kv = entry_node.args.clone();
-            canonical_entries.push(self.mk(ValOp::Seq(4), kv));
+            canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
         }
-        Some(self.mk(ValOp::Seq(3), canonical_entries))
+        Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries))
     }
 
     fn proven_java_map_factory_entries(&mut self, value: ValueId) -> Option<ValueId> {
@@ -1333,17 +1352,17 @@ impl<'a> Builder<'a> {
             }
             let mut canonical_entries = Vec::with_capacity(entries.len() / 2);
             for kv in entries.chunks(2) {
-                canonical_entries.push(self.mk(ValOp::Seq(4), kv.to_vec()));
+                canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv.to_vec()));
             }
-            return Some(self.mk(ValOp::Seq(3), canonical_entries));
+            return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
         }
         if contract.kind == JavaMapFactoryKind::OfEntries {
             let mut canonical_entries = Vec::with_capacity(args.len().saturating_sub(1));
             for entry in args.iter().skip(1).copied() {
                 let kv = self.proven_java_map_entry_pair(entry)?;
-                canonical_entries.push(self.mk(ValOp::Seq(4), kv));
+                canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
             }
-            return Some(self.mk(ValOp::Seq(3), canonical_entries));
+            return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
         }
         None
     }
@@ -1430,9 +1449,10 @@ impl<'a> Builder<'a> {
             {
                 return None;
             }
-            canonical_entries.push(self.mk(ValOp::Seq(4), entry_value_node.args.clone()));
+            canonical_entries
+                .push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), entry_value_node.args.clone()));
         }
-        let map = self.mk(ValOp::Seq(3), canonical_entries);
+        let map = self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries);
         Some(self.mk(
             ValOp::Seq(stable_symbol_hash(contract.canonical_value_tag)),
             vec![default?, map],
@@ -1454,7 +1474,7 @@ impl<'a> Builder<'a> {
     }
 
     fn proven_map_value(&mut self, value: ValueId) -> Option<ValueId> {
-        if matches!(self.nodes[value as usize].op, ValOp::Seq(3)) {
+        if matches!(self.nodes[value as usize].op, ValOp::Seq(SEQ_VALUE_MAP)) {
             return Some(value);
         }
         self.proven_free_name_map_factory(value)
@@ -1894,11 +1914,7 @@ impl<'a> Builder<'a> {
         self.sinks.push(Sink::new(SinkKind::Throw, g));
     }
 
-    fn field_state_key(
-        &mut self,
-        target: NodeId,
-        env: &FxHashMap<u32, ValueId>,
-    ) -> Option<FieldStateKey> {
+    fn field_state_key(&mut self, target: NodeId) -> Option<FieldStateKey> {
         if self.il.kind(target) != NodeKind::Field {
             return None;
         }
@@ -1906,10 +1922,64 @@ impl<'a> Builder<'a> {
             return None;
         };
         let receiver = self.il.children(target).first().copied()?;
+        let receiver = self.field_place_value(receiver)?;
         Some(FieldStateKey {
-            receiver: self.eval(receiver, env),
+            receiver,
             field: self.interner.symbol_hash(field),
         })
+    }
+
+    fn field_place_value(&mut self, node: NodeId) -> Option<ValueId> {
+        match self.il.kind(node) {
+            NodeKind::Var => self.var_place_value(node),
+            NodeKind::Field => {
+                let receiver = self.il.children(node).first().copied()?;
+                let receiver = self.field_place_value(receiver)?;
+                let Payload::Name(field) = self.il.node(node).payload else {
+                    return None;
+                };
+                Some(self.mk(
+                    ValOp::Field(self.interner.symbol_hash(field)),
+                    vec![receiver],
+                ))
+            }
+            NodeKind::Index => {
+                let kids = self.il.children(node);
+                let receiver = kids.first().copied()?;
+                let receiver = self.field_place_value(receiver)?;
+                let key = kids
+                    .get(1)
+                    .and_then(|&key| self.field_place_key_value(key))?;
+                Some(self.mk(ValOp::Index, vec![receiver, key]))
+            }
+            _ => None,
+        }
+    }
+
+    fn var_place_value(&mut self, node: NodeId) -> Option<ValueId> {
+        match self.il.node(node).payload {
+            Payload::Cid(cid) => Some(self.mk(ValOp::Input(cid), vec![])),
+            Payload::Name(name) => Some(self.mk(ValOp::Input(self.free_name_key(name)), vec![])),
+            _ => None,
+        }
+    }
+
+    fn field_place_key_value(&mut self, node: NodeId) -> Option<ValueId> {
+        match self.il.node(node).payload {
+            Payload::LitInt(value) => Some(self.mk(
+                ValOp::Const(0x1000_0000u32.wrapping_add(value as u32)),
+                vec![],
+            )),
+            Payload::LitStr(hash) => Some(self.mk(
+                ValOp::Const(0x2000_0000u32.wrapping_add(hash as u32)),
+                vec![],
+            )),
+            Payload::Name(name) => Some(self.mk(ValOp::Input(self.free_name_key(name)), vec![])),
+            Payload::Cid(cid) if self.il.kind(node) == NodeKind::Var => {
+                Some(self.mk(ValOp::Input(cid), vec![]))
+            }
+            _ => None,
+        }
     }
 
     /// Tag a value with the current path condition: under branch conditions, the
@@ -4055,7 +4125,7 @@ impl<'a> Builder<'a> {
                     // (last-write-wins), flushed as a (receiver, field, final-value) sink
                     // later — order-insensitive across distinct places, correct for
                     // same-place overwrites.
-                    if let Some(key) = self.field_state_key(kids[0], env) {
+                    if let Some(key) = self.field_state_key(kids[0]) {
                         let g = self.guarded(rhs);
                         self.field_env.insert(key, g);
                         return;
@@ -5529,7 +5599,7 @@ impl<'a> Builder<'a> {
         }
         items.sort_by_key(|&v| (self.vhash[v as usize], v));
         items.dedup();
-        let collection = self.mk(ValOp::Seq(1), items);
+        let collection = self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items);
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![element?, collection]))
     }
 
@@ -5560,7 +5630,7 @@ impl<'a> Builder<'a> {
             ValOp::Bin(op) if op == Op::In as u32 && node.args.len() == 2 => {
                 let candidate = node.args[0];
                 let collection = &self.nodes[node.args[1] as usize];
-                if !matches!(collection.op, ValOp::Seq(1))
+                if !matches!(collection.op, ValOp::Seq(SEQ_VALUE_COLLECTION))
                     || !collection
                         .args
                         .iter()
@@ -6330,14 +6400,14 @@ impl<'a> Builder<'a> {
 
     fn is_static_membership_collection(&self, value: ValueId) -> bool {
         let node = &self.nodes[value as usize];
-        matches!(node.op, ValOp::Seq(1)) && !node.args.is_empty()
+        matches!(node.op, ValOp::Seq(SEQ_VALUE_COLLECTION)) && !node.args.is_empty()
     }
 
     fn own_property_condition(&self, cond: ValueId) -> Option<(ValueId, ValueId, bool)> {
         let parse = |node: &ValNode| {
-            if matches!(node.op, ValOp::Seq(OWN_PROPERTY_GUARD_SEQ_TAG)) && node.args.len() == 4 {
+            if matches!(node.op, ValOp::Seq(SEQ_VALUE_OWN_PROPERTY_GUARD)) && node.args.len() == 4 {
                 let map = node.args[0];
-                if !matches!(self.nodes[map as usize].op, ValOp::Seq(3)) {
+                if !matches!(self.nodes[map as usize].op, ValOp::Seq(SEQ_VALUE_MAP)) {
                     return None;
                 }
                 return Some((node.args[1], map, false));
@@ -6394,34 +6464,47 @@ impl<'a> Builder<'a> {
             let value = self.eval(collection, env);
             return self.mk(ValOp::CollectionParam, vec![value]);
         }
-        if self.il.kind(collection) != NodeKind::Seq {
+        if self.il.kind(collection) == NodeKind::Seq {
+            if self
+                .seq_surface(collection)
+                .is_some_and(|contract| contract.membership_collection)
+            {
+                let kids = self.il.children(collection).to_vec();
+                let mut items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
+                items.sort_by_key(|&v| (self.vhash[v as usize], v));
+                items.dedup();
+                return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items);
+            }
             let value = self.eval(collection, env);
-            let collection = self
-                .proven_collection_value(value)
-                .or_else(|| self.proven_local_collection_binding_value(collection, env))
-                .unwrap_or(value);
-            return self.canonical_membership_collection_value(collection);
+            return self.canonical_membership_collection_value(value);
         }
-        let kids = self.il.children(collection).to_vec();
-        let mut items: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
-        items.sort_by_key(|&v| (self.vhash[v as usize], v));
-        items.dedup();
-        self.mk(ValOp::Seq(1), items)
+        let value = self.eval(collection, env);
+        let collection = self
+            .proven_collection_value(value)
+            .or_else(|| self.proven_local_collection_binding_value(collection, env))
+            .unwrap_or(value);
+        self.canonical_membership_collection_value(collection)
     }
 
     fn canonical_membership_collection_value(&mut self, value: ValueId) -> ValueId {
         let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Seq(1)) {
+        if !matches!(node.op, ValOp::Seq(SEQ_VALUE_COLLECTION)) {
             return value;
         }
         let mut items = node.args.clone();
         items.sort_by_key(|&v| (self.vhash[v as usize], v));
         items.dedup();
-        self.mk(ValOp::Seq(1), items)
+        self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items)
     }
 
     fn is_static_non_float_collection_expr(&self, collection: NodeId) -> bool {
         if self.il.kind(collection) != NodeKind::Seq {
+            return false;
+        }
+        if !self
+            .seq_surface(collection)
+            .is_some_and(|contract| contract.membership_collection)
+        {
             return false;
         }
         let kids = self.il.children(collection);
@@ -6443,13 +6526,7 @@ impl<'a> Builder<'a> {
         collection: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> ValueId {
-        let value = if self.il.kind(collection) == NodeKind::Seq {
-            let kids = self.il.children(collection).to_vec();
-            let entries: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
-            self.mk(ValOp::Seq(3), entries)
-        } else {
-            self.eval(collection, env)
-        };
+        let value = self.eval(collection, env);
         self.proven_map_value(value).unwrap_or(value)
     }
 
@@ -7139,8 +7216,7 @@ impl<'a> Builder<'a> {
                             return self.null_const();
                         }
                     }
-                    let key = 0x8000_0000u32 | (self.interner.symbol_hash(s) as u32);
-                    self.mk(ValOp::Input(key), vec![])
+                    self.mk(ValOp::Input(self.free_name_key(s)), vec![])
                 }
                 _ => self.fresh_opaque(),
             },
@@ -7305,20 +7381,22 @@ impl<'a> Builder<'a> {
                             }
                         }
                         let receiver = &self.nodes[a[0] as usize];
-                        if matches!(receiver.op, ValOp::Seq(6)) && receiver.args.len() == 1 {
+                        if matches!(receiver.op, ValOp::Seq(SEQ_VALUE_IMPORT_NAMESPACE))
+                            && receiver.args.len() == 1
+                        {
                             let module = receiver.args[0];
                             let exported = self.mk(
                                 ValOp::Const(stable_string_const_key(self.interner.resolve(s))),
                                 vec![],
                             );
-                            return self.mk(ValOp::Seq(5), vec![module, exported]);
+                            return self
+                                .mk(ValOp::Seq(SEQ_VALUE_IMPORT_BINDING), vec![module, exported]);
                         }
                     }
                 }
                 if a.len() == 1 {
-                    let key = FieldStateKey {
-                        receiver: a[0],
-                        field: name,
+                    let Some(key) = self.field_state_key(expr) else {
+                        return self.mk(ValOp::Field(name), a);
                     };
                     if let Some(&written) = self.field_env.get(&key) {
                         return written;
@@ -7424,7 +7502,7 @@ impl<'a> Builder<'a> {
                     return r;
                 }
                 if kids.len() == 1 && self.is_rust_vec_new_call(kids[0]) {
-                    return self.mk(ValOp::Seq(1), vec![]);
+                    return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
                 }
                 if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
                     return v;
@@ -7728,19 +7806,20 @@ impl<'a> Builder<'a> {
     }
 
     fn seq_tag(&self, node: NodeId) -> u64 {
+        match (self.seq_surface(node), self.il.node(node).payload) {
+            (Some(contract), _) => contract.value_tag,
+            (None, Payload::Name(s)) => self.interner.symbol_hash(s),
+            _ => SEQ_VALUE_UNTAGGED,
+        }
+    }
+
+    fn seq_surface(&self, node: NodeId) -> Option<SeqSurfaceContract> {
         match self.il.node(node).payload {
-            Payload::Name(s) => match self.interner.resolve(s) {
-                "array" | "list" | "array_expression" | "composite_literal" => 1,
-                "tuple" | "tuple_expression" => 2,
-                "object" | "dictionary" | "hash" => 3,
-                "pair" => 4,
-                "import_binding" => 5,
-                "import_namespace" => 6,
-                "record_guard" => 7,
-                "own_property_guard" => OWN_PROPERTY_GUARD_SEQ_TAG,
-                _ => self.interner.symbol_hash(s),
-            },
-            _ => 0,
+            Payload::None => seq_surface_contract(self.il.meta.lang, None),
+            Payload::Name(s) => {
+                seq_surface_contract(self.il.meta.lang, Some(self.interner.resolve(s)))
+            }
+            _ => None,
         }
     }
 }
@@ -8008,7 +8087,6 @@ const MAX_CODE: u32 = 0x32A;
 const JS_PROTOTYPE_IN_CODE: u32 = 0x4A53_494E;
 const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 const C_U32_BE_BYTE_PACK_CODE: u32 = 0x4333_3242;
-const OWN_PROPERTY_GUARD_SEQ_TAG: u64 = 8;
 const EFFECT_ORDINAL_SINK_TAG: u64 = 0xEFFE_C701;
 
 /// A selection reduction (min/max) keeps no additive/multiplicative identity, so its

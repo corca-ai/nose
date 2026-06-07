@@ -116,6 +116,130 @@ pub fn domain_evidence_from_param_semantic(semantic: ParamSemantic) -> DomainEvi
     DomainEvidence::from_param_semantic(semantic)
 }
 
+pub const SEQ_VALUE_UNTAGGED: u64 = 0;
+pub const SEQ_VALUE_COLLECTION: u64 = 1;
+pub const SEQ_VALUE_TUPLE: u64 = 2;
+pub const SEQ_VALUE_MAP: u64 = 3;
+pub const SEQ_VALUE_PAIR: u64 = 4;
+pub const SEQ_VALUE_IMPORT_BINDING: u64 = 5;
+pub const SEQ_VALUE_IMPORT_NAMESPACE: u64 = 6;
+pub const SEQ_VALUE_RECORD_GUARD: u64 = 7;
+pub const SEQ_VALUE_OWN_PROPERTY_GUARD: u64 = 8;
+
+/// Kernel contract for a lowered `Seq` surface tag.
+///
+/// This is deliberately not just a value-graph tag table. The same surface may be
+/// exact-safe as a literal, admissible as a membership collection, exportable as an
+/// immutable module literal, or none of those. Keeping the axes separate prevents a
+/// frontend tag such as Go's `composite_literal` from silently becoming a collection
+/// merely because it is represented as `Seq` in IL.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SeqSurfaceContract {
+    pub value_tag: u64,
+    pub exact_tree_safe: bool,
+    pub membership_collection: bool,
+    pub map_entry_list: bool,
+    pub imported_literal: bool,
+}
+
+pub fn seq_surface_contract(lang: Lang, tag: Option<&str>) -> Option<SeqSurfaceContract> {
+    let contract = match tag {
+        None => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_UNTAGGED,
+            exact_tree_safe: false,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("array" | "array_expression") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_COLLECTION,
+            exact_tree_safe: true,
+            membership_collection: true,
+            map_entry_list: true,
+            imported_literal: true,
+        },
+        Some("list") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_COLLECTION,
+            exact_tree_safe: true,
+            membership_collection: true,
+            map_entry_list: true,
+            imported_literal: false,
+        },
+        Some("tuple") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_TUPLE,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("tuple_expression") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_TUPLE,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: true,
+        },
+        Some("dictionary" | "object") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_MAP,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: true,
+        },
+        Some("hash") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_MAP,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("pair") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_PAIR,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("import_binding") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_IMPORT_BINDING,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("import_namespace") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_IMPORT_NAMESPACE,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("record_guard") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_RECORD_GUARD,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("own_property_guard") => SeqSurfaceContract {
+            value_tag: SEQ_VALUE_OWN_PROPERTY_GUARD,
+            exact_tree_safe: true,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        Some("composite_literal") if lang == Lang::Go => SeqSurfaceContract {
+            value_tag: stable_symbol_hash("go_composite_map_literal"),
+            exact_tree_safe: false,
+            membership_collection: false,
+            map_entry_list: false,
+            imported_literal: false,
+        },
+        _ => return None,
+    };
+    Some(contract)
+}
+
 /// A first-party language profile. Keep this cheap and copyable; callers use it as a
 /// named semantic boundary around currently-supported language behavior.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -229,7 +353,7 @@ pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
         && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
 }
 
-/// Exact Java `this.field` place proof for receiver-free field-write fingerprints.
+/// Exact Java `this.field` place proof for receiver-aware field-write fingerprints.
 pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if !semantics(il.meta.lang)
         .exact_fragments()
@@ -1841,7 +1965,7 @@ const FREE_NAME_MAP_FACTORIES: &[FreeNameMapFactory] = &[FreeNameMapFactory {
         "std::collections::HashMap::from",
         "std::collections::BTreeMap::from",
     ],
-    entry_seq_tag: 2,
+    entry_seq_tag: SEQ_VALUE_TUPLE,
 }];
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -1857,11 +1981,8 @@ const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCo
     exported: "deque",
 }];
 
-pub fn imported_literal_seq_tag_safe(tag: &str) -> bool {
-    matches!(
-        tag,
-        "dictionary" | "object" | "array" | "array_expression" | "tuple_expression"
-    )
+pub fn imported_literal_seq_tag_safe(lang: Lang, tag: &str) -> bool {
+    seq_surface_contract(lang, Some(tag)).is_some_and(|contract| contract.imported_literal)
 }
 
 pub fn mutating_method_name(method: &str) -> bool {
@@ -2034,6 +2155,38 @@ mod tests {
         assert!(!DomainEvidence::Number.is_integer());
         assert!(!DomainEvidence::Array.is_collection_or_set());
         assert!(!DomainEvidence::Set.is_array_or_collection());
+    }
+
+    #[test]
+    fn sequence_surface_contracts_keep_value_and_exact_axes_separate() {
+        let array = seq_surface_contract(Lang::JavaScript, Some("array")).unwrap();
+        assert_eq!(array.value_tag, SEQ_VALUE_COLLECTION);
+        assert!(array.exact_tree_safe);
+        assert!(array.membership_collection);
+
+        let untagged = seq_surface_contract(Lang::JavaScript, None).unwrap();
+        assert_eq!(untagged.value_tag, SEQ_VALUE_UNTAGGED);
+        assert!(!untagged.exact_tree_safe);
+        assert!(!untagged.membership_collection);
+
+        let object = seq_surface_contract(Lang::JavaScript, Some("object")).unwrap();
+        assert_eq!(object.value_tag, SEQ_VALUE_MAP);
+        assert!(object.exact_tree_safe);
+        assert!(!object.membership_collection);
+        assert!(object.imported_literal);
+
+        let go_map = seq_surface_contract(Lang::Go, Some("composite_literal")).unwrap();
+        assert_eq!(
+            go_map.value_tag,
+            stable_symbol_hash("go_composite_map_literal")
+        );
+        assert!(!go_map.exact_tree_safe);
+        assert!(!go_map.membership_collection);
+        assert!(!go_map.imported_literal);
+
+        assert!(seq_surface_contract(Lang::Python, Some("composite_literal")).is_none());
+        assert!(imported_literal_seq_tag_safe(Lang::Python, "dictionary"));
+        assert!(!imported_literal_seq_tag_safe(Lang::Ruby, "hash"));
     }
 
     #[test]

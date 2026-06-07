@@ -290,7 +290,7 @@ fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) -> b
             let Payload::Name(tag) = il.node(node).payload else {
                 return false;
             };
-            if !nose_semantics::imported_literal_seq_tag_safe(interner.resolve(tag)) {
+            if !nose_semantics::imported_literal_seq_tag_safe(il.meta.lang, interner.resolve(tag)) {
                 return false;
             }
             il.children(node)

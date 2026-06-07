@@ -584,6 +584,8 @@ fn java_arraylist_add_builder_loop_converges_with_comprehension() {
     let java_build_diff = "import java.util.*;\nclass C { static List<Integer> f(int[] xs) { List<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x + 1); } return out; } }\n";
     let java_unimported_arraylist = "class C { static Object f(int[] xs) { var out = new ArrayList<Integer>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
     let java_shadowed_arraylist = "import java.util.*;\nclass ArrayList<T> { void add(T value) {} }\nclass C { static ArrayList<Integer> f(int[] xs) { ArrayList<Integer> out = new ArrayList<>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
+    let java_conflicting_arraylist_import = "import other.ArrayList;\nimport java.util.*;\nclass C { static Object f(int[] xs) { var out = new ArrayList<Integer>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
+    let java_conflicting_exact_arraylist_import = "import other.ArrayList;\nimport java.util.ArrayList;\nclass C { static Object f(int[] xs) { var out = new ArrayList<Integer>(); for (int x : xs) { out.add(x * x); } return out; } }\n";
     let comp_fp = value_fp(&i, py_comp, Lang::Python);
     assert_eq!(
         comp_fp,
@@ -609,6 +611,16 @@ fn java_arraylist_add_builder_loop_converges_with_comprehension() {
         comp_fp,
         value_fp(&i, java_shadowed_arraylist, Lang::Java),
         "a local ArrayList type must not mint the java.util empty-list builder seed"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, java_conflicting_arraylist_import, Lang::Java),
+        "a conflicting explicit ArrayList import must override java.util wildcard proof"
+    );
+    assert_ne!(
+        comp_fp,
+        value_fp(&i, java_conflicting_exact_arraylist_import, Lang::Java),
+        "a conflicting explicit ArrayList import must close even an exact java.util import proof"
     );
 }
 
@@ -763,6 +775,66 @@ fn go_slice_literal_converges_with_array_but_struct_stays_distinct() {
         list_fp,
         value_fp(&i, go_struct, Lang::Go),
         "a go struct literal must stay distinct from a list (it is a record, not a collection)"
+    );
+}
+
+#[test]
+fn seq_surface_contracts_keep_maps_out_of_collection_membership() {
+    let i = Interner::new();
+    let py_membership = "def f(x):\n    return x in [\"red\", \"blue\"]\n";
+    let go_slice_membership = "package p\nimport \"slices\"\nfunc f(x string) bool { return slices.Contains([]string{\"red\", \"blue\"}, x) }\n";
+    let go_map_as_slice_membership = "package p\nimport \"slices\"\nfunc f(x string) bool { return slices.Contains(map[string]int{\"red\": 0, \"blue\": 0}, x) }\n";
+    let go_zero_map_lookup =
+        "package p\nfunc f(x string) int { return map[string]int{\"red\": 0, \"blue\": 0}[x] }\n";
+    let go_empty_map = "package p\nfunc f() map[string]int { return map[string]int{} }\n";
+    let go_empty_slice = "package p\nfunc f() []int { return []int{} }\n";
+
+    let membership = value_fp(&i, py_membership, Lang::Python);
+    assert_eq!(
+        membership,
+        value_fp(&i, go_slice_membership, Lang::Go),
+        "Go slices.Contains over a slice literal is a proven collection membership"
+    );
+    assert_ne!(
+        membership,
+        value_fp(&i, go_map_as_slice_membership, Lang::Go),
+        "Go map composite literals must not leak into collection membership semantics"
+    );
+    assert_ne!(
+        value_fp(&i, go_zero_map_lookup, Lang::Go),
+        value_fp(&i, go_map_as_slice_membership, Lang::Go),
+        "the supported Go zero-map lookup contract is separate from collection membership"
+    );
+    assert_ne!(
+        value_fp(&i, go_empty_map, Lang::Go),
+        value_fp(&i, go_empty_slice, Lang::Go),
+        "empty Go map literals must not fall back to the empty collection value tag"
+    );
+}
+
+#[test]
+fn js_object_length_and_computed_keys_stay_outside_exact_collection_contracts() {
+    let i = Interner::new();
+    let py_dict_len = "def f():\n    return len({\"length\": 99, \"a\": 0})\n";
+    let js_object_length = "function f() { return ({ length: 99, a: 0 }).length; }";
+    let py_object = "def f():\n    return {\"red\": 1, \"blue\": 2}\n";
+    let js_static_object = "function f() { return { red: 1, blue: 2 }; }";
+    let js_computed_object = "function f(k) { return { [k]: 1, blue: 2 }; }";
+
+    assert_ne!(
+        value_fp(&i, py_dict_len, Lang::Python),
+        value_fp(&i, js_object_length, Lang::JavaScript),
+        "JS object `.length` is a property read, not map/dict cardinality"
+    );
+    assert_eq!(
+        value_fp(&i, py_object, Lang::Python),
+        value_fp(&i, js_static_object, Lang::JavaScript),
+        "static JS object keys remain an exact map/object literal surface"
+    );
+    assert_ne!(
+        value_fp(&i, js_static_object, Lang::JavaScript),
+        value_fp(&i, js_computed_object, Lang::JavaScript),
+        "computed object keys need a future key-evaluation contract before exact map semantics"
     );
 }
 
@@ -2930,6 +3002,8 @@ fn value_graph_reads_field_written_in_unit() {
     let return_value = "def f(self):\n    self.x = 7\n    return 7\n";
     let read_other_receiver = "def f(a, b):\n    a.x = 7\n    return b.x\n";
     let read_written_receiver = "def f(a, b):\n    a.x = 7\n    return a.x\n";
+    let unknown_alias_receiver = "def f(a):\n    r = receiver(a)\n    r.x = 7\n    return a.x\n";
+    let computed_receiver = "def f(a):\n    receiver(a).x = 7\n    return receiver(a).x\n";
     assert_eq!(
         value_fp(&i, read_field, Lang::Python),
         value_fp(&i, return_value, Lang::Python),
@@ -2939,6 +3013,16 @@ fn value_graph_reads_field_written_in_unit() {
         value_fp(&i, read_other_receiver, Lang::Python),
         value_fp(&i, read_written_receiver, Lang::Python),
         "a same-named field write on one receiver must not satisfy a read on another receiver"
+    );
+    assert_ne!(
+        value_fp(&i, unknown_alias_receiver, Lang::Python),
+        value_fp(&i, return_value, Lang::Python),
+        "field-state readback must not assume call-result aliasing without receiver-place proof"
+    );
+    assert_ne!(
+        value_fp(&i, computed_receiver, Lang::Python),
+        value_fp(&i, return_value, Lang::Python),
+        "computed field receivers must not enter same-unit field-state caching"
     );
 }
 
@@ -3608,6 +3692,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let ts_array_some = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].some((item: string) => item === value); }";
     let js_array_indexof_ne =
         "function f(value, other) { return [\"red\", \"blue\"].indexOf(value) !== -1; }";
+    let js_sequence_indexof_ne =
+        "function f(value, other) { return (\"red\", \"blue\").indexOf(value) !== -1; }";
     let ts_array_indexof_ge = "function f(value: string, other: string): boolean { return [\"red\", \"blue\"].indexOf(value) >= 0; }";
     let js_array_indexof_gt =
         "function f(value, other) { return [\"red\", \"blue\"].indexOf(value) > -1; }";
@@ -3761,6 +3847,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(
         literal_fp,
         value_fp(&i, js_array_indexof_ne, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_sequence_indexof_ne, Lang::JavaScript),
+        "JS sequence expressions must not prove static array membership"
     );
     assert_eq!(
         literal_fp,

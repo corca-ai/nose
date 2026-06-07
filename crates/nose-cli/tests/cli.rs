@@ -8876,6 +8876,16 @@ fn scan_mode_semantic_preserves_js_object_keys() {
         "export function makeParam(name: string, description: string) {\n    return { name, description };\n}\n",
     )
     .unwrap();
+    fs::write(
+        dir.join("object_computed_a.ts"),
+        "const KEY = \"command\";\nexport function computed(command: string, description: string) {\n    return { [KEY]: command, description };\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("object_computed_b.ts"),
+        "const FIELD = \"command\";\nexport function computedOther(cmd: string, desc: string) {\n    return { [FIELD]: cmd, description: desc };\n}\n",
+    )
+    .unwrap();
 
     let semantic = run(&[
         "scan",
@@ -8902,8 +8912,10 @@ fn scan_mode_semantic_preserves_js_object_keys() {
     assert!(
         semantic_text.contains("object_a.ts")
             && semantic_text.contains("object_b.ts")
-            && !semantic_text.contains("object_key_negative.ts"),
-        "semantic mode must preserve object keys: {semantic}"
+            && !semantic_text.contains("object_key_negative.ts")
+            && !semantic_text.contains("object_computed_a.ts")
+            && !semantic_text.contains("object_computed_b.ts"),
+        "semantic mode must preserve static object keys and reject computed-key object contracts: {semantic}"
     );
 
     let _ = fs::remove_dir_all(&dir);

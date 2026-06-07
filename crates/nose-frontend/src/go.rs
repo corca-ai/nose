@@ -425,7 +425,8 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
                         span,
                         &[iter],
                     );
-                    lo.add(NodeKind::Seq, Payload::None, span, &vars)
+                    let tag = lo.sym("tuple");
+                    lo.add(NodeKind::Seq, Payload::Name(tag), span, &vars)
                 }
                 Some(l) => lower_expr(lo, range_value_var(l)),
                 None => lo.empty_block(span),

@@ -138,6 +138,12 @@ Guiding constraints for every pass:
   pure `Some(x).and_then(...)` helper chains, and guarded builders today. Wrapped
   `Some(None)`-style callbacks are emitted `Null` payloads, not dropped items, while
   effectful callbacks and unmodeled option helper chains remain fail-closed.
+  Lowered aggregate surfaces now pass through a `SeqSurfaceContract`: arrays/slices can
+  enter collection membership, maps/objects enter map/object value semantics, Go
+  `composite_literal` map surfaces are consumed only by the Go zero-map contract, JS object
+  `.length` is not collection cardinality, untagged `Seq` groupings do not prove
+  collection membership, and computed JS object keys stay exact-closed until key
+  evaluation semantics are explicit.
   The remaining documented *exceptions* are large-constant/float abstraction (genuinely
   missing type information). The **fuzziness** a clone detector needs — abstracting magic
   numbers, tolerating structural difference — lives in the **candidate axis** and its

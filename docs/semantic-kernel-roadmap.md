@@ -161,6 +161,25 @@ and pack ecosystem.
   of caching by field name alone. Same-place readback and distinct-field
   commutation remain open, while cross-receiver reads/writes with the same field
   name stay exact-distinct.
+- Lowered `Seq` surface admission now goes through `SeqSurfaceContract` instead
+  of local raw-string allowlists. The contract separates exact-tree safety,
+  membership collection admission, map-entry-list admission, imported-literal
+  eligibility, and value-graph tags, so Go `composite_literal` map surfaces no
+  longer leak into generic collection semantics. Untagged `Seq` is now
+  non-semantic by default; static membership and idiom receiver gates consume
+  explicit membership-collection surface proof.
+- JS/TS object surfaces were narrowed: static property keys remain exact
+  map/object entries, computed property names are exact-closed until key
+  evaluation semantics are contracted, and object `.length` no longer lowers to
+  collection `Len` merely because the receiver is a `Seq`.
+- Java `java.util.*` wildcard proof for empty `ArrayList`/`LinkedList`
+  constructors now closes when another package explicitly imports the same
+  simple type, matching Java import resolution before the constructor surface can
+  enter the collection builder contract.
+- Same-unit value-graph field readback now uses the receiver/place proof shape
+  rather than an arbitrary evaluated receiver value, so aliases and computed
+  call-result receivers stay exact-closed until pack-facing place evidence
+  exists.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -205,6 +224,10 @@ Remaining in this phase:
   versioned pack-facing effect/place evidence records.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
+- Replace raw import/module proof payloads with typed `ImportFact` records shared
+  by frontend, normalize, detect, and idiom lowering.
+- Replace the compiled `SeqSurfaceContract` facade with pack-facing
+  sequence/aggregate surface records and named kernel constructors.
 - Replace the current `DomainEvidence` facade with versioned, pack-facing
   receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while

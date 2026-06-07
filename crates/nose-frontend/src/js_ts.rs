@@ -1589,7 +1589,7 @@ fn lower_object_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
     let key = node
         .child_by_field_name("key")
-        .map(|x| lo.str_lit(lo.text(x), lo.span(x)))
+        .map(|x| lower_object_pair_key(lo, x))
         .unwrap_or_else(|| lo.empty_block(span));
     let value = node
         .child_by_field_name("value")
@@ -1597,6 +1597,27 @@ fn lower_object_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
         .unwrap_or_else(|| lo.empty_block(span));
     let tag = lo.sym("pair");
     lo.add(NodeKind::Seq, Payload::Name(tag), span, &[key, value])
+}
+
+fn lower_object_pair_key(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    if let Some(key) = static_object_property_key(lo, node) {
+        return lo.str_lit(&key, span);
+    }
+    let inner: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|c| lower_expr(lo, c))
+        .collect();
+    lo.raw(node.kind(), span, &inner)
+}
+
+fn static_object_property_key(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "property_identifier" | "identifier" => Some(lo.text(node).to_string()),
+        "string" => static_string_key(lo, node),
+        "number" => Some(lo.text(node).to_string()),
+        _ => None,
+    }
 }
 
 fn lower_object_shorthand(lo: &mut Lowering, node: TsNode) -> NodeId {

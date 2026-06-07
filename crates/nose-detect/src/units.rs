@@ -22,9 +22,9 @@ use nose_semantics::{
     js_like_set_constructor_contract, map_get_contract, map_key_view_contract,
     map_key_view_wrapper_contract, method_call_contract, nullish_global_contract,
     regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
-    static_index_membership_contract, typeof_operator_contract, IndexMembershipThreshold,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, StaticIndexMembershipKind,
+    seq_surface_contract, static_index_membership_contract, typeof_operator_contract,
+    IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -994,7 +994,7 @@ fn strict_exact_static_index_membership_safe(
             strict_exact_static_index_membership_parts(il, interner, facts, kids[0])
         {
             return strict_exact_safe_tree(il, interner, facts, element)
-                && strict_exact_static_non_float_collection(il, collection);
+                && strict_exact_static_non_float_collection(il, interner, collection);
         }
     }
     if strict_exact_index_membership_threshold(il, op, true, kids[0]) {
@@ -1002,7 +1002,7 @@ fn strict_exact_static_index_membership_safe(
             strict_exact_static_index_membership_parts(il, interner, facts, kids[1])
         {
             return strict_exact_safe_tree(il, interner, facts, element)
-                && strict_exact_static_non_float_collection(il, collection);
+                && strict_exact_static_non_float_collection(il, interner, collection);
         }
     }
     false
@@ -1026,7 +1026,7 @@ fn strict_exact_static_index_membership_parts(
     };
     let method = interner.resolve(method);
     let receiver = *il.children(kids[0]).first()?;
-    if !strict_exact_static_non_float_collection(il, receiver) {
+    if !strict_exact_static_non_float_collection(il, interner, receiver) {
         return None;
     }
     let contract = static_index_membership_contract(il.meta.lang, method, kids.len() - 1)?;
@@ -1128,8 +1128,18 @@ fn strict_exact_minus_one_literal(il: &Il, node: NodeId) -> bool {
     kids.len() == 1 && matches!(il.node(kids[0]).payload, Payload::LitInt(1))
 }
 
-fn strict_exact_static_non_float_collection(il: &Il, node: NodeId) -> bool {
+fn strict_exact_static_non_float_collection(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if il.kind(node) != NodeKind::Seq {
+        return false;
+    }
+    let tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
+    };
+    if !seq_surface_contract(il.meta.lang, tag)
+        .is_some_and(|contract| contract.membership_collection)
+    {
         return false;
     }
     let kids = il.children(node);
@@ -1165,26 +1175,12 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    match il.node(node).payload {
-        Payload::None => true,
-        Payload::Name(name) => matches!(
-            interner.resolve(name),
-            "array"
-                | "list"
-                | "tuple"
-                | "dictionary"
-                | "hash"
-                | "array_expression"
-                | "tuple_expression"
-                | "object"
-                | "pair"
-                | "import_binding"
-                | "import_namespace"
-                | "own_property_guard"
-                | "record_guard"
-        ),
-        _ => false,
-    }
+    let tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
+    };
+    seq_surface_contract(il.meta.lang, tag).is_some_and(|contract| contract.exact_tree_safe)
 }
 
 fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
@@ -1792,14 +1788,13 @@ fn strict_exact_membership_collection_safe(
         }
         return strict_exact_safe_tree(il, interner, facts, node);
     }
-    let tag_safe = match il.node(node).payload {
-        Payload::None => true,
-        Payload::Name(name) => matches!(
-            interner.resolve(name),
-            "array" | "list" | "array_expression" | "composite_literal"
-        ),
-        _ => false,
+    let tag = match il.node(node).payload {
+        Payload::None => None,
+        Payload::Name(name) => Some(interner.resolve(name)),
+        _ => return false,
     };
+    let tag_safe = seq_surface_contract(il.meta.lang, tag)
+        .is_some_and(|contract| contract.membership_collection);
     tag_safe
         && il
             .children(node)
@@ -2348,10 +2343,9 @@ fn strict_exact_map_entries_safe(
     let Payload::Name(name) = il.node(node).payload else {
         return false;
     };
-    if !matches!(
-        interner.resolve(name),
-        "array" | "list" | "array_expression"
-    ) {
+    if !seq_surface_contract(il.meta.lang, Some(interner.resolve(name)))
+        .is_some_and(|contract| contract.map_entry_list)
+    {
         return false;
     }
     il.children(node).iter().all(|&entry| {
@@ -3270,9 +3264,9 @@ fn exact_index_assignment_fragment_root(il: &Il, node: NodeId) -> bool {
     exact_non_overloadable_index_assignment(il, node)
 }
 
-// Field-write fingerprints intentionally model final self-field state without a receiver
-// coordinate. Expose only Java's fixed `this.field = ...`; arbitrary receivers such as
-// `other.field = ...` need a receiver-aware proof fact before they can be exact fragments.
+// Field-write fingerprints model final receiver+field state. Expose only Java's fixed
+// `this.field = ...`; arbitrary receivers such as `other.field = ...` need a
+// receiver-place proof fact before they can be exact fragments.
 fn exact_self_field_assignment_fragment_root(il: &Il, interner: &Interner, node: NodeId) -> bool {
     if !semantics(il.meta.lang)
         .exact_fragments()
