@@ -25,6 +25,41 @@ fn first_func(il: &nose_il::Il) -> NodeId {
 }
 
 #[test]
+fn foreach_accumulator_is_interpretable_iterating_a_nonlist_is_err_not_unsupported() {
+    // The headline foreach-accumulator: iterating a LIST computes; iterating a non-iterable
+    // (a scalar) is a runtime TYPE ERROR (`Err`), NOT an unmodelable construct. So the unit stays
+    // interpretable on every battery row (list → value, scalar → Err) and the oracle can check it
+    // instead of excluding it. Before this, the scalar case returned `Unsupported` (None), which
+    // dropped the whole unit from the oracle.
+    let i = Interner::new();
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "t",
+        b"def sum_pos(xs):\n    t = 0\n    for x in xs:\n        if x > 0:\n            t = t + x\n    return t\n",
+        Lang::Python,
+        &i,
+    )
+    .unwrap();
+    let n = normalize(&il, &i, &NormalizeOptions::default());
+    let f = first_func(&n);
+    use nose_normalize::{run_unit, Value};
+    let list = Value::List(vec![Value::Int(2), Value::Int(-1), Value::Int(5)]);
+    assert_eq!(
+        run_unit(&n, f, &[list])
+            .expect("list input is interpretable")
+            .ret,
+        Value::Int(7),
+        "summing the positives of [2,-1,5] is 7",
+    );
+    let scalar = run_unit(&n, f, &[Value::Int(3)]).expect("scalar input stays interpretable (Err)");
+    assert_eq!(
+        scalar.ret,
+        Value::Err,
+        "iterating a scalar is a runtime type error (Err), not Unsupported",
+    );
+}
+
+#[test]
 fn loop_unification_cfor_equals_while() {
     let i = Interner::new();
     let cfor = "function f(xs){ let t=0; for(let k=0;k<xs.length;k++){ t+=xs[k]; } return t; }";
