@@ -115,8 +115,9 @@ migrated.
   of `LOOKUP = Map.of(...)` carries the provider's `java.util.Map` proof into
   the importing file. Provider and importer module-binding mutation proof now
   rejects direct binding mutations and direct place writes such as
-  `LOOKUP.clear()` and `LOOKUP[key] = value` before imported literal provenance
-  can enter exact matching.
+  `LOOKUP.clear()` and `LOOKUP[key] = value`, and provider-side opaque argument
+  escapes such as `mutate(LOOKUP)`, before imported literal provenance can enter
+  exact matching.
 - Membership and map-key membership selectors now consume language-scoped method
   contracts before normalize/detect treat them as semantic containment. A method
   named `contains` is Java/Rust collection membership only; JavaScript
@@ -176,6 +177,19 @@ migrated.
   contract can prove key evaluation, coercion, order, and side-effect behavior.
 - JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
   yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
+- Static import proof facts now have a typed `ImportFactKind`/`ImportFact`
+  facade in `nose-semantics`. First-party frontends emit import binding and
+  namespace facts through that contract, and imported literal replacement,
+  normalize idiom admission, value-graph import proof, and strict exact gates
+  parse import proof RHS nodes through the shared helper instead of local raw
+  tag checks.
+- TypeScript `import type ...` and type-only named import specifiers are erased
+  for runtime import proof; they remain unavailable to exact semantic library
+  contracts.
+- Strict exact collection-membership gates no longer treat any strict-safe
+  expression as collection evidence. Non-literal receivers must now be proven by
+  typed parameter facts, local collection/map binding facts, or module-level
+  immutable collection/map binding facts.
 
 ## Scattered semantic knowledge
 
@@ -185,9 +199,11 @@ Semantic knowledge still appears in several forms outside the facade:
   rules that have not yet been expressed as shared contracts;
 - language-specific import or module proof mechanics that are still local to
   frontend, normalize, or detect callers;
-- raw IL `Seq("import_binding")` / `Seq("import_namespace")` payloads still carry
-  import facts. They pass through the surface contract now, but they are not yet
-  typed `ImportFact` records shared by frontend, normalize, detect, and idioms;
+- IL still stores import facts as `Seq("import_binding")` /
+  `Seq("import_namespace")` payloads for compatibility, but the semantic
+  interpretation now flows through typed `ImportFact` helpers in
+  `nose-semantics`. A future pack-facing representation should replace the raw IL
+  storage shape as well;
 - module/import proof logic for immutable sibling-module literal bindings;
 - type facts and coarse type inference used to gate numeric and collection laws;
 - named value-graph rule modules that still consume internal `Builder` facts
@@ -264,9 +280,9 @@ The first high-value targets for semantic-kernel extraction are:
 
 - pack-facing field/place evidence for all field reads and writes, building on
   the receiver-aware value-graph field state now used for same-unit caching;
-- typed import/module facts to replace raw `Seq("import_binding")` and
-  `Seq("import_namespace")` payload parsing across frontend, normalize, detect,
-  and idiom lowering;
+- pack-facing import/module fact records to replace the remaining raw
+  `Seq("import_binding")` and `Seq("import_namespace")` IL storage shape; current
+  consumers already parse these through the typed internal `ImportFact` facade;
 - pack-facing sequence/aggregate surface records to replace the current compiled
   `SeqSurfaceContract` facade and private value-graph `Seq` tag registry;
 - constructor facts for JS/TS `new Map` and `new Set`, which are now explicit

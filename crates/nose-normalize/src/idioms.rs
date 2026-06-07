@@ -7,14 +7,14 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     domain_evidence_from_param_semantic, free_function_builtin_contract,
-    iterator_identity_adapter_contract, map_get_contract, map_key_view_contract,
-    method_call_contract, method_hof_contract, rust_option_some_constructor_contract,
-    seq_surface_contract, static_collection_adapter_contract, BuiltinArgContract, DomainEvidence,
-    MapKeyViewKind, MethodBuiltinArgs, MethodCallContract, MethodReceiverContract,
-    MethodSemanticContract,
+    import_binding_rhs_matches, import_namespace_rhs_matches, iterator_identity_adapter_contract,
+    map_get_contract, map_key_view_contract, method_call_contract, method_hof_contract,
+    rust_option_some_constructor_contract, seq_surface_contract,
+    static_collection_adapter_contract, BuiltinArgContract, DomainEvidence, MapKeyViewKind,
+    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -855,26 +855,7 @@ fn import_binding_assignment(
     if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
         return false;
     }
-    if old.kind(kids[1]) != NodeKind::Seq {
-        return false;
-    }
-    let Payload::Name(seq_name) = old.node(kids[1]).payload else {
-        return false;
-    };
-    if interner.resolve(seq_name) != "import_binding" {
-        return false;
-    }
-    let coords = old.children(kids[1]);
-    if coords.len() != 2 {
-        return false;
-    }
-    matches!(
-        old.node(coords[0]).payload,
-        Payload::LitStr(hash) if hash == stable_symbol_hash(module)
-    ) && matches!(
-        old.node(coords[1]).payload,
-        Payload::LitStr(hash) if hash == stable_symbol_hash(exported)
-    )
+    import_binding_rhs_matches(old, interner, kids[1], module, exported)
 }
 
 fn import_namespace_assignment(
@@ -891,22 +872,7 @@ fn import_namespace_assignment(
     if kids.len() != 2 || assignment_alias_name(old, interner, kids[0]) != Some(alias) {
         return false;
     }
-    if old.kind(kids[1]) != NodeKind::Seq {
-        return false;
-    }
-    let Payload::Name(seq_name) = old.node(kids[1]).payload else {
-        return false;
-    };
-    if interner.resolve(seq_name) != "import_namespace" {
-        return false;
-    }
-    let Some(&module_node) = old.children(kids[1]).first() else {
-        return false;
-    };
-    matches!(
-        old.node(module_node).payload,
-        Payload::LitStr(hash) if hash == stable_symbol_hash(module)
-    )
+    import_namespace_rhs_matches(old, interner, kids[1], module)
 }
 
 fn assignment_alias_name<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {
@@ -1023,7 +989,9 @@ fn identity_lambda(old: &Il, lambda: NodeId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::stable_symbol_hash;
     use nose_il::{FileId, FileMeta, IlBuilder, Lang, ParamSemantic, ParamTypeFact, Span};
+    use nose_semantics::{import_fact_tag, ImportFactKind};
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)
@@ -1384,7 +1352,7 @@ mod tests {
                 sp(),
                 &[],
             );
-            let tag = interner.intern("import_namespace");
+            let tag = interner.intern(import_fact_tag(ImportFactKind::Namespace));
             let rhs = b.add(NodeKind::Seq, Payload::Name(tag), sp(), &[module]);
             module_kids.push(b.add(NodeKind::Assign, Payload::None, sp(), &[lhs, rhs]));
         }

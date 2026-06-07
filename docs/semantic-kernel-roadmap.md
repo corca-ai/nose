@@ -180,6 +180,22 @@ and pack ecosystem.
   rather than an arbitrary evaluated receiver value, so aliases and computed
   call-result receivers stay exact-closed until pack-facing place evidence
   exists.
+- Import binding and namespace proof interpretation now goes through a typed
+  `ImportFactKind`/`ImportFact` facade in `nose-semantics`. Frontend emitters,
+  imported immutable literal replacement, normalize idiom gates, value-graph
+  import proof, and strict exact gates now share the same tag, coordinate-count,
+  and module/export hash checks instead of parsing raw import `Seq` tags locally.
+- TypeScript type-only imports no longer emit runtime import facts: whole
+  `import type ...` declarations and type-only named specifiers stay outside
+  exact library/API proof.
+- Imported literal provenance now treats provider-side opaque argument escapes
+  such as `mutate(LOOKUP)` as mutation risk, so exported bindings must be direct,
+  unescaped immutable values before cross-file replacement can copy them.
+- Strict exact collection-membership receiver proof no longer falls back from
+  "not a known collection surface" to "any strict-safe tree." Top-level immutable
+  collection and map bindings are tracked separately from generic immutable names,
+  preserving supported module-level collection cases while closing unproven
+  receiver expressions.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -222,10 +238,15 @@ Remaining in this phase:
 - Move primitive comparison gates behind `OperatorSemantics`.
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records.
+- Move exact fragment append-effect classification off selector-only
+  `push`/`add` recognition and onto receiver/builder evidence shared with the
+  normal semantic contracts.
 - Move collection/map factory recognition into `LibraryApiContract` records.
 - Make value-graph and strict exact gates consume the same contract source.
-- Replace raw import/module proof payloads with typed `ImportFact` records shared
-  by frontend, normalize, detect, and idiom lowering.
+- Replace the remaining raw import/module proof IL payload storage with
+  pack-facing `ImportFact` records. The current compiled facade already provides
+  shared typed parsing for frontend, normalize, detect, and imported-literal
+  consumers.
 - Replace the compiled `SeqSurfaceContract` facade with pack-facing
   sequence/aggregate surface records and named kernel constructors.
 - Replace the current `DomainEvidence` facade with versioned, pack-facing
