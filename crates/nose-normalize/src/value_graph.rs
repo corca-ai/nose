@@ -78,6 +78,26 @@ const FREE_NAME_COLLECTION_FACTORIES: &[CollectionFactoryRow] = &[
     ),
 ];
 
+/// Free function/path names that construct a MAP from a single sequence literal of key/value
+/// entries (`factory([<entry>, …])`), driving [`Builder::proven_free_name_map_factory`]. Each row
+/// is `(language gate | None = any, the constructor names, the entry literal's `Seq` tag)`: JS
+/// `new Map([[k, v], …])` nests each entry as a `Seq(1)` array, Rust `HashMap::from([(k, v), …])`
+/// as a `Seq(2)` tuple — the only difference between two otherwise-identical skeletons. This data
+/// table replaces the separate `proven_map_constructor_entries` / `proven_rust_std_map_factory_*`
+/// recognizers. (Java `Map.of`/`ofEntries` and Go map literals have different shapes — kept apart.)
+type MapFactoryRow = (Option<Lang>, &'static [&'static str], u64);
+const FREE_NAME_MAP_FACTORIES: &[MapFactoryRow] = &[
+    (None, &["Map"], 1),
+    (
+        Some(Lang::Rust),
+        &[
+            "std::collections::HashMap::from",
+            "std::collections::BTreeMap::from",
+        ],
+        2,
+    ),
+];
+
 /// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
 /// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
 /// so a partial / sub-DAG clone can report WHERE the shared computation lives in each unit.
@@ -1207,24 +1227,39 @@ impl<'a> Builder<'a> {
         Some(self.node_refers_to_cid(receiver, cid))
     }
 
-    fn proven_map_constructor_entries(&mut self, value: ValueId) -> Option<ValueId> {
+    /// `factory([<entry>, …])` where `factory` is a free name that builds a map from a sequence of
+    /// 2-element key/value entries. Data-driven by [`FREE_NAME_MAP_FACTORIES`]; the matched row's
+    /// `Seq` tag says how each entry is shaped (JS array vs Rust tuple). Replaces the per-language
+    /// JS-`Map` and Rust-`::from` map recognizers (identical skeletons but for the entry tag).
+    fn proven_free_name_map_factory(&mut self, value: ValueId) -> Option<ValueId> {
         let node = &self.nodes[value as usize];
         if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
             return None;
         }
-        let args = node.args.clone();
-        if !self.is_free_name_value(args[0], "Map") {
+        let (callee, seq) = (node.args[0], node.args[1]);
+        if !matches!(self.nodes[seq as usize].op, ValOp::Seq(1)) {
             return None;
         }
-        let entries_node = &self.nodes[args[1] as usize];
-        if !matches!(entries_node.op, ValOp::Seq(1)) {
-            return None;
-        }
-        let entries = entries_node.args.clone();
+        let lang = self.il.meta.lang;
+        let entry_tag = FREE_NAME_MAP_FACTORIES
+            .iter()
+            .filter(|(want, _, _)| want.is_none_or(|l| l == lang))
+            .find(|(_, names, _)| names.iter().any(|n| self.is_free_name_value(callee, n)))
+            .map(|(_, _, tag)| *tag)?;
+        self.map_factory_from_seq(seq, entry_tag)
+    }
+
+    /// Canonicalize a `Seq(1)` of 2-element entries (each a `Seq(entry_tag)` of `[key, value]`) to
+    /// the canonical map shape `Seq(3)` of `Seq(4)` pairs. Shared by the free-name and (entry-wise)
+    /// other map factories.
+    fn map_factory_from_seq(&mut self, seq: ValueId, entry_tag: u64) -> Option<ValueId> {
+        let entries = self.nodes[seq as usize].args.clone();
         let mut canonical_entries = Vec::with_capacity(entries.len());
         for entry in entries {
             let entry_node = &self.nodes[entry as usize];
-            if !matches!(entry_node.op, ValOp::Seq(1)) || entry_node.args.len() != 2 {
+            if !matches!(entry_node.op, ValOp::Seq(t) if t == entry_tag)
+                || entry_node.args.len() != 2
+            {
                 return None;
             }
             let kv = entry_node.args.clone();
@@ -1285,36 +1320,6 @@ impl<'a> Builder<'a> {
             return None;
         }
         Some(args[1..].to_vec())
-    }
-
-    fn proven_rust_std_map_factory_entries(&mut self, value: ValueId) -> Option<ValueId> {
-        if self.il.meta.lang != Lang::Rust {
-            return None;
-        }
-        let node = &self.nodes[value as usize];
-        if !matches!(node.op, ValOp::Call(0)) || node.args.len() != 2 {
-            return None;
-        }
-        let args = node.args.clone();
-        if !self.is_free_name_value(args[0], "std::collections::HashMap::from")
-            && !self.is_free_name_value(args[0], "std::collections::BTreeMap::from")
-        {
-            return None;
-        }
-        let entries_node = &self.nodes[args[1] as usize];
-        if !matches!(entries_node.op, ValOp::Seq(1)) {
-            return None;
-        }
-        let entries = entries_node.args.clone();
-        let mut canonical_entries = Vec::with_capacity(entries.len());
-        for entry in entries {
-            let entry_node = &self.nodes[entry as usize];
-            if !matches!(entry_node.op, ValOp::Seq(2)) || entry_node.args.len() != 2 {
-                return None;
-            }
-            canonical_entries.push(self.mk(ValOp::Seq(4), entry_node.args.clone()));
-        }
-        Some(self.mk(ValOp::Seq(3), canonical_entries))
     }
 
     fn proven_go_literal_zero_map_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
@@ -1410,9 +1415,8 @@ impl<'a> Builder<'a> {
         if matches!(self.nodes[value as usize].op, ValOp::Seq(3)) {
             return Some(value);
         }
-        self.proven_map_constructor_entries(value)
+        self.proven_free_name_map_factory(value)
             .or_else(|| self.proven_java_map_factory_entries(value))
-            .or_else(|| self.proven_rust_std_map_factory_entries(value))
             .or_else(|| {
                 self.proven_go_literal_zero_map_value(value)
                     .map(|(map, _)| map)
