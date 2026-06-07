@@ -10,6 +10,13 @@
 # Runs only the `near` channel: this gate is about *design-level* Type-3 duplication
 # (families worth extracting), not the syntax copy-paste floor — which always surfaces
 # the reviewed-and-accepted per-grammar frontend parallelism (see docs/dogfooding.md).
+#
+# DETERMINISM: the count is reproducible run-to-run AND across platforms — nose hashes with
+# FxHash (no random seed) and ranks with IEEE correctly-rounded ops only (+ - * / sqrt), and the
+# family dedup sorts by a TOTAL order (span, value, then min source location). So CI and a local
+# run report the SAME number; a count change is a real detection change (new duplication or a
+# grammar/parse difference), never platform jitter. If they ever disagree, suspect a stale binary
+# or a tree-sitter grammar version skew — not nondeterminism.
 set -euo pipefail
 
 MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial families

@@ -503,10 +503,17 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
     // — leaving its enclosing family *also* in the list: the same OAuth test-server or
     // design-verifier function reported as several overlapping entries. The caller
     // re-sorts the survivors by the chosen key, so this order only governs dedup.)
+    // Sort LARGEST span first (then value), with a min-location final tie-break so this is a TOTAL
+    // order: families that tie on span AND value still sort deterministically by source position,
+    // not by upstream group-iteration order. Without it, two equal-span/value families could be
+    // deduped in either direction depending on map-iteration order, making the kept set (and so the
+    // dup-gate count) sensitive to incidental ordering. (The gate is otherwise fully deterministic:
+    // FxHash and IEEE `+−×÷`/`sqrt` are platform-independent, so CI and local agree exactly.)
     fams.sort_by(|a, b| {
         total_span(b)
             .cmp(&total_span(a))
             .then(b.value.total_cmp(&a.value))
+            .then_with(|| family_min_loc(a).cmp(&family_min_loc(b)))
     });
     // Keep a family unless an already-kept (larger) one subsumes it. `subsumes(k, f)`
     // requires `k` to have a site in the file of *every* `f` site — so any subsumer must
@@ -535,6 +542,16 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
 /// Total source lines a family spans across all its sites — its "size" for dedup.
 fn total_span(f: &RefactorFamily) -> u32 {
     f.locations.iter().map(span_lines).sum()
+}
+
+/// A family's lexicographically smallest site `(file, start_line, end_line)` — a stable identity
+/// used only as the final dedup-sort tie-break, so equal-span/value families order deterministically
+/// by source position rather than by incidental group-iteration order.
+fn family_min_loc(f: &RefactorFamily) -> Option<(&str, u32, u32)> {
+    f.locations
+        .iter()
+        .map(|l| (l.file.as_str(), l.start_line, l.end_line))
+        .min()
 }
 
 /// Does family `outer` subsume `inner` — i.e. every `inner` site lands on (mostly
@@ -887,6 +904,35 @@ mod tests {
         assert_eq!(
             fams[0].mean_lines, 31,
             "the surviving family is the outer one"
+        );
+    }
+
+    #[test]
+    fn dedup_order_is_independent_of_group_input_order() {
+        // Two families that tie on span AND value but live in different files. The dedup sort's
+        // min-location tie-break must order them deterministically by source position, NOT by
+        // group-iteration order — otherwise the kept set (and so the dup-gate count) would be
+        // sensitive to incidental ordering.
+        let mk = |f1: &'static str, f2: &'static str| Group {
+            score: 1.0,
+            members: vec![loc(f1, 1, 20, "rust"), loc(f2, 1, 20, "rust")],
+        };
+        let keys = |groups| {
+            rank_families(&report(groups))
+                .iter()
+                .map(|f| family_min_loc(f).map(|(file, s, e)| (file.to_string(), s, e)))
+                .collect::<Vec<_>>()
+        };
+        let forward = keys(vec![mk("a.rs", "a2.rs"), mk("b.rs", "b2.rs")]);
+        let reversed = keys(vec![mk("b.rs", "b2.rs"), mk("a.rs", "a2.rs")]);
+        assert_eq!(
+            forward, reversed,
+            "dedup result must not depend on group input order"
+        );
+        assert_eq!(
+            forward[0].as_ref().unwrap().0,
+            "a.rs",
+            "tied families order by source position",
         );
     }
 
