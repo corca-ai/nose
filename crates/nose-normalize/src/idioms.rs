@@ -451,15 +451,17 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
     let Some(&receiver) = old.children(callee).first() else {
         return false;
     };
-    if matches!(method, "iter" | "into_iter" | "iter_mut") {
-        return exact_collection_receiver(old, interner, receiver);
-    }
     if let Some(arg) = static_collection_adapter_arg(old, interner, receiver, method, kids) {
         return exact_collection_receiver(old, interner, arg);
     }
-    if method == "zip" && kids.len() == 2 {
-        return exact_protocol_receiver(old, interner, receiver)
-            && exact_protocol_receiver(old, interner, kids[1]);
+    if let Some(contract) = method_call_contract(old.meta.lang, method, kids.len() - 1) {
+        if contract.semantic == MethodSemanticContract::Builtin(Builtin::Zip)
+            && contract.receiver == MethodReceiverContract::ExactProtocolPairArgument
+            && contract.args == MethodBuiltinArgs::RustZip
+        {
+            return exact_protocol_receiver(old, interner, receiver)
+                && exact_protocol_receiver(old, interner, kids[1]);
+        }
     }
     if iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
         return exact_protocol_receiver(old, interner, receiver);
@@ -723,16 +725,61 @@ fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
         .iter()
         .filter_map(|unit| unit.name)
         .any(|symbol| interner.resolve(symbol) == name)
-        || old.nodes.iter().any(|node| match node.payload {
-            Payload::Cid(cid) => old
-                .cid_names
-                .get(cid as usize)
-                .is_some_and(|symbol| interner.resolve(*symbol) == name),
-            Payload::Name(symbol) if matches!(node.kind, NodeKind::Module | NodeKind::Block) => {
-                interner.resolve(symbol) == name
-            }
-            _ => false,
-        })
+        || old
+            .nodes
+            .iter()
+            .enumerate()
+            .any(|(idx, node)| match node.payload {
+                Payload::Cid(cid) => old
+                    .cid_names
+                    .get(cid as usize)
+                    .is_some_and(|symbol| symbol_defines_name(old, interner, *symbol, name)),
+                Payload::Name(symbol)
+                    if matches!(
+                        node.kind,
+                        NodeKind::Module | NodeKind::Block | NodeKind::Param
+                    ) =>
+                {
+                    symbol_defines_name(old, interner, symbol, name)
+                }
+                _ if node.kind == NodeKind::Assign => old
+                    .children(NodeId(idx as u32))
+                    .first()
+                    .is_some_and(|&lhs| node_defines_name(old, interner, lhs, name)),
+                _ => false,
+            })
+}
+
+fn node_defines_name(old: &Il, interner: &Interner, node: NodeId, name: &str) -> bool {
+    match old.node(node).payload {
+        Payload::Name(symbol) => symbol_defines_name(old, interner, symbol, name),
+        Payload::Cid(cid) => old
+            .cid_names
+            .get(cid as usize)
+            .is_some_and(|symbol| symbol_defines_name(old, interner, *symbol, name)),
+        _ => false,
+    }
+}
+
+fn symbol_defines_name(old: &Il, interner: &Interner, symbol: nose_il::Symbol, name: &str) -> bool {
+    let text = interner.resolve(symbol);
+    text == name
+        || (nose_semantics::semantics(old.meta.lang)
+            .modules()
+            .js_like_shadowed_module_bindings()
+            && contains_js_ident(text, name))
+}
+
+fn contains_js_ident(text: &str, ident: &str) -> bool {
+    text.match_indices(ident).any(|(idx, _)| {
+        let before = text[..idx].chars().next_back();
+        let after = text[idx + ident.len()..].chars().next();
+        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
+    })
+}
+
+fn is_js_ident_continue(c: char) -> bool {
+    c == '_' || c == '$' || c.is_ascii_alphanumeric()
 }
 
 fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {
@@ -1051,6 +1098,91 @@ mod tests {
         (il, interner, call)
     }
 
+    fn method_call_no_arg_il(
+        lang: Lang,
+        method: &str,
+        literal_receiver: bool,
+    ) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = if literal_receiver {
+            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+        } else {
+            b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern("xs")),
+                sp(),
+                &[],
+            )
+        };
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            sp(),
+            &[receiver],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, call)
+    }
+
+    fn method_call_with_arg_il(
+        lang: Lang,
+        method: &str,
+        literal_receiver: bool,
+        literal_arg: bool,
+    ) -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = if literal_receiver {
+            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+        } else {
+            b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern("xs")),
+                sp(),
+                &[],
+            )
+        };
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(method)),
+            sp(),
+            &[receiver],
+        );
+        let arg = if literal_arg {
+            b.add(NodeKind::Seq, Payload::None, sp(), &[])
+        } else {
+            b.add(
+                NodeKind::Var,
+                Payload::Name(interner.intern("ys")),
+                sp(),
+                &[],
+            )
+        };
+        let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, interner, call)
+    }
+
     fn typed_method_call_il(
         lang: Lang,
         method: &str,
@@ -1251,6 +1383,44 @@ mod tests {
                 ..
             }
         ));
+    }
+
+    #[test]
+    fn iterator_identity_adapter_requires_kernel_contract() {
+        let (js, js_interner, js_iter) = method_call_no_arg_il(Lang::JavaScript, "iter", true);
+        assert!(
+            !exact_protocol_receiver(&js, &js_interner, js_iter),
+            "a JS method named iter is not a Rust iterator adapter"
+        );
+
+        let (rust_bad, rust_bad_interner, rust_bad_iter) = method_call_il(Lang::Rust, "iter", true);
+        assert!(
+            !exact_protocol_receiver(&rust_bad, &rust_bad_interner, rust_bad_iter),
+            "Rust iter with unexpected arguments must not bypass the arity contract"
+        );
+
+        let (rust, rust_interner, rust_iter) = method_call_no_arg_il(Lang::Rust, "iter", true);
+        assert!(
+            exact_protocol_receiver(&rust, &rust_interner, rust_iter),
+            "Rust iter stays admitted through iterator_identity_adapter_contract"
+        );
+    }
+
+    #[test]
+    fn zip_protocol_pair_requires_kernel_contract() {
+        let (js, js_interner, js_zip) =
+            method_call_with_arg_il(Lang::JavaScript, "zip", true, true);
+        assert!(
+            !exact_protocol_receiver(&js, &js_interner, js_zip),
+            "a JS method named zip is not a Rust zip protocol contract"
+        );
+
+        let (rust, rust_interner, rust_zip) =
+            method_call_with_arg_il(Lang::Rust, "zip", true, true);
+        assert!(
+            exact_protocol_receiver(&rust, &rust_interner, rust_zip),
+            "Rust zip stays admitted through method_call_contract"
+        );
     }
 
     #[test]

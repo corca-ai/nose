@@ -12,6 +12,7 @@ use tree_sitter::Node as TsNode;
 pub(crate) struct Lowering<'a> {
     pub b: IlBuilder,
     pub src: &'a [u8],
+    pub lang: Lang,
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
     pub param_type_facts: Vec<ParamTypeFact>,
@@ -20,10 +21,11 @@ pub(crate) struct Lowering<'a> {
 }
 
 impl<'a> Lowering<'a> {
-    pub(crate) fn new(file: FileId, src: &'a [u8], interner: &'a Interner) -> Self {
+    pub(crate) fn new(file: FileId, src: &'a [u8], lang: Lang, interner: &'a Interner) -> Self {
         Lowering {
             b: IlBuilder::new(file),
             src,
+            lang,
             interner,
             units: Vec::new(),
             param_type_facts: Vec::new(),
@@ -328,7 +330,7 @@ pub(crate) fn lower_file_with_setup(
     lower_root: impl FnOnce(&mut Lowering, TsNode) -> NodeId,
 ) -> anyhow::Result<Il> {
     let tree = parse(key, lang_fn, src)?;
-    let mut lo = Lowering::new(file, src, interner);
+    let mut lo = Lowering::new(file, src, lang, interner);
     setup(&mut lo);
     let module = lower_root(&mut lo, tree.root_node());
     let meta = FileMeta {

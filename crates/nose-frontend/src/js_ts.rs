@@ -11,6 +11,10 @@ use nose_il::{
     Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
     UnitKind,
 };
+use nose_semantics::{
+    js_array_is_array_contract, js_boolean_coercion_contract, method_call_contract,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+};
 use tree_sitter::Node as TsNode;
 
 pub(crate) fn lower(
@@ -1079,20 +1083,30 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_math_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let callee = node.child_by_field_name("function")?;
-    let (builtin, arity) = match compact_js_expr(lo.text(callee)).as_str() {
-        "Math.abs" => (Builtin::Abs, 1),
-        "Math.min" => (Builtin::Min, 2),
-        "Math.max" => (Builtin::Max, 2),
-        _ => return None,
+    let callee = compact_js_expr(lo.text(callee));
+    let (receiver, method) = callee.split_once('.')?;
+    let args = node.child_by_field_name("arguments")?;
+    let args: Vec<TsNode> = Lowering::named_children(args);
+    let contract = method_call_contract(lo.lang, method, args.len())?;
+    let MethodSemanticContract::Builtin(builtin) = contract.semantic else {
+        return None;
     };
-    if file_prefix_has_binding_ident(lo, node, "Math")
-        || enclosing_function_prefix_has_binding_ident(lo, node, "Math")
+    let MethodReceiverContract::UnshadowedGlobal(global) = contract.receiver else {
+        return None;
+    };
+    if global != receiver {
+        return None;
+    }
+    if file_prefix_has_binding_ident(lo, node, global)
+        || enclosing_function_prefix_has_binding_ident(lo, node, global)
     {
         return None;
     }
-    let args = node.child_by_field_name("arguments")?;
-    let args: Vec<TsNode> = Lowering::named_children(args);
-    if args.len() != arity || args.iter().any(|arg| arg.kind() == "spread_element") {
+    if !matches!(
+        contract.args,
+        MethodBuiltinArgs::First | MethodBuiltinArgs::All
+    ) || args.iter().any(|arg| arg.kind() == "spread_element")
+    {
         return None;
     }
     let lowered: Vec<NodeId> = args.into_iter().map(|arg| lower_expr(lo, arg)).collect();
@@ -1290,6 +1304,7 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let mut has_typeof_object = false;
     let mut has_non_null_or_truthy = false;
     let mut has_not_array = false;
+    let mut requires_boolean_global = false;
     for clause in clauses {
         let (kind, name) = record_guard_clause(&clause)?;
         if !simple_js_ident(&name) {
@@ -1302,7 +1317,12 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         match kind {
             RecordGuardClause::TypeofObject => has_typeof_object = true,
-            RecordGuardClause::NonNullOrTruthy => has_non_null_or_truthy = true,
+            RecordGuardClause::NonNullOrTruthy {
+                requires_boolean_global: requires,
+            } => {
+                has_non_null_or_truthy = true;
+                requires_boolean_global |= requires;
+            }
             RecordGuardClause::NotArray => has_not_array = true,
         }
     }
@@ -1310,9 +1330,24 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     if !(has_typeof_object && has_non_null_or_truthy && has_not_array) {
         return None;
     }
-    if file_prefix_has_binding_ident(lo, node, "Array")
-        || enclosing_function_prefix_has_binding_ident(lo, node, "Array")
+    let array_contract = js_array_is_array_contract(lo.lang, "Array", "isArray", 1)?;
+    if array_contract.requires_unshadowed_receiver
+        && (file_prefix_has_binding_ident(lo, node, array_contract.receiver)
+            || enclosing_function_prefix_has_binding_ident(lo, node, array_contract.receiver))
     {
+        return None;
+    }
+    let boolean_contract = requires_boolean_global
+        .then(|| js_boolean_coercion_contract(lo.lang, "Boolean", 1))
+        .flatten();
+    if requires_boolean_global && boolean_contract.is_none() {
+        return None;
+    }
+    if boolean_contract.is_some_and(|contract| {
+        contract.requires_unshadowed_function
+            && (file_prefix_has_binding_ident(lo, node, contract.function)
+                || enclosing_function_prefix_has_binding_ident(lo, node, contract.function))
+    }) {
         return None;
     }
     let span = lo.span(node);
@@ -1332,20 +1367,26 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
 #[derive(Clone, Copy)]
 enum RecordGuardClause {
     TypeofObject,
-    NonNullOrTruthy,
+    NonNullOrTruthy { requires_boolean_global: bool },
     NotArray,
 }
 
 fn record_guard_clause(clause: &str) -> Option<(RecordGuardClause, String)> {
     parse_typeof_object_clause(clause)
         .map(|name| (RecordGuardClause::TypeofObject, name))
+        .or_else(|| parse_non_null_clause(clause).map(|name| (non_null_guard_clause(false), name)))
         .or_else(|| {
-            parse_non_null_clause(clause).map(|name| (RecordGuardClause::NonNullOrTruthy, name))
-        })
-        .or_else(|| {
-            parse_truthy_clause(clause).map(|name| (RecordGuardClause::NonNullOrTruthy, name))
+            parse_truthy_clause(clause).map(|(name, requires_boolean_global)| {
+                (non_null_guard_clause(requires_boolean_global), name)
+            })
         })
         .or_else(|| parse_not_array_clause(clause).map(|name| (RecordGuardClause::NotArray, name)))
+}
+
+fn non_null_guard_clause(requires_boolean_global: bool) -> RecordGuardClause {
+    RecordGuardClause::NonNullOrTruthy {
+        requires_boolean_global,
+    }
 }
 
 fn parse_typeof_object_clause(clause: &str) -> Option<String> {
@@ -1379,14 +1420,14 @@ fn parse_non_null_clause(clause: &str) -> Option<String> {
     None
 }
 
-fn parse_truthy_clause(clause: &str) -> Option<String> {
+fn parse_truthy_clause(clause: &str) -> Option<(String, bool)> {
     if let Some(name) = clause.strip_prefix("!!") {
-        return Some(name.to_string());
+        return Some((name.to_string(), false));
     }
     clause
         .strip_prefix("Boolean(")
         .and_then(|inner| inner.strip_suffix(')'))
-        .map(str::to_string)
+        .map(|name| (name.to_string(), true))
 }
 
 fn parse_not_array_clause(clause: &str) -> Option<String> {

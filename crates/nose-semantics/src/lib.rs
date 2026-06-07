@@ -891,6 +891,19 @@ pub fn method_call_contract(
         ),
         (Lang::Go, "Min", 2) => (Builtin::Min, Receiver::ImportedNamespace("math"), Args::All),
         (Lang::Go, "Max", 2) => (Builtin::Max, Receiver::ImportedNamespace("math"), Args::All),
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "abs", 1) => {
+            (
+                Builtin::Abs,
+                Receiver::UnshadowedGlobal("Math"),
+                Args::First,
+            )
+        }
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "min", 2) => {
+            (Builtin::Min, Receiver::UnshadowedGlobal("Math"), Args::All)
+        }
+        (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "max", 2) => {
+            (Builtin::Max, Receiver::UnshadowedGlobal("Math"), Args::All)
+        }
         (Lang::Java, "abs", 1) => (
             Builtin::Abs,
             Receiver::UnshadowedGlobal("Math"),
@@ -1429,6 +1442,25 @@ pub struct StaticGlobalMethodContract {
     pub receiver: &'static str,
     pub method: &'static str,
     pub requires_unshadowed_receiver: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StaticGlobalFunctionContract {
+    pub function: &'static str,
+    pub requires_unshadowed_function: bool,
+}
+
+pub fn js_boolean_coercion_contract(
+    lang: Lang,
+    function: &str,
+    arg_count: usize,
+) -> Option<StaticGlobalFunctionContract> {
+    (js_like_lang(lang) && function == "Boolean" && arg_count == 1).then_some(
+        StaticGlobalFunctionContract {
+            function: "Boolean",
+            requires_unshadowed_function: true,
+        },
+    )
 }
 
 pub fn js_array_is_array_contract(
@@ -2209,6 +2241,16 @@ mod tests {
             })
         );
         assert_eq!(
+            method_call_contract(Lang::JavaScript, "min", 2),
+            Some(MethodCallContract {
+                semantic: MethodSemanticContract::Builtin(Builtin::Min),
+                receiver: MethodReceiverContract::UnshadowedGlobal("Math"),
+                args: MethodBuiltinArgs::All,
+            })
+        );
+        assert_eq!(method_call_contract(Lang::JavaScript, "min", 1), None);
+        assert_eq!(method_call_contract(Lang::Python, "min", 2), None);
+        assert_eq!(
             method_call_contract(Lang::Go, "Abs", 1),
             Some(MethodCallContract {
                 semantic: MethodSemanticContract::Builtin(Builtin::Abs),
@@ -2653,6 +2695,28 @@ mod tests {
         );
         assert_eq!(
             js_array_is_array_contract(Lang::TypeScript, "Array", "isArray", 2),
+            None
+        );
+        assert_eq!(
+            js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 1),
+            Some(StaticGlobalFunctionContract {
+                function: "Boolean",
+                requires_unshadowed_function: true,
+            })
+        );
+        assert_eq!(
+            js_boolean_coercion_contract(Lang::TypeScript, "Boolean", 1),
+            Some(StaticGlobalFunctionContract {
+                function: "Boolean",
+                requires_unshadowed_function: true,
+            })
+        );
+        assert_eq!(
+            js_boolean_coercion_contract(Lang::Python, "Boolean", 1),
+            None
+        );
+        assert_eq!(
+            js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 2),
             None
         );
         assert_eq!(

@@ -8613,6 +8613,11 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     )
     .unwrap();
     fs::write(
+        dir.join("boolean_shadowed_negative.js"),
+        "function shadowed(Boolean, input) {\n  return Boolean(input) && typeof input === \"object\" && !Array.isArray(input);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_allowed_negative.js"),
         "function arrayAllowed(value) {\n  return typeof value === \"object\" && value !== null;\n}\n",
     )
@@ -8658,6 +8663,7 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     }
     for unexpected in [
         "array_allowed_negative.js",
+        "boolean_shadowed_negative.js",
         "null_allowed_negative.js",
         "wrong_typeof_literal_negative.js",
     ] {
