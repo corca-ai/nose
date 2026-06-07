@@ -8858,6 +8858,11 @@ fn scan_mode_semantic_proves_js_own_property_guards() {
         "const Object = { hasOwn() { return false; } };\nfunction shadowedGlobal(value) {\n  return Object.hasOwn(value, \"ready\");\n}\n",
     )
     .unwrap();
+    fs::write(
+        dir.join("shadowed_object_call_negative.js"),
+        "function shadowedObjectCall(Object, value) {\n  return Object.prototype.hasOwnProperty.call(value, \"ready\");\n}\n",
+    )
+    .unwrap();
 
     let semantic = run(&[
         "scan",
@@ -8892,6 +8897,7 @@ fn scan_mode_semantic_proves_js_own_property_guards() {
         "direct_method_negative.js",
         "different_key_negative.js",
         "shadowed_object_negative.js",
+        "shadowed_object_call_negative.js",
         "shadowed_global_object_negative.js",
     ] {
         assert!(

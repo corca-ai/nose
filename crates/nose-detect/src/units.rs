@@ -22,12 +22,12 @@ use nose_semantics::{
     java_map_entry_contract, java_map_factory_contract, js_array_is_array_contract,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract,
     map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
-    nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
-    rust_vec_new_factory_contract, semantics, seq_surface_contract_for_node, source_fact_at_node,
-    source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
-    unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    StaticIndexMembershipKind,
+    nullish_global_contract, qualified_global_symbol, regex_test_contract,
+    ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
+    seq_surface_contract_for_node, source_fact_at_node, source_operator_at_node,
+    static_index_membership_contract, typeof_operator_contract, unshadowed_global_symbol,
+    DomainEvidence, IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1211,8 +1211,19 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    if let Payload::Name(tag) = il.node(node).payload {
+        if interner.resolve(tag) == "own_property_guard" {
+            return strict_exact_own_property_guard_seq_safe(il, node);
+        }
+    }
     seq_surface_contract_for_node(il, interner, node)
         .is_some_and(|contract| contract.exact_tree_safe)
+}
+
+fn strict_exact_own_property_guard_seq_safe(il: &Il, node: NodeId) -> bool {
+    ["Object.hasOwn", "Object.prototype.hasOwnProperty.call"]
+        .into_iter()
+        .any(|path| qualified_global_symbol(il, node, path))
 }
 
 fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
@@ -1370,6 +1381,9 @@ fn strict_exact_js_array_is_array_safe(
     if contract.requires_unshadowed_receiver
         && !unshadowed_global_symbol(il, interner, receiver, contract.receiver)
     {
+        return false;
+    }
+    if !qualified_global_symbol(il, callee, contract.qualified_path) {
         return false;
     }
     strict_exact_call_args_safe(il, interner, facts, node)
@@ -1766,11 +1780,7 @@ fn strict_exact_map_key_view_collection_safe(
     else {
         return false;
     };
-    let Some(&receiver) = il.children(kids[0]).first() else {
-        return false;
-    };
-    strict_exact_callee_name(il, interner, receiver, contract.receiver)
-        && !file_defines_name(il, interner, contract.receiver)
+    qualified_global_symbol(il, kids[0], contract.qualified_path)
         && strict_exact_map_key_view_safe_matching(il, interner, facts, kids[1], |kind| {
             kind == MapKeyViewKind::Iterator
         })

@@ -207,6 +207,23 @@ impl<'a> Lowering<'a> {
         var
     }
 
+    /// Record that a source node denotes an exact language-defined qualified
+    /// global path, such as `Array.from` or `Object.hasOwn`.
+    pub(crate) fn record_qualified_global_symbol(
+        &mut self,
+        span: Span,
+        kind: NodeKind,
+        path: &str,
+    ) {
+        self.record_evidence(
+            EvidenceAnchor::node(span, kind),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash(path),
+            }),
+            "symbol_qualified_global",
+        );
+    }
+
     /// Lower an integer literal, retaining its **value** as [`Payload::LitInt`] so the
     /// value-graph (the behavioral fingerprint) keeps behavior-defining constants
     /// distinct — `x % 7` ≢ `x % 11`, `return 100` ≢ `return 200` — rather than

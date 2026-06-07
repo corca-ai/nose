@@ -55,9 +55,10 @@ preconditions.
 1. A frontend or language pack parses source, lowers to IL, and emits
    kernel-defined evidence records for source distinctions that would otherwise
    be lost.
-2. The semantic kernel validates the fact shape and the surrounding obligations:
+2. The semantic kernel checks the fact shape and contract admission obligations:
    language, arity, receiver, symbol/import proof, shadowing, scope, version,
-   mutation, demand, and effects.
+   mutation, demand, and effects. External semantic correctness remains the
+   provider's claim and the user's opt-in decision.
 3. Contracts consume validated evidence. If a required fact is missing or
    ambiguous, the exact channel stays closed.
 4. Normalize and detect use only admitted contracts and kernel proof helpers for
@@ -72,7 +73,7 @@ The pack-facing vocabulary should cover at least these classes.
 
 | class | examples |
 |---|---|
-| Symbol and import | resolved import binding, namespace import, unshadowed language global, version range |
+| Symbol and import | resolved import binding, namespace import, unshadowed language global, qualified global/member API path, version range |
 | Receiver and domain | array, collection, map, option, string, primitive integer, byte array, promise-like receiver |
 | Operator | strict equality, loose equality, identity equality, value equality, type membership, language membership |
 | Literal and surface | regex literal, string literal, map/object literal, tuple/list/array surface, computed property key |
@@ -102,6 +103,10 @@ compatibility mirror while consumers migrate to evidence records.
 - JS-like static membership callbacks such as `x => x === value` consume source
   operator facts and require strict equality/inequality. Loose equality and
   `instanceof` stay closed for those exact contracts.
+- Qualified API path evidence is symbol evidence, not a source fact by itself.
+  The current JS/TS producer emits selected `QualifiedGlobal` facts such as
+  `Object.hasOwn`, `Object.prototype.hasOwnProperty.call`, and `Array.from`
+  only when their root global is proven unshadowed.
 
 The slice deliberately does not claim that all equality semantics are modeled.
 The IL still has coarse equality operators; source facts are the evidence that

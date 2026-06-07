@@ -164,7 +164,8 @@ migrated.
 - Map key-view contracts distinguish collection views from iterator views:
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
-  contract before it can feed exact membership.
+  contract plus `QualifiedGlobal("Array.from")` symbol evidence before it can
+  feed exact membership.
 - Map lookup surfaces that return a value/option are now explicit contracts for
   Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
   `dict.get(key, default)`, Java `getOrDefault`, and Ruby `fetch` still use the
@@ -236,8 +237,11 @@ migrated.
   `Map`, `Set`, and `undefined` when the frontend proves no local shadow.
   Normalize idiom admission, value-graph namespace fallbacks, and strict exact
   gates consume `nose-semantics` symbol-proof helpers instead of each re-scanning
-  raw import assignment or global shadow shapes. Direct JS/TS guard lowerings for
-  some qualified members still need a dedicated evidence slice.
+  raw import assignment or global shadow shapes. Selected JS/TS qualified static
+  global paths now emit `QualifiedGlobal` evidence as well: `Object.hasOwn` and
+  `Object.prototype.hasOwnProperty.call` gate own-property guards, while
+  `Array.from` gates JS-like map-key iterator wrappers. This does not cover all
+  qualified members or namespace exports.
   A spelling such as `Math`, `fmt`, or `deque` is still only a selector; exact
   consumers need symbol identity proof plus the language/API contract. Binding
   evidence does not prove later uses if the alias is rebound or ambiguous.
@@ -261,6 +265,10 @@ Semantic knowledge still appears in several forms outside the facade:
   provenance, and external pack manifests remain open;
 - language-specific import, symbol, or module proof mechanics that are still
   local to frontend, normalize, detect, or value-graph callers;
+- JS/TS record-shape guards still need dedicated multi-obligation guard
+  evidence, because their proof depends on several source/API facts such as
+  `typeof`, `Array.isArray`, optional `Boolean`, null/truthiness, and matching
+  subject identity;
 - IL still stores import facts as `Seq("import_binding")` /
   `Seq("import_namespace")` payloads for compatibility. Frontends also emit
   `EvidenceRecord::Import`, and semantic interpretation flows through typed

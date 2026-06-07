@@ -522,6 +522,14 @@ pub fn import_namespace_rhs_matches(
 fn symbol_evidence_at_node(il: &Il, node: NodeId) -> EvidenceResolution<SymbolEvidenceKind> {
     let span = il.node(node).span;
     let kind = il.kind(node);
+    symbol_evidence_at_node_anchor(il, span, kind)
+}
+
+fn symbol_evidence_at_node_anchor(
+    il: &Il,
+    span: Span,
+    kind: NodeKind,
+) -> EvidenceResolution<SymbolEvidenceKind> {
     unique_evidence_at(
         il,
         |anchor| {
@@ -658,6 +666,42 @@ pub fn imported_member_symbol(
                 .is_some_and(|receiver| imported_namespace_symbol(il, interner, receiver, module))
         }
         _ => false,
+    }
+}
+
+/// Prove that `node` denotes an exact language-defined qualified global path,
+/// such as `Array.from` or `Object.hasOwn`. This is intentionally evidence-only:
+/// unlike legacy import/global helpers, a matching selector spelling cannot prove
+/// a qualified API identity by itself.
+pub fn qualified_global_symbol(il: &Il, node: NodeId, path: &str) -> bool {
+    qualified_global_symbol_at_anchor(il, il.node(node).span, il.kind(node), path)
+}
+
+/// Prove a qualified global identity at a preserved span/kind anchor. This is
+/// used by value-graph consumers after IL node ids have been erased but source
+/// spans remain attached to value nodes.
+pub fn qualified_global_symbol_at_span(
+    il: &Il,
+    span: Option<Span>,
+    kind: NodeKind,
+    path: &str,
+) -> bool {
+    let Some(span) = span else {
+        return false;
+    };
+    qualified_global_symbol_at_anchor(il, span, kind, path)
+}
+
+fn qualified_global_symbol_at_anchor(il: &Il, span: Span, kind: NodeKind, path: &str) -> bool {
+    if qualified_global_symbol_contract(il.meta.lang, path).is_none() {
+        return false;
+    }
+    let expected = SymbolEvidenceKind::QualifiedGlobal {
+        path_hash: stable_symbol_hash(path),
+    };
+    match symbol_evidence_at_node_anchor(il, span, kind) {
+        EvidenceResolution::Found(actual) => actual == expected,
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => false,
     }
 }
 
@@ -2342,6 +2386,7 @@ pub fn map_key_view_contract_by_hash(
 pub struct MapKeyViewWrapperContract {
     pub receiver: &'static str,
     pub method: &'static str,
+    pub qualified_path: &'static str,
 }
 
 pub fn map_key_view_wrapper_contract(
@@ -2354,6 +2399,7 @@ pub fn map_key_view_wrapper_contract(
         MapKeyViewWrapperContract {
             receiver: "Array",
             method: "from",
+            qualified_path: "Array.from",
         },
     )
 }
@@ -2460,6 +2506,7 @@ pub fn typeof_operator_contract(
 pub struct StaticGlobalMethodContract {
     pub receiver: &'static str,
     pub method: &'static str,
+    pub qualified_path: &'static str,
     pub requires_unshadowed_receiver: bool,
 }
 
@@ -2473,6 +2520,13 @@ pub struct StaticGlobalFunctionContract {
 pub struct StaticGlobalSymbolContract {
     pub name: &'static str,
     pub requires_unshadowed: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct QualifiedGlobalSymbolContract {
+    pub path: &'static str,
+    pub root: &'static str,
+    pub requires_unshadowed_root: bool,
 }
 
 pub fn static_global_symbol_contract(lang: Lang, name: &str) -> Option<StaticGlobalSymbolContract> {
@@ -2493,6 +2547,29 @@ pub fn static_global_symbol_contract(lang: Lang, name: &str) -> Option<StaticGlo
     Some(StaticGlobalSymbolContract {
         name,
         requires_unshadowed: true,
+    })
+}
+
+pub fn qualified_global_symbol_contract(
+    lang: Lang,
+    path: &str,
+) -> Option<QualifiedGlobalSymbolContract> {
+    if !js_like_lang(lang) {
+        return None;
+    }
+    let (path, root) = match path {
+        "Array.from" => ("Array.from", "Array"),
+        "Array.isArray" => ("Array.isArray", "Array"),
+        "Object.hasOwn" => ("Object.hasOwn", "Object"),
+        "Object.prototype.hasOwnProperty.call" => {
+            ("Object.prototype.hasOwnProperty.call", "Object")
+        }
+        _ => return None,
+    };
+    Some(QualifiedGlobalSymbolContract {
+        path,
+        root,
+        requires_unshadowed_root: true,
     })
 }
 
@@ -2519,6 +2596,7 @@ pub fn js_array_is_array_contract(
         StaticGlobalMethodContract {
             receiver: "Array",
             method: "isArray",
+            qualified_path: "Array.isArray",
             requires_unshadowed_receiver: true,
         },
     )
@@ -3432,6 +3510,85 @@ mod tests {
     }
 
     #[test]
+    fn qualified_global_symbol_contracts_are_language_and_path_scoped() {
+        assert_eq!(
+            qualified_global_symbol_contract(Lang::JavaScript, "Object.hasOwn"),
+            Some(QualifiedGlobalSymbolContract {
+                path: "Object.hasOwn",
+                root: "Object",
+                requires_unshadowed_root: true,
+            })
+        );
+        assert_eq!(
+            qualified_global_symbol_contract(Lang::TypeScript, "Array.from"),
+            Some(QualifiedGlobalSymbolContract {
+                path: "Array.from",
+                root: "Array",
+                requires_unshadowed_root: true,
+            })
+        );
+        assert!(qualified_global_symbol_contract(
+            Lang::JavaScript,
+            "Object.prototype.hasOwnProperty.call"
+        )
+        .is_some());
+        assert!(qualified_global_symbol_contract(Lang::Python, "Array.from").is_none());
+        assert!(
+            qualified_global_symbol_contract(Lang::JavaScript, "value.hasOwnProperty").is_none()
+        );
+        assert!(qualified_global_symbol_contract(Lang::JavaScript, "Array.fromAsync").is_none());
+    }
+
+    #[test]
+    fn qualified_global_symbol_requires_matching_node_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let array = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Array")),
+            sp(27),
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("from")),
+            sp(27),
+            &[array],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp(27), &[field]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+
+        assert!(!qualified_global_symbol(&il, field, "Array.from"));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(27), NodeKind::Field),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.from"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(qualified_global_symbol(&il, field, "Array.from"));
+        assert!(qualified_global_symbol_at_span(
+            &il,
+            Some(sp(27)),
+            NodeKind::Field,
+            "Array.from"
+        ));
+        assert!(!qualified_global_symbol(&il, field, "Array.fromAsync"));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(27), NodeKind::Field),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash("Array.isArray"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(!qualified_global_symbol(&il, field, "Array.from"));
+    }
+
+    #[test]
     fn language_predicates_preserve_existing_gates() {
         for &lang in ALL_LANGS {
             let profile = semantics(lang);
@@ -4087,6 +4244,7 @@ mod tests {
             Some(MapKeyViewWrapperContract {
                 receiver: "Array",
                 method: "from",
+                qualified_path: "Array.from",
             })
         );
         assert_eq!(
@@ -4200,6 +4358,7 @@ mod tests {
             Some(StaticGlobalMethodContract {
                 receiver: "Array",
                 method: "isArray",
+                qualified_path: "Array.isArray",
                 requires_unshadowed_receiver: true,
             })
         );

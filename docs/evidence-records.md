@@ -58,7 +58,7 @@ The current implemented kinds are:
 | `Source` | construct syntax, regex literal provenance, and source operator family |
 | `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding and namespace proof |
-| `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals and static imported binding/namespace aliases |
+| `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, record guard, or Go composite map literal |
 
 ## Consumption Rules
@@ -87,6 +87,11 @@ evidence does not by itself prove every use of the same local name; if the alias
 is rebound or ambiguous, the exact path stays closed until a node-level symbol
 fact or stronger scope-resolution evidence exists.
 
+Qualified global identity is also evidence, not a selector guess. The current
+first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
+whose root is proven unshadowed, such as `Object.hasOwn`,
+`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`.
+
 ## Current Producers
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
@@ -98,12 +103,17 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
 - JS/TS static-global value occurrences that remain as `Var` nodes, such as
   member receivers, call callees, constructors, and `undefined`, emit
   `UnshadowedGlobal` symbol evidence when the frontend proves no local shadow;
+- selected JS/TS qualified static global paths emit `QualifiedGlobal` symbol
+  evidence at the lowered node anchor: own-property guards at their
+  `Seq("own_property_guard")` node, and static member expressions such as
+  `Array.from` and `Array.isArray` at their `Field` node;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence.
 
 The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
-compatibility mirrors. Some direct JS/TS guard lowerings still use compatibility
-shadow scans until qualified-member and guard evidence lands. These mirrors are
-not the desired pack boundary.
+compatibility mirrors. JS/TS record-shape guard lowering still needs dedicated
+multi-obligation guard evidence for surfaces such as `Array.isArray(...)` plus
+optional `Boolean(...)`; that is separate from the selected qualified-path
+evidence already landed. These mirrors are not the desired pack boundary.
 
 ## Current Consumers
 
@@ -120,8 +130,13 @@ callers:
   `new Map(...)`/`new Set(...)` constructor contracts, static `Array.isArray`
   exact gates, and `undefined` nullish-default handling, with compatibility
   fallback only when no relevant evidence record exists;
+- qualified-global symbol proof for selected JS/TS API paths: own-property
+  guard normalization and strict exact safety require evidence for
+  `Object.hasOwn` or `Object.prototype.hasOwnProperty.call`, and map-key view
+  wrappers require evidence for `Array.from`;
 - sequence-surface admission for normalize/value-graph/detect exact paths.
 
 Field/place/effect facts, receiver/protocol evidence beyond parameter domains,
-full scope-resolution and namespace-member evidence, report-level provenance,
-and external manifest loading are still open work.
+full scope-resolution and namespace-member evidence, record-shape
+multi-obligation guard evidence, report-level provenance, and external manifest
+loading are still open work.

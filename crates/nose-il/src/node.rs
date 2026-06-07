@@ -320,6 +320,9 @@ pub enum SymbolEvidenceKind {
     ImportedNamespace {
         module_hash: u64,
     },
+    QualifiedGlobal {
+        path_hash: u64,
+    },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

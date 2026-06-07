@@ -3511,6 +3511,7 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     let ts_array_from_keys_wrong_key = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(other); }";
     let ts_array_from_keys_wrong_map = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(other_lookup.keys()).includes(key); }";
     let ts_array_from_values = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.values()).includes(key); }";
+    let ts_array_from_shadowed_array = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string, Array: any): boolean { return Array.from(lookup.keys()).includes(key); }";
 
     let fp = value_fp(&i, py, Lang::Python);
     assert_ne!(fp, value_fp(&i, py_method, Lang::Python));
@@ -3545,6 +3546,10 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
         value_fp(&i, ts_array_from_keys_wrong_map, Lang::TypeScript)
     );
     assert_ne!(fp, value_fp(&i, ts_array_from_values, Lang::TypeScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, ts_array_from_shadowed_array, Lang::TypeScript)
+    );
 }
 
 #[test]

@@ -58,18 +58,18 @@ use nose_semantics::{
     java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
     js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract_by_hash,
     map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
-    nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
-    rust_option_and_then_contract, rust_option_none_sentinel_contract,
-    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract_for_node,
-    source_operator_at_node, static_index_membership_contract, unshadowed_global_symbol,
-    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
-    ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind, SEQ_VALUE_COLLECTION,
-    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE,
-    SEQ_VALUE_UNTAGGED,
+    nullish_global_contract, qualified_global_symbol_at_span, reduction_builtin_contract,
+    ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
+    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
+    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics,
+    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
+    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
+    ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1563,8 +1563,12 @@ impl<'a> Builder<'a> {
                 map_key_view_wrapper_contract_by_hash(self.il.meta.lang, "Array", method, 1)?;
             if accepted != MapKeyViewKind::Collection
                 || callee.args.len() != 1
-                || !self.is_free_name_value(callee.args[0], contract.receiver)
-                || self.file_defines_name(contract.receiver)
+                || !qualified_global_symbol_at_span(
+                    self.il,
+                    self.node_span[args[0] as usize],
+                    NodeKind::Field,
+                    contract.qualified_path,
+                )
             {
                 return None;
             }
@@ -6487,8 +6491,12 @@ impl<'a> Builder<'a> {
     }
 
     fn own_property_condition(&self, cond: ValueId) -> Option<(ValueId, ValueId, bool)> {
-        let parse = |node: &ValNode| {
+        let parse = |value: ValueId| {
+            let node = &self.nodes[value as usize];
             if matches!(node.op, ValOp::Seq(SEQ_VALUE_OWN_PROPERTY_GUARD)) && node.args.len() == 4 {
+                if !self.proven_own_property_guard_value(value) {
+                    return None;
+                }
                 let map = node.args[0];
                 if !matches!(self.nodes[map as usize].op, ValOp::Seq(SEQ_VALUE_MAP)) {
                     return None;
@@ -6498,16 +6506,22 @@ impl<'a> Builder<'a> {
             None
         };
         let node = &self.nodes[cond as usize];
-        if let Some(parts) = parse(node) {
+        if let Some(parts) = parse(cond) {
             return Some(parts);
         }
         if matches!(node.op, ValOp::Un(o) if o == Op::Not as u32) && node.args.len() == 1 {
-            let inner = &self.nodes[node.args[0] as usize];
-            if let Some((key, map, _)) = parse(inner) {
+            if let Some((key, map, _)) = parse(node.args[0]) {
                 return Some((key, map, true));
             }
         }
         None
+    }
+
+    fn proven_own_property_guard_value(&self, value: ValueId) -> bool {
+        let span = self.node_span[value as usize];
+        ["Object.hasOwn", "Object.prototype.hasOwnProperty.call"]
+            .into_iter()
+            .any(|path| qualified_global_symbol_at_span(self.il, span, NodeKind::Seq, path))
     }
 
     fn map_lookup_value_matches(&mut self, value: ValueId, map: ValueId, key: ValueId) -> bool {

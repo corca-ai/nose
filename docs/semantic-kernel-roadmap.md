@@ -238,6 +238,13 @@ and pack ecosystem.
   `undefined` when no local shadow is proven. JS/TS `Math.*` no longer lowers
   directly to builtins in the frontend; normalize consumes the preserved
   `Field(Var(global), method)` shape through symbol-proof contracts instead.
+- Selected JS/TS qualified static global paths now emit `QualifiedGlobal`
+  evidence. `Object.hasOwn` and
+  `Object.prototype.hasOwnProperty.call` gate own-property guard normalization
+  and strict exact safety, while `Array.from` gates JS-like map-key iterator
+  wrappers. `Array.isArray` emits the same path evidence for strict exact call
+  gates. Full namespace-member resolution and record-shape multi-obligation
+  guard evidence remain open.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -297,7 +304,12 @@ Remaining in this phase:
 - Remove the remaining raw import/module proof IL payload storage after import
   and symbol evidence records can carry every consumer obligation, including
   namespace-member resolution, module export dependencies, scope, rebinding, and
-  mutation proof.
+  mutation proof. Selected JS/TS `QualifiedGlobal` paths are now covered, but
+  general qualified-member and namespace export identity is not.
+- Add dedicated guard evidence for multi-obligation guards such as JS/TS
+  record-shape checks, where one lowered guard depends on source operator facts,
+  several qualified/static API facts, subject identity, and truthiness/null
+  semantics.
 - Expand the first `SequenceSurface` evidence into sequence/aggregate records for
   factories, nested entries, iterator views, and exported-literal eligibility.
 - Expand domain evidence from parameter annotations into receiver/protocol

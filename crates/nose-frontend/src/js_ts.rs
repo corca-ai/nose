@@ -13,7 +13,8 @@ use nose_il::{
     SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
 };
 use nose_semantics::{
-    js_array_is_array_contract, js_boolean_coercion_contract, static_global_symbol_contract,
+    js_array_is_array_contract, js_boolean_coercion_contract, qualified_global_symbol_contract,
+    static_global_symbol_contract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -854,18 +855,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "update_expression" => lower_update(lo, node),
         "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
         "augmented_assignment_expression" => lower_aug_assignment(lo, node),
-        "member_expression" => {
-            let obj = node
-                .child_by_field_name("object")
-                .map(|o| lower_member_object(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let prop = node
-                .child_by_field_name("property")
-                .map(|p| lo.text(p))
-                .unwrap_or("");
-            let sym = lo.sym(prop);
-            lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj])
-        }
+        "member_expression" => lower_member_expr(lo, node),
         "subscript_expression" => {
             let base = node
                 .child_by_field_name("object")
@@ -1091,14 +1081,16 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     let callee = node.child_by_field_name("function")?;
     let callee_text = compact_js_expr(lo.text(callee));
+    let contract = qualified_global_symbol_contract(lo.lang, &callee_text)?;
     if !matches!(
-        callee_text.as_str(),
+        contract.path,
         "Object.hasOwn" | "Object.prototype.hasOwnProperty.call"
     ) {
         return None;
     }
-    if file_prefix_has_binding_ident(lo, node, "Object")
-        || enclosing_function_prefix_has_binding_ident(lo, node, "Object")
+    if contract.requires_unshadowed_root
+        && (file_prefix_has_binding_ident(lo, node, contract.root)
+            || enclosing_function_prefix_has_binding_ident(lo, node, contract.root))
     {
         return None;
     }
@@ -1113,12 +1105,14 @@ fn lower_own_property_guard_call(lo: &mut Lowering, node: TsNode) -> Option<Node
     let own = lo.str_lit("own", span);
     let present = lo.str_lit("present", span);
     let tag = lo.sym("own_property_guard");
-    Some(lo.add(
+    let guard = lo.add(
         NodeKind::Seq,
         Payload::Name(tag),
         span,
         &[receiver, key, own, present],
-    ))
+    );
+    lo.record_qualified_global_symbol(span, NodeKind::Seq, contract.path);
+    Some(guard)
 }
 
 fn file_prefix_has_binding_ident(lo: &Lowering, node: TsNode, ident: &str) -> bool {
@@ -1221,6 +1215,30 @@ fn lower_member_object(lo: &mut Lowering, node: TsNode) -> NodeId {
         "identifier" | "undefined" => lower_js_static_global_or_var(lo, node),
         _ => lower_expr(lo, node),
     }
+}
+
+fn lower_member_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let obj = node
+        .child_by_field_name("object")
+        .map(|o| lower_member_object(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let prop = node
+        .child_by_field_name("property")
+        .map(|p| lo.text(p))
+        .unwrap_or("");
+    let sym = lo.sym(prop);
+    let field = lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj]);
+    let path = compact_js_expr(lo.text(node));
+    if let Some(contract) = qualified_global_symbol_contract(lo.lang, &path) {
+        let root_unshadowed = !contract.requires_unshadowed_root
+            || (!file_prefix_has_binding_ident(lo, node, contract.root)
+                && !enclosing_function_prefix_has_binding_ident(lo, node, contract.root));
+        if root_unshadowed {
+            lo.record_qualified_global_symbol(span, NodeKind::Field, contract.path);
+        }
+    }
+    field
 }
 
 fn lower_constructor_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1822,7 +1840,9 @@ fn js_source_operator(text: &str) -> Option<SourceOperatorKind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{stable_symbol_hash, EvidenceKind, FileId, Interner, SymbolEvidenceKind};
+    use nose_il::{
+        stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, Interner, SymbolEvidenceKind,
+    };
 
     fn lower_js(src: &str) -> Il {
         let interner = Interner::new();
@@ -1845,6 +1865,26 @@ mod tests {
                     record.kind,
                     EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal { name_hash })
                         if name_hash == expected
+                )
+            })
+            .count()
+    }
+
+    fn qualified_global_evidence_count(il: &Il, path: &str, kind: NodeKind) -> usize {
+        let expected = stable_symbol_hash(path);
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.anchor,
+                    EvidenceAnchor::Node {
+                        kind: anchor_kind,
+                        ..
+                    } if anchor_kind == kind
+                ) && matches!(
+                    record.kind,
+                    EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal { path_hash })
+                        if path_hash == expected
                 )
             })
             .count()
@@ -1952,5 +1992,64 @@ mod tests {
                 "shadowed {name} should not get global evidence"
             );
         }
+    }
+
+    #[test]
+    fn js_qualified_global_paths_emit_symbol_evidence() {
+        let il = lower_js(
+            "function hasOwn(value) { return Object.hasOwn(value, \"ready\"); }
+             function hasOwnCall(value) { return Object.prototype.hasOwnProperty.call(value, \"ready\"); }
+             function fromKeys(lookup) { return Array.from(lookup.keys()).includes(\"ready\"); }
+             function isArray(value) { return Array.isArray(value); }",
+        );
+
+        assert_eq!(
+            qualified_global_evidence_count(&il, "Object.hasOwn", NodeKind::Seq),
+            1
+        );
+        assert_eq!(
+            qualified_global_evidence_count(
+                &il,
+                "Object.prototype.hasOwnProperty.call",
+                NodeKind::Seq
+            ),
+            1
+        );
+        assert_eq!(
+            qualified_global_evidence_count(&il, "Array.from", NodeKind::Field),
+            1
+        );
+        assert_eq!(
+            qualified_global_evidence_count(&il, "Array.isArray", NodeKind::Field),
+            1
+        );
+    }
+
+    #[test]
+    fn js_qualified_global_evidence_respects_shadowed_roots() {
+        let il = lower_js(
+            "function a(Object, value) { return Object.hasOwn(value, \"ready\"); }
+             const Object = { prototype: { hasOwnProperty: { call() { return true; } } } };
+             function b(value) { return Object.prototype.hasOwnProperty.call(value, \"ready\"); }
+             function c(Array, lookup) { return Array.from(lookup.keys()).includes(\"ready\"); }
+             function d(scope, lookup) { const { Array } = scope; return Array.from(lookup.keys()).includes(\"ready\"); }",
+        );
+
+        assert_eq!(
+            qualified_global_evidence_count(&il, "Object.hasOwn", NodeKind::Seq),
+            0
+        );
+        assert_eq!(
+            qualified_global_evidence_count(
+                &il,
+                "Object.prototype.hasOwnProperty.call",
+                NodeKind::Seq
+            ),
+            0
+        );
+        assert_eq!(
+            qualified_global_evidence_count(&il, "Array.from", NodeKind::Field),
+            0
+        );
     }
 }
