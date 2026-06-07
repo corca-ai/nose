@@ -38,6 +38,9 @@ The current facade is compiled Rust, not an external manifest schema. It is
 intended to make the future pack extension boundary explicit while behavior is
 migrated.
 
+- The first-party profile exposes pack id and trust policy separately from
+  channel eligibility. `ChannelEligibility` describes where a fact may be used;
+  first-party/default status is pack provenance, not an analysis channel.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
@@ -89,12 +92,13 @@ migrated.
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
   contract before it can feed exact membership.
 - Map lookup surfaces that return a value/option are now explicit contracts for
-  proven Java/Rust/JS-like map receivers. Python `dict.get(key, default)`,
-  Ruby `fetch(key, default)`, and Java `getOrDefault` still use the
-  `GetOrDefault` method contract.
+  Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
+  `dict.get(key, default)`, Ruby `fetch(key, default)`, and Java `getOrDefault`
+  still use the `GetOrDefault` method contract.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
-  contracts, including the accepted `-1`/`0` threshold comparisons. Callers still
-  prove the static non-float literal collection and lambda equality shape.
+  contracts, including the static non-float literal collection requirement and
+  accepted `-1`/`0` threshold comparisons. Callers still prove the receiver and
+  lambda equality shape before exact normalization/detection accepts them.
 - Go literal map default lookup is represented by a shared contract for the
   `composite_literal`/`keyed_element` surface and the supported zero-default
   payload classes. The value graph still constructs the canonical default value,

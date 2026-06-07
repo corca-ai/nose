@@ -110,6 +110,10 @@ and pack ecosystem.
   the existing `GetOrDefault` method contract.
 - JS-like static array `indexOf`/`findIndex` membership and their accepted
   threshold comparisons moved behind shared semantic contracts.
+- Channel eligibility and pack trust were split: first-party/default status is
+  provenance and enablement policy, not a semantic channel.
+- Newly migrated selector contracts started carrying explicit receiver/proof
+  requirements so extension APIs do not look like name-only semantic guesses.
 
 ## Phase 0: documentation and vocabulary
 
@@ -190,8 +194,10 @@ different APIs.
 
 ## Phase 6: ecosystem packs
 
-- Add high-value first-party or community packs only when their contracts are
-  narrow and testable.
+- Add high-value first-party packs only when their contracts are narrow and
+  testable.
+- Keep community packs external and opt-in unless nose explicitly adopts them as
+  first-party/default packs with project-owned gates.
 - Candidate areas: Lodash, RxJS, NumPy, pandas, Java Streams/Guava, Rust Iterator
   ecosystem helpers, Tokio futures, Rails ActiveSupport collection helpers.
 - Keep exact eligibility narrow. Many APIs should stay `near-only` because

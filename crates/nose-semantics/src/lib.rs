@@ -21,7 +21,14 @@ pub enum ChannelEligibility {
     NearOnly,
     ExactEmpirical,
     ExactProven,
-    FirstParty,
+}
+
+/// Trust/provenance policy for a pack, separate from which analysis channel a fact may enter.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PackTrust {
+    DefaultFirstParty,
+    FirstPartyOptional,
+    ExternalOptIn,
 }
 
 /// Kernel-facing domain evidence recovered from source facts, type inference, or future packs.
@@ -129,8 +136,8 @@ impl LanguageProfile {
         FIRST_PARTY_PACK_ID
     }
 
-    pub fn eligibility(self) -> ChannelEligibility {
-        ChannelEligibility::FirstParty
+    pub fn trust(self) -> PackTrust {
+        PackTrust::DefaultFirstParty
     }
 
     pub fn operators(self) -> OperatorSemantics {
@@ -1329,6 +1336,7 @@ pub fn go_zero_map_default_kind(lang: Lang, payload: Payload) -> Option<GoZeroMa
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MapGetContract {
     pub method: &'static str,
+    pub receiver: MethodReceiverContract,
 }
 
 pub fn map_get_contract(lang: Lang, method: &str, arg_count: usize) -> Option<MapGetContract> {
@@ -1344,7 +1352,10 @@ pub fn map_get_contract(lang: Lang, method: &str, arg_count: usize) -> Option<Ma
     )
     .then_some(())
     .filter(|_| method == "get" && arg_count == 1)
-    .map(|_| MapGetContract { method: "get" })
+    .map(|_| MapGetContract {
+        method: "get",
+        receiver: MethodReceiverContract::ExactMap,
+    })
 }
 
 pub fn map_get_contract_by_hash(
@@ -1364,9 +1375,15 @@ pub enum StaticIndexMembershipKind {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StaticIndexMembershipReceiverContract {
+    StaticNonFloatLiteralCollection,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct StaticIndexMembershipContract {
     pub method: &'static str,
     pub kind: StaticIndexMembershipKind,
+    pub receiver: StaticIndexMembershipReceiverContract,
 }
 
 pub fn static_index_membership_contract(
@@ -1381,10 +1398,12 @@ pub fn static_index_membership_contract(
         "indexOf" => StaticIndexMembershipContract {
             method: "indexOf",
             kind: StaticIndexMembershipKind::IndexOf,
+            receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
         },
         "findIndex" => StaticIndexMembershipContract {
             method: "findIndex",
             kind: StaticIndexMembershipKind::FindIndex,
+            receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
         },
         _ => return None,
     })
@@ -1772,7 +1791,7 @@ mod tests {
             let profile = semantics(lang);
             assert_eq!(profile.lang(), lang);
             assert_eq!(profile.pack_id(), FIRST_PARTY_PACK_ID);
-            assert_eq!(profile.eligibility(), ChannelEligibility::FirstParty);
+            assert_eq!(profile.trust(), PackTrust::DefaultFirstParty);
         }
     }
 
@@ -2388,15 +2407,24 @@ mod tests {
     fn map_get_contracts_are_language_and_arity_constrained() {
         assert_eq!(
             map_get_contract(Lang::Rust, "get", 1),
-            Some(MapGetContract { method: "get" })
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
         );
         assert_eq!(
             map_get_contract_by_hash(Lang::Java, stable_symbol_hash("get"), 1),
-            Some(MapGetContract { method: "get" })
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
         );
         assert_eq!(
             map_get_contract(Lang::TypeScript, "get", 1),
-            Some(MapGetContract { method: "get" })
+            Some(MapGetContract {
+                method: "get",
+                receiver: MethodReceiverContract::ExactMap,
+            })
         );
         assert_eq!(map_get_contract(Lang::Python, "get", 1), None);
         assert_eq!(map_get_contract(Lang::Rust, "get", 2), None);
@@ -2410,6 +2438,7 @@ mod tests {
             Some(StaticIndexMembershipContract {
                 method: "indexOf",
                 kind: StaticIndexMembershipKind::IndexOf,
+                receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
             })
         );
         assert_eq!(
@@ -2417,6 +2446,7 @@ mod tests {
             Some(StaticIndexMembershipContract {
                 method: "findIndex",
                 kind: StaticIndexMembershipKind::FindIndex,
+                receiver: StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection,
             })
         );
         assert_eq!(
