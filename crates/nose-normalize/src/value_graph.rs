@@ -51,9 +51,10 @@ use nose_il::{
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
     iterator_identity_adapter_contract, method_call_contract, reduction_builtin_contract,
-    scalar_integer_method_contract, semantics, DomainEvidence, IteratorAdapterReceiverContract,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
-    ScalarIntegerMethod,
+    rust_option_and_then_contract, rust_option_some_constructor_contract,
+    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics, DomainEvidence,
+    IteratorAdapterReceiverContract, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -6775,7 +6776,7 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        if self.interner.resolve(method) != "and_then" {
+        if !rust_option_and_then_contract(self.il.meta.lang, self.interner.resolve(method), 1) {
             return None;
         }
         let receiver = *self.il.children(kids[0]).first()?;
@@ -6792,28 +6793,13 @@ impl<'a> Builder<'a> {
     }
 
     fn rust_option_some_name(&self, text: &str) -> bool {
-        if self.il.meta.lang != Lang::Rust {
-            return false;
-        }
-        match text {
-            "Some" => !self.file_defines_name("Some"),
-            "Option::Some" => !self.file_defines_name("Option"),
-            "std::option::Option::Some" => !self.file_defines_name("std"),
-            "core::option::Option::Some" => !self.file_defines_name("core"),
-            _ => false,
-        }
+        rust_option_some_constructor_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
     }
 
     fn rust_vec_new_name(&self, text: &str) -> bool {
-        if self.il.meta.lang != Lang::Rust {
-            return false;
-        }
-        match text {
-            "Vec::new" => !self.file_defines_name("Vec"),
-            "std::vec::Vec::new" => !self.file_defines_name("std"),
-            "alloc::vec::Vec::new" => !self.file_defines_name("alloc"),
-            _ => false,
-        }
+        rust_vec_new_factory_contract(self.il.meta.lang, text)
+            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
     }
 
     fn is_null_literal(&self, node: NodeId) -> bool {

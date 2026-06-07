@@ -15,7 +15,8 @@ use nose_normalize::{
 use nose_semantics::{
     builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
     exact_java_this_field, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, iterator_identity_adapter_contract, semantics,
+    exact_non_overloadable_index_assignment_parts, iterator_identity_adapter_contract,
+    rust_vec_new_factory_contract, semantics,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1769,12 +1770,8 @@ fn strict_exact_rust_vec_new_safe(il: &Il, interner: &Interner, node: NodeId) ->
 }
 
 fn strict_exact_rust_vec_new_name(il: &Il, interner: &Interner, text: &str) -> bool {
-    match text {
-        "Vec::new" => !file_defines_name(il, interner, "Vec"),
-        "std::vec::Vec::new" => !file_defines_name(il, interner, "std"),
-        "alloc::vec::Vec::new" => !file_defines_name(il, interner, "alloc"),
-        _ => false,
-    }
+    rust_vec_new_factory_contract(il.meta.lang, text)
+        .is_some_and(|contract| !file_defines_name(il, interner, contract.shadow_root))
 }
 
 fn strict_exact_rust_std_collection_factory_safe(

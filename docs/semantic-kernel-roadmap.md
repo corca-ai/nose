@@ -85,6 +85,9 @@ and pack ecosystem.
   Frontend `ParamSemantic` facts still provide the current evidence source, but
   normalize and detect exact gates now consume the kernel-facing domain
   vocabulary so pack-provided evidence can replace the source fact later.
+- Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`, and
+  `Vec::new` moved into the kernel facade with explicit shadow-root obligations.
+  The caller still proves local shadow safety.
 
 ## Phase 0: documentation and vocabulary
 

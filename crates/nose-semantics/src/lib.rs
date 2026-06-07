@@ -977,6 +977,45 @@ pub fn iterator_identity_adapter_contract(
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct ShadowedPathContract {
+    pub shadow_root: &'static str,
+}
+
+pub fn rust_option_some_constructor_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Some" => "Some",
+        "Option::Some" => "Option",
+        "std::option::Option::Some" => "std",
+        "core::option::Option::Some" => "core",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_vec_new_factory_contract(lang: Lang, name: &str) -> Option<ShadowedPathContract> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    let shadow_root = match name {
+        "Vec::new" => "Vec",
+        "std::vec::Vec::new" => "std",
+        "alloc::vec::Vec::new" => "alloc",
+        _ => return None,
+    };
+    Some(ShadowedPathContract { shadow_root })
+}
+
+pub fn rust_option_and_then_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
+    lang == Lang::Rust && method == "and_then" && arg_count == 1
+}
+
 pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
     matches!(
         (lang, method, arg_count),
@@ -1697,6 +1736,41 @@ mod tests {
             iterator_identity_adapter_contract(Lang::Rust, "collect", 1),
             None
         );
+    }
+
+    #[test]
+    fn rust_std_path_contracts_carry_shadow_roots() {
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Rust, "Option::Some"),
+            Some(ShadowedPathContract {
+                shadow_root: "Option",
+            })
+        );
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Rust, "std::option::Option::Some"),
+            Some(ShadowedPathContract { shadow_root: "std" })
+        );
+        assert_eq!(
+            rust_option_some_constructor_contract(Lang::Python, "Some"),
+            None
+        );
+        assert_eq!(
+            rust_vec_new_factory_contract(Lang::Rust, "alloc::vec::Vec::new"),
+            Some(ShadowedPathContract {
+                shadow_root: "alloc",
+            })
+        );
+        assert_eq!(
+            rust_vec_new_factory_contract(Lang::Rust, "Vec::with_capacity"),
+            None
+        );
+        assert!(rust_option_and_then_contract(Lang::Rust, "and_then", 1));
+        assert!(!rust_option_and_then_contract(Lang::Rust, "and_then", 0));
+        assert!(!rust_option_and_then_contract(
+            Lang::JavaScript,
+            "and_then",
+            1
+        ));
     }
 
     #[test]

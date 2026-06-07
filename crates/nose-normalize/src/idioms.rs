@@ -11,8 +11,8 @@ use nose_il::{stable_symbol_hash, Builtin, HoFKind, Il, Interner, NodeId, NodeKi
 use nose_semantics::{
     domain_evidence_from_param_semantic, free_function_builtin_contract,
     iterator_identity_adapter_contract, method_call_contract, method_hof_contract,
-    BuiltinArgContract, DomainEvidence, MethodBuiltinArgs, MethodCallContract,
-    MethodReceiverContract, MethodSemanticContract,
+    rust_option_some_constructor_contract, BuiltinArgContract, DomainEvidence, MethodBuiltinArgs,
+    MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
@@ -658,16 +658,8 @@ fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
 }
 
 fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
-    if old.meta.lang != nose_il::Lang::Rust {
-        return false;
-    }
-    match text {
-        "Some" => !file_defines_name(old, interner, "Some"),
-        "Option::Some" => !file_defines_name(old, interner, "Option"),
-        "std::option::Option::Some" => !file_defines_name(old, interner, "std"),
-        "core::option::Option::Some" => !file_defines_name(old, interner, "core"),
-        _ => false,
-    }
+    rust_option_some_constructor_contract(old.meta.lang, text)
+        .is_some_and(|contract| !file_defines_name(old, interner, contract.shadow_root))
 }
 
 fn proven_map_get_call_parts(

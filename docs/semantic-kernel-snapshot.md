@@ -56,6 +56,9 @@ migrated.
   closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
+- Rust stdlib path contracts for `Some`/`Option::Some`, `Option::and_then`,
+  and `Vec::new` carry the exact selector and shadow-root requirement through
+  `nose-semantics`; normalize/detect still perform the local scope shadow check.
 - Builder append contracts are separate from arbitrary method calls: Java `add`
   and Rust `push` are admitted only for active builder proofs.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
