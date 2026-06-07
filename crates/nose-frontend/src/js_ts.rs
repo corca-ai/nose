@@ -8,8 +8,8 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    UnitKind,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, UnitKind,
 };
 use nose_semantics::{
     js_array_is_array_contract, js_boolean_coercion_contract, method_call_contract,
@@ -840,7 +840,11 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "null" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
         "undefined" => lo.var("undefined", span),
-        "regex" => lo.str_lit(lo.text(node), span),
+        "regex" => {
+            let lit = lo.str_lit(lo.text(node), span);
+            lo.record_source_fact(span, SourceFactKind::Literal(SourceLiteralKind::Regex));
+            lit
+        }
         "call_expression" => lower_call(lo, node),
         "new_expression" => lower_new(lo, node),
         "binary_expression" => {
@@ -1263,7 +1267,9 @@ fn lower_new(lo: &mut Lowering, node: TsNode) -> NodeId {
             kids.push(lower_expr(lo, a));
         }
     }
-    lo.add(NodeKind::Call, Payload::None, span, &kids)
+    let call = lo.add(NodeKind::Call, Payload::None, span, &kids);
+    lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
+    call
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1292,7 +1298,15 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
             .unwrap_or_else(|| lo.empty_block(span));
         return lo.add(NodeKind::If, Payload::None, span, &[cond, fallback, value]);
     }
-    crate::lower::binary(lo, node, js_bin_op, lower_expr)
+    let source_operator = node
+        .child_by_field_name("operator")
+        .map(|op| lo.text(op))
+        .and_then(js_source_operator);
+    let lowered = crate::lower::binary(lo, node, js_bin_op, lower_expr);
+    if let Some(source_operator) = source_operator {
+        lo.record_source_fact(lo.span(node), SourceFactKind::Operator(source_operator));
+    }
+    lowered
 }
 
 fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -1793,6 +1807,17 @@ fn js_bin_op(text: &str) -> Option<Op> {
         "instanceof" => Some(Op::Eq),
         _ => None,
     })
+}
+
+fn js_source_operator(text: &str) -> Option<SourceOperatorKind> {
+    match text {
+        "===" => Some(SourceOperatorKind::StrictEquality),
+        "!==" => Some(SourceOperatorKind::StrictInequality),
+        "==" => Some(SourceOperatorKind::LooseEquality),
+        "!=" => Some(SourceOperatorKind::LooseInequality),
+        "instanceof" => Some(SourceOperatorKind::TypeMembership),
+        _ => None,
+    }
 }
 
 #[cfg(test)]

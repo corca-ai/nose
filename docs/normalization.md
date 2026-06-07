@@ -35,7 +35,9 @@ experiments that validated these passes are in [experiments](experiments.md).
 > outer/inner predicates), full **AC flatten+sort in the value graph itself** (not
 > only the `algebra` IL pass), **operator-law contracts** from the semantic kernel
 > gate comparison transforms, comparison-lattice rewrites, static cardinality
-> thresholds, and source membership operators, **distribution/factoring**
+> thresholds, and source membership operators, while source-fact gates protect
+> JS-like constructor factories, regex literal `.test(...)`, and static
+> membership callback equality, **distribution/factoring**
 > `a*c+b*c→(a+b)*c` (Num-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),

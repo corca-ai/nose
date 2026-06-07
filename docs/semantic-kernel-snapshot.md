@@ -7,7 +7,8 @@ implementation shape; planned work and decision history live in
 Snapshot date: 2026-06-07, current implementation after the semantic-kernel
 foundation and follow-up facade migrations through receiver-aware field state
 sequence-surface contracts, proof-backed append fragment evidence, and the first
-operator-law contracts.
+operator-law contracts, typed import facts, and source-fact gates for construct,
+literal, and equality/operator provenance.
 
 ## What exists today
 
@@ -15,12 +16,14 @@ nose now has a first internal semantic-kernel facade, but most of the engine is
 still being migrated toward it.
 
 - `nose-il` defines a compact shared IL, `Lang`, `Builtin`, `HoFKind`, operators,
-  literals, source spans, units, and parameter semantic facts.
+  literals, source spans, units, parameter semantic facts, and source-origin
+  facts.
 - `nose-semantics` defines the first-party semantic profile facade: language,
-  operator, effect, fragment, module, stdlib, builtin, method-call, property,
-  async, iterator-adapter, builder-append, and factory contracts.
+  source-fact, operator, effect, fragment, module, stdlib, builtin, method-call,
+  property, async, iterator-adapter, builder-append, and factory contracts.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
-  `<script>` extraction, import facts, and Raw-node coverage.
+  `<script>` extraction, import facts, source-origin fact emission, and Raw-node
+  coverage.
 - `nose-normalize` owns desugaring, alpha-renaming, recursion normalization,
   dataflow, CFG/algebra normalization, type-gated value-graph rules, and the
   interpreter oracle.
@@ -52,6 +55,14 @@ migrated.
   static-index gates consume these contracts instead of local operator tables.
   The old `primitive_order_comparisons()` helper remains as a compatibility
   wrapper around the stricter lattice law contract.
+- Source facts are now first-class internal evidence for source distinctions that
+  the shared IL erases. The current `SourceFact` storage is span-keyed and covers
+  operator, call-shape, and literal-surface facts. JS/TS frontends emit construct
+  syntax, regex literal, strict/loose equality, strict/loose inequality, and
+  `instanceof` facts. Python emits value equality/inequality and identity
+  equality/inequality facts. `nose-semantics` exposes source-fact contract and
+  lookup helpers; normalize and detect consume them only where a semantic
+  contract requires that exact source surface.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
@@ -154,8 +165,11 @@ migrated.
   is not inferred from the selector name in normalize/detect.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
   contracts, including the static non-float literal collection requirement and
-  accepted `-1`/`0` threshold comparisons through `OperatorSemantics`. Callers
-  still prove the receiver and lambda equality shape before exact
+  accepted `-1`/`0` threshold comparisons through `OperatorSemantics`. Callback
+  membership variants also require source operator facts: JS-like strict
+  equality/inequality can enter exact matching, while loose equality,
+  `instanceof`, and non-JS equality surfaces stay closed for these contracts.
+  Callers still prove the receiver and lambda equality shape before exact
   normalization/detection accepts them.
 - Source `Op::In` is not proof by itself. Strict exact collection/map
   membership currently admits Python `in` only through a language-scoped
@@ -197,8 +211,12 @@ migrated.
 - JS/TS object literals preserve static property keys in exact map/object
   semantics, but computed property names are exact-closed until a future
   contract can prove key evaluation, coercion, order, and side-effect behavior.
-- JS/TS `new Map(...)` and `new Set(...)` remain closed because lowering does not
-  yet retain a constructor proof distinct from ordinary `Map(...)`/`Set(...)`.
+- JS/TS `new Map(...)` and `new Set(...)` now require construct-syntax source
+  facts distinct from ordinary calls plus an unshadowed `Map`/`Set` global. With
+  exact-safe static collection or entry arguments they can enter exact matching,
+  including supported immutable module-level Set/Map bindings. Plain
+  `Set(...)`/`Map(...)` calls and locally shadowed constructor names remain
+  exact-closed.
 - Static import proof facts now have a typed `ImportFactKind`/`ImportFact`
   facade in `nose-semantics`. First-party frontends emit import binding and
   namespace facts through that contract, and imported literal replacement,
@@ -219,10 +237,11 @@ Semantic knowledge still appears in several forms outside the facade:
 
 - direct `Lang` checks and local recognizers in strict exact gates and value-graph
   rules that have not yet been expressed as shared contracts;
-- source operator provenance is still lossy for some equality-shaped IL. For
-  example, JS loose equality and `instanceof`, and Python identity, can lower to
-  the same coarse equality operator until future frontend/kernel facts preserve
-  the source equality kind;
+- source operator provenance now exists for selected JS/TS and Python
+  equality-shaped surfaces, but the storage is still internal and span-keyed, and
+  consumption is limited to narrow contracts such as JS-like static membership
+  callbacks. General equality dispatch, report provenance, and pack-facing
+  source-fact records remain open;
 - language-specific import or module proof mechanics that are still local to
   frontend, normalize, or detect callers;
 - IL still stores import facts as `Seq("import_binding")` /
@@ -279,10 +298,10 @@ this worktree because the required evidence is not yet modeled:
 
 - JS-like `.then(lambda)` does not converge with `await` code until Promise-like
   receiver proof exists.
-- Plain JS/TS `Map` and `Set` constructor semantics do not enter exact matching
-  until constructor-vs-call proof exists.
-- JS/TS regex literal `.test(...)` does not enter exact matching until lowering
-  preserves regex-literal provenance distinct from ordinary string literals.
+- Plain JS/TS `Map(...)` and `Set(...)` calls do not enter exact matching because
+  constructor-only contracts require construct-syntax proof.
+- Ordinary JS/TS string `.test(...)` calls do not enter regex-test exact matching
+  because the receiver must have regex-literal provenance.
 - Untyped JS/TS array method chains do not enter exact higher-order contracts
   unless the receiver is a literal/proven collection surface.
 - Nested element method chains such as `xs.map(...)` inside a flat-map callback
@@ -311,9 +330,10 @@ The first high-value targets for semantic-kernel extraction are:
   consumers already parse these through the typed internal `ImportFact` facade;
 - pack-facing sequence/aggregate surface records to replace the current compiled
   `SeqSurfaceContract` facade and private value-graph `Seq` tag registry;
-- constructor facts for JS/TS `new Map` and `new Set`, which are now explicit
-  closed contracts waiting on construct-vs-call proof;
-- regex literal provenance for JS/TS `.test(...)`;
+- pack-facing source-fact records to replace the current internal span-keyed
+  `SourceFact` storage for construct, literal, and operator provenance;
+- source-fact dependency, scope, and ambiguity validation before facts become a
+  stable external extension surface;
 - resolved symbol facts for Java/Rust stdlib factories instead of the current
   path/name plus shadow-proof contracts;
 - nested collection element proofs for iterator chains and builder convergence;

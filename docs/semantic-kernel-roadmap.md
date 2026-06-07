@@ -39,6 +39,12 @@ and pack ecosystem.
    arity, receiver/protocol, shadowing, import, version, overload, demand, and
    effect obligations that make that selector mean the claimed operation.
 
+8. **Source facts are evidence, not semantics.** Source-origin facts preserve
+   distinctions that the shared IL erases, such as construct syntax, literal
+   surface, and equality/operator family. They can feed exact contracts only
+   through kernel-defined fact kinds and contract preconditions; they do not mint
+   fingerprints or approve equivalence directly.
+
 ## History
 
 - The original architecture lowered every supported language into one shared IL,
@@ -109,9 +115,10 @@ and pack ecosystem.
 - Cross-file immutable import replacement now copies import-binding dependencies
   required by the exported literal expression, preserving provider-side stdlib
   proofs such as `java.util.Map` for Java static imports.
-- JS-like `Map`/`Set` constructors are now represented as explicit closed
-  contracts requiring construct-syntax proof; they remain exact-closed until the
-  frontend/kernel can distinguish `new Map(...)` from plain `Map(...)`.
+- JS-like `Map`/`Set` constructor contracts now require construct-syntax proof.
+  They were initially closed while construct-vs-call evidence was missing; the
+  source-fact slice reopened proof-backed `new Map(...)`/`new Set(...)` while
+  plain `Map(...)`/`Set(...)` calls stayed closed.
 - Map key-view recognition moved behind contracts that distinguish collection
   views from iterator views. JS-like `Map.keys()` now requires an
   `Array.from(...)` wrapper before exact membership can consume it.
@@ -137,9 +144,10 @@ and pack ecosystem.
   JS/TS `Map.get(...)` defaulting remains exact-eligible only when `undefined`
   is the unshadowed JS-like sentinel.
 - Strict exact call gates for JS-like `typeof` and `Array.isArray(...)` moved
-  behind language/arity/global-shadow contracts, and literal `.test(...)` remains
-  exact-closed until regex-literal provenance exists. This closes raw-name
-  bypasses found after PR #101.
+  behind language/arity/global-shadow contracts. Regex literal `.test(...)` now
+  consumes regex-literal source provenance, while ordinary string `.test(...)`
+  and same-named method calls remain closed. This closes raw-name bypasses found
+  after PR #101.
 - Normalize idiom receiver admission for iterator identity adapters and Rust
   `zip` now consumes the same semantic contracts as value-graph/detect paths,
   closing language-blind `iter`/`zip` selector bypasses.
@@ -209,6 +217,11 @@ and pack ecosystem.
   longer inherits collection-membership exact safety from the shared `Op::In`
   token; only Python `in` currently has a first-party membership-operator
   contract.
+- Source facts landed for construct syntax, regex literals, and selected
+  equality/operator provenance. Exact consumers now reopen proof-backed JS-like
+  `new Map(...)`/`new Set(...)`, regex literal `.test(...)`, and strict JS-like
+  static membership callbacks while closing plain constructor calls, string
+  `.test(...)`, loose equality, and `instanceof` for those exact contracts.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -251,9 +264,12 @@ Remaining in this phase:
 - Continue moving primitive operator gates behind `OperatorSemantics`. The first
   larger slice covers comparison transforms/laws, cardinality thresholds, static
   index-membership thresholds, and Python source `in` membership exact-safety.
-  Remaining work includes source equality provenance such as JS loose equality,
-  JS `instanceof`, and Python identity before exact callbacks can distinguish
-  all equality-shaped IL safely.
+  A later source-fact slice preserves selected JS/TS and Python equality-like
+  source operators, but broader operator dispatch, overload semantics, and
+  pack-facing consumers remain open.
+- Replace the current internal span-keyed `SourceFact` storage with pack-facing
+  source-fact records that carry stable fact ids, emitter/pack provenance, scope,
+  dependencies, ambiguity status, and contract provenance.
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records.
 - Continue replacing any remaining local exact-fragment proof helpers with
@@ -270,10 +286,6 @@ Remaining in this phase:
   receiver/domain evidence records while preserving the current precision gates.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
-- Add construct/call distinction facts so constructor-only contracts such as
-  JS/TS `new Map` and `new Set` can be reopened safely.
-- Add regex literal provenance so JS/TS `.test(...)` can be reopened safely
-  without treating ordinary string literals or monkey-patched methods as regexes.
 - Add receiver/place facts so field read/write and property contracts are not
   field-name-only.
 - Add provenance fields internally before exposing them in scan JSON.

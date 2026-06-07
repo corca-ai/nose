@@ -17,6 +17,8 @@ use nose_semantics::{
     MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
 };
 
+use crate::contains_js_ident;
+
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
 /// *old* ids to be rebuilt as the new node's children.
@@ -775,18 +777,6 @@ fn symbol_defines_name(old: &Il, interner: &Interner, symbol: nose_il::Symbol, n
             .modules()
             .js_like_shadowed_module_bindings()
             && contains_js_ident(text, name))
-}
-
-fn contains_js_ident(text: &str, ident: &str) -> bool {
-    text.match_indices(ident).any(|(idx, _)| {
-        let before = text[..idx].chars().next_back();
-        let after = text[idx + ident.len()..].chars().next();
-        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
-    })
-}
-
-fn is_js_ident_continue(c: char) -> bool {
-    c == '_' || c == '$' || c.is_ascii_alphanumeric()
 }
 
 fn file_defines_type_name(old: &Il, interner: &Interner, name: &str) -> bool {

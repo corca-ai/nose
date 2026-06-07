@@ -39,8 +39,10 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
 1. **Lower** ([languages](languages.md)): tree-sitter parses each file; a per-language pass
    walks the CST and emits raw IL using a small, desugared core node set. Every
    node copies its source span, so every match traces back to exact lines.
-   Frontends also tag syntactic unit boundaries (function/method/class/block),
-   which gives detection accurate boundaries for free.
+   Frontends also emit source-origin facts when that core IL would otherwise erase
+   exact source distinctions needed by semantic contracts, then tag syntactic unit
+   boundaries (function/method/class/block), which gives detection accurate
+   boundaries for free.
 2. **Normalize** ([normalization](normalization.md)): a fixed sequence of passes canonicalizes
    the IL — desugaring (with idiom canonicalization), alpha-renaming, an oracle cutoff,
    recursion-to-iteration normalization, dataflow propagation, control-flow normalization,
@@ -74,9 +76,9 @@ A Cargo workspace; data flows left-to-right through them.
 
 | crate | role |
 |---|---|
-| `nose-il` | arena IL model (`Vec<Node>`, `NodeId(u32)`, out-of-line edges), provenance spans, interner, serialization, IR verifier |
-| `nose-semantics` | first-party semantic facade: language profiles, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
-| `nose-frontend` | tree-sitter parse + per-language CST→IL lowering (one module per language; embedded `<script>` extraction) |
+| `nose-il` | arena IL model (`Vec<Node>`, `NodeId(u32)`, out-of-line edges), provenance spans, source facts, interner, serialization, IR verifier |
+| `nose-semantics` | first-party semantic facade: language profiles, source-fact helpers, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
+| `nose-frontend` | tree-sitter parse + per-language CST→IL lowering and source-fact emission (one module per language; embedded `<script>` extraction) |
 | `nose-normalize` | the normalization passes + the value graph (GVN) |
 | `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |
 | `nose-eval` | benchmark scoring (precision/recall, pooled, stratified) — see [benchmark](benchmark.md) |

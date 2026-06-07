@@ -2,7 +2,8 @@
 
 Back to [home](home.md). Current implementation status is in
 [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source
+origin evidence is detailed in [source-facts](source-facts.md).
 
 ## Context
 
@@ -21,6 +22,11 @@ makes soundness depend on scattered `Lang` checks.
 The semantic kernel is the boundary that all exact semantic reasoning must cross.
 The first internal facade now lives in `nose-semantics`; it is still a compiled
 first-party implementation, not a loadable external pack runtime.
+
+Source facts are one kernel input at that boundary. They preserve source
+distinctions that the IL deliberately abstracts away, but they do not approve
+semantic equivalence by themselves. See [source-facts](source-facts.md) for the
+fact vocabulary, pack boundary, and current implementation slice.
 
 ## Goal
 
@@ -111,9 +117,10 @@ law registry or emit private canonical value-graph nodes.
 Packs may:
 
 - lower source constructs to kernel-defined surface IR;
-- emit semantic facts such as proven type domains, non-shadowed builtins, unique
-  immutable imports, primitive array places, pure callbacks, pull iterators, or
-  memoized thunks;
+- emit source and semantic facts such as construct syntax, literal/operator
+  provenance, proven type domains, non-shadowed builtins, unique immutable
+  imports, primitive array places, pure callbacks, pull iterators, or memoized
+  thunks;
 - declare API contracts that map resolved symbols to protocol operations;
 - declare evaluation and demand behavior for constructs and APIs;
 - declare effect summaries and exact/near eligibility;
@@ -132,6 +139,13 @@ Packs may not:
 
 An API contract is not a name match. A contract must identify the surface it
 claims and the evidence required to admit it.
+
+For source-origin distinctions, that evidence should be represented as
+kernel-defined source facts rather than recovered later from selectors or raw CST
+text. For example, a constructor-only contract should require construct syntax
+evidence; a regex-specific contract should require regex-literal or resolved
+regex-receiver evidence; an equality-sensitive contract should require the
+language-specific source operator kind.
 
 At minimum, exact-capable contracts need:
 

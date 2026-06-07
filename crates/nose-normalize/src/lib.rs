@@ -127,8 +127,8 @@ pub(crate) fn is_pure(il: &Il, node: NodeId) -> bool {
 
 /// Assemble the rewritten `Il` shared by every rebuild pass: carry each old unit forward to
 /// its remapped root (dropping units the pass deleted), copy the file metadata and parameter
-/// type facts, and finish the builder with the given canonical-id names. Passes differ only
-/// in the `cid_names` they preserve (most clone `old.cid_names`; desugar resets to empty
+/// type/source facts, and finish the builder with the given canonical-id names. Passes differ
+/// only in the `cid_names` they preserve (most clone `old.cid_names`; desugar resets to empty
 /// because it rewrites canonical ids), so that stays a caller-supplied argument.
 pub(crate) fn finalize_rebuild(
     old: &Il,
@@ -154,7 +154,20 @@ pub(crate) fn finalize_rebuild(
     };
     let mut out = builder.finish(new_root, meta, units, cid_names);
     out.param_type_facts = old.param_type_facts.clone();
+    out.source_facts = old.source_facts.clone();
     out
+}
+
+pub(crate) fn contains_js_ident(text: &str, ident: &str) -> bool {
+    text.match_indices(ident).any(|(idx, _)| {
+        let before = text[..idx].chars().next_back();
+        let after = text[idx + ident.len()..].chars().next();
+        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
+    })
+}
+
+fn is_js_ident_continue(c: char) -> bool {
+    c == '_' || c == '$' || c.is_ascii_alphanumeric()
 }
 
 /// A control-flow terminator: a statement that unconditionally diverts control out of the

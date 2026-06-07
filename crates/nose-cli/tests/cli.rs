@@ -5322,7 +5322,7 @@ fn semantic_scan_reports_exact_safe_throw_fragments_under_opaque_functions() {
 }
 
 #[test]
-fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
+fn scan_mode_semantic_proves_regex_literal_predicate_matches() {
     let dir = std::env::temp_dir().join(format!("nose_regex_semantic_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
@@ -5339,6 +5339,16 @@ fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
     fs::write(
         dir.join("dot-only-copy.ts"),
         "export function matchesDotOnly(segment: string) {\n    return /^\\.+$/u.test(segment);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("string-test-a.ts"),
+        "export function stringTestA(value: string) {\n    return \"^\\\\.+$\".test(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("string-test-b.ts"),
+        "export function stringTestB(value: string) {\n    return \"^\\\\.+$\".test(value);\n}\n",
     )
     .unwrap();
 
@@ -5360,8 +5370,17 @@ fn scan_mode_semantic_rejects_unproved_regex_predicate_matches() {
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
         semantic_families.len(),
-        0,
-        "semantic mode must keep literal .test exact-closed until regex literal provenance exists: {semantic}"
+        1,
+        "semantic mode should report only the matching regex-literal predicate: {semantic}"
+    );
+    let semantic_text = semantic_json.to_string();
+    assert!(
+        semantic_text.contains("dot-only.ts")
+            && semantic_text.contains("dot-only-copy.ts")
+            && !semantic_text.contains("markdown-link.ts")
+            && !semantic_text.contains("string-test-a.ts")
+            && !semantic_text.contains("string-test-b.ts"),
+        "semantic mode must consume regex literal provenance without merging different patterns: {semantic}"
     );
 
     let near = run(&[
@@ -6100,6 +6119,16 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_some_loose.js"),
+        "function arraySomeLoose(value, other) {\n  return [\"red\", \"blue\"].some((item) => item == value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_findindex_loose.js"),
+        "function arrayFindIndexLoose(value, other) {\n  return [\"red\", \"blue\"].findIndex((item) => item == value) !== -1;\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_filter_length.js"),
         "function arrayFilterLength(value, other) {\n  return [\"red\", \"blue\"].filter((item) => item === value).length !== 0;\n}\n",
     )
@@ -6130,8 +6159,18 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
     fs::write(
+        dir.join("array_every_loose.js"),
+        "function arrayEveryLoose(value, other) {\n  return [\"red\", \"blue\"].every((item) => item != value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("array_filter_length_absence.js"),
         "function arrayFilterLengthAbsence(value, other) {\n  return [\"red\", \"blue\"].filter((item) => item === value).length === 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("array_filter_length_loose.js"),
+        "function arrayFilterLengthLoose(value, other) {\n  return [\"red\", \"blue\"].filter((item) => item == value).length !== 0;\n}\n",
     )
     .unwrap();
     fs::write(
@@ -6510,6 +6549,8 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "go_slices_alias.go",
         "go_slices_const.go",
         "go_slices_local.go",
+        "module_set.js",
+        "module_set.ts",
         "module_list.java",
         "java_local_list.java",
         "rust_local_array.rs",
@@ -6532,6 +6573,7 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "js_in_array_b.js",
         "array_some_wrong_element.js",
         "array_some_wrong_collection.ts",
+        "array_some_loose.js",
         "array_indexof_wrong_element.js",
         "array_indexof_wrong_collection.ts",
         "array_indexof_value.js",
@@ -6539,18 +6581,19 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
         "array_indexof_reversed_gt_zero.js",
         "array_findindex_wrong_element.js",
         "array_findindex_wrong_collection.ts",
+        "array_findindex_loose.js",
         "array_findindex_value.js",
         "array_findindex_ne_zero.js",
         "array_filter_length_wrong_element.js",
         "array_filter_length_wrong_collection.ts",
+        "array_filter_length_loose.js",
         "array_filter_length_value.js",
         "array_filter_length_absence_wrong_element.js",
         "array_filter_length_absence_wrong_collection.ts",
         "array_every_wrong_element.js",
         "array_every_wrong_collection.ts",
+        "array_every_loose.js",
         "substring.rs",
-        "module_set.js",
-        "module_set.ts",
         "module_set_mutated.js",
         "python_module_mutated.py",
         "module_set_shadowed.ts",
@@ -6844,6 +6887,16 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
     )
     .unwrap();
     fs::write(
+        dir.join("set_call.js"),
+        "function f(value, other) {\n  return Set([\"red\", \"blue\"]).has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("shadowed_set_global.js"),
+        "function Set(values) {\n  return { has: function() { return false; } };\n}\nfunction f(value, other) {\n  return new Set([\"red\", \"blue\"]).has(value);\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("typed_array.ts"),
         "function f(values: string[], value: string, other: string): boolean {\n  return values.includes(value);\n}\n",
     )
@@ -6922,6 +6975,8 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
     let semantic_families = scan_families(&semantic_json);
     let expected_positive = [
         "literal.py",
+        "set_inline.js",
+        "set_local.js",
         "java_list_of.java",
         "java_set_of.java",
         "java_arrays_aslist.java",
@@ -6949,8 +7004,8 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
         });
     let typed_text = typed_family.to_string();
     for unexpected in [
-        "set_inline.js",
-        "set_local.js",
+        "set_call.js",
+        "shadowed_set_global.js",
         "wrong_element.js",
         "wrong_collection.js",
         "untyped_receiver.ts",
@@ -7457,6 +7512,16 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
     fs::write(
+        dir.join("map_default_call.js"),
+        "function lookup(key, other) {\n  return Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("shadowed_map_global.js"),
+        "function Map(entries) {\n  return { get: function() { return 99; }, has: function() { return true; } };\n}\nfunction lookup(key, other) {\n  return new Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
+    )
+    .unwrap();
+    fs::write(
         dir.join("map_default_local.js"),
         "function lookup(key, other) {\n  const values = new Map([[\"red\", 1], [\"blue\", 2]]);\n  return values.get(key) ?? 0;\n}\n",
     )
@@ -7851,6 +7916,12 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "map_default_java_entries.java",
         "map_default_java_local.java",
         "map_default_module.java",
+        "map_default_inline.js",
+        "map_default_local.js",
+        "map_default_has_get.js",
+        "map_default_inline.ts",
+        "map_default_module.js",
+        "map_default_module.ts",
         "map_default_rust_hashmap.rs",
         "map_default_rust_btreemap.rs",
         "map_default_go_inline.go",
@@ -7986,12 +8057,8 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
         "wrong_map.py",
         "ruby_fetch_block_param.rb",
         "ruby_fetch_raise_block.rb",
-        "map_default_inline.js",
-        "map_default_local.js",
-        "map_default_has_get.js",
-        "map_default_inline.ts",
-        "map_default_module.js",
-        "map_default_module.ts",
+        "map_default_call.js",
+        "shadowed_map_global.js",
         "map_default_rust_local.rs",
         "wrong_js_key.js",
         "wrong_js_default.js",

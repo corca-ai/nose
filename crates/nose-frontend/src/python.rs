@@ -10,7 +10,7 @@
 use crate::lower::Lowering;
 use nose_il::{
     Builtin, FileId, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
-    Payload, Span, UnitKind,
+    Payload, SourceFactKind, SourceOperatorKind, Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -900,7 +900,7 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
         )
     }
     let mut operand_nodes: Vec<TsNode> = Vec::new();
-    let mut ops: Vec<(Op, bool)> = Vec::new(); // (op, negated)
+    let mut ops: Vec<(Op, bool, Option<SourceOperatorKind>)> = Vec::new();
     let mut pending: Vec<String> = Vec::new();
     let mut cur = node.walk();
     for c in node.children(&mut cur) {
@@ -911,7 +911,7 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
             operand_nodes.push(c);
             if operand_nodes.len() >= 2 {
                 let key = pending.join(" ");
-                ops.push(py_cmp_op(&key).unwrap_or((Op::Eq, false)));
+                ops.push(py_cmp_op(&key).unwrap_or((Op::Eq, false, None)));
                 pending.clear();
             }
         }
@@ -928,10 +928,16 @@ fn lower_comparison(lo: &mut Lowering, node: TsNode) -> NodeId {
         // independent subtrees (a tree, not a shared-child DAG).
         let l = lower_expr(lo, operand_nodes[i]);
         let r = lower_expr(lo, operand_nodes[i + 1]);
-        let (op, neg) = ops.get(i).copied().unwrap_or((Op::Eq, false));
-        let cmp = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l, r]);
+        let pair_span = lo
+            .span(operand_nodes[i])
+            .merge(lo.span(operand_nodes[i + 1]));
+        let (op, neg, source_operator) = ops.get(i).copied().unwrap_or((Op::Eq, false, None));
+        let cmp = lo.add(NodeKind::BinOp, Payload::Op(op), pair_span, &[l, r]);
+        if let Some(source_operator) = source_operator {
+            lo.record_source_fact(pair_span, SourceFactKind::Operator(source_operator));
+        }
         let cmp = if neg {
-            lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[cmp])
+            lo.add(NodeKind::UnOp, Payload::Op(Op::Not), pair_span, &[cmp])
         } else {
             cmp
         };
@@ -1143,23 +1149,24 @@ fn py_aug_op(text: &str) -> Option<Op> {
     py_bin_op(text.trim_end_matches('='))
 }
 
-/// Map a comparison operator string to `(op, negated)`. `not in` / `is not` carry the
-/// negation (the caller wraps the comparison in `Not`).
-fn py_cmp_op(text: &str) -> Option<(Op, bool)> {
+/// Map a comparison operator string to `(op, negated, source fact)`. `not in` / `is not`
+/// carry the negation (the caller wraps the comparison in `Not`), while the source fact
+/// preserves whether equality-shaped IL came from value equality or identity syntax.
+fn py_cmp_op(text: &str) -> Option<(Op, bool, Option<SourceOperatorKind>)> {
     Some(match text {
-        "==" => (Op::Eq, false),
-        "!=" | "<>" => (Op::Ne, false),
-        "<" => (Op::Lt, false),
-        "<=" => (Op::Le, false),
-        ">" => (Op::Gt, false),
-        ">=" => (Op::Ge, false),
+        "==" => (Op::Eq, false, Some(SourceOperatorKind::ValueEquality)),
+        "!=" | "<>" => (Op::Ne, false, Some(SourceOperatorKind::ValueInequality)),
+        "<" => (Op::Lt, false, None),
+        "<=" => (Op::Le, false, None),
+        ">" => (Op::Gt, false, None),
+        ">=" => (Op::Ge, false, None),
         // Membership is directional and non-commutative — its own op, so `a in b` ≠
         // `b in a` ≠ `a == b`. Identity (`is`) stays equality-shaped (identity ≈ equality
         // in a value model). `not in` / `is not` negate.
-        "in" => (Op::In, false),
-        "not in" => (Op::In, true),
-        "is" => (Op::Eq, false),
-        "is not" => (Op::Eq, true),
+        "in" => (Op::In, false, None),
+        "not in" => (Op::In, true, None),
+        "is" => (Op::Eq, false, Some(SourceOperatorKind::IdentityEquality)),
+        "is not" => (Op::Eq, true, Some(SourceOperatorKind::IdentityInequality)),
         _ => return None,
     })
 }

@@ -145,6 +145,45 @@ pub struct ParamTypeFact {
     pub semantic: ParamSemantic,
 }
 
+/// Source-origin facts that must survive lowering before a semantic contract can
+/// consume them. These are evidence records, not semantic approval: contracts in
+/// `nose-semantics` decide whether a fact is sufficient for an exact rule.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub struct SourceFact {
+    pub span: Span,
+    pub kind: SourceFactKind,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceFactKind {
+    Operator(SourceOperatorKind),
+    Call(SourceCallKind),
+    Literal(SourceLiteralKind),
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceOperatorKind {
+    StrictEquality,
+    StrictInequality,
+    LooseEquality,
+    LooseInequality,
+    ValueEquality,
+    ValueInequality,
+    IdentityEquality,
+    IdentityInequality,
+    TypeMembership,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceCallKind {
+    Construct,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceLiteralKind {
+    Regex,
+}
+
 /// Loop flavor; see [`NodeKind::Loop`] for the child layout each implies.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum LoopKind {

@@ -17,7 +17,7 @@ mod sexpr;
 pub use intern::{stable_symbol_hash, symbol_index, Interner, Symbol, FNV_OFFSET_BASIS, FNV_PRIME};
 pub use node::{
     Builtin, HoFKind, LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact,
-    Payload,
+    Payload, SourceCallKind, SourceFact, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 
@@ -67,6 +67,11 @@ pub struct Il {
     /// connect these facts to canonical parameter ids for strict proof-gated rewrites.
     #[serde(default)]
     pub param_type_facts: Vec<ParamTypeFact>,
+    /// Source-origin evidence facts keyed by source span. These preserve facts that the
+    /// shared IL shape intentionally abstracts away, such as construct syntax, regex
+    /// literal syntax, and the original equality/operator family.
+    #[serde(default)]
+    pub source_facts: Vec<SourceFact>,
 }
 
 impl Il {
@@ -202,6 +207,7 @@ impl IlBuilder {
             cid_names,
             suppressed: Vec::new(),
             param_type_facts: Vec::new(),
+            source_facts: Vec::new(),
         }
     }
 }

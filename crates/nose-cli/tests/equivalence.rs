@@ -3693,6 +3693,7 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_set_inline =
         "function f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_set_local = "function f(value, other) { const values = new Set([\"red\", \"blue\"]); return values.has(value); }";
+    let js_set_call = "function f(value, other) { return Set([\"red\", \"blue\"]).has(value); }";
     let js_module_set =
         "const VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value, other) { return VALUES.has(value); }";
     let ts_module_set = "const VALUES = new Set<string>([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
@@ -3778,6 +3779,7 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     let js_nan_every = "function f(value, other) { return [NaN].every((item) => item !== value); }";
     let js_shadowed_set =
         "function f(Set, value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
+    let js_global_shadowed_set = "function Set(values) { return { has: function() { return false; } }; }\nfunction f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_module_set_mutated = "const VALUES = new Set([\"red\", \"blue\"]);\nVALUES.add(\"green\");\nfunction f(value, other) { return VALUES.has(value); }";
     let ts_module_set_shadowed = "const Set: any = function(_values: any) { return { has: function() { return false; } }; };\nconst VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
     let java_list_of = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
@@ -3844,10 +3846,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, py_deque_namespace, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_module_tuple, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_module_set, Lang::Python));
-    assert_ne!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
-    assert_ne!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
-    assert_ne!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
-    assert_ne!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, js_module_set, Lang::JavaScript));
+    assert_eq!(literal_fp, value_fp(&i, ts_module_set, Lang::TypeScript));
+    assert_ne!(literal_fp, value_fp(&i, js_set_call, Lang::JavaScript));
     assert_ne!(
         literal_fp,
         value_fp(&i, js_array_contains, Lang::JavaScript),
@@ -3937,6 +3940,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(
         literal_fp,
         value_fp(&i, js_wrong_collection, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_global_shadowed_set, Lang::JavaScript),
+        "construct syntax alone must not prove a shadowed JS Set global"
     );
     assert_ne!(
         literal_fp,
@@ -4239,6 +4247,8 @@ fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
     let ruby_literal = "def f(key, other)\n  {\"red\" => 1, \"blue\" => 2}.fetch(key, 0)\nend\n";
     let js_inline =
         "function f(key, other) { return new Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0; }";
+    let js_call =
+        "function f(key, other) { return Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0; }";
     let js_local = "function f(key, other) { const lookup = new Map([[\"red\", 1], [\"blue\", 2]]); return lookup.get(key) ?? 0; }";
     let js_has_get = "function f(key, other) { const lookup = new Map([[\"red\", 1], [\"blue\", 2]]); return lookup.has(key) ? lookup.get(key) : 0; }";
     let ts_inline = "function f(key: string, other: string): number { return new Map<string, number>([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0; }";
@@ -4250,18 +4260,25 @@ fn literal_map_default_lookup_converges_with_js_map_construction_boundaries() {
         "function f(key, other) { return new Map([[\"red\", 9], [\"blue\", 2]]).get(key) ?? 0; }";
     let js_untyped = "function f(lookup, key, other) { return lookup.get(key) ?? 0; }";
     let js_shadowed_map = "function f(key, other, Map) { return new Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0; }";
+    let js_global_shadowed_map = "function Map(entries) { return { get: function() { return 99; } }; }\nfunction f(key, other) { return new Map([[\"red\", 1], [\"blue\", 2]]).get(key) ?? 0; }";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
     assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
-    assert_ne!(fp, value_fp(&i, js_inline, Lang::JavaScript));
-    assert_ne!(fp, value_fp(&i, js_local, Lang::JavaScript));
-    assert_ne!(fp, value_fp(&i, js_has_get, Lang::JavaScript));
-    assert_ne!(fp, value_fp(&i, ts_inline, Lang::TypeScript));
+    assert_eq!(fp, value_fp(&i, js_inline, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, js_local, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, js_has_get, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, ts_inline, Lang::TypeScript));
+    assert_ne!(fp, value_fp(&i, js_call, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_default, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_wrong_map, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_untyped, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, js_shadowed_map, Lang::JavaScript));
+    assert_ne!(
+        fp,
+        value_fp(&i, js_global_shadowed_map, Lang::JavaScript),
+        "construct syntax alone must not prove a shadowed JS Map global"
+    );
 }
 
 #[test]
@@ -4426,8 +4443,8 @@ fn literal_map_default_lookup_converges_with_module_map_bindings() {
     let java_shadowed = "class C { static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2); static int f(String key, String other) { return LOOKUP.getOrDefault(key, 0); } }\nclass Map { static java.util.Map<String, Integer> of(Object... values) { return java.util.Map.of(); } }\n";
 
     let fp = value_fp(&i, py_literal, Lang::Python);
-    assert_ne!(fp, value_fp(&i, js_module, Lang::JavaScript));
-    assert_ne!(fp, value_fp(&i, ts_module, Lang::TypeScript));
+    assert_eq!(fp, value_fp(&i, js_module, Lang::JavaScript));
+    assert_eq!(fp, value_fp(&i, ts_module, Lang::TypeScript));
     assert_eq!(fp, value_fp(&i, java_static, Lang::Java));
     assert_ne!(fp, value_fp(&i, js_wrong_key, Lang::JavaScript));
     assert_ne!(fp, value_fp(&i, ts_wrong_default, Lang::TypeScript));

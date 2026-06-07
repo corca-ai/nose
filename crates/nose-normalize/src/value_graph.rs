@@ -37,28 +37,30 @@
 
 mod rules;
 
-use crate::combine;
 use crate::module_facts::{
     assignment_name_in_scope, collect_all_node_symbols_in_scope, collect_module_mutations_in_scope,
     local_scope_nodes, mutating_method_name, node_symbol_in_scope,
     shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
 use crate::types::Ty;
+use crate::{combine, contains_js_ident};
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
     Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
+    builder_append_method_contract, builtin_tag, construct_syntax_proof,
+    domain_evidence_from_param_semantic, exact_static_membership_predicate_operator,
     free_function_builtin_contract, go_zero_map_default_kind, go_zero_map_lookup_contract,
     import_fact_contract, import_namespace_rhs_matches, imported_namespace_function_contract,
     iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
-    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash,
+    js_like_map_constructor_contract, js_like_set_constructor_contract, map_get_contract_by_hash,
     map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
     nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
     rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, rust_vec_new_factory_contract,
-    scalar_integer_method_contract, semantics, seq_surface_contract,
+    scalar_integer_method_contract, semantics, seq_surface_contract, source_operator_at_node,
     static_index_membership_contract, BuiltinArgContract, CardinalityPredicate,
     CardinalityThreshold, ComparisonLaw, DomainEvidence, GoZeroMapDefaultKind, ImportFactKind,
     ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
@@ -1377,6 +1379,40 @@ impl<'a> Builder<'a> {
         Some(args[1..].to_vec())
     }
 
+    fn eval_js_like_constructed_collection_or_map(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if !construct_syntax_proof(self.il, expr)
+            || kids.len() != 2
+            || self.il.kind(kids[0]) != NodeKind::Var
+        {
+            return None;
+        }
+        let Payload::Name(name) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let constructor = self.interner.resolve(name);
+        if let Some(contract) = js_like_set_constructor_contract(self.il.meta.lang, constructor) {
+            if contract.requires_unshadowed_global && self.file_defines_name(contract.receiver) {
+                return None;
+            }
+            if !self.is_static_non_float_collection_expr(kids[1]) {
+                return None;
+            }
+            return Some(self.eval_membership_collection(kids[1], env));
+        }
+        let contract = js_like_map_constructor_contract(self.il.meta.lang, constructor)?;
+        if contract.requires_unshadowed_global && self.file_defines_name(contract.receiver) {
+            return None;
+        }
+        let entry_seq_tag = contract.entry_seq_tag?;
+        let entries = self.eval(kids[1], env);
+        self.map_factory_from_seq(entries, entry_seq_tag)
+    }
+
     fn proven_go_literal_zero_map_value(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
         let contract = go_zero_map_lookup_contract(self.il.meta.lang)?;
         let node = &self.nodes[value as usize];
@@ -1609,14 +1645,12 @@ impl<'a> Builder<'a> {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             let receiver_value = self.eval(receiver, env);
-            if contract.receiver != MethodReceiverContract::ExactSetOrMap {
-                if let Some(collection) = self
-                    .proven_collection_value(receiver_value)
-                    .or_else(|| self.proven_local_collection_binding_value(receiver, env))
-                {
-                    let collection = self.canonical_membership_collection_value(collection);
-                    return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
-                }
+            if let Some(collection) = self
+                .proven_collection_value(receiver_value)
+                .or_else(|| self.proven_local_collection_binding_value(receiver, env))
+            {
+                let collection = self.canonical_membership_collection_value(collection);
+                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             None
         } else if contract.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
@@ -5947,6 +5981,7 @@ impl<'a> Builder<'a> {
                     if carried_guard.is_none()
                         && code == REDUCE_ANY
                         && self.is_static_non_float_collection_expr(kids[0])
+                        && self.lambda_return_source_operator_allowed(kids[1], Op::Eq)
                     {
                         if let Some((element, collection)) =
                             self.static_literal_membership_predicate(pred)
@@ -5959,6 +5994,7 @@ impl<'a> Builder<'a> {
                     if carried_guard.is_none()
                         && code == REDUCE_ALL
                         && self.is_static_non_float_collection_expr(kids[0])
+                        && self.lambda_return_source_operator_allowed(kids[1], Op::Ne)
                     {
                         if let Some((element, collection)) =
                             self.static_literal_absence_predicate(pred)
@@ -6095,6 +6131,9 @@ impl<'a> Builder<'a> {
         if !self.is_static_non_float_collection_expr(source) {
             return None;
         }
+        if !self.lambda_return_source_operator_allowed(predicate, Op::Eq) {
+            return None;
+        }
         let collection = self.eval(source, env);
         let elem = self.elem(collection);
         let pred = self.eval_lambda_body(predicate, &[elem], env)?;
@@ -6214,6 +6253,9 @@ impl<'a> Builder<'a> {
                 Some((element, collection))
             }
             StaticIndexMembershipKind::FindIndex if self.il.kind(kids[1]) == NodeKind::Lambda => {
+                if !self.lambda_return_source_operator_allowed(kids[1], Op::Eq) {
+                    return None;
+                }
                 let collection = self.eval(receiver, env);
                 let elem = self.elem(collection);
                 let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
@@ -6880,6 +6922,34 @@ impl<'a> Builder<'a> {
     /// returning the value of its first `return` (intermediate assignments update the
     /// local env). Used to unfold a `map`/`reduce` lambda over a canonical `Elem`, and the
     /// `.then` continuation callback (see `rules::promise_then`).
+    fn lambda_return_source_operator_allowed(&self, lambda: NodeId, op: Op) -> bool {
+        let Some(ret) = self.lambda_first_return_expr(lambda) else {
+            return false;
+        };
+        if self.il.kind(ret) != NodeKind::BinOp
+            || !matches!(self.il.node(ret).payload, Payload::Op(actual) if actual == op)
+        {
+            return false;
+        }
+        source_operator_at_node(self.il, ret).is_some_and(|source| {
+            exact_static_membership_predicate_operator(self.il.meta.lang, op, source)
+        })
+    }
+
+    fn lambda_first_return_expr(&self, node: NodeId) -> Option<NodeId> {
+        if self.il.kind(node) == NodeKind::Return {
+            return self.il.children(node).first().copied();
+        }
+        if self.il.kind(node) == NodeKind::Block || self.il.kind(node) == NodeKind::Lambda {
+            return self
+                .il
+                .children(node)
+                .iter()
+                .find_map(|&child| self.lambda_first_return_expr(child));
+        }
+        None
+    }
+
     fn eval_lambda_body(
         &mut self,
         lambda: NodeId,
@@ -7557,6 +7627,9 @@ impl<'a> Builder<'a> {
                 if kids.len() == 1 && self.is_rust_vec_new_call(kids[0]) {
                     return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
                 }
+                if let Some(v) = self.eval_js_like_constructed_collection_or_map(expr, &kids, env) {
+                    return v;
+                }
                 if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
                     return v;
                 }
@@ -8113,18 +8186,6 @@ fn is_assoc_comm_code(opc: u32) -> bool {
         || opc == Op::BitAnd as u32
         || opc == Op::BitOr as u32
         || opc == Op::BitXor as u32
-}
-
-fn contains_js_ident(text: &str, ident: &str) -> bool {
-    text.match_indices(ident).any(|(idx, _)| {
-        let before = text[..idx].chars().next_back();
-        let after = text[idx + ident.len()..].chars().next();
-        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
-    })
-}
-
-fn is_js_ident_continue(c: char) -> bool {
-    c == '_' || c == '$' || c.is_ascii_alphanumeric()
 }
 
 /// `Reduce` op codes for the selection reductions (min/max). Kept clear of the small

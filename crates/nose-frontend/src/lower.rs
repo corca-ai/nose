@@ -4,7 +4,7 @@
 
 use nose_il::{
     FileId, FileMeta, Il, IlBuilder, Interner, Lang, LoopKind, NodeId, NodeKind, Op, ParamSemantic,
-    ParamTypeFact, Payload, Span, Symbol, Unit, UnitKind,
+    ParamTypeFact, Payload, SourceFact, SourceFactKind, Span, Symbol, Unit, UnitKind,
 };
 use nose_semantics::{import_fact_tag, ImportFactKind};
 use tree_sitter::Node as TsNode;
@@ -17,6 +17,7 @@ pub(crate) struct Lowering<'a> {
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
     pub param_type_facts: Vec<ParamTypeFact>,
+    pub source_facts: Vec<SourceFact>,
     pub param_semantic_aliases: Vec<(String, ParamSemantic)>,
     pub unsigned_32_aliases: Vec<String>,
 }
@@ -30,6 +31,7 @@ impl<'a> Lowering<'a> {
             interner,
             units: Vec::new(),
             param_type_facts: Vec::new(),
+            source_facts: Vec::new(),
             param_semantic_aliases: Vec::new(),
             unsigned_32_aliases: Vec::new(),
         }
@@ -67,6 +69,10 @@ impl<'a> Lowering<'a> {
 
     pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
         self.param_type_facts.push(ParamTypeFact { span, semantic });
+    }
+
+    pub(crate) fn record_source_fact(&mut self, span: Span, kind: SourceFactKind) {
+        self.source_facts.push(SourceFact { span, kind });
     }
 
     pub(crate) fn record_param_semantic_alias(&mut self, local: &str, semantic: ParamSemantic) {
@@ -352,8 +358,10 @@ pub(crate) fn lower_file_with_setup(
     };
     let units = std::mem::take(&mut lo.units);
     let param_type_facts = std::mem::take(&mut lo.param_type_facts);
+    let source_facts = std::mem::take(&mut lo.source_facts);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
     il.param_type_facts = param_type_facts;
+    il.source_facts = source_facts;
     drop_suppressed_units(&mut il, src);
     Ok(il)
 }

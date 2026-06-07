@@ -13,16 +13,17 @@ use nose_normalize::{
     node_tag,
 };
 use nose_semantics::{
-    builder_append_call_args, domain_evidence_from_param_semantic, exact_java_return_this,
-    exact_java_this_field, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, go_zero_map_default_kind,
-    go_zero_map_lookup_contract, import_binding_rhs_matches, import_namespace_rhs_matches,
-    iterator_identity_adapter_contract, java_collection_factory_contract, java_map_entry_contract,
-    java_map_factory_contract, js_array_is_array_contract, js_like_map_constructor_contract,
-    js_like_set_constructor_contract, map_get_contract, map_key_view_contract,
-    map_key_view_wrapper_contract, method_call_contract, nullish_global_contract,
-    regex_test_contract, ruby_set_factory_contract, rust_vec_new_factory_contract, semantics,
-    seq_surface_contract, static_index_membership_contract, typeof_operator_contract,
+    builder_append_call_args, construct_syntax_proof, domain_evidence_from_param_semantic,
+    exact_java_return_this, exact_java_this_field, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
+    go_zero_map_default_kind, go_zero_map_lookup_contract, import_binding_rhs_matches,
+    import_namespace_rhs_matches, iterator_identity_adapter_contract,
+    java_collection_factory_contract, java_map_entry_contract, java_map_factory_contract,
+    js_array_is_array_contract, js_like_map_constructor_contract, js_like_set_constructor_contract,
+    map_get_contract, map_key_view_contract, map_key_view_wrapper_contract, method_call_contract,
+    nullish_global_contract, regex_test_contract, ruby_set_factory_contract,
+    rust_vec_new_factory_contract, semantics, seq_surface_contract, source_fact_at_node,
+    source_operator_at_node, static_index_membership_contract, typeof_operator_contract,
     IndexMembershipThreshold, JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs,
     MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
@@ -1120,6 +1121,10 @@ fn strict_exact_lambda_eq_param_element(
     if il.kind(ret) != NodeKind::BinOp || !matches!(il.node(ret).payload, Payload::Op(Op::Eq)) {
         return None;
     }
+    let source_operator = source_operator_at_node(il, ret)?;
+    if !exact_static_membership_predicate_operator(il.meta.lang, Op::Eq, source_operator) {
+        return None;
+    }
     let ret_kids = il.children(ret);
     if ret_kids.len() != 2 {
         return None;
@@ -1274,8 +1279,10 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         return false;
     };
     let method = interner.resolve(name);
-    if strict_exact_requires_regex_literal_proof(il, node, callee, method) {
-        return false;
+    if let Some(regex_safe) =
+        strict_exact_regex_test_safe(il, interner, facts, node, callee, method)
+    {
+        return regex_safe;
     }
     if strict_exact_js_array_is_array_safe(il, interner, facts, node, callee, method) {
         return true;
@@ -1321,26 +1328,26 @@ fn strict_exact_typeof_operator_safe(
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
 
-fn strict_exact_requires_regex_literal_proof(
+fn strict_exact_regex_test_safe(
     il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
     node: NodeId,
     callee: NodeId,
     method: &str,
-) -> bool {
-    let Some(contract) = regex_test_contract(
+) -> Option<bool> {
+    let contract = regex_test_contract(
         il.meta.lang,
         method,
         il.children(node).len().saturating_sub(1),
-    ) else {
-        return false;
-    };
-    if !contract.requires_regex_literal_proof {
-        return false;
-    }
+    )?;
     let Some(&receiver) = il.children(callee).first() else {
-        return false;
+        return Some(false);
     };
-    matches!(il.node(receiver).payload, Payload::LitStr(_))
+    Some(
+        source_fact_at_node(il, receiver, contract.required_receiver_fact)
+            && strict_exact_call_args_safe(il, interner, facts, node),
+    )
 }
 
 fn strict_exact_js_array_is_array_safe(
@@ -1414,6 +1421,7 @@ fn strict_exact_collection_contains_call_safe(
                 return false;
             };
             strict_exact_typed_set_param_receiver_safe(il, receiver)
+                || strict_exact_set_constructor_collection_safe(il, interner, facts, receiver)
         }
         _ => false,
     };
@@ -1842,18 +1850,42 @@ fn strict_exact_membership_collection_safe(
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
 }
 
+fn strict_exact_two_arg_var_call(il: &Il, node: NodeId) -> Option<(Symbol, NodeId)> {
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let [callee, argument] = il.children(node) else {
+        return None;
+    };
+    if il.kind(*callee) != NodeKind::Var {
+        return None;
+    }
+    match il.node(*callee).payload {
+        Payload::Name(name) => Some((name, *argument)),
+        _ => None,
+    }
+}
+
 fn strict_exact_set_constructor_collection_safe(
     il: &Il,
-    _interner: &Interner,
+    interner: &Interner,
     _facts: &StrictFacts,
-    _node: NodeId,
+    node: NodeId,
 ) -> bool {
-    // JS `new Set(xs)` and plain `Set(xs)` currently lower to the same call
-    // shape, so exact constructor semantics must wait for a construct proof.
-    if js_like_set_constructor_contract(il.meta.lang, "Set").is_none() {
+    if !construct_syntax_proof(il, node) {
         return false;
-    }
-    false
+    };
+    let Some((name, collection)) = strict_exact_two_arg_var_call(il, node) else {
+        return false;
+    };
+    let Some(contract) = js_like_set_constructor_contract(il.meta.lang, interner.resolve(name))
+    else {
+        return false;
+    };
+    contract.receiver == "Set"
+        && (!contract.requires_unshadowed_global
+            || !file_defines_name(il, interner, contract.receiver))
+        && strict_exact_static_non_float_collection(il, interner, collection)
 }
 
 fn strict_exact_python_collection_factory_safe(
@@ -2113,15 +2145,10 @@ fn strict_exact_rust_std_collection_factory_safe(
     if !semantics(il.meta.lang)
         .stdlib()
         .rust_std_collection_factories()
-        || il.kind(node) != NodeKind::Call
     {
         return false;
     }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(name) = il.node(kids[0]).payload else {
+    let Some((name, collection)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let name = interner.resolve(name);
@@ -2135,7 +2162,7 @@ fn strict_exact_rust_std_collection_factory_safe(
     if !strict_exact_free_name_factory_shadow_safe(il, interner, name, factory.shadow_guard) {
         return false;
     }
-    strict_exact_membership_collection_safe(il, interner, facts, kids[1])
+    strict_exact_membership_collection_safe(il, interner, facts, collection)
 }
 
 fn strict_exact_java_collection_factory_safe(
@@ -2303,16 +2330,24 @@ fn strict_exact_java_map_entry_safe(
 
 fn strict_exact_map_constructor_entries_safe(
     il: &Il,
-    _interner: &Interner,
-    _facts: &StrictFacts,
-    _node: NodeId,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
 ) -> bool {
-    // JS `new Map(entries)` and plain `Map(entries)` currently lower to the same
-    // call shape, so exact constructor semantics must wait for a construct proof.
-    if js_like_map_constructor_contract(il.meta.lang, "Map").is_none() {
+    if !construct_syntax_proof(il, node) {
         return false;
     }
-    false
+    let Some((name, entries)) = strict_exact_two_arg_var_call(il, node) else {
+        return false;
+    };
+    let Some(contract) = js_like_map_constructor_contract(il.meta.lang, interner.resolve(name))
+    else {
+        return false;
+    };
+    contract.receiver == "Map"
+        && (!contract.requires_unshadowed_global
+            || !file_defines_name(il, interner, contract.receiver))
+        && strict_exact_map_entries_safe(il, interner, facts, entries)
 }
 
 fn strict_exact_rust_std_map_factory_safe(
@@ -2321,15 +2356,10 @@ fn strict_exact_rust_std_map_factory_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if !semantics(il.meta.lang).stdlib().rust_std_map_factories() || il.kind(node) != NodeKind::Call
-    {
+    if !semantics(il.meta.lang).stdlib().rust_std_map_factories() {
         return false;
     }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(name) = il.node(kids[0]).payload else {
+    let Some((name, entries)) = strict_exact_two_arg_var_call(il, node) else {
         return false;
     };
     let name = interner.resolve(name);
@@ -2343,7 +2373,7 @@ fn strict_exact_rust_std_map_factory_safe(
     if !strict_exact_free_name_factory_shadow_safe(il, interner, name, false) {
         return false;
     }
-    strict_exact_map_entries_safe(il, interner, facts, kids[1])
+    strict_exact_map_entries_safe(il, interner, facts, entries)
 }
 
 fn strict_exact_free_name_factory_shadow_safe(

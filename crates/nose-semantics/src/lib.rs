@@ -8,7 +8,7 @@
 
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LitClass, NodeId, NodeKind, Op,
-    ParamSemantic, Payload,
+    ParamSemantic, Payload, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
 };
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
@@ -29,6 +29,86 @@ pub enum PackTrust {
     DefaultFirstParty,
     FirstPartyOptional,
     ExternalOptIn,
+}
+
+/// Source facts are evidence records emitted by a language frontend or future
+/// pack. They preserve source distinctions that the shared IL intentionally
+/// abstracts away; a fact only matters when a semantic contract consumes it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SourceFactContract {
+    pub kind: SourceFactKind,
+    pub channel: ChannelEligibility,
+}
+
+pub fn source_fact_contract(kind: SourceFactKind) -> SourceFactContract {
+    SourceFactContract {
+        kind,
+        channel: ChannelEligibility::ExactProven,
+    }
+}
+
+pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool {
+    let span = il.node(node).span;
+    il.source_facts
+        .iter()
+        .any(|fact| fact.span == span && fact.kind == kind)
+}
+
+pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKind> {
+    let span = il.node(node).span;
+    il.source_facts.iter().find_map(|fact| {
+        (fact.span == span)
+            .then_some(fact.kind)
+            .and_then(|kind| match kind {
+                SourceFactKind::Operator(operator) => Some(operator),
+                SourceFactKind::Call(_) | SourceFactKind::Literal(_) => None,
+            })
+    })
+}
+
+pub fn source_call_at_node(il: &Il, node: NodeId) -> Option<SourceCallKind> {
+    let span = il.node(node).span;
+    il.source_facts.iter().find_map(|fact| {
+        (fact.span == span)
+            .then_some(fact.kind)
+            .and_then(|kind| match kind {
+                SourceFactKind::Call(call) => Some(call),
+                SourceFactKind::Operator(_) | SourceFactKind::Literal(_) => None,
+            })
+    })
+}
+
+pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind> {
+    let span = il.node(node).span;
+    il.source_facts.iter().find_map(|fact| {
+        (fact.span == span)
+            .then_some(fact.kind)
+            .and_then(|kind| match kind {
+                SourceFactKind::Literal(literal) => Some(literal),
+                SourceFactKind::Operator(_) | SourceFactKind::Call(_) => None,
+            })
+    })
+}
+
+pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {
+    source_call_at_node(il, node) == Some(SourceCallKind::Construct)
+}
+
+pub fn regex_literal_proof(il: &Il, node: NodeId) -> bool {
+    source_literal_at_node(il, node) == Some(SourceLiteralKind::Regex)
+}
+
+pub fn exact_static_membership_predicate_operator(
+    lang: Lang,
+    op: Op,
+    source: SourceOperatorKind,
+) -> bool {
+    js_like_lang(lang)
+        && matches!(
+            (op, source),
+            (Op::Eq, SourceOperatorKind::StrictEquality)
+                | (Op::Ne, SourceOperatorKind::StrictInequality)
+        )
 }
 
 /// Kernel-facing domain evidence recovered from source facts, type inference, or future packs.
@@ -1794,6 +1874,8 @@ pub enum ConstructorProofRequirement {
 pub struct ClosedConstructorContract {
     pub receiver: &'static str,
     pub required_proof: ConstructorProofRequirement,
+    pub requires_unshadowed_global: bool,
+    pub entry_seq_tag: Option<u64>,
 }
 
 pub fn js_like_set_constructor_contract(
@@ -1803,6 +1885,8 @@ pub fn js_like_set_constructor_contract(
     (js_like_lang(lang) && receiver == "Set").then_some(ClosedConstructorContract {
         receiver: "Set",
         required_proof: ConstructorProofRequirement::ConstructSyntax,
+        requires_unshadowed_global: true,
+        entry_seq_tag: None,
     })
 }
 
@@ -1813,6 +1897,8 @@ pub fn js_like_map_constructor_contract(
     (js_like_lang(lang) && receiver == "Map").then_some(ClosedConstructorContract {
         receiver: "Map",
         required_proof: ConstructorProofRequirement::ConstructSyntax,
+        requires_unshadowed_global: true,
+        entry_seq_tag: Some(SEQ_VALUE_COLLECTION),
     })
 }
 
@@ -2036,7 +2122,7 @@ pub fn js_array_is_array_contract(
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct RegexTestContract {
     pub method: &'static str,
-    pub requires_regex_literal_proof: bool,
+    pub required_receiver_fact: SourceFactKind,
 }
 
 pub fn regex_test_contract(
@@ -2046,7 +2132,7 @@ pub fn regex_test_contract(
 ) -> Option<RegexTestContract> {
     (js_like_lang(lang) && method == "test" && arg_count == 1).then_some(RegexTestContract {
         method: "test",
-        requires_regex_literal_proof: true,
+        required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
     })
 }
 
@@ -2441,7 +2527,7 @@ pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, ParamSemantic, Span, Unit, UnitKind};
+    use nose_il::{FileId, FileMeta, IlBuilder, ParamSemantic, SourceFact, Span, Unit, UnitKind};
 
     const ALL_LANGS: &[Lang] = &[
         Lang::Python,
@@ -3250,6 +3336,8 @@ mod tests {
             Some(ClosedConstructorContract {
                 receiver: "Set",
                 required_proof: ConstructorProofRequirement::ConstructSyntax,
+                requires_unshadowed_global: true,
+                entry_seq_tag: None,
             })
         );
         assert_eq!(
@@ -3257,6 +3345,8 @@ mod tests {
             Some(ClosedConstructorContract {
                 receiver: "Map",
                 required_proof: ConstructorProofRequirement::ConstructSyntax,
+                requires_unshadowed_global: true,
+                entry_seq_tag: Some(SEQ_VALUE_COLLECTION),
             })
         );
         assert_eq!(js_like_map_constructor_contract(Lang::Java, "Map"), None);
@@ -3427,7 +3517,7 @@ mod tests {
             regex_test_contract(Lang::JavaScript, "test", 1),
             Some(RegexTestContract {
                 method: "test",
-                requires_regex_literal_proof: true,
+                required_receiver_fact: SourceFactKind::Literal(SourceLiteralKind::Regex),
             })
         );
         assert_eq!(regex_test_contract(Lang::Ruby, "test", 1), None);
@@ -3758,5 +3848,59 @@ mod tests {
             builder_append_call_args(&rust_il, &interner, push_call),
             None
         );
+    }
+
+    #[test]
+    fn source_fact_contracts_are_span_keyed_evidence() {
+        let mut b = IlBuilder::new(FileId(0));
+        let call = b.add(NodeKind::Call, Payload::None, sp(7), &[]);
+        let regex = b.add(NodeKind::Lit, Payload::LitStr(42), sp(8), &[]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(7), &[call, regex]);
+        let mut il = finish_il(b, root, Lang::JavaScript);
+        il.source_facts.push(SourceFact {
+            span: sp(7),
+            kind: SourceFactKind::Call(SourceCallKind::Construct),
+        });
+        il.source_facts.push(SourceFact {
+            span: sp(8),
+            kind: SourceFactKind::Literal(SourceLiteralKind::Regex),
+        });
+
+        assert!(construct_syntax_proof(&il, call));
+        assert!(regex_literal_proof(&il, regex));
+        assert!(!construct_syntax_proof(&il, regex));
+        assert_eq!(
+            source_fact_contract(SourceFactKind::Call(SourceCallKind::Construct)).channel,
+            ChannelEligibility::ExactProven
+        );
+    }
+
+    #[test]
+    fn static_membership_predicate_operator_requires_js_strict_equality() {
+        assert!(exact_static_membership_predicate_operator(
+            Lang::JavaScript,
+            Op::Eq,
+            SourceOperatorKind::StrictEquality
+        ));
+        assert!(exact_static_membership_predicate_operator(
+            Lang::TypeScript,
+            Op::Ne,
+            SourceOperatorKind::StrictInequality
+        ));
+        assert!(!exact_static_membership_predicate_operator(
+            Lang::JavaScript,
+            Op::Eq,
+            SourceOperatorKind::LooseEquality
+        ));
+        assert!(!exact_static_membership_predicate_operator(
+            Lang::Python,
+            Op::Eq,
+            SourceOperatorKind::ValueEquality
+        ));
+        assert!(!exact_static_membership_predicate_operator(
+            Lang::JavaScript,
+            Op::Eq,
+            SourceOperatorKind::TypeMembership
+        ));
     }
 }
