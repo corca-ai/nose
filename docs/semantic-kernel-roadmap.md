@@ -136,6 +136,16 @@ and pack ecosystem.
   behind language/arity/global-shadow contracts, and literal `.test(...)` remains
   exact-closed until regex-literal provenance exists. This closes raw-name
   bypasses found after PR #101.
+- Normalize idiom receiver admission for iterator identity adapters and Rust
+  `zip` now consumes the same semantic contracts as value-graph/detect paths,
+  closing language-blind `iter`/`zip` selector bypasses.
+- JS-like `Math.abs`/`Math.min`/`Math.max` now consume method contracts with an
+  unshadowed `Math` receiver, and JS record-shape guards using `Boolean(...)`
+  consume a static-global function contract with an unshadowed `Boolean`
+  requirement.
+- Value-graph two-argument free `min(...)`/`max(...)` now consumes the Python
+  free-function builtin contract instead of the raw callee name, closing
+  unqualified JS `min(...)` and local-shadowing false positives.
 
 ## Phase 0: documentation and vocabulary (landed)
 

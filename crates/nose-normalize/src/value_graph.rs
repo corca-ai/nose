@@ -50,19 +50,19 @@ use nose_il::{
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, domain_evidence_from_param_semantic,
-    go_zero_map_default_kind, go_zero_map_lookup_contract, imported_namespace_function_contract,
-    index_membership_threshold_contract, iterator_identity_adapter_contract,
-    java_collection_factory_contract_by_hash, java_map_entry_contract_by_hash,
-    java_map_factory_contract_by_hash, map_get_contract_by_hash, map_key_view_contract_by_hash,
-    map_key_view_wrapper_contract_by_hash, method_call_contract, nullish_global_contract,
-    reduction_builtin_contract, ruby_set_factory_contract_by_hash, rust_option_and_then_contract,
-    rust_option_none_sentinel_contract, rust_option_some_constructor_contract,
-    rust_vec_new_factory_contract, scalar_integer_method_contract, semantics,
-    static_index_membership_contract, DomainEvidence, GoZeroMapDefaultKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
-    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    StaticIndexMembershipKind,
+    free_function_builtin_contract, go_zero_map_default_kind, go_zero_map_lookup_contract,
+    imported_namespace_function_contract, index_membership_threshold_contract,
+    iterator_identity_adapter_contract, java_collection_factory_contract_by_hash,
+    java_map_entry_contract_by_hash, java_map_factory_contract_by_hash, map_get_contract_by_hash,
+    map_key_view_contract_by_hash, map_key_view_wrapper_contract_by_hash, method_call_contract,
+    nullish_global_contract, reduction_builtin_contract, ruby_set_factory_contract_by_hash,
+    rust_option_and_then_contract, rust_option_none_sentinel_contract,
+    rust_option_some_constructor_contract, rust_vec_new_factory_contract,
+    scalar_integer_method_contract, semantics, static_index_membership_contract,
+    BuiltinArgContract, DomainEvidence, GoZeroMapDefaultKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract,
+    ScalarIntegerMethod, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::sync::OnceLock;
@@ -1074,10 +1074,37 @@ impl<'a> Builder<'a> {
         }) || self.il.units.iter().any(|unit| {
             unit.name
                 .is_some_and(|symbol| self.interner.resolve(symbol) == name)
-        }) || self.il.nodes.iter().any(|node| {
-            matches!(node.kind, NodeKind::Module | NodeKind::Block)
-                && matches!(node.payload, Payload::Name(symbol) if self.interner.resolve(symbol) == name)
+        }) || self.il.nodes.iter().enumerate().any(|(idx, node)| {
+            let id = NodeId(idx as u32);
+            match node.kind {
+                NodeKind::Module | NodeKind::Block | NodeKind::Param => {
+                    self.node_has_name(id, name)
+                }
+                NodeKind::Assign => self
+                    .il
+                    .children(id)
+                    .first()
+                    .is_some_and(|&lhs| self.node_has_name(lhs, name)),
+                _ => false,
+            }
         })
+    }
+
+    fn node_has_name(&self, node: NodeId, name: &str) -> bool {
+        match self.il.node(node).payload {
+            Payload::Name(symbol) => self.symbol_defines_name(symbol, name),
+            Payload::Cid(cid) => self
+                .il
+                .cid_names
+                .get(cid as usize)
+                .is_some_and(|symbol| self.symbol_defines_name(*symbol, name)),
+            _ => false,
+        }
+    }
+
+    fn symbol_defines_name(&self, symbol: Symbol, name: &str) -> bool {
+        let text = self.interner.resolve(symbol);
+        text == name || (self.is_js_like_lang() && contains_js_ident(text, name))
     }
 
     fn ruby_file_requires_module(&self, module: &str) -> bool {
@@ -1721,6 +1748,32 @@ impl<'a> Builder<'a> {
             return None;
         }
         Some(self.mk(ValOp::Bin(op), vec![receiver, rhs]))
+    }
+
+    fn eval_proven_free_minmax_call(
+        &mut self,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if kids.len() != 3 || self.il.kind(kids[0]) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(name) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let method = self.interner.resolve(name);
+        let contract = free_function_builtin_contract(self.il.meta.lang, method, 2)?;
+        if contract.requires_unshadowed && self.file_defines_name(method) {
+            return None;
+        }
+        let op = match (contract.builtin, contract.args) {
+            (Builtin::Min, BuiltinArgContract::All) => MIN_CODE,
+            (Builtin::Max, BuiltinArgContract::All) => MAX_CODE,
+            _ => return None,
+        };
+        let left = self.eval(kids[1], env);
+        let right = self.eval(kids[2], env);
+        Some(self.mk(ValOp::Bin(op), vec![left, right]))
     }
 
     fn eval_proven_integer_clamp_method_call(
@@ -7304,27 +7357,8 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
                     return v;
                 }
-                // 2-way `min(x, y)` / `max(x, y)` → canonical Min/Max, converging with the
-                // ternary idiom `x if x<y else y`. (1-arg `min(iterable)` is a reduction,
-                // handled above.) The callee is a free `Var` keeping its name after alpha.
-                if kids.len() == 3 {
-                    if let (NodeKind::Var, Payload::Name(s)) =
-                        (self.il.kind(kids[0]), self.il.node(kids[0]).payload)
-                    {
-                        let method = self.interner.resolve(s);
-                        let code = match method {
-                            "min" => Some(MIN_CODE),
-                            "max" => Some(MAX_CODE),
-                            _ => None,
-                        };
-                        if let Some(c) = code {
-                            if !self.file_defines_name(method) {
-                                let x = self.eval(kids[1], env);
-                                let y = self.eval(kids[2], env);
-                                return self.mk(ValOp::Bin(c), vec![x, y]);
-                            }
-                        }
-                    }
+                if let Some(v) = self.eval_proven_free_minmax_call(&kids, env) {
+                    return v;
                 }
                 if let Some(r) = self.eval_proven_collection_membership_call(&kids, env) {
                     return r;
@@ -7867,6 +7901,18 @@ fn is_assoc_comm_code(opc: u32) -> bool {
         || opc == Op::BitAnd as u32
         || opc == Op::BitOr as u32
         || opc == Op::BitXor as u32
+}
+
+fn contains_js_ident(text: &str, ident: &str) -> bool {
+    text.match_indices(ident).any(|(idx, _)| {
+        let before = text[..idx].chars().next_back();
+        let after = text[idx + ident.len()..].chars().next();
+        !before.is_some_and(is_js_ident_continue) && !after.is_some_and(is_js_ident_continue)
+    })
+}
+
+fn is_js_ident_continue(c: char) -> bool {
+    c == '_' || c == '$' || c.is_ascii_alphanumeric()
 }
 
 /// `Reduce` op codes for the selection reductions (min/max). Kept clear of the small

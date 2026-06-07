@@ -59,6 +59,10 @@ migrated.
   closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained.
+  Normalize's exact protocol receiver admission consumes this same contract
+  instead of accepting same-named methods from other languages.
+- Rust method `zip(...)` is admitted as a protocol-pair operation only through
+  the Rust `method_call_contract` and exact protocol proof for both sides.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
   selector and shadow-root requirement through `nose-semantics`;
@@ -112,14 +116,21 @@ migrated.
 - Imported namespace function contracts now cover Python `math.prod` as a product
   reduction only when the receiver is proven to be the imported `math` namespace.
   Bare globals named `math` and overwritten module bindings stay exact-closed.
-- Java `Math.abs`/`Math.min`/`Math.max` now lower through method contracts with an
-  unshadowed `Math` receiver requirement instead of frontend text-only builtin
-  lowering.
+- Java and JS-like `Math.abs`/`Math.min`/`Math.max` now lower through method
+  contracts with an unshadowed `Math` receiver requirement instead of frontend
+  text-only builtin lowering.
+- Two-argument free `min(...)`/`max(...)` normalization consumes the Python
+  free-function builtin contract. Same-named functions from other languages,
+  including JS `min(...)`, and locally shadowed Python names stay exact-closed.
 - JS-like `typeof` exact-safety now consumes a language- and arity-constrained
   operator contract. A same-named function from another language or unresolved
   provider is not treated as the JS operator.
 - JS-like `Array.isArray(...)` exact-safety now consumes a static-global method
   contract and requires the `Array` global to be unshadowed.
+- JS-like record-shape guards that use `Boolean(value)` as the non-null/truthy
+  clause consume a static-global function contract and require the `Boolean`
+  global to be unshadowed. `value !== null` and `!!value` remain available when
+  their own clauses prove the same record shape.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
