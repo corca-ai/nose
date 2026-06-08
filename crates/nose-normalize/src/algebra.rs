@@ -26,11 +26,18 @@ use nose_semantics::{semantics, ComparisonLaw};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner) -> Il {
+    if !old
+        .nodes
+        .iter()
+        .any(|node| matches!(node.kind, NodeKind::BinOp | NodeKind::UnOp))
+    {
+        return old.clone();
+    }
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rw = Rewriter {
         old,
-        b: IlBuilder::new(old.file),
-        hashes: Vec::new(),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
+        hashes: Vec::with_capacity(old.nodes.len()),
         remap: FxHashMap::default(),
         unit_root_set,
         interner,
@@ -109,10 +116,12 @@ impl Rewriter<'_> {
 
     fn generic(&mut self, old_id: NodeId, span: Span) -> (NodeId, u64) {
         let n = *self.old.node(old_id);
-        let mut kids = Vec::new();
-        let mut khashes = Vec::new();
-        for &c in self.old.children(old_id).to_vec().iter() {
-            let (id, h) = self.rewrite(c);
+        let child_count = self.old.children(old_id).len();
+        let mut kids = Vec::with_capacity(child_count);
+        let mut khashes = Vec::with_capacity(child_count);
+        for idx in 0..child_count {
+            let child = self.old.children(old_id)[idx];
+            let (id, h) = self.rewrite(child);
             kids.push(id);
             khashes.push(h);
         }

@@ -39,6 +39,7 @@ pub use value_graph::{
 
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::time::Instant;
 
 /// Mixing constant for [`combine`] (the golden-ratio odd constant, as in fxhash).
 const SEED: u64 = 0x9E37_79B9_7F4A_7C15;
@@ -69,13 +70,12 @@ pub(crate) fn rebuild_like(b: &mut IlBuilder, old: &Il, old_id: NodeId, kids: &[
 macro_rules! rebuild_generic {
     () => {
         fn generic(&mut self, old_id: NodeId) -> NodeId {
-            let kids: Vec<NodeId> = self
-                .old
-                .children(old_id)
-                .to_vec()
-                .iter()
-                .map(|&c| self.go(c))
-                .collect();
+            let child_count = self.old.children(old_id).len();
+            let mut kids = Vec::with_capacity(child_count);
+            for idx in 0..child_count {
+                let child = self.old.children(old_id)[idx];
+                kids.push(self.go(child));
+            }
             crate::rebuild_like(&mut self.b, self.old, old_id, &kids)
         }
     };
@@ -197,11 +197,43 @@ impl Default for NormalizeOptions {
     }
 }
 
+struct NormalizeTimer<'a> {
+    enabled: bool,
+    path: &'a str,
+    last: Instant,
+}
+
+impl<'a> NormalizeTimer<'a> {
+    fn new(path: &'a str) -> Self {
+        Self {
+            enabled: std::env::var_os("NOSE_TIME_NORMALIZE").is_some(),
+            path,
+            last: Instant::now(),
+        }
+    }
+
+    fn lap(&mut self, pass: &str) {
+        if self.enabled {
+            let now = Instant::now();
+            eprintln!(
+                "  [normalize] {:<12} {:>7.1}ms  {}",
+                pass,
+                now.duration_since(self.last).as_secs_f64() * 1e3,
+                self.path,
+            );
+            self.last = now;
+        }
+    }
+}
+
 /// Normalize one lowered file, returning a fresh canonical [`Il`] (the input is
 /// left untouched). Unit roots are remapped onto the new arena.
 pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
+    let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
+    timer.lap("desugar");
     alpha::run(&mut out);
+    timer.lap("alpha");
     if opts.oracle {
         // Behavior-preserving structural core only — the soundness oracle reads this so it
         // is independent of every semantic canonicalization below.
@@ -213,18 +245,24 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     // phase, so the loops it emits flow through dataflow / cfg-norm / the value graph and
     // converge with hand-written iteration.
     out = recursion::run(&out);
+    timer.lap("recursion");
     if opts.dataflow {
         out = dataflow::run(&out);
+        timer.lap("dataflow");
     }
     if opts.dce {
         out = dce::run(&out);
+        timer.lap("dce");
     }
     if opts.cfg_norm {
         out = cfg_norm::structure(&out);
+        timer.lap("cfg-structure");
     }
     out = algebra::run(&out, interner);
+    timer.lap("algebra");
     if opts.cfg_norm {
         cfg_norm::run(&mut out, interner);
+        timer.lap("cfg-orient");
     }
     // IR-verifier discipline: in debug/test builds, assert the rewrite pipeline
     // produced a structurally well-formed arena. Free in release.

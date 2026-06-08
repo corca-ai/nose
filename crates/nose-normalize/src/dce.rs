@@ -21,7 +21,7 @@ pub(crate) fn run(old: &Il) -> Il {
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
         old,
-        b: IlBuilder::new(old.file),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         drop,
         remap: FxHashMap::default(),
         unit_root_set,
@@ -116,9 +116,10 @@ impl Rebuilder<'_> {
 
     fn block(&mut self, old_id: NodeId) -> NodeId {
         let span = self.old.node(old_id).span;
-        let children = self.old.children(old_id).to_vec();
-        let mut out = Vec::with_capacity(children.len());
-        for s in children {
+        let child_count = self.old.children(old_id).len();
+        let mut out = Vec::with_capacity(child_count);
+        for idx in 0..child_count {
+            let s = self.old.children(old_id)[idx];
             // dead assignment → drop, or keep only its effectful RHS
             if let Some(&pure) = self.drop.get(&s.0) {
                 if !pure {

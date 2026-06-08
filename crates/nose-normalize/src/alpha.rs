@@ -126,16 +126,18 @@ fn rename(
         }
     }
 
-    let children: Vec<NodeId> = il.children(id).to_vec();
+    let child_count = il.children(id).len();
     if kind == NodeKind::Func {
         // Fresh scope: params (first children) seed v0.., then the body.
         let mut inner = Scope::default();
         let inner_bound = compute_bound(il, id);
-        for c in children {
+        for idx in 0..child_count {
+            let c = il.children(id)[idx];
             rename(il, c, &mut inner, &inner_bound, names);
         }
     } else {
-        for c in children {
+        for idx in 0..child_count {
+            let c = il.children(id)[idx];
             rename(il, c, scope, bound, names);
         }
     }

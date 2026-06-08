@@ -159,6 +159,14 @@ impl IlBuilder {
         }
     }
 
+    pub fn with_capacity(file: FileId, nodes: usize, edges: usize) -> Self {
+        IlBuilder {
+            nodes: Vec::with_capacity(nodes),
+            edges: Vec::with_capacity(edges),
+            file,
+        }
+    }
+
     pub fn file(&self) -> FileId {
         self.file
     }

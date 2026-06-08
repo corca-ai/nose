@@ -24,7 +24,7 @@ pub(crate) fn structure(old: &Il) -> Il {
     let unit_root_set = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = SRebuilder {
         old,
-        b: IlBuilder::new(old.file),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         remap: FxHashMap::default(),
         unit_root_set,
     };
@@ -113,10 +113,11 @@ impl SRebuilder<'_> {
 
     fn rewrite_loop(&mut self, old_id: NodeId) -> NodeId {
         let n = *self.old.node(old_id);
-        let kids = self.old.children(old_id).to_vec();
-        let mut new_kids = Vec::with_capacity(kids.len());
-        for (i, &k) in kids.iter().enumerate() {
-            if i + 1 == kids.len() && self.old.kind(k) == NodeKind::Block {
+        let child_count = self.old.children(old_id).len();
+        let mut new_kids = Vec::with_capacity(child_count);
+        for idx in 0..child_count {
+            let k = self.old.children(old_id)[idx];
+            if idx + 1 == child_count && self.old.kind(k) == NodeKind::Block {
                 new_kids.push(self.wrap_body(k));
             } else {
                 new_kids.push(self.go(k));
@@ -180,6 +181,13 @@ impl SRebuilder<'_> {
 // ----------------------------------------------------------------------------
 
 pub(crate) fn run(il: &mut Il, interner: &Interner) {
+    if !il
+        .nodes
+        .iter()
+        .any(|node| node.kind == NodeKind::If && node.child_len == 3)
+    {
+        return;
+    }
     let hashes = subtree_hashes(il, interner);
     for i in 0..il.nodes.len() {
         let node = il.nodes[i];

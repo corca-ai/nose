@@ -62,6 +62,9 @@ fn is_strict_numeric(op: Op) -> bool {
 /// Sound by construction: a type is recorded only when an operator *requires* it (the
 /// code would error otherwise), exactly the assumption the single-op evidence already made.
 pub(crate) fn infer_param_types(il: &Il, root: NodeId) -> Vec<Ty> {
+    if il.kind(root) != NodeKind::Func {
+        return Vec::new();
+    }
     let mut params: Vec<u32> = Vec::new();
     for &k in il.children(root) {
         if il.kind(k) == NodeKind::Param {

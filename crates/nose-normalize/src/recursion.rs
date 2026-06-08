@@ -61,10 +61,13 @@ pub(crate) fn run(old: &Il) -> Il {
             admit.then_some((u.root.0, name))
         })
         .collect();
+    if func_name.is_empty() || !has_possible_self_call(old, &func_name) {
+        return old.clone();
+    }
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
         old,
-        b: IlBuilder::new(old.file),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         func_name,
         unit_root_set,
         remap: FxHashMap::default(),
@@ -72,6 +75,20 @@ pub(crate) fn run(old: &Il) -> Il {
     let new_root = rb.go(old.root);
 
     crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
+}
+
+fn has_possible_self_call(old: &Il, func_name: &FxHashMap<u32, Symbol>) -> bool {
+    let names: FxHashSet<Symbol> = func_name.values().copied().collect();
+    old.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Call || !matches!(node.payload, Payload::None) {
+            return false;
+        }
+        let id = NodeId(idx as u32);
+        let Some(&callee) = old.children(id).first() else {
+            return false;
+        };
+        matches!(old.node(callee).payload, Payload::Name(name) if names.contains(&name))
+    })
 }
 
 /// A method is safe to admit to the recursion canon only if its body touches no receiver/field

@@ -22,11 +22,14 @@ use rustc_hash::{FxHashMap, FxHashSet};
 pub(crate) fn run(old: &Il) -> Il {
     let mut analysis = Analysis::default();
     analyze_scope(old, old.root, true, &mut analysis);
+    if analysis.inline_at.is_empty() && analysis.drop_defs.is_empty() {
+        return old.clone();
+    }
 
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
         old,
-        b: IlBuilder::new(old.file),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         inline_at: analysis.inline_at,
         drop_defs: analysis.drop_defs,
         remap: FxHashMap::default(),
@@ -258,9 +261,10 @@ impl Rebuilder<'_> {
 
     fn block(&mut self, old_id: NodeId) -> NodeId {
         let span = self.old.node(old_id).span;
-        let children = self.old.children(old_id).to_vec();
-        let mut kids = Vec::with_capacity(children.len());
-        for s in children {
+        let child_count = self.old.children(old_id).len();
+        let mut kids = Vec::with_capacity(child_count);
+        for idx in 0..child_count {
+            let s = self.old.children(old_id)[idx];
             if self.drop_defs.contains(&s.0) {
                 continue;
             }

@@ -11,7 +11,7 @@
 //! Unit roots (`Func`/`Method`/class `Block`) are stable node kinds across this
 //! pass, so we remap their ids as we go.
 
-use crate::idioms::{canon_call, CallCanon};
+use crate::idioms::{canon_call_with_domains, CallCanon, ParamDomainIndex};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{seq_surface_contract_for_node, DomainRequirement};
@@ -21,11 +21,12 @@ pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il 
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
         old,
-        b: IlBuilder::new(old.file),
+        b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
         interner,
         opts,
         remap: FxHashMap::default(),
         unit_root_set,
+        param_domains: ParamDomainIndex::new(old),
     };
     let new_root = rb.go(old.root);
 
@@ -40,6 +41,7 @@ struct Rebuilder<'a> {
     opts: &'a NormalizeOptions,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
+    param_domains: ParamDomainIndex,
 }
 
 impl Rebuilder<'_> {
@@ -64,9 +66,10 @@ impl Rebuilder<'_> {
 
     fn block(&mut self, old_id: NodeId) -> NodeId {
         let span = self.old.node(old_id).span;
-        let children = self.old.children(old_id).to_vec();
-        let mut out = Vec::with_capacity(children.len());
-        for c in children {
+        let child_count = self.old.children(old_id).len();
+        let mut out = Vec::with_capacity(child_count);
+        for idx in 0..child_count {
+            let c = self.old.children(old_id)[idx];
             self.emit_stmt(c, &mut out);
         }
         self.b.add(NodeKind::Block, Payload::None, span, &out)
@@ -79,7 +82,9 @@ impl Rebuilder<'_> {
         match kind {
             // Flatten statement-position blocks; drop empties.
             NodeKind::Block => {
-                for c in self.old.children(old_id).to_vec() {
+                let child_count = self.old.children(old_id).len();
+                for idx in 0..child_count {
+                    let c = self.old.children(old_id)[idx];
                     self.emit_stmt(c, out);
                 }
             }
@@ -205,7 +210,7 @@ impl Rebuilder<'_> {
 
     fn call(&mut self, old_id: NodeId) -> NodeId {
         let span = self.old.node(old_id).span;
-        match canon_call(self.old, self.interner, old_id) {
+        match canon_call_with_domains(self.old, self.interner, &self.param_domains, old_id) {
             CallCanon::Builtin { op, arg_olds } => {
                 let kids: Vec<NodeId> = arg_olds.iter().map(|&a| self.go(a)).collect();
                 self.b
@@ -235,7 +240,12 @@ impl Rebuilder<'_> {
                 nose_semantics::property_builtin_contract(self.old.meta.lang, name)
             {
                 if let Some(&base) = self.old.children(old_id).first() {
-                    if !property_receiver_exact_safe(self.old, self.interner, base) {
+                    if !property_receiver_exact_safe(
+                        self.old,
+                        self.interner,
+                        &self.param_domains,
+                        base,
+                    ) {
                         return self.generic(old_id);
                     }
                     let new_base = self.go(base);
@@ -265,11 +275,20 @@ impl Rebuilder<'_> {
     }
 }
 
-fn property_receiver_exact_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+fn property_receiver_exact_safe(
+    il: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
     seq_receiver_exact_collection_safe(il, interner, node)
-        || nose_semantics::receiver_satisfies_domain(il, node, DomainRequirement::ArrayOrCollection)
-        || property_receiver_exact_hof_node(il, interner, node)
-        || property_receiver_exact_hof_call(il, interner, node)
+        || domains.property_receiver_satisfies_domain(
+            il,
+            node,
+            DomainRequirement::ArrayOrCollection,
+        )
+        || property_receiver_exact_hof_node(il, interner, domains, node)
+        || property_receiver_exact_hof_call(il, interner, domains, node)
 }
 
 fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -280,7 +299,12 @@ fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId
         .is_some_and(|contract| contract.membership_collection)
 }
 
-fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
+fn property_receiver_exact_hof_call(
+    il: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
     if il.kind(node) != NodeKind::Call {
         return false;
     }
@@ -302,10 +326,15 @@ fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) 
     };
     let method_text = interner.resolve(method);
     nose_semantics::method_hof_contract(il.meta.lang, method_text).is_some()
-        && property_receiver_exact_safe(il, interner, receiver)
+        && property_receiver_exact_safe(il, interner, domains, receiver)
 }
 
-fn property_receiver_exact_hof_node(il: &Il, interner: &Interner, node: NodeId) -> bool {
+fn property_receiver_exact_hof_node(
+    il: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
     if il.kind(node) != NodeKind::HoF {
         return false;
     }
@@ -314,5 +343,5 @@ fn property_receiver_exact_hof_node(il: &Il, interner: &Interner, node: NodeId) 
     }
     il.children(node)
         .first()
-        .is_some_and(|&receiver| property_receiver_exact_safe(il, interner, receiver))
+        .is_some_and(|&receiver| property_receiver_exact_safe(il, interner, domains, receiver))
 }

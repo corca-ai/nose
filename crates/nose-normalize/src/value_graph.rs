@@ -81,6 +81,7 @@ use nose_semantics::{
     SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use std::borrow::Cow;
 use std::sync::OnceLock;
 
 const LARGE_AC_EXPR_OPERANDS: usize = 64;
@@ -157,7 +158,7 @@ pub fn value_fingerprint_lits_anchors_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> FingerprintBundle {
-    let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&context.subtree_hashes);
+    let mut b = Builder::new(il, interner).with_context(context);
     b.build_unit_with_context(root, Some(context));
     let (v, l, r) = b.fingerprint_lits();
     let a = b.anchors(ANCHOR_MIN_WEIGHT);
@@ -185,7 +186,9 @@ impl ValueFingerprintContext {
         let module = ModuleSeedContext::new(il, interner);
         let subtree_hashes = OnceLock::new();
         let function_bindings = {
-            let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&subtree_hashes);
+            let mut b = Builder::new(il, interner)
+                .with_shared_subtree_hashes(&subtree_hashes)
+                .with_local_scope_nodes(&module.local_scope);
             b.seed_module_value_bindings_from_context(&module, None);
             b.collect_function_binding_hashes()
         };
@@ -317,7 +320,7 @@ pub fn value_fingerprint_lits_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
-    let mut b = Builder::new(il, interner).with_shared_subtree_hashes(&context.subtree_hashes);
+    let mut b = Builder::new(il, interner).with_context(context);
     b.build_unit_with_context(root, Some(context));
     b.fingerprint_lits()
 }
@@ -505,7 +508,7 @@ struct Builder<'a> {
     inline_fns: FxHashMap<Symbol, (Vec<u32>, NodeId)>,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
-    local_scope_nodes: Vec<bool>,
+    local_scope_nodes: Cow<'a, [bool]>,
     /// Current loop-carried placeholders while evaluating a loop body. Used only to
     /// compact coupled recurrences such as `s1 += f(s2); s2 += g(s1)`, which otherwise
     /// expand into a large raw expression DAG even though they are not clean reductions.
@@ -579,7 +582,7 @@ impl<'a> Builder<'a> {
             building: FxHashMap::default(),
             global_env: FxHashMap::default(),
             inline_fns: FxHashMap::default(),
-            local_scope_nodes: local_scope_nodes(il),
+            local_scope_nodes: Cow::Owned(local_scope_nodes(il)),
             loop_recurrence: None,
             next_loop_key_base: 0,
             contracts: Vec::new(),
@@ -591,6 +594,16 @@ impl<'a> Builder<'a> {
     fn with_shared_subtree_hashes(mut self, hashes: &'a OnceLock<Vec<u64>>) -> Self {
         self.shared_subtree_hashes = Some(hashes);
         self
+    }
+
+    fn with_local_scope_nodes(mut self, local_scope_nodes: &'a [bool]) -> Self {
+        self.local_scope_nodes = Cow::Borrowed(local_scope_nodes);
+        self
+    }
+
+    fn with_context(self, context: &'a ValueFingerprintContext) -> Self {
+        self.with_shared_subtree_hashes(&context.subtree_hashes)
+            .with_local_scope_nodes(&context.module.local_scope)
     }
 
     fn vty(&self, v: ValueId) -> Ty {

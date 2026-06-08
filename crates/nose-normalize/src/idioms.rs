@@ -7,9 +7,12 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
+use nose_il::{
+    contains_js_identifier, Builtin, DomainEvidence, EvidenceAnchor, EvidenceId, EvidenceKind,
+    EvidenceRecord, EvidenceStatus, HoFKind, Il, Interner, NodeId, NodeKind, Payload, Span, Symbol,
+};
 use nose_semantics::{
-    free_function_builtin_contract, imported_namespace_symbol,
+    domain_evidence_for_param, free_function_builtin_contract, imported_namespace_symbol,
     library_api_contract_evidence_for_call, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
@@ -19,6 +22,7 @@ use nose_semantics::{
     LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract,
     MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
 };
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
@@ -38,7 +42,269 @@ pub(crate) enum CallCanon {
     None,
 }
 
-pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> CallCanon {
+pub(crate) struct ParamDomainIndex {
+    global_cid_domains: FxHashMap<u32, DomainLookup>,
+    node_domains: FxHashMap<(Span, NodeKind), DomainLookup>,
+    scopes: Vec<ParamScope>,
+}
+
+struct ParamScope {
+    span: Span,
+    cid_domains: FxHashMap<u32, DomainLookup>,
+    params: FxHashMap<Symbol, Option<DomainEvidence>>,
+    assigned_names: FxHashSet<Symbol>,
+}
+
+#[derive(Clone, Copy)]
+enum DomainLookup {
+    Missing,
+    Found(DomainEvidence),
+    Ambiguous,
+}
+
+impl DomainLookup {
+    fn option(self) -> Option<DomainEvidence> {
+        match self {
+            DomainLookup::Found(domain) => Some(domain),
+            DomainLookup::Missing | DomainLookup::Ambiguous => None,
+        }
+    }
+
+    fn insert(&mut self, domain: DomainEvidence) {
+        match *self {
+            DomainLookup::Missing => *self = DomainLookup::Found(domain),
+            DomainLookup::Found(existing) if existing == domain => {}
+            DomainLookup::Found(_) | DomainLookup::Ambiguous => *self = DomainLookup::Ambiguous,
+        }
+    }
+}
+
+impl ParamDomainIndex {
+    pub(crate) fn new(old: &Il) -> Self {
+        let mut global_cid_domains = FxHashMap::default();
+        let node_domains = node_domain_index(old);
+        let mut scopes = Vec::new();
+        for (idx, node) in old.nodes.iter().enumerate() {
+            if !matches!(node.kind, NodeKind::Func | NodeKind::Lambda) {
+                continue;
+            }
+            let scope = NodeId(idx as u32);
+            let mut cid_domains = FxHashMap::default();
+            let mut params = FxHashMap::default();
+            for &child in old.children(scope) {
+                if old.kind(child) != NodeKind::Param {
+                    continue;
+                }
+                let domain = domain_evidence_for_param(old, child);
+                match old.node(child).payload {
+                    Payload::Cid(cid) => {
+                        merge_domain(&mut cid_domains, cid, domain);
+                    }
+                    Payload::Name(name) => {
+                        params.entry(name).or_insert(domain);
+                    }
+                    _ => {}
+                }
+            }
+            scopes.push(ParamScope {
+                span: node.span,
+                cid_domains,
+                params,
+                assigned_names: FxHashSet::default(),
+            });
+        }
+        for (idx, node) in old.nodes.iter().enumerate() {
+            if node.kind != NodeKind::Param {
+                continue;
+            }
+            let Payload::Cid(cid) = node.payload else {
+                continue;
+            };
+            merge_domain(
+                &mut global_cid_domains,
+                cid,
+                domain_evidence_for_param(old, NodeId(idx as u32)),
+            );
+        }
+
+        scopes.sort_by_key(|scope| scope.span.end_byte.saturating_sub(scope.span.start_byte));
+        for (idx, node) in old.nodes.iter().enumerate() {
+            if node.kind != NodeKind::Assign {
+                continue;
+            }
+            let id = NodeId(idx as u32);
+            let Some(&lhs) = old.children(id).first() else {
+                continue;
+            };
+            if old.kind(lhs) != NodeKind::Var {
+                continue;
+            }
+            let Payload::Name(name) = old.node(lhs).payload else {
+                continue;
+            };
+            if let Some(scope) = scopes
+                .iter_mut()
+                .find(|scope| span_contains(scope.span, node.span))
+            {
+                scope.assigned_names.insert(name);
+            }
+        }
+
+        Self {
+            global_cid_domains,
+            node_domains,
+            scopes,
+        }
+    }
+
+    fn domain_evidence_for_receiver(&self, old: &Il, node: NodeId) -> Option<DomainEvidence> {
+        match self
+            .node_domains
+            .get(&(old.node(node).span, old.kind(node)))
+            .copied()
+            .unwrap_or(DomainLookup::Missing)
+        {
+            DomainLookup::Found(domain) => return Some(domain),
+            DomainLookup::Ambiguous => return None,
+            DomainLookup::Missing => {}
+        }
+        self.domain_evidence_for_var_reference(old, node)
+    }
+
+    fn receiver_satisfies_domain(
+        &self,
+        old: &Il,
+        node: NodeId,
+        requirement: DomainRequirement,
+    ) -> bool {
+        self.domain_evidence_for_receiver(old, node)
+            .is_some_and(|domain| requirement.accepts(domain))
+    }
+
+    fn domain_evidence_for_var_reference(&self, old: &Il, node: NodeId) -> Option<DomainEvidence> {
+        if old.kind(node) != NodeKind::Var {
+            return None;
+        }
+        match old.node(node).payload {
+            Payload::Cid(cid) => {
+                for scope in &self.scopes {
+                    if span_contains(scope.span, old.node(node).span) {
+                        return scope
+                            .cid_domains
+                            .get(&cid)
+                            .copied()
+                            .unwrap_or(DomainLookup::Missing)
+                            .option();
+                    }
+                }
+                self.global_cid_domains
+                    .get(&cid)
+                    .copied()
+                    .unwrap_or(DomainLookup::Missing)
+                    .option()
+            }
+            Payload::Name(name) => {
+                let span = old.node(node).span;
+                for scope in &self.scopes {
+                    if !span_contains(scope.span, span) {
+                        continue;
+                    }
+                    let Some(&domain) = scope.params.get(&name) else {
+                        continue;
+                    };
+                    if scope.assigned_names.contains(&name) {
+                        return None;
+                    }
+                    return domain;
+                }
+                None
+            }
+            _ => None,
+        }
+    }
+
+    pub(crate) fn property_receiver_satisfies_domain(
+        &self,
+        old: &Il,
+        node: NodeId,
+        requirement: DomainRequirement,
+    ) -> bool {
+        self.receiver_satisfies_domain(old, node, requirement)
+    }
+}
+
+fn merge_domain(
+    domains: &mut FxHashMap<u32, DomainLookup>,
+    key: u32,
+    domain: Option<DomainEvidence>,
+) {
+    let Some(domain) = domain else {
+        return;
+    };
+    domains
+        .entry(key)
+        .or_insert(DomainLookup::Missing)
+        .insert(domain);
+}
+
+fn node_domain_index(old: &Il) -> FxHashMap<(Span, NodeKind), DomainLookup> {
+    let mut domains = FxHashMap::default();
+    for record in &old.evidence {
+        let EvidenceAnchor::Node { span, kind } = record.anchor else {
+            continue;
+        };
+        let EvidenceKind::Domain(domain) = record.kind else {
+            continue;
+        };
+        let entry = domains.entry((span, kind)).or_insert(DomainLookup::Missing);
+        if record.status != EvidenceStatus::Asserted || !evidence_dependencies_asserted(old, record)
+        {
+            *entry = DomainLookup::Ambiguous;
+        } else {
+            entry.insert(domain);
+        }
+    }
+    domains
+}
+
+fn evidence_dependencies_asserted(il: &Il, record: &EvidenceRecord) -> bool {
+    let mut stack = record.dependencies.clone();
+    let mut seen = Vec::new();
+    while let Some(id) = stack.pop() {
+        if seen.contains(&id) {
+            continue;
+        }
+        seen.push(id);
+        let Some(dep) = evidence_record_by_id(il, id) else {
+            return false;
+        };
+        if dep.status != EvidenceStatus::Asserted {
+            return false;
+        }
+        stack.extend_from_slice(&dep.dependencies);
+    }
+    true
+}
+
+fn evidence_record_by_id(il: &Il, id: EvidenceId) -> Option<&EvidenceRecord> {
+    il.evidence
+        .get(id.0 as usize)
+        .filter(|record| record.id == id)
+        .or_else(|| il.evidence.iter().find(|record| record.id == id))
+}
+
+#[cfg(test)]
+fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> CallCanon {
+    let domains = ParamDomainIndex::new(old);
+    canon_call_with_domains(old, interner, &domains, call_id)
+}
+
+pub(crate) fn canon_call_with_domains(
+    old: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    call_id: NodeId,
+) -> CallCanon {
     let kids = old.children(call_id);
     if kids.is_empty() {
         return CallCanon::None;
@@ -91,9 +357,14 @@ pub(crate) fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> Call
                     let Some(base) = base else {
                         return CallCanon::None;
                     };
-                    let Some(proven) =
-                        prove_method_receiver(old, interner, contract.result.receiver, base, args)
-                    else {
+                    let Some(proven) = prove_method_receiver(
+                        old,
+                        interner,
+                        domains,
+                        contract.result.receiver,
+                        base,
+                        args,
+                    ) else {
                         return CallCanon::None;
                     };
                     return apply_method_contract(old, interner, contract.result, proven, args);
@@ -114,51 +385,53 @@ enum ProvenReceiver {
 fn prove_method_receiver(
     old: &Il,
     interner: &Interner,
+    domains: &ParamDomainIndex,
     contract: MethodReceiverContract,
     base: NodeId,
     args: &[NodeId],
 ) -> Option<ProvenReceiver> {
     match contract {
         MethodReceiverContract::ExactCollection => {
-            exact_collection_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+            exact_collection_receiver(old, interner, domains, base)
+                .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactProtocol => {
-            exact_protocol_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+            exact_protocol_receiver(old, interner, domains, base)
+                .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactProtocolPairArgument => {
-            (exact_protocol_receiver(old, interner, base)
+            (exact_protocol_receiver(old, interner, domains, base)
                 && args
                     .first()
-                    .is_some_and(|&arg| exact_protocol_receiver(old, interner, arg)))
+                    .is_some_and(|&arg| exact_protocol_receiver(old, interner, domains, arg)))
             .then_some(ProvenReceiver::Direct(base))
         }
-        MethodReceiverContract::ExactOption => {
-            exact_option_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
-        }
+        MethodReceiverContract::ExactOption => exact_option_receiver(old, interner, domains, base)
+            .then_some(ProvenReceiver::Direct(base)),
         MethodReceiverContract::ExactString => {
-            exact_string_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+            exact_string_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactInteger => {
-            exact_integer_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+            exact_integer_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactMap => {
-            exact_map_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+            exact_map_receiver(old, interner, domains, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactMapLiteral => {
             map_like_literal(old, interner, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactCollectionOrMap => {
-            (exact_collection_receiver(old, interner, base)
-                || exact_map_receiver(old, interner, base))
+            (exact_collection_receiver(old, interner, domains, base)
+                || exact_map_receiver(old, interner, domains, base))
             .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactCollectionOrMapLiteral => {
-            (exact_collection_receiver(old, interner, base)
+            (exact_collection_receiver(old, interner, domains, base)
                 || map_like_literal(old, interner, base))
             .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ExactCollectionOrJavaKeySet => {
-            if exact_collection_receiver(old, interner, base) {
+            if exact_collection_receiver(old, interner, domains, base) {
                 return Some(ProvenReceiver::Direct(base));
             }
             if old.meta.lang == nose_il::Lang::Java {
@@ -167,11 +440,11 @@ fn prove_method_receiver(
             }
             None
         }
-        MethodReceiverContract::ExactSetOrMap => (exact_set_param(old, base)
-            || exact_map_param(old, base))
+        MethodReceiverContract::ExactSetOrMap => (exact_set_param(old, domains, base)
+            || exact_map_param(old, domains, base))
         .then_some(ProvenReceiver::Direct(base)),
         MethodReceiverContract::LiteralString => {
-            literal_string_receiver(old, base).then_some(ProvenReceiver::Direct(base))
+            literal_string_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::UnshadowedGlobal(global) => {
             unshadowed_global_symbol(old, interner, base, global)
@@ -185,7 +458,8 @@ fn prove_method_receiver(
             if let Some((map, key)) = proven_map_get_call_parts(old, interner, base) {
                 Some(ProvenReceiver::MapGet { map, key })
             } else {
-                exact_option_receiver(old, interner, base).then_some(ProvenReceiver::Direct(base))
+                exact_option_receiver(old, interner, domains, base)
+                    .then_some(ProvenReceiver::Direct(base))
             }
         }
     }
@@ -440,12 +714,22 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
     node
 }
 
-fn exact_collection_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
-    exact_protocol_receiver(old, interner, node)
+fn exact_collection_receiver(
+    old: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
+    exact_protocol_receiver(old, interner, domains, node)
 }
 
-fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
-    if exact_collection_literal(old, interner, node) || exact_collection_param(old, node) {
+fn exact_protocol_receiver(
+    old: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
+    if exact_collection_literal(old, interner, node) || exact_collection_param(old, domains, node) {
         return true;
     }
     if old.kind(node) != NodeKind::Call {
@@ -466,7 +750,7 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
         return false;
     };
     if let Some(arg) = static_collection_adapter_arg(old, interner, node, receiver, method, kids) {
-        return exact_collection_receiver(old, interner, arg);
+        return exact_collection_receiver(old, interner, domains, arg);
     }
     if let Some(contract) = library_method_call_contract(old.meta.lang, method, kids.len() - 1) {
         let contract = contract.result;
@@ -474,21 +758,21 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
             && contract.receiver == MethodReceiverContract::ExactProtocolPairArgument
             && contract.args == MethodBuiltinArgs::RustZip
         {
-            return exact_protocol_receiver(old, interner, receiver)
-                && exact_protocol_receiver(old, interner, kids[1]);
+            return exact_protocol_receiver(old, interner, domains, receiver)
+                && exact_protocol_receiver(old, interner, domains, kids[1]);
         }
     }
     if library_iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
-        return exact_protocol_receiver(old, interner, receiver);
+        return exact_protocol_receiver(old, interner, domains, receiver);
     }
     if method_hof_contract(old.meta.lang, method).is_some() && kids.len() >= 2 {
-        return exact_protocol_receiver(old, interner, receiver);
+        return exact_protocol_receiver(old, interner, domains, receiver);
     }
     false
 }
 
-fn exact_collection_param(old: &Il, node: NodeId) -> bool {
-    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::ArrayCollectionOrSet)
+fn exact_collection_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(old, node, DomainRequirement::ArrayCollectionOrSet)
 }
 
 fn static_collection_adapter_arg(
@@ -521,20 +805,31 @@ fn static_collection_adapter_arg(
     call_kids.get(1).copied()
 }
 
-fn exact_set_param(old: &Il, node: NodeId) -> bool {
-    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Set)
+fn exact_set_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(old, node, DomainRequirement::Set)
 }
 
-fn exact_map_param(old: &Il, node: NodeId) -> bool {
-    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Map)
+fn exact_map_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(old, node, DomainRequirement::Map)
 }
 
-fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
-    exact_map_param(old, node) || map_like_literal(old, interner, node)
+fn exact_map_receiver(
+    old: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
+    exact_map_param(old, domains, node) || map_like_literal(old, interner, node)
 }
 
-fn exact_option_param(old: &Il, node: NodeId) -> bool {
-    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Option)
+fn exact_option_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(old, node, DomainRequirement::Option)
+}
+
+fn span_contains(outer: Span, inner: Span) -> bool {
+    outer.file == inner.file
+        && outer.start_byte <= inner.start_byte
+        && outer.end_byte >= inner.end_byte
 }
 
 fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -545,8 +840,13 @@ fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool
         .is_some_and(|contract| contract.membership_collection)
 }
 
-fn exact_option_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
-    if exact_option_param(old, node) {
+fn exact_option_receiver(
+    old: &Il,
+    interner: &Interner,
+    domains: &ParamDomainIndex,
+    node: NodeId,
+) -> bool {
+    if exact_option_param(old, domains, node) {
         return true;
     }
     if matches!(
@@ -568,22 +868,22 @@ fn exact_option_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
     )
 }
 
-fn exact_string_receiver(old: &Il, node: NodeId) -> bool {
+fn exact_string_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
-    ) || nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::String)
+    ) || domains.receiver_satisfies_domain(old, node, DomainRequirement::String)
 }
 
-fn literal_string_receiver(old: &Il, node: NodeId) -> bool {
-    exact_string_receiver(old, node)
+fn literal_string_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+    exact_string_receiver(old, domains, node)
 }
 
-fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
+fn exact_integer_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
-    ) || nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Integer)
+    ) || domains.receiver_satisfies_domain(old, node, DomainRequirement::Integer)
 }
 
 fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
@@ -700,7 +1000,7 @@ fn node_defines_name(old: &Il, interner: &Interner, node: NodeId, name: &str) ->
     }
 }
 
-fn symbol_defines_name(old: &Il, interner: &Interner, symbol: nose_il::Symbol, name: &str) -> bool {
+fn symbol_defines_name(old: &Il, interner: &Interner, symbol: Symbol, name: &str) -> bool {
     let text = interner.resolve(symbol);
     text == name
         || (nose_semantics::semantics(old.meta.lang)
@@ -1150,27 +1450,21 @@ mod tests {
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::param(param_span),
-            EvidenceKind::Domain(nose_semantics::DomainEvidence::from_param_semantic(
-                semantic,
-            )),
+            EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
             EvidenceStatus::Asserted,
         ));
         if duplicate_param_name {
             il.evidence.push(evidence(
                 1,
                 EvidenceAnchor::param(duplicate_span),
-                EvidenceKind::Domain(nose_semantics::DomainEvidence::from_param_semantic(
-                    semantic,
-                )),
+                EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
                 EvidenceStatus::Asserted,
             ));
         }
         (il, interner, call)
     }
 
-    fn receiver_domain_method_call_il(
-        domain: nose_semantics::DomainEvidence,
-    ) -> (Il, Interner, NodeId, Span) {
+    fn receiver_domain_method_call_il(domain: DomainEvidence) -> (Il, Interner, NodeId, Span) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let receiver_span = sp_at(20, 22, 2);
@@ -1215,6 +1509,84 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         (il, interner, call, receiver_span)
+    }
+
+    fn typed_method_shadowed_by_untyped_inner_param_il() -> (Il, Interner, NodeId) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let xs = interner.intern("xs");
+        let outer_param_span = Span::new(FileId(0), 2, 4, 1, 1);
+        let inner_param_span = Span::new(FileId(0), 22, 24, 2, 2);
+        let receiver_span = Span::new(FileId(0), 30, 32, 3, 3);
+        let outer_param = b.add(NodeKind::Param, Payload::Name(xs), outer_param_span, &[]);
+        let inner_param = b.add(NodeKind::Param, Payload::Name(xs), inner_param_span, &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Name(xs), receiver_span, &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("some")),
+            Span::new(FileId(0), 30, 37, 3, 3),
+            &[receiver],
+        );
+        let func = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("f")),
+            Span::new(FileId(0), 38, 39, 3, 3),
+            &[],
+        );
+        let call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            Span::new(FileId(0), 30, 42, 3, 3),
+            &[field, func],
+        );
+        let inner_body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            Span::new(FileId(0), 25, 70, 2, 4),
+            &[call],
+        );
+        let lambda = b.add(
+            NodeKind::Lambda,
+            Payload::None,
+            Span::new(FileId(0), 20, 80, 2, 5),
+            &[inner_param, inner_body],
+        );
+        let outer_body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            Span::new(FileId(0), 10, 90, 1, 6),
+            &[lambda],
+        );
+        let function = b.add(
+            NodeKind::Func,
+            Payload::None,
+            Span::new(FileId(0), 1, 100, 1, 7),
+            &[outer_param, outer_body],
+        );
+        let root = b.add(
+            NodeKind::Module,
+            Payload::None,
+            Span::new(FileId(0), 0, 101, 1, 7),
+            &[function],
+        );
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t".to_string(),
+                lang: Lang::TypeScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(outer_param_span),
+            EvidenceKind::Domain(DomainEvidence::from_param_semantic(
+                ParamSemantic::Collection,
+            )),
+            EvidenceStatus::Asserted,
+        ));
+        (il, interner, call)
     }
 
     fn console_log_il(shadow_console: bool) -> (Il, Interner, NodeId) {
@@ -1408,20 +1780,28 @@ mod tests {
     #[test]
     fn iterator_identity_adapter_requires_kernel_contract() {
         let (js, js_interner, js_iter) = method_call_no_arg_il(Lang::JavaScript, "iter", true);
+        let js_domains = ParamDomainIndex::new(&js);
         assert!(
-            !exact_protocol_receiver(&js, &js_interner, js_iter),
+            !exact_protocol_receiver(&js, &js_interner, &js_domains, js_iter),
             "a JS method named iter is not a Rust iterator adapter"
         );
 
         let (rust_bad, rust_bad_interner, rust_bad_iter) = method_call_il(Lang::Rust, "iter", true);
+        let rust_bad_domains = ParamDomainIndex::new(&rust_bad);
         assert!(
-            !exact_protocol_receiver(&rust_bad, &rust_bad_interner, rust_bad_iter),
+            !exact_protocol_receiver(
+                &rust_bad,
+                &rust_bad_interner,
+                &rust_bad_domains,
+                rust_bad_iter
+            ),
             "Rust iter with unexpected arguments must not bypass the arity contract"
         );
 
         let (rust, rust_interner, rust_iter) = method_call_no_arg_il(Lang::Rust, "iter", true);
+        let rust_domains = ParamDomainIndex::new(&rust);
         assert!(
-            exact_protocol_receiver(&rust, &rust_interner, rust_iter),
+            exact_protocol_receiver(&rust, &rust_interner, &rust_domains, rust_iter),
             "Rust iter stays admitted through iterator_identity_adapter_contract"
         );
     }
@@ -1430,15 +1810,17 @@ mod tests {
     fn zip_protocol_pair_requires_kernel_contract() {
         let (js, js_interner, js_zip) =
             method_call_with_arg_il(Lang::JavaScript, "zip", true, true);
+        let js_domains = ParamDomainIndex::new(&js);
         assert!(
-            !exact_protocol_receiver(&js, &js_interner, js_zip),
+            !exact_protocol_receiver(&js, &js_interner, &js_domains, js_zip),
             "a JS method named zip is not a Rust zip protocol contract"
         );
 
         let (rust, rust_interner, rust_zip) =
             method_call_with_arg_il(Lang::Rust, "zip", true, true);
+        let rust_domains = ParamDomainIndex::new(&rust);
         assert!(
-            exact_protocol_receiver(&rust, &rust_interner, rust_zip),
+            exact_protocol_receiver(&rust, &rust_interner, &rust_domains, rust_zip),
             "Rust zip stays admitted through method_call_contract"
         );
     }
@@ -1458,8 +1840,7 @@ mod tests {
 
     #[test]
     fn method_bool_reduction_consumes_receiver_domain_evidence() {
-        let (il, interner, call, _) =
-            receiver_domain_method_call_il(nose_semantics::DomainEvidence::Collection);
+        let (il, interner, call, _) = receiver_domain_method_call_il(DomainEvidence::Collection);
         assert!(matches!(
             canon_call(&il, &interner, call),
             CallCanon::Builtin {
@@ -1469,11 +1850,11 @@ mod tests {
         ));
 
         let (mut il, interner, call, receiver_span) =
-            receiver_domain_method_call_il(nose_semantics::DomainEvidence::Collection);
+            receiver_domain_method_call_il(DomainEvidence::Collection);
         il.evidence.push(evidence(
             1,
             EvidenceAnchor::node(receiver_span, NodeKind::Var),
-            EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
+            EvidenceKind::Domain(DomainEvidence::Map),
             EvidenceStatus::Asserted,
         ));
         assert!(
@@ -1624,6 +2005,15 @@ mod tests {
                 arg_olds
             } if arg_olds.len() == 2
         ));
+    }
+
+    #[test]
+    fn method_bool_reduction_stops_at_untyped_inner_param_shadow() {
+        let (il, interner, call) = typed_method_shadowed_by_untyped_inner_param_il();
+        assert!(
+            matches!(canon_call(&il, &interner, call), CallCanon::None),
+            "an untyped inner parameter must shadow an outer typed parameter"
+        );
     }
 
     #[test]
