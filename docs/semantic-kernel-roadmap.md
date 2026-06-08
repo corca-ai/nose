@@ -378,6 +378,18 @@ and pack ecosystem.
   admitted method calls also remain admissible protocol receivers through their
   same-span `MethodCall(HoF(...))` occurrence record, so downstream adapters can
   consume canonicalized HOFs without trusting selector spelling alone.
+- The static API occurrence slice moved Java empty collection constructors and
+  JS-like static `indexOf`/`findIndex` membership behind the same
+  dependency-backed occurrence boundary. `new ArrayList<>()`/
+  `new LinkedList<>()` now stay as construct `Call` nodes until exact or
+  wildcard `java.util` import proof admits the `LibraryApi` record; explicit
+  same-name imports and local type declarations close wildcard proof. Static
+  index membership now emits `LibraryApi` evidence that depends on the exact
+  receiver `SequenceSurface(Collection)` fact, and value-graph/strict exact
+  consumers require the admitted occurrence instead of trusting method spelling
+  plus literal children. Raw `Op::In` value-graph canonicalization now also
+  checks the language membership-operator contract before treating the operator
+  as collection membership.
 - Value-graph and structural-recursion domain gates moved from normalize-local
   `types.rs` / `Ty` inference to `nose-semantics` `ValueDomain` and `ValueLaw`
   contracts. The first contract set covers add non-concat ordering,
@@ -463,9 +475,9 @@ Remaining in this phase:
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is producer
-  coverage for Java constructors, JS/TS static-index membership, free-name
-  builtin calls, promise receiver proof, and ecosystem APIs whose
-  receiver/domain/demand obligations are not yet expressible.
+  coverage for free-name builtin calls outside the current factory/function
+  rows, promise receiver proof, async/sync protocol convergence, and ecosystem
+  APIs whose receiver/domain/demand obligations are not yet expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -477,9 +489,10 @@ Remaining in this phase:
   call contracts. Occurrence-evidence slices now cover selected JS-like
   static/global APIs, Python builtin/import-backed factories/functions, Rust
   free-name/path factories, Ruby require-backed factories, Java `java.util`
-  static factories/adapters, JS regex literals, and selected receiver-method
-  families. Remaining stdlib and ecosystem APIs still need dependency-backed
-  occurrence records before they become pack-facing. Producer-covered
+  static factories/adapters and selected empty constructors, JS regex literals,
+  JS/TS static-index membership, and selected receiver-method families.
+  Remaining stdlib and ecosystem APIs still need dependency-backed occurrence
+  records before they become pack-facing. Producer-covered
   factory/API result calls now also emit dependent call-node `Domain` evidence
   when the current `DomainEvidence` vocabulary can represent the result.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
@@ -488,9 +501,9 @@ Remaining in this phase:
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
   evidence, as do selected receiver-method families. Remaining API work is to
-  move raw sequence/tag, Java constructor, JS/TS static-index, and free-builtin
-  proof dependencies into explicit evidence records, then cover ecosystem APIs
-  only after demand, receiver, and effect obligations are expressible.
+  move the remaining raw sequence/tag and free-builtin proof dependencies into
+  explicit evidence records, then cover ecosystem APIs only after demand,
+  receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement

@@ -56,12 +56,12 @@ The current implemented kinds are:
 |---|---|
 | `Source` | construct syntax, Rust macro invocation syntax, regex literal provenance, and source operator family |
 | `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
-| `Import` | static import binding/namespace proof, Ruby `require` module proof, and imported-literal snapshot provenance |
+| `Import` | static import binding/namespace proof, Java wildcard import proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs, selected Python/Rust/Ruby/Java/regex APIs, and selected receiver-method families |
+| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, and selected receiver-method families |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
@@ -87,6 +87,11 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
   calls and depends on matching Java import-binding evidence plus source-origin
   local type shadow checks.
+- `JavaUtilConstructor` names selected Java `java.util` constructors and depends
+  on construct-syntax evidence plus exact import-binding evidence or earlier
+  Java wildcard import evidence. Wildcard proof is constrained by Java name
+  resolution: a local same-name type or explicit same-name import from another
+  package keeps the occurrence closed.
 - `RustMacro` names a Rust macro invocation, currently `vec!`, and depends on
   both `Source::Call(MacroInvocation)` at the call span and
   `Symbol(UnshadowedGlobal)` evidence at the macro callee anchor.
@@ -97,6 +102,10 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `JsGlobalConstructor` and `RegexLiteralMethod` name APIs whose identity
   includes source provenance, such as construct syntax or regex-literal receiver
   proof.
+- `StaticIndexMembershipMethod` names JS-like `indexOf`/`findIndex` membership
+  calls and depends on `SequenceSurface(Collection)` evidence for the exact
+  receiver plus the static non-float literal receiver shape required by the
+  contract.
 - `Method` and `IteratorAdapterMethod` name language-scoped receiver methods by
   exact method string and arity. They depend on receiver proof such as
   `Domain`, `SequenceSurface`, imported-namespace or unshadowed-global `Symbol`,
@@ -269,25 +278,28 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   write proof back to the receiver proof;
 - first-party lowering emits `LibraryApi` evidence for selected API calls that
   remain as raw call nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
-  `Boolean(...)`, `new Map(...)`, and `new Set(...)`; Python builtin collection
-  factories such as `list(...)` when the callee has an unshadowed free-name
-  proof; Python `collections.deque(...)` through imported binding/namespace
-  proof; Python `math.prod(...)` through imported namespace proof; Rust
+  `Boolean(...)`, `new Map(...)`, `new Set(...)`, and static
+  `indexOf`/`findIndex` membership calls whose receiver has collection
+  sequence-surface proof; Python builtin collection factories such as
+  `list(...)` when the callee has an unshadowed free-name proof; Python
+  `collections.deque(...)` through imported binding/namespace proof; Python
+  `math.prod(...)` through imported namespace proof; Rust
   `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
   are proven, `Vec::new()`, and selected `std::collections::*::from(...)`
   factory paths when their root-shadow policy is proven; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
   plus unshadowed `require` and `Set` proof; Java `java.util` static
-  factories/adapters including
-  `List.of`, `Set.of`, `Arrays.asList`, `Map.of`, `Map.ofEntries`, `Map.entry`,
-  and `Arrays.stream`; and JS-like regex-literal `.test(...)`. These records
+  factories/adapters including `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
+  `Map.ofEntries`, `Map.entry`, and `Arrays.stream`, plus selected empty
+  `new ArrayList<>()`/`new LinkedList<>()` constructors through exact or
+  wildcard import proof; and JS-like regex-literal `.test(...)`. These records
   depend on the relevant `QualifiedGlobal`, `UnshadowedGlobal`,
   import-backed call-site `Symbol`, `Import::Require`, construct-syntax
-  `Source`, or regex-literal `Source` evidence. Calls collapsed into specialized
-  guard surfaces emit their guard evidence instead. Shadowed roots, unsupported
-  arities, unsupported static paths, unresolved free-name/path factories, and
-  Ruby require-backed APIs without require evidence do not emit API occurrence
-  evidence;
+  `Source`, `SequenceSurface`, or regex-literal `Source` evidence. Calls
+  collapsed into specialized guard surfaces emit their guard evidence instead.
+  Shadowed roots, unsupported arities, unsupported static paths, unresolved
+  free-name/path factories, and Ruby require-backed APIs without require
+  evidence do not emit API occurrence evidence;
 - first-party lowering plus post-binding and final-normalization refresh passes
   emit `LibraryApi`
   occurrence evidence for selected receiver methods that remain as raw call
@@ -305,9 +317,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   receiver-expression `Domain` evidence: Python `list`/`tuple` and
   `collections.deque`, Rust `Vec::new`, `vec!`, and
   `std::collections::VecDeque::from`, Java `List.of` and zero- or multi-argument
-  `Arrays.asList` as `Collection`; Python `set`/`frozenset`, Rust
-  `std::collections::{HashSet,BTreeSet}::from`, Java `Set.of`, Ruby
-  `Set.new`, and JS-like `new Set` as `Set`; Rust
+  `Arrays.asList`, and selected empty `new ArrayList<>()`/`new LinkedList<>()`
+  as `Collection`; Python `set`/`frozenset`, Rust
+  `std::collections::{HashSet,BTreeSet}::from`, Java `Set.of`, Ruby `Set.new`,
+  and JS-like `new Set` as `Set`; Rust
   `std::collections::{HashMap,BTreeMap}::from`, Java `Map.of`/`Map.ofEntries`,
   and JS-like `new Map` as `Map`; and JS-like one-argument `Array.from` as
   `Array`. `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`,
@@ -407,11 +420,12 @@ callers:
   language-gated helper only when no relevant evidence record exists. Ambiguous
   or conflicting evidence keeps the exact path closed.
 
-Broader field/place/effect facts, `LibraryApi` occurrence evidence for Java
-constructors, JS/TS static-index membership, free-name builtin calls, promise
-receiver proof, and unmodeled stdlib/ecosystem APIs, broader inferred
-receiver-expression domain evidence, first-class mutation/effect evidence beyond
-the current first-party binding scan, full protocol/demand/effect receiver
-obligations, full scope-resolution and namespace-member evidence, broader guard
-evidence, general cross-module dependency manifests, report-level provenance,
-and external manifest loading are still open work.
+Broader field/place/effect facts, `LibraryApi` occurrence evidence for
+free-name builtin calls outside the current factory/function rows, promise
+receiver proof, async/sync protocol convergence, and unmodeled
+stdlib/ecosystem APIs, broader inferred receiver-expression domain evidence,
+first-class mutation/effect evidence beyond the current first-party binding
+scan, full protocol/demand/effect receiver obligations, full scope-resolution
+and namespace-member evidence, broader guard evidence, general cross-module
+dependency manifests, report-level provenance, and external manifest loading are
+still open work.

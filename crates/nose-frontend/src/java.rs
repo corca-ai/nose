@@ -8,8 +8,9 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload,
-    Span, UnitKind,
+    stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner,
+    Lang, LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, SourceCallKind,
+    SourceFactKind, Span, UnitKind,
 };
 use nose_semantics::{
     library_java_collection_constructor_contract, LibraryApiCalleeContract,
@@ -76,6 +77,14 @@ fn lower_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
     }
     let path = text.strip_prefix("import ")?.trim();
     if path.ends_with(".*") {
+        let module = path.trim_end_matches(".*").trim();
+        lo.record_evidence(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Import(ImportEvidenceKind::Wildcard {
+                module_hash: stable_symbol_hash(module),
+            }),
+            "java_wildcard_import",
+        );
         return None;
     }
     let (module, exported) = path.rsplit_once('.')?;
@@ -541,10 +550,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                     kids.push(lower_expr(lo, a));
                 }
             }
-            if let Some(list) = lower_empty_java_collection_constructor(lo, node, kids.len(), span)
-            {
+            if let Some(list) = lower_empty_java_collection_constructor(lo, node, &kids, span) {
                 return list;
             }
+            lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
             lo.add(NodeKind::Call, Payload::None, span, &kids)
         }
         "field_access" => {
@@ -729,12 +738,13 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_empty_java_collection_constructor(
     lo: &mut Lowering,
     node: TsNode,
-    arg_count: usize,
+    args: &[NodeId],
     span: Span,
 ) -> Option<NodeId> {
     let ty = node.child_by_field_name("type")?;
+    let type_span = lo.span(ty);
     let type_name = java_constructor_type_name(lo.text(ty));
-    let contract = library_java_collection_constructor_contract(lo.lang, &type_name, arg_count)?;
+    let contract = library_java_collection_constructor_contract(lo.lang, &type_name, args.len())?;
     let LibraryApiCalleeContract::JavaUtilConstructor {
         simple_type,
         module,
@@ -759,8 +769,17 @@ fn lower_empty_java_collection_constructor(
     }
     match contract.result {
         LibraryCollectionFactoryResult::EmptySequence => {
-            let tag = lo.sym("array");
-            Some(lo.add(NodeKind::Seq, Payload::Name(tag), span, &[]))
+            let callee = lo.add(
+                NodeKind::Var,
+                Payload::Name(lo.sym(&type_name)),
+                type_span,
+                &[],
+            );
+            let mut kids = Vec::with_capacity(args.len() + 1);
+            kids.push(callee);
+            kids.extend_from_slice(args);
+            lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::Construct));
+            Some(lo.add(NodeKind::Call, Payload::None, span, &kids))
         }
         _ => None,
     }

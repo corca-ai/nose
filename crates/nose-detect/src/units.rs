@@ -28,8 +28,8 @@ use nose_semantics::{
     library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node, semantics,
-    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
+    library_static_index_membership_contract, nullish_global_contract, own_property_guard_for_node,
+    record_shape_guard_for_node, semantics, seq_surface_contract_for_node, source_operator_at_node,
     typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
     IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
     LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
@@ -1004,8 +1004,20 @@ fn strict_exact_static_index_membership_parts(
     if !strict_exact_static_non_float_collection(il, interner, receiver) {
         return None;
     }
-    let contract = static_index_membership_contract(il.meta.lang, method, kids.len() - 1)?;
-    match contract.kind {
+    let contract = library_static_index_membership_contract(il.meta.lang, method, kids.len() - 1)?;
+    match library_api_contract_evidence_for_call(
+        il,
+        interner,
+        node,
+        contract.id,
+        contract.callee,
+        kids.len().saturating_sub(1),
+    ) {
+        LibraryApiEvidenceStatus::Admitted => {}
+        LibraryApiEvidenceStatus::Rejected => return None,
+        LibraryApiEvidenceStatus::Missing => return None,
+    }
+    match contract.result.kind {
         StaticIndexMembershipKind::IndexOf => Some((kids[1], receiver)),
         StaticIndexMembershipKind::FindIndex => {
             let element = strict_exact_lambda_eq_param_element(il, interner, facts, kids[1])?;

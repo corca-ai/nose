@@ -15,13 +15,14 @@ place/effect, selected library API occurrence, value-domain/law contracts, and
 sequence-surface facts.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
-occurrence evidence covering selected JS-like static/global APIs, Python
-builtin/import-backed APIs, Rust free-name/path APIs, Ruby require-backed APIs,
-Java `java.util` APIs, JS regex API calls, and selected language-scoped
-receiver-method APIs such as collection membership, map lookup/defaulting,
-map-key views, iterator identity adapters, Rust `zip`, and HOF/reduction
-methods. Selected producer-covered factory/API calls now also emit dependent
-receiver-expression `Domain` evidence
+occurrence evidence covering selected JS-like static/global APIs and static
+index-membership calls, Python builtin/import-backed APIs, Rust free-name/path
+APIs, Ruby require-backed APIs, Java `java.util` APIs including selected empty
+constructors, JS regex API calls, and selected language-scoped receiver-method
+APIs such as collection membership, map lookup/defaulting, map-key views,
+iterator identity adapters, Rust `zip`, and HOF/reduction methods. Selected
+producer-covered factory/API calls now also emit dependent receiver-expression
+`Domain` evidence
 for their result container domain, and normalize emits binding-anchored `Domain`
 evidence for immutable local/module bindings whose initializer domain and
 non-mutation conditions are proven by first-party evidence/analysis.
@@ -193,8 +194,10 @@ migrated.
 - Selected API call occurrences now also have `LibraryApi` evidence records when
   they remain as raw call nodes. First-party lowering emits occurrence evidence
   for JS-like `Array.from(...)`, `Array.isArray(...)`, `Boolean(...)`,
-  `new Map(...)`, and `new Set(...)`; Python builtin collection factories such
-  as `list(...)` when the callee is proven as an unshadowed free name; Python
+  `new Map(...)`, `new Set(...)`, and static `indexOf`/`findIndex` membership
+  calls whose receiver is a proven static non-float collection literal; Python
+  builtin collection factories such as `list(...)` when the callee is proven as
+  an unshadowed free name; Python
   `collections.deque(...)` when the callee is proven through
   `from collections import deque`, an alias such as
   `from collections import deque as Values`, or `import collections;
@@ -204,13 +207,14 @@ migrated.
   factory paths when their root-shadow policy is proven; Ruby
   `require "set"; Set.new(...)` when an earlier top-level `Import::Require("set")`
   depends on unshadowed `require` proof and unshadowed `Set` receiver proof
-  exists; Java `java.util` static
-  factories/adapters such as `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
-  `Map.ofEntries`, `Map.entry`, and `Arrays.stream`; and JS-like regex-literal
-  `.test(...)`. These records depend on the relevant `QualifiedGlobal`,
+  exists; Java `java.util` static factories/adapters such as `List.of`,
+  `Set.of`, `Arrays.asList`, `Map.of`, `Map.ofEntries`, `Map.entry`, and
+  `Arrays.stream`, plus selected empty `new ArrayList<>()`/`new LinkedList<>()`
+  constructors; and JS-like regex-literal `.test(...)`. These records depend on
+  the relevant `QualifiedGlobal`,
   `UnshadowedGlobal`, import-backed call-site `Symbol`, `Import::Require`,
-  macro-invocation `Source`, construct-syntax `Source`, or regex-literal
-  `Source` evidence. Calls
+  macro-invocation `Source`, construct-syntax `Source`, `SequenceSurface`, or
+  regex-literal `Source` evidence. Calls
   collapsed into specialized guard surfaces emit guard evidence instead.
   `nose-semantics` resolves these records with a three-state result: admitted,
   missing, or rejected. Value-graph, idiom, strict exact, and provider snapshot
@@ -245,13 +249,16 @@ migrated.
   the `collect` selector alone.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
-  `java.util` list types. Simple names require `java.util` import proof and no
-  local type declaration with the same simple name. A `java.util.*` wildcard
-  import is not enough when another package explicitly imports the same simple
-  type; fully-qualified `java.util.*List` names carry the namespace proof in the
-  selector itself. These constructors currently lower directly to a sequence
-  surface rather than remaining as raw call nodes, so they do not emit call-node
-  result-domain evidence yet.
+  `java.util` list types. Simple names require exact `java.util` import proof or
+  earlier `java.util.*` wildcard import proof, plus no local type declaration
+  with the same simple name. A `java.util.*` wildcard import is not enough when
+  another package explicitly imports the same simple type; fully-qualified
+  `java.util.*List` names carry the namespace proof in the selector itself.
+  First-party Java lowering preserves these supported constructors as construct
+  `Call` nodes and emits admitted `LibraryApi` occurrence evidence. Value-graph
+  collection canonicalization and result `Domain(Collection)` evidence require
+  that occurrence proof, so source/import facts alone do not reopen the exact
+  path.
 - Builder append contracts are separate from arbitrary method calls. A selector
   such as `push`, `append`, or `add` is not proof by itself. First-party
   frontend/normalize paths must prove the receiver or active-builder contract and
@@ -327,13 +334,16 @@ migrated.
   separate zero-arg-lambda fallback argument contract, so block fallback demand
   is not inferred from the selector name in normalize/detect.
 - JS-like static array `indexOf`/`findIndex` membership surfaces are explicit
-  contracts, including the static non-float literal collection requirement and
-  accepted `-1`/`0` threshold comparisons through `OperatorSemantics`. Callback
-  membership variants also require source operator facts: JS-like strict
-  equality/inequality can enter exact matching, while loose equality,
-  `instanceof`, and non-JS equality surfaces stay closed for these contracts.
-  Callers still prove the receiver and lambda equality shape before exact
-  normalization/detection accepts them.
+  `LibraryApi` occurrence contracts, including the static non-float literal
+  collection requirement and accepted `-1`/`0` threshold comparisons through
+  `OperatorSemantics`. The occurrence record depends on
+  `SequenceSurface(Collection)` evidence for the exact receiver, and value-graph
+  and strict exact consumers require that admitted call occurrence before
+  treating a threshold comparison as membership. Callback membership variants
+  also require source operator facts: JS-like strict equality/inequality can
+  enter exact matching, while loose equality, `instanceof`, and non-JS equality
+  surfaces stay closed for these contracts. Callers still prove the receiver and
+  lambda equality shape before exact normalization/detection accepts them.
 - Source `Op::In` is not proof by itself. Strict exact collection/map
   membership currently admits Python `in` only through a language-scoped
   membership-operator contract plus receiver evidence. JS `in` remains
@@ -382,10 +392,11 @@ migrated.
   enough. Go `composite_literal` no longer falls back to a generic collection
   sequence tag; it is consumed only by the Go map contract or left as a distinct
   surface.
-- Static JS-like `indexOf`/`findIndex` membership requires a receiver whose
-  sequence surface has membership-collection admission. Untagged sequence
-  expressions, destructuring surfaces, and other positional groupings do not
-  become static array membership merely because their children are literals.
+- Static JS-like `indexOf`/`findIndex` membership requires a call occurrence
+  whose receiver sequence surface has membership-collection admission. Untagged
+  sequence expressions, destructuring surfaces, and other positional groupings
+  do not become static array membership merely because their children are
+  literals.
 - JS/TS object literals preserve static property keys in exact map/object
   semantics, but computed property names are exact-closed until a future
   contract can prove key evaluation, coercion, order, and side-effect behavior.
@@ -464,12 +475,13 @@ Semantic knowledge still appears in several forms outside the facade:
   HOFs, nullish defaulting, recursion, and effect traces;
 - remaining library/API proof gates that do not yet have occurrence records.
   `LibraryApi` occurrence evidence now covers selected JS-like static/global
-  APIs, Python builtin/import-backed factories/functions, Rust free-name/path
-  factories, Ruby `require "set"; Set.new(...)`, Java `java.util` static
-  factories/adapters, JS regex literals, and selected receiver-method families.
-  Java empty constructors, JS/TS static-index membership, free-name builtin
-  calls, promise receiver proof, and ecosystem APIs still rely on contract rows
-  plus local proof or remain exact-closed.
+  APIs and static-index membership, Python builtin/import-backed
+  factories/functions, Rust free-name/path factories, Ruby
+  `require "set"; Set.new(...)`, Java `java.util` static factories/adapters and
+  selected empty constructors, JS regex literals, and selected receiver-method
+  families. Free-name builtin calls outside the current factory/function rows,
+  promise receiver proof, async/sync protocol convergence, and ecosystem APIs
+  still rely on contract rows plus local proof or remain exact-closed.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
