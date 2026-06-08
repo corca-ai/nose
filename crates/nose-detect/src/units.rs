@@ -715,10 +715,11 @@ impl StrictFacts {
                 continue;
             }
             let safe_literal = immutable_binding_safe(il, &env, &self.immutable_names, kids[1]);
+            let binding_domain =
+                nose_semantics::domain_evidence_for_binding_lhs(il, interner, kids[0]);
             let safe_collection_container =
-                strict_exact_module_collection_binding_safe(il, interner, self, kids[1]);
-            let safe_map_container =
-                strict_exact_module_map_binding_safe(il, interner, self, kids[1]);
+                binding_domain.is_some_and(|domain| domain.is_collection_or_set());
+            let safe_map_container = binding_domain.is_some_and(|domain| domain.is_map());
             if safe_literal || safe_collection_container || safe_map_container {
                 self.immutable_names.insert(name);
                 if safe_collection_container {
@@ -746,7 +747,6 @@ impl StrictFacts {
     }
 
     fn collect_local_container_bindings(&mut self, il: &Il, interner: &Interner) {
-        let mut counts: FxHashMap<u32, usize> = FxHashMap::default();
         for (idx, node) in il.nodes.iter().enumerate() {
             if node.kind != NodeKind::Assign {
                 continue;
@@ -757,72 +757,18 @@ impl StrictFacts {
                 continue;
             }
             if let Payload::Cid(cid) = il.node(kids[0]).payload {
-                *counts.entry(cid).or_insert(0) += 1;
-            }
-        }
-        let candidates: FxHashSet<u32> = counts
-            .iter()
-            .filter_map(|(&cid, &count)| (count == 1).then_some(cid))
-            .collect();
-        let mutated = collect_mutated_cids(il, interner, &candidates);
-        for (idx, node) in il.nodes.iter().enumerate() {
-            if node.kind != NodeKind::Assign {
-                continue;
-            }
-            let id = NodeId(idx as u32);
-            let kids = il.children(id);
-            if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-                continue;
-            }
-            let Payload::Cid(cid) = il.node(kids[0]).payload else {
-                continue;
-            };
-            if !candidates.contains(&cid) || mutated.contains(&cid) {
-                continue;
-            }
-            if strict_exact_local_collection_binding_safe(il, interner, self, kids[1]) {
-                self.collection_cids.insert(cid);
-            } else if strict_exact_local_map_binding_safe(il, interner, self, kids[1]) {
-                self.map_cids.insert(cid);
+                match nose_semantics::domain_evidence_for_binding_lhs(il, interner, kids[0]) {
+                    Some(domain) if domain.is_collection_or_set() => {
+                        self.collection_cids.insert(cid);
+                    }
+                    Some(domain) if domain.is_map() => {
+                        self.map_cids.insert(cid);
+                    }
+                    _ => {}
+                }
             }
         }
     }
-}
-
-fn collect_mutated_cids(
-    il: &Il,
-    interner: &Interner,
-    candidates: &FxHashSet<u32>,
-) -> FxHashSet<u32> {
-    let mut mutated = FxHashSet::default();
-    for (idx, node) in il.nodes.iter().enumerate() {
-        if node.kind != NodeKind::Call {
-            continue;
-        }
-        let id = NodeId(idx as u32);
-        let kids = il.children(id);
-        let Some(&callee) = kids.first() else {
-            continue;
-        };
-        if il.kind(callee) != NodeKind::Field {
-            continue;
-        }
-        let Payload::Name(method) = il.node(callee).payload else {
-            continue;
-        };
-        if !mutating_method_name(interner.resolve(method)) {
-            continue;
-        }
-        let Some(&receiver) = il.children(callee).first() else {
-            continue;
-        };
-        if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(receiver), il.node(receiver).payload) {
-            if candidates.contains(&cid) {
-                mutated.insert(cid);
-            }
-        }
-    }
-    mutated
 }
 
 fn top_level_statements(il: &Il) -> Vec<NodeId> {
@@ -849,58 +795,6 @@ fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
         return None;
     };
     il.cid_names.get(cid as usize).copied()
-}
-
-fn strict_exact_module_collection_binding_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
-) -> bool {
-    strict_exact_literal_collection_receiver_safe(il, interner, facts, node)
-        || strict_exact_python_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
-        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_set_constructor_collection_safe(il, interner, facts, node)
-        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
-}
-
-fn strict_exact_module_map_binding_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
-) -> bool {
-    strict_exact_map_constructor_entries_safe(il, interner, facts, node)
-        || strict_exact_java_map_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_std_map_factory_safe(il, interner, facts, node)
-}
-
-fn strict_exact_local_collection_binding_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
-) -> bool {
-    strict_exact_literal_collection_receiver_safe(il, interner, facts, node)
-        || strict_exact_python_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_ruby_set_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, node)
-        || strict_exact_rust_std_collection_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_vec_new_safe(il, interner, node)
-        || strict_exact_java_collection_factory_safe(il, interner, facts, node)
-}
-
-fn strict_exact_local_map_binding_safe(
-    il: &Il,
-    interner: &Interner,
-    facts: &StrictFacts,
-    node: NodeId,
-) -> bool {
-    strict_exact_java_map_factory_safe(il, interner, facts, node)
-        || strict_exact_rust_std_map_factory_safe(il, interner, facts, node)
-        || strict_exact_map_constructor_entries_safe(il, interner, facts, node)
 }
 
 fn immutable_binding_safe(
@@ -1023,8 +917,8 @@ fn strict_exact_in_membership_collection_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    if strict_exact_proven_collection_receiver_safe(il, facts, node)
-        || strict_exact_proven_map_receiver_safe(il, facts, node)
+    if strict_exact_proven_collection_receiver_safe(il, interner, facts, node)
+        || strict_exact_proven_map_receiver_safe(il, interner, facts, node)
     {
         return true;
     }
@@ -1484,7 +1378,7 @@ fn strict_exact_collection_contains_call_safe(
                 return false;
             };
             strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
-                || strict_exact_proven_collection_receiver_safe(il, facts, receiver)
+                || strict_exact_proven_collection_receiver_safe(il, interner, facts, receiver)
                 || strict_exact_python_collection_factory_safe(il, interner, facts, receiver)
                 || strict_exact_ruby_set_factory_safe(il, interner, facts, receiver)
                 || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
@@ -1496,7 +1390,7 @@ fn strict_exact_collection_contains_call_safe(
             let Some(&receiver) = il.children(callee).first() else {
                 return false;
             };
-            strict_exact_typed_set_param_receiver_safe(il, receiver)
+            strict_exact_typed_set_param_receiver_safe(il, interner, receiver)
                 || strict_exact_set_constructor_collection_safe(il, interner, facts, receiver)
         }
         _ => false,
@@ -1534,10 +1428,7 @@ fn strict_exact_map_contains_call_safe(
     let Some(&receiver) = il.children(callee).first() else {
         return false;
     };
-    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
-        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
-        || strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver)
-        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+    strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, true)
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
 
@@ -1561,9 +1452,7 @@ fn strict_exact_map_get_call_safe(
     let Some(&receiver) = il.children(callee).first() else {
         return false;
     };
-    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
-        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
-        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+    strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, false)
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
 
@@ -1595,10 +1484,22 @@ fn strict_exact_map_get_default_call_safe(
     let Some(&receiver) = il.children(callee).first() else {
         return false;
     };
-    (strict_exact_proven_map_receiver_safe(il, facts, receiver)
-        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
-        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver))
+    strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, false)
         && strict_exact_map_get_default_args_safe(il, interner, facts, node, contract.args)
+}
+
+fn strict_exact_map_receiver_or_factory_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    receiver: NodeId,
+    allow_rust_std_factory: bool,
+) -> bool {
+    strict_exact_proven_map_receiver_safe(il, interner, facts, receiver)
+        || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
+        || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver)
+        || (allow_rust_std_factory
+            && strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver))
 }
 
 fn strict_exact_map_get_default_args_safe(
@@ -1685,7 +1586,7 @@ fn strict_exact_iterator_receiver_safe(
     facts: &StrictFacts,
     receiver: NodeId,
 ) -> bool {
-    strict_exact_proven_collection_receiver_safe(il, facts, receiver)
+    strict_exact_proven_collection_receiver_safe(il, interner, facts, receiver)
         || strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
         || strict_exact_rust_vec_macro_collection_safe(il, interner, facts, receiver)
         || strict_exact_rust_std_collection_factory_safe(il, interner, facts, receiver)
@@ -1722,31 +1623,46 @@ fn strict_exact_iterator_identity_adapter_node_safe(
     )
 }
 
-fn strict_exact_typed_set_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::Set)
+fn strict_exact_typed_set_param_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+) -> bool {
+    strict_exact_typed_receiver_safe(il, interner, receiver, DomainRequirement::Set)
 }
 
-fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::ArrayCollectionOrSet)
+fn strict_exact_typed_collection_param_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+) -> bool {
+    strict_exact_typed_receiver_safe(
+        il,
+        interner,
+        receiver,
+        DomainRequirement::ArrayCollectionOrSet,
+    )
 }
 
 fn strict_exact_typed_receiver_safe(
     il: &Il,
+    interner: &Interner,
     receiver: NodeId,
     requirement: DomainRequirement,
 ) -> bool {
     if il.kind(receiver) != NodeKind::Var {
         return false;
     }
-    nose_semantics::receiver_satisfies_domain(il, receiver, requirement)
+    nose_semantics::receiver_satisfies_domain(il, interner, receiver, requirement)
 }
 
 fn strict_exact_proven_collection_receiver_safe(
     il: &Il,
+    interner: &Interner,
     facts: &StrictFacts,
     receiver: NodeId,
 ) -> bool {
-    if strict_exact_typed_collection_param_receiver_safe(il, receiver) {
+    if strict_exact_typed_collection_param_receiver_safe(il, interner, receiver) {
         return true;
     }
     matches!(
@@ -1758,12 +1674,21 @@ fn strict_exact_proven_collection_receiver_safe(
     )
 }
 
-fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::Map)
+fn strict_exact_typed_map_param_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+) -> bool {
+    strict_exact_typed_receiver_safe(il, interner, receiver, DomainRequirement::Map)
 }
 
-fn strict_exact_proven_map_receiver_safe(il: &Il, facts: &StrictFacts, receiver: NodeId) -> bool {
-    if strict_exact_typed_map_param_receiver_safe(il, receiver) {
+fn strict_exact_proven_map_receiver_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    receiver: NodeId,
+) -> bool {
+    if strict_exact_typed_map_param_receiver_safe(il, interner, receiver) {
         return true;
     }
     matches!(
@@ -1814,7 +1739,7 @@ fn strict_exact_map_key_view_safe_matching(
     let Some(&receiver) = il.children(kids[0]).first() else {
         return false;
     };
-    strict_exact_proven_map_receiver_safe(il, facts, receiver)
+    strict_exact_proven_map_receiver_safe(il, interner, facts, receiver)
         || strict_exact_map_constructor_entries_safe(il, interner, facts, receiver)
         || strict_exact_java_map_factory_safe(il, interner, facts, receiver)
         || strict_exact_rust_std_map_factory_safe(il, interner, facts, receiver)
@@ -1878,8 +1803,8 @@ fn strict_exact_membership_collection_safe(
                 || strict_exact_java_collection_factory_safe(il, interner, facts, node)
                 || strict_exact_map_key_view_collection_safe(il, interner, facts, node);
         }
-        if strict_exact_proven_collection_receiver_safe(il, facts, node)
-            || strict_exact_proven_map_receiver_safe(il, facts, node)
+        if strict_exact_proven_collection_receiver_safe(il, interner, facts, node)
+            || strict_exact_proven_map_receiver_safe(il, interner, facts, node)
         {
             return true;
         }
@@ -4113,6 +4038,60 @@ mod tests {
         assert!(
             !strict_exact_safe_tree(&il, &interner, &facts, call),
             "conflicting receiver-domain evidence must close strict exact fallback"
+        );
+    }
+
+    #[test]
+    fn strict_exact_contains_consumes_binding_domain_evidence() {
+        let interner = Interner::new();
+        let xs = interner.intern("xs");
+        let mut b = IlBuilder::new(FileId(0));
+        let lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(30), &[]);
+        let seq = b.add(NodeKind::Seq, Payload::None, sp(31), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(30), &[lhs, seq]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(32), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("includes")),
+            sp(33),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(7), sp(34), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(35), &[callee, item]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(29), &[assign, call]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.ts".into(),
+                lang: Lang::TypeScript,
+            },
+            Vec::new(),
+            vec![xs],
+        );
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
+            Vec::new(),
+        ));
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_collection_contains_call_safe(
+            &il, &interner, &facts, call, callee, "includes"
+        ));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_collection_contains_call_safe(
+                &il, &interner, &facts, call, callee, "includes"
+            ),
+            "conflicting binding-domain evidence must close strict exact receiver proof"
         );
     }
 

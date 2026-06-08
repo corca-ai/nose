@@ -8,10 +8,10 @@
 
 use nose_il::{
     contains_js_identifier, stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor,
-    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
-    HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
-    NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
+    EvidenceEmitter, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il,
+    ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op,
+    ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
+    SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
 };
 
 pub use nose_il::DomainEvidence;
@@ -96,8 +96,7 @@ fn unique_asserted_evidence_at<T: Copy + Eq>(
         let Some(value) = project(record.kind) else {
             continue;
         };
-        if record.status != EvidenceStatus::Asserted || !evidence_dependencies_asserted(il, record)
-        {
+        if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {
             return EvidenceResolution::Ambiguous;
         }
         match found {
@@ -268,7 +267,22 @@ pub fn domain_evidence_for_node(il: &Il, node: NodeId) -> Option<DomainEvidence>
     }
 }
 
-pub fn domain_evidence_for_receiver(il: &Il, receiver: NodeId) -> Option<DomainEvidence> {
+pub fn domain_evidence_for_binding_lhs(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+) -> Option<DomainEvidence> {
+    match domain_evidence_at_binding_lhs(il, interner, lhs) {
+        EvidenceResolution::Found(domain) => Some(domain),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn domain_evidence_for_receiver(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+) -> Option<DomainEvidence> {
     match domain_evidence_at_exact_anchor(
         il,
         EvidenceAnchor::node(il.node(receiver).span, il.kind(receiver)),
@@ -277,21 +291,32 @@ pub fn domain_evidence_for_receiver(il: &Il, receiver: NodeId) -> Option<DomainE
         EvidenceResolution::Ambiguous => return None,
         EvidenceResolution::Missing => {}
     }
+    match domain_evidence_for_binding_reference(il, interner, receiver) {
+        EvidenceResolution::Found(domain) => return Some(domain),
+        EvidenceResolution::Ambiguous => return None,
+        EvidenceResolution::Missing => {}
+    }
     domain_evidence_for_var_reference(il, receiver)
 }
 
-pub fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
+pub fn domain_evidence_for_var(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<DomainEvidence> {
     (il.kind(node) == NodeKind::Var)
-        .then(|| domain_evidence_for_receiver(il, node))
+        .then(|| domain_evidence_for_receiver(il, interner, node))
         .flatten()
 }
 
 pub fn receiver_satisfies_domain(
     il: &Il,
+    interner: &Interner,
     receiver: NodeId,
     requirement: DomainRequirement,
 ) -> bool {
-    domain_evidence_for_receiver(il, receiver).is_some_and(|domain| requirement.accepts(domain))
+    domain_evidence_for_receiver(il, interner, receiver)
+        .is_some_and(|domain| requirement.accepts(domain))
 }
 
 fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvidence> {
@@ -324,6 +349,100 @@ fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvid
             domain_evidence_for_param(il, param)
         }
         _ => None,
+    }
+}
+
+fn domain_evidence_for_binding_reference(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> EvidenceResolution<DomainEvidence> {
+    if il.kind(node) != NodeKind::Var {
+        return EvidenceResolution::Missing;
+    }
+    let lhs = match unique_binding_lhs_for_var_reference(il, node) {
+        EvidenceResolution::Found(lhs) => lhs,
+        EvidenceResolution::Ambiguous => return EvidenceResolution::Ambiguous,
+        EvidenceResolution::Missing => return EvidenceResolution::Missing,
+    };
+    domain_evidence_at_binding_lhs(il, interner, lhs)
+}
+
+fn domain_evidence_at_binding_lhs(
+    il: &Il,
+    interner: &Interner,
+    lhs: NodeId,
+) -> EvidenceResolution<DomainEvidence> {
+    let span = il.node(lhs).span;
+    let Some(local_hash) = node_name_hash(il, interner, lhs) else {
+        return EvidenceResolution::Missing;
+    };
+    unique_asserted_evidence_at(
+        il,
+        |anchor| {
+            matches!(
+                anchor,
+                EvidenceAnchor::Binding {
+                    span: anchor_span,
+                    local_hash: anchor_hash,
+                } if anchor_span == span && anchor_hash == local_hash
+            )
+        },
+        |evidence| match evidence {
+            EvidenceKind::Domain(domain) => Some(domain),
+            _ => None,
+        },
+    )
+}
+
+fn unique_binding_lhs_for_var_reference(il: &Il, node: NodeId) -> EvidenceResolution<NodeId> {
+    let scope = nearest_scope(il, node);
+    let reference_is_free_name = matches!(il.node(node).payload, Payload::Name(_));
+    let mut found = None;
+    for (idx, candidate) in il.nodes.iter().enumerate() {
+        if candidate.kind != NodeKind::Assign {
+            continue;
+        }
+        let assign = NodeId(idx as u32);
+        let assignment_scope = nearest_scope(il, assign);
+        if assignment_scope != scope && !(reference_is_free_name && assignment_scope.is_none()) {
+            continue;
+        }
+        if !assignment_is_visible_at_reference(il, assign, node) {
+            continue;
+        }
+        let Some(&lhs) = il.children(assign).first() else {
+            continue;
+        };
+        if !var_references_same_binding(il, lhs, node) {
+            continue;
+        }
+        match found {
+            None => found = Some(lhs),
+            Some(existing) if existing == lhs => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn assignment_is_visible_at_reference(il: &Il, assign: NodeId, reference: NodeId) -> bool {
+    il.node(assign).span.end_byte <= il.node(reference).span.start_byte
+}
+
+fn var_references_same_binding(il: &Il, lhs: NodeId, reference: NodeId) -> bool {
+    if il.kind(lhs) != NodeKind::Var || il.kind(reference) != NodeKind::Var {
+        return false;
+    }
+    match (il.node(lhs).payload, il.node(reference).payload) {
+        (Payload::Cid(lhs_cid), Payload::Cid(reference_cid)) => lhs_cid == reference_cid,
+        (Payload::Name(lhs_name), Payload::Name(reference_name)) => lhs_name == reference_name,
+        (Payload::Cid(lhs_cid), Payload::Name(reference_name))
+        | (Payload::Name(reference_name), Payload::Cid(lhs_cid)) => il
+            .cid_names
+            .get(lhs_cid as usize)
+            .is_some_and(|&lhs_name| lhs_name == reference_name),
+        _ => false,
     }
 }
 
@@ -956,7 +1075,7 @@ pub fn imported_literal_producer_evidence_at_span(il: &Il, span: Span, kind: Nod
                     }
                 ) if root_kind == kind
             )
-            && evidence_dependencies_asserted(il, record)
+            && il.evidence_dependencies_asserted(record)
     })
 }
 
@@ -972,7 +1091,7 @@ pub fn imported_literal_snapshot_evidence_at_span(il: &Il, span: Span, kind: Nod
                     ..
                 }) if root_kind == kind
             )
-            && evidence_dependencies_asserted(il, record)
+            && il.evidence_dependencies_asserted(record)
     })
 }
 
@@ -983,32 +1102,6 @@ pub fn imported_literal_producer_evidence_for_node(il: &Il, node: NodeId) -> boo
 fn first_party_record(record: &EvidenceRecord) -> bool {
     record.provenance.emitter == EvidenceEmitter::FirstParty
         && record.provenance.pack_hash == Some(stable_symbol_hash(FIRST_PARTY_PACK_ID))
-}
-
-fn evidence_dependencies_asserted(il: &Il, record: &EvidenceRecord) -> bool {
-    let mut stack = record.dependencies.clone();
-    let mut seen = Vec::new();
-    while let Some(id) = stack.pop() {
-        if seen.contains(&id) {
-            continue;
-        }
-        seen.push(id);
-        let Some(dep) = evidence_record_by_id(il, id) else {
-            return false;
-        };
-        if dep.status != EvidenceStatus::Asserted {
-            return false;
-        }
-        stack.extend_from_slice(&dep.dependencies);
-    }
-    true
-}
-
-fn evidence_record_by_id(il: &Il, id: EvidenceId) -> Option<&EvidenceRecord> {
-    il.evidence
-        .get(id.0 as usize)
-        .filter(|record| record.id == id)
-        .or_else(|| il.evidence.iter().find(|record| record.id == id))
 }
 
 fn symbol_evidence_at_node(il: &Il, node: NodeId) -> EvidenceResolution<SymbolEvidenceKind> {
@@ -2369,11 +2462,12 @@ pub fn method_receiver_domain_requirement(
 
 pub fn receiver_satisfies_method_domain(
     il: &Il,
+    interner: &Interner,
     receiver: NodeId,
     contract: MethodReceiverContract,
 ) -> bool {
     method_receiver_domain_requirement(contract)
-        .is_some_and(|requirement| receiver_satisfies_domain(il, receiver, requirement))
+        .is_some_and(|requirement| receiver_satisfies_domain(il, interner, receiver, requirement))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -4153,7 +4247,7 @@ pub fn library_api_contract_evidence_for_call(
         saw_library_api_evidence = true;
         if record.status != EvidenceStatus::Asserted
             || api != expected
-            || !evidence_dependencies_asserted(il, record)
+            || !il.evidence_dependencies_asserted(record)
             || !library_api_callee_shape_matches(il, interner, node, callee)
             || !library_api_dependencies_match_callee(il, interner, node, callee, record)
         {
@@ -4198,7 +4292,7 @@ pub fn library_api_contract_evidence_at_call_span(
         saw_library_api_evidence = true;
         if record.status != EvidenceStatus::Asserted
             || api != expected
-            || !evidence_dependencies_asserted(il, record)
+            || !il.evidence_dependencies_asserted(record)
             || !library_api_dependencies_match_callee_at_span(
                 il,
                 interner,
@@ -4935,7 +5029,7 @@ fn dependency_has_imported_symbol_dependency(
     expected: SymbolEvidenceKind,
 ) -> bool {
     record.dependencies.iter().any(|&id| {
-        let Some(dependency) = evidence_record_by_id(il, id) else {
+        let Some(dependency) = il.evidence_record_by_id(id) else {
             return false;
         };
         dependency.status == EvidenceStatus::Asserted
@@ -4969,7 +5063,7 @@ fn dependency_has_imported_symbol_anchor(
         return false;
     }
     let Some(symbol_record) = record.dependencies.iter().find_map(|&id| {
-        let dependency = evidence_record_by_id(il, id)?;
+        let dependency = il.evidence_record_by_id(id)?;
         (dependency.anchor == EvidenceAnchor::node(span, kind)
             && dependency.status == EvidenceStatus::Asserted
             && dependency.kind == EvidenceKind::Symbol(expected))
@@ -4994,7 +5088,7 @@ fn imported_occurrence_symbol_dependencies_valid(
         return false;
     };
     let Some(binding_record) = symbol_record.dependencies.iter().find_map(|&id| {
-        let dependency = evidence_record_by_id(il, id)?;
+        let dependency = il.evidence_record_by_id(id)?;
         (dependency.status == EvidenceStatus::Asserted
             && dependency.kind == EvidenceKind::Symbol(expected)
             && matches!(dependency.anchor, EvidenceAnchor::Binding { .. }))
@@ -5157,7 +5251,7 @@ fn dependency_has_asserted_record(
     kind: EvidenceKind,
 ) -> bool {
     record.dependencies.iter().any(|&id| {
-        evidence_record_by_id(il, id).is_some_and(|dependency| {
+        il.evidence_record_by_id(id).is_some_and(|dependency| {
             dependency.anchor == anchor
                 && dependency.status == EvidenceStatus::Asserted
                 && dependency.kind == kind
@@ -6188,6 +6282,7 @@ mod tests {
 
     #[test]
     fn receiver_domain_evidence_at_node_is_preferred_over_param_evidence() {
+        let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
         let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
@@ -6223,16 +6318,18 @@ mod tests {
             Some(DomainEvidence::Set)
         );
         assert_eq!(
-            domain_evidence_for_receiver(&il, receiver),
+            domain_evidence_for_receiver(&il, &interner, receiver),
             Some(DomainEvidence::Map)
         );
         assert!(receiver_satisfies_domain(
             &il,
+            &interner,
             receiver,
             DomainRequirement::Map
         ));
         assert!(!receiver_satisfies_domain(
             &il,
+            &interner,
             receiver,
             DomainRequirement::Set
         ));
@@ -6270,11 +6367,232 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
 
-        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
+        let interner = Interner::new();
+        assert_eq!(domain_evidence_for_receiver(&il, &interner, receiver), None);
+    }
+
+    fn binding_receiver_fixture(
+        interner: &Interner,
+        module_receiver: bool,
+    ) -> (Il, NodeId, NodeId) {
+        let xs = interner.intern("xs");
+        let mut b = IlBuilder::new(FileId(0));
+        let lhs = b.add(NodeKind::Var, Payload::Cid(0), span(10, 12, 1), &[]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, span(15, 17, 1), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            span(10, 17, 1),
+            &[lhs, rhs],
+        );
+        let receiver_payload = if module_receiver {
+            Payload::Name(xs)
+        } else {
+            Payload::Cid(0)
+        };
+        let receiver = b.add(NodeKind::Var, receiver_payload, span(40, 42, 3), &[]);
+        let root = if module_receiver {
+            let stmt = b.add(
+                NodeKind::ExprStmt,
+                Payload::None,
+                span(40, 42, 3),
+                &[receiver],
+            );
+            let body = b.add(NodeKind::Block, Payload::None, span(38, 45, 3), &[stmt]);
+            let func = b.add(NodeKind::Func, Payload::None, span(30, 50, 2), &[body]);
+            b.add(
+                NodeKind::Module,
+                Payload::None,
+                span(0, 60, 1),
+                &[assign, func],
+            )
+        } else {
+            let body = b.add(
+                NodeKind::Block,
+                Payload::None,
+                span(10, 44, 1),
+                &[assign, receiver],
+            );
+            b.add(NodeKind::Func, Payload::None, span(0, 50, 1), &[body])
+        };
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.cid_names = vec![xs];
+        (il, lhs, receiver)
+    }
+
+    #[test]
+    fn binding_domain_evidence_drives_receiver_domain_proof() {
+        let interner = Interner::new();
+        let (mut il, lhs, receiver) = binding_receiver_fixture(&interner, false);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_binding_lhs(&il, &interner, lhs),
+            Some(DomainEvidence::Collection)
+        );
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, receiver),
+            Some(DomainEvidence::Collection)
+        );
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, receiver),
+            None,
+            "conflicting binding-domain evidence must close receiver proof"
+        );
+    }
+
+    #[test]
+    fn binding_domain_evidence_validates_dependencies() {
+        let interner = Interner::new();
+        let (mut il, _, receiver) = binding_receiver_fixture(&interner, false);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(span(15, 17, 1)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            EvidenceStatus::Ambiguous,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(0)],
+        ));
+
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, receiver),
+            None,
+            "dependency-broken binding-domain evidence must fail closed"
+        );
+    }
+
+    #[test]
+    fn module_binding_domain_evidence_reaches_free_name_receiver() {
+        let interner = Interner::new();
+        let (mut il, _, receiver) = binding_receiver_fixture(&interner, true);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, receiver),
+            Some(DomainEvidence::Collection)
+        );
+    }
+
+    #[test]
+    fn binding_domain_evidence_requires_matching_local_hash() {
+        let interner = Interner::new();
+        let xs = interner.intern("xs");
+        let ys = interner.intern("ys");
+        let mut b = IlBuilder::new(FileId(0));
+        let xs_lhs = b.add(NodeKind::Var, Payload::Cid(0), span(10, 12, 1), &[]);
+        let xs_rhs = b.add(NodeKind::Seq, Payload::None, span(14, 15, 1), &[]);
+        let xs_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            span(10, 15, 1),
+            &[xs_lhs, xs_rhs],
+        );
+        let ys_lhs = b.add(NodeKind::Var, Payload::Cid(1), span(10, 12, 1), &[]);
+        let ys_rhs = b.add(NodeKind::Seq, Payload::None, span(18, 19, 1), &[]);
+        let ys_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            span(16, 19, 1),
+            &[ys_lhs, ys_rhs],
+        );
+        let ys_receiver = b.add(NodeKind::Var, Payload::Cid(1), span(30, 32, 2), &[]);
+        let body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            span(8, 34, 1),
+            &[xs_assign, ys_assign, ys_receiver],
+        );
+        let root = b.add(NodeKind::Func, Payload::None, span(0, 40, 1), &[body]);
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.cid_names = vec![xs, ys];
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(span(10, 12, 1), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_binding_lhs(&il, &interner, xs_lhs),
+            Some(DomainEvidence::Collection)
+        );
+        assert_eq!(
+            domain_evidence_for_binding_lhs(&il, &interner, ys_lhs),
+            None,
+            "same-span binding evidence must not cross local_hash boundaries"
+        );
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, ys_receiver),
+            None
+        );
+    }
+
+    #[test]
+    fn binding_domain_evidence_requires_assignment_before_receiver() {
+        let interner = Interner::new();
+        let xs = interner.intern("xs");
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(10, 12, 1), &[]);
+        let lhs = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
+        let rhs = b.add(NodeKind::Seq, Payload::None, span(24, 25, 2), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            span(20, 25, 2),
+            &[lhs, rhs],
+        );
+        let body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            span(8, 28, 1),
+            &[receiver, assign],
+        );
+        let root = b.add(NodeKind::Func, Payload::None, span(0, 30, 1), &[body]);
+        let mut il = finish_il(b, root, Lang::TypeScript);
+        il.cid_names = vec![xs];
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::binding(span(20, 22, 2), stable_symbol_hash("xs")),
+            EvidenceKind::Domain(DomainEvidence::Collection),
+            EvidenceStatus::Asserted,
+        ));
+
+        assert_eq!(
+            domain_evidence_for_binding_lhs(&il, &interner, lhs),
+            Some(DomainEvidence::Collection)
+        );
+        assert_eq!(
+            domain_evidence_for_receiver(&il, &interner, receiver),
+            None,
+            "binding-domain evidence must not prove use-before-assignment receivers"
+        );
     }
 
     #[test]
     fn cid_receiver_domain_uses_nearest_function_scope() {
+        let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let first_param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
         let first_body = b.add(NodeKind::Block, Payload::None, span(14, 20, 1), &[]);
@@ -6320,13 +6638,14 @@ mod tests {
         ));
 
         assert_eq!(
-            domain_evidence_for_receiver(&il, receiver),
+            domain_evidence_for_receiver(&il, &interner, receiver),
             Some(DomainEvidence::Map)
         );
     }
 
     #[test]
     fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
+        let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
         let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
@@ -6352,7 +6671,7 @@ mod tests {
             vec![EvidenceId(99)],
         ));
 
-        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
+        assert_eq!(domain_evidence_for_receiver(&il, &interner, receiver), None);
     }
 
     #[test]
@@ -6384,7 +6703,7 @@ mod tests {
         ));
 
         assert_eq!(
-            domain_evidence_for_receiver(&il, receiver),
+            domain_evidence_for_receiver(&il, &interner, receiver),
             Some(DomainEvidence::Collection)
         );
 
@@ -6425,7 +6744,7 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
 
-        assert_eq!(domain_evidence_for_receiver(&il, receiver), None);
+        assert_eq!(domain_evidence_for_receiver(&il, &interner, receiver), None);
     }
 
     #[test]

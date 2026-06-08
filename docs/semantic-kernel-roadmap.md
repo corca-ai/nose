@@ -351,6 +351,14 @@ and pack ecosystem.
   `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`, `math.prod`,
   `Arrays.stream`, map `get`, promise `.then`, iterator adapters, and generic
   method contracts.
+- Immutable local/module binding domains now produce binding-anchored `Domain`
+  evidence during normalization when the initializer has asserted sequence or
+  result-domain evidence, the binding is single-assignment in the current scope,
+  and the first-party mutation scan finds no direct binding/place mutation.
+  `nose-semantics` resolves receiver-domain proof from exact receiver nodes,
+  binding anchors, and scoped parameters through the same `DomainRequirement`
+  helper, so value-graph and strict exact gates no longer maintain separate
+  collection/map binding proof sets.
 - An experimental `abstraction` scan mode landed as a weak sibling claim over a
   narrow `near` subset. It emits typed literal-hole witnesses and caveats for
   refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
@@ -471,12 +479,12 @@ Remaining in this phase:
   requires per-entry surface evidence.
 - Continue expanding domain evidence beyond parameter annotations. The shared
   receiver-domain consumer contract now accepts exact node-anchored receiver
-  facts, and first-party producers now emit them for selected admitted
-  library/API factory results. Remaining work is broader inferred receiver
+  facts, binding-anchored immutable local/module facts, and selected admitted
+  library/API factory result facts. Remaining work is broader inferred receiver
   domains, Java constructor call-domain evidence if that lowering stops
-  collapsing directly to sequence surfaces, immutable local/module binding
-  domain evidence, mutation exclusion, and protocol-specific receiver facts that
-  include demand/effect obligations.
+  collapsing directly to sequence surfaces, first-class mutation/effect evidence
+  beyond the current first-party binding scan, and protocol-specific receiver
+  facts that include demand/effect obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add receiver/place facts so field read/write and property contracts are not

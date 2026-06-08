@@ -8,8 +8,8 @@
 //! proof-obligation: normalize.value_graph.min_max
 
 use nose_il::{
-    contains_js_identifier, Builtin, DomainEvidence, EvidenceAnchor, EvidenceId, EvidenceKind,
-    EvidenceRecord, EvidenceStatus, HoFKind, Il, Interner, NodeId, NodeKind, Payload, Span, Symbol,
+    contains_js_identifier, Builtin, DomainEvidence, EvidenceAnchor, EvidenceKind, EvidenceStatus,
+    HoFKind, Il, Interner, NodeId, NodeKind, Payload, Span, Symbol,
 };
 use nose_semantics::{
     domain_evidence_for_param, free_function_builtin_contract, imported_namespace_symbol,
@@ -257,7 +257,7 @@ fn node_domain_index(old: &Il) -> FxHashMap<(Span, NodeKind), DomainLookup> {
             continue;
         };
         let entry = domains.entry((span, kind)).or_insert(DomainLookup::Missing);
-        if record.status != EvidenceStatus::Asserted || !evidence_dependencies_asserted(old, record)
+        if record.status != EvidenceStatus::Asserted || !old.evidence_dependencies_asserted(record)
         {
             *entry = DomainLookup::Ambiguous;
         } else {
@@ -265,32 +265,6 @@ fn node_domain_index(old: &Il) -> FxHashMap<(Span, NodeKind), DomainLookup> {
         }
     }
     domains
-}
-
-fn evidence_dependencies_asserted(il: &Il, record: &EvidenceRecord) -> bool {
-    let mut stack = record.dependencies.clone();
-    let mut seen = Vec::new();
-    while let Some(id) = stack.pop() {
-        if seen.contains(&id) {
-            continue;
-        }
-        seen.push(id);
-        let Some(dep) = evidence_record_by_id(il, id) else {
-            return false;
-        };
-        if dep.status != EvidenceStatus::Asserted {
-            return false;
-        }
-        stack.extend_from_slice(&dep.dependencies);
-    }
-    true
-}
-
-fn evidence_record_by_id(il: &Il, id: EvidenceId) -> Option<&EvidenceRecord> {
-    il.evidence
-        .get(id.0 as usize)
-        .filter(|record| record.id == id)
-        .or_else(|| il.evidence.iter().find(|record| record.id == id))
 }
 
 #[cfg(test)]

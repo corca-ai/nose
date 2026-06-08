@@ -18,7 +18,9 @@ occurrence evidence covering selected JS-like static/global APIs, Python
 builtin/import-backed APIs, Rust free-name/path APIs, Ruby require-backed APIs,
 Java `java.util` APIs, and JS regex API calls. Selected producer-covered
 factory/API calls now also emit dependent receiver-expression `Domain` evidence
-for their result container domain.
+for their result container domain, and normalize emits binding-anchored `Domain`
+evidence for immutable local/module bindings whose initializer domain and
+non-mutation conditions are proven by first-party evidence/analysis.
 
 ## What exists today
 
@@ -26,17 +28,16 @@ nose now has a first internal semantic-kernel facade, but most of the engine is
 still being migrated toward it.
 
 - `nose-il` defines a compact shared IL, `Lang`, `Builtin`, `HoFKind`, operators,
-  literals, source spans, units, compatibility parameter/source facts, and
-  pack-facing internal `EvidenceRecord` facts.
+  literals, source spans, units, and pack-facing internal `EvidenceRecord` facts.
 - `nose-semantics` defines the first-party semantic profile facade: language,
   source-fact, operator, effect, fragment, module, stdlib, builtin, method-call,
   property, async, iterator-adapter, builder-append, and factory contracts.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
-  `<script>` extraction, import facts, source-origin fact emission, and Raw-node
-  coverage.
+  `<script>` extraction, source/domain/import/symbol/guard/place/effect/API/
+  sequence evidence emission, and Raw-node coverage.
 - `nose-normalize` owns desugaring, alpha-renaming, recursion normalization,
-  dataflow, CFG/algebra normalization, type-gated value-graph rules, and the
-  interpreter oracle.
+  immutable binding-domain evidence inference, dataflow, CFG/algebra
+  normalization, type-gated value-graph rules, and the interpreter oracle.
 - proof-sensitive value-graph laws are starting to move into named rule modules
   under `crates/nose-normalize/src/value_graph/rules/`; `clamp` and
   `promise_then` are the current examples.
@@ -95,15 +96,23 @@ migrated.
 - Source-level `ParamSemantic` facts are stored directly as
   `EvidenceRecord::Domain`, and `nose-semantics` resolves receiver-domain
   evidence through a shared `DomainRequirement` contract. Consumers check exact
-  receiver node evidence first, then scoped parameter evidence, and fail closed
-  on ambiguous/conflicting/dependency-broken records without consulting a
-  side-table mirror. Desugaring, normalize idiom canonicalization, value-graph
-  receiver gates, and strict exact receiver gates consume this same helper layer.
-  This preserves the current Array/Collection/Set/Map/Option/String/Integer/Number
-  and ByteArray distinctions. First-party producers now attach
+  receiver node evidence first, then immutable binding evidence for local or
+  module variables, then scoped parameter evidence, and fail closed on
+  ambiguous/conflicting/dependency-broken records without consulting a side-table
+  mirror. Post-desugar value-graph receiver gates and strict exact receiver
+  gates consume this same helper layer; desugaring and early idiom
+  canonicalization still run before immutable binding-domain inference and only
+  see domain evidence already present at that point. This preserves the current
+  Array/Collection/Set/Map/Option/String/Integer/Number and ByteArray
+  distinctions. First-party producers now attach
   receiver-expression domain facts directly for selected admitted library/API
-  factory results, while future packs or inference passes can use the same
-  node-anchored shape for broader domains.
+  factory results, and normalize emits binding-anchored `Domain` evidence for
+  single-assignment local/module bindings whose initializer has asserted
+  sequence or result-domain evidence and whose binding has no direct mutation
+  under the current first-party mutation scan. Binding-domain lookup matches the
+  binding `local_hash` and only applies an assignment to receiver uses that occur
+  after it. That mutation scan is producer policy; general mutation/effect
+  evidence remains separate future work.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
@@ -374,8 +383,8 @@ migrated.
   contracts.
 - Strict exact collection-membership gates no longer treat any strict-safe
   expression as collection evidence. Non-literal receivers must now be proven by
-  typed parameter facts, local collection/map binding facts, or module-level
-  immutable collection/map binding facts.
+  `Domain` evidence from exact receiver nodes, immutable local/module binding
+  anchors, scoped parameter annotations, or selected admitted API result records.
 
 ## Scattered semantic knowledge
 
@@ -410,13 +419,13 @@ Semantic knowledge still appears in several forms outside the facade:
   instead of versioned `LawPack` records;
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,
   HOFs, nullish defaulting, recursion, and effect traces;
-- duplicated receiver/domain and library/API proof gates in desugaring,
-  idiom lowering, value-graph, and strict exact paths. `LibraryApi` occurrence
-  evidence now reduces this for selected JS-like static/global APIs,
-  Python builtin/import-backed factories/functions, Rust free-name/path
-  factories, Ruby `require "set"; Set.new(...)`, Java `java.util` static
-  factories/adapters, and JS regex literals, but Java empty constructors and
-  broad receiver-method surfaces still rely on contract rows plus local proof.
+- duplicated library/API proof gates in desugaring, idiom lowering, value-graph,
+  and strict exact paths. `LibraryApi` occurrence evidence now reduces this for
+  selected JS-like static/global APIs, Python builtin/import-backed
+  factories/functions, Rust free-name/path factories, Ruby
+  `require "set"; Set.new(...)`, Java `java.util` static factories/adapters, and
+  JS regex literals, but Java empty constructors and broad receiver-method
+  surfaces still rely on contract rows plus local proof.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
