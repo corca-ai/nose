@@ -21,11 +21,11 @@ use nose_semantics::{
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract,
     library_api_contract_evidence_for_call, library_free_name_collection_factory_contract,
     library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
-    library_iterator_identity_adapter_contract, library_java_collection_factory_contract,
-    library_java_map_entry_contract, library_java_map_factory_contract,
-    library_js_array_is_array_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_map_get_contract,
-    library_map_key_view_contract, library_map_key_view_wrapper_contract,
+    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_static_index_membership_contract, nullish_global_contract, own_property_guard_for_node,
@@ -1218,6 +1218,9 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
     if strict_exact_java_collection_factory_safe(il, interner, facts, node) {
         return true;
     }
+    if strict_exact_java_collection_constructor_safe(il, interner, node) {
+        return true;
+    }
     if strict_exact_java_map_factory_safe(il, interner, facts, node) {
         return true;
     }
@@ -2124,6 +2127,46 @@ fn strict_exact_java_collection_factory_safe(
     kids.iter()
         .skip(1)
         .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
+}
+
+/// An empty `java.util` collection constructor (`new ArrayList<>()`, `new LinkedList<>()`)
+/// canonicalizes to an empty collection in the value graph
+/// (`eval_java_collection_constructor_expr`) whenever its `JavaUtilConstructor` LibraryApi
+/// occurrence evidence is admitted — including when the type is authorized only by a
+/// wildcard `import java.util.*;`. The exact-safe gate must agree, mirroring the same
+/// admission check, so the constructor node is not left unproven (which would only pass
+/// incidentally when an explicit import made the callee name a proven top-level binding).
+fn strict_exact_java_collection_constructor_safe(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::Call {
+        return false;
+    }
+    let kids = il.children(node);
+    // Empty constructor: just the type callee, no arguments.
+    if kids.len() != 1 || il.kind(kids[0]) != NodeKind::Var {
+        return false;
+    }
+    let Payload::Name(type_name) = il.node(kids[0]).payload else {
+        return false;
+    };
+    let Some(contract) =
+        library_java_collection_constructor_contract(il.meta.lang, interner.resolve(type_name), 0)
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::JavaUtilConstructor { .. } = contract.callee else {
+        return false;
+    };
+    if !matches!(
+        contract.result,
+        LibraryCollectionFactoryResult::EmptySequence
+    ) {
+        return false;
+    }
+    library_api_evidence_required(il, interner, node, contract.id, contract.callee, 0)
 }
 
 fn java_util_static_member_call<'a>(

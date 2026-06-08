@@ -407,6 +407,124 @@ fn scan_mode_semantic_rejects_cross_receiver_field_state() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Regression (semantic-kernel migration): empty `java.util` collection constructors
+/// (`new ArrayList<>()` / `new LinkedList<>()`) authorized only via a wildcard
+/// `import java.util.*;` must still canonicalize to an empty collection and form a
+/// semantic family, exactly like the explicit-import form. The migration moved Java
+/// collection constructors onto LibraryApi occurrence evidence in the value graph but
+/// left the exact-safe gate (`strict_exact_safe_call`) admitting the constructor only
+/// when its callee name happened to be a proven top-level binding — which an explicit
+/// import incidentally provides but a wildcard import does not.
+#[test]
+fn scan_mode_semantic_matches_wildcard_imported_java_empty_collection_constructors() {
+    let dir = std::env::temp_dir().join(format!("nose_java_wildcard_ctor_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("A.java"),
+        "import java.util.*;\nclass A {\n  List<Object> build(Object a, Object b) {\n    List<Object> r = new ArrayList<>();\n    r.add(a);\n    r.add(b);\n    return r;\n  }\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("B.java"),
+        "import java.util.*;\nclass B {\n  List<Object> build(Object a, Object b) {\n    List<Object> r = new LinkedList<>();\n    r.add(a);\n    r.add(b);\n    return r;\n  }\n}\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+    ]));
+    assert!(
+        family_contains_all(&json, &["A.java", "B.java"]),
+        "wildcard-imported empty java.util collection constructors with identical appends must form one semantic family: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Soundness guard for the regression fix above: making the wildcard constructor
+/// exact-safe must not over-merge. Two wildcard-imported builders that append the same
+/// elements in a DIFFERENT order are not behaviorally equivalent and must not form a
+/// semantic family.
+#[test]
+fn scan_mode_semantic_rejects_wildcard_java_collections_with_divergent_append_order() {
+    let dir = std::env::temp_dir().join(format!("nose_java_wildcard_neg_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("A.java"),
+        "import java.util.*;\nclass A {\n  List<Object> build(Object a, Object b) {\n    List<Object> r = new ArrayList<>();\n    r.add(a);\n    r.add(b);\n    return r;\n  }\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("B.java"),
+        "import java.util.*;\nclass B {\n  List<Object> build(Object a, Object b) {\n    List<Object> r = new LinkedList<>();\n    r.add(b);\n    r.add(a);\n    return r;\n  }\n}\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["A.java", "B.java"]),
+        "builders appending the same elements in different order must not be exact semantic clones: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Soundness (semantic-kernel binding-domain evidence): a parameter whose binding is
+/// reassigned must not retain its declared-domain proof. `y: list[int]; y = z` makes `y`
+/// a list when `z` is a list but a string when `z` is a string — and `e in y` is element
+/// membership for the list yet substring membership for the string, so the two are NOT
+/// behaviorally equivalent and must not form one exact semantic family. The Cid form of
+/// `domain_evidence_for_var_reference` (the form that runs on the alpha-renamed normalized
+/// IL) previously returned the stale parameter domain, while the Name form already guards
+/// reassignment — an asymmetric fail-open that admitted the unsound merge.
+#[test]
+fn scan_mode_semantic_rejects_reassigned_param_with_stale_collection_domain() {
+    let dir = std::env::temp_dir().join(format!("nose_stale_domain_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    // `y` reassigned to a list: `e in y` is list element membership.
+    fs::write(
+        dir.join("list_membership.py"),
+        "def memb(e, y: list[int], z: list[int]):\n    y = z\n    return e in y\n",
+    )
+    .unwrap();
+    // `y` reassigned to a str: `e in y` is substring membership — NOT equivalent.
+    fs::write(
+        dir.join("substring_membership.py"),
+        "def memb(e, y: list[int], z: str):\n    y = z\n    return e in y\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["list_membership.py", "substring_membership.py"]),
+        "a reassigned parameter's declared domain is not proof of the current receiver's domain: list membership and substring membership must not merge: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn scan_human_hides_generated_header_families() {
     let dir = make_generated_header_project("human");

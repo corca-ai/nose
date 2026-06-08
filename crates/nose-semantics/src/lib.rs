@@ -443,6 +443,13 @@ fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvid
     }
     match il.node(node).payload {
         Payload::Cid(cid) => match nearest_scope(il, node) {
+            // A reassigned binding no longer proves its parameter's declared domain: the
+            // current value may have a different domain (e.g. a `list[int]` parameter
+            // rebound to a `str`). This mirrors the `Payload::Name` reassignment guard
+            // below; without it the alpha-renamed (Cid) form — the form that actually runs
+            // on the normalized IL value-graph/idiom consumers see — would fail open and
+            // admit, for instance, substring membership as collection membership.
+            Some(scope) if cid_is_assigned_in_scope(il, cid, scope) => None,
             Some(scope) => unique_domain_evidence_for_params(
                 il,
                 il.children(scope).iter().copied().filter(move |&child| {
@@ -622,6 +629,26 @@ fn name_is_assigned_in_scope(il: &Il, name: Symbol, scope: NodeId) -> bool {
             return false;
         };
         il.kind(lhs) == NodeKind::Var && il.node(lhs).payload == Payload::Name(name)
+    })
+}
+
+/// Cid-keyed counterpart of [`name_is_assigned_in_scope`]: is the alpha-renamed binding
+/// `cid` the target of a reassignment inside `scope`? Used to keep a reassigned
+/// parameter from proving its declared domain on the normalized (Cid) IL.
+fn cid_is_assigned_in_scope(il: &Il, cid: u32, scope: NodeId) -> bool {
+    il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Assign {
+            return false;
+        }
+        let id = NodeId(idx as u32);
+        if nearest_scope(il, id) != Some(scope) {
+            return false;
+        }
+        let Some(&lhs) = il.children(id).first() else {
+            return false;
+        };
+        il.kind(lhs) == NodeKind::Var
+            && matches!(il.node(lhs).payload, Payload::Cid(lhs_cid) if lhs_cid == cid)
     })
 }
 
