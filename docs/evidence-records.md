@@ -182,6 +182,15 @@ claim as well. The result-domain record proves only the container/protocol shape
 of the call result; exact consumers still prove argument safety, entry shape,
 mutation, receiver requirements, and demand/effect obligations separately.
 
+Sequence-surface evidence is also authoritative for exact/value-graph aggregate
+semantics. A lowered `Seq("array")`, `Seq("object")`, `Seq("tuple")`, or
+language-specific tag does not by itself prove exact-tree safety, collection
+membership, map-entry-list shape, imported-literal eligibility, or a canonical
+value-graph tag. Consumers resolve the tag only when a matching
+`SequenceSurface` record exists at the same sequence anchor and its dependencies
+remain asserted. Missing, conflicting, ambiguous, or wrong-kind surface evidence
+keeps the exact/value-graph path closed.
+
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,

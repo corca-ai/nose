@@ -4031,6 +4031,28 @@ mod tests {
         (il, call)
     }
 
+    fn raw_array_seq_il(interner: &Interner) -> (Il, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(60), &[]);
+        let seq = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(61),
+            &[one],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(59), &[seq]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.js".into(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, seq)
+    }
+
     fn ts_contains_call_il(interner: &Interner) -> (Il, NodeId, Span) {
         let mut b = IlBuilder::new(FileId(0));
         let receiver_span = sp(50);
@@ -4059,6 +4081,31 @@ mod tests {
             Vec::new(),
         );
         (il, call, receiver_span)
+    }
+
+    #[test]
+    fn strict_exact_sequence_surfaces_require_evidence() {
+        let interner = Interner::new();
+        let (mut il, seq) = raw_array_seq_il(&interner);
+        let facts = StrictFacts::collect(&il, &interner);
+
+        assert!(!strict_exact_safe_tree(&il, &interner, &facts, seq));
+        assert!(!strict_exact_membership_collection_safe(
+            &il, &interner, &facts, seq
+        ));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(sp(61)),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, seq));
+        assert!(strict_exact_membership_collection_safe(
+            &il, &interner, &facts, seq
+        ));
     }
 
     #[test]

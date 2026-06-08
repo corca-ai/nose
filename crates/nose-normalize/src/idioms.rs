@@ -994,14 +994,6 @@ fn map_factory_entries_match_surface(
     })
 }
 
-/// Canonical sync name for a known async counterpart, so behaviorally-equivalent
-/// sync/async twins (a frequent real Type-4 pattern, e.g. `__exit__`/`__aexit__`,
-/// `read`/`aread`) converge. Curated to high-confidence pairs only — generic
-/// `a`-prefixed names (`add`, `append`, `get`) are deliberately excluded.
-pub(crate) fn async_to_sync(lang: nose_il::Lang, name: &str) -> Option<&'static str> {
-    nose_semantics::async_to_sync_name(lang, name)
-}
-
 fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
     old.units
         .iter()
@@ -2098,10 +2090,21 @@ mod tests {
             Vec::new(),
         );
 
-        assert!(map_like_literal(&il, &interner, map));
+        assert!(
+            !map_like_literal(&il, &interner, map),
+            "raw map tag alone must not prove a semantic map surface"
+        );
 
         il.evidence.push(evidence(
             0,
+            EvidenceAnchor::sequence(sp()),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(map_like_literal(&il, &interner, map));
+
+        il.evidence.push(evidence(
+            1,
             EvidenceAnchor::sequence(sp()),
             EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
             EvidenceStatus::Asserted,
@@ -2115,18 +2118,20 @@ mod tests {
     fn rust_hash_map_from_call(entry_surface: &str, shadow_std: bool) -> (Il, Interner, NodeId) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
+        let entry_span = sp_at(10, 20, 1);
+        let entries_span = sp_at(30, 40, 1);
         let key = b.add(NodeKind::Lit, Payload::LitStr(1), sp(), &[]);
         let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(), &[]);
         let entry = b.add(
             NodeKind::Seq,
             Payload::Name(interner.intern(entry_surface)),
-            sp(),
+            entry_span,
             &[key, value],
         );
         let entries = b.add(
             NodeKind::Seq,
             Payload::Name(interner.intern("array")),
-            sp(),
+            entries_span,
             &[entry],
         );
         let callee = b.add(
@@ -2146,7 +2151,7 @@ mod tests {
         } else {
             Vec::new()
         };
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -2155,6 +2160,23 @@ mod tests {
             units,
             Vec::new(),
         );
+        let entry_kind = match entry_surface {
+            "tuple" => SequenceSurfaceKind::Tuple,
+            "array" => SequenceSurfaceKind::Collection,
+            other => panic!("unexpected test entry surface: {other}"),
+        };
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::sequence(entry_span),
+            EvidenceKind::SequenceSurface(entry_kind),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::sequence(entries_span),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            EvidenceStatus::Asserted,
+        ));
         (il, interner, call)
     }
 
@@ -2162,16 +2184,18 @@ mod tests {
         let contract =
             library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from")
                 .expect("Rust HashMap::from contract");
+        let symbol_id = next_evidence_id(il);
         il.evidence.push(evidence(
-            0,
+            symbol_id,
             EvidenceAnchor::node(sp(), NodeKind::Var),
             EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
                 name_hash: stable_symbol_hash("std::collections::HashMap::from"),
             }),
             EvidenceStatus::Asserted,
         ));
+        let api_id = next_evidence_id(il);
         il.evidence.push(evidence_with_dependencies(
-            1,
+            api_id,
             EvidenceAnchor::node(sp(), NodeKind::Call),
             EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
                 contract_hash: nose_semantics::library_api_contract_id_hash(contract.id),
@@ -2179,7 +2203,7 @@ mod tests {
                 arity: 1,
             }),
             EvidenceStatus::Asserted,
-            vec![EvidenceId(0)],
+            vec![EvidenceId(symbol_id)],
         ));
     }
 

@@ -230,8 +230,8 @@ impl Rebuilder<'_> {
         }
     }
 
-    /// `x.length` → `Len(x)`; async method/type names → their sync counterpart
-    /// (`__aexit__` → `__exit__`, `AsyncIterable` → `Iterable`); others pass through.
+    /// `x.length` → `Len(x)` when the receiver has exact collection proof;
+    /// others pass through.
     fn field(&mut self, old_id: NodeId) -> NodeId {
         let n = *self.old.node(old_id);
         if let Payload::Name(s) = n.payload {
@@ -256,19 +256,6 @@ impl Rebuilder<'_> {
                         &[new_base],
                     );
                 }
-            }
-            if let Some(sync) = crate::idioms::async_to_sync(self.old.meta.lang, name) {
-                let sym = self.interner.intern(sync);
-                let kids: Vec<NodeId> = self
-                    .old
-                    .children(old_id)
-                    .to_vec()
-                    .iter()
-                    .map(|&c| self.go(c))
-                    .collect();
-                return self
-                    .b
-                    .add(NodeKind::Field, Payload::Name(sym), n.span, &kids);
             }
         }
         self.generic(old_id)
@@ -325,8 +312,29 @@ fn property_receiver_exact_hof_call(
         return false;
     };
     let method_text = interner.resolve(method);
-    nose_semantics::method_hof_contract(il.meta.lang, method_text).is_some()
-        && property_receiver_exact_safe(il, interner, domains, receiver)
+    let arg_count = kids.len() - 1;
+    let Some(kind) = nose_semantics::method_hof_contract(il.meta.lang, method_text) else {
+        return false;
+    };
+    let Some(contract) =
+        nose_semantics::library_method_call_contract(il.meta.lang, method_text, arg_count)
+    else {
+        return false;
+    };
+    if contract.result.semantic != nose_semantics::MethodSemanticContract::HoF(kind) {
+        return false;
+    }
+    matches!(
+        nose_semantics::library_api_contract_evidence_for_call(
+            il,
+            interner,
+            node,
+            contract.id,
+            contract.callee,
+            arg_count,
+        ),
+        nose_semantics::LibraryApiEvidenceStatus::Admitted
+    ) && property_receiver_exact_safe(il, interner, domains, receiver)
 }
 
 fn property_receiver_exact_hof_node(
@@ -344,4 +352,113 @@ fn property_receiver_exact_hof_node(
     il.children(node)
         .first()
         .is_some_and(|&receiver| property_receiver_exact_safe(il, interner, domains, receiver))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{
+        EvidenceAnchor, EvidenceKind, FileId, FileMeta, Lang, SequenceSurfaceKind, Span,
+    };
+    use nose_semantics::FIRST_PARTY_PACK_ID;
+
+    fn sp() -> Span {
+        Span::new(FileId(0), 1, 1, 1, 1)
+    }
+
+    #[test]
+    fn async_like_field_names_are_not_rewritten_without_protocol_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("reader")),
+            sp(),
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("aread")),
+            sp(),
+            &[receiver],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(), &[field]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.py".to_string(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+
+        let out = run(&il, &interner, &NormalizeOptions::default());
+        let lowered_field = out
+            .nodes
+            .iter()
+            .find(|node| node.kind == NodeKind::Field)
+            .expect("field should remain a field");
+        assert!(matches!(
+            lowered_field.payload,
+            Payload::Name(name) if interner.resolve(name) == "aread"
+        ));
+    }
+
+    #[test]
+    fn hof_length_field_requires_hof_occurrence_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(), &[]);
+        let receiver = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(),
+            &[one],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("filter")),
+            sp(),
+            &[receiver],
+        );
+        let lambda = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("predicate")),
+            sp(),
+            &[],
+        );
+        let filter_call = b.add(NodeKind::Call, Payload::None, sp(), &[callee, lambda]);
+        let length = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("length")),
+            sp(),
+            &[filter_call],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(), &[length]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.js".to_string(),
+                lang: Lang::JavaScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.find_or_push_first_party_evidence(
+            EvidenceAnchor::sequence(sp()),
+            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+            FIRST_PARTY_PACK_ID,
+            "test_sequence_surface",
+            Vec::new(),
+        );
+
+        let out = run(&il, &interner, &NormalizeOptions::default());
+        assert!(
+            !out.nodes
+                .iter()
+                .any(|node| matches!(node.payload, Payload::Builtin(nose_il::Builtin::Len))),
+            "raw HOF selector plus receiver evidence must not prove length semantics"
+        );
+    }
 }

@@ -8992,6 +8992,36 @@ mod tests {
         )
     }
 
+    #[test]
+    fn raw_sequence_tags_do_not_prove_value_graph_surfaces() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(20), &[]);
+        let seq = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(21),
+            &[one],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(19), &[seq]);
+        let mut il = finish_test_il(b, root, Lang::JavaScript);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(seq, &FxHashMap::default());
+        assert!(!matches!(
+            builder.nodes[raw as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ));
+
+        il.evidence.push(collection_sequence_evidence(0, sp(21)));
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(seq, &FxHashMap::default());
+        assert!(matches!(
+            builder.nodes[proven as usize].op,
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ));
+    }
+
     fn library_api_contract_evidence(
         id: u32,
         call_span: Span,

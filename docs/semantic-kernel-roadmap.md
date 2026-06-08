@@ -421,6 +421,14 @@ and pack ecosystem.
   self receiver/field/write `Place`/`Effect` records after canonical rewrites.
   Exact fragment consumers no longer reopen append/index/self-field admission
   through language/shape fallback when `Effect`/`Place` evidence is missing.
+- Sequence-surface exact/value consumers became evidence-only. Raw
+  `Seq("array")`, `Seq("object")`, `Seq("tuple")`, Go `composite_literal`, and
+  similar lowered tags no longer prove exact-tree safety, membership collection
+  admission, map-entry-list shape, or value-graph sequence tags without matching
+  `SequenceSurface` evidence. JS/TS `filter(...).length` also now requires the
+  inner HOF call's admitted `LibraryApi` occurrence instead of a raw method
+  selector. Raw Python async-looking field names no longer rewrite to sync names
+  until an explicit async/sync protocol evidence path exists.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -511,10 +519,11 @@ Remaining in this phase:
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
   evidence, as do generic Python/Go free-function builtins and selected
-  receiver-method families. Remaining API work is to move the remaining raw
-  sequence/tag proof dependencies into explicit evidence records, then cover
-  ecosystem APIs only after demand, receiver, and effect obligations are
-  expressible.
+  receiver-method families. Lowered sequence-surface consumers are now
+  evidence-only where covered. Remaining API work is property occurrence
+  evidence, Rust Option constructor/sentinel/`and_then` occurrence evidence,
+  Rust scalar method occurrence evidence, promise receiver proof, and ecosystem
+  APIs only after demand, receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
@@ -525,10 +534,11 @@ Remaining in this phase:
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.
-- Expand the first `SequenceSurface` evidence into sequence/aggregate records for
-  factories, more nested entries, iterator views, and exported-literal
-  eligibility. Go map literal entries are the first exact consumer that now
-  requires per-entry surface evidence.
+- Expand the first `SequenceSurface` evidence into richer sequence/aggregate
+  records for factories, more nested entries, iterator views, and
+  exported-literal eligibility. Current exact/value-graph consumers are
+  evidence-only for covered lowered surfaces, but richer aggregate semantics
+  still need versioned records beyond the first tag-kind vocabulary.
 - Continue expanding domain evidence beyond parameter annotations. The shared
   receiver-domain consumer contract now accepts exact node-anchored receiver
   facts, binding-anchored immutable local/module facts, and selected admitted

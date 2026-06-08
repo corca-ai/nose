@@ -140,7 +140,8 @@ migrated.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
-  value. JS object `.length` remains a property read, not collection cardinality.
+  value and raw HOF calls carry admitted `LibraryApi` occurrence evidence. JS
+  object `.length` remains a property read, not collection cardinality.
 - Promise `.then` has a JS-like library API contract, but exact beta-reduction
   is closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
@@ -293,7 +294,8 @@ migrated.
   keeps separate axes for exact-tree safety, membership-collection admission,
   map-entry-list admission, imported-literal eligibility, and value-graph
   canonical tags. Strict exact gates, value-graph sequence lowering, and
-  sibling-module literal export checks consume this contract instead of local
+  sibling-module literal export checks consume this contract only through
+  matching `SequenceSurface` evidence rather than raw tag spelling or local
   string allowlists. Untagged `Seq` remains an internal grouping surface and
   does not itself prove exact collection semantics; the older Python empty
   sequence collection case is handled only by the explicit collection profile
@@ -487,8 +489,11 @@ Semantic knowledge still appears in several forms outside the facade:
   `require "set"; Set.new(...)`, Java `java.util` static factories/adapters and
   selected empty constructors, JS regex literals, generic Python/Go
   free-function builtins, and selected receiver-method families. Promise
-  receiver proof, async/sync protocol convergence, and ecosystem APIs still rely
-  on contract rows plus local proof or remain exact-closed.
+  receiver proof, async/sync protocol convergence, property occurrence evidence,
+  Rust Option/scalar occurrence evidence, and ecosystem APIs still rely on
+  contract rows plus local proof or remain exact-closed. Raw Python async-looking
+  field names such as `aread` no longer rewrite to sync names without an
+  explicit protocol/API evidence path.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.

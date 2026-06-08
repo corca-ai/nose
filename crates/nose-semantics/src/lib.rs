@@ -777,32 +777,6 @@ pub fn seq_surface_contract_for_node(
         Payload::Name(name) => Some(interner.resolve(name)),
         _ => return None,
     };
-    let span = il.node(node).span;
-    match sequence_surface_evidence_at_sequence_span(il, span) {
-        EvidenceResolution::Found(kind) => {
-            let (raw_kind, raw_contract) = seq_surface_contract_for_tag(il.meta.lang, raw_tag)?;
-            (kind == raw_kind).then_some(raw_contract)
-        }
-        EvidenceResolution::Ambiguous => None,
-        EvidenceResolution::Missing => seq_surface_contract(il.meta.lang, raw_tag),
-    }
-}
-
-/// Evidence-only `Seq` surface resolution for consumers that must not infer a
-/// semantic surface from tag spelling alone.
-pub fn seq_surface_contract_evidence_for_node(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-) -> Option<SeqSurfaceContract> {
-    if il.kind(node) != NodeKind::Seq {
-        return None;
-    }
-    let raw_tag = match il.node(node).payload {
-        Payload::None => None,
-        Payload::Name(name) => Some(interner.resolve(name)),
-        _ => return None,
-    };
     let (raw_kind, raw_contract) = seq_surface_contract_for_tag(il.meta.lang, raw_tag)?;
     match sequence_surface_evidence_at_sequence_span(il, il.node(node).span) {
         EvidenceResolution::Found(kind) if kind == raw_kind => Some(raw_contract),
@@ -810,6 +784,15 @@ pub fn seq_surface_contract_evidence_for_node(
         | EvidenceResolution::Ambiguous
         | EvidenceResolution::Missing => None,
     }
+}
+
+/// Backward-compatible name for the evidence-only `Seq` surface resolver.
+pub fn seq_surface_contract_evidence_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<SeqSurfaceContract> {
+    seq_surface_contract_for_node(il, interner, node)
 }
 
 fn sequence_surface_evidence_at_sequence_span(
@@ -8129,33 +8112,6 @@ pub fn module_binding_mutating_method_name(method: &str) -> bool {
     )
 }
 
-pub fn async_to_sync_name(lang: Lang, name: &str) -> Option<&'static str> {
-    if lang != Lang::Python {
-        return None;
-    }
-    Some(match name {
-        "__aenter__" => "__enter__",
-        "__aexit__" => "__exit__",
-        "__anext__" => "__next__",
-        "__aiter__" => "__iter__",
-        "aread" => "read",
-        "areadline" => "readline",
-        "areadlines" => "readlines",
-        "awrite" => "write",
-        "aclose" => "close",
-        "asend" => "send",
-        "areceive" => "receive",
-        "aconnect" => "connect",
-        "adrain" => "drain",
-        "aflush" => "flush",
-        "AsyncIterable" => "Iterable",
-        "AsyncIterator" => "Iterator",
-        "AsyncGenerator" => "Generator",
-        "AsyncContextManager" => "ContextManager",
-        _ => return None,
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -8969,6 +8925,13 @@ mod tests {
         let seq = b.add(NodeKind::Seq, Payload::Name(array), sp(5), &[]);
         let root = b.add(NodeKind::Block, Payload::None, sp(5), &[seq]);
         let mut il = finish_il(b, root, Lang::JavaScript);
+
+        assert_eq!(
+            seq_surface_contract_for_node(&il, &interner, seq),
+            None,
+            "raw sequence tags do not prove semantic surfaces without evidence"
+        );
+
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::sequence(sp(5)),
@@ -11693,21 +11656,6 @@ mod tests {
             scalar_integer_method_contract(Lang::JavaScript, "abs", 0),
             None
         );
-    }
-
-    #[test]
-    fn async_to_sync_contracts_are_python_constrained() {
-        assert_eq!(
-            async_to_sync_name(Lang::Python, "__aenter__"),
-            Some("__enter__")
-        );
-        assert_eq!(async_to_sync_name(Lang::Python, "aread"), Some("read"));
-        assert_eq!(
-            async_to_sync_name(Lang::Python, "AsyncIterator"),
-            Some("Iterator")
-        );
-        assert_eq!(async_to_sync_name(Lang::JavaScript, "aread"), None);
-        assert_eq!(async_to_sync_name(Lang::Python, "append"), None);
     }
 
     #[test]
