@@ -3,14 +3,14 @@
 //! Convergence-friendly lowering: `?` and `.await` are stripped to their operand;
 //! `&x`/`&mut x`/`*x` references peel to the operand; `x op= y` desugars to an
 //! assignment; `for`/`while`/`loop` map to the unified `Loop`; `match` becomes an
-//! `if`/`else if` chain (arm pattern as the condition); `if let`/`while let` keep
-//! their scrutinee as the condition. `fn` items become function units; `impl`,
+//! `if`/`else if` chain (arm pattern as the condition); `if let`/`while let`
+//! preserve their pattern tests. `fn` items become function units; `impl`,
 //! `trait`, `struct`, `enum` become class-like units so similar types cluster.
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    Symbol, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, Symbol,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -898,8 +898,9 @@ fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::If, Payload::None, span, &kids)
 }
 
-/// `if let PAT = expr` / `let PAT = expr` condition → use the scrutinee expression
-/// as the condition (the pattern binding is irrelevant to behavioral shape).
+/// `if let PAT = expr` / `let PAT = expr` condition → preserve the pattern test
+/// as `expr == PAT`. Rust enum-variant/const pattern resolution is still carried
+/// by post-lower occurrence evidence on the lowered pattern nodes.
 fn lower_cond(lo: &mut Lowering, node: TsNode) -> NodeId {
     match node.kind() {
         "let_condition" => lower_let_condition(lo, node),
@@ -920,28 +921,13 @@ fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
     else {
         return lower_expr(lo, node);
     };
-    let text = lo.text(node).trim();
-    let op = if text.starts_with("let Some") && !rust_file_defines_name(lo, "Some") {
-        Some(Builtin::IsNotNull)
-    } else if text.starts_with("let None") && !rust_file_defines_name(lo, "None") {
-        Some(Builtin::IsNull)
-    } else {
-        None
-    };
-    if let Some(op) = op {
-        let value = lower_expr(lo, value_node);
-        return lo.add(NodeKind::Call, Payload::Builtin(op), span, &[value]);
-    }
-    lower_expr(lo, value_node)
+    let value = lower_expr(lo, value_node);
+    node.child_by_field_name("pattern")
+        .and_then(|pattern| lower_match_pattern_condition(lo, value, pattern, span))
+        .unwrap_or(value)
 }
 
-fn rust_file_defines_name(lo: &Lowering, name: &str) -> bool {
-    let Ok(src) = std::str::from_utf8(lo.src) else {
-        return false;
-    };
-    rust_item_declares_name(src, name)
-}
-
+#[cfg(test)]
 fn rust_item_declares_name(src: &str, name: &str) -> bool {
     const ITEM_PREFIXES: &[&str] = &[
         "const", "static", "fn", "struct", "enum", "union", "type", "mod", "trait",
@@ -952,16 +938,19 @@ fn rust_item_declares_name(src: &str, name: &str) -> bool {
         .any(|tokens| rust_tokens_declare_name(&tokens, ITEM_PREFIXES, name))
 }
 
+#[cfg(test)]
 fn strip_rust_line_comment(line: &str) -> &str {
     line.split_once("//").map(|(code, _)| code).unwrap_or(line)
 }
 
+#[cfg(test)]
 fn rust_identifier_tokens(line: &str) -> Vec<&str> {
     line.split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
         .filter(|token| !token.is_empty())
         .collect()
 }
 
+#[cfg(test)]
 fn rust_tokens_declare_name(tokens: &[&str], item_prefixes: &[&str], name: &str) -> bool {
     tokens.iter().enumerate().any(|(idx, token)| {
         if !item_prefixes.contains(token) {
@@ -973,6 +962,7 @@ fn rust_tokens_declare_name(tokens: &[&str], item_prefixes: &[&str], name: &str)
     })
 }
 
+#[cfg(test)]
 fn rust_item_qualifier_token(token: &str) -> bool {
     matches!(
         token,
@@ -1335,6 +1325,30 @@ mod tests {
             "if let Some(_) = value { true } else { false }",
             "Some"
         ));
+    }
+
+    #[test]
+    fn if_let_option_patterns_preserve_pattern_surface() {
+        let (interner, il) = lower_rust(
+            "pub fn f(value: Option<i32>) -> bool { if let None = value { true } else { false } }",
+        );
+
+        assert!(il.nodes.iter().any(|node| {
+            node.kind == NodeKind::Var
+                && matches!(node.payload, Payload::Name(sym) if interner.resolve(sym) == "None")
+        }));
+        assert!(il
+            .nodes
+            .iter()
+            .any(|node| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::Eq)));
+
+        let (shadowed_interner, shadowed) = lower_rust(
+            "pub const None: Option<i32> = Some(0);\npub fn f(value: Option<i32>) -> bool { if let None = value { true } else { false } }",
+        );
+        assert!(shadowed.nodes.iter().any(|node| {
+            node.kind == NodeKind::Var
+                && matches!(node.payload, Payload::Name(sym) if shadowed_interner.resolve(sym) == "None")
+        }));
     }
 
     #[test]

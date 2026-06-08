@@ -45,8 +45,8 @@ use crate::module_facts::{
     shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
 use nose_il::{
-    contains_js_identifier, stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind,
-    NodeId, NodeKind, Op, Payload, Span, Symbol, UnitKind,
+    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
+    Payload, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
@@ -56,29 +56,30 @@ use nose_semantics::{
     go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
-    library_free_function_builtin_contract, library_free_name_collection_factory_contracts,
-    library_free_name_map_factory_contracts, library_imported_collection_factory_contracts,
-    library_imported_namespace_function_contract, library_iterator_identity_adapter_contract,
-    library_java_collection_constructor_contract, library_java_collection_factory_contract_by_hash,
-    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
-    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
-    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
-    library_rust_vec_new_factory_contract, library_static_index_membership_contract,
+    library_api_contract_evidence_for_node, library_free_function_builtin_contract,
+    library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
+    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
+    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
+    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
+    library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
+    library_method_call_contract, library_property_builtin_contract,
+    library_ruby_set_factory_contract_by_hash, library_rust_option_and_then_contract,
+    library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    library_scalar_integer_method_contract, library_static_index_membership_contract,
     nullish_global_contract, own_property_guard_evidence_at_span, record_shape_guard_for_node,
-    reduction_builtin_contract, rust_option_and_then_contract, rust_option_none_sentinel_contract,
-    rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
-    seq_surface_contract_for_node, source_operator_at_node, unshadowed_global_symbol,
-    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
-    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
-    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    reduction_builtin_contract, semantics, seq_surface_contract_for_node, source_operator_at_node,
+    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
+    ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
+    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
+    ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -1260,46 +1261,6 @@ impl<'a> Builder<'a> {
             && imported_namespace_symbol(self.il, self.interner, expr, module)
     }
 
-    fn file_defines_name(&self, name: &str) -> bool {
-        self.top_level_statements().iter().any(|&stmt| {
-            self.assignment_name(stmt)
-                .is_some_and(|symbol| self.interner.resolve(symbol) == name)
-        }) || self.il.units.iter().any(|unit| {
-            unit.name
-                .is_some_and(|symbol| self.interner.resolve(symbol) == name)
-        }) || self.il.nodes.iter().enumerate().any(|(idx, node)| {
-            let id = NodeId(idx as u32);
-            match node.kind {
-                NodeKind::Module | NodeKind::Block | NodeKind::Param => {
-                    self.node_has_name(id, name)
-                }
-                NodeKind::Assign => self
-                    .il
-                    .children(id)
-                    .first()
-                    .is_some_and(|&lhs| self.node_has_name(lhs, name)),
-                _ => false,
-            }
-        })
-    }
-
-    fn node_has_name(&self, node: NodeId, name: &str) -> bool {
-        match self.il.node(node).payload {
-            Payload::Name(symbol) => self.symbol_defines_name(symbol, name),
-            Payload::Cid(cid) => self
-                .il
-                .cid_names
-                .get(cid as usize)
-                .is_some_and(|symbol| self.symbol_defines_name(*symbol, name)),
-            _ => false,
-        }
-    }
-
-    fn symbol_defines_name(&self, symbol: Symbol, name: &str) -> bool {
-        let text = self.interner.resolve(symbol);
-        text == name || (self.is_js_like_lang() && contains_js_identifier(text, name))
-    }
-
     fn proven_collection_value(&mut self, value: ValueId) -> Option<ValueId> {
         if matches!(
             self.nodes[value as usize].op,
@@ -2255,6 +2216,7 @@ impl<'a> Builder<'a> {
 
     fn eval_proven_integer_method_call(
         &mut self,
+        call: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -2266,17 +2228,28 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let contract = scalar_integer_method_contract(
-            self.il.meta.lang,
-            method,
-            kids.len().saturating_sub(1),
-        )?;
-        if contract.receiver != MethodReceiverContract::ExactInteger {
+        let arg_count = kids.len().saturating_sub(1);
+        let contract =
+            library_scalar_integer_method_contract(self.il.meta.lang, method, arg_count)?;
+        if !matches!(
+            library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                call,
+                contract.id,
+                contract.callee,
+                arg_count,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        ) {
+            return None;
+        }
+        if contract.result.receiver != MethodReceiverContract::ExactInteger {
             return None;
         }
         let receiver = self.il.children(callee).first().copied()?;
         let receiver_value = self.eval_proven_integer_expr(receiver, env)?;
-        match contract.semantic {
+        match contract.result.semantic {
             ScalarIntegerMethod::Abs => Some(self.mk(ValOp::Un(ABS_CODE), vec![receiver_value])),
             ScalarIntegerMethod::Min => {
                 let rhs = self.eval(*kids.get(1)?, env);
@@ -7719,8 +7692,20 @@ impl<'a> Builder<'a> {
         else {
             return None;
         };
-        self.rust_option_some_name(self.interner.resolve(name))
-            .then_some(kids[1])
+        let name = self.interner.resolve(name);
+        let contract = library_rust_option_some_constructor_contract(self.il.meta.lang, name, 1)?;
+        matches!(
+            library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                node,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        )
+        .then_some(kids[1])
     }
 
     fn rust_option_and_then_call_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
@@ -7738,7 +7723,19 @@ impl<'a> Builder<'a> {
         let Payload::Name(method) = self.il.node(kids[0]).payload else {
             return None;
         };
-        if !rust_option_and_then_contract(self.il.meta.lang, self.interner.resolve(method), 1) {
+        let method = self.interner.resolve(method);
+        let contract = library_rust_option_and_then_contract(self.il.meta.lang, method, 1)?;
+        if !matches!(
+            library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                node,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        ) {
             return None;
         }
         let receiver = *self.il.children(kids[0]).first()?;
@@ -7769,22 +7766,87 @@ impl<'a> Builder<'a> {
         )
     }
 
-    fn rust_option_some_name(&self, text: &str) -> bool {
-        rust_option_some_constructor_contract(self.il.meta.lang, text)
-            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
-    }
-
-    fn rust_option_none_name(&self, text: &str) -> bool {
-        rust_option_none_sentinel_contract(self.il.meta.lang, text)
-            .is_some_and(|contract| !self.file_defines_name(contract.shadow_root))
-    }
-
     fn is_rust_option_none_node(&self, node: NodeId) -> bool {
         let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
         else {
             return false;
         };
-        self.rust_option_none_name(self.interner.resolve(name))
+        let name = self.interner.resolve(name);
+        let Some(contract) = library_rust_option_none_sentinel_contract(self.il.meta.lang, name)
+        else {
+            return false;
+        };
+        matches!(
+            library_api_contract_evidence_for_node(
+                self.il,
+                self.interner,
+                node,
+                contract.id,
+                contract.callee,
+                0,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        )
+    }
+
+    fn rust_option_some_wildcard_pattern(&self, node: NodeId) -> Option<NodeId> {
+        let (NodeKind::Raw, Payload::Name(tag)) = (self.il.kind(node), self.il.node(node).payload)
+        else {
+            return None;
+        };
+        if self.interner.resolve(tag) != "tuple_struct_pattern" {
+            return None;
+        }
+        let kids = self.il.children(node);
+        let [callee] = kids else {
+            return None;
+        };
+        if !self.is_rust_option_some_node(*callee) {
+            return None;
+        }
+        Some(*callee)
+    }
+
+    fn is_rust_option_some_node(&self, node: NodeId) -> bool {
+        let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
+        else {
+            return false;
+        };
+        let name = self.interner.resolve(name);
+        let Some(contract) =
+            library_rust_option_some_constructor_contract(self.il.meta.lang, name, 1)
+        else {
+            return false;
+        };
+        matches!(
+            library_api_contract_evidence_for_node(
+                self.il,
+                self.interner,
+                node,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        )
+    }
+
+    fn eval_rust_option_some_pattern_comparison(
+        &mut self,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if op != Op::Eq as u32 || kids.len() != 2 {
+            return None;
+        }
+        self.rust_option_some_wildcard_pattern(kids[1])?;
+        if self.domain_evidence_of_expr(kids[0]) != Some(DomainEvidence::Option) {
+            return None;
+        }
+        let value = self.eval(kids[0], env);
+        let nil = self.null_const();
+        Some(self.mk(ValOp::Bin(Op::Ne as u32), vec![value, nil]))
     }
 
     fn is_null_literal(&self, node: NodeId) -> bool {
@@ -7902,7 +7964,7 @@ impl<'a> Builder<'a> {
                         return v;
                     }
                     let name = self.interner.resolve(s);
-                    if self.rust_option_none_name(name) {
+                    if self.is_rust_option_none_node(expr) {
                         return self.null_const();
                     }
                     if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
@@ -7957,6 +8019,9 @@ impl<'a> Builder<'a> {
                     }
                     let collection = self.eval_membership_collection(kids[1], env);
                     return self.mk(ValOp::Bin(op), vec![element, collection]);
+                }
+                if let Some(v) = self.eval_rust_option_some_pattern_comparison(op, &kids, env) {
+                    return v;
                 }
                 if let Some(v) = self.eval_static_filter_membership_comparison(op, &kids, env) {
                     return v;
@@ -8070,11 +8135,24 @@ impl<'a> Builder<'a> {
                 };
                 if a.len() == 1 {
                     if let Payload::Name(s) = node.payload {
-                        if nose_semantics::property_builtin_contract(
+                        let property_contract = library_property_builtin_contract(
                             self.il.meta.lang,
                             self.interner.resolve(s),
-                        ) == Some(Builtin::Len)
-                        {
+                        );
+                        if let Some(contract) = property_contract.filter(|contract| {
+                            contract.result == Builtin::Len
+                                && matches!(
+                                    library_api_contract_evidence_for_node(
+                                        self.il,
+                                        self.interner,
+                                        expr,
+                                        contract.id,
+                                        contract.callee,
+                                        0,
+                                    ),
+                                    LibraryApiEvidenceStatus::Admitted
+                                )
+                        }) {
                             if let Some(len) = self.eval_len_value(a[0]) {
                                 return len;
                             }
@@ -8082,7 +8160,7 @@ impl<'a> Builder<'a> {
                                 .domain_evidence_of_expr(kids[0])
                                 .is_some_and(DomainEvidence::is_array_or_collection)
                             {
-                                return self.mk(ValOp::Call(builtin_tag(Builtin::Len)), a);
+                                return self.mk(ValOp::Call(builtin_tag(contract.result)), a);
                             }
                         }
                         let receiver = &self.nodes[a[0] as usize];
@@ -8195,7 +8273,7 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_product_call(expr, &kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_proven_integer_method_call(&kids, env) {
+                if let Some(r) = self.eval_proven_integer_method_call(expr, &kids, env) {
                     return r;
                 }
                 if let Some(r) = self.eval_rust_map_get_unwrap_or_call(expr, &kids, env) {
@@ -8873,8 +8951,8 @@ mod tests {
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
         ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
-        LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
-        Span, SymbolEvidenceKind, Unit, UnitKind,
+        LibraryApiEvidenceKind, LitClass, ParamSemantic, SequenceSurfaceKind, SourceCallKind,
+        SourceFactKind, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -8882,8 +8960,9 @@ mod tests {
         library_imported_collection_factory_contract, library_java_collection_constructor_contract,
         library_java_collection_factory_contract, library_java_map_factory_contract,
         library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-        library_method_call_contract, library_static_index_membership_contract,
-        LibraryApiContractId, FIRST_PARTY_PACK_ID,
+        library_method_call_contract, library_rust_option_none_sentinel_contract,
+        library_rust_option_some_constructor_contract, library_scalar_integer_method_contract,
+        library_static_index_membership_contract, LibraryApiContractId, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -9065,6 +9144,28 @@ mod tests {
             contract.id,
             contract.callee,
             arity as u16,
+            dependencies,
+        ));
+    }
+
+    fn push_library_api_evidence_for_callee(
+        il: &mut Il,
+        interner: &Interner,
+        id: u32,
+        call: NodeId,
+        contract_id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+        arity: u16,
+    ) {
+        let dependencies =
+            nose_semantics::library_api_receiver_dependencies_for_call(il, interner, call, callee)
+                .expect("library api receiver dependencies");
+        il.evidence.push(library_api_contract_evidence(
+            id,
+            il.node(call).span,
+            contract_id,
+            callee,
+            arity,
             dependencies,
         ));
     }
@@ -9445,6 +9546,216 @@ mod tests {
             eval_op(&il, &interner, call),
             ValOp::Bin(op) if op == MIN_CODE
         ));
+    }
+
+    #[test]
+    fn scalar_integer_method_value_graph_requires_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let x = interner.intern("x");
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp(160), &[]);
+        let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(161), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("clamp")),
+            sp(162),
+            &[receiver],
+        );
+        let lo = b.add(NodeKind::Lit, Payload::LitInt(0), sp(163), &[]);
+        let hi = b.add(NodeKind::Lit, Payload::LitInt(10), sp(164), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(165), &[callee, lo, hi]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(166), &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(166), &[ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp(160), &[param, body]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(159), &[func]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.rs".into(),
+                lang: Lang::Rust,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Function,
+                name: Some(interner.intern("f")),
+            }],
+            vec![x],
+        );
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(sp(160)),
+            EvidenceKind::Domain(DomainEvidence::Integer),
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(161), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Integer),
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        builder.build_unit(func);
+        let raw = builder.eval(call, &FxHashMap::default());
+        assert!(
+            !matches!(builder.nodes[raw as usize].op, ValOp::Clamp),
+            "raw Rust clamp selector plus integer receiver is not enough"
+        );
+
+        let contract = library_scalar_integer_method_contract(Lang::Rust, "clamp", 2).unwrap();
+        push_library_api_evidence_for_callee(
+            &mut il,
+            &interner,
+            2,
+            call,
+            contract.id,
+            contract.callee,
+            2,
+        );
+        let mut builder = Builder::new(&il, &interner);
+        builder.build_unit(func);
+        let admitted = builder.eval(call, &FxHashMap::default());
+        assert!(matches!(builder.nodes[admitted as usize].op, ValOp::Clamp));
+    }
+
+    #[test]
+    fn rust_some_wildcard_pattern_value_graph_requires_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let value = b.add(NodeKind::Var, Payload::Cid(0), sp(167), &[]);
+        let some = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Some")),
+            sp(168),
+            &[],
+        );
+        let pattern = b.add(
+            NodeKind::Raw,
+            Payload::Name(interner.intern("tuple_struct_pattern")),
+            sp(170),
+            &[some],
+        );
+        let cond = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Eq),
+            sp(171),
+            &[value, pattern],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(166), &[cond]);
+        let mut il = finish_test_il(b, root, Lang::Rust);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(167), NodeKind::Var),
+            EvidenceKind::Domain(DomainEvidence::Option),
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(cond, &FxHashMap::default());
+        assert!(
+            !matches!(builder.nodes[raw as usize].op, ValOp::Bin(op) if op == Op::Ne as u32),
+            "raw Some pattern selector must not become an Option presence predicate"
+        );
+
+        let contract = library_rust_option_some_constructor_contract(Lang::Rust, "Some", 1)
+            .expect("Rust Some contract");
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(168), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("Some"),
+            }),
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            2,
+            EvidenceAnchor::node(sp(168), NodeKind::Var),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract.id),
+                callee_hash: library_api_callee_contract_hash(contract.callee),
+                arity: 1,
+            }),
+            vec![EvidenceId(1)],
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(cond, &FxHashMap::default());
+        let node = &builder.nodes[proven as usize];
+        assert!(matches!(node.op, ValOp::Bin(op) if op == Op::Ne as u32));
+        assert!(
+            node.args
+                .iter()
+                .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+            "admitted Rust Some wildcard pattern should evaluate as non-null Option presence"
+        );
+    }
+
+    #[test]
+    fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let value = b.add(NodeKind::Var, Payload::Cid(0), sp(171), &[]);
+        let none = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("None")),
+            sp(172),
+            &[],
+        );
+        let cond = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Eq),
+            sp(173),
+            &[value, none],
+        );
+        let then_value = b.add(NodeKind::Lit, Payload::LitBool(true), sp(174), &[]);
+        let else_value = b.add(NodeKind::Lit, Payload::LitBool(false), sp(175), &[]);
+        let then_block = b.add(NodeKind::Block, Payload::None, sp(174), &[then_value]);
+        let else_block = b.add(NodeKind::Block, Payload::None, sp(175), &[else_value]);
+        let if_expr = b.add(
+            NodeKind::If,
+            Payload::None,
+            sp(176),
+            &[cond, then_block, else_block],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(170), &[if_expr]);
+        let mut il = finish_test_il(b, root, Lang::Rust);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(if_expr, &FxHashMap::default());
+        let raw_node = &builder.nodes[raw as usize];
+        assert!(
+            !raw_node
+                .args
+                .iter()
+                .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+            "raw None selector must not become a null predicate"
+        );
+
+        let contract = library_rust_option_none_sentinel_contract(Lang::Rust, "None").unwrap();
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(172), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("None"),
+            }),
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::node(sp(172), NodeKind::Var),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract.id),
+                callee_hash: library_api_callee_contract_hash(contract.callee),
+                arity: 0,
+            }),
+            vec![EvidenceId(0)],
+        ));
+
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(if_expr, &FxHashMap::default());
+        let node = &builder.nodes[proven as usize];
+        assert!(matches!(node.op, ValOp::Bin(op) if op == Op::Eq as u32));
+        assert!(
+            node.args
+                .iter()
+                .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
+            "admitted Rust None occurrence should evaluate as the null sentinel"
+        );
     }
 
     #[derive(Clone, Copy)]

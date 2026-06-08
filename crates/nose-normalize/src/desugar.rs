@@ -14,7 +14,10 @@
 use crate::idioms::{canon_call_with_domains, CallCanon, ParamDomainIndex};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
-use nose_semantics::{seq_surface_contract_for_node, DomainRequirement};
+use nose_semantics::{
+    library_api_contract_evidence_for_node, library_property_builtin_contract,
+    seq_surface_contract_for_node, DomainRequirement, LibraryApiEvidenceStatus,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -236,9 +239,20 @@ impl Rebuilder<'_> {
         let n = *self.old.node(old_id);
         if let Payload::Name(s) = n.payload {
             let name = self.interner.resolve(s);
-            if let Some(builtin) =
-                nose_semantics::property_builtin_contract(self.old.meta.lang, name)
-            {
+            if let Some(contract) = library_property_builtin_contract(self.old.meta.lang, name) {
+                if !matches!(
+                    library_api_contract_evidence_for_node(
+                        self.old,
+                        self.interner,
+                        old_id,
+                        contract.id,
+                        contract.callee,
+                        0,
+                    ),
+                    LibraryApiEvidenceStatus::Admitted
+                ) {
+                    return self.generic(old_id);
+                }
                 if let Some(&base) = self.old.children(old_id).first() {
                     if !property_receiver_exact_safe(
                         self.old,
@@ -251,7 +265,7 @@ impl Rebuilder<'_> {
                     let new_base = self.go(base);
                     return self.b.add(
                         NodeKind::Call,
-                        Payload::Builtin(builtin),
+                        Payload::Builtin(contract.result),
                         n.span,
                         &[new_base],
                     );
@@ -333,7 +347,7 @@ fn property_receiver_exact_hof_call(
             contract.callee,
             arg_count,
         ),
-        nose_semantics::LibraryApiEvidenceStatus::Admitted
+        LibraryApiEvidenceStatus::Admitted
     ) && property_receiver_exact_safe(il, interner, domains, receiver)
 }
 

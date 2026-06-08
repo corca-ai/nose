@@ -14,14 +14,16 @@ source, domain, import, symbol-identity, guard,
 place/effect, selected library API occurrence, value-domain/law contracts, and
 sequence-surface facts.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
-for factory, constructor, and selected non-factory method/view surfaces, with
-occurrence evidence covering selected JS-like static/global APIs and static
-index-membership calls, Python builtin/import-backed APIs, Rust free-name/path
-APIs, Ruby require-backed APIs, Java `java.util` APIs including selected empty
-constructors, JS regex API calls, and selected language-scoped receiver-method
-APIs such as collection membership, map lookup/defaulting, map-key views,
-iterator identity adapters, Rust `zip`, and HOF/reduction methods. Selected
-producer-covered factory/API calls now also emit dependent receiver-expression
+for factory, constructor, selected property/non-factory method/view surfaces,
+and selected non-call sentinels, with occurrence evidence covering selected
+JS-like static/global APIs and static index-membership calls, JS/TS/Java
+`length` property reads, Python builtin/import-backed APIs, Rust free-name/path
+APIs including `Option::Some`/`Option::None`, Ruby require-backed APIs, Java
+`java.util` APIs including selected empty constructors, JS regex API calls, and
+selected language-scoped receiver-method APIs such as collection membership,
+map lookup/defaulting, map-key views, iterator identity adapters, Rust scalar
+integer methods, Rust `Option::and_then`, Rust `zip`, and HOF/reduction methods.
+Selected producer-covered factory/API calls now also emit dependent receiver-expression
 `Domain` evidence
 for their result container domain, and normalize emits binding-anchored `Domain`
 evidence for immutable local/module bindings whose initializer domain and
@@ -137,11 +139,15 @@ migrated.
   binding `local_hash` and only applies an assignment to receiver uses that occur
   after it. That mutation scan is producer policy; general mutation/effect
   evidence remains separate future work.
-- Property builtin contracts are language-constrained; a selector such as
-  `length` is not enough without receiver proof. JS/TS `filter(...).length`
-  is admitted only after the receiver has already entered a proven collection/HOF
-  value and raw HOF calls carry admitted `LibraryApi` occurrence evidence. JS
-  object `.length` remains a property read, not collection cardinality.
+- Property builtin contracts are language-constrained occurrence contracts, not
+  selector guesses. JS/TS/Vue/Svelte/HTML and Java `length` reads are admitted
+  only when a `LibraryApi(PropertyBuiltin(Len))` record is anchored to the
+  `Field` node and its dependencies prove the receiver contract. JS-like
+  `length()` is not a method-call cardinality contract. JS/TS
+  `filter(...).length` is admitted only after the receiver has already entered
+  a proven collection/HOF value and raw HOF calls carry admitted `LibraryApi`
+  occurrence evidence. JS object `.length` remains a property read, not
+  collection cardinality.
 - Promise `.then` has a JS-like library API contract, but exact beta-reduction
   is closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
@@ -154,10 +160,13 @@ migrated.
   both sides.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
-  selector and shadow-root requirement through `nose-semantics`;
-  normalize/detect still perform the local scope shadow check. The Rust
-  frontend preserves bare `None` as a name rather than lowering it directly to
-  null, so Option absence is admitted only through the contract.
+  selector and shadow-root requirement through `nose-semantics`. First-party
+  lowering/normalization now emits admitted `LibraryApi` occurrence evidence for
+  `Some(...)` calls, `Some(_)` pattern selectors, bare `None` `Var`
+  occurrences, and `and_then(...)` calls only when the shadow and receiver
+  obligations are satisfied. The Rust frontend preserves `if let` pattern tests
+  instead of lowering them directly to null/not-null builtins, so Option
+  absence/presence is admitted only through the contract-backed occurrence path.
 - Collection factory, map factory, and selected constructor identity now have an
   internal `LibraryApiContract`
   shape in `nose-semantics`. It separates API identity from result eligibility,
@@ -235,8 +244,9 @@ migrated.
   `LibraryApi` occurrence evidence for the first-party method families currently
   backed by `LibraryApiContract`: map `get`, map-key views, iterator identity
   adapters, and generic language-scoped method-call contracts such as
-  collection/map membership, map defaulting, count/length methods,
-  string/collection predicates, Rust `zip`, and HOF/reduction methods. The
+  collection/map membership, map defaulting, count methods,
+  string/collection predicates, Rust scalar integer methods, Rust
+  `Option::and_then`, Rust `zip`, and HOF/reduction methods. The
   occurrence record is admitted only for the exact language/method/arity row and
   depends on receiver proof: node/binding/parameter `Domain`, `SequenceSurface`,
   imported namespace or unshadowed-global `Symbol`, or a nested admitted
@@ -484,16 +494,16 @@ Semantic knowledge still appears in several forms outside the facade:
   HOFs, nullish defaulting, recursion, and effect traces;
 - remaining library/API proof gates that do not yet have occurrence records.
   `LibraryApi` occurrence evidence now covers selected JS-like static/global
-  APIs and static-index membership, Python builtin/import-backed
-  factories/functions, Rust free-name/path factories, Ruby
-  `require "set"; Set.new(...)`, Java `java.util` static factories/adapters and
-  selected empty constructors, JS regex literals, generic Python/Go
-  free-function builtins, and selected receiver-method families. Promise
-  receiver proof, async/sync protocol convergence, property occurrence evidence,
-  Rust Option/scalar occurrence evidence, and ecosystem APIs still rely on
-  contract rows plus local proof or remain exact-closed. Raw Python async-looking
-  field names such as `aread` no longer rewrite to sync names without an
-  explicit protocol/API evidence path.
+  APIs and static-index membership, JS/TS/Java property builtins, Python
+  builtin/import-backed factories/functions, Rust free-name/path factories,
+  Rust Option/scalar APIs, Ruby `require "set"; Set.new(...)`, Java `java.util`
+  static factories/adapters and selected empty constructors, JS regex literals,
+  generic Python/Go free-function builtins, and selected receiver-method
+  families. Promise receiver proof, async/sync protocol convergence, ecosystem
+  APIs, and broader protocol/API evidence paths still rely on contract rows plus
+  local proof or remain exact-closed. Raw Python async-looking field names such
+  as `aread` no longer rewrite to sync names without an explicit protocol/API
+  evidence path.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.

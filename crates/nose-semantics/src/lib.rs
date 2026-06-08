@@ -2901,7 +2901,7 @@ pub struct ScalarIntegerMethodContract {
     pub receiver: MethodReceiverContract,
 }
 
-pub fn scalar_integer_method_contract(
+fn scalar_integer_method_contract_shape(
     lang: Lang,
     name: &str,
     arg_count: usize,
@@ -2919,6 +2919,14 @@ pub fn scalar_integer_method_contract(
         semantic,
         receiver: MethodReceiverContract::ExactInteger,
     })
+}
+
+pub fn scalar_integer_method_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<ScalarIntegerMethodContract> {
+    library_scalar_integer_method_contract(lang, name, arg_count).map(|contract| contract.result)
 }
 
 pub fn method_call_contract(
@@ -2992,11 +3000,6 @@ fn method_call_contract_shape(
         (Lang::Rust, "len", 0) | (Lang::Java, "size", 0) => {
             (Builtin::Len, Receiver::ExactCollection, Args::ReceiverOnly)
         }
-        (
-            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
-            "length",
-            0,
-        ) => (Builtin::Len, Receiver::ExactCollection, Args::ReceiverOnly),
         (Lang::Rust, "is_empty", 0) | (Lang::Java, "isEmpty", 0) | (Lang::Ruby, "empty?", 0) => (
             Builtin::IsEmpty,
             Receiver::ExactCollection,
@@ -3235,6 +3238,32 @@ pub struct ShadowedPathContract {
     pub shadow_root: &'static str,
 }
 
+fn rust_option_some_selector_name(lang: Lang, name: &str) -> Option<&'static str> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    Some(match name {
+        "Some" => "Some",
+        "Option::Some" => "Option::Some",
+        "std::option::Option::Some" => "std::option::Option::Some",
+        "core::option::Option::Some" => "core::option::Option::Some",
+        _ => return None,
+    })
+}
+
+fn rust_option_none_selector_name(lang: Lang, name: &str) -> Option<&'static str> {
+    if lang != Lang::Rust {
+        return None;
+    }
+    Some(match name {
+        "None" => "None",
+        "Option::None" => "Option::None",
+        "std::option::Option::None" => "std::option::Option::None",
+        "core::option::Option::None" => "core::option::Option::None",
+        _ => return None,
+    })
+}
+
 pub fn rust_option_some_constructor_contract(
     lang: Lang,
     name: &str,
@@ -3280,7 +3309,7 @@ pub fn rust_vec_new_factory_contract(lang: Lang, name: &str) -> Option<ShadowedP
 }
 
 pub fn rust_option_and_then_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
-    lang == Lang::Rust && method == "and_then" && arg_count == 1
+    library_rust_option_and_then_contract(lang, method, arg_count).is_some()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -4002,12 +4031,112 @@ pub fn method_collection_reduction_builtin(lang: Lang, name: &str) -> Option<Bui
 }
 
 pub fn property_builtin_contract(lang: Lang, name: &str) -> Option<Builtin> {
+    library_property_builtin_contract(lang, name).map(|contract| contract.result)
+}
+
+fn property_builtin_contract_shape(
+    lang: Lang,
+    name: &str,
+) -> Option<(Builtin, MethodReceiverContract)> {
     Some(match (lang, name) {
         (Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html, "length") => {
-            Builtin::Len
+            (Builtin::Len, MethodReceiverContract::ExactCollection)
         }
-        (Lang::Java, "length") => Builtin::Len,
+        (Lang::Java, "length") => (Builtin::Len, MethodReceiverContract::ExactCollection),
         _ => return None,
+    })
+}
+
+pub fn library_property_builtin_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryPropertyBuiltinContract> {
+    let (result, receiver) = property_builtin_contract_shape(lang, name)?;
+    let property = library_property_selector_name(name)?;
+    Some(LibraryPropertyBuiltinContract {
+        id: LibraryApiContractId::PropertyBuiltin(result),
+        callee: LibraryApiCalleeContract::Property { property, receiver },
+        result,
+    })
+}
+
+fn library_property_selector_name(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "length" => "length",
+        _ => return None,
+    })
+}
+
+pub fn library_scalar_integer_method_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryScalarIntegerMethodContract> {
+    let result = scalar_integer_method_contract_shape(lang, method, arg_count)?;
+    let method = library_method_selector_name(method)?;
+    Some(LibraryScalarIntegerMethodContract {
+        id: LibraryApiContractId::ScalarIntegerMethod(result.semantic),
+        callee: LibraryApiCalleeContract::Method {
+            method,
+            receiver: result.receiver,
+        },
+        result,
+    })
+}
+
+pub fn library_rust_option_some_constructor_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryRustOptionConstructorContract> {
+    if arg_count != 1 {
+        return None;
+    }
+    let name = rust_option_some_selector_name(lang, name)?;
+    let shadow = rust_option_some_constructor_contract(lang, name)?;
+    Some(LibraryRustOptionConstructorContract {
+        id: LibraryApiContractId::RustOptionSomeConstructor,
+        callee: LibraryApiCalleeContract::FreeName {
+            name,
+            shadow: LibraryApiShadowPolicy::ExplicitRoot(shadow.shadow_root),
+        },
+        result_domain: DomainEvidence::Option,
+    })
+}
+
+pub fn library_rust_option_none_sentinel_contract(
+    lang: Lang,
+    name: &str,
+) -> Option<LibraryRustOptionSentinelContract> {
+    let name = rust_option_none_selector_name(lang, name)?;
+    let shadow = rust_option_none_sentinel_contract(lang, name)?;
+    Some(LibraryRustOptionSentinelContract {
+        id: LibraryApiContractId::RustOptionNoneSentinel,
+        callee: LibraryApiCalleeContract::FreeName {
+            name,
+            shadow: LibraryApiShadowPolicy::ExplicitRoot(shadow.shadow_root),
+        },
+        result_domain: DomainEvidence::Option,
+    })
+}
+
+pub fn library_rust_option_and_then_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryRustOptionAndThenContract> {
+    if lang != Lang::Rust || method != "and_then" || arg_count != 1 {
+        return None;
+    }
+    Some(LibraryRustOptionAndThenContract {
+        id: LibraryApiContractId::RustOptionAndThen,
+        callee: LibraryApiCalleeContract::Method {
+            method: "and_then",
+            receiver: MethodReceiverContract::RustMapGetOrExactOption,
+        },
+        result: RustOptionAndThenContract {
+            receiver: MethodReceiverContract::RustMapGetOrExactOption,
+        },
     })
 }
 
@@ -4104,9 +4233,14 @@ const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCo
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LibraryApiContractId {
+    PropertyBuiltin(Builtin),
     PythonBuiltinCollectionFactory,
     PythonImportedCollectionFactory,
     FreeFunctionBuiltin(Builtin),
+    RustOptionSomeConstructor,
+    RustOptionNoneSentinel,
+    RustOptionAndThen,
+    ScalarIntegerMethod(ScalarIntegerMethod),
     RustStdCollectionFactory,
     RustStdMapFactory,
     RustVecMacroFactory,
@@ -4138,6 +4272,9 @@ pub fn library_api_contract_id_hash(id: LibraryApiContractId) -> u64 {
 
 fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
     match id {
+        LibraryApiContractId::PropertyBuiltin(builtin) => {
+            format!("property_builtin.{}", builtin as u32)
+        }
         LibraryApiContractId::PythonBuiltinCollectionFactory => {
             "python.builtin.collection_factory".into()
         }
@@ -4146,6 +4283,15 @@ fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         }
         LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
             format!("free_function_builtin.{}", builtin as u32)
+        }
+        LibraryApiContractId::RustOptionSomeConstructor => "rust.option.some.constructor".into(),
+        LibraryApiContractId::RustOptionNoneSentinel => "rust.option.none.sentinel".into(),
+        LibraryApiContractId::RustOptionAndThen => "rust.option.and_then".into(),
+        LibraryApiContractId::ScalarIntegerMethod(method) => {
+            format!(
+                "scalar_integer_method.{}",
+                scalar_integer_method_key(method)
+            )
         }
         LibraryApiContractId::RustStdCollectionFactory => "rust.std.collection_factory".into(),
         LibraryApiContractId::RustStdMapFactory => "rust.std.map_factory".into(),
@@ -4196,6 +4342,15 @@ fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         LibraryApiContractId::MethodCall(semantic) => {
             format!("method_call.{}", method_semantic_contract_key(semantic))
         }
+    }
+}
+
+fn scalar_integer_method_key(method: ScalarIntegerMethod) -> &'static str {
+    match method {
+        ScalarIntegerMethod::Abs => "abs",
+        ScalarIntegerMethod::Min => "min",
+        ScalarIntegerMethod::Max => "max",
+        ScalarIntegerMethod::Clamp => "clamp",
     }
 }
 
@@ -4326,6 +4481,10 @@ pub enum LibraryApiCalleeContract {
         method: &'static str,
         required_receiver_fact: SourceFactKind,
     },
+    Property {
+        property: &'static str,
+        receiver: MethodReceiverContract,
+    },
     StaticIndexMembershipMethod {
         method: &'static str,
         receiver: StaticIndexMembershipReceiverContract,
@@ -4384,6 +4543,12 @@ fn library_api_callee_contract_key(callee: LibraryApiCalleeContract) -> String {
         }
         LibraryApiCalleeContract::RegexLiteralMethod { method, .. } => {
             format!("regex_literal_method:{method}")
+        }
+        LibraryApiCalleeContract::Property { property, receiver } => {
+            format!(
+                "property:{property}:{}",
+                method_receiver_contract_key(receiver)
+            )
         }
         LibraryApiCalleeContract::StaticIndexMembershipMethod { method, receiver } => {
             format!(
@@ -4628,6 +4793,46 @@ pub struct LibraryMethodCallContract {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryPropertyBuiltinContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: Builtin,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryScalarIntegerMethodContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: ScalarIntegerMethodContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryRustOptionConstructorContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result_domain: DomainEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryRustOptionSentinelContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result_domain: DomainEvidence,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct RustOptionAndThenContract {
+    pub receiver: MethodReceiverContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryRustOptionAndThenContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: RustOptionAndThenContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryFreeFunctionBuiltinContract {
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,
@@ -4690,6 +4895,52 @@ pub fn library_api_contract_evidence_for_call(
             || !il.evidence_dependencies_asserted(record)
             || !library_api_callee_shape_matches(il, interner, node, callee)
             || !library_api_dependencies_match_callee(il, interner, node, callee, record)
+        {
+            return LibraryApiEvidenceStatus::Rejected;
+        }
+        admitted = true;
+    }
+    if admitted {
+        LibraryApiEvidenceStatus::Admitted
+    } else if saw_library_api_evidence {
+        LibraryApiEvidenceStatus::Rejected
+    } else {
+        LibraryApiEvidenceStatus::Missing
+    }
+}
+
+pub fn library_api_contract_evidence_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arg_count: usize,
+) -> LibraryApiEvidenceStatus {
+    if arg_count > u16::MAX as usize {
+        return LibraryApiEvidenceStatus::Rejected;
+    }
+    let expected = LibraryApiEvidenceKind::Contract {
+        contract_hash: library_api_contract_id_hash(id),
+        callee_hash: library_api_callee_contract_hash(callee),
+        arity: arg_count as u16,
+    };
+    let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
+    let mut saw_library_api_evidence = false;
+    let mut admitted = false;
+    for record in &il.evidence {
+        if record.anchor != anchor {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(api) = record.kind else {
+            continue;
+        };
+        saw_library_api_evidence = true;
+        if record.status != EvidenceStatus::Asserted
+            || api != expected
+            || !il.evidence_dependencies_asserted(record)
+            || !library_api_node_callee_shape_matches(il, interner, node, callee)
+            || !library_api_dependencies_match_callee_node(il, interner, node, callee, record)
         {
             return LibraryApiEvidenceStatus::Rejected;
         }
@@ -4835,6 +5086,23 @@ pub fn library_api_receiver_dependencies_for_call_with_cache(
     }
 }
 
+pub fn library_api_property_dependencies_for_field_with_cache(
+    il: &Il,
+    interner: &Interner,
+    field: NodeId,
+    callee: LibraryApiCalleeContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    let LibraryApiCalleeContract::Property { property, receiver } = callee else {
+        return None;
+    };
+    if !field_method_matches(il, interner, field, property) {
+        return None;
+    }
+    let receiver_node = il.children(field).first().copied()?;
+    method_receiver_dependency_ids(il, interner, receiver_node, receiver, &[], cache)
+}
+
 fn library_api_callee_shape_matches(
     il: &Il,
     interner: &Interner,
@@ -4883,6 +5151,7 @@ fn library_api_callee_shape_matches(
         LibraryApiCalleeContract::RegexLiteralMethod { method, .. } => {
             field_method_matches(il, interner, callee_node, method)
         }
+        LibraryApiCalleeContract::Property { .. } => false,
         LibraryApiCalleeContract::StaticIndexMembershipMethod { method, .. } => {
             method_callee_receiver(il, interner, callee_node, method).is_some()
         }
@@ -5021,6 +5290,7 @@ fn library_api_dependencies_match_callee(
             };
             dependency_has_source_fact_node(il, record, receiver_node, required_receiver_fact)
         }
+        LibraryApiCalleeContract::Property { .. } => false,
         LibraryApiCalleeContract::StaticIndexMembershipMethod { method, receiver } => {
             let Some(receiver_node) = method_callee_receiver(il, interner, callee_node, method)
             else {
@@ -5061,6 +5331,48 @@ fn library_api_dependencies_match_callee(
                 .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
         }
         LibraryApiCalleeContract::AsyncMethod { .. } => false,
+    }
+}
+
+fn library_api_node_callee_shape_matches(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee: LibraryApiCalleeContract,
+) -> bool {
+    match callee {
+        LibraryApiCalleeContract::FreeName { name, .. } => {
+            var_name_matches(il, interner, node, name)
+        }
+        LibraryApiCalleeContract::Property { property, .. } => {
+            field_method_matches(il, interner, node, property)
+        }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_callee_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
+        LibraryApiCalleeContract::FreeName { name, shadow } => {
+            dependency_has_unshadowed_global_node(il, record, node, name)
+                && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                    file_defines_name_visible_at(il, interner, candidate, il.node(node).span)
+                })
+        }
+        LibraryApiCalleeContract::Property { .. } => {
+            let mut cache = LibraryApiDependencyCache::default();
+            library_api_property_dependencies_for_field_with_cache(
+                il, interner, node, callee, &mut cache,
+            )
+            .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
+        }
+        _ => false,
     }
 }
 
@@ -5361,6 +5673,7 @@ fn library_api_dependencies_match_callee_at_span(
         } => receiver_span.is_some_and(|span| {
             dependency_has_source_fact_anchor(il, record, span, required_receiver_fact)
         }),
+        LibraryApiCalleeContract::Property { .. } => false,
         LibraryApiCalleeContract::StaticIndexMembershipMethod { method, receiver } => {
             callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method))
                 && receiver_span.is_some_and(|span| {
@@ -5603,6 +5916,11 @@ fn receiver_dependency_ids(
                 domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
             {
                 return Some(ids);
+            }
+            if let Some(id) =
+                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+            {
+                return Some(vec![id]);
             }
             library_api_dependency_id_for_map_key_view_call(
                 il,
@@ -6298,6 +6616,11 @@ fn library_api_contract_result_domain_for_arity(
                 },
             }),
         ),
+        LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
+        LibraryApiContractId::ScalarIntegerMethod(_) => Some(DomainEvidence::Integer),
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
+            Some(DomainEvidence::Collection)
+        }
         _ => None,
     }
 }
@@ -6310,6 +6633,7 @@ fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiContractId> 
 
 fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
     let mut ids = vec![
+        LibraryApiContractId::PropertyBuiltin(Builtin::Len),
         LibraryApiContractId::PythonBuiltinCollectionFactory,
         LibraryApiContractId::PythonImportedCollectionFactory,
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::Len),
@@ -6324,6 +6648,9 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::Enumerate),
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::Any),
         LibraryApiContractId::FreeFunctionBuiltin(Builtin::All),
+        LibraryApiContractId::RustOptionSomeConstructor,
+        LibraryApiContractId::RustOptionNoneSentinel,
+        LibraryApiContractId::RustOptionAndThen,
         LibraryApiContractId::RustStdCollectionFactory,
         LibraryApiContractId::RustStdMapFactory,
         LibraryApiContractId::RustVecMacroFactory,
@@ -6343,6 +6670,16 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
         LibraryApiContractId::IteratorIdentityAdapter,
         LibraryApiContractId::StaticCollectionAdapter,
     ];
+    ids.extend(
+        [
+            ScalarIntegerMethod::Abs,
+            ScalarIntegerMethod::Min,
+            ScalarIntegerMethod::Max,
+            ScalarIntegerMethod::Clamp,
+        ]
+        .into_iter()
+        .map(LibraryApiContractId::ScalarIntegerMethod),
+    );
     ids.extend(
         [
             JavaCollectionFactoryKind::ListOf,
@@ -6447,6 +6784,12 @@ fn library_api_callee_contracts_for_id(
     id: LibraryApiContractId,
 ) -> Vec<LibraryApiCalleeContract> {
     match id {
+        LibraryApiContractId::PropertyBuiltin(builtin) => ["length"]
+            .into_iter()
+            .filter_map(|property| library_property_builtin_contract(lang, property))
+            .filter(|contract| contract.id == LibraryApiContractId::PropertyBuiltin(builtin))
+            .map(|contract| contract.callee)
+            .collect(),
         LibraryApiContractId::PythonBuiltinCollectionFactory
         | LibraryApiContractId::RustStdCollectionFactory => {
             library_free_name_collection_factory_contracts(lang)
@@ -6463,6 +6806,47 @@ fn library_api_callee_contracts_for_id(
         LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
             library_free_function_builtin_callee_contracts_for_id(lang, builtin)
         }
+        LibraryApiContractId::RustOptionSomeConstructor => [
+            "Some",
+            "Option::Some",
+            "std::option::Option::Some",
+            "core::option::Option::Some",
+        ]
+        .into_iter()
+        .filter_map(|name| library_rust_option_some_constructor_contract(lang, name, 1))
+        .map(|contract| contract.callee)
+        .collect(),
+        LibraryApiContractId::RustOptionNoneSentinel => [
+            "None",
+            "Option::None",
+            "std::option::Option::None",
+            "core::option::Option::None",
+        ]
+        .into_iter()
+        .filter_map(|name| library_rust_option_none_sentinel_contract(lang, name))
+        .map(|contract| contract.callee)
+        .collect(),
+        LibraryApiContractId::RustOptionAndThen => {
+            library_rust_option_and_then_contract(lang, "and_then", 1)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::ScalarIntegerMethod(method) => ["abs", "min", "max", "clamp"]
+            .into_iter()
+            .filter_map(|name| library_scalar_integer_method_contract(lang, name, 0))
+            .chain(
+                ["abs", "min", "max", "clamp"]
+                    .into_iter()
+                    .filter_map(|name| library_scalar_integer_method_contract(lang, name, 1)),
+            )
+            .chain(
+                ["abs", "min", "max", "clamp"]
+                    .into_iter()
+                    .filter_map(|name| library_scalar_integer_method_contract(lang, name, 2)),
+            )
+            .filter(|contract| contract.id == LibraryApiContractId::ScalarIntegerMethod(method))
+            .map(|contract| contract.callee)
+            .collect(),
         LibraryApiContractId::RustStdMapFactory => library_free_name_map_factory_contracts(lang)
             .filter(|contract| contract.id == id)
             .map(|contract| contract.callee)
@@ -7990,6 +8374,24 @@ pub fn library_receiver_method_api_contract(
             })
         })
         .or_else(|| {
+            library_scalar_integer_method_contract(lang, method, arg_count).map(|contract| {
+                LibraryReceiverMethodApiContract {
+                    id: contract.id,
+                    callee: contract.callee,
+                    rule: "library_api_scalar_integer_method",
+                }
+            })
+        })
+        .or_else(|| {
+            library_rust_option_and_then_contract(lang, method, arg_count).map(|contract| {
+                LibraryReceiverMethodApiContract {
+                    id: contract.id,
+                    callee: contract.callee,
+                    rule: "library_api_rust_option_and_then",
+                }
+            })
+        })
+        .or_else(|| {
             library_method_call_contract(lang, method, arg_count).map(|contract| {
                 LibraryReceiverMethodApiContract {
                     id: contract.id,
@@ -8019,7 +8421,9 @@ fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "any" => "any",
         "any?" => "any?",
         "anyMatch" => "anyMatch",
+        "and_then" => "and_then",
         "append" => "append",
+        "clamp" => "clamp",
         "collect" => "collect",
         "contains" => "contains",
         "containsKey" => "containsKey",
