@@ -245,6 +245,11 @@ and pack ecosystem.
   facts into records with ids, anchors, provenance, dependencies, and status.
   `nose-semantics` lookups fail closed on ambiguous/conflicting evidence before
   falling back to compatibility storage.
+- Source-origin and parameter-domain proof later became evidence-only: the
+  `SourceFact` and `ParamTypeFact` side-table mirrors were removed from IL
+  storage, first-party frontends emit `Source` and `Domain` records directly, and
+  semantic lookups no longer reopen those proof paths from compatibility mirrors
+  when evidence is missing.
 - Symbol-identity evidence now represents static imported binding/namespace
   aliases. Normalize idiom admission, value-graph namespace fallbacks, and strict
   exact gates have started consuming this helper layer instead of each re-scanning
@@ -404,9 +409,12 @@ Remaining in this phase:
   A later source-fact slice preserves selected JS/TS and Python equality-like
   source operators, but broader operator dispatch, overload semantics, and
   pack-facing consumers remain open.
-- Continue migrating compatibility source/domain/import/symbol/sequence storage
-  onto `EvidenceRecord` consumers, then remove the old mirrors once no exact gate
-  depends on them.
+- Continue migrating compatibility storage onto `EvidenceRecord` consumers.
+  Source-origin, parameter-domain, import identity, symbol identity, guard,
+  selected place/effect, selected library API occurrence, and selected
+  sequence-surface consumers now use evidence-only proof paths where covered.
+  Remaining mirror work is concentrated in broader lowered sequence/tag surfaces
+  and unmodeled module/export dependencies rather than source/domain side tables.
 - Add scope, dependency, and ambiguity validation for evidence records before
   they become a stable external extension surface.
 - Expand the exact fragment facade from first-party helper functions into
@@ -447,13 +455,13 @@ Remaining in this phase:
   and broad receiver-method proof dependencies into explicit evidence records,
   then cover broader reduction/HOF and ecosystem APIs only after demand,
   receiver, and effect obligations are expressible.
-- Remove the remaining raw import/module proof IL payload storage after import
-  and symbol evidence records can carry every consumer obligation, including
-  module export dependencies, scope, rebinding, and mutation proof. Value-graph
-  import identity and imported-symbol exact proof are now evidence-only, and
-  imported literal replacement copies provider evidence, and selected JS/TS
-  `QualifiedGlobal` paths are covered, but general qualified-member, namespace
-  export identity, and manifest-level cross-module dependency evidence are not.
+- Continue import/module proof migration beyond the removed raw import payloads
+  and evidence-only import identity path. Value-graph import identity and
+  imported-symbol exact proof are now evidence-only, imported literal replacement
+  copies provider evidence, and selected JS/TS `QualifiedGlobal` paths are
+  covered, but general qualified-member resolution, namespace export identity,
+  provider/export dependency manifests, richer scope/rebinding facts, and
+  manifest-level cross-module dependency evidence are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.

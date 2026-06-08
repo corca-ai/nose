@@ -219,12 +219,6 @@ impl DomainEvidence {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-pub struct ParamTypeFact {
-    pub span: Span,
-    pub semantic: ParamSemantic,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct EvidenceId(pub u32);
 
 /// Stable subject addressed by a semantic evidence record. Node ids are not used
@@ -422,15 +416,6 @@ pub struct EvidenceRecord {
     pub provenance: EvidenceProvenance,
     pub dependencies: Vec<EvidenceId>,
     pub status: EvidenceStatus,
-}
-
-/// Source-origin facts that must survive lowering before a semantic contract can
-/// consume them. These are evidence records, not semantic approval: contracts in
-/// `nose-semantics` decide whether a fact is sufficient for an exact rule.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
-pub struct SourceFact {
-    pub span: Span,
-    pub kind: SourceFactKind,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

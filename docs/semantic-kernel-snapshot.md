@@ -66,9 +66,10 @@ migrated.
   symbol-identity, guard, place/effect, selected library API occurrence, and
   sequence-surface proof facts. Records carry ids, stable source anchors, kind,
   provenance, dependencies, and asserted/ambiguous status. Lookups in
-  `nose-semantics` fail closed on ambiguous or conflicting evidence and use older
-  side tables only as compatibility fallback when no relevant evidence record is
-  present.
+  `nose-semantics` fail closed on ambiguous, conflicting, or dependency-broken
+  evidence. Source-origin and parameter-domain proof is now evidence-only;
+  explicitly legacy helper fallbacks remain only for proof families whose
+  evidence migration is not complete.
 - `OperatorSemantics` now owns the first shared operator contracts:
   comparison-direction transforms, comparison negation, equality operand
   commutativity, comparison-lattice laws, abs/min/max/selection guard laws,
@@ -83,22 +84,22 @@ migrated.
   strict/loose equality, strict/loose inequality, and `instanceof` facts. Python
   emits value equality/inequality and identity equality/inequality facts, and
   Rust emits macro invocation syntax for selected macro-backed APIs. These are
-  mirrored into `EvidenceRecord::Source`; the older `SourceFact` vector remains
-  a compatibility fallback. Normalize and detect consume source facts only where
-  a semantic contract requires that exact source surface.
+  stored directly as `EvidenceRecord::Source`; there is no source-fact side-table
+  fallback. Normalize and detect consume source facts only where a semantic
+  contract requires that exact source surface.
 - Free-function builtin contracts are language- and arity-constrained and require
   unshadowed builtin/global proof before exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
-- Source-level `ParamSemantic` facts are mirrored into
-  `EvidenceRecord::Domain`, and `nose-semantics` now resolves receiver-domain
+- Source-level `ParamSemantic` facts are stored directly as
+  `EvidenceRecord::Domain`, and `nose-semantics` resolves receiver-domain
   evidence through a shared `DomainRequirement` contract. Consumers check exact
   receiver node evidence first, then scoped parameter evidence, and fail closed
-  on ambiguous/conflicting/dependency-broken records before any compatibility
-  fallback. Desugaring, normalize idiom canonicalization, value-graph receiver
-  gates, and strict exact receiver gates consume this same helper layer. This
-  preserves the current Array/Collection/Set/Map/Option/String/Integer/Number
+  on ambiguous/conflicting/dependency-broken records without consulting a
+  side-table mirror. Desugaring, normalize idiom canonicalization, value-graph
+  receiver gates, and strict exact receiver gates consume this same helper layer.
+  This preserves the current Array/Collection/Set/Map/Option/String/Integer/Number
   and ByteArray distinctions. First-party producers now attach
   receiver-expression domain facts directly for selected admitted library/API
   factory results, while future packs or inference passes can use the same

@@ -822,8 +822,8 @@ mod tests {
     use nose_il::{
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
-        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, Span,
-        SymbolEvidenceKind, Unit, UnitKind,
+        LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
+        UnitKind,
     };
 
     fn sp() -> Span {
@@ -1147,15 +1147,23 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        il.param_type_facts.push(ParamTypeFact {
-            span: param_span,
-            semantic,
-        });
-        if duplicate_param_name {
-            il.param_type_facts.push(ParamTypeFact {
-                span: duplicate_span,
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(param_span),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::from_param_semantic(
                 semantic,
-            });
+            )),
+            EvidenceStatus::Asserted,
+        ));
+        if duplicate_param_name {
+            il.evidence.push(evidence(
+                1,
+                EvidenceAnchor::param(duplicate_span),
+                EvidenceKind::Domain(nose_semantics::DomainEvidence::from_param_semantic(
+                    semantic,
+                )),
+                EvidenceStatus::Asserted,
+            ));
         }
         (il, interner, call)
     }

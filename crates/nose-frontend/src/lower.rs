@@ -6,8 +6,8 @@ use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
     FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind,
-    LoopKind, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload, PlaceEvidenceKind,
-    SourceCallKind, SourceFact, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SourceCallKind,
+    SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -41,9 +41,7 @@ pub(crate) struct Lowering<'a> {
     pub lang: Lang,
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
-    pub param_type_facts: Vec<ParamTypeFact>,
     pub evidence: Vec<EvidenceRecord>,
-    pub source_facts: Vec<SourceFact>,
     pub param_semantic_aliases: Vec<(String, ParamSemantic)>,
     pub unsigned_32_aliases: Vec<String>,
 }
@@ -56,9 +54,7 @@ impl<'a> Lowering<'a> {
             lang,
             interner,
             units: Vec::new(),
-            param_type_facts: Vec::new(),
             evidence: Vec::new(),
-            source_facts: Vec::new(),
             param_semantic_aliases: Vec::new(),
             unsigned_32_aliases: Vec::new(),
         }
@@ -760,7 +756,6 @@ impl<'a> Lowering<'a> {
     }
 
     pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
-        self.param_type_facts.push(ParamTypeFact { span, semantic });
         self.record_evidence(
             EvidenceAnchor::param(span),
             EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
@@ -769,7 +764,6 @@ impl<'a> Lowering<'a> {
     }
 
     pub(crate) fn record_source_fact(&mut self, span: Span, kind: SourceFactKind) {
-        self.source_facts.push(SourceFact { span, kind });
         self.record_evidence(
             EvidenceAnchor::source_span(span),
             EvidenceKind::Source(kind),
@@ -1162,13 +1156,9 @@ pub(crate) fn lower_file_with_setup(
         lang,
     };
     let units = std::mem::take(&mut lo.units);
-    let param_type_facts = std::mem::take(&mut lo.param_type_facts);
     let evidence = std::mem::take(&mut lo.evidence);
-    let source_facts = std::mem::take(&mut lo.source_facts);
     let mut il = lo.b.finish(module, meta, units, Vec::new());
-    il.param_type_facts = param_type_facts;
     il.evidence = evidence;
-    il.source_facts = source_facts;
     record_post_lower_library_api_evidence(&mut il, interner);
     drop_suppressed_units(&mut il, src);
     Ok(il)

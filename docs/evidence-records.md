@@ -19,8 +19,9 @@ precondition.
 - Make facts carry stable ids, anchors, provenance, dependencies, and status.
 - Keep exact matching fail-closed when evidence is missing, ambiguous, or
   conflicting.
-- Preserve existing behavior while first-party frontends mirror their older
-  side-table facts into the new record shape.
+- Preserve existing behavior while first-party frontends emit source,
+  parameter-domain, import, symbol, guard, place/effect, library API, and
+  sequence-surface facts directly into the record shape.
 - Make the future external pack schema a narrowing of an implemented internal
   boundary, not a speculative document-only API.
 
@@ -30,10 +31,6 @@ precondition.
   pairs exact.
 - Do not expose this internal Rust record as the final external pack manifest or
   scan JSON schema.
-- Do not remove compatibility mirrors in the first slice. `SourceFact`,
-  `ParamTypeFact`, and raw import `Seq` payloads still exist while consumers are
-  migrated, though new proof-bearing consumers should prefer evidence-only
-  helpers.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
 - Do not model demand evidence or every place/effect family in this slice. The
@@ -109,9 +106,10 @@ side tables.
 - A lookup succeeds only when asserted evidence resolves to exactly one relevant
   fact.
 - Conflicting asserted evidence makes the lookup fail.
+- Dependency-broken evidence makes the lookup fail.
 - `Ambiguous` evidence makes the lookup fail.
-- If any relevant ambiguous/conflicting evidence exists, compatibility fallback
-  must not reopen the exact path.
+- If any relevant ambiguous, conflicting, or dependency-broken evidence exists,
+  compatibility fallback must not reopen the exact path.
 - Compatibility fallback is allowed only when no relevant evidence record exists,
   and only for explicitly legacy compatibility helpers.
 
@@ -133,12 +131,12 @@ alias is rebound or ambiguous, the exact path stays closed until a node-level
 symbol fact or stronger scope-resolution evidence exists.
 
 Domain evidence follows the same fail-closed rule. First-party parameter
-annotations still mirror into `Domain` evidence on `Param` anchors, but
-`nose-semantics` now also resolves `Domain` evidence on exact receiver-expression
-node anchors before consulting parameter compatibility facts. A conflicting,
-ambiguous, or dependency-broken receiver-domain record closes that receiver proof
-and must not fall back to `ParamTypeFact` or selector spelling. When a receiver is
-an alpha-renamed parameter reference, lookup is constrained to the nearest
+annotations emit `Domain` evidence on `Param` anchors, and `nose-semantics`
+resolves `Domain` evidence on exact receiver-expression node anchors before
+consulting parameter-anchor evidence. A conflicting, ambiguous, or
+dependency-broken receiver-domain record closes that receiver proof and must not
+fall back to side-table mirrors or selector spelling. When a receiver is an
+alpha-renamed parameter reference, lookup is constrained to the nearest
 function/lambda scope so same-numbered parameter ids from other units do not
 prove the current receiver. Method receiver contracts expose their domain-backed
 obligations through `DomainRequirement`; obligations such as imported namespace,
@@ -212,7 +210,7 @@ instead of accepting an unrelated imported symbol elsewhere in the file.
 
 ## Current Producers
 
-First-party frontends now mirror these facts into `EvidenceRecord`:
+First-party frontends now emit these facts as `EvidenceRecord`:
 
 - parameter semantic annotations become `Domain` evidence. Selected first-party
   library/API factory calls now also emit receiver-expression `Domain` evidence
@@ -284,12 +282,13 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
 - lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
   literal and Go map-entry surfaces where those tags carry first-party meaning.
 
-The older `ParamTypeFact`, `SourceFact`, and raw import `Seq` shapes remain as
-compatibility mirrors. First-party JS/TS record-shape guards now have dedicated
-guard evidence, and exact-fragment append/index/self-field gates now have the
-first place/effect evidence substrate. Broader guard families, richer
+Source-origin and parameter-domain proof no longer has side-table mirror storage:
+frontends emit `Source` and `Domain` records directly, and semantic lookups are
+evidence-only for those facts. First-party JS/TS record-shape guards now have
+dedicated guard evidence, and exact-fragment append/index/self-field gates now
+have the first place/effect evidence substrate. Broader guard families, richer
 source-clause dependencies, richer receiver/place families, and general evidence
-validation remain open. These mirrors are not the desired pack boundary.
+validation remain open.
 
 ## Current Consumers
 

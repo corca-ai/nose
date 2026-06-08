@@ -8514,8 +8514,8 @@ mod tests {
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
         ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
-        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceCallKind,
-        SourceFactKind, Span, SymbolEvidenceKind, Unit, UnitKind,
+        LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
+        Span, SymbolEvidenceKind, Unit, UnitKind,
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -8950,10 +8950,11 @@ mod tests {
         );
         for (idx, semantic) in semantics.into_iter().enumerate() {
             if let Some(semantic) = semantic {
-                il.param_type_facts.push(ParamTypeFact {
-                    span: sp(idx as u32 + 1),
-                    semantic,
-                });
+                il.evidence.push(evidence(
+                    idx as u32,
+                    EvidenceAnchor::param(sp(idx as u32 + 1)),
+                    EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
+                ));
             }
         }
         let mut builder = Builder::new(&il, &interner);
@@ -8989,10 +8990,11 @@ mod tests {
             }],
             Vec::new(),
         );
-        il.param_type_facts.push(ParamTypeFact {
-            span: sp(1),
-            semantic: ParamSemantic::Integer,
-        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::param(sp(1)),
+            EvidenceKind::Domain(DomainEvidence::Integer),
+        ));
         let mut builder = Builder::new(&il, &interner);
         builder.build_unit(func);
         (

@@ -24,9 +24,9 @@ pub use node::{
     Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
     EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind,
     ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
-    LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, ParamTypeFact, Payload,
-    PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFact, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, SymbolEvidenceKind,
+    LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    SymbolEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 
@@ -71,21 +71,11 @@ pub struct Il {
     /// carries it, which is what the contiguous channel reads.
     #[serde(default)]
     pub suppressed: Vec<(u32, u32)>,
-    /// Explicit source-level parameter semantic facts, keyed by the original parameter
-    /// node span. Normalization preserves spans; after alpha-renaming the value graph can
-    /// connect these facts to canonical parameter ids for strict proof-gated rewrites.
-    #[serde(default)]
-    pub param_type_facts: Vec<ParamTypeFact>,
     /// Pack-facing semantic evidence records keyed by stable source anchors.
-    /// Existing source/param/import side tables are mirrored here for compatibility
-    /// today; future language/library packs should emit this record shape directly.
+    /// Source-origin and parameter-domain proof is stored here directly; exact
+    /// consumers must not use side-table mirrors as alternate proof channels.
     #[serde(default)]
     pub evidence: Vec<EvidenceRecord>,
-    /// Source-origin evidence facts keyed by source span. These preserve facts that the
-    /// shared IL shape intentionally abstracts away, such as construct syntax, regex
-    /// literal syntax, and the original equality/operator family.
-    #[serde(default)]
-    pub source_facts: Vec<SourceFact>,
 }
 
 impl Il {
@@ -242,9 +232,7 @@ impl IlBuilder {
             units,
             cid_names,
             suppressed: Vec::new(),
-            param_type_facts: Vec::new(),
             evidence: Vec::new(),
-            source_facts: Vec::new(),
         }
     }
 }

@@ -45,7 +45,7 @@ preconditions.
 
 | term | meaning |
 |---|---|
-| `SourceFact` | Compatibility mirror keyed by source span and fact kind. |
+| Source evidence | `EvidenceKind::Source` records keyed by stable source anchors. |
 | Evidence record | Current internal form of a source or semantic fact, with stable ids, anchors, dependencies, status, and provenance. The external pack manifest is not defined yet. |
 | Contract | Kernel rule that maps a proven source/API surface to a semantic operation or law under explicit preconditions. |
 | Pack provenance | The pack id, provider, trust policy, version range, contract id, and evidence status behind an admitted fact or contract. |
@@ -85,8 +85,9 @@ The pack-facing vocabulary should cover at least these classes.
 ## Current internal slice
 
 The current implementation has `Il::evidence` records in `nose-il` and
-source-fact helpers in `nose-semantics`. `SourceFact` still exists as a
-compatibility mirror while consumers migrate to evidence records.
+source-fact helpers in `nose-semantics`. Source-origin proof is evidence-only:
+frontends emit `EvidenceKind::Source` records directly, and consumers do not
+fall back to a side-table mirror when source evidence is missing.
 
 - JS/TS lowering emits source facts for construct syntax, regex literals, strict
   equality, strict inequality, loose equality, loose inequality, and

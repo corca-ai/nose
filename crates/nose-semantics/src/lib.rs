@@ -114,7 +114,7 @@ fn evidence_at_span<T: Copy + Eq>(
     span: Span,
     project: impl Fn(EvidenceKind) -> Option<T>,
 ) -> EvidenceResolution<T> {
-    unique_evidence_at(il, |anchor| anchor.matches_span(span), project)
+    unique_asserted_evidence_at(il, |anchor| anchor.matches_span(span), project)
 }
 
 pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool {
@@ -132,17 +132,7 @@ pub fn source_operator_at_node(il: &Il, node: NodeId) -> Option<SourceOperatorKi
         _ => None,
     }) {
         EvidenceResolution::Found(operator) => Some(operator),
-        EvidenceResolution::Ambiguous => None,
-        EvidenceResolution::Missing => {
-            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
-                (fact.span == span)
-                    .then_some(fact.kind)
-                    .and_then(|kind| match kind {
-                        SourceFactKind::Operator(operator) => Some(operator),
-                        SourceFactKind::Call(_) | SourceFactKind::Literal(_) => None,
-                    })
-            }))
-        }
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
 
@@ -153,17 +143,7 @@ pub fn source_call_at_node(il: &Il, node: NodeId) -> Option<SourceCallKind> {
         _ => None,
     }) {
         EvidenceResolution::Found(call) => Some(call),
-        EvidenceResolution::Ambiguous => None,
-        EvidenceResolution::Missing => {
-            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
-                (fact.span == span)
-                    .then_some(fact.kind)
-                    .and_then(|kind| match kind {
-                        SourceFactKind::Call(call) => Some(call),
-                        SourceFactKind::Operator(_) | SourceFactKind::Literal(_) => None,
-                    })
-            }))
-        }
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
 
@@ -174,30 +154,8 @@ pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind
         _ => None,
     }) {
         EvidenceResolution::Found(literal) => Some(literal),
-        EvidenceResolution::Ambiguous => None,
-        EvidenceResolution::Missing => {
-            unique_legacy_source_fact(il.source_facts.iter().filter_map(|fact| {
-                (fact.span == span)
-                    .then_some(fact.kind)
-                    .and_then(|kind| match kind {
-                        SourceFactKind::Literal(literal) => Some(literal),
-                        SourceFactKind::Operator(_) | SourceFactKind::Call(_) => None,
-                    })
-            }))
-        }
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
-}
-
-fn unique_legacy_source_fact<T: Copy + Eq>(facts: impl Iterator<Item = T>) -> Option<T> {
-    let mut found = None;
-    for fact in facts {
-        match found {
-            None => found = Some(fact),
-            Some(existing) if existing == fact => {}
-            Some(_) => return None,
-        }
-    }
-    found
 }
 
 pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {
@@ -235,19 +193,7 @@ pub fn domain_evidence_at_span(il: &Il, span: Span) -> Option<DomainEvidence> {
         },
     ) {
         EvidenceResolution::Found(domain) => Some(domain),
-        EvidenceResolution::Ambiguous => None,
-        EvidenceResolution::Missing => {
-            let mut found = None;
-            for fact in il.param_type_facts.iter().filter(|fact| fact.span == span) {
-                let domain = domain_evidence_from_param_semantic(fact.semantic);
-                match found {
-                    None => found = Some(domain),
-                    Some(existing) if existing == domain => {}
-                    Some(_) => return None,
-                }
-            }
-            found
-        }
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
 
@@ -6031,8 +5977,8 @@ mod tests {
         EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
         EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
         ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck,
-        LibraryApiEvidenceKind, ParamSemantic, ParamTypeFact, SequenceSurfaceKind, SourceFact,
-        Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+        LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, Symbol,
+        SymbolEvidenceKind, Unit, UnitKind,
     };
 
     const ALL_LANGS: &[Lang] = &[
@@ -6200,15 +6146,11 @@ mod tests {
     }
 
     #[test]
-    fn domain_evidence_records_are_preferred_over_legacy_param_facts() {
+    fn domain_evidence_records_drive_param_domain_proof() {
         let mut b = IlBuilder::new(FileId(0));
         let param = b.add(NodeKind::Param, Payload::None, sp(3), &[]);
         let root = b.add(NodeKind::Func, Payload::None, sp(3), &[param]);
         let mut il = finish_il(b, root, Lang::TypeScript);
-        il.param_type_facts.push(ParamTypeFact {
-            span: sp(3),
-            semantic: ParamSemantic::Set,
-        });
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::param(sp(3)),
@@ -6223,15 +6165,11 @@ mod tests {
     }
 
     #[test]
-    fn ambiguous_domain_evidence_blocks_legacy_fallback() {
+    fn ambiguous_domain_evidence_stays_closed() {
         let mut b = IlBuilder::new(FileId(0));
         let param = b.add(NodeKind::Param, Payload::None, sp(4), &[]);
         let root = b.add(NodeKind::Func, Payload::None, sp(4), &[param]);
         let mut il = finish_il(b, root, Lang::TypeScript);
-        il.param_type_facts.push(ParamTypeFact {
-            span: sp(4),
-            semantic: ParamSemantic::Set,
-        });
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::param(sp(4)),
@@ -6249,7 +6187,7 @@ mod tests {
     }
 
     #[test]
-    fn receiver_domain_evidence_at_node_is_preferred_over_param_mirror() {
+    fn receiver_domain_evidence_at_node_is_preferred_over_param_evidence() {
         let mut b = IlBuilder::new(FileId(0));
         let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
         let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
@@ -6267,12 +6205,14 @@ mod tests {
             &[param, body],
         );
         let mut il = finish_il(b, root, Lang::TypeScript);
-        il.param_type_facts.push(ParamTypeFact {
-            span: span(10, 12, 1),
-            semantic: ParamSemantic::Set,
-        });
         il.evidence.push(evidence(
             0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Set),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
             EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Map),
             EvidenceStatus::Asserted,
@@ -6311,18 +6251,20 @@ mod tests {
             &[param, body],
         );
         let mut il = finish_il(b, root, Lang::TypeScript);
-        il.param_type_facts.push(ParamTypeFact {
-            span: span(10, 12, 1),
-            semantic: ParamSemantic::Map,
-        });
         il.evidence.push(evidence(
             0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
             EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Set),
             EvidenceStatus::Asserted,
         ));
         il.evidence.push(evidence(
-            1,
+            2,
             EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Map),
             EvidenceStatus::Asserted,
@@ -6396,12 +6338,14 @@ mod tests {
             &[param, body],
         );
         let mut il = finish_il(b, root, Lang::TypeScript);
-        il.param_type_facts.push(ParamTypeFact {
-            span: span(10, 12, 1),
-            semantic: ParamSemantic::Set,
-        });
-        il.evidence.push(evidence_with_dependencies(
+        il.evidence.push(evidence(
             0,
+            EvidenceAnchor::param(span(10, 12, 1)),
+            EvidenceKind::Domain(DomainEvidence::Set),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
             EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Map),
             EvidenceStatus::Asserted,
@@ -10134,14 +10078,18 @@ mod tests {
         let regex = b.add(NodeKind::Lit, Payload::LitStr(42), sp(8), &[]);
         let root = b.add(NodeKind::Block, Payload::None, sp(7), &[call, regex]);
         let mut il = finish_il(b, root, Lang::JavaScript);
-        il.source_facts.push(SourceFact {
-            span: sp(7),
-            kind: SourceFactKind::Call(SourceCallKind::Construct),
-        });
-        il.source_facts.push(SourceFact {
-            span: sp(8),
-            kind: SourceFactKind::Literal(SourceLiteralKind::Regex),
-        });
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::source_span(sp(7)),
+            EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::source_span(sp(8)),
+            EvidenceKind::Source(SourceFactKind::Literal(SourceLiteralKind::Regex)),
+            EvidenceStatus::Asserted,
+        ));
 
         assert!(construct_syntax_proof(&il, call));
         assert!(regex_literal_proof(&il, regex));
@@ -10158,10 +10106,6 @@ mod tests {
         let op = b.add(NodeKind::BinOp, Payload::Op(Op::Eq), sp(9), &[]);
         let root = b.add(NodeKind::Block, Payload::None, sp(9), &[op]);
         let mut il = finish_il(b, root, Lang::JavaScript);
-        il.source_facts.push(SourceFact {
-            span: sp(9),
-            kind: SourceFactKind::Operator(SourceOperatorKind::StrictEquality),
-        });
         il.evidence.push(evidence(
             0,
             EvidenceAnchor::source_span(sp(9)),
@@ -10180,6 +10124,28 @@ mod tests {
             EvidenceStatus::Asserted,
         ));
         assert_eq!(source_operator_at_node(&il, op), None);
+    }
+
+    #[test]
+    fn source_fact_evidence_requires_live_dependencies() {
+        let mut b = IlBuilder::new(FileId(0));
+        let call = b.add(NodeKind::Call, Payload::None, sp(10), &[]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(10), &[call]);
+        let mut il = finish_il(b, root, Lang::Rust);
+        il.evidence.push(evidence_with_dependencies(
+            0,
+            EvidenceAnchor::source_span(sp(10)),
+            EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::MacroInvocation)),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(99)],
+        ));
+
+        assert_eq!(source_call_at_node(&il, call), None);
+        assert!(!source_fact_at_node(
+            &il,
+            call,
+            SourceFactKind::Call(SourceCallKind::MacroInvocation),
+        ));
     }
 
     #[test]
