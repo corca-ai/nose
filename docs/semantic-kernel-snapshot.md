@@ -141,8 +141,9 @@ migrated.
   projection, `select`, and select cases/defaults. C emits source-cast facts
   for explicit unsigned 32-bit byte-lane casts, with alias-based casts depending
   on C type-alias evidence. Rust emits macro invocation syntax for selected
-  macro-backed APIs plus async/error protocol facts for `.await`, `async {}`,
-  and `?`. These are stored directly as
+  macro-backed APIs, half-open/inclusive range expression facts, tuple-struct
+  single-wildcard pattern facts, plus async/error protocol facts for `.await`,
+  `async {}`, and `?`. These are stored directly as
   `EvidenceRecord::Source`; there is no source-fact side-table fallback.
   Normalize and detect consume source facts only where a semantic contract
   requires that exact source surface. Current JS/TS/Python/Rust `await` nodes,
@@ -245,9 +246,12 @@ migrated.
   lowering/normalization now emits admitted `LibraryApi` occurrence evidence for
   `Some(...)` calls, `Some(_)` pattern selectors, bare `None` `Var`
   occurrences, and `and_then(...)` calls only when the shadow and receiver
-  obligations are satisfied. The Rust frontend preserves `if let` pattern tests
-  instead of lowering them directly to null/not-null builtins, so Option
-  absence/presence is admitted only through the contract-backed occurrence path.
+  obligations are satisfied. `Some(_)` pattern predicates also require the Rust
+  tuple-struct wildcard `Source::Pattern` fact at the pattern span; the API
+  occurrence alone is only selector proof. The Rust frontend preserves `if let`
+  pattern tests instead of lowering them directly to null/not-null builtins, so
+  Option absence/presence is admitted only through the contract-backed occurrence
+  path plus required source-surface evidence.
 - Collection factory, map factory, and selected constructor identity now have an
   internal `LibraryApiContract`
   shape in `nose-semantics`. It separates API identity from result eligibility,
@@ -646,7 +650,10 @@ Semantic knowledge still appears in several forms outside the facade:
   calls or operands, Go channel send no longer relies on an untyped
   `send_statement` sequence tag, and Python list/set/dict/generator
   comprehension surfaces no longer share exact semantics merely because they
-  lower to HOF-shaped IL.
+  share a lowered HOF shape. Rust `0..len(collection)` recognition now requires
+  the half-open range source fact in addition to admitted `len` semantics, and
+  Rust `Some(_)` pattern recognition now requires both selector API proof and
+  wildcard pattern source proof rather than raw names or raw pattern shape.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.

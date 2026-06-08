@@ -40,7 +40,8 @@ experiments that validated these passes are in [experiments](experiments.md).
 > gate comparison transforms, comparison-lattice rewrites, static cardinality
 > thresholds, and source membership operators, while source-fact gates protect
 > JS-like constructor factories, regex literal `.test(...)`, and static
-> membership callback equality, **distribution/factoring**
+> membership callback equality, plus Rust half-open range and `Some(_)` pattern
+> recognition, **distribution/factoring**
 > `a*c+b*c→(a+b)*c` (value-domain-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
@@ -152,6 +153,9 @@ Guiding constraints for every pass:
   pure `Some(x).and_then(...)` helper chains, and guarded builders today. Wrapped
   `Some(None)`-style callbacks are emitted `Null` payloads, not dropped items, while
   effectful callbacks and unmodeled option helper chains remain fail-closed.
+  Rust Option pattern predicates likewise stay closed unless the selector has
+  admitted `Some`/`None` API evidence and the pattern surface has Rust
+  tuple-struct wildcard source evidence.
   Lowered aggregate surfaces now pass through a `SeqSurfaceContract`: arrays/slices can
   enter collection membership, maps/objects enter map/object value semantics, Go
   `composite_literal` map surfaces are consumed only by the Go zero-map contract, JS object

@@ -65,7 +65,8 @@ use model::{
 };
 use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LoopKind, NodeId,
-    NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind, SourceFactKind, Span, Symbol,
+    NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind, SourceFactKind,
+    SourcePatternKind, SourceRangeKind, Span, Symbol,
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call,
@@ -95,9 +96,10 @@ use nose_semantics::{
     nullish_global_contract, opaque_argument_escape_args, own_property_guard_for_node,
     receiver_mutation_call_receiver, record_shape_guard_for_node, reduction_builtin_contract,
     semantics, seq_surface_contract_for_node, source_comprehension_at_node,
-    source_operator_at_node, unproven_membership_like_method_contract, BuiltinArgContract,
-    CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    source_operator_at_node, source_pattern_at_node, source_range_at_node,
+    unproven_membership_like_method_contract, BuiltinArgContract, CBytePackWidth,
+    CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence, DomainRequirement,
+    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
     IndexMembershipThreshold, IndexWriteReceiverContract, IteratorAdapterReceiverContract,
     JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
     LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,

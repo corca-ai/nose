@@ -465,6 +465,8 @@ pub enum SourceFactKind {
     Protocol(SourceProtocolKind),
     Literal(SourceLiteralKind),
     Comprehension(SourceComprehensionKind),
+    Range(SourceRangeKind),
+    Pattern(SourcePatternKind),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -518,6 +520,17 @@ pub enum SourceComprehensionKind {
     PythonGeneratorExpression,
     PythonListComprehension,
     PythonSetComprehension,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceRangeKind {
+    RustHalfOpenRangeExpression,
+    RustInclusiveRangeExpression,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourcePatternKind {
+    RustTupleStructSingleWildcardPattern,
 }
 
 /// Loop flavor; see [`NodeKind::Loop`] for the child layout each implies.

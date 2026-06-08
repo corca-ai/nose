@@ -94,6 +94,8 @@ pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool 
         SourceFactKind::Comprehension(comprehension) => {
             source_comprehension_at_node(il, node) == Some(comprehension)
         }
+        SourceFactKind::Range(range) => source_range_at_node(il, node) == Some(range),
+        SourceFactKind::Pattern(pattern) => source_pattern_at_node(il, node) == Some(pattern),
     }
 }
 
@@ -159,6 +161,28 @@ pub fn source_comprehension_at_node(il: &Il, node: NodeId) -> Option<SourceCompr
         _ => None,
     }) {
         EvidenceResolution::Found(comprehension) => Some(comprehension),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn source_range_at_node(il: &Il, node: NodeId) -> Option<SourceRangeKind> {
+    let span = il.node(node).span;
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Range(range)) => Some(range),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(range) => Some(range),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn source_pattern_at_node(il: &Il, node: NodeId) -> Option<SourcePatternKind> {
+    let span = il.node(node).span;
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Pattern(pattern)) => Some(pattern),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(pattern) => Some(pattern),
         EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }

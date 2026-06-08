@@ -59,7 +59,7 @@ The current implemented kinds are:
 
 | kind | purpose |
 |---|---|
-| `Source` | construct syntax, Rust macro invocation syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, C unsigned-cast syntax, regex literal provenance, and source operator family including JS-like unary `typeof` |
+| `Source` | construct syntax, Rust macro invocation/range/pattern syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, C unsigned-cast syntax, regex literal provenance, and source operator family including JS-like unary `typeof` |
 | `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding/namespace proof, Python wildcard-import ambiguity proof, Java wildcard import proof, C quote-include proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
@@ -363,7 +363,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   values, or generic sequences. Python list/set/dict comprehensions and generator
   expressions emit source-comprehension facts so exact consumers can distinguish
   eager materialized lists, lazy generators, set deduplication, and dict
-  materialization even when the lowered HOF body shape is similar;
+  materialization even when the lowered HOF body shape is similar. Rust range
+  expressions emit half-open or inclusive range source facts, and Rust
+  tuple-struct single-wildcard patterns such as `Some(_)` emit pattern source
+  facts. These facts are syntax provenance only: the full-index range rewrite
+  also needs an admitted `len` contract, and Option pattern predicates also need
+  admitted `Some`/`None` API occurrence evidence and receiver-domain proof;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
 - selected top-level Ruby literal `require "module"` calls that occur before a
@@ -418,9 +423,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `collections.deque(...)` through imported binding/namespace proof; Python
   `math.prod(...)` through imported namespace proof; Rust
   `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
-  are proven, `Vec::new()`, `Some(...)`, `Some(_)` pattern selectors, bare
-  `None`, and selected `std::collections::*::from(...)` factory paths when
-  their root-shadow policy is proven; JS/TS/Java `length` property reads whose
+  are proven, `Vec::new()`, `Some(...)`, selected `Some(_)` pattern selectors,
+  bare `None`, and selected `std::collections::*::from(...)` factory paths when
+  their root-shadow policy is proven. The selector occurrence does not by itself
+  prove the pattern semantics: `Some(_)` value-graph presence predicates also
+  require the Rust tuple-struct wildcard `Source::Pattern` fact. JS/TS/Java
+  `length` property reads whose
   receiver proof is satisfied; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
   plus unshadowed `require` and `Set` proof; Java `java.util` static

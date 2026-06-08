@@ -11,8 +11,8 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
-    SourceProtocolKind, Span, Symbol, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCallKind,
+    SourceFactKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind, Span, Symbol, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -545,6 +545,12 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             let s = start.unwrap_or_else(|| none(lo));
             let e = end.unwrap_or_else(|| none(lo));
             let flag = lo.int_lit(if inclusive { "1" } else { "0" }, span);
+            let range = if inclusive {
+                SourceRangeKind::RustInclusiveRangeExpression
+            } else {
+                SourceRangeKind::RustHalfOpenRangeExpression
+            };
+            lo.record_source_fact(span, SourceFactKind::Range(range));
             lo.add(NodeKind::Seq, Payload::None, span, &[s, e, flag])
         }
         "call_expression" => lower_call(lo, node),
@@ -748,10 +754,7 @@ fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
     if macro_name.is_some_and(|name| name.trim_end_matches('!') == "panic") {
         return lo.add(NodeKind::Throw, Payload::None, span, &args);
     }
-    lo.record_source_fact(
-        span,
-        nose_il::SourceFactKind::Call(nose_il::SourceCallKind::MacroInvocation),
-    );
+    lo.record_source_fact(span, SourceFactKind::Call(SourceCallKind::MacroInvocation));
     let callee = lo.add(
         NodeKind::Var,
         name.map(Payload::Name).unwrap_or(Payload::None),
@@ -1088,6 +1091,12 @@ fn lower_match_pattern_condition(
     if pattern.kind() == "range_pattern" {
         return lower_range_pattern_condition(lo, scrutinee, pattern, span);
     }
+    if rust_tuple_struct_wildcard_pattern(lo, pattern) {
+        lo.record_source_fact(
+            lo.span(pattern),
+            SourceFactKind::Pattern(SourcePatternKind::RustTupleStructSingleWildcardPattern),
+        );
+    }
     let pat = lower_expr(lo, pattern);
     Some(lo.add(
         NodeKind::BinOp,
@@ -1122,6 +1131,24 @@ fn lower_range_bounds(lo: &mut Lowering, node: TsNode) -> (Option<NodeId>, Optio
         }
     }
     (start, end, inclusive)
+}
+
+fn rust_tuple_struct_wildcard_pattern(lo: &Lowering, pattern: TsNode) -> bool {
+    if pattern.kind() != "tuple_struct_pattern" {
+        return false;
+    }
+    let text = lo.text(pattern).trim();
+    let Some(open) = text.find('(') else {
+        return false;
+    };
+    let Some(close) = text.rfind(')') else {
+        return false;
+    };
+    if close <= open {
+        return false;
+    }
+    let args = text[open + 1..close].trim().trim_end_matches(',').trim();
+    args == "_"
 }
 
 fn lower_range_pattern_condition(
@@ -1292,6 +1319,32 @@ mod tests {
             .collect()
     }
 
+    fn source_range_count(il: &Il, kind: SourceRangeKind) -> usize {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    nose_il::EvidenceKind::Source(SourceFactKind::Range(actual))
+                        if actual == kind
+                )
+            })
+            .count()
+    }
+
+    fn source_pattern_count(il: &Il, kind: SourcePatternKind) -> usize {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    nose_il::EvidenceKind::Source(SourceFactKind::Pattern(actual))
+                        if actual == kind
+                )
+            })
+            .count()
+    }
+
     #[test]
     fn match_cases_compare_scrutinee_to_literal_patterns() {
         let src = "fn f(x: i32) -> i32 { match x { 7 => 1, 8 => 2, _ => 3 } }";
@@ -1367,6 +1420,54 @@ mod tests {
             node.kind == NodeKind::Var
                 && matches!(node.payload, Payload::Name(sym) if shadowed_interner.resolve(sym) == "None")
         }));
+    }
+
+    #[test]
+    fn range_expressions_emit_distinct_source_range_evidence() {
+        let (_, half_open) = lower_rust("fn f(n: usize) { for i in 0..n { let _ = i; } }");
+        assert_eq!(
+            source_range_count(&half_open, SourceRangeKind::RustHalfOpenRangeExpression),
+            1
+        );
+        assert_eq!(
+            source_range_count(&half_open, SourceRangeKind::RustInclusiveRangeExpression),
+            0
+        );
+
+        let (_, inclusive) = lower_rust("fn f(n: usize) { for i in 0..=n { let _ = i; } }");
+        assert_eq!(
+            source_range_count(&inclusive, SourceRangeKind::RustInclusiveRangeExpression),
+            1
+        );
+        assert_eq!(
+            source_range_count(&inclusive, SourceRangeKind::RustHalfOpenRangeExpression),
+            0
+        );
+    }
+
+    #[test]
+    fn tuple_struct_single_wildcard_pattern_emits_source_pattern_evidence() {
+        let (_, wildcard) = lower_rust(
+            "pub fn f(value: Option<i32>) -> bool { if let Some(_) = value { true } else { false } }",
+        );
+        assert_eq!(
+            source_pattern_count(
+                &wildcard,
+                SourcePatternKind::RustTupleStructSingleWildcardPattern
+            ),
+            1
+        );
+
+        let (_, binding) = lower_rust(
+            "pub fn f(value: Option<i32>) -> bool { if let Some(x) = value { x > 0 } else { false } }",
+        );
+        assert_eq!(
+            source_pattern_count(
+                &binding,
+                SourcePatternKind::RustTupleStructSingleWildcardPattern
+            ),
+            0
+        );
     }
 
     #[test]

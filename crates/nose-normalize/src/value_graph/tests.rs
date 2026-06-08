@@ -18,6 +18,9 @@ use nose_semantics::{
     library_static_index_membership_contract, LibraryApiContractId, FIRST_PARTY_PACK_ID,
 };
 
+mod clamp;
+mod source_evidence;
+
 fn sp(line: u32) -> Span {
     Span::new(FileId(0), line, line, line, line)
 }
@@ -140,106 +143,6 @@ fn const_bool_lambda(builder: &mut IlBuilder, param_cid: u32, value: bool, span:
     builder.add(NodeKind::Lambda, Payload::None, span, &[param, block])
 }
 
-fn pure_inline_caller_il(interner: &Interner, with_target_evidence: bool) -> (Il, NodeId) {
-    let helper_name = interner.intern("base");
-    let caller_name = interner.intern("price");
-    let mut b = IlBuilder::new(FileId(0));
-
-    let helper_param = b.add(NodeKind::Param, Payload::Cid(0), sp(1), &[]);
-    let helper_arg = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
-    let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(3), &[]);
-    let add = b.add(
-        NodeKind::BinOp,
-        Payload::Op(Op::Add),
-        sp(4),
-        &[helper_arg, one],
-    );
-    let helper_ret = b.add(NodeKind::Return, Payload::None, sp(5), &[add]);
-    let helper_body = b.add(NodeKind::Block, Payload::None, sp(6), &[helper_ret]);
-    let helper = b.add(
-        NodeKind::Func,
-        Payload::None,
-        sp(7),
-        &[helper_param, helper_body],
-    );
-
-    let caller_param = b.add(NodeKind::Param, Payload::Cid(0), sp(10), &[]);
-    let callee = b.add(NodeKind::Var, Payload::Name(helper_name), sp(11), &[]);
-    let caller_arg = b.add(NodeKind::Var, Payload::Cid(0), sp(12), &[]);
-    let call = b.add(NodeKind::Call, Payload::None, sp(13), &[callee, caller_arg]);
-    let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(14), &[]);
-    let mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp(15), &[call, two]);
-    let caller_ret = b.add(NodeKind::Return, Payload::None, sp(16), &[mul]);
-    let caller_body = b.add(NodeKind::Block, Payload::None, sp(17), &[caller_ret]);
-    let caller = b.add(
-        NodeKind::Func,
-        Payload::None,
-        sp(18),
-        &[caller_param, caller_body],
-    );
-    let module = b.add(NodeKind::Module, Payload::None, sp(19), &[helper, caller]);
-    let mut il = b.finish(
-        module,
-        FileMeta {
-            path: "t".into(),
-            lang: Lang::Python,
-        },
-        vec![
-            Unit {
-                root: helper,
-                kind: UnitKind::Function,
-                name: Some(helper_name),
-            },
-            Unit {
-                root: caller,
-                kind: UnitKind::Function,
-                name: Some(caller_name),
-            },
-        ],
-        Vec::new(),
-    );
-    if with_target_evidence {
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
-            EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
-                target_span: il.node(helper).span,
-                name_hash: interner.symbol_hash(helper_name),
-            }),
-        ));
-    }
-    (il, caller)
-}
-
-fn pure_inline_direct_il(interner: &Interner) -> (Il, NodeId) {
-    let caller_name = interner.intern("price");
-    let mut b = IlBuilder::new(FileId(0));
-    let param = b.add(NodeKind::Param, Payload::Cid(0), sp(20), &[]);
-    let arg = b.add(NodeKind::Var, Payload::Cid(0), sp(21), &[]);
-    let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(22), &[]);
-    let add = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp(23), &[arg, one]);
-    let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(24), &[]);
-    let mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp(25), &[add, two]);
-    let ret = b.add(NodeKind::Return, Payload::None, sp(26), &[mul]);
-    let body = b.add(NodeKind::Block, Payload::None, sp(27), &[ret]);
-    let caller = b.add(NodeKind::Func, Payload::None, sp(28), &[param, body]);
-    let module = b.add(NodeKind::Module, Payload::None, sp(29), &[caller]);
-    let il = b.finish(
-        module,
-        FileMeta {
-            path: "t".into(),
-            lang: Lang::Python,
-        },
-        vec![Unit {
-            root: caller,
-            kind: UnitKind::Function,
-            name: Some(caller_name),
-        }],
-        Vec::new(),
-    );
-    (il, caller)
-}
-
 fn push_source_comprehension(il: &mut Il, id: u32, span: Span, kind: SourceComprehensionKind) {
     il.evidence.push(evidence(
         id,
@@ -256,264 +159,20 @@ fn push_source_cast(il: &mut Il, id: u32, span: Span, kind: SourceCastKind) {
     ));
 }
 
-#[test]
-fn pure_inline_consumes_call_target_evidence_not_raw_callee_name() {
-    let interner = Interner::new();
-    let (direct_il, direct_root) = pure_inline_direct_il(&interner);
-    let direct = value_fingerprint(&direct_il, direct_root, &interner);
-
-    let (raw_call_il, raw_call_root) = pure_inline_caller_il(&interner, false);
-    assert_ne!(
-        direct,
-        value_fingerprint(&raw_call_il, raw_call_root, &interner),
-        "a raw callee spelling must not prove a pure inline target"
-    );
-
-    let (proven_call_il, proven_call_root) = pure_inline_caller_il(&interner, true);
-    assert_eq!(
-        direct,
-        value_fingerprint(&proven_call_il, proven_call_root, &interner),
-        "explicit CallTarget evidence should admit pure helper beta-substitution"
-    );
-}
-
-#[test]
-fn c_unsigned_cast32_value_graph_requires_source_cast_evidence() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let base = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp(2), &[]);
-    let index = b.add(NodeKind::Index, Payload::None, sp(2), &[base, zero]);
-    let cast = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::UnsignedCast32),
-        sp(3),
-        &[index],
-    );
-    let mut il = finish_test_il(b, cast, Lang::C);
-
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(cast, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
-        "raw UnsignedCast32 payload must not prove a C unsigned cast"
-    );
-
-    push_source_cast(&mut il, 0, sp(3), SourceCastKind::CUnsigned32);
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(cast, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Call(tag) if tag == builtin_tag(Builtin::UnsignedCast32)),
-        "source-proven C unsigned 32-bit casts should retain the byte-pack cast value"
-    );
-}
-
-#[test]
-fn raw_library_builtin_payloads_do_not_fold_without_admission() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let arg = b.add(NodeKind::Lit, Payload::LitInt(-7), sp(1), &[]);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Abs),
-        sp(2),
-        &[arg],
-    );
-    let mut il = finish_test_il(b, call, Lang::Python);
-
-    let mut builder = Builder::new(&il, &interner);
-    let raw = builder.eval(call, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[raw as usize].op, ValOp::Opaque(_)),
-        "raw canonical Abs payload must not imply Python abs semantics"
-    );
-
-    let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
-        .expect("Python abs contract");
-    il.evidence.push(library_api_contract_evidence(
-        0,
-        il.node(call).span,
-        contract.id,
-        contract.callee,
-        1,
-        Vec::new(),
+fn push_source_range(il: &mut Il, id: u32, span: Span, kind: SourceRangeKind) {
+    il.evidence.push(evidence(
+        id,
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Source(SourceFactKind::Range(kind)),
     ));
-    let mut builder = Builder::new(&il, &interner);
-    let admitted = builder.eval(call, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[admitted as usize].op, ValOp::Un(code) if code == ABS_CODE),
-        "admitted Python abs payload should fold to the canonical absolute value"
-    );
 }
 
-#[test]
-fn raw_contains_payload_does_not_prove_membership() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let item = b.add(NodeKind::Var, Payload::Cid(0), sp(1), &[]);
-    let collection = b.add(NodeKind::Var, Payload::Cid(1), sp(2), &[]);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Contains),
-        sp(3),
-        &[item, collection],
-    );
-    let py_il = finish_test_il(b, call, Lang::Python);
-
-    let mut builder = Builder::new(&py_il, &interner);
-    let raw = builder.eval(call, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[raw as usize].op, ValOp::Opaque(_)),
-        "raw Contains payload must not become a membership predicate"
-    );
-
-    let mut b = IlBuilder::new(FileId(0));
-    let item = b.add(NodeKind::Var, Payload::Cid(0), sp(1), &[]);
-    let collection = b.add(NodeKind::Var, Payload::Cid(1), sp(2), &[]);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Contains),
-        sp(3),
-        &[item, collection],
-    );
-    let go_il = finish_test_il(b, call, Lang::Go);
-    let mut builder = Builder::new(&go_il, &interner);
-    let admitted = builder.eval(call, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[admitted as usize].op, ValOp::Bin(op) if op == Op::In as u32),
-        "Go map lookup-ok lowering remains a language-core membership predicate"
-    );
-}
-
-#[test]
-fn raw_hof_value_graph_requires_source_or_api_admission() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let lambda = identity_lambda(&mut b, 2, sp(2));
-    let hof = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Map),
-        sp(3),
-        &[coll, lambda],
-    );
-    let mut il = finish_test_il(b, hof, Lang::Python);
-
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(hof, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
-        "raw HOF payloads must stay opaque without source or API proof"
-    );
-
-    push_source_comprehension(
-        &mut il,
-        0,
-        sp(3),
-        SourceComprehensionKind::PythonListComprehension,
-    );
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(hof, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Hof(k) if k == HoFKind::Map as u32),
-        "a source-proven Python list comprehension should still enter HOF value semantics"
-    );
-
-    let mut set_il = il.clone();
-    set_il.evidence.clear();
-    push_source_comprehension(
-        &mut set_il,
-        0,
-        sp(3),
-        SourceComprehensionKind::PythonSetComprehension,
-    );
-    let mut builder = Builder::new(&set_il, &interner);
-    let value = builder.eval(hof, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
-        "set comprehension proof must not reuse list-like HOF value semantics"
-    );
-}
-
-#[test]
-fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let pred = const_bool_lambda(&mut b, 2, true, sp(2));
-    let filter = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Filter),
-        sp(3),
-        &[coll, pred],
-    );
-    let mapper = identity_lambda(&mut b, 3, sp(4));
-    let map = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Map),
-        sp(5),
-        &[filter, mapper],
-    );
-    let mut il = finish_test_il(b, map, Lang::Python);
-    push_source_comprehension(
-        &mut il,
-        0,
-        sp(5),
-        SourceComprehensionKind::PythonListComprehension,
-    );
-
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(filter, &FxHashMap::default());
-    assert!(
-        matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
-        "an internal filter HOF remains closed when evaluated as its own unproven surface"
-    );
-
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(map, &FxHashMap::default());
-    let node = &builder.nodes[value as usize];
-    assert!(
-        matches!(node.op, ValOp::Hof(k) if k == HoFKind::Map as u32) && node.args.len() == 2,
-        "a proven Python comprehension should admit its internal filter and carry the predicate"
-    );
-}
-
-#[test]
-fn len_of_raw_filter_hof_requires_filter_admission() {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
-    let pred = const_bool_lambda(&mut b, 2, true, sp(2));
-    let filter = b.add(
-        NodeKind::HoF,
-        Payload::HoF(HoFKind::Filter),
-        sp(3),
-        &[coll, pred],
-    );
-    let len = b.add(
-        NodeKind::Call,
-        Payload::Builtin(Builtin::Len),
-        sp(4),
-        &[filter],
-    );
-    let mut il = finish_test_il(b, len, Lang::Python);
-    let contract =
-        library_free_function_builtin_contract(Lang::Python, "len", 1).expect("len contract");
-    il.evidence.push(library_api_contract_evidence(
-        0,
-        il.node(len).span,
-        contract.id,
-        contract.callee,
-        1,
-        Vec::new(),
+fn push_source_pattern(il: &mut Il, id: u32, span: Span, kind: SourcePatternKind) {
+    il.evidence.push(evidence(
+        id,
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Source(SourceFactKind::Pattern(kind)),
     ));
-
-    let mut builder = Builder::new(&il, &interner);
-    let value = builder.eval(len, &FxHashMap::default());
-    assert!(
-        !matches!(builder.nodes[value as usize].op, ValOp::Reduce(op) if op == Op::Add as u32),
-        "admitted len must not turn an unadmitted raw filter HOF into a predicate count"
-    );
 }
 
 #[test]
@@ -1239,7 +898,7 @@ fn scalar_integer_method_value_graph_requires_library_api_evidence() {
 }
 
 #[test]
-fn rust_some_wildcard_pattern_value_graph_requires_library_api_evidence() {
+fn rust_some_wildcard_pattern_value_graph_requires_library_api_and_source_pattern_evidence() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let value = b.add(NodeKind::Var, Payload::Cid(0), sp(167), &[]);
@@ -1296,6 +955,19 @@ fn rust_some_wildcard_pattern_value_graph_requires_library_api_evidence() {
         vec![EvidenceId(1)],
     ));
 
+    let mut builder = Builder::new(&il, &interner);
+    let api_only = builder.eval(cond, &FxHashMap::default());
+    assert!(
+        !matches!(builder.nodes[api_only as usize].op, ValOp::Bin(op) if op == Op::Ne as u32),
+        "admitted Some API proof without Rust wildcard pattern source proof must stay closed"
+    );
+
+    push_source_pattern(
+        &mut il,
+        3,
+        sp(170),
+        SourcePatternKind::RustTupleStructSingleWildcardPattern,
+    );
     let mut builder = Builder::new(&il, &interner);
     let proven = builder.eval(cond, &FxHashMap::default());
     let node = &builder.nodes[proven as usize];
@@ -1378,199 +1050,6 @@ fn rust_option_none_pattern_value_graph_requires_library_api_evidence() {
             .any(|&arg| matches!(builder.nodes[arg as usize].op, ValOp::Const(k) if k == LitClass::Null as u32)),
         "admitted Rust None occurrence should evaluate as the null sentinel"
     );
-}
-
-#[derive(Clone, Copy)]
-enum ClampShape {
-    MinMax,
-    SwappedBounds,
-    WrongNesting,
-}
-
-#[derive(Clone, Copy)]
-enum GuardShape {
-    None,
-    Exiting,
-    NonExiting,
-}
-
-fn param(b: &mut IlBuilder, cid: u32, line: u32) -> NodeId {
-    b.add(NodeKind::Param, Payload::Cid(cid), sp(line), &[])
-}
-
-fn var(b: &mut IlBuilder, cid: u32) -> NodeId {
-    b.add(NodeKind::Var, Payload::Cid(cid), sp(10 + cid), &[])
-}
-
-fn int_lit(b: &mut IlBuilder, value: i64) -> NodeId {
-    b.add(NodeKind::Lit, Payload::LitInt(value), sp(20), &[])
-}
-
-fn builtin(b: &mut IlBuilder, op: Builtin, args: &[NodeId]) -> NodeId {
-    b.add(
-        NodeKind::Call,
-        Payload::Builtin(op),
-        sp(30 + b.len() as u32),
-        args,
-    )
-}
-
-fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
-    let mut next_id = first_id;
-    for idx in 0..il.nodes.len() {
-        let node = NodeId(idx as u32);
-        let (Payload::Builtin(builtin), arg_count) =
-            (il.node(node).payload, il.children(node).len())
-        else {
-            continue;
-        };
-        let method = match builtin {
-            Builtin::Min => "min",
-            Builtin::Max => "max",
-            _ => continue,
-        };
-        let contract = library_method_call_contract(il.meta.lang, method, arg_count)
-            .expect("min/max contract");
-        il.evidence.push(library_api_contract_evidence(
-            next_id,
-            il.node(node).span,
-            contract.id,
-            contract.callee,
-            arg_count as u16,
-            Vec::new(),
-        ));
-        next_id += 1;
-    }
-}
-
-fn clamp_expr(b: &mut IlBuilder, shape: ClampShape, x: NodeId, lo: NodeId, hi: NodeId) -> NodeId {
-    match shape {
-        ClampShape::MinMax => {
-            let inner = builtin(b, Builtin::Max, &[x, lo]);
-            builtin(b, Builtin::Min, &[inner, hi])
-        }
-        ClampShape::SwappedBounds => {
-            let inner = builtin(b, Builtin::Max, &[x, hi]);
-            builtin(b, Builtin::Min, &[inner, lo])
-        }
-        ClampShape::WrongNesting => {
-            let inner = builtin(b, Builtin::Min, &[x, lo]);
-            builtin(b, Builtin::Max, &[inner, hi])
-        }
-    }
-}
-
-fn guarded_function(
-    guard: GuardShape,
-    shape: ClampShape,
-    semantics: [Option<ParamSemantic>; 3],
-) -> (usize, usize) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let px = param(&mut b, 0, 1);
-    let plo = param(&mut b, 1, 2);
-    let phi = param(&mut b, 2, 3);
-    let mut stmts = Vec::new();
-    if !matches!(guard, GuardShape::None) {
-        let hi_guard = var(&mut b, 2);
-        let lo_guard = var(&mut b, 1);
-        let cond = b.add(
-            NodeKind::BinOp,
-            Payload::Op(Op::Lt),
-            sp(4),
-            &[hi_guard, lo_guard],
-        );
-        let then_stmt = match guard {
-            GuardShape::Exiting => {
-                let err = int_lit(&mut b, 0);
-                b.add(NodeKind::Throw, Payload::None, sp(5), &[err])
-            }
-            GuardShape::NonExiting => {
-                let err = int_lit(&mut b, 0);
-                b.add(NodeKind::ExprStmt, Payload::None, sp(5), &[err])
-            }
-            GuardShape::None => unreachable!(),
-        };
-        let then_block = b.add(NodeKind::Block, Payload::None, sp(5), &[then_stmt]);
-        stmts.push(b.add(NodeKind::If, Payload::None, sp(4), &[cond, then_block]));
-    }
-    let x = var(&mut b, 0);
-    let lo = var(&mut b, 1);
-    let hi = var(&mut b, 2);
-    let expr = clamp_expr(&mut b, shape, x, lo, hi);
-    let ret = b.add(NodeKind::Return, Payload::None, sp(6), &[expr]);
-    stmts.push(ret);
-    let body = b.add(NodeKind::Block, Payload::None, sp(4), &stmts);
-    let func = b.add(NodeKind::Func, Payload::None, sp(1), &[px, plo, phi, body]);
-    let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
-    let mut il = b.finish(
-        module,
-        FileMeta {
-            path: "t.java".to_string(),
-            lang: Lang::Java,
-        },
-        vec![Unit {
-            root: func,
-            kind: UnitKind::Function,
-            name: None,
-        }],
-        Vec::new(),
-    );
-    for (idx, semantic) in semantics.into_iter().enumerate() {
-        if let Some(semantic) = semantic {
-            il.evidence.push(evidence(
-                idx as u32,
-                EvidenceAnchor::param(sp(idx as u32 + 1)),
-                EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
-            ));
-        }
-    }
-    push_canonical_java_minmax_builtin_evidence(&mut il, 100);
-    let mut builder = Builder::new(&il, &interner);
-    builder.build_unit(func);
-    (
-        builder.clamp_candidate_count,
-        builder.clamp_proof_backed_candidate_count,
-    )
-}
-
-fn literal_bound_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (usize, usize) {
-    let interner = Interner::new();
-    let mut b = IlBuilder::new(FileId(0));
-    let px = param(&mut b, 0, 1);
-    let x = var(&mut b, 0);
-    let lo = int_lit(&mut b, lo_value);
-    let hi = int_lit(&mut b, hi_value);
-    let expr = clamp_expr(&mut b, shape, x, lo, hi);
-    let ret = b.add(NodeKind::Return, Payload::None, sp(1), &[expr]);
-    let body = b.add(NodeKind::Block, Payload::None, sp(1), &[ret]);
-    let func = b.add(NodeKind::Func, Payload::None, sp(1), &[px, body]);
-    let module = b.add(NodeKind::Module, Payload::None, sp(1), &[func]);
-    let mut il = b.finish(
-        module,
-        FileMeta {
-            path: "t.java".to_string(),
-            lang: Lang::Java,
-        },
-        vec![Unit {
-            root: func,
-            kind: UnitKind::Function,
-            name: None,
-        }],
-        Vec::new(),
-    );
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::param(sp(1)),
-        EvidenceKind::Domain(DomainEvidence::Integer),
-    ));
-    push_canonical_java_minmax_builtin_evidence(&mut il, 100);
-    let mut builder = Builder::new(&il, &interner);
-    builder.build_unit(func);
-    (
-        builder.clamp_candidate_count,
-        builder.clamp_proof_backed_candidate_count,
-    )
 }
 
 #[test]
@@ -2610,46 +2089,4 @@ fn js_constructor_value_graph_requires_library_api_evidence() {
         builder.nodes[admitted as usize].op,
         ValOp::Seq(SEQ_VALUE_COLLECTION)
     ));
-}
-
-#[test]
-fn clamp_literal_bound_order_is_proof_backed_only_when_ordered() {
-    assert_eq!(literal_bound_function(ClampShape::MinMax, 1, 10), (1, 1));
-    assert_eq!(literal_bound_function(ClampShape::MinMax, 10, 1), (1, 0));
-}
-
-#[test]
-fn clamp_guarded_bound_order_requires_exiting_inverse_guard() {
-    let integer = Some(ParamSemantic::Integer);
-    assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::MinMax, [integer; 3]),
-        (1, 1)
-    );
-    assert_eq!(
-        guarded_function(GuardShape::NonExiting, ClampShape::MinMax, [integer; 3]),
-        (1, 0)
-    );
-    assert_eq!(
-        guarded_function(GuardShape::None, ClampShape::MinMax, [integer; 3]),
-        (1, 0)
-    );
-}
-
-#[test]
-fn clamp_proof_rejects_floatish_number_and_wrong_shapes() {
-    let integer = Some(ParamSemantic::Integer);
-    let number = Some(ParamSemantic::Number);
-    assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::MinMax, [number; 3]),
-        (1, 0),
-        "float-sensitive Number params need a separate NaN/domain proof"
-    );
-    assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::SwappedBounds, [integer; 3]),
-        (1, 0)
-    );
-    assert_eq!(
-        guarded_function(GuardShape::Exiting, ClampShape::WrongNesting, [integer; 3]),
-        (1, 0)
-    );
 }

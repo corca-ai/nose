@@ -481,6 +481,12 @@ and pack ecosystem.
   receiver-method occurrences, and value-graph/desugar/idiom consumers fail
   closed when those occurrence records are missing, rejected, or
   dependency-broken.
+- Rust range and Option-pattern recognition moved off raw IL shapes. Rust
+  half-open/inclusive range expressions and tuple-struct single-wildcard
+  patterns are now `Source` evidence. The `0..len(collection)` full-index range
+  path requires the half-open source fact plus admitted `len` semantics, and
+  `Some(_)` presence predicates require both the admitted `Some` selector
+  occurrence and Rust wildcard-pattern source proof.
 - Builder and mutation safety moved further onto the evidence substrate.
   First-party producers now emit exact append/index/self-field effect evidence
   separately from conservative binding-write, receiver-mutation, and
@@ -566,7 +572,9 @@ and pack ecosystem.
 - Large semantic test modules were split out of the production implementation
   files while continuing this migration. `nose-semantics/src/lib.rs` and
   `nose-normalize/src/value_graph.rs` are both back under 10k lines, with their
-  moved tests kept adjacent as Rust test modules.
+  moved tests kept adjacent as Rust test modules. The follow-up range/pattern
+  slice also split source-fact and value-graph proof/admission tests into
+  focused adjacent modules so raw-shape regression cases are easier to audit.
 - The detect strict exact safety gate was split from unit extraction into
   `crates/nose-detect/src/strict_exact.rs`, reducing `units.rs` to extraction,
   fragment classification, and feature orchestration while keeping proof-policy

@@ -120,10 +120,15 @@ impl<'a> Builder<'a> {
                 2 if matches!(self.il.node(kids[0]).payload, Payload::LitInt(0)) => kids[1],
                 _ => return None,
             }
-        } else if self.il.kind(node) == NodeKind::Seq {
+        } else if self.il.kind(node) == NodeKind::Seq
+            && source_range_at_node(self.il, node)
+                == Some(SourceRangeKind::RustHalfOpenRangeExpression)
+        {
             let kids = self.il.children(node);
             match kids {
                 // Rust `0..len(C)` lowers as `Seq(0, Len(C), inclusive=0)`.
+                // The source range fact proves this is a Rust half-open range expression;
+                // raw `Seq(0, Len(C), 0)` shape alone is not an iteration contract.
                 [start, stop, inclusive]
                     if matches!(self.il.node(*start).payload, Payload::LitInt(0))
                         && matches!(self.il.node(*inclusive).payload, Payload::LitInt(0)) =>
@@ -1635,6 +1640,11 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn rust_option_some_wildcard_pattern(&self, node: NodeId) -> Option<NodeId> {
+        if source_pattern_at_node(self.il, node)
+            != Some(SourcePatternKind::RustTupleStructSingleWildcardPattern)
+        {
+            return None;
+        }
         let (NodeKind::Raw, Payload::Name(tag)) = (self.il.kind(node), self.il.node(node).payload)
         else {
             return None;
