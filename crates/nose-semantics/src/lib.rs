@@ -11,8 +11,8 @@ use nose_il::{
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
     HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
     NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceLiteralKind, SourceOperatorKind, SourceProtocolKind, Span, Symbol,
-    SymbolEvidenceKind,
+    SourceComprehensionKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
+    SourceProtocolKind, Span, Symbol, SymbolEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 
@@ -125,6 +125,9 @@ pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool 
         SourceFactKind::Call(call) => source_call_at_node(il, node) == Some(call),
         SourceFactKind::Protocol(protocol) => source_protocol_at_node(il, node) == Some(protocol),
         SourceFactKind::Literal(literal) => source_literal_at_node(il, node) == Some(literal),
+        SourceFactKind::Comprehension(comprehension) => {
+            source_comprehension_at_node(il, node) == Some(comprehension)
+        }
     }
 }
 
@@ -170,6 +173,24 @@ pub fn source_literal_at_node(il: &Il, node: NodeId) -> Option<SourceLiteralKind
         EvidenceResolution::Found(literal) => Some(literal),
         EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
+}
+
+pub fn source_comprehension_at_node(il: &Il, node: NodeId) -> Option<SourceComprehensionKind> {
+    let span = il.node(node).span;
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Comprehension(comprehension)) => Some(comprehension),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(comprehension) => Some(comprehension),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn admitted_hof_api_at_node(il: &Il, node: NodeId, kind: HoFKind) -> bool {
+    if il.kind(node) != NodeKind::HoF || il.node(node).payload != Payload::HoF(kind) {
+        return false;
+    }
+    library_api_dependency_id_for_normalized_hof(il, node).is_some()
 }
 
 pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {

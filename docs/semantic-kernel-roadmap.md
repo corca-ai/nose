@@ -439,6 +439,18 @@ and pack ecosystem.
   error-propagation convergence paths, plus generator/body erasure, until
   language/runtime-specific protocol contracts can prove receiver, demand,
   scheduling, suspension, exception, and effect obligations.
+- Go concurrency/channel surfaces now preserve source-backed protocol
+  boundaries. `go`, `defer`, channel send, channel receive, receive-status
+  projection, `select`, and select cases/defaults no longer erase to ordinary
+  calls, operands, or ad hoc sequence tags. Exact/value consumers stay closed
+  until channel/goroutine/defer/select contracts can prove scheduling, blocking,
+  close/zero-value, case-selection, demand, and effect obligations.
+- Python comprehension lowering now emits source facts for list/set/dict
+  comprehensions and generator expressions. Exact HOF admission consumes those
+  facts: list/dict materialized surfaces preserve existing positive recall where
+  modeled, returned generator/set surfaces stay closed, `len(generator)` and
+  set-comprehension cardinality stay closed, and supported terminal reductions
+  reopen generator/list streams only under immediate consumer demand.
 - The protocol/API occurrence closure slice extended `LibraryApi` beyond
   call-only APIs. JS/TS/Java `length` property reads now require a
   `PropertyBuiltin` occurrence anchored to the `Field` node, JS-like `length()`
@@ -513,9 +525,10 @@ Remaining in this phase:
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is promise
-  receiver proof, explicit async/sync protocol convergence contracts, and
-  ecosystem APIs whose receiver/domain/demand obligations are not yet
-  expressible.
+  receiver proof, explicit async/sync and Go channel protocol convergence
+  contracts, richer Python/Ruby/Java/Rust iterator materialization/demand
+  contracts, and ecosystem APIs whose receiver/domain/demand obligations are not
+  yet expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -613,7 +626,10 @@ different APIs.
   per-element callback effects, async scheduling, yields, and stream emissions.
 - Refactor oracle and value graph to consume demand rules instead of local
   hard-coded evaluation behavior.
-- Add lazy iterator/generator hard negatives before enabling new exact laws.
+- Keep expanding lazy iterator/generator/channel hard negatives before enabling
+  new exact laws. The first Python generator/list/set and Go channel/goroutine
+  hard negatives are now in place, but the shared demand/effect abstraction is
+  still future work.
 
 ## Phase 6: ecosystem packs
 

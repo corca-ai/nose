@@ -427,6 +427,7 @@ pub enum SourceFactKind {
     Call(SourceCallKind),
     Protocol(SourceProtocolKind),
     Literal(SourceLiteralKind),
+    Comprehension(SourceComprehensionKind),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
@@ -452,6 +453,13 @@ pub enum SourceCallKind {
 pub enum SourceProtocolKind {
     Await,
     AsyncBlock,
+    ChannelReceive,
+    ChannelSelect,
+    ChannelSelectCase,
+    ChannelSelectDefault,
+    ChannelSend,
+    Defer,
+    GoRoutine,
     TryPropagation,
     Yield,
 }
@@ -459,6 +467,14 @@ pub enum SourceProtocolKind {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum SourceLiteralKind {
     Regex,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceComprehensionKind {
+    PythonDictComprehension,
+    PythonGeneratorExpression,
+    PythonListComprehension,
+    PythonSetComprehension,
 }
 
 /// Loop flavor; see [`NodeKind::Loop`] for the child layout each implies.

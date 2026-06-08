@@ -46,7 +46,7 @@ use crate::module_facts::{
 };
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    Payload, Span, Symbol, UnitKind,
+    Payload, SourceComprehensionKind, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
@@ -70,16 +70,17 @@ use nose_semantics::{
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_scalar_integer_method_contract, library_static_index_membership_contract,
     nullish_global_contract, own_property_guard_evidence_at_span, record_shape_guard_for_node,
-    reduction_builtin_contract, semantics, seq_surface_contract_for_node, source_operator_at_node,
-    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
-    ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
-    LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
-    ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
-    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    reduction_builtin_contract, semantics, seq_surface_contract_for_node,
+    source_comprehension_at_node, source_operator_at_node, unshadowed_global_symbol,
+    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
+    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
+    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -4303,6 +4304,11 @@ impl<'a> Builder<'a> {
                     | Payload::HoF(HoFKind::FilterMap)
             )
         {
+            if source_comprehension_at_node(self.il, expr)
+                == Some(SourceComprehensionKind::PythonGeneratorExpression)
+            {
+                return false;
+            }
             let kids = self.il.children(expr).to_vec();
             return kids
                 .first()
@@ -6348,6 +6354,12 @@ impl<'a> Builder<'a> {
                 }
             }
             ReductionBuiltinContract::Sum => {
+                if kids
+                    .first()
+                    .is_some_and(|&arg| !self.terminal_reduction_arg_admitted(arg))
+                {
+                    return None;
+                }
                 let av = self.eval(*kids.first()?, env);
                 // `sum(map)` → the mapped stream's per-element contribution; a filtered
                 // map/flat-map carries a predicate and becomes `pred ? contrib : 0`,
@@ -6400,6 +6412,9 @@ impl<'a> Builder<'a> {
                 Some(self.mk(ValOp::Reduce(op), args))
             }
             ReductionBuiltinContract::Selection { max } => {
+                if kids.len() == 1 && !self.terminal_reduction_arg_admitted(kids[0]) {
+                    return None;
+                }
                 let (reduce_code, choice_code) = if max {
                     (REDUCE_MAX, MAX_CODE)
                 } else {
@@ -6467,6 +6482,12 @@ impl<'a> Builder<'a> {
                         pred
                     }
                 } else {
+                    if kids
+                        .first()
+                        .is_some_and(|&arg| !self.terminal_reduction_arg_admitted(arg))
+                    {
+                        return None;
+                    }
                     let av = self.eval(*kids.first()?, env);
                     let (contrib, predicate) = self.collection_elem_with_pred(av);
                     if let Some(predicate) = predicate {
@@ -6491,12 +6512,45 @@ impl<'a> Builder<'a> {
     }
 
     fn eval_len_builtin(&mut self, arg: NodeId, env: &FxHashMap<u32, ValueId>) -> Option<ValueId> {
+        if !self.len_arg_admitted(arg) {
+            return None;
+        }
         if let Some(count) = self.eval_filter_count(arg, env) {
             return Some(count);
         }
 
         let av = self.eval(arg, env);
         self.eval_len_value(av)
+    }
+
+    fn len_arg_admitted(&self, arg: NodeId) -> bool {
+        if self.il.kind(arg) != NodeKind::HoF {
+            return true;
+        }
+        matches!(
+            source_comprehension_at_node(self.il, arg),
+            Some(SourceComprehensionKind::PythonListComprehension)
+        ) || self.admitted_hof_api_at_node(arg)
+    }
+
+    fn terminal_reduction_arg_admitted(&self, arg: NodeId) -> bool {
+        if self.il.kind(arg) != NodeKind::HoF {
+            return true;
+        }
+        matches!(
+            source_comprehension_at_node(self.il, arg),
+            Some(
+                SourceComprehensionKind::PythonGeneratorExpression
+                    | SourceComprehensionKind::PythonListComprehension
+            )
+        ) || self.admitted_hof_api_at_node(arg)
+    }
+
+    fn admitted_hof_api_at_node(&self, node: NodeId) -> bool {
+        match self.il.node(node).payload {
+            Payload::HoF(kind) => nose_semantics::admitted_hof_api_at_node(self.il, node, kind),
+            _ => false,
+        }
     }
 
     fn eval_len_value(&mut self, value: ValueId) -> Option<ValueId> {

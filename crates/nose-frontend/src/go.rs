@@ -1,13 +1,14 @@
 //! Go → raw IL lowering.
 //!
 //! Convergence-friendly lowering: `x++`/`x op= y` desugar to assignments; the
-//! several `for` forms map to the unified `Loop`; `*p`, `&x`, `<-ch` unary
-//! wrappers and `go`/`defer` are stripped to their operand; `switch` becomes an
+//! several `for` forms map to the unified `Loop`; Go concurrency/channel
+//! constructs stay as source-backed protocol boundaries; `switch` becomes an
 //! `if`/`else if` chain; `true`/`false`/`nil` identifiers become literals.
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
+    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceProtocolKind, Span,
 };
 use tree_sitter::Node as TsNode;
 
@@ -60,12 +61,19 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         "break_statement" => Some(lo.add(NodeKind::Break, Payload::None, span, &[])),
         "continue_statement" => Some(lo.add(NodeKind::Continue, Payload::None, span, &[])),
+        "receive_statement" => Some(lower_receive_statement(lo, node)),
         "send_statement" => Some(lower_send_statement(lo, node)),
-        // strip `go` / `defer` to the called expression
-        "go_statement" | "defer_statement" => node.named_child(0).map(|c| {
-            let e = lower_expr(lo, c);
-            lo.add(NodeKind::ExprStmt, Payload::None, span, &[e])
+        "go_statement" => node.named_child(0).map(|c| {
+            let call = lower_expr(lo, c);
+            let boundary = lo.protocol_boundary(span, SourceProtocolKind::GoRoutine, "go", &[call]);
+            lo.add(NodeKind::ExprStmt, Payload::None, span, &[boundary])
         }),
+        "defer_statement" => node.named_child(0).map(|c| {
+            let call = lower_expr(lo, c);
+            let boundary = lo.protocol_boundary(span, SourceProtocolKind::Defer, "defer", &[call]);
+            lo.add(NodeKind::ExprStmt, Payload::None, span, &[boundary])
+        }),
+        "select_statement" => Some(lower_select_statement(lo, node)),
         "labeled_statement" => {
             // lower the inner statement, ignore the label
             Lowering::named_children(node)
@@ -105,9 +113,74 @@ fn lower_send_statement(lo: &mut Lowering, node: TsNode) -> NodeId {
         .into_iter()
         .map(|child| lower_expr(lo, child))
         .collect();
-    let tag = lo.sym("send_statement");
-    let send = lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids);
+    let send = lo.protocol_boundary(span, SourceProtocolKind::ChannelSend, "channel_send", &kids);
     lo.add(NodeKind::ExprStmt, Payload::None, span, &[send])
+}
+
+fn lower_receive_statement(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let receive_node = Lowering::named_children(node)
+        .into_iter()
+        .find(|child| is_channel_receive_expr(lo, *child));
+    let receive = receive_node
+        .map(|receive| lower_channel_receive_expr(lo, receive))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let lefts = Lowering::named_children(node)
+        .into_iter()
+        .find(|child| child.kind() == "expression_list")
+        .map(expr_list_items)
+        .unwrap_or_default();
+    if let Some(lhs_node) = lefts.into_iter().find(|lhs| lo.text(*lhs) != "_") {
+        let lhs = lower_expr(lo, lhs_node);
+        lo.add(
+            NodeKind::Assign,
+            Payload::None,
+            lo.span(lhs_node),
+            &[lhs, receive],
+        )
+    } else {
+        lo.add(NodeKind::ExprStmt, Payload::None, span, &[receive])
+    }
+}
+
+fn lower_select_statement(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|child| lower_select_child(lo, child))
+        .collect();
+    lo.protocol_boundary(span, SourceProtocolKind::ChannelSelect, "select", &kids)
+}
+
+fn lower_select_child(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    match node.kind() {
+        "communication_case" => {
+            let kids: Vec<NodeId> = Lowering::named_children(node)
+                .into_iter()
+                .filter_map(|child| lower_stmt(lo, child))
+                .collect();
+            lo.protocol_boundary(
+                span,
+                SourceProtocolKind::ChannelSelectCase,
+                "select_case",
+                &kids,
+            )
+        }
+        "default_case" => {
+            let kids: Vec<NodeId> = Lowering::named_children(node)
+                .into_iter()
+                .filter_map(|child| lower_stmt(lo, child))
+                .collect();
+            lo.protocol_boundary(
+                span,
+                SourceProtocolKind::ChannelSelectDefault,
+                "select_default",
+                &kids,
+            )
+        }
+        _ => lower_stmt(lo, node).unwrap_or_else(|| lower_expr(lo, node)),
+    }
 }
 
 fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -247,6 +320,49 @@ fn lower_assign_like(lo: &mut Lowering, node: TsNode) -> NodeId {
                 };
             }
         }
+        if is_channel_receive_expr(lo, rights[0]) {
+            let mut assigns = Vec::new();
+            let receive_span = lo.span(rights[0]);
+            let channel = rights[0]
+                .child_by_field_name("operand")
+                .map(|operand| lower_expr(lo, operand))
+                .unwrap_or_else(|| lo.empty_block(receive_span));
+            if lo.text(lefts[0]) != "_" {
+                let lhs = lower_expr(lo, lefts[0]);
+                let value = lo.protocol_boundary(
+                    receive_span,
+                    SourceProtocolKind::ChannelReceive,
+                    "channel_receive",
+                    &[channel],
+                );
+                assigns.push(lo.add(
+                    NodeKind::Assign,
+                    Payload::None,
+                    lo.span(lefts[0]),
+                    &[lhs, value],
+                ));
+            }
+            if lo.text(lefts[1]) != "_" {
+                let ok_lhs = lower_expr(lo, lefts[1]);
+                let ok = lo.protocol_boundary(
+                    receive_span,
+                    SourceProtocolKind::ChannelReceive,
+                    "channel_receive_status",
+                    &[channel],
+                );
+                assigns.push(lo.add(
+                    NodeKind::Assign,
+                    Payload::None,
+                    lo.span(lefts[1]),
+                    &[ok_lhs, ok],
+                ));
+            }
+            return if assigns.len() == 1 {
+                assigns[0]
+            } else {
+                lo.add(NodeKind::Block, Payload::None, span, &assigns)
+            };
+        }
     }
 
     let mut assigns = Vec::new();
@@ -297,6 +413,27 @@ fn lower_map_lookup_ok(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         lo.span(node),
         &[key, map],
     ))
+}
+
+fn is_channel_receive_expr(lo: &Lowering, node: TsNode) -> bool {
+    node.kind() == "unary_expression"
+        && node
+            .child_by_field_name("operator")
+            .is_some_and(|op| lo.text(op) == "<-")
+}
+
+fn lower_channel_receive_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let arg = node
+        .child_by_field_name("operand")
+        .map(|a| lower_expr(lo, a))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.protocol_boundary(
+        span,
+        SourceProtocolKind::ChannelReceive,
+        "channel_receive",
+        &[arg],
+    )
 }
 
 fn expr_list_items(node: TsNode) -> Vec<TsNode> {
@@ -806,7 +943,10 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.add(NodeKind::UnOp, Payload::Op(op), span, &[arg])
         }
-        // `*p`, `&x`, `<-ch`: strip to operand.
+        "<-" => lower_channel_receive_expr(lo, node),
+        // `*p`, `&x`: strip to operand. Pointer/place semantics need a separate
+        // place-evidence slice; channel receive is preserved above because it has
+        // observable synchronization behavior.
         _ => operand
             .map(|a| lower_expr(lo, a))
             .unwrap_or_else(|| lo.empty_block(span)),
@@ -891,29 +1031,101 @@ mod tests {
     }
 
     #[test]
-    fn send_statement_lowers_without_raw() {
+    fn go_defer_and_channel_operations_preserve_source_backed_protocol_boundaries() {
         let interner = Interner::new();
         let il = lower(
             FileId(0),
             "t.go",
-            b"package main\nfunc f(ch chan int, x int) { ch <- x }\n",
+            b"package main\nfunc f(ch chan int, x int) int { go record(x); defer record(x); ch <- x; return <-ch }\n",
             &interner,
         )
         .expect("lower");
 
-        let raw: Vec<_> = il
-            .nodes
-            .iter()
-            .filter(|node| node.kind == NodeKind::Raw)
-            .filter_map(|node| match node.payload {
-                Payload::Name(sym) => Some(interner.resolve(sym)),
-                _ => None,
-            })
-            .collect();
-        assert!(raw.is_empty(), "send should lower without Raw: {raw:?}");
-        assert!(il.nodes.iter().any(|node| {
-            matches!(node.kind, NodeKind::Seq)
-                && matches!(node.payload, Payload::Name(sym) if interner.resolve(sym) == "send_statement")
-        }));
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "go",
+            SourceProtocolKind::GoRoutine,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "defer",
+            SourceProtocolKind::Defer,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "channel_send",
+            SourceProtocolKind::ChannelSend,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "channel_receive",
+            SourceProtocolKind::ChannelReceive,
+        );
+    }
+
+    #[test]
+    fn select_statement_preserves_source_backed_protocol_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.go",
+            b"package main\nfunc f(ch chan int) { select { case v := <-ch: _ = v; default: return } }\n",
+            &interner,
+        )
+        .expect("lower");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "select",
+            SourceProtocolKind::ChannelSelect,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "select_case",
+            SourceProtocolKind::ChannelSelectCase,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "select_default",
+            SourceProtocolKind::ChannelSelectDefault,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "channel_receive",
+            SourceProtocolKind::ChannelReceive,
+        );
+    }
+
+    #[test]
+    fn comma_ok_receive_preserves_value_and_status_protocol_boundaries() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.go",
+            b"package main\nfunc f(ch chan int) bool { v, ok := <-ch; _ = v; return ok }\n",
+            &interner,
+        )
+        .expect("lower");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "channel_receive",
+            SourceProtocolKind::ChannelReceive,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "channel_receive_status",
+            SourceProtocolKind::ChannelReceive,
+        );
     }
 }

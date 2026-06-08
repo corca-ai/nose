@@ -60,7 +60,7 @@ blocks lowering to their body instead of a `Raw` wrapper, or Rust
 literal/negative-literal/typed-integer/wildcard/range/tuple/slice/reference/OR/guarded
 `match` arms lowering to an if-chain, or Python
 literal/wildcard/capture/qualified/sequence/OR/as/guarded `match` cases lowering to an if-chain, or Go
-channel send statements lowering to a tagged effect shape, or Go multi-label `switch` cases lowering to
+channel operations lowering to source-backed protocol boundaries, or Go multi-label `switch` cases lowering to
 ORed scrutinee comparisons, or JS/TS stacked `switch` case labels sharing the following
 body, or C/Java `switch` labels lowering to real scrutinee comparisons instead of
 placeholder branches, or Java `switch` expression rules, including block `yield` bodies,

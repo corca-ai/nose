@@ -10,7 +10,7 @@
 use crate::lower::Lowering;
 use nose_il::{
     Builtin, FileId, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op,
-    Payload, SourceFactKind, SourceOperatorKind, Span, UnitKind,
+    Payload, SourceComprehensionKind, SourceFactKind, SourceOperatorKind, Span, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -975,6 +975,9 @@ fn comp_lambda(lo: &mut Lowering, pattern: Option<TsNode>, body: NodeId, bspan: 
 /// first-class flat-map nesting — see [`lower_multi_clause_comprehension`].
 fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
+    if let Some(kind) = python_comprehension_kind(node.kind()) {
+        lo.record_source_fact(span, SourceFactKind::Comprehension(kind));
+    }
     let body_node = node.named_child(0);
 
     let for_clauses = Lowering::named_children(node)
@@ -1022,6 +1025,16 @@ fn lower_comprehension(lo: &mut Lowering, node: TsNode) -> NodeId {
         span,
         &[collection, map_lam],
     )
+}
+
+fn python_comprehension_kind(kind: &str) -> Option<SourceComprehensionKind> {
+    Some(match kind {
+        "list_comprehension" => SourceComprehensionKind::PythonListComprehension,
+        "set_comprehension" => SourceComprehensionKind::PythonSetComprehension,
+        "dictionary_comprehension" => SourceComprehensionKind::PythonDictComprehension,
+        "generator_expression" => SourceComprehensionKind::PythonGeneratorExpression,
+        _ => return None,
+    })
 }
 
 /// Lower a comprehension with more than one `for` clause. `[body for a in A for
@@ -1176,7 +1189,8 @@ fn py_cmp_op(text: &str) -> Option<(Op, bool, Option<SourceOperatorKind>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::SourceProtocolKind;
+    use nose_il::{SourceComprehensionKind, SourceProtocolKind};
+    use nose_semantics::source_comprehension_at_node;
 
     #[test]
     fn literal_match_lowers_without_raw_case_nodes() {
@@ -1203,6 +1217,36 @@ mod tests {
             il.nodes.iter().any(|node| node.kind == NodeKind::If),
             "match should lower to an if-chain"
         );
+    }
+
+    #[test]
+    fn comprehension_surfaces_emit_source_evidence() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def a(xs):\n    return [x for x in xs]\ndef b(xs):\n    return {x for x in xs}\ndef c(xs):\n    return {x: x for x in xs}\ndef d(xs):\n    return (x for x in xs)\n",
+            &interner,
+        )
+        .expect("lower");
+
+        for kind in [
+            SourceComprehensionKind::PythonListComprehension,
+            SourceComprehensionKind::PythonSetComprehension,
+            SourceComprehensionKind::PythonDictComprehension,
+            SourceComprehensionKind::PythonGeneratorExpression,
+        ] {
+            let count = il
+                .nodes
+                .iter()
+                .enumerate()
+                .filter(|(_, node)| node.kind == NodeKind::HoF)
+                .filter(|(idx, _)| {
+                    source_comprehension_at_node(&il, NodeId(*idx as u32)) == Some(kind)
+                })
+                .count();
+            assert_eq!(count, 1, "{kind:?} should have one source-backed HoF");
+        }
     }
 
     #[test]

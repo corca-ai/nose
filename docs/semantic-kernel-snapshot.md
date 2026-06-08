@@ -18,7 +18,13 @@ boundaries with `Source::Protocol(Await)` evidence instead of being erased into
 their operand. JS/TS and Python `yield` expressions are preserved as generator
 protocol boundaries with `Source::Protocol(Yield)`. Rust `async {}` and `?` are
 likewise preserved as protocol boundaries with `Source::Protocol(AsyncBlock)` and
-`Source::Protocol(TryPropagation)`.
+`Source::Protocol(TryPropagation)`. Go goroutine spawn, deferred calls, channel
+send/receive, receive-status projections, and `select` boundaries are also
+preserved as raw source-backed protocol anchors rather than ordinary calls,
+values, or sequence tags. Python comprehension lowering now records whether a
+HOF came from a list comprehension, set comprehension, dict comprehension, or
+generator expression, and exact/value consumers use that surface evidence before
+applying materialization or demand-sensitive laws.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected
@@ -113,15 +119,20 @@ migrated.
   the shared IL erases. JS/TS frontends emit construct syntax, async `await`,
   generator `yield` boundaries, regex literal, strict/loose equality,
   strict/loose inequality, and `instanceof` facts. Python emits async `await`,
-  generator `yield` boundaries, value equality/inequality, and identity
-  equality/inequality facts, and Rust emits
-  macro invocation syntax for selected macro-backed APIs plus async/error
-  protocol facts for `.await`, `async {}`, and `?`. These are stored directly as
+  generator `yield` boundaries, list/set/dict/generator comprehension surfaces,
+  value equality/inequality, and identity equality/inequality facts. Go emits
+  protocol facts for `go`, `defer`, channel send/receive, receive-status
+  projection, `select`, and select cases/defaults. Rust emits macro invocation
+  syntax for selected macro-backed APIs plus async/error protocol facts for
+  `.await`, `async {}`, and `?`. These are stored directly as
   `EvidenceRecord::Source`; there is no source-fact side-table fallback.
   Normalize and detect consume source facts only where a semantic contract
   requires that exact source surface. Current JS/TS/Python/Rust `await` nodes,
-  JS/TS/Python `yield` nodes, and Rust `async`/`?` nodes remain raw
-  exact-closed protocol anchors until such a contract exists.
+  JS/TS/Python `yield` nodes, Rust `async`/`?` nodes, and Go concurrency/channel
+  nodes remain raw exact-closed protocol anchors until such a contract exists.
+  Python returned generator/set comprehensions and unsupported cardinality
+  surfaces stay exact-closed; supported list/generator terminal reductions can
+  still reopen only through consumer-specific demand checks.
 - Free-function builtin contracts are language- and arity-constrained. Supported
   Python/Go free builtins such as `len`, `sum`, `min`, `max`, `any`, `all`, and
   Go `append` require admitted `LibraryApi(FreeFunctionBuiltin)` occurrence
@@ -518,7 +529,11 @@ Semantic knowledge still appears in several forms outside the facade:
   operand without async protocol proof, JS/TS/Python `yield` no longer erases to
   its yielded expression without generator protocol proof, and Rust
   `async {}`/`?` no longer erase to their body or operand without async/error
-  protocol proof.
+  protocol proof. Go `go`/`defer`/channel receive no longer erase to ordinary
+  calls or operands, Go channel send no longer relies on an untyped
+  `send_statement` sequence tag, and Python list/set/dict/generator
+  comprehension surfaces no longer share exact semantics merely because they
+  lower to HOF-shaped IL.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -567,6 +582,15 @@ this worktree because the required evidence is not yet modeled:
   closed until future/error protocol obligations are modeled. JS/TS and Python
   `yield value` remains closed against plain `value` until generator demand and
   suspension semantics are modeled.
+- Go `go f(x)`, `defer f(x)`, `<-ch`, `ch <- x`, and `select` do not converge
+  with ordinary calls, values, sends, or sequential control-flow variants until
+  channel/goroutine/defer/select contracts can prove scheduling, blocking,
+  close/zero-value, case-selection, and effect obligations.
+- Python returned generator and set comprehensions do not converge with returned
+  list comprehensions. `len(generator)` and `len(set_comprehension)` stay closed
+  against list cardinality/count reductions until generator demand and set
+  deduplication obligations are modeled. Supported list/generator terminal
+  reductions remain open only where the consumer immediately demands the stream.
 - Plain JS/TS `Map(...)` and `Set(...)` calls do not enter exact matching because
   constructor-only contracts require construct-syntax proof.
 - Ordinary JS/TS string `.test(...)` calls do not enter regex-test exact matching

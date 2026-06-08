@@ -54,7 +54,7 @@ The current implemented kinds are:
 
 | kind | purpose |
 |---|---|
-| `Source` | construct syntax, Rust macro invocation syntax, async/generator/error protocol boundary syntax, regex literal provenance, and source operator family |
+| `Source` | construct syntax, Rust macro invocation syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, regex literal provenance, and source operator family |
 | `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding/namespace proof, Java wildcard import proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
@@ -271,7 +271,13 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   expressions emit `Source::Protocol(Yield)`. Rust `async {}` and `?` emit
   `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. These
   are future protocol/demand proof anchors, not evidence that the source
-  operation is equivalent to its operand or body;
+  operation is equivalent to its operand or body. Go `go`, `defer`, channel
+  send/receive, receive-status projection, `select`, and select cases/defaults
+  likewise preserve source-backed protocol anchors instead of ordinary calls,
+  values, or generic sequences. Python list/set/dict comprehensions and generator
+  expressions emit source-comprehension facts so exact consumers can distinguish
+  eager materialized lists, lazy generators, set deduplication, and dict
+  materialization even when the lowered HOF body shape is similar;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
 - selected top-level Ruby literal `require "module"` calls that occur before a
@@ -371,8 +377,9 @@ validation remain open.
 The first migrated consumers are the shared semantic helpers and their direct
 callers:
 
-- source-fact lookup for construct syntax, async/generator/error protocol boundaries,
-  regex literal, and operator provenance;
+- source-fact lookup for construct syntax, async/generator/error and Go
+  concurrency/channel protocol boundaries, Python comprehension surfaces, regex
+  literal, and operator provenance;
 - receiver-domain lookup used by post-desugar semantic/value-graph
   membership/property/map/integer gates and strict exact receiver gates.
   Consumers ask `nose-semantics` whether a receiver satisfies a
@@ -447,10 +454,11 @@ callers:
   gates now require `Effect`/`Place` evidence. Missing, ambiguous, conflicting,
   or dependency-broken evidence keeps the exact path closed.
 
-Broader field/place/effect facts, promise receiver proof, async/sync protocol
-convergence, unmodeled stdlib/ecosystem APIs, broader inferred
+Broader field/place/effect facts, promise receiver proof, async/sync and
+Go-channel protocol convergence, unmodeled stdlib/ecosystem APIs, broader inferred
 receiver-expression domain evidence, first-class mutation/effect evidence beyond
 the current first-party binding scan, full protocol/demand/effect receiver
-obligations, full scope-resolution and namespace-member evidence, broader guard
+obligations for lazy generators, set/dict materialization, channels, and async,
+full scope-resolution and namespace-member evidence, broader guard
 evidence, general cross-module dependency manifests, report-level provenance,
 and external manifest loading are still open work.

@@ -641,6 +641,269 @@ fn scan_mode_semantic_rejects_unproven_rust_await_sync_convergence() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Go concurrency and channel operations have synchronization/scheduling
+/// semantics. They must not be erased into ordinary calls or value reads until
+/// a language protocol contract proves the required demand/effect obligations.
+#[test]
+fn scan_mode_semantic_rejects_unproven_go_concurrency_protocol_convergence() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_go_protocol_boundary_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("direct_call.go"),
+        "package p\nfunc direct(x int) { record(x) }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("goroutine.go"),
+        "package p\nfunc goroutine(x int) { go record(x) }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("deferred.go"),
+        "package p\nfunc deferred(x int) { defer record(x) }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("plain_value.go"),
+        "package p\nfunc plain(ch int) int { return ch }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("channel_receive.go"),
+        "package p\nfunc receive(ch chan int) int { return <-ch }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("channel_status.go"),
+        "package p\nfunc status(ch chan int) bool { _, ok := <-ch; return ok }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("constant_status.go"),
+        "package p\nfunc constant(ch chan int) bool { return false }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("send_a.go"),
+        "package p\nfunc sendA(ch chan int, x int) { ch <- x }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("send_b.go"),
+        "package p\nfunc sendB(ch chan int, x int) { ch <- x }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("select_receive.go"),
+        "package p\nfunc selectReceive(ch chan int) int { select { case v := <-ch: return v; default: return 0 } }\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("if_receive.go"),
+        "package p\nfunc ifReceive(ch chan int) int { v := <-ch; if v != 0 { return v }; return 0 }\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    for pair in [
+        ["direct_call.go", "goroutine.go"],
+        ["direct_call.go", "deferred.go"],
+        ["plain_value.go", "channel_receive.go"],
+        ["channel_status.go", "constant_status.go"],
+        ["send_a.go", "send_b.go"],
+        ["select_receive.go", "if_receive.go"],
+    ] {
+        assert!(
+            !family_contains_all(&json, &pair),
+            "Go protocol boundary must not be erased into an ordinary exact semantic family for {pair:?}: {json}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Python comprehension source surfaces are not interchangeable. A list
+/// comprehension is eager and materialized, a generator expression is lazy and
+/// one-shot, and a set comprehension deduplicates and is unordered.
+#[test]
+fn scan_mode_semantic_rejects_unproven_python_comprehension_surface_convergence() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_py_comprehension_boundary_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("list_value.py"),
+        "def f(xs):\n    return [x * x for x in xs]\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("generator_value.py"),
+        "def f(xs):\n    return (x * x for x in xs)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("set_value.py"),
+        "def f(xs):\n    return {x * x for x in xs}\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    for pair in [
+        ["list_value.py", "generator_value.py"],
+        ["list_value.py", "set_value.py"],
+        ["generator_value.py", "set_value.py"],
+    ] {
+        assert!(
+            !family_contains_all(&json, &pair),
+            "Python comprehension surfaces must not merge without materialization/demand proof for {pair:?}: {json}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Terminal consumers may reopen supported list/generator count reductions, but
+/// `len(generator)` is a TypeError and `len(set_comprehension)` observes
+/// deduplication rather than iteration count.
+#[test]
+fn scan_mode_semantic_respects_python_comprehension_cardinality_boundaries() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_py_comprehension_cardinality_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("list_len.py"),
+        "def f(xs):\n    return len([x for x in xs if x > 0])\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("sum_count.py"),
+        "def f(xs):\n    return sum(1 for x in xs if x > 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("generator_len.py"),
+        "def f(xs):\n    return len(x for x in xs if x > 0)\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("set_len.py"),
+        "def f(xs):\n    return len({x % 2 for x in xs})\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("list_mod_len.py"),
+        "def f(xs):\n    return len([x % 2 for x in xs])\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    assert!(
+        family_contains_all(&json, &["list_len.py", "sum_count.py"]),
+        "proof-backed list comprehension cardinality should still converge with a count reduction: {json}"
+    );
+    for pair in [
+        ["generator_len.py", "list_len.py"],
+        ["generator_len.py", "sum_count.py"],
+        ["set_len.py", "list_mod_len.py"],
+    ] {
+        assert!(
+            !family_contains_all(&json, &pair),
+            "unsupported Python comprehension cardinality must stay closed for {pair:?}: {json}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Generator expression construction is lazy. Its body must not be treated like
+/// an eager list comprehension body for exception timing.
+#[test]
+fn scan_mode_semantic_respects_python_generator_lazy_exception_timing() {
+    let dir = std::env::temp_dir().join(format!(
+        "nose_py_generator_lazy_exception_{}",
+        std::process::id()
+    ));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("eager_list.py"),
+        "def f():\n    try:\n        return [1 / 0 for x in [1]]\n    except ZeroDivisionError:\n        return 7\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("lazy_generator.py"),
+        "def f():\n    try:\n        return (1 / 0 for x in [1])\n    except ZeroDivisionError:\n        return 7\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["eager_list.py", "lazy_generator.py"]),
+        "generator construction must not inherit eager list-comprehension exception timing: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn scan_human_hides_generated_header_families() {
     let dir = make_generated_header_project("human");

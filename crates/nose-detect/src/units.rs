@@ -6,36 +6,37 @@
 use crate::abstraction;
 use crate::fragment::{FragmentKind, ProofFacts};
 use nose_il::{
-    Builtin, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Symbol,
-    UnitKind,
+    Builtin, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceComprehensionKind, Symbol, UnitKind,
 };
 use nose_normalize::{
     module_facts::{collect_module_mutations, mutating_method_name},
     node_tag,
 };
 use nose_semantics::{
-    builder_append_call_args, construct_syntax_proof, exact_java_return_this,
-    exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
-    exact_self_field_write_assignment, exact_static_membership_predicate_operator,
-    go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
-    go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract,
-    library_api_contract_evidence_for_call, library_api_contract_evidence_for_node,
-    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
-    library_java_collection_constructor_contract, library_java_collection_factory_contract,
-    library_java_map_entry_contract, library_java_map_factory_contract,
-    library_js_array_is_array_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_map_get_contract,
-    library_map_key_view_contract, library_map_key_view_wrapper_contract,
+    admitted_hof_api_at_node, builder_append_call_args, construct_syntax_proof,
+    exact_java_return_this, exact_non_overloadable_index_assignment,
+    exact_non_overloadable_index_assignment_parts, exact_self_field_write_assignment,
+    exact_static_membership_predicate_operator, go_zero_map_default_kind,
+    go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
+    go_zero_map_lookup_contract, library_api_contract_evidence_for_call,
+    library_api_contract_evidence_for_node, library_free_name_collection_factory_contract,
+    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
+    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_option_none_sentinel_contract, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, library_static_index_membership_contract,
     nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node, semantics,
-    seq_surface_contract_for_node, source_operator_at_node, typeof_operator_contract,
-    unshadowed_global_symbol, DomainRequirement, IndexMembershipThreshold, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryCollectionFactoryResult,
-    LibraryMapFactoryResult, LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind,
-    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    seq_surface_contract_for_node, source_comprehension_at_node, source_operator_at_node,
+    typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
+    IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
+    LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -868,6 +869,7 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
                     .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
         }
         NodeKind::Call => strict_exact_safe_call(il, interner, facts, node),
+        NodeKind::HoF => strict_exact_safe_hof(il, interner, facts, node),
         NodeKind::Index
             if strict_exact_go_literal_zero_map_index_safe(il, interner, facts, node) =>
         {
@@ -890,6 +892,106 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
             .iter()
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
     }
+}
+
+fn strict_exact_safe_hof(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
+    match source_comprehension_at_node(il, node) {
+        Some(SourceComprehensionKind::PythonListComprehension)
+        | Some(SourceComprehensionKind::PythonDictComprehension) => {
+            strict_exact_hof_children_safe(il, interner, facts, node)
+        }
+        Some(
+            SourceComprehensionKind::PythonGeneratorExpression
+            | SourceComprehensionKind::PythonSetComprehension,
+        ) => false,
+        None => match il.node(node).payload {
+            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+                strict_exact_hof_children_safe(il, interner, facts, node)
+            }
+            _ => false,
+        },
+    }
+}
+
+fn strict_exact_terminal_reduction_arg_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::HoF {
+        return strict_exact_safe_tree(il, interner, facts, node);
+    }
+    match source_comprehension_at_node(il, node) {
+        Some(
+            SourceComprehensionKind::PythonGeneratorExpression
+            | SourceComprehensionKind::PythonListComprehension,
+        ) => strict_exact_hof_children_safe(il, interner, facts, node),
+        Some(
+            SourceComprehensionKind::PythonDictComprehension
+            | SourceComprehensionKind::PythonSetComprehension,
+        ) => false,
+        None => match il.node(node).payload {
+            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+                strict_exact_hof_children_safe(il, interner, facts, node)
+            }
+            _ => false,
+        },
+    }
+}
+
+fn strict_exact_len_arg_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    if il.kind(node) != NodeKind::HoF {
+        return strict_exact_safe_tree(il, interner, facts, node);
+    }
+    match source_comprehension_at_node(il, node) {
+        Some(SourceComprehensionKind::PythonListComprehension) => {
+            strict_exact_hof_children_safe(il, interner, facts, node)
+        }
+        Some(
+            SourceComprehensionKind::PythonDictComprehension
+            | SourceComprehensionKind::PythonGeneratorExpression
+            | SourceComprehensionKind::PythonSetComprehension,
+        ) => false,
+        None => match il.node(node).payload {
+            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+                strict_exact_hof_children_safe(il, interner, facts, node)
+            }
+            _ => false,
+        },
+    }
+}
+
+fn strict_exact_hof_children_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    il.children(node).iter().all(|&child| {
+        if il.kind(child) == NodeKind::HoF {
+            strict_exact_hof_internal_safe(il, interner, facts, child)
+        } else {
+            strict_exact_safe_tree(il, interner, facts, child)
+        }
+    })
+}
+
+fn strict_exact_hof_internal_safe(
+    il: &Il,
+    interner: &Interner,
+    facts: &StrictFacts,
+    node: NodeId,
+) -> bool {
+    matches!(
+        il.node(node).payload,
+        Payload::HoF(HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter | HoFKind::FilterMap)
+    ) && strict_exact_hof_children_safe(il, interner, facts, node)
 }
 
 fn strict_exact_in_membership_safe(
@@ -1208,11 +1310,22 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
             && strict_exact_safe_tree(il, interner, facts, kids[0])
             && strict_exact_membership_collection_safe(il, interner, facts, kids[1]);
     }
-    if matches!(il.node(node).payload, Payload::Builtin(_)) {
-        return il
-            .children(node)
-            .iter()
-            .all(|&c| strict_exact_safe_tree(il, interner, facts, c));
+    if let Payload::Builtin(builtin) = il.node(node).payload {
+        let kids = il.children(node);
+        return match builtin {
+            Builtin::Len if kids.len() == 1 => {
+                strict_exact_len_arg_safe(il, interner, facts, kids[0])
+            }
+            Builtin::Sum | Builtin::Any | Builtin::All if kids.len() == 1 => {
+                strict_exact_terminal_reduction_arg_safe(il, interner, facts, kids[0])
+            }
+            Builtin::Min | Builtin::Max if kids.len() == 1 => {
+                strict_exact_terminal_reduction_arg_safe(il, interner, facts, kids[0])
+            }
+            _ => kids
+                .iter()
+                .all(|&c| strict_exact_safe_tree(il, interner, facts, c)),
+        };
     }
     if strict_exact_set_constructor_collection_safe(il, interner, facts, node) {
         return true;
