@@ -592,6 +592,14 @@ and pack ecosystem.
   Java/Ruby/Rust collection factories, free-name/Java map factories, Java map
   entries, map `get`, and map-key view/wrapper calls now resolve contract
   identity and `LibraryApi` occurrence evidence in one place.
+- The node-level/API resolver cleanup moved property builtin field admission,
+  Rust `Some` callee-node admission, HOF receiver proof in desugaring, and
+  promise `.then` contract lookup behind shared admitted occurrence resolvers.
+  Promise continuation semantics still remain fail-closed until Promise-like
+  receiver proof exists. The same cleanup preserved the separate opaque callee
+  identity policy: parameter callees and proof-backed immutable/imported callees
+  may be exact as opaque value calls, but they do not gain library/API semantics
+  without admitted occurrence evidence.
 - The detect strict exact safety gate was split from unit extraction into
   `crates/nose-detect/src/strict_exact.rs`, reducing `units.rs` to extraction,
   fragment classification, and feature orchestration while keeping proof-policy
@@ -722,8 +730,11 @@ Remaining in this phase:
   value-level span-query paths now use dedicated span resolvers for
   free-name/imported collection factories, Java/Ruby/Rust collection factories,
   free-name/Java map factories, Java map entries, map-get, and map-key
-  view/wrapper calls. Lowered sequence-surface consumers are now evidence-only
-  where covered. Remaining API work is promise receiver proof, explicit async/sync
+  view/wrapper calls. Node-level property builtins, Rust `Some` callee checks,
+  HOF receiver proof, and Promise `.then` contract lookup also go through shared
+  resolvers, with Promise continuation reduction still closed until receiver
+  proof exists. Lowered sequence-surface consumers are now evidence-only where
+  covered. Remaining API work is promise receiver proof, explicit async/sync
   protocol convergence contracts, and ecosystem APIs only after demand,
   receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads

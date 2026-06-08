@@ -369,6 +369,9 @@ fn library_api_callee_contracts_for_id(
             .filter(|contract| contract.result.kind == kind)
             .map(|contract| contract.callee)
             .collect(),
+        LibraryApiContractId::PromiseThen => library_promise_then_contract(lang, "then", 1)
+            .map(|contract| vec![contract.callee])
+            .unwrap_or_default(),
         LibraryApiContractId::IteratorIdentityAdapter => {
             let methods = [
                 "iter",

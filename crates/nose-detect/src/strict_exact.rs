@@ -1589,7 +1589,10 @@ fn strict_exact_callee_identity(
     callee: NodeId,
 ) -> bool {
     match il.kind(callee) {
-        NodeKind::Var => facts.direct_function_target_at_call(il, call),
+        NodeKind::Var => {
+            strict_exact_safe_var(il, facts, callee)
+                || facts.direct_function_target_at_call(il, call)
+        }
         NodeKind::Field => {
             matches!(il.node(callee).payload, Payload::Name(_))
                 && il.children(callee).first().is_some_and(|&receiver| {
@@ -1880,6 +1883,43 @@ mod tests {
         ));
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+    }
+
+    #[test]
+    fn parameter_callee_identity_is_exact_safe_without_library_semantics() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let callee_param = b.add(NodeKind::Param, Payload::Cid(0), sp(10), &[]);
+        let value_param = b.add(NodeKind::Param, Payload::Cid(1), sp(11), &[]);
+        let callee = b.add(NodeKind::Var, Payload::Cid(0), sp(12), &[]);
+        let value = b.add(NodeKind::Var, Payload::Cid(1), sp(13), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(14), &[callee, value]);
+        let root = b.add(
+            NodeKind::Func,
+            Payload::None,
+            sp(9),
+            &[callee_param, value_param, call],
+        );
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.py".into(),
+                lang: Lang::Python,
+            },
+            vec![Unit {
+                root,
+                kind: UnitKind::Function,
+                name: None,
+            }],
+            Vec::new(),
+        );
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            strict_exact_safe_tree(&il, &interner, &facts, call),
+            "a parameter callee is opaque value identity, not library/API semantics"
+        );
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, root));
     }
 
     #[test]

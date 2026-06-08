@@ -1642,27 +1642,7 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn is_rust_option_some_node(&self, node: NodeId) -> bool {
-        let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
-        else {
-            return false;
-        };
-        let name = self.interner.resolve(name);
-        let Some(contract) =
-            library_rust_option_some_constructor_contract(self.il.meta.lang, name, 1)
-        else {
-            return false;
-        };
-        matches!(
-            library_api_contract_evidence_for_node(
-                self.il,
-                self.interner,
-                node,
-                contract.id,
-                contract.callee,
-                1,
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        )
+        admitted_rust_option_some_constructor_at_node(self.il, self.interner, node).is_some()
     }
 
     pub(super) fn eval_rust_option_some_pattern_comparison(

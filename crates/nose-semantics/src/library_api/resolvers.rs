@@ -14,6 +14,14 @@ pub struct AdmittedLibraryApiCall<C> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct AdmittedLibraryApiNode<C> {
+    pub contract: C,
+    pub node: NodeId,
+    pub receiver: Option<NodeId>,
+    pub arg_count: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryApiSpanCall {
     pub call_span: Option<Span>,
     pub callee_span: Option<Span>,
@@ -56,6 +64,22 @@ pub fn admitted_free_function_builtin_at_call(
     let (callee, name, arg_count) = free_name_call_parts(il, interner, call)?;
     let contract = library_free_function_builtin_contract(il.meta.lang, name, arg_count)?;
     admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_property_builtin_at_field(
+    il: &Il,
+    interner: &Interner,
+    field: NodeId,
+) -> Option<AdmittedLibraryApiNode<LibraryPropertyBuiltinContract>> {
+    if il.kind(field) != NodeKind::Field {
+        return None;
+    }
+    let Payload::Name(property) = il.node(field).payload else {
+        return None;
+    };
+    let receiver = il.children(field).first().copied()?;
+    let contract = library_property_builtin_contract(il.meta.lang, interner.resolve(property))?;
+    admitted_library_node(il, interner, field, Some(receiver), 0, contract)
 }
 
 pub fn admitted_map_get_at_call(
@@ -486,6 +510,24 @@ pub fn admitted_imported_namespace_function_at_call(
     )
 }
 
+pub fn admitted_promise_then_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryPromiseThenContract>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    let contract = library_promise_then_contract(il.meta.lang, method, arg_count)?;
+    admitted_library_call(
+        il,
+        interner,
+        call,
+        callee,
+        Some(receiver),
+        arg_count,
+        contract,
+    )
+}
+
 pub fn admitted_iterator_identity_adapter_at_call(
     il: &Il,
     interner: &Interner,
@@ -552,6 +594,16 @@ pub fn admitted_rust_option_some_constructor_at_call(
     admitted_library_call(il, interner, call, callee, None, arg_count, contract)
 }
 
+pub fn admitted_rust_option_some_constructor_at_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<AdmittedLibraryApiNode<LibraryRustOptionConstructorContract>> {
+    let name = node_name(il, interner, node)?;
+    let contract = library_rust_option_some_constructor_contract(il.meta.lang, name, 1)?;
+    admitted_library_node(il, interner, node, None, 1, contract)
+}
+
 pub fn admitted_rust_vec_new_factory_at_call(
     il: &Il,
     interner: &Interner,
@@ -607,6 +659,33 @@ fn admitted_library_call<C: LibraryApiContractParts>(
     })
 }
 
+fn admitted_library_node<C: LibraryApiContractParts>(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    receiver: Option<NodeId>,
+    arg_count: usize,
+    contract: C,
+) -> Option<AdmittedLibraryApiNode<C>> {
+    matches!(
+        library_api_contract_evidence_for_node(
+            il,
+            interner,
+            node,
+            contract.contract_id(),
+            contract.callee_contract(),
+            arg_count,
+        ),
+        LibraryApiEvidenceStatus::Admitted
+    )
+    .then_some(AdmittedLibraryApiNode {
+        contract,
+        node,
+        receiver,
+        arg_count,
+    })
+}
+
 fn admitted_library_span_call<C: LibraryApiContractParts>(
     il: &Il,
     interner: &Interner,
@@ -653,6 +732,16 @@ impl LibraryApiContractParts for LibraryMethodCallContract {
 }
 
 impl LibraryApiContractParts for LibraryFreeFunctionBuiltinContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
+impl LibraryApiContractParts for LibraryPropertyBuiltinContract {
     fn contract_id(self) -> LibraryApiContractId {
         self.id
     }
@@ -733,6 +822,16 @@ impl LibraryApiContractParts for LibraryMapKeyViewWrapperContract {
 }
 
 impl LibraryApiContractParts for LibraryImportedNamespaceFunctionContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
+impl LibraryApiContractParts for LibraryPromiseThenContract {
     fn contract_id(self) -> LibraryApiContractId {
         self.id
     }

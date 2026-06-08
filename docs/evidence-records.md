@@ -562,18 +562,23 @@ callers:
 - normalize idiom canonicalization shares the admitted occurrence resolver layer
   for supported free-function builtins, generic receiver-method contracts, map
   `get`, map-key views, iterator identity adapters, Java `Arrays.stream`, Rust
-  `Some(...)`, and Rust map factory receiver proof instead of locally
-  recombining selector strings with `LibraryApi` evidence checks. Test fixtures
-  may still use row constructors to mint synthetic evidence records;
-- value-graph direct API eval paths and provider literal export safety share the
-  same admitted occurrence resolver layer where they still have the source
-  `Call` node. This includes direct factory/constructor eval, static
-  index-membership, Rust scalar integer method calls, and builder append API
-  admission. Value-level CSE paths that only retain source spans now also go
-  through span-query resolvers for free-name/imported collection factories,
-  Java/Ruby/Rust collection factories, free-name/Java map factories, Java map
-  entries, map `get`, and map-key view/wrapper calls. The value graph no longer
-  locally recombines those contract rows with `LibraryApi` span evidence;
+  `Some(...)`, Rust map factory receiver proof, and HOF receiver proof instead
+  of locally recombining selector strings with `LibraryApi` evidence checks.
+  Test fixtures may still use row constructors to mint synthetic evidence
+  records;
+- value-graph direct API eval paths, node-level API consumers, and provider
+  literal export safety share the same admitted occurrence resolver layer where
+  they still have the source `Call` or `Field` node. This includes direct
+  factory/constructor eval, property builtins such as JS/TS/Java `.length`, Rust
+  `Some` callee-node checks, static index-membership, Rust scalar integer method
+  calls, and builder append API admission. Promise `.then` contract lookup also
+  goes through a resolver, but it remains fail-closed until the receiver has
+  explicit Promise-like evidence. Value-level CSE paths that only retain source
+  spans now also go through span-query resolvers for free-name/imported
+  collection factories, Java/Ruby/Rust collection factories, free-name/Java map
+  factories, Java map entries, map `get`, and map-key view/wrapper calls. The
+  value graph no longer locally recombines those contract rows with `LibraryApi`
+  span evidence;
 - value-graph consumers that query by source span re-check the original source
   `Call` node shape and its evidence dependencies when that call can be
   recovered. This preserves receiver-method precision when value-graph CSE has

@@ -13,10 +13,10 @@
 
 use crate::idioms::{canon_call_with_domains, CallCanon};
 use crate::NormalizeOptions;
-use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
+use nose_il::{Builtin, Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    library_api_contract_evidence_for_node, library_property_builtin_contract,
-    seq_surface_contract_for_node, DomainRequirement, LibraryApiEvidenceStatus,
+    admitted_library_method_call_at_call, admitted_property_builtin_at_field,
+    seq_surface_contract_for_node, DomainRequirement, MethodSemanticContract,
     ReceiverDomainEvidenceIndex,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -238,40 +238,25 @@ impl Rebuilder<'_> {
     /// others pass through.
     fn field(&mut self, old_id: NodeId) -> NodeId {
         let n = *self.old.node(old_id);
-        if let Payload::Name(s) = n.payload {
-            let name = self.interner.resolve(s);
-            if let Some(contract) = library_property_builtin_contract(self.old.meta.lang, name) {
-                if !matches!(
-                    library_api_contract_evidence_for_node(
-                        self.old,
-                        self.interner,
-                        old_id,
-                        contract.id,
-                        contract.callee,
-                        0,
-                    ),
-                    LibraryApiEvidenceStatus::Admitted
-                ) {
-                    return self.generic(old_id);
-                }
-                if let Some(&base) = self.old.children(old_id).first() {
-                    if !property_receiver_exact_safe(
-                        self.old,
-                        self.interner,
-                        &self.receiver_domains,
-                        base,
-                    ) {
-                        return self.generic(old_id);
-                    }
-                    let new_base = self.go(base);
-                    return self.b.add(
-                        NodeKind::Call,
-                        Payload::Builtin(contract.result),
-                        n.span,
-                        &[new_base],
-                    );
-                }
+        if let Some(admitted) = admitted_property_builtin_at_field(self.old, self.interner, old_id)
+        {
+            if admitted.contract.result != Builtin::Len {
+                return self.generic(old_id);
             }
+            let Some(base) = admitted.receiver else {
+                return self.generic(old_id);
+            };
+            if !property_receiver_exact_safe(self.old, self.interner, &self.receiver_domains, base)
+            {
+                return self.generic(old_id);
+            }
+            let new_base = self.go(base);
+            return self.b.add(
+                NodeKind::Call,
+                Payload::Builtin(admitted.contract.result),
+                n.span,
+                &[new_base],
+            );
         }
         self.generic(old_id)
     }
@@ -303,49 +288,18 @@ fn property_receiver_exact_hof_call(
     domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
-    if il.kind(node) != NodeKind::Call {
+    let Some(admitted) = admitted_library_method_call_at_call(il, interner, node) else {
+        return false;
+    };
+    if !matches!(
+        admitted.contract.result.semantic,
+        MethodSemanticContract::HoF(_)
+    ) {
         return false;
     }
-    let kids = il.children(node);
-    let Some(&callee) = kids.first() else {
-        return false;
-    };
-    if il.kind(callee) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    if kids.len() < 2 {
-        return false;
-    }
-    let Some(&receiver) = il.children(callee).first() else {
-        return false;
-    };
-    let method_text = interner.resolve(method);
-    let arg_count = kids.len() - 1;
-    let Some(kind) = nose_semantics::method_hof_contract(il.meta.lang, method_text) else {
-        return false;
-    };
-    let Some(contract) =
-        nose_semantics::library_method_call_contract(il.meta.lang, method_text, arg_count)
-    else {
-        return false;
-    };
-    if contract.result.semantic != nose_semantics::MethodSemanticContract::HoF(kind) {
-        return false;
-    }
-    matches!(
-        nose_semantics::library_api_contract_evidence_for_call(
-            il,
-            interner,
-            node,
-            contract.id,
-            contract.callee,
-            arg_count,
-        ),
-        LibraryApiEvidenceStatus::Admitted
-    ) && property_receiver_exact_safe(il, interner, domains, receiver)
+    admitted
+        .receiver
+        .is_some_and(|receiver| property_receiver_exact_safe(il, interner, domains, receiver))
 }
 
 fn property_receiver_exact_hof_node(
@@ -468,7 +422,7 @@ mod tests {
         assert!(
             !out.nodes
                 .iter()
-                .any(|node| matches!(node.payload, Payload::Builtin(nose_il::Builtin::Len))),
+                .any(|node| matches!(node.payload, Payload::Builtin(Builtin::Len))),
             "raw HOF selector plus receiver evidence must not prove length semantics"
         );
     }

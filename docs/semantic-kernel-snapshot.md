@@ -422,15 +422,23 @@ migrated.
 - Selected value-graph library consumers now call shared admitted occurrence
   resolvers in `nose-semantics` for method, imported-namespace function,
   iterator-adapter, Rust Option/`Vec::new`, direct factory/constructor eval,
-  static index-membership, Rust scalar integer method calls, and builder append
-  API admission instead of recombining raw selector parsing with evidence
-  admission locally. Normalize idiom canonicalization uses the same resolver
-  layer for supported free-function builtins, generic method contracts, map
-  `get`, map-key views, iterator/static collection adapters, Rust `Some(...)`,
-  and Rust map factory receiver proof. Value-level CSE paths that query by call
-  span now use span-query resolvers for free-name/imported collection
+  node-level property builtins, Rust `Some` callee-node checks, static
+  index-membership, Rust scalar integer method calls, and builder append API
+  admission instead of recombining raw selector parsing with evidence admission
+  locally. Normalize idiom canonicalization uses the same resolver layer for
+  supported free-function builtins, generic method contracts, HOF receiver
+  proof, map `get`, map-key views, iterator/static collection adapters, Rust
+  `Some(...)`, and Rust map factory receiver proof. Promise `.then` contract
+  lookup is resolver-owned, but continuation reduction remains fail-closed until
+  explicit Promise-like receiver proof exists. Value-level CSE paths that query
+  by call span now use span-query resolvers for free-name/imported collection
   factories, Java/Ruby/Rust collection factories, free-name/Java map factories,
   Java map entries, map `get`, and map-key view/wrapper calls.
+- Opaque exact callee identity remains separate from library/API admission. A
+  parameter callee or proof-backed immutable/imported callee may keep an exact
+  same-callee call comparable as an opaque value operation, while same-spelled
+  file-local functions still require `CallTarget` evidence and library semantics
+  still require admitted API occurrence evidence.
 - Java stream source adapters are split by proof through library API contracts:
   `receiver.stream()` requires an exact iterable receiver, while
   `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local

@@ -8,8 +8,8 @@
 //! proof-obligation: normalize.value_graph.promise_then
 
 use super::super::{Builder, ValueId};
-use nose_il::{NodeId, NodeKind, Payload};
-use nose_semantics::{library_promise_then_contract, AsyncReceiverContract};
+use nose_il::{NodeId, NodeKind};
+use nose_semantics::{admitted_promise_then_at_call, AsyncReceiverContract};
 use rustc_hash::FxHashMap;
 
 pub(in super::super) fn apply(
@@ -21,20 +21,13 @@ pub(in super::super) fn apply(
     if kids.len() != 2 {
         return None;
     }
-    let callee = kids[0];
-    if builder.il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(s) = builder.il.node(callee).payload else {
-        return None;
-    };
-    let contract =
-        library_promise_then_contract(builder.il.meta.lang, builder.interner.resolve(s), 1)?.result;
+    let admitted = admitted_promise_then_at_call(builder.il, builder.interner, expr)?;
+    let contract = admitted.contract.result;
     let cb = kids[1];
     if builder.il.kind(cb) != NodeKind::Lambda {
         return None;
     }
-    let &recv = builder.il.children(callee).first()?;
+    let recv = admitted.receiver?;
     if !promise_receiver_proven(builder, contract.receiver, recv) {
         return None;
     }

@@ -201,25 +201,10 @@ impl<'a> Builder<'a> {
                     _ => 0,
                 };
                 if a.len() == 1 {
-                    if let Payload::Name(s) = node.payload {
-                        let property_contract = library_property_builtin_contract(
-                            self.il.meta.lang,
-                            self.interner.resolve(s),
-                        );
-                        if let Some(contract) = property_contract.filter(|contract| {
-                            contract.result == Builtin::Len
-                                && matches!(
-                                    library_api_contract_evidence_for_node(
-                                        self.il,
-                                        self.interner,
-                                        expr,
-                                        contract.id,
-                                        contract.callee,
-                                        0,
-                                    ),
-                                    LibraryApiEvidenceStatus::Admitted
-                                )
-                        }) {
+                    if let Some(admitted) =
+                        admitted_property_builtin_at_field(self.il, self.interner, expr)
+                    {
+                        if admitted.contract.result == Builtin::Len {
                             if let Some(len) = self.eval_len_value(a[0]) {
                                 return len;
                             }
@@ -227,9 +212,12 @@ impl<'a> Builder<'a> {
                                 .domain_evidence_of_expr(kids[0])
                                 .is_some_and(DomainEvidence::is_array_or_collection)
                             {
-                                return self.mk(ValOp::Call(builtin_tag(contract.result)), a);
+                                return self
+                                    .mk(ValOp::Call(builtin_tag(admitted.contract.result)), a);
                             }
                         }
+                    }
+                    if let Payload::Name(s) = node.payload {
                         let receiver = &self.nodes[a[0] as usize];
                         if let ValOp::ImportNamespace { module_hash } = receiver.op {
                             return self.mk(
