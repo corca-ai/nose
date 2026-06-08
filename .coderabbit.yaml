@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 
-# CodeRabbit is intentionally disabled for this repository.
-# The GitHub App is installed at the corca-ai organization level; this file
-# prevents repository-level CodeRabbit activity without changing other repos.
+# CodeRabbit automation is intentionally disabled for this repository.
+# The GitHub App is installed at the corca-ai organization level. This file
+# disables repository-owned automation and review scope; removing all manual
+# command access still requires changing the organization app installation.
 inheritance: false
 early_access: false
 enable_free_tier: false

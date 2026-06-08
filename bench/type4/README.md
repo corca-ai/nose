@@ -7,8 +7,10 @@ The factory is evidence-carrying by design:
 
 - proposal cards describe the semantic class to explore;
 - the capability matrix records which proof facts each supported surface currently emits;
-- `generate.py` emits positive and hard-negative source pairs for every supported
-  language surface;
+- `generate.py` is the CLI/import compatibility entry point for emitting positive
+  and hard-negative source pairs for every supported language surface;
+- `type4gen/` contains the generator's shared model/config, axis proposal metadata,
+  and aggregate spec/emitter helpers;
 - positives carry same-spec/spec-interpreter evidence;
 - negatives carry concrete counterexamples;
 - evidence is level-tagged (`E0` unproven/unsafe boundary, `E1` same-spec/property
@@ -27,6 +29,10 @@ python3 bench/type4/generate.py --out-dir /tmp/nose-type4-seed
 
 The manifest is written to `/tmp/nose-type4-seed/manifest.json`; source files live under
 `/tmp/nose-type4-seed/sources/`.
+
+Keep invoking the generator through `bench/type4/generate.py`. Other tools also
+import that module for `AXIS_PROPOSALS`, so the entry point re-exports the stable
+generator API while the implementation lives in focused `type4gen/` modules.
 
 By default the generator emits:
 

@@ -2,13 +2,13 @@
 //! Language-specific walks build IL through this, so the arena/span/intern
 //! mechanics live in one place.
 
+use crate::type_domain_aliases::TypeDomainAliases;
 use nose_il::{
-    stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
-    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
-    FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind,
-    LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
-    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceProtocolKind, Span, Symbol,
-    SymbolEvidenceKind, Unit, UnitKind,
+    stable_symbol_hash, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
+    EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
+    Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, LoopKind,
+    NodeId, NodeKind, Op, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
+    SourceFactKind, SourceProtocolKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -28,8 +28,9 @@ use nose_semantics::{
     library_rust_option_some_constructor_contract, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
     library_static_index_membership_contract, module_binding_mutating_method_contract,
-    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
-    LibraryApiDependencyCache, MethodReceiverContract, StaticIndexMembershipReceiverContract,
+    qualified_global_symbol_contract, sequence_surface_kind_for_tag, type_domain_from_source_text,
+    ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
+    MethodReceiverContract, StaticIndexMembershipReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -41,6 +42,11 @@ struct LibraryApiEvidencePlan {
     result_domain: Option<DomainEvidence>,
 }
 
+pub(crate) struct Unsigned32Alias {
+    pub alias: String,
+    pub evidence: Option<EvidenceId>,
+}
+
 /// Mutable state threaded through a single file's lowering.
 pub(crate) struct Lowering<'a> {
     pub b: IlBuilder,
@@ -49,8 +55,8 @@ pub(crate) struct Lowering<'a> {
     pub interner: &'a Interner,
     pub units: Vec<Unit>,
     pub evidence: Vec<EvidenceRecord>,
-    pub param_semantic_aliases: Vec<(String, ParamSemantic)>,
-    pub unsigned_32_aliases: Vec<String>,
+    pub type_domain_aliases: TypeDomainAliases,
+    pub unsigned_32_aliases: Vec<Unsigned32Alias>,
 }
 
 impl<'a> Lowering<'a> {
@@ -62,7 +68,7 @@ impl<'a> Lowering<'a> {
             interner,
             units: Vec::new(),
             evidence: Vec::new(),
-            param_semantic_aliases: Vec::new(),
+            type_domain_aliases: TypeDomainAliases::default(),
             unsigned_32_aliases: Vec::new(),
         }
     }
@@ -131,13 +137,6 @@ impl<'a> Lowering<'a> {
                 }
             }
             NodeKind::Call => {
-                if matches!(payload, Payload::Builtin(Builtin::Append)) && children.len() == 2 {
-                    self.record_evidence(
-                        EvidenceAnchor::node(span, kind),
-                        EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
-                        "effect_builder_append",
-                    );
-                }
                 if matches!(payload, Payload::None) {
                     self.record_call_mutation_evidence(span, kind, children);
                     self.record_library_api_evidence_for_call(span, children);
@@ -202,10 +201,15 @@ impl<'a> Lowering<'a> {
         let Payload::Name(method) = self.b.node(callee).payload else {
             return;
         };
-        if module_binding_mutating_method_contract(self.lang, self.interner.resolve(method)) {
+        let arg_count = children.len().saturating_sub(1);
+        if let Some(contract) = module_binding_mutating_method_contract(
+            self.lang,
+            self.interner.resolve(method),
+            arg_count,
+        ) {
             self.record_evidence(
                 EvidenceAnchor::node(span, kind),
-                EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+                EvidenceKind::Effect(contract.effect),
                 "effect_receiver_mutation",
             );
         }
@@ -874,11 +878,21 @@ impl<'a> Lowering<'a> {
         })
     }
 
-    pub(crate) fn record_param_semantic(&mut self, span: Span, semantic: ParamSemantic) {
-        self.record_evidence(
+    pub(crate) fn record_param_domain(&mut self, span: Span, domain: DomainEvidence) {
+        self.record_param_domain_with_dependencies(span, domain, Vec::new());
+    }
+
+    pub(crate) fn record_param_domain_with_dependencies(
+        &mut self,
+        span: Span,
+        domain: DomainEvidence,
+        dependencies: Vec<EvidenceId>,
+    ) {
+        self.record_evidence_with_dependencies(
             EvidenceAnchor::param(span),
-            EvidenceKind::Domain(DomainEvidence::from_param_semantic(semantic)),
-            "param_semantic",
+            EvidenceKind::Domain(domain),
+            "param_domain",
+            dependencies,
         );
     }
 
@@ -922,49 +936,64 @@ impl<'a> Lowering<'a> {
         id
     }
 
-    pub(crate) fn record_param_semantic_alias(&mut self, local: &str, semantic: ParamSemantic) {
-        let alias = normalize_type_text(local);
+    pub(crate) fn record_type_domain_alias_with_evidence(
+        &mut self,
+        local: &str,
+        domain: DomainEvidence,
+        evidence: Option<EvidenceId>,
+    ) {
+        self.type_domain_aliases
+            .record_normalized(local, domain, evidence);
+    }
+
+    pub(crate) fn record_type_domain_alias_exact_with_evidence(
+        &mut self,
+        local: &str,
+        domain: DomainEvidence,
+        evidence: Option<EvidenceId>,
+    ) {
+        self.type_domain_aliases
+            .record_exact(local, domain, evidence);
+    }
+
+    pub(crate) fn clear_type_domain_alias(&mut self, local: &str) {
+        self.type_domain_aliases.clear_normalized(local);
+    }
+
+    pub(crate) fn record_unsigned_32_alias_with_evidence(
+        &mut self,
+        local: &str,
+        evidence: Option<EvidenceId>,
+    ) {
+        let alias = local.trim().to_string();
         if alias.is_empty() {
             return;
         }
-        if let Some((_, existing)) = self
-            .param_semantic_aliases
+        if let Some(existing) = self
+            .unsigned_32_aliases
             .iter_mut()
-            .find(|(known, _)| known == &alias)
+            .find(|known| known.alias == alias)
         {
-            *existing = semantic;
+            if evidence.is_some() {
+                existing.evidence = evidence;
+            }
             return;
         }
-        self.param_semantic_aliases.push((alias, semantic));
+        self.unsigned_32_aliases
+            .push(Unsigned32Alias { alias, evidence });
     }
 
-    pub(crate) fn clear_param_semantic_alias(&mut self, local: &str) {
-        let alias = normalize_type_text(local);
-        if alias.is_empty() {
-            return;
-        }
-        self.param_semantic_aliases
-            .retain(|(known, _)| known != &alias);
-    }
-
-    pub(crate) fn record_unsigned_32_alias(&mut self, local: &str) {
-        let alias = normalize_type_text(local);
-        if alias.is_empty() || self.unsigned_32_aliases.iter().any(|known| known == &alias) {
-            return;
-        }
-        self.unsigned_32_aliases.push(alias);
-    }
-
-    pub(crate) fn param_semantic_from_text(&self, text: &str) -> Option<ParamSemantic> {
-        param_semantic_from_text(text).or_else(|| {
-            let t = normalize_type_text(text);
-            self.param_semantic_aliases
-                .iter()
-                .find_map(|(alias, semantic)| {
-                    (t.contains(&format!(":{alias}[")) || t.contains(&format!(":{alias}<")))
-                        .then_some(*semantic)
-                })
-        })
+    pub(crate) fn type_domain_from_text_with_dependencies(
+        &self,
+        text: &str,
+    ) -> Option<(DomainEvidence, Vec<EvidenceId>)> {
+        type_domain_from_source_text(self.lang, text)
+            .map(|domain| (domain, Vec::new()))
+            .or_else(|| {
+                self.type_domain_aliases
+                    .resolve_text(text)
+                    .map(|resolved| (resolved.domain, resolved.dependencies))
+            })
     }
 
     /// An empty `Block` (used for absent loop init/update slots, empty bodies).
@@ -1011,13 +1040,50 @@ impl<'a> Lowering<'a> {
         kind: NodeKind,
         path: &str,
     ) -> EvidenceId {
-        self.record_evidence(
+        let dependencies = self.qualified_global_root_dependencies(span, path);
+        self.record_evidence_with_dependencies(
             EvidenceAnchor::node(span, kind),
             EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
                 path_hash: stable_symbol_hash(path),
             }),
             "symbol_qualified_global",
+            dependencies,
         )
+    }
+
+    /// Record a qualified global API proof for a source-level semantic contract
+    /// that is not represented by a preserved IL node.
+    pub(crate) fn record_qualified_global_source_symbol(
+        &mut self,
+        span: Span,
+        path: &str,
+        rule: &str,
+    ) -> EvidenceId {
+        let dependencies = self.qualified_global_root_dependencies(span, path);
+        self.record_evidence_with_dependencies(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash(path),
+            }),
+            rule,
+            dependencies,
+        )
+    }
+
+    fn qualified_global_root_dependencies(&mut self, span: Span, path: &str) -> Vec<EvidenceId> {
+        let Some(contract) = qualified_global_symbol_contract(self.lang, path) else {
+            return Vec::new();
+        };
+        if !contract.requires_unshadowed_root {
+            return Vec::new();
+        }
+        vec![self.record_evidence(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash(contract.root),
+            }),
+            "symbol_qualified_global_root",
+        )]
     }
 
     /// Lower an integer literal, retaining its **value** as [`Payload::LitInt`] so the
@@ -1151,7 +1217,24 @@ pub(crate) fn import_binding(
     module: &str,
     exported: &str,
 ) -> NodeId {
-    import_fact(
+    import_fact_with_symbol_evidence(
+        lo,
+        span,
+        local,
+        ImportFactKind::Binding,
+        &[module, exported],
+    )
+    .0
+}
+
+pub(crate) fn import_binding_with_symbol_evidence(
+    lo: &mut Lowering,
+    span: Span,
+    local: &str,
+    module: &str,
+    exported: &str,
+) -> (NodeId, Option<EvidenceId>) {
+    import_fact_with_symbol_evidence(
         lo,
         span,
         local,
@@ -1163,19 +1246,19 @@ pub(crate) fn import_binding(
 /// A strict semantic proof fact for a static namespace import:
 /// local namespace → module coordinate.
 pub(crate) fn import_namespace(lo: &mut Lowering, span: Span, local: &str, module: &str) -> NodeId {
-    import_fact(lo, span, local, ImportFactKind::Namespace, &[module])
+    import_fact_with_symbol_evidence(lo, span, local, ImportFactKind::Namespace, &[module]).0
 }
 
 /// Shared shape of static-import proof facts. The assignment remains in IL so
 /// import text participates in the syntax/near floor, but the `Seq` payload is
 /// deliberately untagged: semantic proof lives only in the evidence records.
-fn import_fact(
+fn import_fact_with_symbol_evidence(
     lo: &mut Lowering,
     span: Span,
     local: &str,
     kind: ImportFactKind,
     coords: &[&str],
-) -> NodeId {
+) -> (NodeId, Option<EvidenceId>) {
     let lhs = lo.var(local, span);
     let strs: Vec<NodeId> = coords.iter().map(|c| lo.str_lit(c, span)).collect();
     let rhs = lo.add(NodeKind::Seq, Payload::None, span, &strs);
@@ -1192,7 +1275,10 @@ fn import_fact(
             })
         }
         _ => {
-            return lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+            return (
+                lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
+                None,
+            );
         }
     };
     let symbol_kind = match kind {
@@ -1208,7 +1294,10 @@ fn import_fact(
             })
         }
         _ => {
-            return lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]);
+            return (
+                lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
+                None,
+            );
         }
     };
     lo.record_evidence(EvidenceAnchor::sequence(span), evidence_kind, "import_fact");
@@ -1217,12 +1306,15 @@ fn import_fact(
         evidence_kind,
         "import_binding_subject",
     );
-    lo.record_evidence(
+    let symbol_evidence = lo.record_evidence(
         EvidenceAnchor::binding(span, stable_symbol_hash(local)),
         symbol_kind,
         "symbol_import_identity",
     );
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
+    (
+        lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs]),
+        Some(symbol_evidence),
+    )
 }
 
 /// Emit a `Var` token for every named leaf (identifier, string fragment, path
@@ -1433,9 +1525,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
     let Some((id, callee_contract, rule, result_domain)) = contract else {
         return false;
     };
-    if il.meta.lang == Lang::Python
-        && post_lower_has_raw_marker(il, interner, "python_wildcard_import")
-    {
+    if il.meta.lang == Lang::Python && post_lower_has_python_wildcard_import_evidence(il) {
         return false;
     }
     let mut dependencies = Vec::new();
@@ -2159,10 +2249,13 @@ fn post_lower_source_call_evidence_id(
     })
 }
 
-fn post_lower_has_raw_marker(il: &Il, interner: &Interner, marker: &str) -> bool {
-    il.nodes.iter().any(|node| {
-        node.kind == NodeKind::Raw
-            && matches!(node.payload, Payload::Name(symbol) if interner.resolve(symbol) == marker)
+fn post_lower_has_python_wildcard_import_evidence(il: &Il) -> bool {
+    il.evidence.iter().any(|record| {
+        record.status == EvidenceStatus::Asserted
+            && matches!(
+                record.kind,
+                EvidenceKind::Import(ImportEvidenceKind::Wildcard { .. })
+            )
     })
 }
 
@@ -2188,164 +2281,6 @@ fn post_lower_unit_defines_name(
                 .name
                 .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
     })
-}
-
-fn normalize_type_text(text: &str) -> String {
-    text.chars()
-        .filter(|c| !c.is_whitespace())
-        .flat_map(char::to_lowercase)
-        .collect()
-}
-
-pub(crate) fn param_semantic_from_text(text: &str) -> Option<ParamSemantic> {
-    let t = normalize_type_text(text);
-    if t.contains("hashmap<")
-        || t.contains("btreemap<")
-        || t.contains("map<")
-        || t.contains("dict[")
-        || t.contains("dictionary[")
-        || t.contains("mapping[")
-        || t.contains("mapping<")
-        || t.contains("map[")
-    {
-        return Some(ParamSemantic::Map);
-    }
-    if t.contains("option<") || t.contains("optional<") {
-        return Some(ParamSemantic::Option);
-    }
-    if t.contains("set[") || t.contains("set<") || t.contains("hashset<") || t.contains("btreeset<")
-    {
-        return Some(ParamSemantic::Set);
-    }
-    if t.contains("[]")
-        || t.contains(":&[")
-        || t.contains("&[")
-        || t.contains("list[")
-        || t.contains("list<")
-        || t.contains("tuple[")
-        || t.contains("container[")
-        || t.contains("container<")
-        || t.contains("collection<")
-        || t.contains("queue<")
-        || t.contains("deque<")
-        || t.contains("iterable<")
-        || t.contains("iterable[")
-        || t.contains("sequence[")
-        || t.contains("array<")
-        || t.contains("readonlyarray<")
-        || t.contains("vec<")
-        || t.contains("vecdeque<")
-        || t.contains("slice<")
-    {
-        return Some(ParamSemantic::Collection);
-    }
-    if t.contains("string")
-        || t == "str"
-        || t == "&str"
-        || t.contains(":str")
-        || t.contains(":&str")
-    {
-        return Some(ParamSemantic::String);
-    }
-    if is_integer_semantic_text(&t) {
-        return Some(ParamSemantic::Integer);
-    }
-    if is_float_semantic_text(&t) || t.contains(":number") || t == "number" {
-        return Some(ParamSemantic::Number);
-    }
-    None
-}
-
-fn is_integer_semantic_text(t: &str) -> bool {
-    matches!(
-        t,
-        "int"
-            | "int8"
-            | "int16"
-            | "int32"
-            | "int64"
-            | "uint"
-            | "uint8"
-            | "uint16"
-            | "uint32"
-            | "uint64"
-            | "long"
-            | "short"
-            | "byte"
-            | "i8"
-            | "i16"
-            | "i32"
-            | "i64"
-            | "i128"
-            | "isize"
-            | "u8"
-            | "u16"
-            | "u32"
-            | "u64"
-            | "u128"
-            | "usize"
-    ) || t.contains(":int")
-        || t.contains(":long")
-        || t.contains(":short")
-        || t.contains(":byte")
-        || t.starts_with("int")
-        || t.starts_with("long")
-        || t.starts_with("short")
-        || t.starts_with("byte")
-        || t.contains(":i8")
-        || t.contains(":i16")
-        || t.contains(":i32")
-        || t.contains(":i64")
-        || t.contains(":i128")
-        || t.contains(":isize")
-        || t.contains(":u8")
-        || t.contains(":u16")
-        || t.contains(":u32")
-        || t.contains(":u64")
-        || t.contains(":u128")
-        || t.contains(":usize")
-}
-
-fn is_float_semantic_text(t: &str) -> bool {
-    matches!(
-        t,
-        "float" | "float32" | "float64" | "double" | "f32" | "f64"
-    ) || t.contains(":float")
-        || t.contains(":double")
-        || t.contains(":f32")
-        || t.contains(":f64")
-        || t.starts_with("float")
-        || t.starts_with("double")
-}
-
-pub(crate) fn stdlib_type_semantic(module: &str, exported: &str) -> Option<ParamSemantic> {
-    let module = module.trim();
-    let exported = exported.trim();
-    if matches!(module, "typing" | "collections.abc")
-        && matches!(exported, "Dict" | "Mapping" | "MutableMapping")
-    {
-        return Some(ParamSemantic::Map);
-    }
-    if matches!(module, "typing" | "collections.abc")
-        && matches!(exported, "FrozenSet" | "MutableSet" | "Set")
-    {
-        return Some(ParamSemantic::Set);
-    }
-    if matches!(module, "typing" | "collections.abc")
-        && matches!(
-            exported,
-            "Collection"
-                | "Container"
-                | "Deque"
-                | "List"
-                | "MutableSequence"
-                | "Sequence"
-                | "Tuple"
-        )
-    {
-        return Some(ParamSemantic::Collection);
-    }
-    None
 }
 
 /// Inline suppression: drop any unit whose source carries a `nose-ignore` marker
@@ -2753,6 +2688,7 @@ pub(crate) fn common_bin_op(text: &str) -> Option<Op> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::Builtin;
 
     fn sp() -> Span {
         Span::new(FileId(0), 0, 1, 1, 1)
@@ -2942,6 +2878,45 @@ mod tests {
             )
             .filter(|record| !record.dependencies.is_empty())
             .count()
+    }
+
+    fn param_domain_records(
+        evidence: &[EvidenceRecord],
+        domain: DomainEvidence,
+    ) -> Vec<&EvidenceRecord> {
+        evidence
+            .iter()
+            .filter(|record| {
+                matches!(record.anchor, EvidenceAnchor::Param { .. })
+                    && matches!(record.kind, EvidenceKind::Domain(actual) if actual == domain)
+            })
+            .collect()
+    }
+
+    fn param_domain_record_count(evidence: &[EvidenceRecord], domain: DomainEvidence) -> usize {
+        param_domain_records(evidence, domain).len()
+    }
+
+    fn imported_binding_symbol_ids(
+        evidence: &[EvidenceRecord],
+        module: &str,
+        exported: &str,
+    ) -> Vec<EvidenceId> {
+        let module_hash = stable_symbol_hash(module);
+        let exported_hash = stable_symbol_hash(exported);
+        evidence
+            .iter()
+            .filter_map(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Symbol(SymbolEvidenceKind::ImportedBinding {
+                        module_hash: actual_module,
+                        exported_hash: actual_exported,
+                    }) if actual_module == module_hash && actual_exported == exported_hash
+                )
+                .then_some(record.id)
+            })
+            .collect()
     }
 
     fn call_node_with_result_domain(il: &Il, domain: DomainEvidence) -> Option<NodeId> {
@@ -3428,6 +3403,11 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             &interner,
         )
         .expect("python lowering should succeed");
+        assert!(wildcard_py.evidence.iter().any(|record| matches!(
+            record.kind,
+            EvidenceKind::Import(ImportEvidenceKind::Wildcard { module_hash })
+                if module_hash == stable_symbol_hash("custom")
+        )));
         assert_eq!(
             library_api_evidence_count_in_records(
                 &wildcard_py.evidence,
@@ -3656,6 +3636,90 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
                 library_api_callee_contract_hash(ruby_contract.callee),
             ),
             0
+        );
+    }
+
+    #[test]
+    fn parameter_type_domains_are_dependency_backed_and_not_substring_guesses() {
+        let interner = Interner::new();
+
+        let py_alias = crate::lower_source(
+            FileId(0),
+            "typing_alias.py",
+            b"from typing import List as L\ndef f(xs: L[int]):\n    return len(xs)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let import_ids = imported_binding_symbol_ids(&py_alias.evidence, "typing", "List");
+        assert_eq!(import_ids.len(), 1);
+        let py_domains = param_domain_records(&py_alias.evidence, DomainEvidence::Collection);
+        assert_eq!(py_domains.len(), 1);
+        assert_eq!(py_domains[0].dependencies, import_ids);
+
+        let py_shadowed = crate::lower_source(
+            FileId(0),
+            "typing_alias_shadowed.py",
+            b"from typing import List as L\nL = object\ndef f(xs: L[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&py_shadowed.evidence, DomainEvidence::Collection),
+            0,
+            "a rebound typing alias must not emit parameter Domain evidence"
+        );
+
+        let ts = crate::lower_source(
+            FileId(0),
+            "domain_types.ts",
+            b"function f(a: Bitmap<string, number>, b: Blacklist<string>, c: string[], d: Set<string>) { return c.length; }\n",
+            Lang::TypeScript,
+            &interner,
+        )
+        .expect("typescript lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&ts.evidence, DomainEvidence::Map),
+            0,
+            "Bitmap must not be treated as Map by substring"
+        );
+        assert_eq!(
+            param_domain_record_count(&ts.evidence, DomainEvidence::Collection),
+            0,
+            "Blacklist must not be treated as Collection by substring"
+        );
+        assert_eq!(
+            param_domain_record_count(&ts.evidence, DomainEvidence::Array),
+            1,
+            "string[] should still emit array domain evidence"
+        );
+        assert_eq!(
+            param_domain_record_count(&ts.evidence, DomainEvidence::Set),
+            1,
+            "Set<T> should still emit set domain evidence"
+        );
+
+        let java = crate::lower_source(
+            FileId(0),
+            "Annotated.java",
+            b"class T { void f(@Ann(\"...\") String value, @Nonnull List<String> xs) {} }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("java lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&java.evidence, DomainEvidence::Array),
+            0,
+            "annotation strings containing ... must not imply Java array/varargs domain"
+        );
+        assert_eq!(
+            param_domain_record_count(&java.evidence, DomainEvidence::String),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&java.evidence, DomainEvidence::Collection),
+            1
         );
     }
 
@@ -4300,7 +4364,7 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
                 && record.kind
                     == EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite)
         }));
-        assert!(lo.evidence.iter().any(|record| {
+        assert!(!lo.evidence.iter().any(|record| {
             record.anchor == EvidenceAnchor::node(sp_at(7), NodeKind::Call)
                 && record.kind == EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall)
         }));

@@ -781,10 +781,11 @@ Profiling real corpora across Rust (`nose-normalize`, `nose-detect`), TypeScript
 JS bundles can dominate an unscoped scan, but the product fix is not a built-in generated-path
 exclusion; benchmark scoping used only the existing `--exclude`/config mechanism.
 
-The hot path was `desugar` repeatedly re-scanning the whole IL to prove parameter-domain
-facts for method/property idiom recognition. Replacing that with a per-file
-`ParamDomainIndex` kept the exact same proof policy while removing repeated O(nodes)
-lookups. Additional behavior-preserving cleanup reserved rebuild arena capacity, avoided
+The hot path was `desugar` repeatedly re-scanning the whole IL to prove receiver-domain
+facts for method/property idiom recognition. Replacing that with a shared
+receiver-domain cache kept the exact same proof policy while removing repeated O(nodes)
+lookups; the cache now lives behind the semantic-kernel facade rather than a normalize-local
+side table. Additional behavior-preserving cleanup reserved rebuild arena capacity, avoided
 per-node child `Vec` copies in common rebuild loops, reused file-local scope facts in value
 fingerprinting, and skipped no-op recursion/dataflow/algebra/cfg-orientation rebuilds.
 

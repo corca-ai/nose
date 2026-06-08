@@ -78,9 +78,13 @@ and pack ecosystem.
 - New value-graph rewrites began moving into named `rules/*` modules with
   mechanical formal-obligation pairing; `clamp` is the current proof-backed
   example.
-- Per-semantic parameter recognizers were folded into `is_param_value`, making
-  `ParamSemantic` the current internal vocabulary for receiver/domain proof
-  facts until packs provide versioned evidence records.
+- The common parameter-type substring recognizer moved behind first-party,
+  language-scoped type-domain contracts in `nose-semantics`. Frontends now emit
+  parameter `Domain` evidence from those contracts, while imported Python
+  `typing`/`collections.abc` aliases carry `ImportedBinding` dependencies and
+  rebound aliases close the path. `ParamSemantic` remains a compatibility
+  vocabulary in tests and lower-level helpers, not the producer boundary for
+  newly emitted parameter-domain facts.
 - Rust scalar integer methods (`abs`, `min`, `max`, `clamp`) now consume a
   language-, signature-, and integer-domain-constrained first-party contract
   instead of a bare method-name recognizer. Float/NaN-sensitive methods remain a
@@ -90,9 +94,10 @@ and pack ecosystem.
   calls moved into `nose-semantics`, so predicate and contract paths no longer
   duplicate those language/API gates.
 - The first receiver-domain evidence facade landed as `DomainEvidence`.
-  Frontend `ParamSemantic` facts still provide the current evidence source, but
-  normalize and detect exact gates now consume the kernel-facing domain
-  vocabulary so pack-provided evidence can replace the source fact later.
+  Parameter type domains, selected library/API result domains, and inferred
+  immutable binding domains now feed the same kernel-facing domain vocabulary so
+  pack-provided evidence can replace first-party producers later without adding
+  new consumer paths.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
   kernel facade with explicit shadow-root obligations. The caller still proves
@@ -179,10 +184,11 @@ and pack ecosystem.
 - Imported immutable literal replacement and exact module-binding gates now share
   stronger mutation evidence for top-level place writes such as
   `LOOKUP[key] = value`, closing importer-side direct-write false exact cases.
-- Value-graph and oracle field state now preserve receiver+field identity instead
-  of caching by field name alone. Same-place readback and distinct-field
-  commutation remain open, while cross-receiver reads/writes with the same field
-  name stay exact-distinct.
+- Value-graph and oracle field state no longer treat raw field spelling as place
+  proof. The admitted same-unit substrate is Java `this.field`, backed by
+  `Place(SelfReceiver)`, `Place(SelfField)`, and `Effect(SelfFieldWrite)`.
+  Raw dynamic attribute/property writes remain ordered or unsupported until a
+  pack supplies explicit place/effect evidence.
 - Lowered `Seq` surface admission now goes through `SeqSurfaceContract` instead
   of local raw-string allowlists. The contract separates exact-tree safety,
   membership collection admission, map-entry-list admission, imported-literal
@@ -198,10 +204,11 @@ and pack ecosystem.
   constructors now closes when another package explicitly imports the same
   simple type, matching Java import resolution before the constructor surface can
   enter the collection builder contract.
-- Same-unit value-graph field readback now uses the receiver/place proof shape
-  rather than an arbitrary evaluated receiver value, so aliases and computed
-  call-result receivers stay exact-closed until pack-facing place evidence
-  exists.
+- Same-unit value-graph and oracle field readback/final field state now consume
+  the self-field place/effect evidence boundary rather than arbitrary evaluated
+  receiver shape, so aliases, Python-style dynamic attributes, property
+  setters, and computed call-result receivers stay exact-closed until
+  pack-facing place evidence exists.
 - Import binding and namespace proof interpretation now goes through a typed
   `ImportFactKind`/`ImportFact` facade in `nose-semantics`. Frontend emitters,
   imported immutable literal replacement, normalize idiom gates, value-graph
@@ -228,6 +235,12 @@ and pack ecosystem.
   prove append fragments by name; first-party language/library paths must first
   prove the receiver or active-builder contract and lower the call to
   `Builtin::Append`.
+- The first demand contract module now names the currently supported builtin and
+  HOF evaluation profiles: eager builtin calls, explicit reductions,
+  short-circuit quantifiers, append mutation, nullish defaulting, and per-element
+  callback demand for map/flat-map/filter-map/filter/reduce. The oracle consumes
+  those profiles for admitted operations instead of matching local demand enums,
+  while API admission remains evidence/contract-row gated.
 - Primitive operator gates now enter through `OperatorSemantics` contracts for
   comparison transforms, comparison laws, cardinality thresholds, static
   `indexOf`/`findIndex` thresholds, and source membership operators. Algebra,
@@ -266,8 +279,10 @@ and pack ecosystem.
   evidence. `Object.hasOwn` and
   `Object.prototype.hasOwnProperty.call` are dependencies of own-property guard
   evidence, while `Array.from` gates JS-like map-key iterator wrappers.
-  `Array.isArray` emits the same path evidence for strict exact call gates. Full
-  namespace-member resolution remains open.
+  `Array.isArray` emits the same path evidence for strict exact call gates. These
+  qualified path records now depend on same-span `UnshadowedGlobal` root proof,
+  so consumers no longer accept detached path evidence without the root identity
+  proof. Full namespace-member resolution remains open.
 - Value-graph import identity now consumes sequence `Import` evidence into
   dedicated internal `ImportNamespace`/`ImportBinding` value ops instead of
   treating raw `ValOp::Seq(import_*)` shapes as proof objects. Imported
@@ -361,6 +376,11 @@ and pack ecosystem.
   binding anchors, and scoped parameters through the same `DomainRequirement`
   helper, so value-graph and strict exact gates no longer maintain separate
   receiver-domain scanners.
+- Strict exact receiver proof now consumes the shared
+  `ReceiverDomainEvidenceIndex` instead of raw collection/map name and CID
+  side tables. Binding-domain evidence remains receiver-domain proof only: it
+  no longer promotes an opaque initializer into an exact-safe variable value, and
+  binding proofs apply only when visible at the receiver use site.
 - The receiver-method `LibraryApi` occurrence slice moved broad method-family
   consumers behind dependency-backed call occurrence records. First-party
   lowering now emits occurrence evidence for map `get`, map-key views, iterator
@@ -416,7 +436,8 @@ and pack ecosystem.
   because one representative pair looked actionable.
 - Exact-fragment place/effect gates became evidence-authoritative for the
   producer-covered substrate. First-party normalize refreshes now upsert
-  `Effect(BuilderAppendCall)` for canonical append calls,
+  `Effect(BuilderAppendCall)` for canonical append calls only when a same-span
+  append `LibraryApi` proof licenses the canonical form,
   `Effect(NonOverloadableIndexWrite)` for C/Go/Java index assignments, and Java
   self receiver/field/write `Place`/`Effect` records after canonical rewrites.
   Exact fragment consumers no longer reopen append/index/self-field admission
@@ -460,6 +481,12 @@ and pack ecosystem.
   receiver-method occurrences, and value-graph/desugar/idiom consumers fail
   closed when those occurrence records are missing, rejected, or
   dependency-broken.
+- Rust range and Option-pattern recognition moved off raw IL shapes. Rust
+  half-open/inclusive range expressions and tuple-struct single-wildcard
+  patterns are now `Source` evidence. The `0..len(collection)` full-index range
+  path requires the half-open source fact plus admitted `len` semantics, and
+  `Some(_)` presence predicates require both the admitted `Some` selector
+  occurrence and Rust wildcard-pattern source proof.
 - Builder and mutation safety moved further onto the evidence substrate.
   First-party producers now emit exact append/index/self-field effect evidence
   separately from conservative binding-write, receiver-mutation, and
@@ -472,15 +499,125 @@ and pack ecosystem.
   risky exact paths; they do not prove a same-named API's exact semantics.
 - Active aggregate builders now require contract-backed append/write proof plus
   surface shape. Exact append evidence is still required for exact-fragment
-  append effects; value-graph list-builder recognition may also use a
-  language-scoped builder-append method contract once the receiver is already
-  proven to be an active local builder seeded by an explicit collection surface.
-  Map-builder recognition requires write evidence plus an explicit map seed.
-  Raw selectors, raw index assignment, untagged sequences, and tuple values no
-  longer prove builder semantics by themselves. Python set literals now emit
+  append effects. Value-graph list-builder contributions require either exact
+  append evidence or admitted same-span append API occurrence evidence plus the
+  language-scoped builder-append method-effect row; a row-only path is also
+  allowed, but only under active-builder context. Map-builder recognition
+  requires write evidence plus an explicit map seed. Raw selectors outside those
+  rows, raw index assignment, untagged sequences, and tuple values no longer
+  prove builder semantics by themselves. Python set literals now emit
   `SequenceSurface(Collection)` so supported module-set membership remains
   covered, while direct/module tuple literals stay closed until a factory, typed
   receiver, or other contract supplies membership-collection evidence.
+- First-party method-effect policy moved from bool selector helpers into
+  explicit contract rows. Receiver-mutation and builder-append producers now
+  consume language/method/arity/effect rows, value-graph list builders consume
+  effect evidence, admitted append API occurrence evidence, or active-builder
+  row evidence under those rows, and Python dict-builder loops consume a
+  separate map-builder index-write row plus `Effect(BindingWrite)` and an
+  explicit map seed. JS-like `undefined`
+  value-graph nullish evaluation is now evidence-only: the frontend-proven
+  `Symbol(UnshadowedGlobal("undefined"))` record is required, and raw spelling
+  plus file-scope fallback no longer opens the exact nullish value path.
+- JS-like `typeof` strict exact safety now requires source-operator evidence at
+  the call span in addition to the language/arity/name contract, so raw
+  `Call(Var("typeof"), arg)` shapes no longer prove the JS unary operator.
+  Python wildcard imports now emit `Import::Wildcard` evidence; post-lower
+  free-name API evidence uses that record as the ambiguity boundary instead of
+  scanning a raw `python_wildcard_import` marker.
+- Raw HOF value-graph admission now requires either source-comprehension proof
+  for the supported Python comprehension surfaces or admitted HOF library/API
+  occurrence evidence. Set comprehensions and synthetic raw `HoF` payloads stay
+  closed; source-proven comprehension internals can still compose their filter
+  HOFs within the proven surface. Value-graph count, reduction, and static
+  membership shortcuts now reuse the same filter admission, so raw
+  `HoF(Filter)` payloads cannot bypass the HOF gate by sitting under `len(...)`
+  or a reduction.
+- Raw canonical `Payload::Builtin` admission now goes through
+  `admitted_builtin_semantics_at_call` before value-graph folding, builtin
+  fallback tagging, range/len/zip/enumerate loop patterns, strict-exact builtin
+  calls, function-binding safety, mutation-risk blocking, value-domain builtin
+  result inference, or interpreter-oracle builtin execution can consume builtin
+  semantics. Same-span `LibraryApi` occurrence evidence admits post-desugar
+  library builtins, while only narrow syntax-owned language-core lowerings such
+  as Go map lookup-ok `Contains`, Go `Enumerate`, Python dict-comprehension
+  `DictEntry`, JS-like `Keys`, C source-proven `UnsignedCast32`, and
+  effect-proven append remain raw-payload eligible.
+- Rust `get(key).unwrap_or(default)` now admits the canonical map
+  `GetOrDefault` builtin through the exact `unwrap_or` `LibraryApi` occurrence
+  plus its admitted nested `MapGet` dependency, instead of treating
+  `ValueOrDefault` selector semantics as sufficient for map defaulting.
+- Raw `Seq` spelling no longer feeds value-graph sequence tags. Missing
+  `SequenceSurface` or guard evidence now produces the untagged value instead of
+  a spelling hash, so internal-looking payload names such as `record_guard` or
+  `own_property_guard` cannot become semantic proof channels.
+- Raw user-call spelling no longer proves direct recursion or in-file call
+  execution. `nose-il` now has `CallTarget::DirectFunction` evidence, the
+  first-party normalize producer emits it only for unique top-level in-file
+  function targets with no current or enclosing lexical shadowing, and
+  recursion, interpreter, value-graph pure-inline, and strict exact
+  direct-function callee consumers require that occurrence proof.
+  Method/dynamic-dispatch target proof remains a future pack/source extension
+  rather than a same-name fallback.
+- C byte-pack proof moved onto evidence-backed alias and cast records. Local
+  typedefs and direct quote includes emit `Type(CTypeAlias)` evidence, included
+  aliases depend on `Import(CQuoteInclude)`, alias-based `Domain(ByteArray)` and
+  `Source(Cast(CUnsigned32))` facts depend on the type proof, and value-graph
+  byte-pack laws consume a first-party C byte-pack contract instead of a bare
+  language bool.
+- Exact-fragment production is now contract-first: the collector uses
+  `fragment::recognize::recognize_contract` as the production authority, while
+  the old predicate matrix remains as a debug/differential guard until it can be
+  deleted or reduced.
+- Large semantic test modules were split out of the production implementation
+  files while continuing this migration. `nose-semantics/src/lib.rs` and
+  `nose-normalize/src/value_graph.rs` are both back under 10k lines, with their
+  moved tests kept adjacent as Rust test modules. The follow-up range/pattern
+  slice also split source-fact and value-graph proof/admission tests into
+  focused adjacent modules so raw-shape regression cases are easier to audit.
+  The LibraryApi resolver slice then split the remaining large
+  `nose-semantics` test root into domain/symbol evidence, LibraryApi evidence,
+  LibraryApi contract, and effect/place test modules before adding more
+  occurrence-admission coverage.
+- The idiom/value-graph resolver cleanup moved supported normalize idiom
+  canonicalization and direct value-graph API consumers behind shared
+  `nose-semantics` admitted occurrence resolvers. This covers free-function
+  builtins, generic receiver-method contracts, map `get`, map-key views,
+  iterator identity adapters, Java static collection adapters, Rust `Some(...)`,
+  Rust map factory receiver proof, static index-membership, and Rust scalar
+  integer methods where the source `Call` node is still available.
+- The value-graph span-query resolver cleanup moved value-level CSE consumers
+  that no longer carry a source `Call` node behind dedicated `nose-semantics`
+  admitted span resolvers. Free-name/imported collection factories,
+  Java/Ruby/Rust collection factories, free-name/Java map factories, Java map
+  entries, map `get`, and map-key view/wrapper calls now resolve contract
+  identity and `LibraryApi` occurrence evidence in one place.
+- The node-level/API resolver cleanup moved property builtin field admission,
+  Rust `Some` callee-node admission, HOF receiver proof in desugaring, and
+  promise `.then` contract lookup behind shared admitted occurrence resolvers.
+  Promise continuation semantics still remain fail-closed until Promise-like
+  receiver proof exists. The same cleanup preserved the separate opaque callee
+  identity policy: parameter callees and proof-backed immutable/imported callees
+  may be exact as opaque value calls, but they do not gain library/API semantics
+  without admitted occurrence evidence.
+- The detect strict exact safety gate was split from unit extraction into
+  `crates/nose-detect/src/strict_exact.rs`, reducing `units.rs` to extraction,
+  fragment classification, and feature orchestration while keeping proof-policy
+  tests next to the strict exact module.
+- The `nose-semantics` production facade is now physically split as well:
+  evidence/source/domain proof helpers live in `evidence.rs`, effect/place proof
+  helpers live in `effects.rs`, negative API guard policy lives in
+  `api_guards.rs`, library API contract identities and result wrappers live in
+  `library_api/contracts.rs`, first-party library API row constructors live in
+  `library_api/rows.rs`, evidence-hash-to-row registry helpers live in
+  `library_api/registry.rs`, library API occurrence evidence/admission and
+  dependency validation logic live in `library_api.rs`, and `lib.rs` preserves
+  the existing flat public facade while shedding the mixed 9k-line
+  implementation body.
+- The same code-quality pass split the CLI end-to-end test target into a small
+  `tests/cli.rs` harness plus topic modules, and moved the Type-4 generator's
+  axis metadata/model/aggregate helpers under `bench/type4/type4gen/` while
+  preserving `bench/type4/generate.py` as the stable CLI/import entry point.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -513,6 +650,12 @@ Remaining in this phase:
 
 - Continue replacing proof-sensitive `Lang`/selector checks that are still local
   to normalize, detect, and import proof.
+- Move the next raw fallback cluster behind pack-shaped contracts/evidence:
+  JS/TS guard recognizer dependencies, parsed/versioned type-surface manifests
+  for external type-domain producers, broader C type-system evidence beyond
+  current byte-pack aliases and scalar/pointer guards, remaining lowered
+  sequence/tag surfaces, and exact-fragment predicate code that is now
+  differential/debug support rather than production authority.
 - Keep behavior-changing recall reductions documented when missing evidence
   blocks exact convergence.
 - Preserve the current precision gates while moving more first-party surfaces
@@ -576,18 +719,34 @@ Remaining in this phase:
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
   evidence, as do generic Python/Go free-function builtins and selected
-  receiver-method families. Lowered sequence-surface consumers are now
-  evidence-only where covered. Remaining API work is promise receiver proof,
-  explicit async/sync protocol convergence contracts, and ecosystem APIs only
-  after demand, receiver, and effect obligations are expressible.
+  receiver-method families. Selected normalize idiom, value-graph, and strict
+  exact consumers now call shared `nose-semantics` admitted occurrence resolvers
+  for method, free-function builtin, map-get, map-key-view, regex, JS
+  static/global, static-index, iterator/static collection adapter, Rust
+  Option/scalar/`Vec::new`, and first-party factory/constructor calls instead of
+  locally recombining raw selector parsing with evidence admission. Value-graph
+  direct factory/constructor eval and provider literal export safety now share
+  those resolvers where they still operate on source call nodes; selected
+  value-level span-query paths now use dedicated span resolvers for
+  free-name/imported collection factories, Java/Ruby/Rust collection factories,
+  free-name/Java map factories, Java map entries, map-get, and map-key
+  view/wrapper calls. Node-level property builtins, Rust `Some` callee checks,
+  HOF receiver proof, and Promise `.then` contract lookup also go through shared
+  resolvers, with Promise continuation reduction still closed until receiver
+  proof exists. Lowered sequence-surface consumers are now evidence-only where
+  covered. Remaining API work is promise receiver proof, explicit async/sync
+  protocol convergence contracts, and ecosystem APIs only after demand,
+  receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
-  copies provider evidence, and selected JS/TS `QualifiedGlobal` paths are
-  covered, but general qualified-member resolution, namespace export identity,
-  provider/export dependency manifests, richer scope/rebinding facts, opaque
-  call receiver identity for module-defined locals versus imported namespaces,
-  and manifest-level cross-module dependency evidence are not.
+  copies provider evidence, provider literal export safety consumes a shared
+  `nose-semantics` helper, and selected JS/TS `QualifiedGlobal` paths are covered
+  with same-span root dependencies, but general qualified-member resolution,
+  namespace export identity, provider/export dependency manifests, richer
+  scope/rebinding facts, opaque call receiver identity for module-defined locals
+  versus imported namespaces, and manifest-level cross-module dependency evidence
+  are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.
@@ -617,7 +776,8 @@ Remaining in this phase:
 
 - Convert Python, JavaScript/TypeScript, Go, Rust, Java, C, Ruby, and embedded
   JS/TS containers into first-party compiled packs.
-- Split stdlib knowledge into first-party `StdlibPack`s.
+- Split stdlib knowledge, including dependency-backed type-domain alias rows,
+  into first-party `StdlibPack`s.
 - Define conformance manifests for each pack: positive convergence cases, hard
   negatives, Raw coverage expectations, oracle coverage, and proof obligations.
 - Ensure existing docs and capabilities are generated from or checked against pack
@@ -649,11 +809,13 @@ different APIs.
 - Model effect visibility under demand: skipped effects, delayed effects,
   per-element callback effects, async scheduling, yields, and stream emissions.
 - Refactor oracle and value graph to consume demand rules instead of local
-  hard-coded evaluation behavior.
+  hard-coded evaluation behavior. The oracle has started consuming internal
+  builtin/HOF demand profiles; value-graph demand consumers and the pack-facing
+  schema remain open.
 - Keep expanding lazy iterator/generator/channel hard negatives before enabling
   new exact laws. The first Python generator/list/set and Go channel/goroutine
-  hard negatives are now in place, but the shared demand/effect abstraction is
-  still future work.
+  hard negatives are now in place, but pull-lazy, repeated, call-by-need,
+  async/generator/channel, and effect-visibility contracts are still future work.
 
 ## Phase 6: ecosystem packs
 

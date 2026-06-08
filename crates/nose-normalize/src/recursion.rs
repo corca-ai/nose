@@ -32,43 +32,41 @@
 //! the interpreter now executes as a real call (see [`crate::interp`]) — and the rewritten
 //! loop, and flags any behavioral difference.
 
-use nose_il::{Il, IlBuilder, NodeId, NodeKind, Op, Payload, Symbol, UnitKind};
-use nose_semantics::{domain_evidence_for_param, semantics, ValueDomain};
+use nose_il::{Il, IlBuilder, NodeId, NodeKind, Op, Payload, UnitKind};
+use nose_semantics::{
+    direct_function_call_target_at_call, domain_evidence_for_param, semantics, ValueDomain,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod structural_fold;
 mod tail;
 
 pub(crate) fn run(old: &Il) -> Il {
-    // A same-named call inside a standalone function is its self-call. Methods (Ruby `def`,
-    // Java methods) are admitted ONLY when their body has no receiver/field access or effects:
-    // then a bare-name `fac(n-1)` self-call carries no instance state the fold rewrite could
-    // drop, so it is as sound as a free function. `self.m()` / `this.m()` self-calls lower
-    // through a `Field` callee and so never match the bare-name `as_self_call` test anyway;
-    // the no-field gate also keeps such method bodies out entirely. The rewrite is still
-    // checked by the interpreter oracle (`nose verify`) — a misidentified callee shows up as a
-    // canon-preservation failure.
-    let func_name: FxHashMap<u32, Symbol> = old
+    // Direct self-recursion is recognized only through call-target evidence. The spelling used
+    // by the callee node is a producer-side selector, not proof that a call reaches this unit.
+    // Methods remain additionally gated to receiver/field-free bodies. First-party producers do
+    // not infer method targets from bare names; a source/pack producer must provide exact
+    // call-target evidence for a method rewrite to become reachable.
+    let recursion_targets: FxHashSet<u32> = old
         .units
         .iter()
         .filter_map(|u| {
-            let name = u.name?;
             let admit = match u.kind {
                 UnitKind::Function => true,
                 UnitKind::Method => method_recursion_safe(old, u.root),
                 _ => false,
             };
-            admit.then_some((u.root.0, name))
+            admit.then_some(u.root.0)
         })
         .collect();
-    if func_name.is_empty() || !has_possible_self_call(old, &func_name) {
+    if recursion_targets.is_empty() || !has_possible_self_call(old, &recursion_targets) {
         return old.clone();
     }
     let unit_root_set: FxHashSet<u32> = old.units.iter().map(|u| u.root.0).collect();
     let mut rb = Rebuilder {
         old,
         b: IlBuilder::with_capacity(old.file, old.nodes.len(), old.edges.len()),
-        func_name,
+        recursion_targets,
         unit_root_set,
         remap: FxHashMap::default(),
     };
@@ -77,26 +75,21 @@ pub(crate) fn run(old: &Il) -> Il {
     crate::finalize_rebuild(old, &rb.remap, rb.b, new_root, old.cid_names.clone())
 }
 
-fn has_possible_self_call(old: &Il, func_name: &FxHashMap<u32, Symbol>) -> bool {
-    let names: FxHashSet<Symbol> = func_name.values().copied().collect();
+fn has_possible_self_call(old: &Il, recursion_targets: &FxHashSet<u32>) -> bool {
     old.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Call || !matches!(node.payload, Payload::None) {
-            return false;
-        }
         let id = NodeId(idx as u32);
-        let Some(&callee) = old.children(id).first() else {
-            return false;
-        };
-        matches!(old.node(callee).payload, Payload::Name(name) if names.contains(&name))
+        node.kind == NodeKind::Call
+            && recursion_targets
+                .iter()
+                .any(|&root| direct_function_call_target_at_call(old, id, NodeId(root)))
     })
 }
 
-/// A method is safe to admit to the recursion canon only if its body touches no receiver/field
-/// state: no `Field` node anywhere (field reads, `self.x`, and method calls all lower through
-/// `Field`). Then the bare-name self-recursion is a pure fold over the parameters, identical to
-/// a free function — no instance state the accumulator rewrite could silently drop. Numeric
-/// recursion (`fac(n) = n*fac(n-1)`) qualifies; anything with `self.field` / `.method()` does
-/// not. Conservative by design: false negatives only (less recall), never an unsound rewrite.
+/// Extra gate for method recursion after exact call-target evidence has already proved the
+/// call reaches this method. The body must touch no receiver/field state: no `Field` node
+/// anywhere (field reads, `self.x`, and method calls all lower through `Field`). Then the
+/// accumulator rewrite cannot silently drop instance state. Conservative by design: false
+/// negatives only (less recall), never an unsound rewrite.
 fn method_recursion_safe(old: &Il, root: NodeId) -> bool {
     fn pure(old: &Il, n: NodeId) -> bool {
         old.kind(n) != NodeKind::Field && old.children(n).iter().all(|&c| pure(old, c))
@@ -107,7 +100,7 @@ fn method_recursion_safe(old: &Il, root: NodeId) -> bool {
 struct Rebuilder<'a> {
     old: &'a Il,
     b: IlBuilder,
-    func_name: FxHashMap<u32, Symbol>,
+    recursion_targets: FxHashSet<u32>,
     unit_root_set: FxHashSet<u32>,
     remap: FxHashMap<u32, NodeId>,
 }
@@ -136,8 +129,8 @@ impl Rebuilder<'_> {
     crate::rebuild_generic!();
 
     fn func(&mut self, fid: NodeId) -> NodeId {
-        if let Some(&name) = self.func_name.get(&fid.0) {
-            if let Some(plan) = self.recognize(fid, name) {
+        if self.recursion_targets.contains(&fid.0) {
+            if let Some(plan) = self.recognize(fid) {
                 if let Some(rewritten) = self.build(fid, &plan) {
                     return rewritten;
                 }
@@ -160,8 +153,8 @@ impl Rebuilder<'_> {
             .collect()
     }
 
-    /// Is `node` a direct call to the enclosing function `name`? If so, its argument nodes.
-    fn as_self_call(&self, node: NodeId, name: Symbol) -> Option<Vec<NodeId>> {
+    /// Is `node` a proven direct call to the enclosing function? If so, its argument nodes.
+    fn as_self_call(&self, node: NodeId, fid: NodeId) -> Option<Vec<NodeId>> {
         if self.old.kind(node) != NodeKind::Call {
             return None;
         }
@@ -170,21 +163,21 @@ impl Rebuilder<'_> {
         if !matches!(self.old.node(node).payload, Payload::None) {
             return None;
         }
-        let kids = self.old.children(node);
-        let callee = *kids.first()?;
-        match self.old.node(callee).payload {
-            Payload::Name(s) if s == name => Some(kids[1..].to_vec()),
-            _ => None,
+        if !direct_function_call_target_at_call(self.old, node, fid) {
+            return None;
         }
+        let kids = self.old.children(node);
+        kids.first()?;
+        Some(kids[1..].to_vec())
     }
 
-    fn count_self_calls(&self, node: NodeId, name: Symbol) -> usize {
-        let here = usize::from(self.as_self_call(node, name).is_some());
+    fn count_self_calls(&self, node: NodeId, fid: NodeId) -> usize {
+        let here = usize::from(self.as_self_call(node, fid).is_some());
         here + self
             .old
             .children(node)
             .iter()
-            .map(|&c| self.count_self_calls(c, name))
+            .map(|&c| self.count_self_calls(c, fid))
             .sum::<usize>()
     }
 
@@ -212,7 +205,7 @@ impl Rebuilder<'_> {
         }
     }
 
-    fn recognize(&self, fid: NodeId, name: Symbol) -> Option<Plan> {
+    fn recognize(&self, fid: NodeId) -> Option<Plan> {
         let kids = self.old.children(fid);
         let body = *kids.last()?;
         if self.old.kind(body) != NodeKind::Block {
@@ -236,7 +229,7 @@ impl Rebuilder<'_> {
         }
         // Exactly one self-call in the whole body — the recursive case below. This also
         // guarantees the guards (and every argument/operand) are self-call-free.
-        if self.count_self_calls(body, name) != 1 {
+        if self.count_self_calls(body, fid) != 1 {
             return None;
         }
         let rexpr = match self.old.children(last) {
@@ -245,10 +238,10 @@ impl Rebuilder<'_> {
         };
         let param_cids = self.param_cids(fid);
 
-        if let Some(plan) = tail::recognize(self, param_cids.clone(), guards.clone(), rexpr, name) {
+        if let Some(plan) = tail::recognize(self, fid, param_cids.clone(), guards.clone(), rexpr) {
             return Some(Plan::Tail(plan));
         }
-        if let Some(plan) = structural_fold::recognize(self, fid, param_cids, guards, rexpr, name) {
+        if let Some(plan) = structural_fold::recognize(self, fid, param_cids, guards, rexpr) {
             return Some(Plan::Structural(plan));
         }
         None
@@ -457,4 +450,102 @@ fn toposort_updates(updates: &[(u32, NodeId, FxHashSet<u32>)]) -> Option<Vec<usi
         }
     }
     (order.len() == n).then_some(order)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{
+        stable_symbol_hash, CallTargetEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceKind,
+        EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, Interner,
+        Lang, Span, Unit,
+    };
+    use nose_semantics::FIRST_PARTY_PACK_ID;
+
+    fn sp(n: u32) -> Span {
+        Span::new(FileId(0), n, n + 1, n, n)
+    }
+
+    fn tail_recursive_function(with_target_evidence: bool) -> Il {
+        let interner = Interner::new();
+        let f = interner.intern("f");
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp(1), &[]);
+        let n_for_cond = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
+        let zero_for_cond = b.add(NodeKind::Lit, Payload::LitInt(0), sp(3), &[]);
+        let cond = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Le),
+            sp(4),
+            &[n_for_cond, zero_for_cond],
+        );
+        let zero_for_ret = b.add(NodeKind::Lit, Payload::LitInt(0), sp(5), &[]);
+        let base_ret = b.add(NodeKind::Return, Payload::None, sp(6), &[zero_for_ret]);
+        let guard = b.add(NodeKind::If, Payload::None, sp(7), &[cond, base_ret]);
+        let callee = b.add(NodeKind::Var, Payload::Name(f), sp(8), &[]);
+        let n_for_arg = b.add(NodeKind::Var, Payload::Cid(0), sp(9), &[]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(10), &[]);
+        let dec = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Sub),
+            sp(11),
+            &[n_for_arg, one],
+        );
+        let self_call = b.add(NodeKind::Call, Payload::None, sp(12), &[callee, dec]);
+        let recursive_ret = b.add(NodeKind::Return, Payload::None, sp(13), &[self_call]);
+        let body = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp(14),
+            &[guard, recursive_ret],
+        );
+        let func = b.add(NodeKind::Func, Payload::None, sp(15), &[param, body]);
+        let mut il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Function,
+                name: Some(f),
+            }],
+            Vec::new(),
+        );
+        if with_target_evidence {
+            il.evidence.push(EvidenceRecord {
+                id: nose_il::EvidenceId(0),
+                anchor: EvidenceAnchor::node(il.node(self_call).span, NodeKind::Call),
+                kind: EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+                    target_span: il.node(func).span,
+                    name_hash: interner.symbol_hash(f),
+                }),
+                provenance: EvidenceProvenance {
+                    emitter: EvidenceEmitter::FirstParty,
+                    pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                    rule_hash: Some(stable_symbol_hash("recursion-test")),
+                },
+                dependencies: Vec::new(),
+                status: EvidenceStatus::Asserted,
+            });
+        }
+        il
+    }
+
+    fn contains_kind(il: &Il, kind: NodeKind) -> bool {
+        il.nodes.iter().any(|node| node.kind == kind)
+    }
+
+    #[test]
+    fn tail_recursion_requires_call_target_evidence() {
+        let rewritten = run(&tail_recursive_function(false));
+        assert!(!contains_kind(&rewritten, NodeKind::Loop));
+    }
+
+    #[test]
+    fn tail_recursion_uses_call_target_evidence() {
+        let rewritten = run(&tail_recursive_function(true));
+        assert!(contains_kind(&rewritten, NodeKind::Loop));
+    }
 }

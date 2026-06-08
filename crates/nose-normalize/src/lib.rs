@@ -16,6 +16,7 @@
 mod algebra;
 mod alpha;
 mod binding_evidence;
+mod call_target_evidence;
 mod cfg_norm;
 mod commutative;
 mod dataflow;
@@ -240,6 +241,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     timer.lap("binding");
     library_api_evidence::run(&mut out, interner);
     timer.lap("api-evidence");
+    call_target_evidence::run(&mut out, interner);
+    timer.lap("call-target");
     alpha::run(&mut out);
     timer.lap("alpha");
     if opts.oracle {

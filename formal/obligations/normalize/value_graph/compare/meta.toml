@@ -4,7 +4,11 @@ kind = "soundness"
 summary = "Comparison direction, negated comparisons, and total-order lattice canons preserve Int comparison denotation."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/algebra.rs"]
+files = [
+  "crates/nose-normalize/src/value_graph/canonicalize.rs",
+  "crates/nose-normalize/src/value_graph/ops.rs",
+  "crates/nose-normalize/src/algebra.rs",
+]
 symbols = ["negate_cmp_code", "lattice_le_ne_to_lt", "lattice_lt_eq_to_le"]
 
 [lean]

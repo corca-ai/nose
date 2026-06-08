@@ -80,18 +80,20 @@ values.
 
 ## External review bots
 
-CodeRabbit repository activity is disabled with the root `.coderabbit.yaml`. The
-file opts out of inherited CodeRabbit settings, turns off automatic and
+CodeRabbit repository automation is disabled with the root `.coderabbit.yaml`.
+The file opts out of inherited CodeRabbit settings, turns off automatic and
 incremental review, leaves no keyword/label trigger for review opt-in, excludes
 all paths from review scope, disables review statuses, summaries, chat
 auto-replies, finishing touches, pre-merge checks, issue enrichment, knowledge
 base retention, external knowledge sources, and built-in review tools.
 
-That YAML is the repository-owned control. The CodeRabbit GitHub App is installed
-at the `corca-ai` organization level, so fully removing app access still requires
-an organization owner to change the app installation from "all repositories" to a
-selected-repositories installation that excludes `corca-ai/nose`, or to uninstall
-CodeRabbit from the organization.
+That YAML is the repository-owned control. CodeRabbit documents that manual
+`@coderabbitai review` commands can still trigger a review regardless of
+auto-review settings while the app has repository access. The CodeRabbit GitHub
+App is installed at the `corca-ai` organization level, so a hard block still
+requires an organization owner to change the app installation from "all
+repositories" to a selected-repositories installation that excludes
+`corca-ai/nose`, or to uninstall CodeRabbit from the organization.
 
 ## Baselines — incremental adoption
 

@@ -96,7 +96,9 @@ negatives, and add a focused gate.
 
 ## Relationship to existing Type-4 tools
 
-- `bench/type4/generate.py` creates evidence-carrying synthetic pairs.
+- `bench/type4/generate.py` creates evidence-carrying synthetic pairs. It is the
+  stable CLI/import entry point; focused generator internals live under
+  `bench/type4/type4gen/`.
 - `scripts/type4-smoke.sh` runs generated positives, hard negatives, verifier leads, stats,
   and frontier summaries.
 - `bench/type4/frontier_platform.py` ranks real-corpus axes by breadth and evidence, then

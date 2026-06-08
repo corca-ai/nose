@@ -4,7 +4,10 @@ kind = "soundness-boundary"
 summary = "String/list builder semantics are ordered free-monoid concatenation, not commutative algebra."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/interp.rs"]
+files = [
+  "crates/nose-normalize/src/value_graph/state.rs",
+  "crates/nose-normalize/src/interp.rs",
+]
 symbols = ["add_values_not_concat", "join_strings"]
 
 [lean]

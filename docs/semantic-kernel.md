@@ -28,8 +28,8 @@ first-party implementation, not a loadable external pack runtime.
 Evidence records are one kernel input at that boundary. They preserve facts that
 the IL deliberately abstracts away, but they do not approve semantic equivalence
 by themselves. Source facts are one evidence class; domain, import, symbol,
-guard, place/effect, selected library API occurrence, and sequence-surface facts
-now use the same internal substrate. See
+type, guard, place/effect, selected library API occurrence, and
+sequence-surface facts now use the same internal substrate. See
 [evidence-records](evidence-records.md) for the record shape and
 [source-facts](source-facts.md) for the source-origin vocabulary.
 

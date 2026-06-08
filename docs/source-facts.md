@@ -12,8 +12,10 @@ preserve source-origin distinctions that the shared IL intentionally abstracts
 away, such as `new Set(...)` versus `Set(...)`, a JavaScript regex literal versus
 an ordinary string, JavaScript `===` versus `==`, `await value` versus a plain
 value expression, `yield value` versus a plain expression, Rust `expr?` versus
-`expr`, Go `go f()` versus `f()`, or Python list/set/dict/generator
-comprehension surfaces that otherwise lower to similar HOF shapes.
+`expr`, Rust `0..len` versus `0..=len`, Rust `Some(_)` tuple-struct pattern
+syntax versus an arbitrary raw pattern shape, Go `go f()` versus `f()`, or
+Python list/set/dict/generator comprehension surfaces that otherwise lower to
+similar HOF shapes.
 
 They are evidence, not semantics. A source fact never approves an exact clone,
 mints a value fingerprint, or bypasses a law. It is admissible only when a
@@ -78,7 +80,10 @@ The pack-facing vocabulary should cover at least these classes.
 |---|---|
 | Symbol and import | resolved import binding, namespace import, unshadowed language global, qualified global/member API path, version range |
 | Receiver and domain | array, collection, map, option, string, primitive integer, byte array, promise-like receiver |
-| Operator | strict equality, loose equality, identity equality, value equality, type membership, language membership |
+| Operator | strict equality, loose equality, identity equality, value equality, JS/TS `typeof`, type membership, language membership |
+| Cast | C unsigned 32-bit cast syntax, future language-specific numeric/reference casts |
+| Range | Rust half-open range expression, Rust inclusive range expression, future language-specific range surfaces |
+| Pattern | Rust tuple-struct single-wildcard pattern, future language-specific pattern surfaces |
 | Literal and surface | regex literal, string literal, map/object literal, tuple/list/array surface, computed property key |
 | Call/protocol shape | constructor call, ordinary function call, method call, property access, macro-like call, async `await` boundary, generator `yield` boundary, Rust `?` error propagation, Go goroutine/defer/channel/select boundaries |
 | Comprehension surface | Python list comprehension, set comprehension, dict comprehension, generator expression |
@@ -95,7 +100,8 @@ fall back to a side-table mirror when source evidence is missing.
 
 - JS/TS lowering emits source facts for construct syntax, async `await`
   boundaries, generator `yield` boundaries, regex literals, strict equality,
-  strict inequality, loose equality, loose inequality, and `instanceof`.
+  strict inequality, loose equality, loose inequality, unary `typeof`, and
+  `instanceof`.
 - Python lowering emits source facts for async `await` boundaries, generator
   `yield` boundaries, list/set/dict/generator comprehension surfaces, value
   equality/inequality, and identity equality/inequality.
@@ -104,8 +110,13 @@ fall back to a side-table mirror when source evidence is missing.
   surfaces remain raw protocol anchors; `v, ok := <-ch` preserves both the
   receive value and the status projection without modeling them as ordinary
   values.
-- Rust lowering emits source facts for macro invocation syntax, `.await`, async
-  blocks, and `?` error propagation.
+- C lowering emits source facts for explicit unsigned 32-bit byte-lane casts.
+  Direct casts such as `(unsigned int)a[0]` are dependency-free source facts;
+  alias casts such as `(u32)a[0]` or `(word)a[0]` depend on the corresponding
+  exact-spelling C type-alias evidence.
+- Rust lowering emits source facts for macro invocation syntax, half-open versus
+  inclusive range expressions, tuple-struct single-wildcard patterns such as
+  `Some(_)`, `.await`, async blocks, and `?` error propagation.
 - JS/TS, Python, and Rust `await` lowering preserves `Raw("await", value)`
   instead of erasing the source operation. JS/TS and Python `yield` preserves
   `Raw("yield", value)`. Rust `async {}` and `?` are preserved as
@@ -128,6 +139,15 @@ fall back to a side-table mirror when source evidence is missing.
 - JS-like static membership callbacks such as `x => x === value` consume source
   operator facts and require strict equality/inequality. Loose equality and
   `instanceof` stay closed for those exact contracts.
+- Rust full-index range recognition consumes `Source::Range` evidence for the
+  half-open `0..len(collection)` source surface. A raw `Seq(0, Len(C), 0)` shape,
+  or an inclusive `0..=len(collection)` source fact, does not prove that loop
+  range contract.
+- Rust `Some(_)` pattern recognition consumes both a contract-backed
+  `LibraryApi` occurrence for the specific `Some` selector and a
+  `Source::Pattern` fact for the tuple-struct single-wildcard source surface.
+  Neither a raw function name nor the API occurrence alone proves Option
+  presence semantics.
 - Qualified API path evidence is symbol evidence, not a source fact by itself.
   The current JS/TS producer emits selected `QualifiedGlobal` facts such as
   `Object.hasOwn`, `Object.prototype.hasOwnProperty.call`, and `Array.from`

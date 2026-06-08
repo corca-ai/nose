@@ -13,13 +13,13 @@ pub(super) struct Plan {
 
 pub(super) fn recognize(
     rb: &Rebuilder<'_>,
+    fid: NodeId,
     param_cids: Vec<u32>,
     guards: Vec<(NodeId, NodeId)>,
     rexpr: NodeId,
-    name: nose_il::Symbol,
 ) -> Option<Plan> {
     // Tail recursion: the recursive case IS the self-call.
-    let args = rb.as_self_call(rexpr, name)?;
+    let args = rb.as_self_call(rexpr, fid)?;
     if args.len() != param_cids.len() {
         return None;
     }

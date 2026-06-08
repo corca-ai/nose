@@ -7,8 +7,10 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    contains_c_identifier, Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId,
-    NodeKind, Op, ParamSemantic, Payload, UnitKind,
+    contains_c_identifier, stable_symbol_hash, Builtin, CTypeTarget, DomainEvidence,
+    EvidenceAnchor, EvidenceId, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner, Lang,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceFactKind, Span,
+    TypeEvidenceKind, UnitKind,
 };
 use std::{fs, path::Path};
 use tree_sitter::Node as TsNode;
@@ -38,18 +40,25 @@ fn record_c_direct_include_type_aliases(path: &str, src: &[u8], lo: &mut Lowerin
     let Ok(source) = std::str::from_utf8(src) else {
         return;
     };
-    let needs_byte_alias = contains_c_identifier(source, "u8")
-        && (c_source_may_contain_u16_byte_pack(source)
-            || c_source_may_contain_u32_byte_pack(source));
-    let needs_unsigned_32_alias =
-        contains_c_identifier(source, "u32") && c_source_may_contain_u32_byte_pack(source);
+    let needs_byte_alias =
+        c_source_may_contain_u16_byte_pack(source) || c_source_may_contain_u32_byte_pack(source);
+    let needs_unsigned_32_alias = c_source_may_contain_u32_byte_pack(source);
     if !needs_byte_alias && !needs_unsigned_32_alias {
         return;
     }
     let Some(dir) = Path::new(path).parent() else {
         return;
     };
-    for line in source.lines() {
+    let mut start_byte = 0u32;
+    for (line_idx, line) in source.lines().enumerate() {
+        let line_span = Span::new(
+            lo.b.file(),
+            start_byte,
+            start_byte.saturating_add(line.len() as u32),
+            line_idx as u32 + 1,
+            line_idx as u32 + 1,
+        );
+        start_byte = start_byte.saturating_add(line.len() as u32 + 1);
         let Some(include) = c_direct_quote_include_name(line) else {
             continue;
         };
@@ -66,23 +75,76 @@ fn record_c_direct_include_type_aliases(path: &str, src: &[u8], lo: &mut Lowerin
         let Ok(header_text) = fs::read_to_string(&header) else {
             continue;
         };
+        let mut include_evidence = None;
         for header_line in header_text.lines() {
             if needs_byte_alias {
                 if let Some(alias) = c_unsigned_char_typedef_alias(header_line) {
                     if contains_c_identifier(source, &alias) {
-                        lo.record_param_semantic_alias(&alias, ParamSemantic::ByteArray);
+                        let include_id = *include_evidence.get_or_insert_with(|| {
+                            record_c_quote_include_evidence(lo, line_span, include)
+                        });
+                        let type_id = record_c_type_alias_evidence(
+                            lo,
+                            line_span,
+                            &alias,
+                            CTypeTarget::UnsignedInteger { bits: 8 },
+                            vec![include_id],
+                        );
+                        lo.record_type_domain_alias_exact_with_evidence(
+                            &alias,
+                            DomainEvidence::ByteArray,
+                            Some(type_id),
+                        );
                     }
                 }
             }
             if needs_unsigned_32_alias {
                 if let Some(alias) = c_unsigned_32_typedef_alias(header_line) {
                     if contains_c_identifier(source, &alias) {
-                        lo.record_unsigned_32_alias(&alias);
+                        let include_id = *include_evidence.get_or_insert_with(|| {
+                            record_c_quote_include_evidence(lo, line_span, include)
+                        });
+                        let type_id = record_c_type_alias_evidence(
+                            lo,
+                            line_span,
+                            &alias,
+                            CTypeTarget::UnsignedInteger { bits: 32 },
+                            vec![include_id],
+                        );
+                        lo.record_unsigned_32_alias_with_evidence(&alias, Some(type_id));
                     }
                 }
             }
         }
     }
+}
+
+fn record_c_quote_include_evidence(lo: &mut Lowering, span: Span, include: &str) -> EvidenceId {
+    lo.record_evidence(
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Import(ImportEvidenceKind::CQuoteInclude {
+            include_hash: stable_symbol_hash(include),
+        }),
+        "c_quote_include",
+    )
+}
+
+fn record_c_type_alias_evidence(
+    lo: &mut Lowering,
+    span: Span,
+    alias: &str,
+    target: CTypeTarget,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceId {
+    lo.record_evidence_with_dependencies(
+        EvidenceAnchor::binding(span, stable_symbol_hash(alias)),
+        EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+            alias_hash: stable_symbol_hash(alias),
+            target,
+        }),
+        "c_type_alias",
+        dependencies,
+    )
 }
 
 fn c_direct_quote_include_name(line: &str) -> Option<&str> {
@@ -191,8 +253,11 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
                 let sym = p
                     .child_by_field_name("declarator")
                     .and_then(|x| declarator_name(lo, x));
-                if let Some(semantic) = c_param_semantic_from_text(lo, lo.text(p)) {
-                    lo.record_param_semantic(pspan, semantic);
+                let param_name = sym.map(|symbol| lo.interner.resolve(symbol));
+                if let Some((domain, dependencies)) =
+                    c_param_domain_from_text(lo, lo.text(p), param_name)
+                {
+                    lo.record_param_domain_with_dependencies(pspan, domain, dependencies);
                 }
                 kids.push(lo.add(
                     NodeKind::Param,
@@ -214,11 +279,30 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn record_c_type_definition(lo: &mut Lowering, node: TsNode) {
+    let span = lo.span(node);
     if let Some(alias) = c_unsigned_char_typedef_alias(lo.text(node)) {
-        lo.record_param_semantic_alias(&alias, ParamSemantic::ByteArray);
+        let type_id = record_c_type_alias_evidence(
+            lo,
+            span,
+            &alias,
+            CTypeTarget::UnsignedInteger { bits: 8 },
+            Vec::new(),
+        );
+        lo.record_type_domain_alias_exact_with_evidence(
+            &alias,
+            DomainEvidence::ByteArray,
+            Some(type_id),
+        );
     }
     if let Some(alias) = c_unsigned_32_typedef_alias(lo.text(node)) {
-        lo.record_unsigned_32_alias(&alias);
+        let type_id = record_c_type_alias_evidence(
+            lo,
+            span,
+            &alias,
+            CTypeTarget::UnsignedInteger { bits: 32 },
+            Vec::new(),
+        );
+        lo.record_unsigned_32_alias_with_evidence(&alias, Some(type_id));
     }
 }
 
@@ -245,43 +329,74 @@ fn c_unsigned_32_typedef_alias(text: &str) -> Option<String> {
     is_c_identifier(alias).then(|| alias.to_string())
 }
 
-fn c_param_semantic_from_text(lo: &Lowering, text: &str) -> Option<ParamSemantic> {
-    if c_byte_buffer_param(lo, text) {
-        Some(ParamSemantic::ByteArray)
+fn c_param_domain_from_text(
+    lo: &Lowering,
+    text: &str,
+    param_name: Option<&str>,
+) -> Option<(DomainEvidence, Vec<EvidenceId>)> {
+    if let Some(dependencies) = c_byte_buffer_param_dependencies(lo, text, param_name) {
+        Some((DomainEvidence::ByteArray, dependencies))
     } else {
-        crate::lower::param_semantic_from_text(text)
+        nose_semantics::type_domain_from_source_text(Lang::C, text)
+            .map(|domain| (domain, Vec::new()))
     }
 }
 
-fn c_byte_buffer_param(lo: &Lowering, text: &str) -> bool {
+fn c_byte_buffer_param_dependencies(
+    lo: &Lowering,
+    text: &str,
+    param_name: Option<&str>,
+) -> Option<Vec<EvidenceId>> {
     let compact = compact_c_type_text(text);
     if !(compact.contains('*') || compact.contains('[')) {
-        return false;
+        return None;
     }
-    let tokens = c_identifier_tokens(text);
+    let tokens = c_parameter_type_tokens(text, param_name);
     if tokens.iter().any(|token| token == "uint8_t")
         || (tokens.iter().any(|token| token == "unsigned")
             && tokens.iter().any(|token| token == "char"))
     {
-        return true;
+        return Some(Vec::new());
     }
-    lo.param_semantic_aliases.iter().any(|(alias, semantic)| {
-        *semantic == ParamSemantic::ByteArray && tokens.iter().any(|token| token == alias)
+    lo.type_domain_aliases.iter().find_map(|known| {
+        (known.domain == DomainEvidence::ByteArray
+            && c_type_tokens_contain_plain_alias(&tokens, &known.alias))
+        .then(|| known.evidence.into_iter().collect())
     })
 }
 
 fn compact_c_type_text(text: &str) -> String {
-    text.chars()
-        .filter(|c| !c.is_whitespace())
-        .flat_map(char::to_lowercase)
-        .collect()
+    text.chars().filter(|c| !c.is_whitespace()).collect()
 }
 
 fn c_identifier_tokens(text: &str) -> Vec<String> {
     text.split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
         .filter(|token| !token.is_empty())
-        .map(|token| token.to_ascii_lowercase())
+        .map(ToString::to_string)
         .collect()
+}
+
+fn c_parameter_type_tokens(text: &str, param_name: Option<&str>) -> Vec<String> {
+    let mut tokens = c_identifier_tokens(text);
+    if let Some(param_name) = param_name {
+        if let Some(index) = tokens.iter().rposition(|token| token == param_name) {
+            tokens.remove(index);
+        }
+    }
+    tokens
+}
+
+fn c_type_tokens_contain_plain_alias(tokens: &[String], alias: &str) -> bool {
+    tokens.iter().enumerate().any(|(index, token)| {
+        token == alias
+            && !matches!(
+                index
+                    .checked_sub(1)
+                    .and_then(|prev| tokens.get(prev))
+                    .map(String::as_str),
+                Some("struct" | "union" | "enum")
+            )
+    })
 }
 
 fn is_c_identifier(text: &str) -> bool {
@@ -693,25 +808,43 @@ fn lower_cast(lo: &mut Lowering, node: TsNode) -> NodeId {
         .child_by_field_name("type")
         .map(|ty| lo.text(ty))
         .unwrap_or("");
-    if c_unsigned_32_cast_type(lo, cast_ty) && value.is_some_and(c_cast_operand_may_be_byte_lane) {
-        lo.add(
-            NodeKind::Call,
-            Payload::Builtin(Builtin::UnsignedCast32),
-            span,
-            &[lowered],
-        )
-    } else {
-        lowered
+    if let Some(dependencies) = c_unsigned_32_cast_type_dependencies(lo, cast_ty) {
+        if value.is_some_and(c_cast_operand_may_be_byte_lane) {
+            lo.record_evidence_with_dependencies(
+                EvidenceAnchor::source_span(span),
+                EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32)),
+                "c_unsigned_32_cast",
+                dependencies,
+            );
+            return lo.add(
+                NodeKind::Call,
+                Payload::Builtin(Builtin::UnsignedCast32),
+                span,
+                &[lowered],
+            );
+        }
     }
+    lowered
 }
 
-fn c_unsigned_32_cast_type(lo: &Lowering, text: &str) -> bool {
-    let mut compact = compact_c_type_text(text);
-    for qualifier in ["const", "volatile", "restrict"] {
-        compact = compact.replace(qualifier, "");
+fn c_unsigned_32_cast_type_dependencies(lo: &Lowering, text: &str) -> Option<Vec<EvidenceId>> {
+    let tokens: Vec<String> = c_identifier_tokens(text)
+        .into_iter()
+        .filter(|token| !matches!(token.as_str(), "const" | "volatile" | "restrict"))
+        .collect();
+    if matches!(
+        tokens.as_slice(),
+        [token] if token == "unsigned" || token == "uint32_t"
+    ) || matches!(tokens.as_slice(), [first, second] if first == "unsigned" && second == "int")
+    {
+        return Some(Vec::new());
     }
-    matches!(compact.as_str(), "unsigned" | "unsignedint" | "uint32_t")
-        || lo.unsigned_32_aliases.contains(&compact)
+    let [alias] = tokens.as_slice() else {
+        return None;
+    };
+    lo.unsigned_32_aliases
+        .iter()
+        .find_map(|known| (known.alias == *alias).then(|| known.evidence.into_iter().collect()))
 }
 
 fn c_cast_operand_may_be_byte_lane(node: TsNode) -> bool {
@@ -733,6 +866,7 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::EvidenceKind;
 
     /// Collect every `Op` carried by a `UnOp` node in the lowered IL.
     fn unary_ops(src: &str) -> Vec<Op> {
@@ -776,6 +910,242 @@ mod tests {
         // `+x` and `-x` must not collapse to the same operator.
         assert_eq!(unary_ops("int f(int x){ return +x; }"), vec![Op::Pos]);
         assert_eq!(unary_ops("int f(int x){ return -x; }"), vec![Op::Neg]);
+    }
+
+    #[test]
+    fn unsigned_32_byte_lane_cast_emits_source_cast_evidence() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.c",
+            b"typedef unsigned char u8;\ntypedef unsigned int u32;\nu32 f(const u8 *a){ return ((u32)a[0]) << 24; }",
+            &interner,
+        )
+        .expect("lower");
+
+        let u8_type = il.evidence.iter().find(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                    alias_hash,
+                    target: CTypeTarget::UnsignedInteger { bits: 8 },
+                }) if alias_hash == stable_symbol_hash("u8")
+            )
+        });
+        assert!(u8_type.is_some(), "u8 typedef must emit Type evidence");
+
+        let u32_type = il.evidence.iter().find(|record| {
+            matches!(
+                record.kind,
+                EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                    alias_hash,
+                    target: CTypeTarget::UnsignedInteger { bits: 32 },
+                }) if alias_hash == stable_symbol_hash("u32")
+            )
+        });
+        let u32_type = u32_type.expect("u32 typedef must emit Type evidence");
+
+        let cast = il
+            .evidence
+            .iter()
+            .find(|record| {
+                record.kind
+                    == EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32))
+            })
+            .expect("C unsigned 32-bit byte-lane casts must emit source evidence");
+        assert_eq!(
+            cast.dependencies,
+            vec![u32_type.id],
+            "alias-based unsigned casts should depend on the alias Type proof"
+        );
+    }
+
+    #[test]
+    fn direct_quote_include_aliases_emit_import_type_and_dependent_facts() {
+        let interner = Interner::new();
+        let dir = std::env::temp_dir().join(format!(
+            "nose_c_include_alias_evidence_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("bytes.h"),
+            "typedef unsigned char u8;\ntypedef unsigned int u32;\n",
+        )
+        .unwrap();
+        let source = "#include \"bytes.h\"\nu32 f(const u8 *a){ return (((u32)a[0]) << 24) | (((u32)a[1]) << 16) | (((u32)a[2]) << 8) | ((u32)a[3]); }\n";
+        let il = lower(
+            FileId(0),
+            dir.join("main.c").to_str().unwrap(),
+            source.as_bytes(),
+            &interner,
+        )
+        .expect("lower");
+
+        let include = il
+            .evidence
+            .iter()
+            .find(|record| {
+                record.kind
+                    == EvidenceKind::Import(ImportEvidenceKind::CQuoteInclude {
+                        include_hash: stable_symbol_hash("bytes.h"),
+                    })
+            })
+            .expect("quote include must emit Import evidence");
+        let u8_type = il
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                        alias_hash,
+                        target: CTypeTarget::UnsignedInteger { bits: 8 },
+                    }) if alias_hash == stable_symbol_hash("u8")
+                )
+            })
+            .expect("included u8 alias must emit Type evidence");
+        assert_eq!(u8_type.dependencies, vec![include.id]);
+        let u32_type = il
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                        alias_hash,
+                        target: CTypeTarget::UnsignedInteger { bits: 32 },
+                    }) if alias_hash == stable_symbol_hash("u32")
+                )
+            })
+            .expect("included u32 alias must emit Type evidence");
+        assert_eq!(u32_type.dependencies, vec![include.id]);
+
+        let domain = il
+            .evidence
+            .iter()
+            .find(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray))
+            .expect("u8 pointer parameter must emit ByteArray domain evidence");
+        assert_eq!(domain.dependencies, vec![u8_type.id]);
+        let cast = il
+            .evidence
+            .iter()
+            .find(|record| {
+                record.kind
+                    == EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32))
+            })
+            .expect("included u32 cast alias must emit Source cast evidence");
+        assert_eq!(cast.dependencies, vec![u32_type.id]);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn direct_quote_include_alias_scan_is_not_hardcoded_to_u8_u32_names() {
+        let interner = Interner::new();
+        let dir = std::env::temp_dir().join(format!(
+            "nose_c_include_generic_alias_evidence_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(
+            dir.join("bytes.h"),
+            "typedef unsigned char byte;\ntypedef uint32_t word;\n",
+        )
+        .unwrap();
+        let source = "#include \"bytes.h\"\nword f(const byte *a){ return (((word)a[0]) << 24) | (((word)a[1]) << 16) | (((word)a[2]) << 8) | ((word)a[3]); }\n";
+        let il = lower(
+            FileId(0),
+            dir.join("main.c").to_str().unwrap(),
+            source.as_bytes(),
+            &interner,
+        )
+        .expect("lower");
+
+        let byte_type = il
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                        alias_hash,
+                        target: CTypeTarget::UnsignedInteger { bits: 8 },
+                    }) if alias_hash == stable_symbol_hash("byte")
+                )
+            })
+            .expect("included byte alias must emit Type evidence");
+        let word_type = il
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Type(TypeEvidenceKind::CTypeAlias {
+                        alias_hash,
+                        target: CTypeTarget::UnsignedInteger { bits: 32 },
+                    }) if alias_hash == stable_symbol_hash("word")
+                )
+            })
+            .expect("included word alias must emit Type evidence");
+
+        let domain = il
+            .evidence
+            .iter()
+            .find(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray))
+            .expect("byte pointer parameter must emit ByteArray domain evidence");
+        assert_eq!(domain.dependencies, vec![byte_type.id]);
+        let cast = il
+            .evidence
+            .iter()
+            .find(|record| {
+                record.kind
+                    == EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32))
+            })
+            .expect("included word cast alias must emit Source cast evidence");
+        assert_eq!(cast.dependencies, vec![word_type.id]);
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn byte_array_alias_must_denote_a_plain_type_not_a_struct_tag_or_param_name() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.c",
+            b"typedef unsigned char u8;\nint f(struct u8 *u8){ return (u8[0] << 8) | u8[1]; }",
+            &interner,
+        )
+        .expect("lower");
+
+        assert!(
+            !il.evidence
+                .iter()
+                .any(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray)),
+            "struct tags or parameter names must not satisfy a typedef alias proof"
+        );
+    }
+
+    #[test]
+    fn scalar_pointer_param_does_not_emit_integer_domain() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.c",
+            b"int f(int *xs){ return xs[0]; }",
+            &interner,
+        )
+        .expect("lower");
+
+        assert!(
+            !il.evidence
+                .iter()
+                .any(|record| record.kind == EvidenceKind::Domain(DomainEvidence::Integer)),
+            "C pointer parameters must not inherit scalar integer domain evidence"
+        );
     }
 
     /// Collect every `Op` carried by a `BinOp` node in the lowered IL.

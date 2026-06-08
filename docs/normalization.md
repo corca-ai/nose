@@ -4,7 +4,8 @@ Normalization is step 2 of the pipeline in [architecture](architecture.md); the
 experiments that validated these passes are in [experiments](experiments.md).
 
 > **Status (all three tracks landed):** Track 1 — dataflow copy/expr propagation
-> (`dataflow.rs`) + value-graph/GVN (`value_graph.rs`, the detection substrate;
+> (`dataflow.rs`) + value-graph/GVN (`value_graph.rs` plus focused internal
+> modules under `value_graph/`, the detection substrate;
 > Stage 2 statement-order subsumed). Track 2 — algebraic canonicalization
 > (`algebra.rs`: assoc/comm flatten, comparison-direction, De Morgan;
 > value-independent). Track 3 — CFG normalization (`cfg_norm.rs` `structure()`:
@@ -39,7 +40,8 @@ experiments that validated these passes are in [experiments](experiments.md).
 > gate comparison transforms, comparison-lattice rewrites, static cardinality
 > thresholds, and source membership operators, while source-fact gates protect
 > JS-like constructor factories, regex literal `.test(...)`, and static
-> membership callback equality, **distribution/factoring**
+> membership callback equality, plus Rust half-open range and `Some(_)` pattern
+> recognition, **distribution/factoring**
 > `a*c+b*c→(a+b)*c` (value-domain-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
@@ -63,8 +65,8 @@ experiments that validated these passes are in [experiments](experiments.md).
 > merge with `append(b); append(a)`),
 > C byte-buffer `u16`/`u32` big-endian packing (`(a[0]<<8)+a[1]` ≡ `(a[0]<<8)|a[1]`
 > only under a byte-array parameter proof, including same-file and direct local-include
-> `typedef unsigned char` aliases; `u32` additionally requires an explicit unsigned
-> 32-bit cast proof on the high lane), Java `Arrays.asList(arrayParam)` membership over the
+> `typedef unsigned char <alias>` proofs; `u32` additionally requires an explicit unsigned
+> 32-bit cast or alias proof on the high lane), Java `Arrays.asList(arrayParam)` membership over the
 > proven array element domain, plus Java primitive-integer low-bit toggle selection
 > (`x%2==0 ? x+1 : x-1` ≡ `x^1`).
 > Also landed: **recursion → iteration** (`recursion.rs`) — tail recursion → `while`, and numeric
@@ -151,6 +153,9 @@ Guiding constraints for every pass:
   pure `Some(x).and_then(...)` helper chains, and guarded builders today. Wrapped
   `Some(None)`-style callbacks are emitted `Null` payloads, not dropped items, while
   effectful callbacks and unmodeled option helper chains remain fail-closed.
+  Rust Option pattern predicates likewise stay closed unless the selector has
+  admitted `Some`/`None` API evidence and the pattern surface has Rust
+  tuple-struct wildcard source evidence.
   Lowered aggregate surfaces now pass through a `SeqSurfaceContract`: arrays/slices can
   enter collection membership, maps/objects enter map/object value semantics, Go
   `composite_literal` map surfaces are consumed only by the Go zero-map contract, JS object
@@ -192,12 +197,29 @@ downstream value-graph.
   (fingerprint subgraphs) and the natural home for the downstream graph/vectorize
   experiments. Hard parts: φ-handling across control flow, effect ordering,
   canonical graph hashing.
+  The implementation keeps `value_graph.rs` as a module/documentation hub:
+  public API entry points live in `value_graph/api.rs`, private value-graph
+  model and builder state live in `value_graph/model.rs`, evidence/state
+  helpers live in `value_graph/state.rs`, sink/path emission lives in
+  `value_graph/sinks.rs`, value interning and canonicalization live in
+  `value_graph/canonicalize.rs`, and expression dispatch lives in
+  `value_graph/eval.rs`. Other focused modules own active builders,
+  control/loop processing, collection/HOF/library value recognition, output
+  extraction, stdlib recognizers, pure inlining, low-level ops, and
+  proof-sensitive rule modules. New value-graph behavior should land in the
+  narrowest matching module instead of growing the hub file.
 
   A narrow Java-only selection idiom lives here: `x % 2 == 0 ? x + 1 : x - 1`
   and the equivalent `x % 2 != 0 ? x - 1 : x + 1` canonicalize to `x ^ 1`.
   The proof relies on Java primitive integer operators: even values take `+1`, odd
   values take `-1`, and the branch split avoids overflow at both signed extremes.
   It deliberately does not apply to overloadable or coercive operator surfaces.
+
+  Interprocedural pure-helper inlining also lives in the value graph. A call to
+  a pure in-file helper can beta-substitute the helper body only when the call
+  occurrence carries `CallTarget::DirectFunction` evidence for the exact target
+  unit. The callee spelling is not a proof channel; missing, ambiguous, or
+  conflicting target evidence leaves the call opaque.
 
 ## Track 2 — Algebraic expression canonicalization (E-graph)
 
@@ -254,16 +276,20 @@ converge with hand-written iteration.
   with the base case returning exactly that identity literal. Short-circuit `and`/`or` are
   excluded: their early-exit skips later `HEAD`s the accumulator loop still evaluates.
 
-Both schemes require exactly one self-call (a same-named call inside a standalone function);
-anything else is left untouched. The proof obligations
+Both schemes require exactly one self-call, and self-call identity is evidence-backed:
+the call occurrence must carry `CallTarget::DirectFunction` evidence that points at the
+enclosing function or method unit. A raw callee spelling is not enough. Anything else is
+left untouched.
+The proof obligations
 [normalize.recursion.tail](../formal/obligations/normalize/recursion/tail/Proof.lean)
 and
 [normalize.recursion.structural_fold](../formal/obligations/normalize/recursion/structural_fold/Proof.lean)
 record the tail-loop equivalence, the numeric `+`/`*` fold laws, and boundary
 counterexamples for cyclic tail-call bindings, subtraction, and wrong identities.
 **Soundness** is checked, not assumed: the interpreter
-([interp](../crates/nose-normalize/src/interp.rs)) now executes self-recursion, so
-`nose verify` interprets the original recursion *and* the rewritten loop and flags any
+([interp](../crates/nose-normalize/src/interp.rs)) executes user-defined calls only when
+`CallTarget` evidence resolves the exact occurrence to an in-file function or method root, so
+`nose verify` interprets proven original recursion *and* the rewritten loop and flags any
 behavioral difference (when the recursion terminates on the input battery — a guard like
 `n == 0` that loops forever on negatives is excluded on both sides, identically). On real
 code `nose verify` stays sound (0 false merges). Its concrete model covers
@@ -288,12 +314,13 @@ statically selected branches) with
 its handler. Richer exception control flow remains outside the oracle.
 Field writes and reads evaluate their receiver before consulting or updating same-unit
 field state, so receiver errors propagate instead of falling through to a cached field
-value. Same-unit field state is keyed by receiver identity plus field name; a write to
-`a.x` can satisfy a later read from `a.x`, but not a read from `b.x`. After that, reads
-are interpreted only when the same unit has written that receiver+field place; an unwritten
-field access remains unsupported rather than invented. The value graph follows the same
-boundary: `self.x = v; return self.x` resolves the read to `v`, while an unproven field
-read stays field-shaped.
+value. Same-unit field state is keyed by proven receiver identity plus field name; today
+the admitted first-party substrate is Java `this.field` backed by `Place(SelfReceiver)`,
+`Place(SelfField)`, and `Effect(SelfFieldWrite)`. After that, reads are interpreted only
+when the same unit has written that receiver+field place; an unwritten field access remains
+unsupported rather than invented. The value graph follows the same boundary:
+`this.x = v; return this.x` resolves the read to `v`, while an unproven field read stays
+field-shaped.
 
 Out of scope (sound but not yet convergent, or genuinely hard): tree & mutual recursion
 (multiple / non-tail self-calls); list-tail catamorphisms `head ⊕ f(xs[1:])`, whose slice is

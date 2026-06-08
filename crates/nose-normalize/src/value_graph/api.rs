@@ -1,0 +1,115 @@
+use super::*;
+
+/// A heavy sub-DAG anchor: a shared sub-computation's structural `hash`, its `weight` (sub-DAG
+/// size), and the source line range (`line_start..=line_end`) of the IL subtree that produced it —
+/// so a partial / sub-DAG clone can report WHERE the shared computation lives in each unit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Anchor {
+    pub hash: u64,
+    pub weight: u32,
+    pub line_start: u32,
+    pub line_end: u32,
+}
+
+/// A unit's heavy sub-DAG anchors, sorted/deduped by hash.
+pub type Anchors = Vec<Anchor>;
+
+/// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
+/// heavy sub-DAG [`Anchors`].
+pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
+
+/// Public entry: the value-graph fingerprint of the unit rooted at `root`
+/// (sorted multiset of `u64` value hashes). Equivalent computations → equal
+/// multisets.
+pub fn value_fingerprint(il: &Il, root: NodeId, interner: &Interner) -> Vec<u64> {
+    value_fingerprint_lits(il, root, interner).0
+}
+
+/// Like [`value_fingerprint`], but also returns (1) the sorted multiset of literal
+/// (`Const`) value hashes — for "data-table" detection — and (2) the sorted multiset
+/// of RETURN-sink value hashes — what the unit actually computes/returns, for a
+/// return-signature match (true clones return the same values).
+pub fn value_fingerprint_lits(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    b.fingerprint_lits()
+}
+
+/// The default minimum sub-computation size (in value-nodes) for a node to be an extractable
+/// anchor. Below this a shared sub-DAG is a common idiom (`x+1`, `len(xs)`), not a refactor.
+pub const ANCHOR_MIN_WEIGHT: u32 = 20;
+
+/// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
+/// anchor share an extractable sub-computation: a partial / sub-DAG clone.
+pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Anchors {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    b.anchors(ANCHOR_MIN_WEIGHT)
+}
+
+/// `value_fingerprint_lits` plus the unit's heavy sub-DAG anchors, all from ONE value-graph
+/// build (anchors share the build, so adding them is free vs. fingerprinting alone).
+pub fn value_fingerprint_lits_anchors(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> FingerprintBundle {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
+/// Context-shared variant of [`value_fingerprint_lits_anchors`].
+pub fn value_fingerprint_lits_anchors_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> FingerprintBundle {
+    let mut b = Builder::new(il, interner).with_context(context);
+    b.build_unit_with_context(root, Some(context));
+    let (v, l, r) = b.fingerprint_lits();
+    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    (v, l, r, a)
+}
+
+pub fn value_fingerprint_lits_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> (Vec<u64>, Vec<u64>, Vec<u64>) {
+    let mut b = Builder::new(il, interner).with_context(context);
+    b.build_unit_with_context(root, Some(context));
+    b.fingerprint_lits()
+}
+
+/// The pointer-length contracts the unit relied on to converge: deduped, sorted
+/// `(array_param_pos, length_param_pos)` pairs. The behavioral oracle binds
+/// `args[length_pos] = len(args[array_pos])` for each, so it interprets the unit under the
+/// SAME `n = len(array)` convention the value graph used to merge it. Empty when none.
+pub fn value_fingerprint_contracts(il: &Il, root: NodeId, interner: &Interner) -> Vec<(u32, u32)> {
+    value_fingerprint_and_contracts(il, root, interner).1
+}
+
+/// Both the value fingerprint AND the pointer-length contracts from a SINGLE build — the
+/// behavioral oracle needs both per unit, and building the value graph twice (once for each)
+/// doubled the per-unit cost.
+pub fn value_fingerprint_and_contracts(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> (Vec<u64>, Vec<(u32, u32)>) {
+    let mut b = Builder::new(il, interner);
+    b.build_unit(root);
+    let fp = b.fingerprint_lits().0;
+    b.contracts.sort_unstable();
+    b.contracts.dedup();
+    (fp, b.contracts)
+}

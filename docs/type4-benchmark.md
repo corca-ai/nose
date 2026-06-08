@@ -233,14 +233,14 @@ or effectful receiver comparisons remain hard negatives.
 
 The current C byte-pack contract is narrower still. Generated `u16` big-endian decoders may
 converge only when the receiver is proven to be a byte buffer (`unsigned char *`, `uint8_t *`,
-or a local `typedef unsigned char u8` from the same file or a same-directory direct quote
-include) and the expression combines lane 0 shifted by exactly 8 with lane 1 from the same
-base via `+` or `|`. Generated `u32` big-endian decoders additionally require an explicit
-unsigned 32-bit cast proof on the high byte lane before shifting by 24: direct `unsigned`,
-`unsigned int`, `uint32_t`, or a proven `typedef unsigned int u32` alias from the same file
-or direct local include. Swapped lanes, overlapping shifts, wrong byte coordinates, missing
-or non-byte aliases, non-byte receivers, and uncasted 32-bit high-lane shifts remain hard
-negatives.
+or a proven local or same-directory direct-quote `typedef unsigned char <alias>`) and the
+expression combines lane 0 shifted by exactly 8 with lane 1 from the same base via `+` or
+`|`. Generated `u32` big-endian decoders additionally require an explicit unsigned 32-bit
+cast proof on the high byte lane before shifting by 24: direct `unsigned`, `unsigned int`,
+`uint32_t`, or a proven local or direct-quote alias to those current 32-bit unsigned forms.
+Swapped lanes, overlapping shifts, wrong byte coordinates, missing or non-byte aliases,
+non-byte receivers, tag names that merely match an alias spelling, and uncasted 32-bit
+high-lane shifts remain hard negatives.
 
 ## Promotion rules
 
@@ -296,7 +296,9 @@ The detailed file inventory lives in [bench/type4/README.md](../bench/type4/READ
 The stable roles are:
 
 - synthetic generation and manifest evaluation:
-  `generate.py`, `select_cases.py`, `eval_manifest.py`, and `schema.json`;
+  `generate.py`, `type4gen/`, `select_cases.py`, `eval_manifest.py`, and
+  `schema.json`. `generate.py` remains the stable CLI/import entry point, while
+  `type4gen/` owns generator model/config, axis metadata, and aggregate emitters;
 - coverage matrix and proof-fact capability tracking:
   `coverage_matrix.v1.json`, `coverage_evidence.v1.json`, `coverage_matrix.py`, and
   `capabilities.v1.json`;

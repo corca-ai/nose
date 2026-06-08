@@ -10,8 +10,8 @@
 //! The differential test below is the acceptance gate the maintainer required: over a
 //! representative corpus, the set of `(span, kind)` the predicate path accepts (restricted
 //! to migrated kinds) must equal the set the contract path produces. A migration step that
-//! changes which nodes are accepted fails this test. As [`MIGRATED`] grows, the gate keeps
-//! the two paths in lockstep until every shape is contract-expressed.
+//! changes which nodes are accepted fails this test. As the migrated set grows, the gate
+//! keeps the two paths in lockstep until every shape is contract-expressed.
 
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
@@ -25,6 +25,7 @@ use nose_semantics::{
 /// Fragment kinds that have been migrated onto the contract path. The differential gate
 /// compares the predicate and contract paths over exactly this set; everything outside it
 /// is still owned solely by the [`crate::units`] predicates.
+#[cfg(test)]
 pub(crate) const MIGRATED: &[FragmentKind] = &[
     FragmentKind::DirectReturn,
     FragmentKind::DirectThrow,

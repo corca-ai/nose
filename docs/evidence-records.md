@@ -14,8 +14,9 @@ precondition.
 
 ## Goal
 
-- Give source, domain, import, symbol-identity, guard, place/effect, selected
-  library API occurrence, and sequence-surface proof facts one shared shape.
+- Give source, domain, import, symbol-identity, type-alias, guard,
+  place/effect, selected library API occurrence, and sequence-surface proof
+  facts one shared shape.
 - Make facts carry stable ids, anchors, provenance, dependencies, and status.
 - Keep exact matching fail-closed when evidence is missing, ambiguous, or
   conflicting.
@@ -33,10 +34,12 @@ precondition.
   scan JSON schema.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
-- Do not model demand evidence or every place/effect family in this slice. The
-  current place/effect records cover the first exact-fragment substrate plus
-  conservative binding-write, receiver-mutation, and opaque-argument-escape
-  risk facts needed to keep binding/import safety fail-closed.
+- Do not model demand as evidence records or cover every place/effect family in
+  this slice. Demand profiles are internal contracts for already-admitted
+  operations; they are not source proof records. The current place/effect records
+  cover the first exact-fragment substrate plus conservative binding-write,
+  receiver-mutation, and opaque-argument-escape risk facts needed to keep
+  binding/import safety fail-closed.
 
 ## Record Shape
 
@@ -56,25 +59,43 @@ The current implemented kinds are:
 
 | kind | purpose |
 |---|---|
-| `Source` | construct syntax, Rust macro invocation syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, regex literal provenance, and source operator family |
+| `Source` | construct syntax, Rust macro invocation/range/pattern syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, C unsigned-cast syntax, regex literal provenance, and source operator family including JS-like unary `typeof` |
 | `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
-| `Import` | static import binding/namespace proof, Java wildcard import proof, Ruby `require` module proof, and imported-literal snapshot provenance |
+| `Import` | static import binding/namespace proof, Python wildcard-import ambiguity proof, Java wildcard import proof, C quote-include proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
+| `Type` | type alias proof, currently exact-spelling C aliases to unsigned 8-bit and supported unsigned 32-bit integer forms |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
 | `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, generic Python/Go free-function builtins, and selected receiver-method families |
+| `CallTarget` | proof that a specific user call occurrence resolves to a direct in-file callable unit target |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
 the contract id, callee coordinate, arity, and dependencies for a specific
 `Call`, `Field`, or `Var` node, depending on the contract surface.
 `LibraryApiContract` rows in `nose-semantics` still name result semantics and
-the remaining obligations. Existing evidence kinds such as `Symbol`,
-`Import`, `Source`, `Domain`, and `SequenceSurface` prove those obligations; the
-contract decides whether the facts are enough to admit an exact or value-graph
-path. A future external pack schema may expose library API contracts, but
-providers still emit facts and contracts rather than exact-clone verdicts.
+the remaining obligations. The implementation keeps contract identities, row
+constructors, evidence-hash registry helpers, and occurrence admission separate
+so this boundary can narrow into a future pack schema. Existing evidence kinds
+such as `Symbol`, `Import`, `Source`, `Domain`, and `SequenceSurface` prove
+those obligations; the contract decides whether the facts are enough to admit an
+exact or value-graph path. A future external pack schema may expose library API
+contracts, but providers still emit facts and contracts rather than exact-clone
+verdicts.
+
+`CallTarget` evidence is the occurrence proof for user-defined calls. A raw
+callee spelling such as `f(...)` is only a selector that a producer may inspect;
+recursion normalization, the interpreter oracle, value-graph pure helper
+inlining, and strict exact direct-function callee gates consume only
+`CallTarget::DirectFunction` records anchored to the exact `Call` node and
+matching the target function span. The first-party producer currently emits this
+fact only for unique top-level in-file `Function` units when neither the current
+lexical scope nor any enclosing lexical scope has a parameter, assignment
+target, loop-pattern binding, or nested function definition that shadows the
+callee name. Duplicate function names, lexical shadowing, nested/non-top-level
+functions, methods without an explicit target proof, computed callees, and
+missing or conflicting evidence stay closed.
 
 Current first-party `LibraryApi` callee coordinates are intentionally specific:
 
@@ -91,6 +112,10 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
   calls and depends on matching Java import-binding evidence plus source-origin
   local type shadow checks.
+- Python wildcard imports emit `Import::Wildcard` evidence. For current
+  first-party Python free-name API producers, any asserted wildcard import keeps
+  unqualified builtin/free-name library occurrence evidence closed because a
+  provider module may supply a same-named binding.
 - `JavaUtilConstructor` names selected Java `java.util` constructors and depends
   on construct-syntax evidence plus exact import-binding evidence or earlier
   Java wildcard import evidence. Wildcard proof is constrained by Java name
@@ -153,20 +178,25 @@ alias is rebound or ambiguous, the exact path stays closed until a node-level
 symbol fact or stronger scope-resolution evidence exists.
 
 Domain evidence follows the same fail-closed rule. First-party parameter
-annotations emit `Domain` evidence on `Param` anchors, and `nose-semantics`
-resolves `Domain` evidence on exact receiver-expression node anchors, then
-binding anchors for immutable local/module variables, then parameter anchors. A
-conflicting, ambiguous, or dependency-broken receiver-domain record closes that
-receiver proof and must not fall back to side-table mirrors or selector
-spelling. Binding-anchor lookup matches both source span and `local_hash`, and a
-binding proof is applied to a receiver only when the assignment is visible before
-that receiver use. When a receiver is an alpha-renamed parameter or local binding
-reference, lookup is constrained to the nearest function/lambda scope where
-appropriate so same-numbered parameter/local ids from other units do not prove
-the current receiver. Method receiver contracts expose their domain-backed
-obligations through `DomainRequirement`; obligations such as imported namespace,
-unshadowed global, exact map literal, and future demand/effect constraints remain
-separate checks.
+annotations emit `Domain` evidence on `Param` anchors only through
+language-scoped type-domain contracts in `nose-semantics`, not through a shared
+substring fallback over arbitrary parameter text. The frontend owns evidence
+emission and alias lifecycle: for example, Python `typing`/`collections.abc`
+aliases record dependency-backed parameter `Domain` evidence that depends on the
+corresponding `ImportedBinding` symbol evidence, and a rebound alias closes that
+path. `nose-semantics` resolves `Domain` evidence on exact receiver-expression
+node anchors, then binding anchors for immutable local/module variables, then
+parameter anchors. A conflicting, ambiguous, or dependency-broken
+receiver-domain record closes that receiver proof and must not fall back to
+side-table mirrors or selector spelling. Binding-anchor lookup matches both
+source span and `local_hash`, and a binding proof is applied to a receiver only
+when the assignment is visible before that receiver use. When a receiver is an
+alpha-renamed parameter or local binding reference, lookup is constrained to the
+nearest function/lambda scope where appropriate so same-numbered parameter/local
+ids from other units do not prove the current receiver. Method receiver
+contracts expose their domain-backed obligations through `DomainRequirement`;
+obligations such as imported namespace, unshadowed global, exact map literal, and
+future demand/effect constraints remain separate checks.
 
 Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
 contract used by value-graph and recursion laws. That bridge is intentionally
@@ -196,12 +226,17 @@ membership, map-entry-list shape, imported-literal eligibility, or a canonical
 value-graph tag. Consumers resolve the tag only when a matching
 `SequenceSurface` record exists at the same sequence anchor and its dependencies
 remain asserted. Missing, conflicting, ambiguous, or wrong-kind surface evidence
-keeps the exact/value-graph path closed.
+keeps the exact/value-graph path closed. In the value graph, a missing surface
+record produces the untagged sequence value rather than a raw spelling-derived
+hash, so a payload name cannot become a semantic proof channel by coincidence.
 
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,
-`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`.
+`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`. The
+`QualifiedGlobal` record itself depends on same-span source evidence for the
+unshadowed root (`Object` or `Array` today), and exact/value consumers reject the
+path when that dependency is missing, ambiguous, or broken.
 
 Guard identity is separate from sequence shape. A raw `Seq("record_guard")` or a
 matching `SequenceSurface(RecordGuard)` fact proves only that the frontend
@@ -220,9 +255,10 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
 
-Place and effect evidence are authoritative for the exact-fragment substrate
-and for conservative mutation invalidation. Raw method selectors such as `push`,
-`append`, or `add` do not prove an append effect; exact consumers need
+Place and effect evidence are authoritative for the exact-fragment substrate,
+value-graph field-state consumers, oracle field state, and conservative mutation
+invalidation. Raw method selectors such as `push`, `append`, or `add` do not prove
+an append effect; exact consumers need
 `Effect(BuilderAppendCall)`, even when the call has already been lowered to
 canonical `Builtin::Append`. Likewise, non-overloadable index writes and fixed
 self-field writes are admitted only through exact `Effect` records, with
@@ -230,12 +266,13 @@ self-field writes are admitted only through exact `Effect` records, with
 First-party `Place(SelfField)` depends on the matching `Place(SelfReceiver)`,
 and `Effect(SelfFieldWrite)` depends on the matching `Place(SelfField)`.
 Missing, conflicting, ambiguous, or dependency-broken place/effect evidence
-closes exact fragments instead of reopening a legacy language/shape fallback.
+closes exact fragments, value-graph field readback/final field sinks, and oracle
+field state instead of reopening a legacy language/shape fallback.
 
 Mutation-risk effects are intentionally separate from exact effect proofs.
 `Effect(BindingWrite)` says an assignment node writes its syntactic target;
 `Effect(ReceiverMutation)` says a call is covered by a first-party
-language-scoped receiver-mutating method policy; and
+language-scoped receiver-mutating method-effect contract row; and
 `Effect(OpaqueArgumentEscape)` says an ordinary call argument may escape to
 unknown code. These records can invalidate immutable binding, module export,
 imported literal, value-graph, or exact-fragment context assumptions, but they
@@ -244,6 +281,17 @@ exact semantic law. Known admitted `LibraryApi` occurrences suppress the opaque
 escape helper for that call, so a modeled API such as an imported stdlib
 predicate is not treated as arbitrary mutation risk merely because it takes an
 argument.
+
+Builder and map-builder value laws consume emitted or admitted evidence, not raw
+selectors. A method-effect row for list builders names the producer-side
+language, selector, arity, required `Effect(BuilderAppendCall)`, and
+active-builder receiver obligation. Value-graph list-builder recognition
+requires that effect record, an admitted same-span append `LibraryApi`
+occurrence, or the method-effect row itself under active-builder context. An
+index-write row for map builders names the language, required write evidence,
+and active-map-builder receiver obligation. `BindingWrite` alone remains a
+mutation-risk fact; it admits a map-builder contribution only when a matching
+index-write contract and explicit active map seed are also present.
 
 Library API evidence follows the same fail-closed rule. If a call carries
 `LibraryApi` evidence for a selected API occurrence, consumers must validate the
@@ -259,6 +307,28 @@ contract rows whose occurrence producer is not modeled yet. The record proves
 only API identity; exact consumers still separately prove receiver/domain facts,
 source-surface requirements, argument safety, result shape, mutation safety, and
 demand/effect obligations.
+
+Canonical `Payload::Builtin` calls are not proof by themselves. They are the
+shared operation shape after syntax/lowering/desugaring has erased a concrete
+callee, so value-graph, strict-exact, function-binding, mutation-risk,
+value-domain inference, and interpreter-oracle consumers must first ask
+`nose-semantics` whether that call is admitted for the specific builtin.
+Admission currently comes from either a same-span admitted
+`LibraryApi` occurrence record whose contract id maps to that builtin, or a
+narrow first-party language-core lowering: Go map lookup-ok `Contains`, Go
+`range` `Enumerate`, Python dict-comprehension `DictEntry`, JS-like `for-in`
+`Keys`, or C `UnsignedCast32` with `Source(Cast(CUnsigned32))`. Canonical
+`Append` still needs `Effect(BuilderAppendCall)`, and the first-party normalize
+producer emits that effect only when the same call also has the same-span
+`LibraryApi` proof for the append API; the effect record depends on that API
+record. Raw or unadmitted builtin payloads stay opaque in the value graph and
+closed in exact/oracle consumers.
+When a receiver obligation makes an API result more specific than the selector
+alone, the dependency chain must prove that specialization. For example, Rust
+`unwrap_or` is an option defaulting API in isolation, but the canonical
+`GetOrDefault(map, key, default)` builtin is admitted only when the same
+`unwrap_or` occurrence has the Rust `RustMapGetOrExactOption` receiver contract
+and depends on an admitted `MapGet` occurrence for the exact receiver.
 
 Imported API occurrence evidence is not a broad name guess. A call-site
 `Symbol(ImportedBinding)` or `Symbol(ImportedNamespace)` dependency must itself
@@ -293,7 +363,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   values, or generic sequences. Python list/set/dict comprehensions and generator
   expressions emit source-comprehension facts so exact consumers can distinguish
   eager materialized lists, lazy generators, set deduplication, and dict
-  materialization even when the lowered HOF body shape is similar;
+  materialization even when the lowered HOF body shape is similar. Rust range
+  expressions emit half-open or inclusive range source facts, and Rust
+  tuple-struct single-wildcard patterns such as `Some(_)` emit pattern source
+  facts. These facts are syntax provenance only: the full-index range rewrite
+  also needs an admitted `len` contract, and Option pattern predicates also need
+  admitted `Some`/`None` API occurrence evidence and receiver-domain proof;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
 - selected top-level Ruby literal `require "module"` calls that occur before a
@@ -305,10 +380,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
 - selected JS/TS qualified static global paths emit `QualifiedGlobal` symbol
   evidence at the lowered node anchor: own-property guards at their
   `Seq("own_property_guard")` node, and static member expressions such as
-  `Array.from` and `Array.isArray` at their `Field` node;
+  `Array.from` and `Array.isArray` at their `Field` node. These records depend
+  on a same-span source `UnshadowedGlobal` proof for the qualified root;
 - JS/TS own-property guard lowering emits `Guard::JsOwnProperty` evidence for
   the lowered `Seq("own_property_guard")`, with an asserted `QualifiedGlobal`
-  dependency for the admitted API path;
+  dependency for the admitted API path and that API record's root proof;
 - JS/TS record-shape guard lowering emits `Guard::JsRecordShape` evidence for
   the lowered `Seq("record_guard")`, including the shared subject hash, the
   null/truthiness clause kind, whether JS loose equality was admitted, and
@@ -316,10 +392,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `Boolean` proof;
 - first-party lowering and normalize refreshes emit `Place(SelfReceiver)` for
   Java `this`, `Place(SelfField)` for Java `this.field`,
-  `Effect(SelfFieldWrite)` for Java `this.field = ...`,
-  `Effect(NonOverloadableIndexWrite)` for C/Go/Java index writes, and
-  `Effect(BuilderAppendCall)` for canonical `Builtin::Append`. They also emit
-  mutation-risk effects: `Effect(BindingWrite)` for assignment nodes,
+  `Effect(SelfFieldWrite)` for Java `this.field = ...`, and
+  `Effect(NonOverloadableIndexWrite)` for C/Go/Java index writes. Normalize also
+  emits `Effect(BuilderAppendCall)` for canonical `Builtin::Append` only when a
+  same-span append `LibraryApi` record licenses that canonical form, and records
+  the API evidence as a dependency. They also emit mutation-risk effects:
+  `Effect(BindingWrite)` for assignment nodes,
   `Effect(ReceiverMutation)` for calls admitted by the first-party
   language-scoped mutating-method policy, and
   `Effect(OpaqueArgumentEscape)` for ordinary calls with arguments. The shared
@@ -327,6 +405,15 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   same call does not also have admitted `LibraryApi` evidence. Self-field
   place/write evidence records include dependencies that link the write proof
   back to the receiver proof;
+- C lowering emits `Import(CQuoteInclude)` for admitted direct quote includes
+  that provide byte-pack aliases, and `Type(CTypeAlias)` for local or included
+  exact-spelling `unsigned char` and supported unsigned 32-bit aliases used by
+  current byte-pack surfaces. Included alias `Type` evidence depends on the
+  quote-include proof.
+  Alias-based `Domain(ByteArray)` parameter evidence and
+  `Source(Cast(CUnsigned32))` cast evidence depend on the relevant `Type`
+  evidence; direct `unsigned char *` parameters and direct unsigned 32-bit casts
+  remain dependency-free;
 - first-party lowering emits `LibraryApi` evidence for selected API occurrences
   that remain as raw nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
   `Boolean(...)`, `new Map(...)`, `new Set(...)`, and static
@@ -336,9 +423,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `collections.deque(...)` through imported binding/namespace proof; Python
   `math.prod(...)` through imported namespace proof; Rust
   `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
-  are proven, `Vec::new()`, `Some(...)`, `Some(_)` pattern selectors, bare
-  `None`, and selected `std::collections::*::from(...)` factory paths when
-  their root-shadow policy is proven; JS/TS/Java `length` property reads whose
+  are proven, `Vec::new()`, `Some(...)`, selected `Some(_)` pattern selectors,
+  bare `None`, and selected `std::collections::*::from(...)` factory paths when
+  their root-shadow policy is proven. The selector occurrence does not by itself
+  prove the pattern semantics: `Some(_)` value-graph presence predicates also
+  require the Rust tuple-struct wildcard `Source::Pattern` fact. JS/TS/Java
+  `length` property reads whose
   receiver proof is satisfied; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
   plus unshadowed `require` and `Set` proof; Java `java.util` static
@@ -349,7 +439,9 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   depend on the relevant `QualifiedGlobal`, `UnshadowedGlobal`,
   import-backed call-site `Symbol`, `Import::Require`, construct-syntax
   `Source`, `SequenceSurface`, or regex-literal `Source` evidence. Calls
-  collapsed into specialized guard surfaces emit their guard evidence instead.
+  collapsed into specialized guard surfaces emit their guard evidence instead;
+  strict exact operators such as JS/TS `typeof` consume source-operator evidence
+  at their exact-fragment gate instead of emitting `LibraryApi` evidence.
   Shadowed roots, unsupported arities, unsupported static paths, unresolved
   free-name/path factories, and Ruby require-backed APIs without require
   evidence do not emit API occurrence evidence;
@@ -402,29 +494,36 @@ The first migrated consumers are the shared semantic helpers and their direct
 callers:
 
 - source-fact lookup for construct syntax, async/generator/error and Go
-  concurrency/channel protocol boundaries, Python comprehension surfaces, regex
-  literal, and operator provenance;
-- receiver-domain lookup used by post-desugar semantic/value-graph
-  membership/property/map/integer gates and strict exact receiver gates.
-  Consumers ask `nose-semantics` whether a receiver satisfies a
-  `DomainRequirement`, so node-anchored receiver evidence, immutable
-  local/module binding evidence, scoped parameter evidence, selected API
-  result-domain evidence, ambiguity handling, and compatibility fallback are no
-  longer reimplemented separately in those paths. Desugaring and early idiom
-  canonicalization still run before immutable binding-domain inference, so they
-  only consume the domain evidence already present at that point. Coarse API
+  concurrency/channel protocol boundaries, Python comprehension surfaces, C
+  unsigned-cast syntax, regex literal, and operator provenance;
+- receiver-domain lookup used by desugaring/idiom canonicalization,
+  post-desugar semantic/value-graph membership/property/map/integer gates, and
+  strict exact receiver gates. Consumers ask `nose-semantics` whether a receiver
+  satisfies a `DomainRequirement`, using the shared
+  `ReceiverDomainEvidenceIndex` cache when they inspect many receivers. That
+  keeps node-anchored receiver evidence, immutable local/module binding
+  evidence, scoped parameter evidence, selected API result-domain evidence,
+  ambiguity handling, and compatibility fallback under one kernel-owned policy
+  instead of reimplementing those rules per consumer. Desugaring and early idiom
+  canonicalization still run before normalize emits additional immutable
+  binding-domain evidence, so they only consume the domain evidence already
+  present at that point. Strict exact receiver gates use this resolver directly
+  and do not maintain raw collection/map name or CID side tables. Coarse API
   result-domain and binding-domain evidence is not exact-tree proof: value-graph
   consumers prefer concrete factory/result-shape canonicalization before using a
-  domain-shaped fallback, and strict exact consumers still require the receiver
-  expression itself to satisfy the relevant factory, literal, binding, or
-  typed-variable safety contract;
+  domain-shaped fallback, and strict exact consumers may use domain evidence only
+  for receiver-domain obligations. They do not promote an opaque binding with a
+  collection/map domain into a generally exact-safe variable value;
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence
   subgraph into the importer while preserving provider source-origin spans and
   rewiring dependency ids, then records `Import(ImportedLiteralSnapshot)`
   provenance that depends on the importer import proof and copied provider
-  evidence;
+  evidence. Provider literal export safety is now a shared `nose-semantics`
+  policy requiring sequence-surface proof for literal containers and admitted
+  `LibraryApi` proof for supported Java/Rust map factories, while corpus-level
+  module/export matching remains frontend-owned;
 - imported namespace/binding symbol proof for normalize idiom admission,
   value-graph namespace fallbacks, and strict exact gates, without raw assignment
   fallback;
@@ -433,12 +532,15 @@ callers:
   raw import `Seq` payloads cannot hash-cons with proof-bearing import values;
 - unshadowed-global symbol proof for JS/TS `Math.*` method contracts,
   `new Map(...)`/`new Set(...)` constructor contracts, static `Array.isArray`
-  exact gates, and `undefined` nullish-default handling, with compatibility
-  fallback only when no relevant evidence record exists;
+  exact gates, and `undefined` nullish-default handling. Value-graph nullish
+  value semantics are evidence-only for `undefined`; raw spelling plus a
+  scope scan no longer reopens that exact path;
 - qualified-global symbol proof for selected JS/TS API paths: own-property
   guard evidence depends on `Object.hasOwn` or
   `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
-  evidence for `Array.from`;
+  evidence for `Array.from`. Those `QualifiedGlobal` records themselves depend
+  on the appropriate unshadowed root proof, so path-shaped text or a detached API
+  record does not prove identity;
 - selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
   evidence first for the migrated JS-like, Python builtin/imported, Rust
   free-name/path/Option/scalar, Ruby require-backed, Java static/property,
@@ -447,9 +549,36 @@ callers:
   the value-graph, idiom, and strict exact paths closed. Missing API evidence is
   now also closed for those producer-covered surfaces; older symbol/source proof
   helpers remain dependency inputs to `LibraryApi` evidence, not fallback API
-  proofs. Other factory and constructor contract rows still name API
-  identity/result semantics while local consumers prove their current `Symbol`,
-  `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
+  proofs. Factory and constructor consumers still prove their channel-specific
+  argument, entry-shape, mutation, `Source`, `Domain`, and `SequenceSurface`
+  obligations, but API occurrence admission itself is shared where covered;
+- strict exact consumers share the same admitted occurrence resolver layer for
+  selected method, map-get, map-key-view, regex, JS static/global, static-index,
+  iterator-adapter, Rust Option sentinel, Rust `Vec::new`, and first-party
+  collection/map factory and constructor paths instead of locally recombining
+  selector strings with evidence checks. Opaque same-callee exact identity
+  remains separate: it can keep identical calls comparable, but it does not
+  assign cross-language or library semantics;
+- normalize idiom canonicalization shares the admitted occurrence resolver layer
+  for supported free-function builtins, generic receiver-method contracts, map
+  `get`, map-key views, iterator identity adapters, Java `Arrays.stream`, Rust
+  `Some(...)`, Rust map factory receiver proof, and HOF receiver proof instead
+  of locally recombining selector strings with `LibraryApi` evidence checks.
+  Test fixtures may still use row constructors to mint synthetic evidence
+  records;
+- value-graph direct API eval paths, node-level API consumers, and provider
+  literal export safety share the same admitted occurrence resolver layer where
+  they still have the source `Call` or `Field` node. This includes direct
+  factory/constructor eval, property builtins such as JS/TS/Java `.length`, Rust
+  `Some` callee-node checks, static index-membership, Rust scalar integer method
+  calls, and builder append API admission. Promise `.then` contract lookup also
+  goes through a resolver, but it remains fail-closed until the receiver has
+  explicit Promise-like evidence. Value-level CSE paths that only retain source
+  spans now also go through span-query resolvers for free-name/imported
+  collection factories, Java/Ruby/Rust collection factories, free-name/Java map
+  factories, Java map entries, map `get`, and map-key view/wrapper calls. The
+  value graph no longer locally recombines those contract rows with `LibraryApi`
+  span evidence;
 - value-graph consumers that query by source span re-check the original source
   `Call` node shape and its evidence dependencies when that call can be
   recovered. This preserves receiver-method precision when value-graph CSE has
@@ -459,7 +588,10 @@ callers:
   the same-span `LibraryApi(MethodCall(HoF(...)))` occurrence record as protocol
   receiver evidence. Downstream calls such as Rust `.collect()` can therefore
   depend on the admitted `filter_map`/`map`/`filter` occurrence after IL
-  canonicalization, without reopening selector-only proof;
+  canonicalization, without reopening selector-only proof. Value-graph filter
+  consumers such as `len(filter(...))`, explicit reductions over a filter, and
+  static literal membership shortcuts reuse the same HOF admission; a raw
+  `HoF(Filter)` payload no longer enters those paths by shape alone;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by
@@ -467,22 +599,28 @@ callers:
 - JS/TS own-property guard exact admission and value-graph map-default
   normalization require both `SequenceSurface(OwnPropertyGuard)` and
   `Guard::JsOwnProperty`; raw `Seq("own_property_guard")` plus a path-shaped
-  spelling is not proof by itself;
+  spelling, or `QualifiedGlobal` evidence without the required root proof, is not
+  proof by itself;
 - sequence-surface admission for normalize/value-graph/detect exact paths where
   the surface contract is independently exact-safe; guard surfaces use their
   dedicated guard helper instead. Go zero-map literal lookup also requires
   `SequenceSurface(GoCompositeMapLiteral)` and `SequenceSurface(GoMapEntry)`,
   so `composite_literal`/`keyed_element` tag spelling alone no longer admits the
   exact map-default path;
+- C byte-pack value-graph laws consume the first-party C byte-pack contract,
+  `Domain(ByteArray)` base evidence, and source-cast evidence for the unsigned
+  high lane where required. Raw `UnsignedCast32` builtin payloads without
+  `Source(Cast(CUnsigned32))` evidence stay opaque;
 - exact-fragment append, non-overloadable index-write, and self-field-write
   gates now require exact `Effect`/`Place` evidence. Missing, ambiguous,
   conflicting, or dependency-broken evidence keeps the exact path closed;
 - immutable binding-domain inference, module facts, imported literal
-  replacement, value-graph binding safety, imported binding use indexing, and
-  exact-fragment context blocking consume shared mutation-risk helpers for
-  `BindingWrite`, `ReceiverMutation`, and `OpaqueArgumentEscape` instead of
-  each re-scanning raw assignment shapes, raw method selectors, or call
-  arguments independently.
+  replacement, value-graph binding safety, and imported binding use indexing
+  consume shared mutation-risk helpers for `BindingWrite`, `ReceiverMutation`,
+  and `OpaqueArgumentEscape` instead of each re-scanning raw method selectors
+  or call arguments independently. Exact-fragment context blocking still has a
+  local assignment-shape invalidation slice; call mutation risk in that path
+  uses the shared helpers.
 
 Broader field/place/effect facts, promise receiver proof, async/sync and
 Go-channel protocol convergence, unmodeled stdlib/ecosystem APIs, broader

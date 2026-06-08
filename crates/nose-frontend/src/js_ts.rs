@@ -353,8 +353,9 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
-            lo.record_param_semantic(span, semantic);
+        if let Some((domain, dependencies)) = lo.type_domain_from_text_with_dependencies(lo.text(p))
+        {
+            lo.record_param_domain_with_dependencies(span, domain, dependencies);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }
@@ -1411,11 +1412,9 @@ fn lower_record_shape_guard(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         span,
         &[value, object, non_null, not_array],
     );
-    let array_dependency = lo.record_evidence(
-        EvidenceAnchor::source_span(span),
-        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
-            path_hash: stable_symbol_hash(array_contract.qualified_path),
-        }),
+    let array_dependency = lo.record_qualified_global_source_symbol(
+        span,
+        array_contract.qualified_path,
         "record_guard_array_is_array_api",
     );
     let mut dependencies = vec![array_dependency];
@@ -1696,6 +1695,7 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
             let arg = arg_node
                 .map(|a| lower_expr(lo, a))
                 .unwrap_or_else(|| lo.empty_block(span));
+            lo.record_source_fact(span, SourceFactKind::Operator(SourceOperatorKind::Typeof));
             lo.add(NodeKind::Call, Payload::None, span, &[callee, arg])
         }
         // `void` and `delete` have JS-specific side-effect/value semantics that strict
@@ -1987,6 +1987,14 @@ mod tests {
     }
 
     fn qualified_global_evidence_count(il: &Il, path: &str, kind: NodeKind) -> usize {
+        qualified_global_evidence_records(il, path, kind).len()
+    }
+
+    fn qualified_global_evidence_records<'a>(
+        il: &'a Il,
+        path: &str,
+        kind: NodeKind,
+    ) -> Vec<&'a nose_il::EvidenceRecord> {
         let expected = stable_symbol_hash(path);
         il.evidence
             .iter()
@@ -2001,6 +2009,72 @@ mod tests {
                     record.kind,
                     EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal { path_hash })
                         if path_hash == expected
+                )
+            })
+            .collect()
+    }
+
+    fn evidence_anchor_span(anchor: EvidenceAnchor) -> Span {
+        match anchor {
+            EvidenceAnchor::SourceSpan(span)
+            | EvidenceAnchor::Node { span, .. }
+            | EvidenceAnchor::Param { span }
+            | EvidenceAnchor::Binding { span, .. }
+            | EvidenceAnchor::Sequence { span } => span,
+        }
+    }
+
+    fn evidence_by_id(il: &Il, id: nose_il::EvidenceId) -> Option<&nose_il::EvidenceRecord> {
+        il.evidence
+            .get(id.0 as usize)
+            .filter(|record| record.id == id)
+            .or_else(|| il.evidence.iter().find(|record| record.id == id))
+    }
+
+    fn record_has_source_unshadowed_dependency(
+        il: &Il,
+        record: &nose_il::EvidenceRecord,
+        root: &str,
+    ) -> bool {
+        let span = evidence_anchor_span(record.anchor);
+        let expected = stable_symbol_hash(root);
+        record.dependencies.iter().any(|&id| {
+            evidence_by_id(il, id).is_some_and(|dependency| {
+                dependency.anchor == EvidenceAnchor::source_span(span)
+                    && matches!(
+                        dependency.kind,
+                        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal { name_hash })
+                            if name_hash == expected
+                    )
+            })
+        })
+    }
+
+    fn record_has_qualified_global_dependency_with_root(
+        il: &Il,
+        record: &nose_il::EvidenceRecord,
+        path: &str,
+        root: &str,
+    ) -> bool {
+        let expected = stable_symbol_hash(path);
+        record.dependencies.iter().any(|&id| {
+            evidence_by_id(il, id).is_some_and(|dependency| {
+                matches!(
+                    dependency.kind,
+                    EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal { path_hash })
+                        if path_hash == expected
+                ) && record_has_source_unshadowed_dependency(il, dependency, root)
+            })
+        })
+    }
+
+    fn source_operator_evidence_count(il: &Il, operator: SourceOperatorKind) -> usize {
+        il.evidence
+            .iter()
+            .filter(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Source(SourceFactKind::Operator(actual)) if actual == operator
                 )
             })
             .count()
@@ -2283,6 +2357,15 @@ mod tests {
     }
 
     #[test]
+    fn js_typeof_unary_emits_source_operator_evidence() {
+        let il = lower_js("function real(value) { return typeof value === \"string\"; }");
+        assert_eq!(
+            source_operator_evidence_count(&il, SourceOperatorKind::Typeof),
+            1
+        );
+    }
+
+    #[test]
     fn js_qualified_global_paths_emit_symbol_evidence() {
         let il = lower_js(
             "function hasOwn(value) { return Object.hasOwn(value, \"ready\"); }
@@ -2311,6 +2394,23 @@ mod tests {
             qualified_global_evidence_count(&il, "Array.isArray", NodeKind::Field),
             1
         );
+        for (path, kind, root) in [
+            ("Object.hasOwn", NodeKind::Seq, "Object"),
+            (
+                "Object.prototype.hasOwnProperty.call",
+                NodeKind::Seq,
+                "Object",
+            ),
+            ("Array.from", NodeKind::Field, "Array"),
+            ("Array.isArray", NodeKind::Field, "Array"),
+        ] {
+            for record in qualified_global_evidence_records(&il, path, kind) {
+                assert!(
+                    record_has_source_unshadowed_dependency(&il, record, root),
+                    "{path} evidence should depend on an unshadowed {root} proof"
+                );
+            }
+        }
         let from =
             library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1).unwrap();
         let is_array =
@@ -2350,6 +2450,12 @@ mod tests {
                 EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty { api_path_hash })
                     if api_path_hash == stable_symbol_hash("Object.hasOwn")
             ) && record.dependencies.len() == 1
+                && record_has_qualified_global_dependency_with_root(
+                    &il,
+                    record,
+                    "Object.hasOwn",
+                    "Object",
+                )
         }));
         assert!(guards.iter().any(|record| {
             matches!(
@@ -2357,6 +2463,12 @@ mod tests {
                 EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty { api_path_hash })
                     if api_path_hash == stable_symbol_hash("Object.prototype.hasOwnProperty.call")
             ) && record.dependencies.len() == 1
+                && record_has_qualified_global_dependency_with_root(
+                    &il,
+                    record,
+                    "Object.prototype.hasOwnProperty.call",
+                    "Object",
+                )
         }));
     }
 
@@ -2382,6 +2494,12 @@ mod tests {
                     comparison: JsRecordGuardComparison::StrictOnly,
                 }) if subject_hash == stable_symbol_hash("value")
             ) && record.dependencies.len() == 1
+                && record_has_qualified_global_dependency_with_root(
+                    &il,
+                    record,
+                    "Array.isArray",
+                    "Array",
+                )
         }));
         assert!(guards.iter().any(|record| {
             matches!(
@@ -2392,6 +2510,12 @@ mod tests {
                     comparison: JsRecordGuardComparison::StrictOnly,
                 }) if subject_hash == stable_symbol_hash("input")
             ) && record.dependencies.len() == 2
+                && record_has_qualified_global_dependency_with_root(
+                    &il,
+                    record,
+                    "Array.isArray",
+                    "Array",
+                )
         }));
     }
 

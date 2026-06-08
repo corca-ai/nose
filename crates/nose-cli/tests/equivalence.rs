@@ -45,13 +45,14 @@ fn foreach_accumulator_is_interpretable_iterating_a_nonlist_is_err_not_unsupport
     use nose_normalize::{run_unit, Value};
     let list = Value::List(vec![Value::Int(2), Value::Int(-1), Value::Int(5)]);
     assert_eq!(
-        run_unit(&n, f, &[list])
+        run_unit(&n, &i, f, &[list])
             .expect("list input is interpretable")
             .ret,
         Value::Int(7),
         "summing the positives of [2,-1,5] is 7",
     );
-    let scalar = run_unit(&n, f, &[Value::Int(3)]).expect("scalar input stays interpretable (Err)");
+    let scalar =
+        run_unit(&n, &i, f, &[Value::Int(3)]).expect("scalar input stays interpretable (Err)");
     assert_eq!(
         scalar.ret,
         Value::Err,
@@ -839,10 +840,11 @@ fn js_object_length_and_computed_keys_stay_outside_exact_collection_contracts() 
 }
 
 #[test]
-fn pure_method_recursion_converges_with_iteration() {
-    // Ruby `def` and Java methods are admitted to the recursion→iteration canon when their
-    // body has no receiver/field access (a pure numeric fold), so `fac(n) = n*fac(n-1)`
-    // converges cross-language with the accumulator loop. The sum monoid stays a hard negative.
+fn method_recursion_requires_explicit_call_target_evidence() {
+    // Method bodies are not admitted from a bare same-name call. Java static/private/final
+    // dispatch and Ruby top-level method lookup need exact source/pack target evidence before
+    // recursion→iteration can treat `fac(...)` as direct self-recursion. Free-function recursion
+    // remains covered by `rust_recursion_converges_with_iteration_via_return_unwrap`.
     let i = Interner::new();
     let py_loop = "def fac(n):\n    acc = 1\n    while n != 0:\n        acc = acc * n\n        n = n - 1\n    return acc\n";
     let java_rec =
@@ -850,15 +852,15 @@ fn pure_method_recursion_converges_with_iteration() {
     let ruby_rec = "def fac(n)\n  return 1 if n == 0\n  n * fac(n - 1)\nend\n";
     let sum_loop = "def g(n):\n    acc = 0\n    while n != 0:\n        acc = acc + n\n        n = n - 1\n    return acc\n";
     let fold = value_fp(&i, py_loop, Lang::Python);
-    assert_eq!(
+    assert_ne!(
         fold,
         value_fp_named(&i, java_rec, Lang::Java, "fac"),
-        "java pure method recursion must converge with the accumulator loop"
+        "java method recursion must stay closed without direct call-target evidence"
     );
-    assert_eq!(
+    assert_ne!(
         fold,
         value_fp_named(&i, ruby_rec, Lang::Ruby, "fac"),
-        "ruby method recursion must converge with the accumulator loop"
+        "ruby method recursion must stay closed without direct call-target evidence"
     );
     assert_ne!(
         fold,
@@ -3023,14 +3025,21 @@ fn value_graph_reads_field_written_in_unit() {
     let i = Interner::new();
     let read_field = "def f(self):\n    self.x = 7\n    return self.x\n";
     let return_value = "def f(self):\n    self.x = 7\n    return 7\n";
+    let java_read_field = "class C { int x; int f() { this.x = 7; return this.x; } }";
+    let java_return_value = "class C { int x; int f() { this.x = 7; return 7; } }";
     let read_other_receiver = "def f(a, b):\n    a.x = 7\n    return b.x\n";
     let read_written_receiver = "def f(a, b):\n    a.x = 7\n    return a.x\n";
     let unknown_alias_receiver = "def f(a):\n    r = receiver(a)\n    r.x = 7\n    return a.x\n";
     let computed_receiver = "def f(a):\n    receiver(a).x = 7\n    return receiver(a).x\n";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, read_field, Lang::Python),
         value_fp(&i, return_value, Lang::Python),
-        "a field read after a same-unit field write should resolve to the written value"
+        "raw Python attribute spelling is not enough proof for exact field-state readback"
+    );
+    assert_eq!(
+        value_fp(&i, java_read_field, Lang::Java),
+        value_fp(&i, java_return_value, Lang::Java),
+        "a Java this.field read after an effect-proven same-unit write should resolve to the written value"
     );
     assert_ne!(
         value_fp(&i, read_other_receiver, Lang::Python),
@@ -3054,12 +3063,21 @@ fn value_graph_field_state_is_receiver_aware() {
     let i = Interner::new();
     let same_receiver_order_a = "def f(self):\n    self.x = 1\n    self.y = 2\n";
     let same_receiver_order_b = "def f(self):\n    self.y = 2\n    self.x = 1\n";
+    let java_same_receiver_order_a =
+        "class C { int x; int y; void f() { this.x = 1; this.y = 2; } }";
+    let java_same_receiver_order_b =
+        "class C { int x; int y; void f() { this.y = 2; this.x = 1; } }";
     let crossed_receivers_a = "def f(a, b):\n    a.x = 1\n    b.x = 2\n";
     let crossed_receivers_b = "def f(a, b):\n    b.x = 1\n    a.x = 2\n";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, same_receiver_order_a, Lang::Python),
         value_fp(&i, same_receiver_order_b, Lang::Python),
-        "final writes to distinct fields on the same receiver should still commute"
+        "raw Python attribute writes stay ordered because property/setter effects are not proven"
+    );
+    assert_eq!(
+        value_fp(&i, java_same_receiver_order_a, Lang::Java),
+        value_fp(&i, java_same_receiver_order_b, Lang::Java),
+        "effect-proven Java final writes to distinct this.fields should commute"
     );
     assert_ne!(
         value_fp(&i, crossed_receivers_a, Lang::Python),
@@ -6121,7 +6139,7 @@ fn interp_executes_self_recursion() {
         },
     );
     let root = first_func(&oracle);
-    let beh = run_unit(&oracle, root, &[Value::Int(5)]).expect("recursion should interpret");
+    let beh = run_unit(&oracle, &i, root, &[Value::Int(5)]).expect("recursion should interpret");
     assert_eq!(
         beh.ret,
         Value::Int(120),

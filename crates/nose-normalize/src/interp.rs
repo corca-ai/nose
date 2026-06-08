@@ -18,10 +18,12 @@
 //! proof-obligation: normalize.value_graph.field_writes
 //! proof-obligation: normalize.value_graph.free_monoid
 
-use nose_il::{Builtin, Il, LoopKind, NodeId, NodeKind, Op, Payload, Symbol};
+use nose_il::{stable_symbol_hash, Builtin, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
 use nose_semantics::{
-    builtin_demand, eager_builtin_contract, hof_contract, BuiltinDemand, EagerBuiltinContract,
-    HofContract,
+    admitted_builtin_semantics_at_call, builtin_demand_profile,
+    direct_function_call_target_at_call, exact_java_this_field, exact_java_this_var,
+    exact_self_field_write_assignment, hof_contract, BuiltinDemandProfile, EagerBuiltinContract,
+    HofDemandProfile,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -48,22 +50,19 @@ pub enum Value {
 /// A receiver identity proven by the IL shape during interpretation.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum FieldPlace {
-    Name(i64),
-    Param(u32),
-    Field(Box<FieldPlace>, i64),
-    Index(Box<FieldPlace>, i64),
+    SelfReceiver,
 }
 
 /// A concrete final field-state slot: receiver identity plus field name.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct FieldKey {
     pub receiver: FieldPlace,
-    pub field: i64,
+    pub field: u64,
 }
 
 /// The observable behavior of one run: the returned value, an ordered I/O effect trace
 /// (appended/printed values, in order — order IS observable), and the final per-place
-/// object state (`self.x = …`) as a receiver+name→value map in canonical place order.
+/// object state (`this.x = ...`) as a receiver+name→value map in canonical place order.
 /// Field state is order-INSENSITIVE across distinct places but reflects
 /// last-write-wins per receiver+field. Two units are behaviorally equal on an input iff
 /// all three components match.
@@ -99,69 +98,44 @@ const STEP_BUDGET: u64 = 200_000;
 
 struct Interp<'a> {
     il: &'a Il,
+    interner: &'a Interner,
     steps: u64,
     effects: Vec<Value>,
     fields: FxHashMap<FieldKey, Value>,
     /// Parameter cids — appending to one is a caller-visible mutation (an effect); appending
     /// to a LOCAL list var builds that list's value (faithful, converges with a comprehension).
     params: FxHashSet<u32>,
-    /// The `Func` node being run and its name, so a same-named call inside the body is
-    /// executed as **direct self-recursion** (a fresh frame, shared effect trace / step
-    /// budget) rather than left opaque. This lets the oracle interpret the *pre-canon*
-    /// recursive form and so validate the recursion→iteration canonicalization; unbounded
-    /// recursion safely hits the step budget and the unit becomes uninterpretable. Any other
-    /// (non-self) opaque call stays unsupported.
-    func_root: NodeId,
-    func_name: Option<Symbol>,
-    /// In-file functions/methods by name (unique names only — an ambiguous name is omitted), so a
-    /// call to ANOTHER function is interpreted by binding the arguments and running its body
-    /// (a fresh frame, sharing the effect trace / step budget). This lets the oracle interpret
-    /// the *pre-canon* interprocedural form — a pure-function call is no longer opaque — and so
-    /// VALIDATE the interprocedural-inline canonicalization. Mutual/deep recursion safely hits
-    /// the step budget and the unit becomes uninterpretable.
-    funcs: FxHashMap<Symbol, NodeId>,
+    /// In-file function/method roots that the oracle may execute, but only when a `CallTarget`
+    /// evidence record admits the exact call occurrence. This lets the oracle interpret proven
+    /// recursive and interprocedural calls without treating raw callee spelling as proof.
+    callable_roots: Vec<NodeId>,
 }
 
 /// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
 /// Returns its [`Behavior`], or `None` if the unit is uninterpretable.
-pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
+pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
     if il.kind(root) != NodeKind::Func {
         return None;
     }
-    let func_name = il
+    let callable_roots = il
         .units
         .iter()
-        .find(|u| u.root == root)
-        .and_then(|u| u.name);
-    // Unique-named in-file functions/methods, for cross-function call interpretation. An
-    // ambiguous name (two definitions) is dropped — it can't be resolved deterministically.
-    let mut funcs: FxHashMap<Symbol, NodeId> = FxHashMap::default();
-    let mut ambiguous: FxHashSet<Symbol> = FxHashSet::default();
-    for u in &il.units {
-        if !matches!(
-            u.kind,
-            nose_il::UnitKind::Function | nose_il::UnitKind::Method
-        ) {
-            continue;
-        }
-        let Some(name) = u.name else { continue };
-        if ambiguous.contains(&name) {
-            continue;
-        }
-        if funcs.insert(name, u.root).is_some() {
-            funcs.remove(&name);
-            ambiguous.insert(name);
-        }
-    }
+        .filter(|u| {
+            matches!(
+                u.kind,
+                nose_il::UnitKind::Function | nose_il::UnitKind::Method
+            )
+        })
+        .map(|u| u.root)
+        .collect();
     let mut it = Interp {
         il,
+        interner,
         steps: 0,
         effects: Vec::new(),
         fields: FxHashMap::default(),
         params: FxHashSet::default(),
-        func_root: root,
-        func_name,
-        funcs,
+        callable_roots,
     };
     let mut env: FxHashMap<u32, Value> = FxHashMap::default();
     let kids = il.children(root).to_vec();
@@ -201,45 +175,49 @@ impl<'a> Interp<'a> {
         }
     }
 
-    fn field_place(&self, node: NodeId) -> Option<FieldPlace> {
-        match self.il.kind(node) {
-            NodeKind::Var => match self.il.node(node).payload {
-                Payload::Cid(cid) => Some(FieldPlace::Param(cid)),
-                Payload::Name(name) => Some(FieldPlace::Name(nose_il::symbol_index(name) as i64)),
-                _ => None,
-            },
-            NodeKind::Field => {
-                let receiver = self.il.children(node).first().copied()?;
-                let receiver = self.field_place(receiver)?;
-                let Payload::Name(field) = self.il.node(node).payload else {
-                    return None;
-                };
-                Some(FieldPlace::Field(
-                    Box::new(receiver),
-                    nose_il::symbol_index(field) as i64,
-                ))
-            }
-            NodeKind::Index => {
-                let kids = self.il.children(node);
-                let receiver = kids.first().copied()?;
-                let receiver = self.field_place(receiver)?;
-                let key = kids
-                    .get(1)
-                    .and_then(|&key| self.field_place_key_hash(key))?;
-                Some(FieldPlace::Index(Box::new(receiver), key))
-            }
-            _ => None,
+    fn exact_field_place(&self, node: NodeId) -> Option<FieldPlace> {
+        if self.il.kind(node) == NodeKind::Var && exact_java_this_var(self.il, self.interner, node)
+        {
+            Some(FieldPlace::SelfReceiver)
+        } else {
+            None
         }
     }
 
-    fn field_place_key_hash(&self, node: NodeId) -> Option<i64> {
-        match self.il.node(node).payload {
-            Payload::LitInt(value) => Some(value),
-            Payload::LitStr(hash) => Some(hash as i64),
-            Payload::Name(symbol) => Some(nose_il::symbol_index(symbol) as i64),
-            Payload::Cid(cid) if self.il.kind(node) == NodeKind::Var => Some(i64::from(cid)),
-            _ => None,
+    fn exact_field_write_key(&self, assign: NodeId, target: NodeId) -> Option<FieldKey> {
+        if !exact_self_field_write_assignment(self.il, self.interner, assign) {
+            return None;
         }
+        self.exact_field_key(target)
+    }
+
+    fn exact_field_key(&self, target: NodeId) -> Option<FieldKey> {
+        if self.il.kind(target) != NodeKind::Field {
+            return None;
+        }
+        if !exact_java_this_field(self.il, self.interner, target) {
+            return None;
+        }
+        let Payload::Name(field) = self.il.node(target).payload else {
+            return None;
+        };
+        let receiver = self.il.children(target).first().copied()?;
+        let receiver = self.exact_field_place(receiver)?;
+        Some(FieldKey {
+            receiver,
+            field: stable_symbol_hash(self.interner.resolve(field)),
+        })
+    }
+
+    fn field_receiver_errored(
+        &mut self,
+        receiver: NodeId,
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<bool> {
+        if exact_java_this_var(self.il, self.interner, receiver) {
+            return Ok(false);
+        }
+        Ok(matches!(self.eval(receiver, env)?, Value::Err))
     }
 
     /// Execute a statement (or block), threading control flow.
@@ -264,7 +242,7 @@ impl<'a> Interp<'a> {
                 if matches!(rhs, Value::Err) {
                     return Ok(Flow::Err);
                 }
-                if self.bind(kids[0], rhs, env)? {
+                if self.bind(kids[0], rhs, env, Some(node))? {
                     return Ok(Flow::Err);
                 }
                 Ok(Flow::Normal)
@@ -364,7 +342,7 @@ impl<'a> Interp<'a> {
                 };
                 for item in seq {
                     self.tick()?;
-                    if self.bind(kids[0], item, env)? {
+                    if self.bind(kids[0], item, env, None)? {
                         return Ok(Flow::Err);
                     }
                     match self.exec(kids[2], env)? {
@@ -419,7 +397,13 @@ impl<'a> Interp<'a> {
 
     /// Bind a target (Var / tuple `Seq` / `Index` store) to a value.
     /// Returns true when evaluating the target itself raised a runtime `Err`.
-    fn bind(&mut self, target: NodeId, val: Value, env: &mut FxHashMap<u32, Value>) -> R<bool> {
+    fn bind(
+        &mut self,
+        target: NodeId,
+        val: Value,
+        env: &mut FxHashMap<u32, Value>,
+        assignment: Option<NodeId>,
+    ) -> R<bool> {
         match self.il.kind(target) {
             NodeKind::Var => {
                 if let Payload::Cid(c) = self.il.node(target).payload {
@@ -437,7 +421,7 @@ impl<'a> Interp<'a> {
                     _ => return Err(Unsupported),
                 };
                 for (t, v) in names.into_iter().zip(vals) {
-                    if self.bind(t, v, env)? {
+                    if self.bind(t, v, env, None)? {
                         return Ok(true);
                     }
                 }
@@ -450,21 +434,14 @@ impl<'a> Interp<'a> {
                 let Some(&receiver) = self.il.children(target).first() else {
                     return Err(Unsupported);
                 };
-                let receiver_value = self.eval(receiver, env)?;
-                if matches!(receiver_value, Value::Err) {
+                if self.field_receiver_errored(receiver, env)? {
                     return Ok(true);
                 }
-                if let Payload::Name(sym) = self.il.node(target).payload {
-                    let Some(receiver) = self.field_place(receiver) else {
+                if let Some(assign) = assignment {
+                    let Some(key) = self.exact_field_write_key(assign, target) else {
                         return Err(Unsupported);
                     };
-                    self.fields.insert(
-                        FieldKey {
-                            receiver,
-                            field: nose_il::symbol_index(sym) as i64,
-                        },
-                        val,
-                    );
+                    self.fields.insert(key, val);
                     Ok(false)
                 } else {
                     Err(Unsupported)
@@ -590,22 +567,15 @@ impl<'a> Interp<'a> {
                 let Some(&receiver) = self.il.children(node).first() else {
                     return Err(Unsupported);
                 };
-                let receiver_value = self.eval(receiver, env)?;
-                if matches!(receiver_value, Value::Err) {
+                if self.field_receiver_errored(receiver, env)? {
                     return Ok(Value::Err);
                 }
                 match n.payload {
-                    Payload::Name(sym) => {
-                        let Some(receiver) = self.field_place(receiver) else {
+                    Payload::Name(_) => {
+                        let Some(key) = self.exact_field_key(node) else {
                             return Err(Unsupported);
                         };
-                        self.fields
-                            .get(&FieldKey {
-                                receiver,
-                                field: nose_il::symbol_index(sym) as i64,
-                            })
-                            .cloned()
-                            .ok_or(Unsupported)
+                        self.fields.get(&key).cloned().ok_or(Unsupported)
                     }
                     _ => Err(Unsupported),
                 }
@@ -639,17 +609,22 @@ impl<'a> Interp<'a> {
             Payload::Builtin(b) => b,
             _ => return self.eval_user_call(node, env), // self-recursion, else opaque
         };
+        if !admitted_builtin_semantics_at_call(self.il, node, b) {
+            return Err(Unsupported);
+        }
         let kids = self.il.children(node).to_vec();
         let mut args = Vec::new();
-        match builtin_demand(b) {
-            BuiltinDemand::Reduce => return self.eval_reduce_call(&kids, env),
-            BuiltinDemand::AnyAll { all } => return self.eval_any_all_call(all, &kids, env),
-            BuiltinDemand::Append => return self.eval_append(&kids, env),
-            BuiltinDemand::ValueOrDefault => {
+        let eager_contract = match builtin_demand_profile(b) {
+            BuiltinDemandProfile::FoldReduction => return self.eval_reduce_call(&kids, env),
+            BuiltinDemandProfile::ShortCircuitQuantifier { all } => {
+                return self.eval_any_all_call(all, &kids, env);
+            }
+            BuiltinDemandProfile::AppendMutation => return self.eval_append(&kids, env),
+            BuiltinDemandProfile::NullishDefault => {
                 return self.eval_value_or_default_call(&kids, env);
             }
-            BuiltinDemand::Eager => {}
-        }
+            BuiltinDemandProfile::Eager { contract } => contract,
+        };
         for &k in &kids {
             let arg = self.eval(k, env)?;
             if matches!(arg, Value::Err) {
@@ -657,7 +632,7 @@ impl<'a> Interp<'a> {
             }
             args.push(arg);
         }
-        match eager_builtin_contract(b).ok_or(Unsupported)? {
+        match eager_contract {
             EagerBuiltinContract::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
                 // A string is the free monoid over opaque piece hashes; its character
@@ -757,24 +732,15 @@ impl<'a> Interp<'a> {
         Ok(value)
     }
 
-    /// A non-builtin `callee(args…)`. Modeled ONLY when `callee` names the function being
-    /// run — i.e. **direct self-recursion** — by binding the evaluated arguments to the
-    /// function's parameters in a fresh frame and executing its body; the effect trace,
-    /// field state, and step budget are shared with the caller, so effects stay ordered and
-    /// runaway recursion terminates as `Unsupported`. Every other opaque call is unsupported
-    /// (the unit is excluded from the soundness check rather than guessed at).
+    /// A non-builtin `callee(args…)`. Modeled only when call-target evidence resolves the
+    /// occurrence to an in-file function root. The arguments are evaluated call-by-value in the
+    /// caller, then bound to a fresh callee frame; effects, field state, and step budget are
+    /// shared so recursion stays ordered and bounded. Every unproven or ambiguous call remains
+    /// unsupported rather than guessed.
     fn eval_user_call(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let kids = self.il.children(node).to_vec();
-        let callee = *kids.first().ok_or(Unsupported)?;
-        // Resolve the callee to a `Func` root: a same-named call is direct self-recursion; any
-        // other name resolves to a unique in-file function/method. Anything else (a computed
-        // callee, a method on a value, an unknown/ambiguous name) stays opaque (Unsupported), so
-        // the unit is excluded from the soundness check rather than guessed at.
-        let target = match (self.il.node(callee).payload, self.func_name) {
-            (Payload::Name(s), Some(name)) if s == name => self.func_root,
-            (Payload::Name(s), _) => *self.funcs.get(&s).ok_or(Unsupported)?,
-            _ => return Err(Unsupported),
-        };
+        kids.first().ok_or(Unsupported)?;
+        let target = self.proven_call_target(node).ok_or(Unsupported)?;
         // Evaluate the arguments in the CURRENT frame (call-by-value), left to right.
         let mut argv = Vec::with_capacity(kids.len().saturating_sub(1));
         for &a in &kids[1..] {
@@ -786,8 +752,7 @@ impl<'a> Interp<'a> {
         }
         // Bind them positionally to the CALLEE's parameters in a fresh environment; locals
         // start empty, exactly like a real call. The effect trace, field state, and step budget
-        // are shared with the caller (so effects stay ordered and runaway recursion terminates),
-        // and the func context is swapped to the callee so its own self-calls resolve.
+        // are shared with the caller (so effects stay ordered and runaway recursion terminates).
         let params = self.il.children(target).to_vec();
         let mut fenv: FxHashMap<u32, Value> = FxHashMap::default();
         let mut pi = 0;
@@ -800,19 +765,25 @@ impl<'a> Interp<'a> {
             }
         }
         let body = *params.last().ok_or(Unsupported)?;
-        let saved = (self.func_root, self.func_name);
-        self.func_root = target;
-        self.func_name = match self.il.node(callee).payload {
-            Payload::Name(s) => Some(s),
-            _ => self.func_name,
-        };
         let result = self.exec(body, &mut fenv);
-        (self.func_root, self.func_name) = saved;
         match result? {
             Flow::Ret(v) => Ok(v),
             Flow::Err => Ok(Value::Err),
             _ => Ok(Value::Null),
         }
+    }
+
+    fn proven_call_target(&self, call: NodeId) -> Option<NodeId> {
+        let mut found = None;
+        for &root in &self.callable_roots {
+            if !direct_function_call_target_at_call(self.il, call, root) {
+                continue;
+            }
+            if found.replace(root).is_some() {
+                return None;
+            }
+        }
+        found
     }
 
     /// `any`/`all` over a collection: short-circuit existential/universal truth. The method
@@ -851,6 +822,7 @@ impl<'a> Interp<'a> {
     fn exec_stmt_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Option<Flow>> {
         if self.il.kind(e) != NodeKind::Call
             || !matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append))
+            || !admitted_builtin_semantics_at_call(self.il, e, Builtin::Append)
         {
             return Ok(None);
         }
@@ -976,8 +948,8 @@ impl<'a> Interp<'a> {
             _ => return Ok(Value::Err),
         };
         let f = kids[1];
-        match hof_contract(kind) {
-            HofContract::Map => {
+        match hof_contract(kind).demand {
+            HofDemandProfile::Map { .. } => {
                 let mut out = Vec::new();
                 for x in coll {
                     let value = self.apply(f, &[x], env)?;
@@ -988,7 +960,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HofContract::FlatMap => {
+            HofDemandProfile::FlatMap { .. } => {
                 let mut out = Vec::new();
                 for x in coll {
                     match self.apply(f, &[x], env)? {
@@ -999,7 +971,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HofContract::FilterMap => {
+            HofDemandProfile::FilterMap { .. } => {
                 let mut out = Vec::new();
                 for x in coll {
                     match self.apply(f, &[x], env)? {
@@ -1010,7 +982,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HofContract::Filter => {
+            HofDemandProfile::Filter { .. } => {
                 let mut out = Vec::new();
                 for x in coll {
                     let keep = self.apply(f, std::slice::from_ref(&x), env)?;
@@ -1023,7 +995,7 @@ impl<'a> Interp<'a> {
                 }
                 Ok(Value::List(out))
             }
-            HofContract::Reduce => {
+            HofDemandProfile::Reduce { .. } => {
                 let mut it = coll.into_iter();
                 let mut acc = match it.next() {
                     Some(v) => v,
@@ -1304,8 +1276,278 @@ fn un(op: Op, a: &Value) -> Value {
 mod tests {
     use super::*;
     use nose_il::{
-        FileId, FileMeta, HoFKind, IlBuilder, Interner, Lang, LitClass, Span, Unit, UnitKind,
+        stable_symbol_hash, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor,
+        EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
+        EvidenceStatus, FileId, FileMeta, HoFKind, IlBuilder, Interner, Lang,
+        LibraryApiEvidenceKind, LitClass, PlaceEvidenceKind, SourceCastKind, SourceFactKind, Span,
+        Unit, UnitKind,
     };
+    use nose_semantics::{
+        library_api_callee_contract_hash, library_api_contract_id_hash, LibraryApiCalleeContract,
+        LibraryApiContractId, LibraryApiShadowPolicy, MethodSemanticContract, FIRST_PARTY_PACK_ID,
+    };
+
+    fn run_admitted_unit(mut il: Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
+        admit_test_builtin_calls(&mut il);
+        let interner = Interner::new();
+        run_unit(&il, &interner, root, args)
+    }
+
+    fn test_span(offset: u32) -> Span {
+        Span::new(FileId(0), offset, offset + 1, offset + 1, offset + 1)
+    }
+
+    fn admit_test_builtin_calls(il: &mut Il) {
+        let mut seen_library_records = Vec::new();
+        let mut next_id = 1000;
+        for idx in 0..il.nodes.len() {
+            let node = NodeId(idx as u32);
+            let (NodeKind::Call, Payload::Builtin(builtin)) =
+                (il.kind(node), il.node(node).payload)
+            else {
+                continue;
+            };
+            let span = il.node(node).span;
+            if matches!(builtin, Builtin::Append) {
+                il.evidence.push(test_effect_record(
+                    next_id,
+                    span,
+                    EffectEvidenceKind::BuilderAppendCall,
+                ));
+                next_id += 1;
+            } else if let Some(contract_id) = test_library_contract_id_for_builtin(builtin) {
+                if seen_library_records
+                    .iter()
+                    .any(|&(seen_span, seen_builtin)| seen_span == span && seen_builtin == builtin)
+                {
+                    continue;
+                }
+                seen_library_records.push((span, builtin));
+                il.evidence.push(test_library_api_record(
+                    next_id,
+                    span,
+                    contract_id,
+                    test_callee_contract(),
+                ));
+                next_id += 1;
+            } else if matches!(builtin, Builtin::UnsignedCast32) {
+                il.evidence.push(test_source_record(
+                    next_id,
+                    span,
+                    SourceFactKind::Cast(SourceCastKind::CUnsigned32),
+                ));
+                next_id += 1;
+            }
+        }
+    }
+
+    fn test_library_contract_id_for_builtin(builtin: Builtin) -> Option<LibraryApiContractId> {
+        match builtin {
+            Builtin::Len
+            | Builtin::Print
+            | Builtin::Range
+            | Builtin::Sum
+            | Builtin::Min
+            | Builtin::Max
+            | Builtin::Abs
+            | Builtin::Zip
+            | Builtin::Enumerate
+            | Builtin::Any
+            | Builtin::All => Some(LibraryApiContractId::FreeFunctionBuiltin(builtin)),
+            Builtin::IsEmpty
+            | Builtin::StartsWith
+            | Builtin::EndsWith
+            | Builtin::Contains
+            | Builtin::GetOrDefault
+            | Builtin::ValueOrDefault
+            | Builtin::IsNull
+            | Builtin::IsNotNull
+            | Builtin::Join
+            | Builtin::Reduce => Some(LibraryApiContractId::MethodCall(
+                MethodSemanticContract::Builtin(builtin),
+            )),
+            Builtin::Append | Builtin::Keys | Builtin::DictEntry | Builtin::UnsignedCast32 => None,
+        }
+    }
+
+    fn test_callee_contract() -> LibraryApiCalleeContract {
+        LibraryApiCalleeContract::FreeName {
+            name: "__test_builtin__",
+            shadow: LibraryApiShadowPolicy::None,
+        }
+    }
+
+    fn test_library_api_record(
+        id: u32,
+        span: Span,
+        contract_id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(span, NodeKind::Call),
+            kind: EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract_id),
+                callee_hash: library_api_callee_contract_hash(callee),
+                arity: 0,
+            }),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn test_effect_record(id: u32, span: Span, effect: EffectEvidenceKind) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(span, NodeKind::Call),
+            kind: EvidenceKind::Effect(effect),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn test_node_place_record(
+        id: u32,
+        il: &Il,
+        node: NodeId,
+        place: PlaceEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            kind: EvidenceKind::Place(place),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies,
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn test_node_effect_record(
+        id: u32,
+        il: &Il,
+        node: NodeId,
+        effect: EffectEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            kind: EvidenceKind::Effect(effect),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies,
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn admit_test_self_field(
+        il: &mut Il,
+        interner: &Interner,
+        receiver: NodeId,
+        field: NodeId,
+        field_name: nose_il::Symbol,
+        first_id: u32,
+    ) -> EvidenceId {
+        let receiver_id = EvidenceId(first_id);
+        let field_id = EvidenceId(first_id + 1);
+        let receiver_record = test_node_place_record(
+            first_id,
+            il,
+            receiver,
+            PlaceEvidenceKind::SelfReceiver,
+            Vec::new(),
+        );
+        let field_record = test_node_place_record(
+            first_id + 1,
+            il,
+            field,
+            PlaceEvidenceKind::SelfField {
+                field_hash: stable_symbol_hash(interner.resolve(field_name)),
+            },
+            vec![receiver_id],
+        );
+        il.evidence.push(receiver_record);
+        il.evidence.push(field_record);
+        field_id
+    }
+
+    fn admit_test_self_field_write(
+        il: &mut Il,
+        interner: &Interner,
+        receiver: NodeId,
+        field: NodeId,
+        assign: NodeId,
+        field_name: nose_il::Symbol,
+        first_id: u32,
+    ) {
+        let field_id = admit_test_self_field(il, interner, receiver, field, field_name, first_id);
+        let effect_record = test_node_effect_record(
+            first_id + 2,
+            il,
+            assign,
+            EffectEvidenceKind::SelfFieldWrite {
+                field_hash: stable_symbol_hash(interner.resolve(field_name)),
+            },
+            vec![field_id],
+        );
+        il.evidence.push(effect_record);
+    }
+
+    fn test_source_record(id: u32, span: Span, fact: SourceFactKind) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::source_span(span),
+            kind: EvidenceKind::Source(fact),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn test_call_target_record(
+        id: u32,
+        call_span: Span,
+        target_span: Span,
+        name_hash: u64,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(call_span, NodeKind::Call),
+            kind: EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
+                target_span,
+                name_hash,
+            }),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        }
+    }
 
     /// Build `fn() { return len(<str literal>) }` and run it.
     fn run_len_of_string() -> Value {
@@ -1324,7 +1566,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1333,6 +1575,33 @@ mod tests {
         // unknown, so `len(str)` must be `Err` (matching the documented contract and the
         // sibling `IsEmpty`), not a hardcoded `Int(1)`.
         assert_eq!(run_len_of_string(), Value::Err);
+    }
+
+    #[test]
+    fn builtin_calls_require_admission_for_oracle_execution() {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let xs = b.add(NodeKind::Seq, Payload::None, sp, &[one]);
+        let call = b.add(NodeKind::Call, Payload::Builtin(Builtin::Len), sp, &[xs]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[ret]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+
+        let interner = Interner::new();
+        assert!(run_unit(&il, &interner, func, &[]).is_none());
+        assert_eq!(
+            run_admitted_unit(il, func, &[]).expect("admitted run").ret,
+            Value::Int(1)
+        );
     }
 
     fn run_value_or_default(value: NodeId, default: NodeId, mut b: IlBuilder, sp: Span) -> Value {
@@ -1353,7 +1622,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1409,7 +1678,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1457,7 +1726,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1492,7 +1761,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).map(|behavior| behavior.ret)
+        run_admitted_unit(il, func, &[]).map(|behavior| behavior.ret)
     }
 
     #[test]
@@ -1518,7 +1787,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1527,34 +1796,73 @@ mod tests {
     }
 
     fn run_field_write_read() -> (Behavior, FieldKey) {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
-        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let this_name = interner.intern("this");
         let field_name = interner.intern("x");
         let field_key = FieldKey {
-            receiver: FieldPlace::Param(0),
-            field: nose_il::symbol_index(field_name) as i64,
+            receiver: FieldPlace::SelfReceiver,
+            field: stable_symbol_hash(interner.resolve(field_name)),
         };
-        let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
-        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
-        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
-        let read_base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let read_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[read_base]);
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
-        let il = b.finish(
+        let mut b = IlBuilder::new(FileId(0));
+        let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(2),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[write_target, seven],
+        );
+        let read_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
+        let read_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(6),
+            &[read_receiver],
+        );
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(7),
+            &[read_target],
+        );
+        let block = b.add(NodeKind::Block, Payload::None, test_span(8), &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, test_span(9), &[block]);
+        let mut il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
-                lang: Lang::Python,
+                path: "T.java".into(),
+                lang: Lang::Java,
             },
             Vec::new(),
             Vec::new(),
         );
-        (run_unit(&il, func, &[]).expect("run_unit"), field_key)
+        admit_test_self_field_write(
+            &mut il,
+            &interner,
+            write_receiver,
+            write_target,
+            assign,
+            field_name,
+            2000,
+        );
+        admit_test_self_field(
+            &mut il,
+            &interner,
+            read_receiver,
+            read_target,
+            field_name,
+            2010,
+        );
+        (
+            run_unit(&il, &interner, func, &[]).expect("run_unit"),
+            field_key,
+        )
     }
 
     #[test]
@@ -1564,38 +1872,126 @@ mod tests {
         assert_eq!(behavior.fields, vec![(field_key, Value::Int(7))]);
     }
 
-    fn run_field_read_with_error_receiver() -> Behavior {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
+    #[test]
+    fn raw_python_attribute_write_is_not_oracle_field_state_proof() {
         let interner = Interner::new();
         let field_name = interner.intern("x");
-        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
-        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
-        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
-        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
-        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
-        let error_receiver = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), test_span(1), &[]);
+        let write_receiver = b.add(NodeKind::Var, Payload::Cid(0), test_span(2), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(3),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(4), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(5),
+            &[write_target, seven],
+        );
+        let read_receiver = b.add(NodeKind::Var, Payload::Cid(0), test_span(6), &[]);
         let read_target = b.add(
             NodeKind::Field,
             Payload::Name(field_name),
-            sp,
-            &[error_receiver],
+            test_span(7),
+            &[read_receiver],
         );
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(8),
+            &[read_target],
+        );
+        let block = b.add(NodeKind::Block, Payload::None, test_span(9), &[assign, ret]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            test_span(10),
+            &[param, block],
+        );
         let il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
+                path: "t.py".into(),
                 lang: Lang::Python,
             },
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        assert!(
+            run_unit(&il, &interner, func, &[Value::Null]).is_none(),
+            "raw attribute spelling must not prove exact field readback"
+        );
+    }
+
+    fn run_field_read_with_error_receiver() -> Behavior {
+        let interner = Interner::new();
+        let this_name = interner.intern("this");
+        let field_name = interner.intern("x");
+        let mut b = IlBuilder::new(FileId(0));
+        let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(2),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[write_target, seven],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), test_span(5), &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), test_span(6), &[]);
+        let error_receiver = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Div),
+            test_span(7),
+            &[one, zero],
+        );
+        let read_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(8),
+            &[error_receiver],
+        );
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(9),
+            &[read_target],
+        );
+        let block = b.add(
+            NodeKind::Block,
+            Payload::None,
+            test_span(10),
+            &[assign, ret],
+        );
+        let func = b.add(NodeKind::Func, Payload::None, test_span(11), &[block]);
+        let mut il = b.finish(
+            func,
+            FileMeta {
+                path: "T.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        admit_test_self_field_write(
+            &mut il,
+            &interner,
+            write_receiver,
+            write_target,
+            assign,
+            field_name,
+            2000,
+        );
+        run_unit(&il, &interner, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -1632,7 +2028,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -1642,60 +2038,70 @@ mod tests {
         assert!(behavior.fields.is_empty());
     }
 
-    fn run_receiver_field_writes(swapped: bool) -> Behavior {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
+    fn run_self_field_writes(swapped: bool) -> Behavior {
         let interner = Interner::new();
-        let field_name = interner.intern("x");
-        let param_a = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let param_b = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
-        let a = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let b_var = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
-        let a_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[a]);
-        let b_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[b_var]);
-        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
-        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
-        let (left_target, left_value, right_target, right_value) = if swapped {
-            (b_x, one, a_x, two)
+        let this_name = interner.intern("this");
+        let x_name = interner.intern("x");
+        let y_name = interner.intern("y");
+        let mut b = IlBuilder::new(FileId(0));
+        let x_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let x_target = b.add(
+            NodeKind::Field,
+            Payload::Name(x_name),
+            test_span(2),
+            &[x_receiver],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), test_span(3), &[]);
+        let x_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[x_target, one],
+        );
+        let y_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
+        let y_target = b.add(
+            NodeKind::Field,
+            Payload::Name(y_name),
+            test_span(6),
+            &[y_receiver],
+        );
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), test_span(7), &[]);
+        let y_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(8),
+            &[y_target, two],
+        );
+        let statements = if swapped {
+            vec![y_assign, x_assign]
         } else {
-            (a_x, one, b_x, two)
+            vec![x_assign, y_assign]
         };
-        let left = b.add(
-            NodeKind::Assign,
-            Payload::None,
-            sp,
-            &[left_target, left_value],
-        );
-        let right = b.add(
-            NodeKind::Assign,
-            Payload::None,
-            sp,
-            &[right_target, right_value],
-        );
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[left, right]);
-        let func = b.add(
-            NodeKind::Func,
-            Payload::None,
-            sp,
-            &[param_a, param_b, block],
-        );
-        let il = b.finish(
+        let block = b.add(NodeKind::Block, Payload::None, test_span(9), &statements);
+        let func = b.add(NodeKind::Func, Payload::None, test_span(10), &[block]);
+        let mut il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
-                lang: Lang::Python,
+                path: "T.java".into(),
+                lang: Lang::Java,
             },
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("receiver field writes should interpret")
+        admit_test_self_field_write(
+            &mut il, &interner, x_receiver, x_target, x_assign, x_name, 2000,
+        );
+        admit_test_self_field_write(
+            &mut il, &interner, y_receiver, y_target, y_assign, y_name, 2010,
+        );
+        run_unit(&il, &interner, func, &[]).expect("self-field writes should interpret")
     }
 
     #[test]
-    fn field_state_preserves_receiver_identity() {
-        assert_ne!(
-            run_receiver_field_writes(false).fields,
-            run_receiver_field_writes(true).fields
+    fn self_field_final_state_is_order_insensitive() {
+        assert_eq!(
+            run_self_field_writes(false).fields,
+            run_self_field_writes(true).fields
         );
     }
 
@@ -1714,7 +2120,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1790,7 +2196,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1831,7 +2237,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -1866,7 +2272,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[Value::Err]).expect("run_unit")
+        run_admitted_unit(il, func, &[Value::Err]).expect("run_unit")
     }
 
     #[test]
@@ -1903,7 +2309,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -1948,7 +2354,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -1980,7 +2386,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -2017,7 +2423,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -2061,7 +2467,7 @@ mod tests {
             Vec::new(),
         );
         assert_eq!(
-            run_unit(&il, func, &[]).expect("run_unit").ret,
+            run_admitted_unit(il, func, &[]).expect("run_unit").ret,
             Value::Int(7)
         );
     }
@@ -2087,7 +2493,10 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        assert_eq!(run_unit(&il, func, &[]).expect("run_unit").ret, Value::Err);
+        assert_eq!(
+            run_admitted_unit(il, func, &[]).expect("run_unit").ret,
+            Value::Err
+        );
     }
 
     fn seq_with_error_item_value() -> Value {
@@ -2108,7 +2517,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2139,7 +2548,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2191,7 +2600,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2234,7 +2643,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2274,7 +2683,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2305,7 +2714,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2355,7 +2764,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2397,7 +2806,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2449,7 +2858,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -2505,8 +2914,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(
-            &il,
+        run_admitted_unit(
+            il,
             func,
             &[
                 Value::List(vec![Value::Int(1), Value::Int(2)]),
@@ -2582,12 +2991,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(
-            &il,
-            func,
-            &[Value::List(vec![Value::Int(1), Value::Int(2)])],
-        )
-        .expect("run_unit")
+        run_admitted_unit(il, func, &[Value::List(vec![Value::Int(1), Value::Int(2)])])
+            .expect("run_unit")
     }
 
     #[test]
@@ -2621,7 +3026,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2656,7 +3061,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -2695,7 +3100,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[Value::List(Vec::new())]).expect("run_unit")
+        run_admitted_unit(il, func, &[Value::List(Vec::new())]).expect("run_unit")
     }
 
     #[test]
@@ -2728,7 +3133,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit")
+        run_admitted_unit(il, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -2773,6 +3178,46 @@ mod tests {
             sp,
             &[done_param, ignored_param, body],
         );
+        let mut il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            vec![Unit {
+                root: func,
+                kind: UnitKind::Function,
+                name: Some(func_name),
+            }],
+            Vec::new(),
+        );
+        il.evidence.push(test_call_target_record(
+            2000,
+            il.node(recursive_call).span,
+            il.node(func).span,
+            interner.symbol_hash(func_name),
+        ));
+        run_admitted_unit(il, func, &[Value::Bool(false), Value::Int(0)])
+            .expect("run_unit")
+            .ret
+    }
+
+    #[test]
+    fn self_call_argument_err_stops_execution() {
+        assert_eq!(self_call_with_error_arg_ignored_by_callee(), Value::Err);
+    }
+
+    #[test]
+    fn raw_same_name_self_call_without_target_evidence_is_unsupported() {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let interner = Interner::new();
+        let func_name = interner.intern("f");
+        let callee = b.add(NodeKind::Var, Payload::Name(func_name), sp, &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp, &[callee]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp, &[ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[body]);
         let il = b.finish(
             func,
             FileMeta {
@@ -2786,44 +3231,44 @@ mod tests {
             }],
             Vec::new(),
         );
-        run_unit(&il, func, &[Value::Bool(false), Value::Int(0)])
-            .expect("run_unit")
-            .ret
-    }
 
-    #[test]
-    fn self_call_argument_err_stops_execution() {
-        assert_eq!(self_call_with_error_arg_ignored_by_callee(), Value::Err);
+        assert!(run_unit(&il, &interner, func, &[]).is_none());
     }
 
     /// `g(x) = x*x` and `f(x) = g(x) + 1` in one file — running `f(3)` must interpret the
     /// cross-function call to `g` (not bail out as opaque), giving `3*3 + 1 = 10`. This is what
     /// lets the oracle validate the interprocedural-inline canonicalization.
     fn cross_function_call_result() -> Value {
-        let sp = Span::synthetic(FileId(0));
+        let sp = |n| Span {
+            file: FileId(0),
+            start_byte: n,
+            end_byte: n + 1,
+            start_line: n,
+            end_line: n,
+        };
         let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
         let g_name = interner.intern("g");
         let f_name = interner.intern("f");
         // g(x) = x * x
-        let g_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let gx1 = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let gx2 = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let g_mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp, &[gx1, gx2]);
-        let g_ret = b.add(NodeKind::Return, Payload::None, sp, &[g_mul]);
-        let g_body = b.add(NodeKind::Block, Payload::None, sp, &[g_ret]);
-        let g_func = b.add(NodeKind::Func, Payload::None, sp, &[g_param, g_body]);
+        let g_param = b.add(NodeKind::Param, Payload::Cid(0), sp(1), &[]);
+        let gx1 = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
+        let gx2 = b.add(NodeKind::Var, Payload::Cid(0), sp(3), &[]);
+        let g_mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp(4), &[gx1, gx2]);
+        let g_ret = b.add(NodeKind::Return, Payload::None, sp(5), &[g_mul]);
+        let g_body = b.add(NodeKind::Block, Payload::None, sp(6), &[g_ret]);
+        let g_func = b.add(NodeKind::Func, Payload::None, sp(7), &[g_param, g_body]);
         // f(x) = g(x) + 1
-        let f_param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let callee = b.add(NodeKind::Var, Payload::Name(g_name), sp, &[]);
-        let fx = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let call = b.add(NodeKind::Call, Payload::None, sp, &[callee, fx]);
-        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
-        let f_add = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp, &[call, one]);
-        let f_ret = b.add(NodeKind::Return, Payload::None, sp, &[f_add]);
-        let f_body = b.add(NodeKind::Block, Payload::None, sp, &[f_ret]);
-        let f_func = b.add(NodeKind::Func, Payload::None, sp, &[f_param, f_body]);
-        let il = b.finish(
+        let f_param = b.add(NodeKind::Param, Payload::Cid(0), sp(8), &[]);
+        let callee = b.add(NodeKind::Var, Payload::Name(g_name), sp(9), &[]);
+        let fx = b.add(NodeKind::Var, Payload::Cid(0), sp(10), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(11), &[callee, fx]);
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(12), &[]);
+        let f_add = b.add(NodeKind::BinOp, Payload::Op(Op::Add), sp(13), &[call, one]);
+        let f_ret = b.add(NodeKind::Return, Payload::None, sp(14), &[f_add]);
+        let f_body = b.add(NodeKind::Block, Payload::None, sp(15), &[f_ret]);
+        let f_func = b.add(NodeKind::Func, Payload::None, sp(16), &[f_param, f_body]);
+        let mut il = b.finish(
             f_func,
             FileMeta {
                 path: "t".into(),
@@ -2843,7 +3288,13 @@ mod tests {
             ],
             Vec::new(),
         );
-        run_unit(&il, f_func, &[Value::Int(3)])
+        il.evidence.push(test_call_target_record(
+            2001,
+            il.node(call).span,
+            il.node(g_func).span,
+            interner.symbol_hash(g_name),
+        ));
+        run_admitted_unit(il, f_func, &[Value::Int(3)])
             .expect("run_unit")
             .ret
     }
@@ -2882,7 +3333,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2926,7 +3377,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2952,7 +3403,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]
@@ -2991,7 +3442,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
-        run_unit(&il, func, &[]).expect("run_unit").ret
+        run_admitted_unit(il, func, &[]).expect("run_unit").ret
     }
 
     #[test]

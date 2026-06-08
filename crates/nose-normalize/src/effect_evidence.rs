@@ -2,7 +2,10 @@ use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
     EvidenceKind, EvidenceStatus, Il, Interner, Lang, NodeId, NodeKind, Payload, PlaceEvidenceKind,
 };
-use nose_semantics::{module_binding_mutating_method_contract, FIRST_PARTY_PACK_ID};
+use nose_semantics::{
+    library_api_dependency_id_for_canonical_builtin_call, module_binding_mutating_method_contract,
+    FIRST_PARTY_PACK_ID,
+};
 
 pub(crate) fn run(il: &mut Il, interner: &Interner) {
     let nodes: Vec<NodeId> = il
@@ -76,12 +79,17 @@ fn record_builder_append(il: &mut Il, node: NodeId) {
     {
         return;
     }
+    let Some(api_dependency) =
+        library_api_dependency_id_for_canonical_builtin_call(il, node, Builtin::Append)
+    else {
+        return;
+    };
     upsert(
         il,
         node,
         EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
         "effect_builder_append_normalize",
-        Vec::new(),
+        vec![api_dependency],
     );
 }
 
@@ -109,11 +117,13 @@ fn record_call_mutation_effects(il: &mut Il, interner: &Interner, node: NodeId) 
     let Payload::Name(method) = il.node(callee).payload else {
         return;
     };
-    if module_binding_mutating_method_contract(il.meta.lang, interner.resolve(method)) {
+    if let Some(contract) =
+        module_binding_mutating_method_contract(il.meta.lang, interner.resolve(method), arg_count)
+    {
         upsert(
             il,
             node,
-            EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+            EvidenceKind::Effect(contract.effect),
             "effect_receiver_mutation_normalize",
             Vec::new(),
         );
@@ -200,4 +210,84 @@ fn upsert(
     found.unwrap_or_else(|| {
         il.find_or_push_first_party_evidence(anchor, kind, FIRST_PARTY_PACK_ID, rule, dependencies)
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nose_il::{FileId, FileMeta, IlBuilder, LibraryApiEvidenceKind, Span};
+    use nose_semantics::{
+        library_api_callee_contract_hash, library_api_contract_id_hash,
+        library_free_function_builtin_contract,
+    };
+
+    fn append_il() -> (Il, NodeId) {
+        let span = Span::synthetic(FileId(0));
+        let mut builder = IlBuilder::new(FileId(0));
+        let receiver = builder.add(NodeKind::Var, Payload::Cid(0), span, &[]);
+        let value = builder.add(NodeKind::Var, Payload::Cid(1), span, &[]);
+        let append = builder.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            span,
+            &[receiver, value],
+        );
+        let root = builder.add(NodeKind::Func, Payload::None, span, &[append]);
+        (
+            builder.finish(
+                root,
+                FileMeta {
+                    path: "append.go".into(),
+                    lang: Lang::Go,
+                },
+                Vec::new(),
+                Vec::new(),
+            ),
+            append,
+        )
+    }
+
+    fn builder_append_effect(il: &Il, call: NodeId) -> Option<&nose_il::EvidenceRecord> {
+        il.evidence.iter().find(|record| {
+            record.anchor == EvidenceAnchor::node(il.node(call).span, NodeKind::Call)
+                && record.kind == EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall)
+        })
+    }
+
+    #[test]
+    fn canonical_append_payload_does_not_emit_effect_without_api_proof() {
+        let interner = Interner::new();
+        let (mut il, append) = append_il();
+
+        run(&mut il, &interner);
+
+        assert!(
+            builder_append_effect(&il, append).is_none(),
+            "raw canonical append payload must not mint BuilderAppendCall evidence"
+        );
+    }
+
+    #[test]
+    fn canonical_append_effect_depends_on_library_api_proof() {
+        let interner = Interner::new();
+        let (mut il, append) = append_il();
+        let contract =
+            library_free_function_builtin_contract(Lang::Go, "append", 2).expect("Go append");
+        let api = il.find_or_push_first_party_evidence(
+            EvidenceAnchor::node(il.node(append).span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: library_api_contract_id_hash(contract.id),
+                callee_hash: library_api_callee_contract_hash(contract.callee),
+                arity: 2,
+            }),
+            FIRST_PARTY_PACK_ID,
+            "test_go_append",
+            Vec::new(),
+        );
+
+        run(&mut il, &interner);
+
+        let effect = builder_append_effect(&il, append).expect("append effect");
+        assert_eq!(effect.dependencies, vec![api]);
+    }
 }

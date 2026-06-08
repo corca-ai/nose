@@ -40,7 +40,7 @@ source ──tree-sitter──▶ raw IL ──normalize──▶ canonical IL �
    walks the CST and emits raw IL using a small, desugared core node set. Every
    node copies its source span, so every match traces back to exact lines.
    Frontends also emit semantic evidence records when that core IL would
-   otherwise erase exact source, domain, import, symbol, guard, place/effect,
+   otherwise erase exact source, domain, import, symbol, type, guard, place/effect,
    library API, or sequence-surface distinctions needed by semantic contracts,
    then tag syntactic unit boundaries (function/method/class/block), which gives
    detection accurate boundaries for free.
@@ -81,7 +81,7 @@ A Cargo workspace; data flows left-to-right through them.
 | crate | role |
 |---|---|
 | `nose-il` | arena IL model (`Vec<Node>`, `NodeId(u32)`, out-of-line edges), provenance spans, semantic evidence records, interner, serialization, IR verifier |
-| `nose-semantics` | first-party semantic facade: language profiles, evidence/source-fact helpers, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
+| `nose-semantics` | first-party semantic facade: language profiles, evidence/source-fact helpers, type-domain contracts, effect/operator/module/stdlib predicates, API contracts, and exact-channel proof obligations |
 | `nose-frontend` | tree-sitter parse + per-language CST→IL lowering and first-party evidence emission (one module per language; embedded `<script>` extraction) |
 | `nose-normalize` | the normalization passes, inferred immutable binding-domain evidence, and the value graph (GVN) |
 | `nose-detect` | unit/feature extraction, MinHash/LSH, scoring, clustering, refactor ranking |

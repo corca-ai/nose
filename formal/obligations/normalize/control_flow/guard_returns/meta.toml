@@ -4,7 +4,11 @@ kind = "soundness"
 summary = "Guard-return, dead-code-after-return, and ternary-return control-flow canons preserve return semantics."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/cfg_norm.rs"]
+files = [
+  "crates/nose-normalize/src/value_graph/sinks.rs",
+  "crates/nose-normalize/src/value_graph/control.rs",
+  "crates/nose-normalize/src/cfg_norm.rs",
+]
 symbols = ["guarded", "process_block"]
 
 [lean]

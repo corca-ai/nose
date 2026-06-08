@@ -61,6 +61,12 @@ deep-copied into the body — and handed to the existing
 predicate path described below; the contract path is kept in lockstep by differential tests
 and proof obligations.
 
+Wrapper synthesis preserves the copied nodes' original spans and carries the source IL's
+evidence graph into the wrapper. This is required for semantic-kernel admission: canonical
+builtins, append effects, source facts, and library API occurrences remain executable only
+when their original evidence records and dependencies are still asserted. The wrapper does
+not mint new semantic facts from selector names or payload tags.
+
 Because `Behavior` already records effects and field state, **effects are preserved as
 observable behavior for free**: appending to a parameter list shows up in the effect trace,
 so two append fragments that append different values diverge without any special handling. A

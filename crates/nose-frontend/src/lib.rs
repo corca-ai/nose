@@ -13,6 +13,7 @@ mod module_imports;
 mod python;
 mod ruby;
 mod rust;
+mod type_domain_aliases;
 
 pub use coverage::{coverage, CoverageReport};
 

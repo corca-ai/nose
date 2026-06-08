@@ -388,7 +388,7 @@ fn binding_node_name(il: &Il, node: NodeId) -> Option<Symbol> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::Builtin;
+    use nose_il::{Builtin, EffectEvidenceKind};
     use nose_il::{
         EvidenceEmitter, EvidenceProvenance, FileId, FileMeta, IlBuilder, Lang,
         SequenceSurfaceKind, Span, Unit, UnitKind,
@@ -509,7 +509,13 @@ mod tests {
             }
         };
         let mut il = finish_with_sequence_evidence(b, root);
-        crate::effect_evidence::run(&mut il, interner);
+        il.find_or_push_first_party_evidence(
+            EvidenceAnchor::node(append_span, NodeKind::Call),
+            EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
+            FIRST_PARTY_PACK_ID,
+            "test_builder_append_effect",
+            Vec::new(),
+        );
         il
     }
 

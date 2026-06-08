@@ -4,7 +4,11 @@ kind = "soundness"
 summary = "Any/all reductions are well-defined Bool folds for cross-language predicate reductions."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs", "crates/nose-normalize/src/idioms.rs"]
+files = [
+  "crates/nose-normalize/src/value_graph/control.rs",
+  "crates/nose-normalize/src/value_graph/ops.rs",
+  "crates/nose-normalize/src/idioms.rs",
+]
 symbols = ["recognize_existence_reduction", "REDUCE_ANY", "REDUCE_ALL"]
 
 [lean]

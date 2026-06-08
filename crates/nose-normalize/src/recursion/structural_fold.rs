@@ -21,7 +21,6 @@ pub(super) fn recognize(
     param_cids: Vec<u32>,
     guards: Vec<(NodeId, NodeId)>,
     rexpr: NodeId,
-    name: nose_il::Symbol,
 ) -> Option<Plan> {
     // Structural recursion: `HEAD ⊕ f(a…)` / `f(a…) ⊕ HEAD`, gated to a numeric monoid.
     if rb.old.kind(rexpr) != NodeKind::BinOp {
@@ -39,7 +38,7 @@ pub(super) fn recognize(
         return None;
     }
     let (a, b) = (operands[0], operands[1]);
-    let (head, args) = match (rb.as_self_call(a, name), rb.as_self_call(b, name)) {
+    let (head, args) = match (rb.as_self_call(a, fid), rb.as_self_call(b, fid)) {
         (Some(args), None) => (b, args),
         (None, Some(args)) => (a, args),
         _ => return None, // both or neither — not a linear fold

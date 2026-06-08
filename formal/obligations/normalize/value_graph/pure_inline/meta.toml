@@ -4,7 +4,10 @@ kind = "soundness"
 summary = "Inlining a call to a PURE, single-`return` function is beta-substitution: `f(args)` ≡ the function's body with the parameters bound to the arguments. For an effect-free function (modeled as a total mathematical function) this preserves meaning — nothing observable is dropped — so the interprocedural inline (`eval_inlined_call`) is sound. The Rust side enforces the effect-free precondition (a lone `return <expr>` that is `function_binding_safe`), which is why only a pure body may be inlined."
 
 [rust]
-files = ["crates/nose-normalize/src/value_graph.rs"]
+files = [
+  "crates/nose-normalize/src/value_graph.rs",
+  "crates/nose-normalize/src/value_graph/inline.rs",
+]
 symbols = ["eval_inlined_call"]
 
 [lean]

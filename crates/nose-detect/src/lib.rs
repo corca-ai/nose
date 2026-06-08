@@ -15,6 +15,7 @@ mod il_utils;
 mod lsh;
 mod minhash;
 mod report;
+mod strict_exact;
 mod units;
 
 pub use contiguous::Stream;
