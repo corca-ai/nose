@@ -97,6 +97,71 @@ impl Il {
         &self.edges[s..s + n.child_len as usize]
     }
 
+    pub fn find_or_push_first_party_evidence(
+        &mut self,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        pack_id: &str,
+        rule: &str,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceId {
+        let pack_hash = stable_symbol_hash(pack_id);
+        let rule_hash = stable_symbol_hash(rule);
+        if let Some(id) = self.evidence.iter().find_map(|record| {
+            (record.anchor == anchor
+                && record.kind == kind
+                && record.status == EvidenceStatus::Asserted
+                && record.provenance.emitter == EvidenceEmitter::FirstParty
+                && record.provenance.pack_hash == Some(pack_hash)
+                && record.provenance.rule_hash == Some(rule_hash)
+                && record.dependencies == dependencies)
+                .then_some(record.id)
+        }) {
+            return id;
+        }
+        let id = EvidenceId(self.evidence.len() as u32);
+        self.evidence.push(EvidenceRecord {
+            id,
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(pack_hash),
+                rule_hash: Some(rule_hash),
+            },
+            dependencies,
+            status: EvidenceStatus::Asserted,
+        });
+        id
+    }
+
+    #[inline]
+    pub fn evidence_record_by_id(&self, id: EvidenceId) -> Option<&EvidenceRecord> {
+        self.evidence
+            .get(id.0 as usize)
+            .filter(|record| record.id == id)
+            .or_else(|| self.evidence.iter().find(|record| record.id == id))
+    }
+
+    pub fn evidence_dependencies_asserted(&self, record: &EvidenceRecord) -> bool {
+        let mut stack = record.dependencies.clone();
+        let mut seen = Vec::new();
+        while let Some(id) = stack.pop() {
+            if seen.contains(&id) {
+                continue;
+            }
+            seen.push(id);
+            let Some(dep) = self.evidence_record_by_id(id) else {
+                return false;
+            };
+            if dep.status != EvidenceStatus::Asserted {
+                return false;
+            }
+            stack.extend_from_slice(&dep.dependencies);
+        }
+        true
+    }
+
     /// Render a subtree as an s-expression (used by `nose il --format sexpr`).
     pub fn to_sexpr(&self, root: NodeId, interner: &Interner) -> String {
         sexpr::to_sexpr(self, root, interner)
@@ -311,5 +376,50 @@ mod validate_tests {
             il.validate().is_err(),
             "an out-of-range child span must fail"
         );
+    }
+
+    #[test]
+    fn first_party_evidence_dedupe_preserves_provenance_boundary() {
+        let mut il = leaf_il();
+        let anchor = EvidenceAnchor::node(il.node(il.root).span, NodeKind::Module);
+        let kind = EvidenceKind::Domain(DomainEvidence::Collection);
+        il.evidence.push(EvidenceRecord {
+            id: EvidenceId(0),
+            anchor,
+            kind,
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::External,
+                pack_hash: Some(stable_symbol_hash("external.pack")),
+                rule_hash: Some(stable_symbol_hash("external.rule")),
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        });
+
+        let first = il.find_or_push_first_party_evidence(
+            anchor,
+            kind,
+            "nose.first_party",
+            "rule.a",
+            Vec::new(),
+        );
+        let duplicate = il.find_or_push_first_party_evidence(
+            anchor,
+            kind,
+            "nose.first_party",
+            "rule.a",
+            Vec::new(),
+        );
+        let different_rule = il.find_or_push_first_party_evidence(
+            anchor,
+            kind,
+            "nose.first_party",
+            "rule.b",
+            Vec::new(),
+        );
+
+        assert_eq!(first, EvidenceId(1));
+        assert_eq!(duplicate, first);
+        assert_eq!(different_rule, EvidenceId(2));
     }
 }

@@ -15,6 +15,7 @@
 
 mod algebra;
 mod alpha;
+mod binding_evidence;
 mod cfg_norm;
 mod commutative;
 mod dataflow;
@@ -232,6 +233,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
     timer.lap("desugar");
+    binding_evidence::run(&mut out, interner);
+    timer.lap("binding");
     alpha::run(&mut out);
     timer.lap("alpha");
     if opts.oracle {

@@ -1510,29 +1510,13 @@ fn post_lower_find_or_push_evidence(
     rule: &str,
     dependencies: Vec<EvidenceId>,
 ) -> Option<EvidenceId> {
-    if let Some(id) = il.evidence.iter().find_map(|record| {
-        (record.anchor == anchor
-            && record.kind == kind
-            && record.status == EvidenceStatus::Asserted
-            && record.dependencies == dependencies)
-            .then_some(record.id)
-    }) {
-        return Some(id);
-    }
-    let id = EvidenceId(il.evidence.len() as u32);
-    il.evidence.push(EvidenceRecord {
-        id,
+    Some(il.find_or_push_first_party_evidence(
         anchor,
         kind,
-        provenance: EvidenceProvenance {
-            emitter: EvidenceEmitter::FirstParty,
-            pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
-            rule_hash: Some(stable_symbol_hash(rule)),
-        },
+        nose_semantics::FIRST_PARTY_PACK_ID,
+        rule,
         dependencies,
-        status: EvidenceStatus::Asserted,
-    });
-    Some(id)
+    ))
 }
 
 fn post_lower_top_level_statements(il: &Il) -> Vec<NodeId> {

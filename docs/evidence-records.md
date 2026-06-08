@@ -132,13 +132,16 @@ symbol fact or stronger scope-resolution evidence exists.
 
 Domain evidence follows the same fail-closed rule. First-party parameter
 annotations emit `Domain` evidence on `Param` anchors, and `nose-semantics`
-resolves `Domain` evidence on exact receiver-expression node anchors before
-consulting parameter-anchor evidence. A conflicting, ambiguous, or
-dependency-broken receiver-domain record closes that receiver proof and must not
-fall back to side-table mirrors or selector spelling. When a receiver is an
-alpha-renamed parameter reference, lookup is constrained to the nearest
-function/lambda scope so same-numbered parameter ids from other units do not
-prove the current receiver. Method receiver contracts expose their domain-backed
+resolves `Domain` evidence on exact receiver-expression node anchors, then
+binding anchors for immutable local/module variables, then parameter anchors. A
+conflicting, ambiguous, or dependency-broken receiver-domain record closes that
+receiver proof and must not fall back to side-table mirrors or selector
+spelling. Binding-anchor lookup matches both source span and `local_hash`, and a
+binding proof is applied to a receiver only when the assignment is visible before
+that receiver use. When a receiver is an alpha-renamed parameter or local binding
+reference, lookup is constrained to the nearest function/lambda scope where
+appropriate so same-numbered parameter/local ids from other units do not prove
+the current receiver. Method receiver contracts expose their domain-backed
 obligations through `DomainRequirement`; obligations such as imported namespace,
 unshadowed global, exact map literal, and future demand/effect constraints remain
 separate checks.
@@ -215,8 +218,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
 - parameter semantic annotations become `Domain` evidence. Selected first-party
   library/API factory calls now also emit receiver-expression `Domain` evidence
   at the exact call node after their `LibraryApi` occurrence has been admitted.
-  Future packs and inference producers should use the same node-anchored
-  receiver-domain shape instead of selector spelling;
+  Normalize also emits binding-anchored `Domain` evidence for single-assignment
+  local/module bindings whose initializer has asserted sequence or result-domain
+  evidence and whose binding has no direct mutation under the current
+  first-party mutation scan. Future packs and inference producers should use
+  node or binding anchors for receiver-domain proof instead of selector spelling;
 - source-origin facts become `Source` evidence;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
@@ -296,13 +302,16 @@ The first migrated consumers are the shared semantic helpers and their direct
 callers:
 
 - source-fact lookup for construct syntax, regex literal, and operator provenance;
-- receiver-domain lookup used by desugaring, normalize idiom canonicalization,
-  value-graph membership/property/map/integer gates, and strict exact receiver
-  gates. Consumers ask `nose-semantics` whether a receiver satisfies a
-  `DomainRequirement`, so node-anchored receiver evidence, scoped parameter
-  evidence, selected API result-domain evidence, ambiguity handling, and
-  compatibility fallback are no longer reimplemented separately in each crate.
-  Coarse API result-domain evidence is not exact-tree proof: value-graph
+- receiver-domain lookup used by post-desugar semantic/value-graph
+  membership/property/map/integer gates and strict exact receiver gates.
+  Consumers ask `nose-semantics` whether a receiver satisfies a
+  `DomainRequirement`, so node-anchored receiver evidence, immutable
+  local/module binding evidence, scoped parameter evidence, selected API
+  result-domain evidence, ambiguity handling, and compatibility fallback are no
+  longer reimplemented separately in those paths. Desugaring and early idiom
+  canonicalization still run before immutable binding-domain inference, so they
+  only consume the domain evidence already present at that point. Coarse API
+  result-domain and binding-domain evidence is not exact-tree proof: value-graph
   consumers prefer concrete factory/result-shape canonicalization before using a
   domain-shaped fallback, and strict exact consumers still require the receiver
   expression itself to satisfy the relevant factory, literal, binding, or
@@ -359,8 +368,8 @@ callers:
 
 Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
 receiver-method APIs and unmodeled stdlib/ecosystem APIs, broader inferred
-receiver-expression domain evidence, immutable local/module binding domain
-evidence, full protocol/demand/effect receiver obligations, full
-scope-resolution and namespace-member evidence, broader guard evidence, general
-cross-module dependency manifests, report-level provenance, and external
-manifest loading are still open work.
+receiver-expression domain evidence, first-class mutation/effect evidence beyond
+the current first-party binding scan, full protocol/demand/effect receiver
+obligations, full scope-resolution and namespace-member evidence, broader guard
+evidence, general cross-module dependency manifests, report-level provenance,
+and external manifest loading are still open work.

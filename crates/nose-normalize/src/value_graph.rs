@@ -832,23 +832,43 @@ impl<'a> Builder<'a> {
     }
 
     fn domain_evidence_of_expr(&self, expr: NodeId) -> Option<DomainEvidence> {
-        nose_semantics::domain_evidence_for_receiver(self.il, expr)
+        nose_semantics::domain_evidence_for_receiver(self.il, self.interner, expr)
     }
 
     fn is_collection_param_expr(&self, expr: NodeId) -> bool {
-        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::CollectionOrSet)
+        nose_semantics::receiver_satisfies_domain(
+            self.il,
+            self.interner,
+            expr,
+            DomainRequirement::CollectionOrSet,
+        )
     }
 
     fn is_set_param_expr(&self, expr: NodeId) -> bool {
-        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Set)
+        nose_semantics::receiver_satisfies_domain(
+            self.il,
+            self.interner,
+            expr,
+            DomainRequirement::Set,
+        )
     }
 
     fn is_map_param_expr(&self, expr: NodeId) -> bool {
-        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Map)
+        nose_semantics::receiver_satisfies_domain(
+            self.il,
+            self.interner,
+            expr,
+            DomainRequirement::Map,
+        )
     }
 
     fn is_integer_param_expr(&self, expr: NodeId) -> bool {
-        nose_semantics::receiver_satisfies_domain(self.il, expr, DomainRequirement::Integer)
+        nose_semantics::receiver_satisfies_domain(
+            self.il,
+            self.interner,
+            expr,
+            DomainRequirement::Integer,
+        )
     }
 
     /// Whether `value` is a parameter (an `Input`) carrying the given proof-gate domain.
@@ -1261,24 +1281,47 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
+        let value = self.proven_local_binding_initializer_value(expr, env, |domain| {
+            domain.is_collection_or_set()
+        })?;
+        self.proven_collection_value(value)
+    }
+
+    fn proven_local_map_binding_value(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        let value =
+            self.proven_local_binding_initializer_value(expr, env, |domain| domain.is_map())?;
+        self.proven_map_value(value)
+    }
+
+    fn proven_local_binding_initializer_value(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+        accepts_domain: impl FnOnce(DomainEvidence) -> bool,
+    ) -> Option<ValueId> {
         if self.il.kind(expr) != NodeKind::Var {
             return None;
         }
         let Payload::Cid(cid) = self.il.node(expr).payload else {
             return None;
         };
-        if self.local_binding_mutated(cid) {
+        let (lhs, rhs) = self.local_binding_initializer(cid, expr)?;
+        if !nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, lhs)
+            .is_some_and(accepts_domain)
+        {
             return None;
         }
-        let rhs = self.local_binding_initializer(cid)?;
         if self.node_contains_cid(rhs, cid) {
             return None;
         }
-        let value = self.eval(rhs, env);
-        self.proven_collection_value(value)
+        Some(self.eval(rhs, env))
     }
 
-    fn local_binding_initializer(&self, cid: u32) -> Option<NodeId> {
+    fn local_binding_initializer(&self, cid: u32, use_node: NodeId) -> Option<(NodeId, NodeId)> {
         let mut rhs = None;
         for (idx, node) in self.il.nodes.iter().enumerate() {
             if node.kind != NodeKind::Assign {
@@ -1290,53 +1333,18 @@ impl<'a> Builder<'a> {
                 continue;
             }
             if self.node_refers_to_cid(kids[0], cid) {
+                if node.span.end_byte > self.il.node(use_node).span.start_byte {
+                    continue;
+                }
                 if rhs.is_some() {
                     return None;
                 }
-                rhs = Some(kids[1]);
+                rhs = Some((kids[0], kids[1]));
             } else if self.node_contains_cid(kids[0], cid) {
                 return None;
             }
         }
         rhs
-    }
-
-    fn local_binding_mutated(&self, cid: u32) -> bool {
-        self.il
-            .nodes
-            .iter()
-            .enumerate()
-            .any(|(idx, node)| match node.kind {
-                NodeKind::Call => self
-                    .call_mutates_cid(NodeId(idx as u32), cid)
-                    .unwrap_or(false),
-                NodeKind::Field => self
-                    .field_mutates_cid(NodeId(idx as u32), cid)
-                    .unwrap_or(false),
-                _ => false,
-            })
-    }
-
-    fn call_mutates_cid(&self, call: NodeId, cid: u32) -> Option<bool> {
-        if !matches!(
-            self.il.node(call).payload,
-            Payload::Builtin(Builtin::Append)
-        ) {
-            return Some(false);
-        }
-        let receiver = self.il.children(call).first().copied()?;
-        Some(self.node_refers_to_cid(receiver, cid))
-    }
-
-    fn field_mutates_cid(&self, field: NodeId, cid: u32) -> Option<bool> {
-        let Payload::Name(method) = self.il.node(field).payload else {
-            return Some(false);
-        };
-        if !mutating_method_name(self.interner.resolve(method)) {
-            return Some(false);
-        }
-        let receiver = self.il.children(field).first().copied()?;
-        Some(self.node_refers_to_cid(receiver, cid))
     }
 
     /// `factory([<entry>, …])` where `factory` is a free name that builds a map from a sequence of
@@ -1456,6 +1464,106 @@ impl<'a> Builder<'a> {
             return Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries));
         }
         None
+    }
+
+    fn eval_java_map_factory_expr(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if !semantics(self.il.meta.lang).stdlib().java_map_factories()
+            || kids.is_empty()
+            || self.il.kind(kids[0]) != NodeKind::Field
+        {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = library_java_map_factory_contract_by_hash(
+            self.il.meta.lang,
+            "Map",
+            self.interner.symbol_hash(method),
+        )?;
+        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
+            return None;
+        };
+        match library_api_contract_evidence_for_call(
+            self.il,
+            self.interner,
+            expr,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => return None,
+        }
+        let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
+            return None;
+        };
+        match kind {
+            JavaMapFactoryKind::Of => {
+                let entries = &kids[1..];
+                if entries.len() % 2 != 0 {
+                    return None;
+                }
+                let values: Vec<ValueId> = entries.iter().map(|&kid| self.eval(kid, env)).collect();
+                let mut canonical_entries = Vec::with_capacity(values.len() / 2);
+                for kv in values.chunks(2) {
+                    canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv.to_vec()));
+                }
+                Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries))
+            }
+            JavaMapFactoryKind::OfEntries => {
+                let mut canonical_entries = Vec::with_capacity(kids.len().saturating_sub(1));
+                for &entry in &kids[1..] {
+                    let kv = self.eval_java_map_entry_pair_expr(entry, env)?;
+                    canonical_entries.push(self.mk(ValOp::Seq(SEQ_VALUE_PAIR), kv));
+                }
+                Some(self.mk(ValOp::Seq(SEQ_VALUE_MAP), canonical_entries))
+            }
+        }
+    }
+
+    fn eval_java_map_entry_pair_expr(
+        &mut self,
+        expr: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<Vec<ValueId>> {
+        if self.il.kind(expr) != NodeKind::Call {
+            return None;
+        }
+        let kids = self.il.children(expr);
+        if kids.len() != 3 || self.il.kind(kids[0]) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = library_java_map_entry_contract_by_hash(
+            self.il.meta.lang,
+            "Map",
+            self.interner.symbol_hash(method),
+        )?;
+        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
+            return None;
+        };
+        match library_api_contract_evidence_for_call(
+            self.il,
+            self.interner,
+            expr,
+            contract.id,
+            contract.callee,
+            2,
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => return None,
+        }
+        Some(vec![self.eval(kids[1], env), self.eval(kids[2], env)])
     }
 
     fn proven_java_map_entry_pair(&self, value: ValueId) -> Option<Vec<ValueId>> {
@@ -1890,7 +1998,8 @@ impl<'a> Builder<'a> {
         let map = if self.is_map_param_expr(receiver) {
             receiver_value
         } else {
-            self.proven_map_value(receiver_value)?
+            self.proven_map_value(receiver_value)
+                .or_else(|| self.proven_local_map_binding_value(receiver, env))?
         };
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
@@ -1930,7 +2039,8 @@ impl<'a> Builder<'a> {
         let map = if self.is_map_param_expr(receiver) {
             receiver_value
         } else {
-            self.proven_map_value(receiver_value)?
+            self.proven_map_value(receiver_value)
+                .or_else(|| self.proven_local_map_binding_value(receiver, env))?
         };
         let key = self.eval(kids[1], env);
         let default = self.eval_map_get_default_arg(contract.args, kids[2], env)?;
@@ -2890,16 +3000,22 @@ impl<'a> Builder<'a> {
                 continue;
             }
             let value = self.eval(kids[1], &env);
+            let binding_domain =
+                nose_semantics::domain_evidence_for_binding_lhs(self.il, self.interner, kids[0]);
             let value = if self.immutable_binding_safe(kids[1], &env) {
                 value
-            } else {
-                let Some(proven) = self
-                    .proven_map_value(value)
-                    .or_else(|| self.proven_collection_value(value))
-                else {
+            } else if binding_domain.is_some_and(|domain| domain.is_map()) {
+                let Some(proven) = self.proven_map_value(value) else {
                     continue;
                 };
                 proven
+            } else if binding_domain.is_some_and(|domain| domain.is_collection_or_set()) {
+                let Some(proven) = self.proven_collection_value(value) else {
+                    continue;
+                };
+                proven
+            } else {
+                continue;
             };
             if let Payload::Cid(cid) = self.il.node(kids[0]).payload {
                 env.insert(cid, value);
@@ -7866,6 +7982,9 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_js_like_constructed_collection_or_map(expr, &kids, env) {
                     return v;
                 }
+                if let Some(v) = self.eval_java_map_factory_expr(expr, &kids, env) {
+                    return v;
+                }
                 if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
                     return v;
                 }
@@ -8804,6 +8923,147 @@ mod tests {
         );
     }
 
+    fn node_with_span(il: &Il, kind: NodeKind, span: Span) -> NodeId {
+        il.nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                (node.kind == kind && node.span == span).then_some(NodeId(idx as u32))
+            })
+            .expect("node with requested span")
+    }
+
+    #[derive(Clone, Copy)]
+    enum BindingMembershipCase {
+        Visible,
+        Late,
+        MutatedVisible,
+    }
+
+    fn binding_assignment(
+        b: &mut IlBuilder,
+        xs: Symbol,
+        array: Symbol,
+        line: u32,
+    ) -> (NodeId, Span) {
+        let lhs = b.add(NodeKind::Var, Payload::Name(xs), sp(line), &[]);
+        let seq_span = sp(line + 1);
+        let seq = b.add(NodeKind::Seq, Payload::Name(array), seq_span, &[]);
+        (
+            b.add(NodeKind::Assign, Payload::None, sp(line), &[lhs, seq]),
+            seq_span,
+        )
+    }
+
+    fn binding_membership_call(
+        b: &mut IlBuilder,
+        xs: Symbol,
+        item_name: Symbol,
+        includes: Symbol,
+        line: u32,
+    ) -> (NodeId, Span) {
+        let receiver = b.add(NodeKind::Var, Payload::Name(xs), sp(line), &[]);
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(includes),
+            sp(line + 1),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Var, Payload::Name(item_name), sp(line + 2), &[]);
+        let call_span = sp(line + 3);
+        (
+            b.add(NodeKind::Call, Payload::None, call_span, &[callee, item]),
+            call_span,
+        )
+    }
+
+    fn binding_append(b: &mut IlBuilder, xs: Symbol, line: u32) -> NodeId {
+        let append_receiver = b.add(NodeKind::Var, Payload::Name(xs), sp(line), &[]);
+        let appended = b.add(NodeKind::Lit, Payload::LitInt(1), sp(line), &[]);
+        b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp(line),
+            &[append_receiver, appended],
+        )
+    }
+
+    fn normalized_binding_membership_op(case: BindingMembershipCase) -> ValOp {
+        let interner = Interner::new();
+        let xs = interner.intern("xs");
+        let item_name = interner.intern("item");
+        let includes = interner.intern("includes");
+        let array = interner.intern("array");
+        let mut b = IlBuilder::new(FileId(0));
+        let ((root_children, seq_span), call_span) = match case {
+            BindingMembershipCase::Visible => {
+                let (assign, seq_span) = binding_assignment(&mut b, xs, array, 10);
+                let (call, call_span) =
+                    binding_membership_call(&mut b, xs, item_name, includes, 12);
+                ((vec![assign, call], seq_span), call_span)
+            }
+            BindingMembershipCase::Late => {
+                let (call, call_span) =
+                    binding_membership_call(&mut b, xs, item_name, includes, 12);
+                let (assign, seq_span) = binding_assignment(&mut b, xs, array, 20);
+                ((vec![call, assign], seq_span), call_span)
+            }
+            BindingMembershipCase::MutatedVisible => {
+                let (assign, seq_span) = binding_assignment(&mut b, xs, array, 20);
+                let append = binding_append(&mut b, xs, 22);
+                let (call, call_span) =
+                    binding_membership_call(&mut b, xs, item_name, includes, 23);
+                ((vec![assign, append, call], seq_span), call_span)
+            }
+        };
+        let body = b.add(NodeKind::Block, Payload::None, sp(9), &root_children);
+        let root = b.add(NodeKind::Func, Payload::None, sp(8), &[body]);
+        let mut il = finish_test_il(b, root, Lang::TypeScript);
+        il.evidence.push(collection_sequence_evidence(0, seq_span));
+        let normalized = crate::normalize(
+            &il,
+            &interner,
+            &crate::NormalizeOptions {
+                cfg_norm: false,
+                dataflow: false,
+                dce: false,
+                oracle: false,
+            },
+        );
+        let normalized_call = node_with_span(&normalized, NodeKind::Call, call_span);
+        eval_op(&normalized, &interner, normalized_call)
+    }
+
+    #[test]
+    fn membership_call_consumes_normalized_binding_domain_evidence() {
+        assert!(matches!(
+            normalized_binding_membership_op(BindingMembershipCase::Visible),
+            ValOp::Bin(op) if op == Op::In as u32
+        ));
+    }
+
+    #[test]
+    fn membership_call_rejects_binding_domain_after_receiver_use() {
+        assert!(
+            !matches!(
+                normalized_binding_membership_op(BindingMembershipCase::Late),
+                ValOp::Bin(op) if op == Op::In as u32
+            ),
+            "binding-domain evidence must not prove use-before-assignment receivers"
+        );
+    }
+
+    #[test]
+    fn mutated_binding_domain_evidence_keeps_membership_rewrite_closed() {
+        assert!(
+            !matches!(
+                normalized_binding_membership_op(BindingMembershipCase::MutatedVisible),
+                ValOp::Bin(op) if op == Op::In as u32
+            ),
+            "mutated binding must not receive binding-domain evidence"
+        );
+    }
+
     #[test]
     fn free_name_collection_factory_value_graph_requires_library_api_evidence() {
         let interner = Interner::new();
@@ -9291,6 +9551,18 @@ mod tests {
             }),
             vec![EvidenceId(3)],
         ));
+        il.evidence.push(evidence_with_dependencies(
+            5,
+            EvidenceAnchor::node(sp(107), NodeKind::Call),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            vec![EvidenceId(3)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            6,
+            EvidenceAnchor::binding(sp(108), stable_symbol_hash("LOOKUP")),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            vec![EvidenceId(5)],
+        ));
 
         let mut builder = Builder::new(&il, &interner);
         assert!(!builder.unit_defines_symbol(lookup));
@@ -9299,26 +9571,10 @@ mod tests {
             "read-only getOrDefault use must not mark LOOKUP as mutated"
         );
         builder.seed_module_value_bindings();
-        let raw = builder.eval(call, &FxHashMap::default());
-        let raw_args = builder.nodes[raw as usize].args.clone();
-        let raw_callee = raw_args[0];
-        let raw_receiver = builder.nodes[raw_callee as usize].args.first().copied();
-        assert_eq!(
-            builder.library_api_evidence_for_value_call(
-                raw,
-                raw_callee,
-                raw_receiver,
-                contract.id,
-                contract.callee,
-                4
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        );
+        let map_value = builder.eval(call, &FxHashMap::default());
         assert!(matches!(
-            builder
-                .proven_map_value(raw)
-                .map(|value| builder.nodes[value as usize].op.clone()),
-            Some(ValOp::Seq(SEQ_VALUE_MAP))
+            builder.nodes[map_value as usize].op,
+            ValOp::Seq(SEQ_VALUE_MAP)
         ));
         let proven = builder.eval(lookup_ref, &FxHashMap::default());
         assert!(
@@ -9467,6 +9723,18 @@ mod tests {
                 root_kind: NodeKind::Call,
             }),
             vec![EvidenceId(3)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            5,
+            EvidenceAnchor::node(sp(137), NodeKind::Call),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            vec![EvidenceId(3)],
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            6,
+            EvidenceAnchor::binding(sp(138), stable_symbol_hash("LOOKUP")),
+            EvidenceKind::Domain(DomainEvidence::Map),
+            vec![EvidenceId(5)],
         ));
 
         let mut builder = Builder::new(&il, &interner);
