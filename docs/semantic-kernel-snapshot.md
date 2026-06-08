@@ -13,6 +13,12 @@ receiver-domain evidence resolution, and a shared evidence-record substrate for
 source, domain, import, symbol-identity, guard,
 place/effect, selected library API occurrence, value-domain/law contracts, and
 sequence-surface facts.
+JS/TS, Python, and Rust `await` expressions are preserved as raw async protocol
+boundaries with `Source::Protocol(Await)` evidence instead of being erased into
+their operand. JS/TS and Python `yield` expressions are preserved as generator
+protocol boundaries with `Source::Protocol(Yield)`. Rust `async {}` and `?` are
+likewise preserved as protocol boundaries with `Source::Protocol(AsyncBlock)` and
+`Source::Protocol(TryPropagation)`.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected
@@ -104,13 +110,18 @@ migrated.
   provenance and independent conformance status are not yet tracked as separate
   value-law evidence records.
 - Source facts are now first-class internal evidence for source distinctions that
-  the shared IL erases. JS/TS frontends emit construct syntax, regex literal,
-  strict/loose equality, strict/loose inequality, and `instanceof` facts. Python
-  emits value equality/inequality and identity equality/inequality facts, and
-  Rust emits macro invocation syntax for selected macro-backed APIs. These are
-  stored directly as `EvidenceRecord::Source`; there is no source-fact side-table
-  fallback. Normalize and detect consume source facts only where a semantic
-  contract requires that exact source surface.
+  the shared IL erases. JS/TS frontends emit construct syntax, async `await`,
+  generator `yield` boundaries, regex literal, strict/loose equality,
+  strict/loose inequality, and `instanceof` facts. Python emits async `await`,
+  generator `yield` boundaries, value equality/inequality, and identity
+  equality/inequality facts, and Rust emits
+  macro invocation syntax for selected macro-backed APIs plus async/error
+  protocol facts for `.await`, `async {}`, and `?`. These are stored directly as
+  `EvidenceRecord::Source`; there is no source-fact side-table fallback.
+  Normalize and detect consume source facts only where a semantic contract
+  requires that exact source surface. Current JS/TS/Python/Rust `await` nodes,
+  JS/TS/Python `yield` nodes, and Rust `async`/`?` nodes remain raw
+  exact-closed protocol anchors until such a contract exists.
 - Free-function builtin contracts are language- and arity-constrained. Supported
   Python/Go free builtins such as `len`, `sum`, `min`, `max`, `any`, `all`, and
   Go `append` require admitted `LibraryApi(FreeFunctionBuiltin)` occurrence
@@ -503,7 +514,11 @@ Semantic knowledge still appears in several forms outside the facade:
   APIs, and broader protocol/API evidence paths still rely on contract rows plus
   local proof or remain exact-closed. Raw Python async-looking field names such
   as `aread` no longer rewrite to sync names without an explicit protocol/API
-  evidence path.
+  evidence path, JS/TS/Python/Rust `await` expressions no longer erase to their
+  operand without async protocol proof, JS/TS/Python `yield` no longer erases to
+  its yielded expression without generator protocol proof, and Rust
+  `async {}`/`?` no longer erase to their body or operand without async/error
+  protocol proof.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.
@@ -546,6 +561,12 @@ this worktree because the required evidence is not yet modeled:
 
 - JS-like `.then(lambda)` does not converge with `await` code until Promise-like
   receiver proof exists.
+- JS/TS, Python, and Rust `await value` does not converge with plain `value`
+  until language/runtime-specific async protocol, demand, scheduling, exception,
+  and effect obligations are modeled. Rust `async {}` and `?` are similarly
+  closed until future/error protocol obligations are modeled. JS/TS and Python
+  `yield value` remains closed against plain `value` until generator demand and
+  suspension semantics are modeled.
 - Plain JS/TS `Map(...)` and `Set(...)` calls do not enter exact matching because
   constructor-only contracts require construct-syntax proof.
 - Ordinary JS/TS string `.test(...)` calls do not enter regex-test exact matching

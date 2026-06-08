@@ -1,16 +1,18 @@
 //! Rust → raw IL lowering.
 //!
-//! Convergence-friendly lowering: `?` and `.await` are stripped to their operand;
-//! `&x`/`&mut x`/`*x` references peel to the operand; `x op= y` desugars to an
-//! assignment; `for`/`while`/`loop` map to the unified `Loop`; `match` becomes an
-//! `if`/`else if` chain (arm pattern as the condition); `if let`/`while let`
-//! preserve their pattern tests. `fn` items become function units; `impl`,
+//! Convergence-friendly lowering: `&x`/`&mut x`/`*x` references peel to the
+//! operand; `x op= y` desugars to an assignment; `for`/`while`/`loop` map to the
+//! unified `Loop`; `match` becomes an `if`/`else if` chain (arm pattern as the
+//! condition); `if let`/`while let` preserve their pattern tests. Rust `?`,
+//! `.await`, and `async {}` stay as source-backed protocol boundaries until
+//! contracts prove their error/async semantics.
+//! `fn` items become function units; `impl`,
 //! `trait`, `struct`, `enum` become class-like units so similar types cluster.
 
 use crate::lower::Lowering;
 use nose_il::{
-    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, Symbol,
-    UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
+    SourceProtocolKind, Span, Symbol, UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -496,8 +498,21 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "unary_expression" => lower_unary(lo, node),
         "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
         "compound_assignment_expr" => lower_compound_assign(lo, node),
-        // peel try / await / paren wrappers to their operand
-        "try_expression" | "await_expression" | "parenthesized_expression" => node
+        "try_expression" => {
+            let value = node
+                .named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.protocol_boundary(span, SourceProtocolKind::TryPropagation, "try", &[value])
+        }
+        "await_expression" => {
+            let value = node
+                .named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.await_boundary(span, value)
+        }
+        "parenthesized_expression" => node
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
@@ -585,12 +600,13 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        // `async { … }` / `async move { … }` is a wrapper around the block; `.await`
-        // is already peeled above.
-        "async_block" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "async_block" => {
+            let body = node
+                .named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.protocol_boundary(span, SourceProtocolKind::AsyncBlock, "async_block", &[body])
+        }
         // Type-level nodes carry no runtime behavior — erase (don't Raw). These reach
         // expression position via turbofish, casts, and closure/fn param subtrees.
         "type_arguments"
@@ -1427,7 +1443,7 @@ mod tests {
     }
 
     #[test]
-    fn async_blocks_lower_to_body_not_raw() {
+    fn async_blocks_preserve_source_backed_protocol_boundaries() {
         let interner = Interner::new();
         let il = lower(
             FileId(0),
@@ -1437,18 +1453,17 @@ mod tests {
         )
         .expect("lower");
 
-        let raw: Vec<_> = il
-            .nodes
-            .iter()
-            .filter(|node| node.kind == NodeKind::Raw)
-            .filter_map(|node| match node.payload {
-                Payload::Name(sym) => Some(interner.resolve(sym)),
-                _ => None,
-            })
-            .collect();
-        assert!(
-            raw.is_empty(),
-            "async block should lower without Raw: {raw:?}"
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "async_block",
+            SourceProtocolKind::AsyncBlock,
+        );
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "await",
+            SourceProtocolKind::Await,
         );
 
         let ops: Vec<_> = il
@@ -1460,5 +1475,24 @@ mod tests {
             })
             .collect();
         assert!(ops.contains(&Op::Add), "async block body was lost: {ops:?}");
+    }
+
+    #[test]
+    fn try_expression_preserves_source_backed_protocol_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.rs",
+            b"fn f(x: Result<i32, E>) -> Result<i32, E> { Ok(x? + 1) }\n",
+            &interner,
+        )
+        .expect("lower");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "try",
+            SourceProtocolKind::TryPropagation,
+        );
     }
 }

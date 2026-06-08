@@ -26,7 +26,7 @@ pub use node::{
     ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
     LitClass, LoopKind, Node, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
     SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceLiteralKind, SourceOperatorKind,
-    SymbolEvidenceKind,
+    SourceProtocolKind, SymbolEvidenceKind,
 };
 pub use span::{FileId, FileMeta, Lang, Span};
 

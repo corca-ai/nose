@@ -1,8 +1,8 @@
 //! JavaScript / TypeScript → raw IL lowering.
 //!
 //! JS and TS share one walk; TypeScript type syntax is erased (`type_annotation`,
-//! `as`/`satisfies`/`!` are stripped). Convergence-friendly lowering: `await e`
-//! and `a as T` reduce to `e`/`a`; `i++` and `x += 1` desugar to assignments;
+//! `as`/`satisfies`/`!` are stripped). Convergence-friendly lowering:
+//! `a as T` reduces to `a`; `i++` and `x += 1` desugar to assignments;
 //! C-style `for`, `for...of`, `do/while` map to the unified `Loop`; `switch`
 //! becomes an `if`/`else if` chain; ternary lowers to an expression `If`.
 
@@ -907,11 +907,14 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        // Strip await / TS-only wrappers so variants converge.
-        "await_expression" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "await_expression" => {
+            let value = node
+                .named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.await_boundary(span, value)
+        }
+        // TS-only wrappers have no runtime behavior.
         "as_expression" | "satisfies_expression" | "non_null_expression" | "type_assertion" => node
             .named_child(0)
             .map(|c| lower_expr(lo, c))
@@ -981,10 +984,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        "yield_expression" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "yield_expression" => {
+            let value = node.named_child(0).map(|c| lower_expr(lo, c));
+            lo.yield_boundary(span, value)
+        }
         "computed_property_name" => node
             .named_child(0)
             .map(|c| lower_expr(lo, c))
@@ -1949,7 +1952,7 @@ mod tests {
     use nose_il::{
         stable_symbol_hash, EvidenceAnchor, EvidenceKind, FileId, GuardEvidenceKind, Interner,
         JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind,
-        SymbolEvidenceKind,
+        SourceProtocolKind, SymbolEvidenceKind,
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -2070,6 +2073,46 @@ mod tests {
                 )
             })
             .collect()
+    }
+
+    #[test]
+    fn await_expression_preserves_source_backed_async_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.js",
+            b"async function f(x) { return await x + 1; }",
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("lower js");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "await",
+            SourceProtocolKind::Await,
+        );
+    }
+
+    #[test]
+    fn yield_expression_preserves_source_backed_protocol_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.js",
+            b"function* f(x) { yield x + 1; }",
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("lower js");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "yield",
+            SourceProtocolKind::Yield,
+        );
     }
 
     fn js_own_property_guard_evidence(il: &Il) -> Vec<&nose_il::EvidenceRecord> {

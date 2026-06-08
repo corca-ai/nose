@@ -20,6 +20,44 @@ use nose_il::{Corpus, FileId, Il, Interner, Lang};
 use rayon::prelude::*;
 use std::path::Path;
 
+#[cfg(test)]
+pub(crate) mod test_helpers {
+    use nose_il::{Il, Interner, NodeId, NodeKind, Payload, SourceProtocolKind};
+    use nose_semantics::source_protocol_at_node;
+
+    pub(crate) fn expect_raw_protocol_boundary(
+        il: &Il,
+        interner: &Interner,
+        tag: &str,
+        protocol: SourceProtocolKind,
+    ) -> NodeId {
+        let nodes: Vec<NodeId> = il
+            .nodes
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, node)| match node.payload {
+                Payload::Name(sym)
+                    if node.kind == NodeKind::Raw && interner.resolve(sym) == tag =>
+                {
+                    Some(NodeId(idx as u32))
+                }
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            nodes.len(),
+            1,
+            "{tag} should stay as one raw protocol boundary: {nodes:?}"
+        );
+        assert_eq!(
+            source_protocol_at_node(il, nodes[0]),
+            Some(protocol),
+            "{tag} boundary should carry source protocol evidence"
+        );
+        nodes[0]
+    }
+}
+
 /// Lower a single in-memory source buffer.
 pub fn lower_source(
     file: FileId,

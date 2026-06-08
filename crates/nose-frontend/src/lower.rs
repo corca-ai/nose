@@ -7,8 +7,8 @@ use nose_il::{
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
     FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind,
     LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
-    SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit,
-    UnitKind,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, SourceProtocolKind, Span, Symbol,
+    SymbolEvidenceKind, Unit, UnitKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -1038,6 +1038,32 @@ impl<'a> Lowering<'a> {
         let sym = self.sym(surface_kind);
         self.b
             .add(NodeKind::Raw, Payload::Name(sym), span, children)
+    }
+
+    /// Preserve an async `await` boundary until a protocol/demand contract proves
+    /// it can be erased safely.
+    pub(crate) fn await_boundary(&mut self, span: Span, value: NodeId) -> NodeId {
+        self.protocol_boundary(span, SourceProtocolKind::Await, "await", &[value])
+    }
+
+    /// Preserve a generator `yield` boundary until a protocol/demand contract
+    /// proves it can be interpreted safely.
+    pub(crate) fn yield_boundary(&mut self, span: Span, value: Option<NodeId>) -> NodeId {
+        let children: Vec<NodeId> = value.into_iter().collect();
+        self.protocol_boundary(span, SourceProtocolKind::Yield, "yield", &children)
+    }
+
+    /// Preserve a language protocol boundary until a contract proves it can be
+    /// interpreted as a shared semantic operation.
+    pub(crate) fn protocol_boundary(
+        &mut self,
+        span: Span,
+        protocol: SourceProtocolKind,
+        tag: &str,
+        children: &[NodeId],
+    ) -> NodeId {
+        self.record_source_fact(span, SourceFactKind::Protocol(protocol));
+        self.raw(tag, span, children)
     }
 
     /// Tag a detection unit.

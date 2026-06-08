@@ -53,7 +53,7 @@ You want to *change* nose or understand how it works inside.
 - [normalization](normalization.md) — the passes that make behaviorally-equivalent code converge (the hard part).
 - [semantic-kernel](semantic-kernel.md) — semantic-kernel and pack architecture: language/library semantics, extension boundaries, responsibility model, and exact-channel eligibility.
 - [evidence-records](evidence-records.md) — the internal pack-facing evidence substrate for source, domain, import, symbol, guard, place/effect, library API, and sequence-surface facts.
-- [source-facts](source-facts.md) — source-origin evidence for semantic contracts: construct syntax, literal/operator provenance, pack boundaries, and fail-closed exact admission.
+- [source-facts](source-facts.md) — source-origin evidence for semantic contracts: construct syntax, async/generator/error boundaries, literal/operator provenance, pack boundaries, and fail-closed exact admission.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.

@@ -429,6 +429,16 @@ and pack ecosystem.
   inner HOF call's admitted `LibraryApi` occurrence instead of a raw method
   selector. Raw Python async-looking field names no longer rewrite to sync names
   until an explicit async/sync protocol evidence path exists.
+- JS/TS, Python, and Rust `await` expressions now preserve a raw async protocol
+  boundary and emit `Source::Protocol(Await)` evidence instead of lowering
+  directly to the operand. JS/TS and Python `yield` expressions preserve raw
+  generator protocol boundaries with `Source::Protocol(Yield)`. Rust `async {}`
+  and `?` also preserve raw protocol boundaries with
+  `Source::Protocol(AsyncBlock)` and
+  `Source::Protocol(TryPropagation)`. This closes the old exact async/sync and
+  error-propagation convergence paths, plus generator/body erasure, until
+  language/runtime-specific protocol contracts can prove receiver, demand,
+  scheduling, suspension, exception, and effect obligations.
 - The protocol/API occurrence closure slice extended `LibraryApi` beyond
   call-only APIs. JS/TS/Java `length` property reads now require a
   `PropertyBuiltin` occurrence anchored to the `Field` node, JS-like `length()`
@@ -503,8 +513,9 @@ Remaining in this phase:
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is promise
-  receiver proof, async/sync protocol convergence, and ecosystem APIs whose
-  receiver/domain/demand obligations are not yet expressible.
+  receiver proof, explicit async/sync protocol convergence contracts, and
+  ecosystem APIs whose receiver/domain/demand obligations are not yet
+  expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -531,8 +542,8 @@ Remaining in this phase:
   evidence, as do generic Python/Go free-function builtins and selected
   receiver-method families. Lowered sequence-surface consumers are now
   evidence-only where covered. Remaining API work is promise receiver proof,
-  async/sync protocol convergence, and ecosystem APIs only after demand,
-  receiver, and effect obligations are expressible.
+  explicit async/sync protocol convergence contracts, and ecosystem APIs only
+  after demand, receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement

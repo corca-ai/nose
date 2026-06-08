@@ -11,7 +11,8 @@ use nose_il::{
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
     HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
     NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
-    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
+    SourceFactKind, SourceLiteralKind, SourceOperatorKind, SourceProtocolKind, Span, Symbol,
+    SymbolEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 
@@ -122,6 +123,7 @@ pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool 
     match kind {
         SourceFactKind::Operator(operator) => source_operator_at_node(il, node) == Some(operator),
         SourceFactKind::Call(call) => source_call_at_node(il, node) == Some(call),
+        SourceFactKind::Protocol(protocol) => source_protocol_at_node(il, node) == Some(protocol),
         SourceFactKind::Literal(literal) => source_literal_at_node(il, node) == Some(literal),
     }
 }
@@ -144,6 +146,17 @@ pub fn source_call_at_node(il: &Il, node: NodeId) -> Option<SourceCallKind> {
         _ => None,
     }) {
         EvidenceResolution::Found(call) => Some(call),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
+    }
+}
+
+pub fn source_protocol_at_node(il: &Il, node: NodeId) -> Option<SourceProtocolKind> {
+    let span = il.node(node).span;
+    match evidence_at_span(il, span, |evidence| match evidence {
+        EvidenceKind::Source(SourceFactKind::Protocol(protocol)) => Some(protocol),
+        _ => None,
+    }) {
+        EvidenceResolution::Found(protocol) => Some(protocol),
         EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
@@ -13013,7 +13026,13 @@ mod tests {
         let mut b = IlBuilder::new(FileId(0));
         let call = b.add(NodeKind::Call, Payload::None, sp(7), &[]);
         let regex = b.add(NodeKind::Lit, Payload::LitStr(42), sp(8), &[]);
-        let root = b.add(NodeKind::Block, Payload::None, sp(7), &[call, regex]);
+        let await_boundary = b.add(NodeKind::Raw, Payload::None, sp(9), &[]);
+        let root = b.add(
+            NodeKind::Block,
+            Payload::None,
+            sp(7),
+            &[call, regex, await_boundary],
+        );
         let mut il = finish_il(b, root, Lang::JavaScript);
         il.evidence.push(evidence(
             0,
@@ -13027,9 +13046,19 @@ mod tests {
             EvidenceKind::Source(SourceFactKind::Literal(SourceLiteralKind::Regex)),
             EvidenceStatus::Asserted,
         ));
+        il.evidence.push(evidence(
+            2,
+            EvidenceAnchor::source_span(sp(9)),
+            EvidenceKind::Source(SourceFactKind::Protocol(SourceProtocolKind::Await)),
+            EvidenceStatus::Asserted,
+        ));
 
         assert!(construct_syntax_proof(&il, call));
         assert!(regex_literal_proof(&il, regex));
+        assert_eq!(
+            source_protocol_at_node(&il, await_boundary),
+            Some(SourceProtocolKind::Await)
+        );
         assert!(!construct_syntax_proof(&il, regex));
         assert_eq!(
             source_fact_contract(SourceFactKind::Call(SourceCallKind::Construct)).channel,
