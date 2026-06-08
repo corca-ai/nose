@@ -525,6 +525,122 @@ fn scan_mode_semantic_rejects_reassigned_param_with_stale_collection_domain() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Soundness (semantic-kernel async protocol boundary): `await x` is not
+/// equivalent to `x` until a language/protocol contract proves that erasure.
+/// The old lowering stripped `await`, which made a sync function and an async
+/// function form an exact semantic family even though Promise/thenable
+/// scheduling and error propagation have different observable semantics.
+#[test]
+fn scan_mode_semantic_rejects_unproven_js_await_sync_convergence() {
+    let dir = std::env::temp_dir().join(format!("nose_js_await_boundary_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("sync.js"),
+        "function id(x) {\n  return x + 1;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("async.js"),
+        "async function idAsync(x) {\n  return await x + 1;\n}\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["sync.js", "async.js"]),
+        "await must not be erased into a sync exact semantic family without protocol evidence: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Same async protocol boundary for Python: `await x` is a coroutine protocol
+/// operation, not a plain value read unless a future contract proves it.
+#[test]
+fn scan_mode_semantic_rejects_unproven_python_await_sync_convergence() {
+    let dir = std::env::temp_dir().join(format!("nose_py_await_boundary_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("sync.py"), "def id(x):\n    return x + 1\n").unwrap();
+    fs::write(
+        dir.join("async.py"),
+        "async def id_async(x):\n    return await x + 1\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["sync.py", "async.py"]),
+        "await must not be erased into a sync exact semantic family without protocol evidence: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+/// Rust `.await` and `async {}` are Future protocol operations, not plain
+/// wrappers around the body. Exact sync/async convergence requires future
+/// protocol proof that is not modeled yet.
+#[test]
+fn scan_mode_semantic_rejects_unproven_rust_await_sync_convergence() {
+    let dir = std::env::temp_dir().join(format!("nose_rs_await_boundary_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("sync.rs"), "fn id(x: i32) -> i32 { x + 1 }\n").unwrap();
+    fs::write(
+        dir.join("async.rs"),
+        "async fn id_async(x: i32) -> i32 { async move { x + 1 }.await }\n",
+    )
+    .unwrap();
+
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+    ]));
+    assert!(
+        !family_contains_all(&json, &["sync.rs", "async.rs"]),
+        "Rust async/await must not be erased into a sync exact semantic family without future protocol evidence: {json}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn scan_human_hides_generated_header_families() {
     let dir = make_generated_header_project("human");

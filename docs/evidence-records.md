@@ -54,7 +54,7 @@ The current implemented kinds are:
 
 | kind | purpose |
 |---|---|
-| `Source` | construct syntax, Rust macro invocation syntax, regex literal provenance, and source operator family |
+| `Source` | construct syntax, Rust macro invocation syntax, async/generator/error protocol boundary syntax, regex literal provenance, and source operator family |
 | `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding/namespace proof, Java wildcard import proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
@@ -265,7 +265,13 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   evidence and whose binding has no direct mutation under the current
   first-party mutation scan. Future packs and inference producers should use
   node or binding anchors for receiver-domain proof instead of selector spelling;
-- source-origin facts become `Source` evidence;
+- source-origin facts become `Source` evidence. JS/TS, Python, and Rust `await`
+  expressions preserve a raw async boundary and emit
+  `Source::Protocol(Await)` at that source span. JS/TS and Python `yield`
+  expressions emit `Source::Protocol(Yield)`. Rust `async {}` and `?` emit
+  `Source::Protocol(AsyncBlock)` and `Source::Protocol(TryPropagation)`. These
+  are future protocol/demand proof anchors, not evidence that the source
+  operation is equivalent to its operand or body;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
 - selected top-level Ruby literal `require "module"` calls that occur before a
@@ -365,7 +371,8 @@ validation remain open.
 The first migrated consumers are the shared semantic helpers and their direct
 callers:
 
-- source-fact lookup for construct syntax, regex literal, and operator provenance;
+- source-fact lookup for construct syntax, async/generator/error protocol boundaries,
+  regex literal, and operator provenance;
 - receiver-domain lookup used by post-desugar semantic/value-graph
   membership/property/map/integer gates and strict exact receiver gates.
   Consumers ask `nose-semantics` whether a receiver satisfies a

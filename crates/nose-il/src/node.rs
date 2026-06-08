@@ -425,6 +425,7 @@ pub struct EvidenceRecord {
 pub enum SourceFactKind {
     Operator(SourceOperatorKind),
     Call(SourceCallKind),
+    Protocol(SourceProtocolKind),
     Literal(SourceLiteralKind),
 }
 
@@ -445,6 +446,14 @@ pub enum SourceOperatorKind {
 pub enum SourceCallKind {
     Construct,
     MacroInvocation,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+pub enum SourceProtocolKind {
+    Await,
+    AsyncBlock,
+    TryPropagation,
+    Yield,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

@@ -3,9 +3,9 @@
 //! Covers the constructs that matter for clone detection (functions, classes,
 //! control flow, calls, operators, literals, comprehensions) and falls back to
 //! `Raw` for the rest. A few convergence-friendly choices are made here because
-//! they are language-specific: `await e` is stripped to `e` (async/sync clones),
-//! compound assignment is desugared (no core node for it), and ternary lowers to
-//! an expression-position `If`.
+//! they are language-specific: compound assignment is desugared (no core node
+//! for it), and ternary lowers to an expression-position `If`. `await e` stays
+//! as a source-backed async boundary until a protocol contract proves erasure.
 
 use crate::lower::Lowering;
 use nose_il::{
@@ -733,11 +733,13 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        // Strip `await` so sync and async variants converge.
-        "await" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "await" => {
+            let value = node
+                .named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            lo.await_boundary(span, value)
+        }
         "named_expression" => {
             // walrus `name := value` → Assign in expression position
             let lhs = node
@@ -766,10 +768,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .named_child(0)
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        "yield" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        "yield" => {
+            let value = node.named_child(0).map(|c| lower_expr(lo, c));
+            lo.yield_boundary(span, value)
+        }
         _ => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -1174,6 +1176,7 @@ fn py_cmp_op(text: &str) -> Option<(Op, bool, Option<SourceOperatorKind>)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::SourceProtocolKind;
 
     #[test]
     fn literal_match_lowers_without_raw_case_nodes() {
@@ -1231,6 +1234,44 @@ mod tests {
                 .iter()
                 .any(|node| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::Or)),
             "or-pattern match should lower to an OR condition"
+        );
+    }
+
+    #[test]
+    fn await_expression_preserves_source_backed_async_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"async def f(x):\n    return await x + 1\n",
+            &interner,
+        )
+        .expect("lower");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "await",
+            SourceProtocolKind::Await,
+        );
+    }
+
+    #[test]
+    fn yield_expression_preserves_source_backed_protocol_boundary() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.py",
+            b"def f(x):\n    yield x + 1\n",
+            &interner,
+        )
+        .expect("lower");
+
+        crate::test_helpers::expect_raw_protocol_boundary(
+            &il,
+            &interner,
+            "yield",
+            SourceProtocolKind::Yield,
         );
     }
 

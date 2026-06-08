@@ -10,7 +10,9 @@ shape for all semantic evidence is described in
 Source facts are the bridge between source syntax and semantic contracts. They
 preserve source-origin distinctions that the shared IL intentionally abstracts
 away, such as `new Set(...)` versus `Set(...)`, a JavaScript regex literal versus
-an ordinary string, or JavaScript `===` versus `==`.
+an ordinary string, JavaScript `===` versus `==`, `await value` versus a plain
+value expression, `yield value` versus a plain expression, or Rust `expr?`
+versus `expr`.
 
 They are evidence, not semantics. A source fact never approves an exact clone,
 mints a value fingerprint, or bypasses a law. It is admissible only when a
@@ -77,7 +79,7 @@ The pack-facing vocabulary should cover at least these classes.
 | Receiver and domain | array, collection, map, option, string, primitive integer, byte array, promise-like receiver |
 | Operator | strict equality, loose equality, identity equality, value equality, type membership, language membership |
 | Literal and surface | regex literal, string literal, map/object literal, tuple/list/array surface, computed property key |
-| Call shape | constructor call, ordinary function call, method call, property access, macro-like call |
+| Call/protocol shape | constructor call, ordinary function call, method call, property access, macro-like call, async `await` boundary, generator `yield` boundary, Rust `?` error propagation |
 | Sequence and aggregate | collection surface, map-entry surface, iterator surface, exported literal surface |
 | Place and mutation | receiver field, index assignment, builder append, immutable binding, direct write, opaque escape |
 | Module export | exported binding, import dependency, provider mutation proof, importer mutation proof |
@@ -89,11 +91,21 @@ source-fact helpers in `nose-semantics`. Source-origin proof is evidence-only:
 frontends emit `EvidenceKind::Source` records directly, and consumers do not
 fall back to a side-table mirror when source evidence is missing.
 
-- JS/TS lowering emits source facts for construct syntax, regex literals, strict
-  equality, strict inequality, loose equality, loose inequality, and
-  `instanceof`.
-- Python lowering emits source facts for value equality/inequality and identity
+- JS/TS lowering emits source facts for construct syntax, async `await`
+  boundaries, generator `yield` boundaries, regex literals, strict equality,
+  strict inequality, loose equality, loose inequality, and `instanceof`.
+- Python lowering emits source facts for async `await` boundaries, generator
+  `yield` boundaries, value equality/inequality, and identity
   equality/inequality.
+- Rust lowering emits source facts for macro invocation syntax, `.await`, async
+  blocks, and `?` error propagation.
+- JS/TS, Python, and Rust `await` lowering preserves `Raw("await", value)`
+  instead of erasing the source operation. JS/TS and Python `yield` preserves
+  `Raw("yield", value)`. Rust `async {}` and `?` are preserved as
+  `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
+  generator, and error-propagation convergence stays closed until a future
+  protocol contract proves the receiver, demand, scheduling, exception, and
+  effect obligations for that language/runtime.
 - JS-like `new Set(...)` and `new Map(...)` can enter exact matching only when
   construct syntax is proven, the `Set`/`Map` callee has unshadowed-global
   symbol proof, and the collection/map argument remains exact-safe. Plain
