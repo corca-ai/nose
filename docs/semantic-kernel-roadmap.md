@@ -523,7 +523,10 @@ and pack ecosystem.
   for the supported Python comprehension surfaces or admitted HOF library/API
   occurrence evidence. Set comprehensions and synthetic raw `HoF` payloads stay
   closed; source-proven comprehension internals can still compose their filter
-  HOFs within the proven surface.
+  HOFs within the proven surface. Value-graph count, reduction, and static
+  membership shortcuts now reuse the same filter admission, so raw
+  `HoF(Filter)` payloads cannot bypass the HOF gate by sitting under `len(...)`
+  or a reduction.
 - Raw canonical `Payload::Builtin` admission now goes through
   `admitted_builtin_semantics_at_call` before value-graph folding, builtin
   fallback tagging, range/len/zip/enumerate loop patterns, strict-exact builtin
@@ -683,10 +686,14 @@ Remaining in this phase:
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
   evidence, as do generic Python/Go free-function builtins and selected
-  receiver-method families. Lowered sequence-surface consumers are now
-  evidence-only where covered. Remaining API work is promise receiver proof,
-  explicit async/sync protocol convergence contracts, and ecosystem APIs only
-  after demand, receiver, and effect obligations are expressible.
+  receiver-method families. Selected value-graph consumers now call shared
+  `nose-semantics` admitted occurrence resolvers for method,
+  imported-namespace function, iterator-adapter, and Rust Option/`Vec::new`
+  calls instead of locally recombining raw selector parsing with evidence
+  admission. Lowered sequence-surface consumers are now evidence-only where
+  covered. Remaining API work is promise receiver proof, explicit async/sync
+  protocol convergence contracts, and ecosystem APIs only after demand,
+  receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement

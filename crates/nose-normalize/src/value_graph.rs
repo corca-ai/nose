@@ -62,8 +62,12 @@ use nose_il::{
 };
 use nose_semantics::{
     admitted_builder_append_method_call_args, admitted_builtin_semantics_at_call,
-    asserted_unshadowed_global_symbol, binding_write_target, builder_append_call_args, builtin_tag,
-    construct_syntax_proof, contracted_builder_append_method_call_args,
+    admitted_imported_namespace_function_at_call, admitted_iterator_identity_adapter_at_call,
+    admitted_library_method_call_at_call, admitted_rust_option_and_then_at_call,
+    admitted_rust_option_none_sentinel_at_node, admitted_rust_option_some_constructor_at_call,
+    admitted_rust_vec_new_factory_at_call, asserted_unshadowed_global_symbol, binding_write_target,
+    builder_append_call_args, builtin_tag, construct_syntax_proof,
+    contracted_builder_append_method_call_args,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
@@ -72,24 +76,21 @@ use nose_semantics::{
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
     library_api_contract_evidence_for_node, library_free_function_builtin_contract,
     library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
-    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
+    library_imported_collection_factory_contracts, library_java_collection_constructor_contract,
     library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
     library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
     library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
     library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
     library_method_call_contract, library_property_builtin_contract,
-    library_ruby_set_factory_contract_by_hash, library_rust_option_and_then_contract,
-    library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_scalar_integer_method_contract, library_static_index_membership_contract,
-    map_builder_index_write_contract, nullish_global_contract, opaque_argument_escape_args,
-    own_property_guard_for_node, receiver_mutation_call_receiver, record_shape_guard_for_node,
-    reduction_builtin_contract, semantics, seq_surface_contract_for_node,
-    source_comprehension_at_node, source_operator_at_node,
-    unproven_membership_like_method_contract, BuiltinArgContract, CBytePackWidth,
-    CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence, DomainRequirement,
-    GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    library_ruby_set_factory_contract_by_hash, library_rust_option_some_constructor_contract,
+    library_rust_vec_macro_factory_contract, library_scalar_integer_method_contract,
+    library_static_index_membership_contract, map_builder_index_write_contract,
+    nullish_global_contract, opaque_argument_escape_args, own_property_guard_for_node,
+    receiver_mutation_call_receiver, record_shape_guard_for_node, reduction_builtin_contract,
+    semantics, seq_surface_contract_for_node, source_comprehension_at_node,
+    source_operator_at_node, unproven_membership_like_method_contract, BuiltinArgContract,
+    CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
     IndexMembershipThreshold, IndexWriteReceiverContract, IteratorAdapterReceiverContract,
     JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
     LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
@@ -2249,7 +2250,7 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_rust_map_get_is_some_call(expr, &kids, env) {
                     return r;
                 }
-                if kids.len() == 1 && self.is_rust_vec_new_call(expr, kids[0]) {
+                if self.is_rust_vec_new_call(expr) {
                     return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
                 }
                 if let Some(v) = self.eval_java_collection_constructor_expr(expr, &kids) {

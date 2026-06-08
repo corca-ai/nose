@@ -1034,6 +1034,7 @@ impl<'a> Builder<'a> {
         if !matches!(self.il.node(node).payload, Payload::HoF(HoFKind::Filter)) {
             return None;
         }
+        self.hof_value_admission(node, HoFKind::Filter)?;
         let kids = self.il.children(node);
         Some((*kids.first()?, *kids.get(1)?))
     }
@@ -1069,26 +1070,8 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        let callee = *kids.first()?;
-        if self.il.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(name) = self.il.node(callee).payload else {
-            return None;
-        };
-        let contract = library_method_call_contract(
-            self.il.meta.lang,
-            self.interner.resolve(name),
-            kids.len().saturating_sub(1),
-        )?;
-        if !self.library_api_evidence_admitted(
-            expr,
-            contract.id,
-            contract.callee,
-            kids.len().saturating_sub(1),
-        ) {
-            return None;
-        }
+        let occurrence = admitted_library_method_call_at_call(self.il, self.interner, expr)?;
+        let contract = occurrence.contract;
         let result = contract.result;
         if result.semantic != MethodSemanticContract::Builtin(Builtin::Len)
             || result.receiver != MethodReceiverContract::ExactProtocol
@@ -1096,7 +1079,7 @@ impl<'a> Builder<'a> {
         {
             return None;
         }
-        let base = *self.il.children(callee).first()?;
+        let base = occurrence.receiver?;
         let base_value = self.eval(base, env);
         if !matches!(
             self.nodes[base_value as usize].op,
@@ -1117,30 +1100,9 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        let callee = *kids.first()?;
-        if self.il.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(name) = self.il.node(callee).payload else {
-            return None;
-        };
-        let contract = library_imported_namespace_function_contract(
-            self.il.meta.lang,
-            self.interner.resolve(name),
-            kids.len().saturating_sub(1),
-        )?;
-        match library_api_contract_evidence_for_call(
-            self.il,
-            self.interner,
-            expr,
-            contract.id,
-            contract.callee,
-            kids.len().saturating_sub(1),
-        ) {
-            LibraryApiEvidenceStatus::Admitted => {}
-            LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => return None,
-        }
+        let occurrence =
+            admitted_imported_namespace_function_at_call(self.il, self.interner, expr)?;
+        let contract = occurrence.contract;
         let ImportedNamespaceFunctionSemantic::ProductReduction { op, identity } =
             contract.result.semantic;
         let coll = self.eval(*kids.get(1)?, env);
@@ -1166,25 +1128,12 @@ impl<'a> Builder<'a> {
     pub(super) fn eval_iterator_identity_adapter(
         &mut self,
         expr: NodeId,
-        kids: &[NodeId],
+        _kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let contract = library_iterator_identity_adapter_contract(
-            self.il.meta.lang,
-            self.interner.resolve(method),
-            0,
-        )?;
-        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 0) {
-            return None;
-        }
-        let result = contract.result;
-        let base = *self.il.children(kids[0]).first()?;
+        let occurrence = admitted_iterator_identity_adapter_at_call(self.il, self.interner, expr)?;
+        let result = occurrence.contract.result;
+        let base = occurrence.receiver?;
         let value = self.eval(base, env);
         let value = self.param_domain_value(value);
         self.iterator_adapter_receiver_proven(result.receiver, value)
@@ -1210,25 +1159,15 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let contract =
-            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?;
-        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 1) {
-            return None;
-        }
+        let occurrence = admitted_library_method_call_at_call(self.il, self.interner, expr)?;
+        let contract = occurrence.contract;
         let result = contract.result;
         if result.receiver != MethodReceiverContract::RustMapGetOrExactOption
             || result.args != MethodBuiltinArgs::RustMapGetOrOptionDefault
         {
             return None;
         }
-        let receiver = *self.il.children(kids[0]).first()?;
-        let value = self.eval(receiver, env);
+        let value = self.eval(occurrence.receiver?, env);
         let (map, key) = self.proven_map_get_value(value)?;
         let default = self.eval(kids[1], env);
         Some(self.mk(
@@ -1240,20 +1179,11 @@ impl<'a> Builder<'a> {
     pub(super) fn eval_rust_map_get_is_some_call(
         &mut self,
         expr: NodeId,
-        kids: &[NodeId],
+        _kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let contract =
-            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?;
-        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 0) {
-            return None;
-        }
+        let occurrence = admitted_library_method_call_at_call(self.il, self.interner, expr)?;
+        let contract = occurrence.contract;
         let result = contract.result;
         if result.receiver != MethodReceiverContract::RustMapGetOrExactOption
             || result.args != MethodBuiltinArgs::ReceiverOnly
@@ -1261,8 +1191,7 @@ impl<'a> Builder<'a> {
         {
             return None;
         }
-        let receiver = *self.il.children(kids[0]).first()?;
-        let value = self.eval(receiver, env);
+        let value = self.eval(occurrence.receiver?, env);
         let (map, key) = self.proven_map_get_value(value)?;
         Some(self.mk(ValOp::Bin(Op::In as u32), vec![key, map]))
     }
@@ -1684,106 +1613,23 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn rust_some_call_arg(&self, node: NodeId) -> Option<NodeId> {
-        if self.il.kind(node) != NodeKind::Call {
-            return None;
-        }
         let kids = self.il.children(node);
-        if kids.len() != 2 {
-            return None;
-        }
-        let callee = kids[0];
-        let (NodeKind::Var, Payload::Name(name)) =
-            (self.il.kind(callee), self.il.node(callee).payload)
-        else {
-            return None;
-        };
-        let name = self.interner.resolve(name);
-        let contract = library_rust_option_some_constructor_contract(self.il.meta.lang, name, 1)?;
-        matches!(
-            library_api_contract_evidence_for_call(
-                self.il,
-                self.interner,
-                node,
-                contract.id,
-                contract.callee,
-                1,
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        )
-        .then_some(kids[1])
+        admitted_rust_option_some_constructor_at_call(self.il, self.interner, node)?;
+        kids.get(1).copied()
     }
 
     pub(super) fn rust_option_and_then_call_parts(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
-        if !semantics(self.il.meta.lang)
-            .stdlib()
-            .rust_filter_map_option_contract()
-        {
-            return None;
-        }
-        let (receiver, method, callback) = self.single_arg_field_call_parts(node)?;
-        let method = self.interner.resolve(method);
-        let contract = library_rust_option_and_then_contract(self.il.meta.lang, method, 1)?;
-        if !matches!(
-            library_api_contract_evidence_for_call(
-                self.il,
-                self.interner,
-                node,
-                contract.id,
-                contract.callee,
-                1,
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        ) {
-            return None;
-        }
-        Some((receiver, callback))
+        let occurrence = admitted_rust_option_and_then_at_call(self.il, self.interner, node)?;
+        let callback = *self.il.children(node).get(1)?;
+        Some((occurrence.receiver?, callback))
     }
 
-    pub(super) fn is_rust_vec_new_call(&self, call: NodeId, callee: NodeId) -> bool {
-        let (NodeKind::Var, Payload::Name(name)) =
-            (self.il.kind(callee), self.il.node(callee).payload)
-        else {
-            return false;
-        };
-        let Some(contract) =
-            library_rust_vec_new_factory_contract(self.il.meta.lang, self.interner.resolve(name))
-        else {
-            return false;
-        };
-        matches!(
-            library_api_contract_evidence_for_call(
-                self.il,
-                self.interner,
-                call,
-                contract.id,
-                contract.callee,
-                0,
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        )
+    pub(super) fn is_rust_vec_new_call(&self, call: NodeId) -> bool {
+        admitted_rust_vec_new_factory_at_call(self.il, self.interner, call).is_some()
     }
 
     pub(super) fn is_rust_option_none_node(&self, node: NodeId) -> bool {
-        let (NodeKind::Var, Payload::Name(name)) = (self.il.kind(node), self.il.node(node).payload)
-        else {
-            return false;
-        };
-        let name = self.interner.resolve(name);
-        let Some(contract) = library_rust_option_none_sentinel_contract(self.il.meta.lang, name)
-        else {
-            return false;
-        };
-        matches!(
-            library_api_contract_evidence_for_node(
-                self.il,
-                self.interner,
-                node,
-                contract.id,
-                contract.callee,
-                0,
-            ),
-            LibraryApiEvidenceStatus::Admitted
-        )
+        admitted_rust_option_none_sentinel_at_node(self.il, self.interner, node).is_some()
     }
 
     pub(super) fn rust_option_some_wildcard_pattern(&self, node: NodeId) -> Option<NodeId> {

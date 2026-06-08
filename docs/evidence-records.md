@@ -553,7 +553,10 @@ callers:
   the same-span `LibraryApi(MethodCall(HoF(...)))` occurrence record as protocol
   receiver evidence. Downstream calls such as Rust `.collect()` can therefore
   depend on the admitted `filter_map`/`map`/`filter` occurrence after IL
-  canonicalization, without reopening selector-only proof;
+  canonicalization, without reopening selector-only proof. Value-graph filter
+  consumers such as `len(filter(...))`, explicit reductions over a filter, and
+  static literal membership shortcuts reuse the same HOF admission; a raw
+  `HoF(Filter)` payload no longer enters those paths by shape alone;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by

@@ -9,12 +9,14 @@ use crate::evidence::span_contains;
 
 mod contracts;
 mod registry;
+mod resolvers;
 mod rows;
 pub use contracts::*;
 use registry::{
     library_api_callee_contract_for_hash, library_api_contract_id_from_hash,
     library_api_contract_result_domain_for_arity, library_api_record_admitted_for_current_shape,
 };
+pub use resolvers::*;
 pub use rows::*;
 
 pub fn library_api_contract_evidence_for_call(

@@ -479,6 +479,44 @@ fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
 }
 
 #[test]
+fn len_of_raw_filter_hof_requires_filter_admission() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let coll = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+    let pred = const_bool_lambda(&mut b, 2, true, sp(2));
+    let filter = b.add(
+        NodeKind::HoF,
+        Payload::HoF(HoFKind::Filter),
+        sp(3),
+        &[coll, pred],
+    );
+    let len = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        sp(4),
+        &[filter],
+    );
+    let mut il = finish_test_il(b, len, Lang::Python);
+    let contract =
+        library_free_function_builtin_contract(Lang::Python, "len", 1).expect("len contract");
+    il.evidence.push(library_api_contract_evidence(
+        0,
+        il.node(len).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+
+    let mut builder = Builder::new(&il, &interner);
+    let value = builder.eval(len, &FxHashMap::default());
+    assert!(
+        !matches!(builder.nodes[value as usize].op, ValOp::Reduce(op) if op == Op::Add as u32),
+        "admitted len must not turn an unadmitted raw filter HOF into a predicate count"
+    );
+}
+
+#[test]
 fn builder_append_candidate_requires_contract_or_effect_and_seed_context() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));

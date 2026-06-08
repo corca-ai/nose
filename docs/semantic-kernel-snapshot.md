@@ -341,7 +341,10 @@ migrated.
   Normalized HOF receivers keep their same-span admitted `MethodCall(HoF(...))`
   occurrence as protocol evidence, so downstream adapters such as Rust
   `.collect()` can consume a canonicalized `filter_map` receiver without trusting
-  the `collect` selector alone.
+  the `collect` selector alone. Value-graph filter consumers such as
+  `len(filter(...))`, explicit reductions over a filter, and static literal
+  membership shortcuts reuse HOF admission as well, so raw `HoF(Filter)` cannot
+  bypass the source/API HOF gate by appearing under another operation.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require exact `java.util` import proof or
@@ -409,6 +412,10 @@ migrated.
 - Collection reductions such as Rust `Iterator::count()` and Java
   `Stream.count()` are admitted through library method contracts plus exact
   protocol receiver proof, not through a bare method-name check.
+- Selected value-graph library consumers now call shared admitted occurrence
+  resolvers in `nose-semantics` for method, imported-namespace function,
+  iterator-adapter, and Rust Option/`Vec::new` calls instead of recombining raw
+  selector parsing with evidence admission locally.
 - Java stream source adapters are split by proof through library API contracts:
   `receiver.stream()` requires an exact iterable receiver, while
   `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local

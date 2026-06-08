@@ -1368,13 +1368,25 @@ fn library_api_record(
     status: EvidenceStatus,
     dependencies: &[u32],
 ) -> EvidenceRecord {
+    library_api_record_with_arity(id, span, contract_id, callee, 1, status, dependencies)
+}
+
+fn library_api_record_with_arity(
+    id: u32,
+    span: Span,
+    contract_id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+    status: EvidenceStatus,
+    dependencies: &[u32],
+) -> EvidenceRecord {
     evidence_with_dependencies(
         id,
         EvidenceAnchor::node(span, NodeKind::Call),
         EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
             contract_hash: library_api_contract_id_hash(contract_id),
             callee_hash: library_api_callee_contract_hash(callee),
-            arity: 1,
+            arity,
         }),
         status,
         dependencies.iter().copied().map(EvidenceId).collect(),
@@ -1625,6 +1637,75 @@ fn canonical_builtin_admission_keeps_language_core_exceptions_narrow() {
         go_len,
         Builtin::Len
     ));
+}
+
+fn rust_some_call_il() -> (Il, Interner, NodeId, NodeId) {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let callee = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("Some")),
+        sp(45),
+        &[],
+    );
+    let value = b.add(NodeKind::Var, Payload::Cid(0), sp(46), &[]);
+    let call = b.add(NodeKind::Call, Payload::None, sp(47), &[callee, value]);
+    let root = b.add(NodeKind::Func, Payload::None, sp(48), &[call]);
+    (finish_il(b, root, Lang::Rust), interner, call, callee)
+}
+
+#[test]
+fn admitted_library_api_call_resolvers_require_evidence() {
+    let (il, interner, call, _callee) = rust_some_call_il();
+    assert!(
+        admitted_rust_option_some_constructor_at_call(&il, &interner, call).is_none(),
+        "raw free-name call shape alone must not admit a library API occurrence"
+    );
+
+    let contract = library_rust_option_some_constructor_contract(Lang::Rust, "Some", 1)
+        .expect("Rust Some constructor contract");
+    let (mut missing_dependency, interner, call, _callee) = rust_some_call_il();
+    missing_dependency.evidence.push(library_api_record(
+        0,
+        missing_dependency.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+    assert!(
+        admitted_rust_option_some_constructor_at_call(&missing_dependency, &interner, call)
+            .is_none(),
+        "same-span API occurrence without its callee dependency is still rejected"
+    );
+
+    let (mut admitted, interner, call, callee) = rust_some_call_il();
+    admitted.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(admitted.node(callee).span, NodeKind::Var),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("Some"),
+        }),
+        EvidenceStatus::Asserted,
+    ));
+    admitted.evidence.push(library_api_record(
+        1,
+        admitted.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0],
+    ));
+
+    let occurrence =
+        admitted_rust_option_some_constructor_at_call(&admitted, &interner, call).unwrap();
+    assert_eq!(
+        occurrence.contract.id,
+        LibraryApiContractId::RustOptionSomeConstructor
+    );
+    assert_eq!(occurrence.callee, callee);
+    assert_eq!(occurrence.receiver, None);
+    assert_eq!(occurrence.arg_count, 1);
 }
 
 #[test]
