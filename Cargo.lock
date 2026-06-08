@@ -541,6 +541,7 @@ name = "nose-semantics"
 version = "0.5.0"
 dependencies = [
  "nose-il",
+ "rustc-hash",
 ]
 
 [[package]]

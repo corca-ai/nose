@@ -3,8 +3,8 @@
 //! proof-obligation: normalize.recursion.structural_fold
 
 use super::Rebuilder;
-use crate::types::{result_ty, Ty};
 use nose_il::{NodeId, NodeKind, Op, Payload, Span};
+use nose_semantics::{semantics, ValueDomain, ValueLaw};
 
 pub(super) struct Plan {
     pub(super) param_cids: Vec<u32>,
@@ -48,10 +48,17 @@ pub(super) fn recognize(
         return None;
     }
     let (base_cond, identity) = guards[0];
-    // Numeric monoid gate: ⊕ on proven-`Num` operands (so commutative + associative)
+    // Numeric monoid gate: ⊕ on proven `Number` domain operands (so commutative + associative)
     // and the base case returning ⊕'s identity literal (`0` for `+`, `1` for `·`).
-    let ev = rb.param_type_env(fid, &param_cids);
-    if result_ty(rb.old, head, &ev) != Ty::Num {
+    let ev = rb.param_value_domain_env(fid, &param_cids);
+    let operators = semantics(rb.old.meta.lang).operators();
+    let head_domain = operators.expression_value_domain(rb.old, head, &|cid| {
+        ev.get(&cid).copied().unwrap_or(ValueDomain::Unknown)
+    });
+    if !operators
+        .value_law(ValueLaw::StructuralNumericFold)
+        .is_some_and(|contract| contract.requirement.accepts([head_domain]))
+    {
         return None;
     }
     let want_identity = match op {

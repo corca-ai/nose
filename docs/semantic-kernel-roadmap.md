@@ -359,6 +359,15 @@ and pack ecosystem.
   binding anchors, and scoped parameters through the same `DomainRequirement`
   helper, so value-graph and strict exact gates no longer maintain separate
   collection/map binding proof sets.
+- Value-graph and structural-recursion domain gates moved from normalize-local
+  `types.rs` / `Ty` inference to `nose-semantics` `ValueDomain` and `ValueLaw`
+  contracts. The first contract set covers add non-concat ordering,
+  numeric/boolean law preconditions, factor distribution, large formula
+  compaction, and structural numeric folds. Parameter `Domain` evidence now
+  feeds the shared value-domain seed for direct functions, class/container
+  method fingerprints, and structural-recursion recognition, so typed
+  string/sequence concatenation no longer inherits optimistic numeric add
+  ordering.
 - An experimental `abstraction` scan mode landed as a weak sibling claim over a
   narrow `near` subset. It emits typed literal-hole witnesses and caveats for
   refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
@@ -486,7 +495,10 @@ Remaining in this phase:
   beyond the current first-party binding scan, and protocol-specific receiver
   facts that include demand/effect obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
-  retaining formal-obligation metadata as the first-party proof boundary.
+  retaining formal-obligation metadata as the first-party proof boundary. The
+  first `ValueLaw` contract surface now covers current arithmetic/boolean
+  domain gates, but reduction laws, parity/toggle laws, low-level byte-pack
+  laws, and ecosystem law packs remain local first-party code.
 - Add receiver/place facts so field read/write and property contracts are not
   field-name-only.
 - Add provenance fields internally before exposing them in scan JSON.

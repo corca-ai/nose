@@ -10,8 +10,8 @@
 //! proof-obligation: normalize.value_graph.factor_distribute
 
 use super::super::{Builder, ValOp, ValueId};
-use crate::types::Ty;
 use nose_il::Op;
+use nose_semantics::ValueLaw;
 
 pub(in super::super) fn apply(
     builder: &mut Builder<'_>,
@@ -33,7 +33,7 @@ pub(in super::super) fn apply(
     } else {
         return None;
     };
-    if builder.vty(x) != Ty::Num || builder.vty(y) != Ty::Num || builder.vty(f) != Ty::Num {
+    if !builder.value_law_satisfied(ValueLaw::NumericFactorDistribution, &[x, y, f]) {
         return None;
     }
     let sum = builder.mk(ValOp::Bin(Op::Add as u32), vec![x, y]);

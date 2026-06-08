@@ -146,6 +146,18 @@ obligations through `DomainRequirement`; obligations such as imported namespace,
 unshadowed global, exact map literal, and future demand/effect constraints remain
 separate checks.
 
+Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
+contract used by value-graph and recursion laws. That bridge is intentionally
+narrow: integer/number domains seed `Number`, string seeds `String`, and
+array/collection/set domains seed `Sequence`. The value graph may additionally
+infer a domain from strict operator use, literal result domains, modeled builtin
+result domains, and subexpression result domains, but the law itself is admitted
+only through a `ValueLaw` contract in `nose-semantics`. This keeps string and
+sequence concatenation ordered when evidence proves those domains, while numeric
+and boolean laws still require positive domain proof. Today that contract records
+the law id and domain requirement; pack-facing per-use value-law provenance and
+conformance status remain future work rather than an emitted evidence family.
+
 Selected `LibraryApi` result-domain evidence follows the same model. A
 first-party factory call result may carry `Domain(Collection)`, `Domain(Set)`,
 `Domain(Map)`, or `Domain(Array)` only after the call occurrence has admitted

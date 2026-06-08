@@ -98,44 +98,6 @@ pub fn discover_paths(root: &Path, exclude: &[String]) -> Vec<(String, Lang)> {
     out.into_inner().unwrap()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-
-    fn temp_dir(tag: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("nose_frontend_{tag}_{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        dir
-    }
-
-    #[test]
-    fn discover_paths_accepts_direct_supported_file() {
-        let dir = temp_dir("direct_supported_file");
-        let file = dir.join("sample.py");
-        fs::write(&file, "def f():\n    return 1\n").unwrap();
-
-        let paths = discover_paths(&file, &[]);
-
-        assert_eq!(
-            paths,
-            vec![(file.to_string_lossy().to_string(), Lang::Python)]
-        );
-        let _ = fs::remove_dir_all(&dir);
-    }
-
-    #[test]
-    fn discover_paths_ignores_direct_unsupported_file() {
-        let dir = temp_dir("direct_unsupported_file");
-        let file = dir.join("README.txt");
-        fs::write(&file, "not source\n").unwrap();
-
-        assert!(discover_paths(&file, &[]).is_empty());
-        let _ = fs::remove_dir_all(&dir);
-    }
-}
-
 /// Discover, read, and lower every supported file under `root`, in parallel.
 /// Files that fail to read or parse are skipped. Each surviving [`Il`] carries a
 /// unique [`FileId`] (its index in the discovered path list) and its own path in
@@ -200,4 +162,42 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
         );
     }
     Corpus::new(interner, files)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn temp_dir(tag: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("nose_frontend_{tag}_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn discover_paths_accepts_direct_supported_file() {
+        let dir = temp_dir("direct_supported_file");
+        let file = dir.join("sample.py");
+        fs::write(&file, "def f():\n    return 1\n").unwrap();
+
+        let paths = discover_paths(&file, &[]);
+
+        assert_eq!(
+            paths,
+            vec![(file.to_string_lossy().to_string(), Lang::Python)]
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn discover_paths_ignores_direct_unsupported_file() {
+        let dir = temp_dir("direct_unsupported_file");
+        let file = dir.join("README.txt");
+        fs::write(&file, "not source\n").unwrap();
+
+        assert!(discover_paths(&file, &[]).is_empty());
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

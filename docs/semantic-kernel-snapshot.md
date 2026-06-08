@@ -11,7 +11,8 @@ proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
 receiver-domain evidence resolution, and a shared evidence-record substrate for
 source, domain, import, symbol-identity, guard,
-place/effect, selected library API occurrence, and sequence-surface facts.
+place/effect, selected library API occurrence, value-domain/law contracts, and
+sequence-surface facts.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
 occurrence evidence covering selected JS-like static/global APIs, Python
@@ -80,6 +81,22 @@ migrated.
   static-index gates consume these contracts instead of local operator tables.
   The old `primitive_order_comparisons()` helper remains as a compatibility
   wrapper around the stricter lattice law contract.
+- `ValueDomain` and `ValueLaw` now own the first shared domain preconditions for
+  value-graph and recursion laws. The old normalize-local `Ty` lattice and
+  `types.rs` inference module are gone. `nose-semantics` infers only the coarse
+  domains required by current first-party laws: numeric, boolean, string,
+  sequence, or unknown. The inference consumes parameter `Domain` evidence
+  first, then a conservative fixpoint over strict operator uses, literal and
+  builtin result domains, and subexpression result domains. Value graph add
+  commutativity/associativity, numeric negation/idempotence, boolean AC
+  simplifications, factor distribution, large formula compaction, and structural
+  recursion folds now consume `ValueLaw` contracts rather than a normalize-local
+  type helper. Unknown remains optimistic only for the historical non-concat
+  `+` policy; explicit string/sequence domain evidence keeps concatenation
+  ordered, and numeric/boolean laws require positive domain proof. The current
+  `ValueLawContract` is still an internal law-id/requirement facade: per-use
+  provenance and independent conformance status are not yet tracked as separate
+  value-law evidence records.
 - Source facts are now first-class internal evidence for source distinctions that
   the shared IL erases. JS/TS frontends emit construct syntax, regex literal,
   strict/loose equality, strict/loose inequality, and `instanceof` facts. Python
@@ -414,7 +431,9 @@ Semantic knowledge still appears in several forms outside the facade:
   closed evidence subgraph into the importer, preserves provider source-origin
   spans, rewires dependency ids, and records `ImportedLiteralSnapshot`
   provenance tied to the importer static import proof;
-- type facts and coarse type inference used to gate numeric and collection laws;
+- broader value-domain evidence and LawPack records beyond the first
+  `ValueDomain` / `ValueLaw` contracts now used by value-graph arithmetic,
+  boolean, factor, large-formula, and structural-recursion gates;
 - named value-graph rule modules that still consume internal `Builder` facts
   instead of versioned `LawPack` records;
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,

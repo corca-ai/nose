@@ -32,8 +32,8 @@
 //! the interpreter now executes as a real call (see [`crate::interp`]) — and the rewritten
 //! loop, and flags any behavioral difference.
 
-use crate::types::{infer_param_types, Ty};
 use nose_il::{Il, IlBuilder, NodeId, NodeKind, Op, Payload, Symbol, UnitKind};
+use nose_semantics::{domain_evidence_for_param, semantics, ValueDomain};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod structural_fold;
@@ -254,8 +254,30 @@ impl Rebuilder<'_> {
         None
     }
 
-    fn param_type_env(&self, fid: NodeId, param_cids: &[u32]) -> FxHashMap<u32, Ty> {
-        infer_param_types(self.old, fid)
+    fn param_value_domain_env(
+        &self,
+        fid: NodeId,
+        param_cids: &[u32],
+    ) -> FxHashMap<u32, ValueDomain> {
+        let mut domains = semantics(self.old.meta.lang)
+            .operators()
+            .infer_param_value_domains(self.old, fid);
+        let mut pos = 0usize;
+        for &child in self.old.children(fid) {
+            if self.old.kind(child) != NodeKind::Param {
+                continue;
+            }
+            if let Some(value_domain) = domain_evidence_for_param(self.old, child)
+                .and_then(ValueDomain::from_domain_evidence)
+            {
+                if domains.len() <= pos {
+                    domains.resize(pos + 1, ValueDomain::Unknown);
+                }
+                domains[pos] = value_domain;
+            }
+            pos += 1;
+        }
+        domains
             .into_iter()
             .enumerate()
             .filter_map(|(i, ty)| param_cids.get(i).map(|&c| (c, ty)))

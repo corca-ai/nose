@@ -2836,6 +2836,23 @@ fn value_fp_named(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec
     nose_normalize::value_fingerprint(&n, root, interner)
 }
 
+fn class_value_fp(interner: &Interner, src: &str, lang: Lang, name: &str) -> Vec<u64> {
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), lang, interner).unwrap();
+    let n = normalize(&il, interner, &NormalizeOptions::default());
+    let root = n
+        .units
+        .iter()
+        .find(|unit| {
+            matches!(unit.kind, UnitKind::Class)
+                && unit
+                    .name
+                    .is_some_and(|symbol| interner.resolve(symbol) == name)
+        })
+        .map(|unit| unit.root)
+        .unwrap_or_else(|| panic!("expected class unit named {name}"));
+    nose_normalize::value_fingerprint(&n, root, interner)
+}
+
 fn corpus_value_fp(corpus: &Corpus, path_suffix: &str, name: &str) -> Vec<u64> {
     let il = corpus
         .files
@@ -5536,7 +5553,7 @@ fn normalization_is_idempotent() {
     }
 }
 
-/// DISTRIBUTION / FACTORING (Num-gated): `a*c + b*c` ≡ `(a+b)*c`. The value graph factors
+/// DISTRIBUTION / FACTORING (domain-gated): `a*c + b*c` ≡ `(a+b)*c`. The value graph factors
 /// a shared multiplicand out of a sum of products when every leaf is proven numeric
 /// (`value_graph/rules/factor_distribute.rs`, Lean obligation
 /// `normalize.value_graph.factor_distribute`). The `*`
@@ -5558,6 +5575,50 @@ fn distribution_factors_common_multiplicand() {
         ),
         value_fp(&i, "def g(a,b,c,d):\n    return (a+b+d)*c\n", Lang::Python),
         "a*c+b*c+d*c should factor to (a+b+d)*c"
+    );
+}
+
+#[test]
+fn value_law_domains_keep_string_concat_order_but_numeric_add_commutes() {
+    let i = Interner::new();
+    let numeric_a_b = "class C { static int f(int a, int b) { return a + b; } }";
+    let numeric_b_a = "class C { static int g(int a, int b) { return b + a; } }";
+    assert_eq!(
+        value_fp(&i, numeric_a_b, Lang::Java),
+        value_fp(&i, numeric_b_a, Lang::Java),
+        "integer-domain add should still commute under the value-law contract"
+    );
+
+    let string_a_b = "class C { static String f(String a, String b) { return a + b; } }";
+    let string_b_a = "class C { static String g(String a, String b) { return b + a; } }";
+    assert_ne!(
+        value_fp(&i, string_a_b, Lang::Java),
+        value_fp(&i, string_b_a, Lang::Java),
+        "string-domain concat is ordered and must not inherit numeric add laws"
+    );
+}
+
+#[test]
+fn value_law_domains_keep_python_string_repetition_ordered() {
+    let i = Interner::new();
+    let left_then_right = "def f(s: str, t: str):\n    return s * 2 + t * 2\n";
+    let right_then_left = "def g(s: str, t: str):\n    return t * 2 + s * 2\n";
+    assert_ne!(
+        value_fp(&i, left_then_right, Lang::Python),
+        value_fp(&i, right_then_left, Lang::Python),
+        "typed Python str repetition feeds ordered concat, not numeric add sorting"
+    );
+}
+
+#[test]
+fn class_value_law_domains_use_method_parameter_evidence() {
+    let i = Interner::new();
+    let string_a_b = "class C { static String f(String a, String b) { return a + b; } }";
+    let string_b_a = "class C { static String f(String a, String b) { return b + a; } }";
+    assert_ne!(
+        class_value_fp(&i, string_a_b, Lang::Java, "C"),
+        class_value_fp(&i, string_b_a, Lang::Java, "C"),
+        "class-unit fingerprints must preserve method string-concat order"
     );
 }
 
@@ -5987,6 +6048,19 @@ fn structural_recursion_sum_converges_with_loop() {
         value_fp(&i, rec, Lang::Python),
         value_fp(&i, loopv, Lang::Python),
         "structural sum recursion should converge with the accumulator loop"
+    );
+}
+
+#[test]
+fn structural_recursion_consumes_parameter_domain_evidence() {
+    let i = Interner::new();
+    let rec =
+        "def f(n: int, x: int):\n    if n == 0:\n        return 0\n    return x + f(n - 1, x)\n";
+    let loopv = "def g(n: int, x: int):\n    acc = 0\n    while n != 0:\n        acc = acc + x\n        n = n - 1\n    return acc\n";
+    assert_eq!(
+        value_fp(&i, rec, Lang::Python),
+        value_fp(&i, loopv, Lang::Python),
+        "structural fold law must consume annotation-derived ValueDomain evidence"
     );
 }
 

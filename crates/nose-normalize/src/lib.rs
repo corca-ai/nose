@@ -26,7 +26,6 @@ mod interp;
 mod literals;
 pub mod module_facts;
 mod recursion;
-mod types;
 mod value_graph;
 
 pub use commutative::{node_tag, node_tag_valued, subtree_hashes};

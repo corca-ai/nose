@@ -12,8 +12,10 @@ experiments that validated these passes are in [experiments](experiments.md).
 > oracle cutoff → recursion→iteration → dataflow → [dce] → cfg_norm::structure →
 > algebra → cfg_norm::run; value graph on top.
 > (`dce.rs` dead-code/dead-assignment elimination is an optional pass, off by default.)
-> Later additions on the value graph: a purpose-fit **type inference** (`types.rs`, now a
-> fixpoint over subexpression result types) gating the type-dependent canons, free-monoid
+> Later additions on the value graph: semantic-kernel **value-domain and value-law
+> contracts** (`ValueDomain` / `ValueLaw`) that gate domain-dependent canons, using
+> parameter `Domain` evidence plus a conservative fixpoint over strict operator uses and
+> subexpression result domains; free-monoid
 > strings, map **and filter** fusion (a filter is the element-carrying `Hof(Map,[Elem,p])`,
 > so nested filters fuse to `p∧q` when the collection/protocol receiver is proven), Rust
 > **filter-map** selection for direct `Some(value)`/`None` callbacks and proof-backed
@@ -38,7 +40,7 @@ experiments that validated these passes are in [experiments](experiments.md).
 > thresholds, and source membership operators, while source-fact gates protect
 > JS-like constructor factories, regex literal `.test(...)`, and static
 > membership callback equality, **distribution/factoring**
-> `a*c+b*c→(a+b)*c` (Num-gated),
+> `a*c+b*c→(a+b)*c` (value-domain-gated),
 > min/max and any/all reductions (cross-language), simple **flag+break existence/universal
 > loops** (`found=false; if p { found=true; break }` / the dual `all` form),
 > **reduce-lambda selection** (`reduce(λ. a if a>b else b)≡max`), **count-of-filter**
@@ -109,12 +111,14 @@ Guiding constraints for every pass:
   hunt fixed seven false merges; §AX, using the now-independent oracle, fixed a whole
   further class of *treating-a-non-commutative-op-as-commutative* bugs (value `and`/`or`,
   `!!x`, `not(Err)`, `x+0`/`x*1`, string-`+` operand sort). The core canons are also
-  **Lean-proven** (`formal/`). Operations whose commutativity/identity depends on type are
-  **type-gated**, never assumed: `+` commutes only on non-concat operands (string/list `+`
+  **Lean-proven** (`formal/`). Operations whose commutativity/identity depends on value
+  domain are **domain-gated**, never assumed: `+` commutes only on non-concat operands
+  (string/list `+`
   is ordered concatenation), and `and`/`or` commute only on Bool (else they are the
   value-returning short-circuit `Phi`). Identity elimination `x+0`/`x*1`→`x` is dropped
-  entirely — it is unsound for non-Num (`"a"+0` Errs), and type inference is optimistic
-  (it would infer `Num` from the `*1` itself), so even a Num gate can't make it safe.
+  entirely — it is unsound for non-number domains (`"a"+0` Errs), and value-domain
+  inference is optimistic (it would infer `Number` from the `*1` itself), so even a
+  number-domain gate can't make it safe.
   Typed emptiness checks carry the proven receiver domain in the value graph: collection
   receivers, arrays, and strings do not share the same strict fingerprint merely because
   each surface exposes an “empty” idiom. A real Netty audit caught this boundary when Java
@@ -201,7 +205,8 @@ Generalize the current commutative-operand sort into a principled canonicalizer
 via bounded equality saturation over a fixed rule set:
 - associativity flattening (`a+(b+c)` → canonical n-ary sum); all-literal constant
   folding (`2+3`→`5`). Identity elimination (`x+0`/`x*1`→`x`) is intentionally NOT done —
-  unsound for non-Num and untypeable here (the optimistic inference would self-justify it).
+  unsound for non-number domains and untypeable here (the optimistic inference would
+  self-justify it).
   negation normalization (De Morgan,
   double-negation `!!x` cancelled only on Bool, negated-comparison `!(a<=b)`→`a>b`);
   comparison-direction canonicalization; short-circuit `and`/`or` to the value-`Phi`.

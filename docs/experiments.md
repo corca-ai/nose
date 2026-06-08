@@ -520,7 +520,8 @@ negation. This established the **standing three-way classification** that
 - **Rationalized bugs** — none known; the §AS seven and `in` are fixed.
 - **Genuine limitation, not "acceptable"** — string/list concatenation via a commutative `+`
   (`s + x` ≡ `x + s`) is unsound, but a sound fix needs type/sequence inference a type-free
-  cross-language tool lacks (later supplied as `types.rs`, §AW/§BA).
+  cross-language tool lacks (first supplied as `types.rs`, later moved to `ValueDomain` /
+  `ValueLaw` contracts in `nose-semantics`; §AW/§BA).
 - **Legitimate fuzzy tradeoff, but mis-placed** — large-constant / float abstraction
   (`x % 7` ≡ `x % 11`) belongs on the candidate axis, not the shared value graph (it violates the
   behavioral axis's "constants must be distinct" rule). The principled fix is an axis split.
@@ -561,7 +562,8 @@ N repos") to **proven in Lean 4** (`normalize.value_graph.algebra`,
 AC-flatten+sort denotation-preserving, `a − b → a + (−b)`, guard-clause ≡ if-else, map-fusion
 functor law). Bold canons were verifier-gated: untyped `-(-x) → x` / `x & x → x` were **refuted
 (caught 17 false merges** — they drop the operator's type-error behavior), then re-enabled
-*soundly* via purpose-fit type inference (`types.rs`, coarse Num/Bool/Str/List/Unknown):
+*soundly* via purpose-fit type inference (`types.rs` at the time, now `ValueDomain` /
+`ValueLaw` contracts in `nose-semantics`; coarse Num/Bool/Str/List/Unknown):
 **`+` commutes unless an operand is proven string/list; Unknown still commutes, so the common
 numeric case is unaffected.** The standing principle: **each canon is justified by correctness +
 soundness + a proof, not by moving a noisy completeness number** (which is insensitive to any one
@@ -616,8 +618,9 @@ unchanged (same families, only order and the `N/M shared · Pp` cell differ).
 
 A focused pass to raise *exact* Type-4 convergence while holding full-corpus `verify` = 0 and
 backing each algebraic law with a Lean proof. **Adopted** (93 equivalence tests green, SOUND):
-fixpoint param-type inference over subexpression result types (`types.rs`, licensing the gated
-numeric rewrites); distribution/factoring `a*c + b*c → (a+b)*c` gated on proven Num
+fixpoint param-type inference over subexpression result types (`types.rs` at the time, now
+`ValueDomain` / `ValueLaw` contracts in `nose-semantics`, licensing the gated numeric rewrites);
+distribution/factoring `a*c + b*c → (a+b)*c` gated on proven Num
 (`NoseAlgebra.distrib_sound`); full **AC canonicalization in the value graph itself** (`mk`
 flattens+sorts `+ * & | ^`, so *synthesized* nodes re-canonicalize, not only the IL algebra pass);
 **filter fusion** representing `filter(p, c)` as a filtered identity-map `Hof(Map, [Elem c, p])` so

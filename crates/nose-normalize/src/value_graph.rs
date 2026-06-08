@@ -44,7 +44,6 @@ use crate::module_facts::{
     mutating_method_name, node_symbol_in_scope,
     shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
 };
-use crate::types::Ty;
 use nose_il::{
     contains_js_identifier, stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind,
     NodeId, NodeKind, Op, Payload, Span, Symbol, UnitKind,
@@ -77,8 +76,8 @@ use nose_semantics::{
     LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
     MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
     ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
-    SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR,
-    SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
+    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -464,14 +463,13 @@ struct Builder<'a> {
     /// The ordinary structural hash intentionally abstracts literals for shape work;
     /// callee identity must distinguish `helper(x)+1` from `helper(x)+2`.
     valued_subtree_hash: Option<Vec<u64>>,
-    /// Inferred coarse type per value node (kept in lockstep with `nodes`). Powers
-    /// type-aware canonicalization: `+` commutes only on numeric operands (string/list
-    /// concat is non-commutative), and numeric/boolean simplifications fire only when
-    /// proven. `Unknown` is the safe default — no type-gated rewrite fires on it.
-    vty: Vec<Ty>,
-    /// Inferred parameter types by position (from `types::infer_param_types`), seeding the
-    /// type of each `Input` node.
-    param_ty: Vec<Ty>,
+    /// Kernel value domain per value node (kept in lockstep with `nodes`). Powers
+    /// domain-aware canonicalization: `+` commutes only when concat is not proven,
+    /// and numeric/boolean laws fire only when their domain preconditions are proven.
+    /// `Unknown` is the safe default for positive domain requirements.
+    vty: Vec<ValueDomain>,
+    /// Inferred parameter value domains by position, seeding each positional `Input`.
+    param_ty: Vec<ValueDomain>,
     /// Kernel domain evidence keyed by the alpha-renamed cid currently in scope.
     param_domain: FxHashMap<u32, DomainEvidence>,
     /// The branch conditions currently in effect (each a `cond` or `Not(cond)`). A
@@ -606,73 +604,64 @@ impl<'a> Builder<'a> {
             .with_local_scope_nodes(&context.module.local_scope)
     }
 
-    fn vty(&self, v: ValueId) -> Ty {
-        self.vty.get(v as usize).copied().unwrap_or(Ty::Unknown)
+    fn vty(&self, v: ValueId) -> ValueDomain {
+        self.vty
+            .get(v as usize)
+            .copied()
+            .unwrap_or(ValueDomain::Unknown)
     }
 
-    /// Bottom-up coarse type of a fresh node from its op and already-typed operands.
-    fn ty_of(&self, op: &ValOp, args: &[ValueId]) -> Ty {
-        let at = |i: usize| args.get(i).map(|&a| self.vty(a)).unwrap_or(Ty::Unknown);
+    fn value_law_satisfied(&self, law: ValueLaw, values: &[ValueId]) -> bool {
+        semantics(self.il.meta.lang)
+            .operators()
+            .value_law(law)
+            .is_some_and(|contract| {
+                contract
+                    .requirement
+                    .accepts(values.iter().map(|&v| self.vty(v)))
+            })
+    }
+
+    fn add_values_not_concat(&self, law: ValueLaw, values: &[ValueId]) -> bool {
+        self.value_law_satisfied(law, values)
+    }
+
+    /// Bottom-up kernel value domain of a fresh node from its op and operands.
+    fn value_domain_of(&self, op: &ValOp, args: &[ValueId]) -> ValueDomain {
+        let at = |i: usize| {
+            args.get(i)
+                .map(|&a| self.vty(a))
+                .unwrap_or(ValueDomain::Unknown)
+        };
+        let operators = semantics(self.il.meta.lang).operators();
         match op {
-            ValOp::Const(k) => const_ty(*k),
+            ValOp::Const(k) => const_value_domain(*k),
             ValOp::Input(k) => self
                 .param_ty
                 .get(*k as usize)
                 .copied()
-                .unwrap_or(Ty::Unknown),
+                .unwrap_or(ValueDomain::Unknown),
             ValOp::Bin(o) => {
-                let o = *o;
-                if o == Op::Add as u32 {
-                    let (a, b) = (at(0), at(1));
-                    if a == Ty::Num && b == Ty::Num {
-                        Ty::Num
-                    } else if a == Ty::Str || b == Ty::Str {
-                        Ty::Str
-                    } else if a == Ty::List || b == Ty::List {
-                        Ty::List
-                    } else {
-                        Ty::Unknown
-                    }
-                } else if matches!(
-                    o,
-                    x if x == Op::Sub as u32 || x == Op::Mul as u32 || x == Op::Div as u32
-                        || x == Op::Mod as u32 || x == Op::Pow as u32 || x == Op::BitAnd as u32
-                        || x == Op::BitOr as u32 || x == Op::BitXor as u32
-                        || x == Op::Shl as u32 || x == Op::Shr as u32
-                        || x == MIN_CODE || x == MAX_CODE
-                ) {
-                    Ty::Num
-                } else if matches!(
-                    o,
-                    x if x == Op::Lt as u32 || x == Op::Le as u32 || x == Op::Gt as u32
-                        || x == Op::Ge as u32 || x == Op::Eq as u32 || x == Op::Ne as u32
-                        || x == Op::In as u32
-                ) || ((o == Op::And as u32 || o == Op::Or as u32)
-                    && at(0) == Ty::Bool
-                    && at(1) == Ty::Bool)
-                {
-                    Ty::Bool
+                if *o == MIN_CODE || *o == MAX_CODE {
+                    ValueDomain::Number
+                } else if let Some(op) = op_from_code(*o) {
+                    operators.binary_result_domain(op, at(0), at(1))
                 } else {
-                    Ty::Unknown
+                    ValueDomain::Unknown
                 }
             }
             ValOp::Un(o) => {
-                let o = *o;
-                if o == Op::Neg as u32
-                    || o == Op::Pos as u32
-                    || o == Op::BitNot as u32
-                    || o == ABS_CODE
-                {
-                    Ty::Num
-                } else if o == Op::Not as u32 {
-                    Ty::Bool
+                if *o == ABS_CODE {
+                    ValueDomain::Number
+                } else if let Some(op) = op_from_code(*o) {
+                    operators.unary_result_domain(op)
                 } else {
-                    Ty::Unknown
+                    ValueDomain::Unknown
                 }
             }
-            ValOp::Seq(_) | ValOp::CollectionParam | ValOp::ArrayParam => Ty::List,
-            ValOp::Clamp => Ty::Num,
-            ValOp::StringParam => Ty::Str,
+            ValOp::Seq(_) | ValOp::CollectionParam | ValOp::ArrayParam => ValueDomain::Sequence,
+            ValOp::Clamp => ValueDomain::Number,
+            ValOp::StringParam => ValueDomain::String,
             ValOp::Call(tag)
                 if matches!(
                     *tag,
@@ -683,9 +672,9 @@ impl<'a> Builder<'a> {
                         || x == JS_PROTOTYPE_IN_CODE
                 ) =>
             {
-                Ty::Bool
+                operators.builtin_result_domain(Builtin::Contains)
             }
-            _ => Ty::Unknown,
+            _ => ValueDomain::Unknown,
         }
     }
 
@@ -806,6 +795,37 @@ impl<'a> Builder<'a> {
             {
                 self.param_domain.insert(cid, domain);
             }
+        }
+    }
+
+    fn seed_param_value_domains(&mut self, root: NodeId) {
+        self.param_ty = semantics(self.il.meta.lang)
+            .operators()
+            .infer_param_value_domains(self.il, root);
+        self.overlay_param_value_domains(root);
+    }
+
+    fn overlay_param_value_domains(&mut self, root: NodeId) {
+        let scope = self.param_domain_scope(root).unwrap_or(root);
+        let mut pos = 0usize;
+        for &k in self.il.children(scope) {
+            if self.il.kind(k) != NodeKind::Param {
+                continue;
+            }
+            if let Payload::Cid(cid) = self.il.node(k).payload {
+                if let Some(value_domain) = self
+                    .param_domain
+                    .get(&cid)
+                    .copied()
+                    .and_then(ValueDomain::from_domain_evidence)
+                {
+                    if self.param_ty.len() <= pos {
+                        self.param_ty.resize(pos + 1, ValueDomain::Unknown);
+                    }
+                    self.param_ty[pos] = value_domain;
+                }
+            }
+            pos += 1;
         }
     }
 
@@ -2375,7 +2395,7 @@ impl<'a> Builder<'a> {
             if let ValOp::Bin(o) = op {
                 let concat = o == Op::Add as u32
                     && args.len() == 2
-                    && (is_concat_ty(self.vty(args[0])) || is_concat_ty(self.vty(args[1])));
+                    && !self.add_values_not_concat(ValueLaw::AddCommutativity, &args);
                 if is_commutative(o)
                     && args.len() == 2
                     && !concat
@@ -2418,7 +2438,9 @@ impl<'a> Builder<'a> {
             if o == Op::Neg as u32 && !args.is_empty() {
                 if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
                     let inner = self.nodes[args[0] as usize].args[0];
-                    if io == Op::Neg as u32 && self.vty(inner) == Ty::Num {
+                    if io == Op::Neg as u32
+                        && self.value_law_satisfied(ValueLaw::NumericNegationInvolution, &[inner])
+                    {
                         return inner;
                     }
                 }
@@ -2444,16 +2466,19 @@ impl<'a> Builder<'a> {
         }
         if let ValOp::Bin(o) = op {
             if args.len() == 2 && args[0] == args[1] {
-                let t = self.vty(args[0]);
                 let bitwise = o == Op::BitAnd as u32 || o == Op::BitOr as u32;
                 let logical = o == Op::And as u32 || o == Op::Or as u32;
-                if (bitwise && t == Ty::Num) || (logical && t == Ty::Bool) {
+                if (bitwise
+                    && self.value_law_satisfied(ValueLaw::NumericBitwiseIdempotence, &[args[0]]))
+                    || (logical
+                        && self.value_law_satisfied(ValueLaw::BooleanIdempotence, &[args[0]]))
+                {
                     return args[0];
                 }
             }
             // NOTE: arithmetic identity elimination (`x+0→x`, `x*1→x`) is deliberately NOT
             // done — it is unsound for non-numeric `x` (`"a"+0` Errs; `self*1` on a
-            // non-number need not equal `self`), and type inference is OPTIMISTIC (it infers
+            // non-number need not equal `self`), and value-domain inference is optimistic (it infers
             // `x:Num` from `x*1` itself), so a Num gate would still merge `return self*1`
             // with an identity `return self`. The oracle's all-types battery sees the
             // difference. `x*1`/`x+0` keep their identity operand (algebra no longer drops
@@ -2491,7 +2516,7 @@ impl<'a> Builder<'a> {
             let is_or = o == Op::Or as u32;
             let is_and = o == Op::And as u32;
             if (is_or || is_and) && args.len() == 2 {
-                if self.vty(args[0]) == Ty::Bool && self.vty(args[1]) == Ty::Bool {
+                if self.value_law_satisfied(ValueLaw::BooleanCommutativity, &args) {
                     if is_or {
                         if let Some(v) = self.literal_equality_disjunction(args[0], args[1]) {
                             return v;
@@ -2574,7 +2599,9 @@ impl<'a> Builder<'a> {
                 let mut leaves = Vec::new();
                 self.flatten_into(args[0], o, &mut leaves);
                 self.flatten_into(args[1], o, &mut leaves);
-                if leaves.len() > 2 && leaves.iter().all(|&v| self.vty(v) == Ty::Bool) {
+                if leaves.len() > 2
+                    && self.value_law_satisfied(ValueLaw::BooleanAssociativity, &leaves)
+                {
                     leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
                     return self.intern_ac_chain(o, &leaves);
                 }
@@ -2593,7 +2620,7 @@ impl<'a> Builder<'a> {
         if let ValOp::Bin(o) = op {
             if is_assoc_comm_code(o) && args.len() == 2 {
                 let concat = o == Op::Add as u32
-                    && (is_concat_ty(self.vty(args[0])) || is_concat_ty(self.vty(args[1])));
+                    && !self.add_values_not_concat(ValueLaw::AddAssociativity, &args);
                 if !concat {
                     let mut leaves = Vec::new();
                     for &a in &args {
@@ -2611,9 +2638,8 @@ impl<'a> Builder<'a> {
     }
 
     /// Intern a value node by `(op, args)` (hash-consing), computing its structural hash
-    /// and coarse type. The raw constructor used by `mk` after canonicalization — it does
-    /// NOT itself canonicalize, so callers must pass already-canonical operands (this is
-    /// how `mk` folds an AC chain without re-triggering the flatten).
+    /// and kernel value domain. The raw constructor used by `mk` after canonicalization
+    /// does not itself canonicalize, so callers must pass already-canonical operands.
     fn intern_node(&mut self, op: ValOp, args: Vec<ValueId>) -> ValueId {
         let key = (op.clone(), args.clone());
         if let Some(&id) = self.intern.get(&key) {
@@ -2624,7 +2650,7 @@ impl<'a> Builder<'a> {
         for &a in &args {
             h = combine(h, self.vhash[a as usize]);
         }
-        let ty = self.ty_of(&op, &args);
+        let ty = self.value_domain_of(&op, &args);
         self.nodes.push(ValNode { op, args });
         self.vhash.push(h);
         self.vty.push(ty);
@@ -2639,7 +2665,7 @@ impl<'a> Builder<'a> {
         then_v: ValueId,
         else_v: ValueId,
     ) -> Option<ValueId> {
-        if self.vty(cond) != Ty::Bool || self.vty(then_v) != Ty::Bool {
+        if self.vty(cond) != ValueDomain::Boolean || self.vty(then_v) != ValueDomain::Boolean {
             return None;
         }
         match self.bool_const(else_v) {
@@ -2701,7 +2727,7 @@ impl<'a> Builder<'a> {
             }
             self.flatten_into(value, Op::Add as u32, &mut values);
         }
-        if values.iter().all(|&v| !is_concat_ty(self.vty(v))) {
+        if self.add_values_not_concat(ValueLaw::AddAssociativity, &values) {
             values.sort_by_key(|&v| self.vhash[v as usize]);
         }
         self.compact_formula(Op::Add as u32, &values)
@@ -2856,9 +2882,9 @@ impl<'a> Builder<'a> {
     }
 
     fn build_unit_with_context(&mut self, root: NodeId, context: Option<&ValueFingerprintContext>) {
-        self.param_ty = crate::types::infer_param_types(self.il, root);
         self.param_domain.clear();
         self.seed_param_domains(root);
+        self.seed_param_value_domains(root);
         self.seed_immutable_bindings(root, context);
         self.build_inline_registry(root);
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
@@ -2873,16 +2899,6 @@ impl<'a> Builder<'a> {
                 for &k in &kids {
                     if self.il.kind(k) == NodeKind::Param {
                         if let Payload::Cid(c) = self.il.node(k).payload {
-                            if matches!(
-                                self.param_domain.get(&c).copied(),
-                                Some(domain) if domain.is_integer_or_number()
-                            ) {
-                                let pos_idx = pos as usize;
-                                if self.param_ty.len() <= pos_idx {
-                                    self.param_ty.resize(pos_idx + 1, Ty::Unknown);
-                                }
-                                self.param_ty[pos_idx] = Ty::Num;
-                            }
                             let v = self.mk(ValOp::Input(pos), vec![]);
                             env.insert(c, v);
                             pos += 1;
@@ -4365,8 +4381,10 @@ impl<'a> Builder<'a> {
                     let kids = self.il.children(c).to_vec();
                     let mut menv = env.clone();
                     let saved_param_domain = self.param_domain.clone();
+                    let saved_param_ty = self.param_ty.clone();
                     self.param_domain.clear();
                     self.seed_param_domains(c);
+                    self.seed_param_value_domains(c);
                     let mut pos = 0u32;
                     for &k in &kids {
                         if self.il.kind(k) == NodeKind::Param {
@@ -4381,6 +4399,7 @@ impl<'a> Builder<'a> {
                         self.process_stmt(body, &mut menv);
                     }
                     self.param_domain = saved_param_domain;
+                    self.param_ty = saved_param_ty;
                 }
                 NodeKind::Block => self.process_container(c, env),
                 NodeKind::Assign => self.process_container_assignment(c, env),
@@ -7765,7 +7784,7 @@ impl<'a> Builder<'a> {
                     self.flatten_into(neg_b, Op::Add as u32, &mut operands);
                     // Sort unless an operand is proven concat (string/list); otherwise the
                     // operands Err in the oracle regardless of order, so sorting is safe.
-                    if operands.iter().all(|&v| !is_concat_ty(self.vty(v))) {
+                    if self.add_values_not_concat(ValueLaw::AddAssociativity, &operands) {
                         operands.sort_by_key(|&v| self.vhash[v as usize]);
                     }
                     let mut acc = operands[0];
@@ -7797,7 +7816,7 @@ impl<'a> Builder<'a> {
                             return v;
                         }
                         let do_sort = op != Op::Add as u32
-                            || operands.iter().all(|&v| !is_concat_ty(self.vty(v)));
+                            || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands);
                         if do_sort {
                             operands.sort_by_key(|&v| self.vhash[v as usize]);
                         }
@@ -7813,7 +7832,7 @@ impl<'a> Builder<'a> {
                         return v;
                     }
                     let do_sort = op != Op::Add as u32
-                        || operands.iter().all(|&v| !is_concat_ty(self.vty(v)));
+                        || self.add_values_not_concat(ValueLaw::AddAssociativity, &operands);
                     if do_sort {
                         operands.sort_by_key(|&v| self.vhash[v as usize]);
                     }
@@ -8522,20 +8541,16 @@ fn is_commutative(opc: u32) -> bool {
 /// int range → Num, string range → Str, bool range → Bool, small `LitClass` codes → their
 /// type; sentinels (⊥, void-return, break) → Unknown.
 /// Is this type a concatenation monoid (string/list) — where `+` is non-commutative?
-fn is_concat_ty(t: Ty) -> bool {
-    matches!(t, Ty::Str | Ty::List)
-}
-
-fn const_ty(k: u32) -> Ty {
+fn const_value_domain(k: u32) -> ValueDomain {
     match k {
-        0x1000_0000..=0x1FFF_FFFF => Ty::Num,
-        0x2000_0000..=0x2FFF_FFFF => Ty::Str,
-        0x3000_0001 | 0x3000_0002 => Ty::Bool,
-        0x4000_0000..=0x4FFF_FFFF => Ty::Num, // retained float
-        0 | 1 => Ty::Num,                     // LitClass::Int / Float
-        2 => Ty::Str,                         // LitClass::Str
-        3 => Ty::Bool,                        // LitClass::Bool
-        _ => Ty::Unknown,
+        0x1000_0000..=0x1FFF_FFFF => ValueDomain::Number,
+        0x2000_0000..=0x2FFF_FFFF => ValueDomain::String,
+        0x3000_0001 | 0x3000_0002 => ValueDomain::Boolean,
+        0x4000_0000..=0x4FFF_FFFF => ValueDomain::Number, // retained float
+        0 | 1 => ValueDomain::Number,                     // LitClass::Int / Float
+        2 => ValueDomain::String,                         // LitClass::Str
+        3 => ValueDomain::Boolean,                        // LitClass::Bool
+        _ => ValueDomain::Unknown,
     }
 }
 
