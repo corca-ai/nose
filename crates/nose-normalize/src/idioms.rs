@@ -9,13 +9,13 @@
 
 use nose_il::{contains_js_identifier, Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    domain_evidence_for_param, free_function_builtin_contract, imported_namespace_symbol,
+    free_function_builtin_contract, imported_namespace_symbol,
     library_api_contract_evidence_for_call, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
     library_static_collection_adapter_contract, method_hof_contract,
     rust_option_some_constructor_contract, seq_surface_contract_for_node, unshadowed_global_symbol,
-    BuiltinArgContract, DomainEvidence, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    BuiltinArgContract, DomainRequirement, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
     LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract,
     MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
 };
@@ -488,7 +488,7 @@ fn exact_protocol_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool 
 }
 
 fn exact_collection_param(old: &Il, node: NodeId) -> bool {
-    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_array_collection_or_set)
+    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::ArrayCollectionOrSet)
 }
 
 fn static_collection_adapter_arg(
@@ -522,11 +522,11 @@ fn static_collection_adapter_arg(
 }
 
 fn exact_set_param(old: &Il, node: NodeId) -> bool {
-    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_set)
+    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Set)
 }
 
 fn exact_map_param(old: &Il, node: NodeId) -> bool {
-    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_map)
+    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Map)
 }
 
 fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -534,109 +534,7 @@ fn exact_map_receiver(old: &Il, interner: &Interner, node: NodeId) -> bool {
 }
 
 fn exact_option_param(old: &Il, node: NodeId) -> bool {
-    domain_evidence_for_var(old, node).is_some_and(DomainEvidence::is_option)
-}
-
-fn domain_evidence_for_var(old: &Il, node: NodeId) -> Option<DomainEvidence> {
-    if old.kind(node) != NodeKind::Var {
-        return None;
-    }
-    let param_span = match old.node(node).payload {
-        Payload::Cid(cid) => old.nodes.iter().find_map(|candidate| {
-            (candidate.kind == NodeKind::Param && candidate.payload == Payload::Cid(cid))
-                .then_some(candidate.span)
-        }),
-        Payload::Name(name) => {
-            let (scope, span) = nearest_named_param_scope(old, node, name)?;
-            if name_is_assigned_in_scope(old, name, scope) {
-                return None;
-            }
-            Some(span)
-        }
-        _ => None,
-    };
-    param_span.and_then(|span| {
-        old.nodes.iter().enumerate().find_map(|(idx, candidate)| {
-            (candidate.kind == NodeKind::Param && candidate.span == span)
-                .then(|| domain_evidence_for_param(old, NodeId(idx as u32)))
-                .flatten()
-        })
-    })
-}
-
-fn nearest_named_param_scope(
-    old: &Il,
-    node: NodeId,
-    name: nose_il::Symbol,
-) -> Option<(NodeId, nose_il::Span)> {
-    let target = old.node(node).span;
-    let mut best: Option<(u32, NodeId, nose_il::Span)> = None;
-    for (idx, candidate) in old.nodes.iter().enumerate() {
-        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
-            continue;
-        }
-        if !span_contains(candidate.span, target) {
-            continue;
-        }
-        let scope = NodeId(idx as u32);
-        let Some(param_span) = old.children(scope).iter().find_map(|&child| {
-            (old.kind(child) == NodeKind::Param && old.node(child).payload == Payload::Name(name))
-                .then_some(old.node(child).span)
-        }) else {
-            continue;
-        };
-        let width = candidate
-            .span
-            .end_byte
-            .saturating_sub(candidate.span.start_byte);
-        if best.is_none_or(|(best_width, _, _)| width < best_width) {
-            best = Some((width, scope, param_span));
-        }
-    }
-    best.map(|(_, scope, span)| (scope, span))
-}
-
-fn name_is_assigned_in_scope(old: &Il, name: nose_il::Symbol, scope: NodeId) -> bool {
-    old.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign {
-            return false;
-        }
-        let id = NodeId(idx as u32);
-        if nearest_scope(old, id) != Some(scope) {
-            return false;
-        }
-        let Some(&lhs) = old.children(id).first() else {
-            return false;
-        };
-        old.kind(lhs) == NodeKind::Var && old.node(lhs).payload == Payload::Name(name)
-    })
-}
-
-fn nearest_scope(old: &Il, node: NodeId) -> Option<NodeId> {
-    let target = old.node(node).span;
-    let mut best: Option<(u32, NodeId)> = None;
-    for (idx, candidate) in old.nodes.iter().enumerate() {
-        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
-            continue;
-        }
-        if !span_contains(candidate.span, target) {
-            continue;
-        }
-        let width = candidate
-            .span
-            .end_byte
-            .saturating_sub(candidate.span.start_byte);
-        if best.is_none_or(|(best_width, _)| width < best_width) {
-            best = Some((width, NodeId(idx as u32)));
-        }
-    }
-    best.map(|(_, scope)| scope)
-}
-
-fn span_contains(outer: nose_il::Span, inner: nose_il::Span) -> bool {
-    outer.file == inner.file
-        && outer.start_byte <= inner.start_byte
-        && outer.end_byte >= inner.end_byte
+    nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Option)
 }
 
 fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -674,10 +572,7 @@ fn exact_string_receiver(old: &Il, node: NodeId) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
-    ) || matches!(
-        domain_evidence_for_var(old, node),
-        Some(domain) if domain.is_string()
-    )
+    ) || nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::String)
 }
 
 fn literal_string_receiver(old: &Il, node: NodeId) -> bool {
@@ -688,10 +583,7 @@ fn exact_integer_receiver(old: &Il, node: NodeId) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
-    ) || matches!(
-        domain_evidence_for_var(old, node),
-        Some(domain) if domain.is_integer()
-    )
+    ) || nose_semantics::receiver_satisfies_domain(old, node, DomainRequirement::Integer)
 }
 
 fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
@@ -936,6 +828,10 @@ mod tests {
 
     fn sp() -> Span {
         Span::new(FileId(0), 1, 1, 1, 1)
+    }
+
+    fn sp_at(start: u32, end: u32, line: u32) -> Span {
+        Span::new(FileId(0), start, end, line, line)
     }
 
     fn evidence(
@@ -1264,6 +1160,55 @@ mod tests {
         (il, interner, call)
     }
 
+    fn receiver_domain_method_call_il(
+        domain: nose_semantics::DomainEvidence,
+    ) -> (Il, Interner, NodeId, Span) {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver_span = sp_at(20, 22, 2);
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("xs")),
+            receiver_span,
+            &[],
+        );
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("some")),
+            sp_at(23, 28, 2),
+            &[receiver],
+        );
+        let func = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("f")),
+            sp_at(29, 30, 2),
+            &[],
+        );
+        let call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(20, 31, 2),
+            &[field, func],
+        );
+        let root = b.add(NodeKind::Module, Payload::None, sp_at(0, 40, 1), &[call]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.ts".to_string(),
+                lang: Lang::TypeScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(domain),
+            EvidenceStatus::Asserted,
+        ));
+        (il, interner, call, receiver_span)
+    }
+
     fn console_log_il(shadow_console: bool) -> (Il, Interner, NodeId) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
@@ -1501,6 +1446,32 @@ mod tests {
                 arg_olds
             } if arg_olds.len() == 2
         ));
+    }
+
+    #[test]
+    fn method_bool_reduction_consumes_receiver_domain_evidence() {
+        let (il, interner, call, _) =
+            receiver_domain_method_call_il(nose_semantics::DomainEvidence::Collection);
+        assert!(matches!(
+            canon_call(&il, &interner, call),
+            CallCanon::Builtin {
+                op: Builtin::Any,
+                arg_olds
+            } if arg_olds.len() == 2
+        ));
+
+        let (mut il, interner, call, receiver_span) =
+            receiver_domain_method_call_il(nose_semantics::DomainEvidence::Collection);
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
+            EvidenceStatus::Asserted,
+        ));
+        assert!(
+            matches!(canon_call(&il, &interner, call), CallCanon::None),
+            "conflicting receiver-domain evidence must not fall back to selector matching"
+        );
     }
 
     #[test]

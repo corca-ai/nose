@@ -14,8 +14,7 @@ use nose_normalize::{
     node_tag,
 };
 use nose_semantics::{
-    builder_append_call_args, construct_syntax_proof,
-    domain_evidence_for_param as semantic_domain_evidence_for_param, exact_java_return_this,
+    builder_append_call_args, construct_syntax_proof, exact_java_return_this,
     exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
     exact_self_field_write_assignment, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
@@ -31,10 +30,11 @@ use nose_semantics::{
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node, semantics,
     seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
-    typeof_operator_contract, unshadowed_global_symbol, DomainEvidence, IndexMembershipThreshold,
-    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
+    IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
+    LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1723,29 +1723,19 @@ fn strict_exact_iterator_identity_adapter_node_safe(
 }
 
 fn strict_exact_typed_set_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_set)
+    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::Set)
 }
 
 fn strict_exact_typed_collection_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_array_collection_or_set)
+    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::ArrayCollectionOrSet)
 }
 
-fn strict_exact_typed_param_receiver_safe(
+fn strict_exact_typed_receiver_safe(
     il: &Il,
     receiver: NodeId,
-    accepts: impl Fn(DomainEvidence) -> bool,
+    requirement: DomainRequirement,
 ) -> bool {
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Cid(receiver_cid) = il.node(receiver).payload else {
-        return false;
-    };
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        node.kind == NodeKind::Param
-            && matches!(node.payload, Payload::Cid(param_cid) if param_cid == receiver_cid)
-            && semantic_domain_evidence_for_param(il, NodeId(idx as u32)).is_some_and(&accepts)
-    })
+    nose_semantics::receiver_satisfies_domain(il, receiver, requirement)
 }
 
 fn strict_exact_proven_collection_receiver_safe(
@@ -1766,7 +1756,7 @@ fn strict_exact_proven_collection_receiver_safe(
 }
 
 fn strict_exact_typed_map_param_receiver_safe(il: &Il, receiver: NodeId) -> bool {
-    strict_exact_typed_param_receiver_safe(il, receiver, DomainEvidence::is_map)
+    strict_exact_typed_receiver_safe(il, receiver, DomainRequirement::Map)
 }
 
 fn strict_exact_proven_map_receiver_safe(il: &Il, facts: &StrictFacts, receiver: NodeId) -> bool {
@@ -4062,6 +4052,65 @@ mod tests {
             Vec::new(),
         ));
         (il, call)
+    }
+
+    fn ts_contains_call_il(interner: &Interner) -> (Il, NodeId, Span) {
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver_span = sp(50);
+        let receiver = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("xs")),
+            receiver_span,
+            &[],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("includes")),
+            sp(51),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(7), sp(52), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(53), &[callee, item]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(49), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.ts".into(),
+                lang: Lang::TypeScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, call, receiver_span)
+    }
+
+    #[test]
+    fn strict_exact_contains_consumes_receiver_domain_evidence() {
+        let interner = Interner::new();
+        let (mut il, call, receiver_span) = ts_contains_call_il(&interner);
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(!strict_exact_safe_tree(&il, &interner, &facts, call));
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(receiver_span, NodeKind::Var),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, call),
+            "conflicting receiver-domain evidence must close strict exact fallback"
+        );
     }
 
     #[test]

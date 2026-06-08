@@ -58,7 +58,7 @@ The current implemented kinds are:
 | kind | purpose |
 |---|---|
 | `Source` | construct syntax, Rust macro invocation syntax, regex literal provenance, and source operator family |
-| `Domain` | receiver/value domain such as collection, map, option, string, integer, or byte array |
+| `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
 | `Import` | static import binding/namespace proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
@@ -132,6 +132,19 @@ import evidence does not by itself prove every use of the same local name; if th
 alias is rebound or ambiguous, the exact path stays closed until a node-level
 symbol fact or stronger scope-resolution evidence exists.
 
+Domain evidence follows the same fail-closed rule. First-party parameter
+annotations still mirror into `Domain` evidence on `Param` anchors, but
+`nose-semantics` now also resolves `Domain` evidence on exact receiver-expression
+node anchors before consulting parameter compatibility facts. A conflicting,
+ambiguous, or dependency-broken receiver-domain record closes that receiver proof
+and must not fall back to `ParamTypeFact` or selector spelling. When a receiver is
+an alpha-renamed parameter reference, lookup is constrained to the nearest
+function/lambda scope so same-numbered parameter ids from other units do not
+prove the current receiver. Method receiver contracts expose their domain-backed
+obligations through `DomainRequirement`; obligations such as imported namespace,
+unshadowed global, exact map literal, and future demand/effect constraints remain
+separate checks.
+
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,
@@ -192,7 +205,10 @@ instead of accepting an unrelated imported symbol elsewhere in the file.
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
 
-- parameter semantic annotations become `Domain` evidence;
+- parameter semantic annotations become `Domain` evidence. Current first-party
+  frontends do not yet emit receiver-expression `Domain` evidence directly, but
+  the internal consumer contract already accepts exact node-anchored receiver
+  facts for future packs and inference producers;
 - source-origin facts become `Source` evidence;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
@@ -257,7 +273,12 @@ The first migrated consumers are the shared semantic helpers and their direct
 callers:
 
 - source-fact lookup for construct syntax, regex literal, and operator provenance;
-- parameter domain lookup used by normalize and strict exact receiver gates;
+- receiver-domain lookup used by desugaring, normalize idiom canonicalization,
+  value-graph membership/property/map/integer gates, and strict exact receiver
+  gates. Consumers ask `nose-semantics` whether a receiver satisfies a
+  `DomainRequirement`, so node-anchored receiver evidence, scoped parameter
+  evidence, ambiguity handling, and compatibility fallback are no longer
+  reimplemented separately in each crate;
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence
@@ -309,7 +330,9 @@ callers:
   or conflicting evidence keeps the exact path closed.
 
 Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
-receiver-method APIs and unmodeled stdlib/ecosystem APIs, receiver/protocol
-evidence beyond parameter domains, full scope-resolution and namespace-member
-evidence, broader guard evidence, general cross-module dependency manifests,
-report-level provenance, and external manifest loading are still open work.
+receiver-method APIs and unmodeled stdlib/ecosystem APIs, producer coverage for
+receiver-expression domain evidence, immutable local/module binding domain
+evidence, full protocol/demand/effect receiver obligations, full
+scope-resolution and namespace-member evidence, broader guard evidence, general
+cross-module dependency manifests, report-level provenance, and external
+manifest loading are still open work.

@@ -14,7 +14,7 @@
 use crate::idioms::{canon_call, CallCanon};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
-use nose_semantics::{domain_evidence_for_param, seq_surface_contract_for_node, DomainEvidence};
+use nose_semantics::{seq_surface_contract_for_node, DomainRequirement};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
@@ -267,7 +267,7 @@ impl Rebuilder<'_> {
 
 fn property_receiver_exact_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
     seq_receiver_exact_collection_safe(il, interner, node)
-        || domain_evidence_for_var(il, node).is_some_and(DomainEvidence::is_array_or_collection)
+        || nose_semantics::receiver_satisfies_domain(il, node, DomainRequirement::ArrayOrCollection)
         || property_receiver_exact_hof_node(il, interner, node)
         || property_receiver_exact_hof_call(il, interner, node)
 }
@@ -278,20 +278,6 @@ fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId
     }
     seq_surface_contract_for_node(il, interner, node)
         .is_some_and(|contract| contract.membership_collection)
-}
-
-fn domain_evidence_for_var(il: &Il, node: NodeId) -> Option<DomainEvidence> {
-    if il.kind(node) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(node).payload else {
-        return None;
-    };
-    il.nodes.iter().enumerate().find_map(|(idx, candidate)| {
-        (candidate.kind == NodeKind::Param && candidate.payload == Payload::Cid(cid))
-            .then(|| domain_evidence_for_param(il, NodeId(idx as u32)))
-            .flatten()
-    })
 }
 
 fn property_receiver_exact_hof_call(il: &Il, interner: &Interner, node: NodeId) -> bool {

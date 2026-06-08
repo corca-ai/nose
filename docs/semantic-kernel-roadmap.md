@@ -324,6 +324,16 @@ and pack ecosystem.
   `Import::Require` dependencies for those occurrences, and value-graph, idiom,
   strict exact, and provider snapshot consumers require admitted `LibraryApi`
   evidence instead of raw selector/path/require scans.
+- Receiver-domain proof consumption moved behind a shared `DomainRequirement`
+  resolver in `nose-semantics`. `Domain` evidence can now be consumed at exact
+  receiver node anchors before scoped parameter compatibility evidence, and
+  ambiguous/conflicting/dependency-broken receiver facts close fallback.
+  Desugaring, normalize idiom canonicalization, value-graph membership,
+  property, map, and integer gates, and strict exact receiver gates now share
+  this resolver instead of each re-scanning parameter ids or names locally.
+  `MethodReceiverContract` exposes the subset of receiver obligations that are
+  domain-backed, while imported namespace, unshadowed global, map-literal,
+  demand, and effect obligations remain separate checks.
 - An experimental `abstraction` scan mode landed as a weak sibling claim over a
   narrow `near` subset. It emits typed literal-hole witnesses and caveats for
   refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
@@ -437,9 +447,12 @@ Remaining in this phase:
   factories, more nested entries, iterator views, and exported-literal
   eligibility. Go map literal entries are the first exact consumer that now
   requires per-entry surface evidence.
-- Expand domain evidence from parameter annotations into receiver/protocol
-  evidence records for exact collection/map/set/option/string/integer proofs,
-  immutable local/module bindings, and mutation exclusion.
+- Continue expanding domain evidence beyond parameter annotations. The shared
+  receiver-domain consumer contract now accepts exact node-anchored receiver
+  facts, but first-party producers still mostly emit parameter-derived domain
+  evidence. Remaining work is producer coverage for inferred receiver domains,
+  immutable local/module binding domain evidence, mutation exclusion, and
+  protocol-specific receiver facts that include demand/effect obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add receiver/place facts so field read/write and property contracts are not
