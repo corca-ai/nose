@@ -81,8 +81,8 @@ providers still emit facts and contracts rather than exact-clone verdicts.
 
 `CallTarget` evidence is the occurrence proof for user-defined calls. A raw
 callee spelling such as `f(...)` is only a selector that a producer may inspect;
-recursion normalization, the interpreter oracle, and value-graph pure helper
-inlining consume only
+recursion normalization, the interpreter oracle, value-graph pure helper
+inlining, and strict exact direct-function callee gates consume only
 `CallTarget::DirectFunction` records anchored to the exact `Call` node and
 matching the target function span. The first-party producer currently emits this
 fact only for unique top-level in-file `Function` units when neither the current
@@ -479,12 +479,13 @@ callers:
   instead of reimplementing those rules per consumer. Desugaring and early idiom
   canonicalization still run before normalize emits additional immutable
   binding-domain evidence, so they only consume the domain evidence already
-  present at that point. Coarse API
+  present at that point. Strict exact receiver gates use this resolver directly
+  and do not maintain raw collection/map name or CID side tables. Coarse API
   result-domain and binding-domain evidence is not exact-tree proof: value-graph
   consumers prefer concrete factory/result-shape canonicalization before using a
-  domain-shaped fallback, and strict exact consumers still require the receiver
-  expression itself to satisfy the relevant factory, literal, binding, or
-  typed-variable safety contract;
+  domain-shaped fallback, and strict exact consumers may use domain evidence only
+  for receiver-domain obligations. They do not promote an opaque binding with a
+  collection/map domain into a generally exact-safe variable value;
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence

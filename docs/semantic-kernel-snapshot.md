@@ -63,8 +63,11 @@ still being migrated toward it.
 - proof-sensitive value-graph laws are starting to move into named rule modules
   under `crates/nose-normalize/src/value_graph/rules/`; `clamp` and
   `promise_then` are the current examples.
-- `nose-detect` owns unit extraction, exact fragment contracts, effect fragments,
-  value/shape features, candidate generation, clustering, and ranking.
+- `nose-detect` owns unit extraction, strict exact-safety proof gates, exact
+  fragment contracts, effect fragments, value/shape features, candidate
+  generation, clustering, and ranking. The strict exact gate lives in its own
+  module so evidence-backed proof policy is not mixed with unit extraction
+  orchestration.
 - `formal/obligations` records proof obligations for proof-sensitive rules.
 
 The current model already enforces the main product principle: exact semantic
@@ -181,9 +184,14 @@ migrated.
   evidence and whose binding has no direct binding-write, receiver-mutation, or
   opaque-argument-escape risk under first-party `Effect` evidence. Binding-domain
   lookup matches the binding `local_hash` and only applies an assignment to
-  receiver uses that occur after it. The current mutation-risk producers are
-  conservative and language-scoped; they invalidate exact assumptions but do not
-  prove exact library semantics.
+  receiver uses that occur after it. Strict exact receiver gates consume this
+  resolver directly instead of caching raw collection/map names or CIDs from an
+  assignment scan. Domain evidence can satisfy a receiver-domain precondition,
+  but it is not exact-tree proof for the binding value: an opaque initializer
+  with `Domain(Collection)` still does not make the variable generally
+  exact-safe. The current mutation-risk producers are conservative and
+  language-scoped; they invalidate exact assumptions but do not prove exact
+  library semantics.
 - C byte-buffer and unsigned-cast alias proof is now evidence-backed. Local
   typedefs and direct quote includes emit `Type(CTypeAlias)` evidence for the
   currently supported exact-spelling `unsigned char` and unsigned 32-bit
@@ -450,9 +458,10 @@ migrated.
   producer admits only unique top-level in-file function targets with no
   current or enclosing lexical shadowing by parameters, assignments, loop
   patterns, or nested function definitions; recursion normalization and the
-  interpreter oracle, plus value-graph pure helper inlining, no longer treat
-  same raw callee spelling as call-target proof. Method and dynamic-dispatch
-  targets require explicit pack/source evidence.
+  interpreter oracle, value-graph pure helper inlining, and strict exact
+  direct-function callee gates no longer treat same raw callee spelling as
+  call-target proof. Method and dynamic-dispatch targets require explicit
+  pack/source evidence.
 - JS-like `typeof` exact-safety now consumes a language- and arity-constrained
   operator contract plus `Source::Operator(Typeof)` evidence at the call span.
   A raw `Call(Var("typeof"), arg)` shape, same-named function from another

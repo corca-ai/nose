@@ -26,7 +26,7 @@ approximation. This is enforced by, in layers:
 - the **exact `semantic` channel**: acceptance is total value-graph multiset equality
   (`crates/nose-detect/src/lib.rs` — `a.value == b.value`, length-gated), over a hash-consed
   value graph that canonicalizes behaviorally-equivalent code to identical structure;
-- a **static** safety gate (`strict_exact_safe_tree`, `crates/nose-detect/src/units.rs`) on
+- a **static** safety gate (`strict_exact_safe_tree`, `crates/nose-detect/src/strict_exact.rs`) on
   the accept path — no interpreter in the hot path, fully deterministic;
 - **per-rule Lean obligations** for the proof-sensitive canonicalizations
   ([formal soundness](formal-soundness.md));

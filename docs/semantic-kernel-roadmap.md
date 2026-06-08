@@ -363,6 +363,11 @@ and pack ecosystem.
   binding anchors, and scoped parameters through the same `DomainRequirement`
   helper, so value-graph and strict exact gates no longer maintain separate
   receiver-domain scanners.
+- Strict exact receiver proof now consumes the shared
+  `ReceiverDomainEvidenceIndex` instead of raw collection/map name and CID
+  side tables. Binding-domain evidence remains receiver-domain proof only: it
+  no longer promotes an opaque initializer into an exact-safe variable value, and
+  binding proofs apply only when visible at the receiver use site.
 - The receiver-method `LibraryApi` occurrence slice moved broad method-family
   consumers behind dependency-backed call occurrence records. First-party
   lowering now emits occurrence evidence for map `get`, map-key views, iterator
@@ -525,8 +530,8 @@ and pack ecosystem.
   execution. `nose-il` now has `CallTarget::DirectFunction` evidence, the
   first-party normalize producer emits it only for unique top-level in-file
   function targets with no current or enclosing lexical shadowing, and
-  recursion, interpreter, and value-graph pure-inline consumers require that
-  occurrence proof.
+  recursion, interpreter, value-graph pure-inline, and strict exact
+  direct-function callee consumers require that occurrence proof.
   Method/dynamic-dispatch target proof remains a future pack/source extension
   rather than a same-name fallback.
 - C byte-pack proof moved onto evidence-backed alias and cast records. Local
@@ -543,6 +548,10 @@ and pack ecosystem.
   files while continuing this migration. `nose-semantics/src/lib.rs` and
   `nose-normalize/src/value_graph.rs` are both back under 10k lines, with their
   moved tests kept adjacent as Rust test modules.
+- The detect strict exact safety gate was split from unit extraction into
+  `crates/nose-detect/src/strict_exact.rs`, reducing `units.rs` to extraction,
+  fragment classification, and feature orchestration while keeping proof-policy
+  tests next to the strict exact module.
 - The `nose-semantics` production facade is now physically split as well:
   evidence/source/domain proof helpers live in `evidence.rs`, library API
   contract/evidence/admission logic lives in `library_api.rs`, and `lib.rs`
