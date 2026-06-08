@@ -559,6 +559,11 @@ callers:
   selector strings with evidence checks. Opaque same-callee exact identity
   remains separate: it can keep identical calls comparable, but it does not
   assign cross-language or library semantics;
+- value-graph direct factory/constructor eval paths and provider literal export
+  safety share the same admitted occurrence resolver layer where they still have
+  the source `Call` node. Value-level CSE paths that query by source span still
+  use shared occurrence evidence admission, but their span-query resolver
+  boundary is tracked as a separate cleanup;
 - value-graph consumers that query by source span re-check the original source
   `Call` node shape and its evidence dependencies when that call can be
   recovered. This preserves receiver-method precision when value-graph CSE has

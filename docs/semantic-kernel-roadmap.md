@@ -703,8 +703,11 @@ Remaining in this phase:
   map-get, map-key-view, regex, JS static/global, static-index,
   iterator-adapter, Rust Option/`Vec::new`, and first-party factory/constructor
   calls instead of locally recombining raw selector parsing with evidence
-  admission. Lowered sequence-surface consumers are now evidence-only where
-  covered. Remaining API work is promise receiver proof, explicit async/sync
+  admission. Value-graph direct factory/constructor eval and provider literal
+  export safety now share those resolvers where they still operate on source
+  call nodes; value-level span-query paths remain a separate cleanup. Lowered
+  sequence-surface consumers are now evidence-only where covered. Remaining API
+  work is promise receiver proof, explicit async/sync
   protocol convergence contracts, and ecosystem APIs only after demand,
   receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads

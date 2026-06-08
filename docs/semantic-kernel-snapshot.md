@@ -421,8 +421,10 @@ migrated.
   protocol receiver proof, not through a bare method-name check.
 - Selected value-graph library consumers now call shared admitted occurrence
   resolvers in `nose-semantics` for method, imported-namespace function,
-  iterator-adapter, and Rust Option/`Vec::new` calls instead of recombining raw
-  selector parsing with evidence admission locally.
+  iterator-adapter, Rust Option/`Vec::new`, and direct factory/constructor eval
+  calls instead of recombining raw selector parsing with evidence admission
+  locally. Value-level CSE paths that query by call span still use the shared
+  evidence admission substrate and remain a separate resolver-boundary cleanup.
 - Java stream source adapters are split by proof through library API contracts:
   `receiver.stream()` requires an exact iterable receiver, while
   `Arrays.stream(xs)` requires the `java.util.Arrays` import binding and no local
@@ -437,9 +439,9 @@ migrated.
   occurrences. The replacement records `ImportedLiteralSnapshot` provenance
   depending on the importer static import proof plus copied provider evidence.
   Provider-side literal export safety now consumes a shared `nose-semantics`
-  helper that requires sequence-surface proof for literal containers and admitted
-  `LibraryApi` proof for Java/Rust map factory calls; raw import-coordinate
-  sequences remain rejected as provider literal children.
+  helper that requires sequence-surface proof for literal containers and shared
+  admitted occurrence resolvers for Java/Rust map factory calls; raw
+  import-coordinate sequences remain rejected as provider literal children.
   Provider and importer module-binding mutation proof now consumes shared
   mutation-risk `Effect` evidence and rejects direct binding mutations, direct
   place writes such as `LOOKUP.clear()`, `LOOKUP.push(...)`, and

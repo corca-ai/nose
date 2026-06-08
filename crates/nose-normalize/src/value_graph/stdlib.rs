@@ -168,33 +168,15 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         kids: &[NodeId],
     ) -> Option<ValueId> {
-        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Var {
+        if kids.len() != 1 {
             return None;
         }
-        let Payload::Name(type_name) = self.il.node(kids[0]).payload else {
+        let occurrence =
+            admitted_java_collection_constructor_at_call(self.il, self.interner, expr)?;
+        if occurrence.arg_count != 0 {
             return None;
-        };
-        let contract = library_java_collection_constructor_contract(
-            self.il.meta.lang,
-            self.interner.resolve(type_name),
-            kids.len().saturating_sub(1),
-        )?;
-        let LibraryApiCalleeContract::JavaUtilConstructor { .. } = contract.callee else {
-            return None;
-        };
-        match library_api_contract_evidence_for_call(
-            self.il,
-            self.interner,
-            expr,
-            contract.id,
-            contract.callee,
-            kids.len().saturating_sub(1),
-        ) {
-            LibraryApiEvidenceStatus::Admitted => {}
-            LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => return None,
         }
-        match contract.result {
+        match occurrence.contract.result {
             LibraryCollectionFactoryResult::EmptySequence => {
                 Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]))
             }
@@ -558,36 +540,11 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if !semantics(self.il.meta.lang).stdlib().java_map_factories()
-            || kids.is_empty()
-            || self.il.kind(kids[0]) != NodeKind::Field
-        {
+        if !semantics(self.il.meta.lang).stdlib().java_map_factories() || kids.is_empty() {
             return None;
         }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let contract = library_java_map_factory_contract_by_hash(
-            self.il.meta.lang,
-            "Map",
-            self.interner.symbol_hash(method),
-        )?;
-        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
-            return None;
-        };
-        match library_api_contract_evidence_for_call(
-            self.il,
-            self.interner,
-            expr,
-            contract.id,
-            contract.callee,
-            kids.len().saturating_sub(1),
-        ) {
-            LibraryApiEvidenceStatus::Admitted => {}
-            LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => return None,
-        }
-        let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
+        let occurrence = admitted_java_map_factory_at_call(self.il, self.interner, expr)?;
+        let LibraryMapFactoryResult::JavaFactory { kind } = occurrence.contract.result else {
             return None;
         };
         match kind {
@@ -619,36 +576,12 @@ impl<'a> Builder<'a> {
         expr: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<Vec<ValueId>> {
-        if self.il.kind(expr) != NodeKind::Call {
-            return None;
-        }
         let kids = self.il.children(expr);
-        if kids.len() != 3 || self.il.kind(kids[0]) != NodeKind::Field {
+        if kids.len() != 3 {
             return None;
         }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let contract = library_java_map_entry_contract_by_hash(
-            self.il.meta.lang,
-            "Map",
-            self.interner.symbol_hash(method),
-        )?;
-        let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
-            return None;
-        };
-        match library_api_contract_evidence_for_call(
-            self.il,
-            self.interner,
-            expr,
-            contract.id,
-            contract.callee,
-            2,
-        ) {
-            LibraryApiEvidenceStatus::Admitted => {}
-            LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => return None,
-        }
+        let occurrence = admitted_java_map_entry_at_call(self.il, self.interner, expr)?;
+        (occurrence.arg_count == 2).then_some(())?;
         Some(vec![self.eval(kids[1], env), self.eval(kids[2], env)])
     }
 
@@ -784,56 +717,26 @@ impl<'a> Builder<'a> {
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
-        if !construct_syntax_proof(self.il, expr)
-            || kids.len() != 2
-            || self.il.kind(kids[0]) != NodeKind::Var
-        {
+        if !construct_syntax_proof(self.il, expr) || kids.len() != 2 {
             return None;
         }
-        let Payload::Name(name) = self.il.node(kids[0]).payload else {
-            return None;
-        };
-        let constructor = self.interner.resolve(name);
-        if let Some(contract) =
-            library_js_like_set_constructor_contract(self.il.meta.lang, constructor)
+        if let Some(occurrence) =
+            admitted_js_like_set_constructor_at_call(self.il, self.interner, expr)
         {
-            let LibraryApiCalleeContract::JsGlobalConstructor { .. } = contract.callee else {
+            if occurrence.arg_count != 1 {
                 return None;
-            };
-            match library_api_contract_evidence_for_call(
-                self.il,
-                self.interner,
-                expr,
-                contract.id,
-                contract.callee,
-                1,
-            ) {
-                LibraryApiEvidenceStatus::Admitted => {}
-                LibraryApiEvidenceStatus::Rejected => return None,
-                LibraryApiEvidenceStatus::Missing => return None,
             }
             if !self.is_static_non_float_collection_expr(kids[1]) {
                 return None;
             }
             return Some(self.eval_membership_collection(kids[1], env));
         }
-        let contract = library_js_like_map_constructor_contract(self.il.meta.lang, constructor)?;
-        let LibraryApiCalleeContract::JsGlobalConstructor { .. } = contract.callee else {
+        let occurrence = admitted_js_like_map_constructor_at_call(self.il, self.interner, expr)?;
+        if occurrence.arg_count != 1 {
             return None;
-        };
-        match library_api_contract_evidence_for_call(
-            self.il,
-            self.interner,
-            expr,
-            contract.id,
-            contract.callee,
-            1,
-        ) {
-            LibraryApiEvidenceStatus::Admitted => {}
-            LibraryApiEvidenceStatus::Rejected => return None,
-            LibraryApiEvidenceStatus::Missing => return None,
         }
-        let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = contract.result else {
+        let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = occurrence.contract.result
+        else {
             return None;
         };
         let entries = self.eval(kids[1], env);
