@@ -85,8 +85,7 @@ impl<'a> Builder<'a> {
     /// builder-append semantics.
     pub(super) fn list_append_parts(&self, e: NodeId) -> Option<(u32, Vec<NodeId>)> {
         let (receiver, item) = builder_append_call_args(self.il, self.interner, e)
-            .or_else(|| admitted_builder_append_method_call_args(self.il, self.interner, e))
-            .or_else(|| contracted_builder_append_method_call_args(self.il, self.interner, e))?;
+            .or_else(|| admitted_builder_append_method_call_args(self.il, self.interner, e))?;
         let (NodeKind::Var, Payload::Cid(c)) =
             (self.il.kind(receiver), self.il.node(receiver).payload)
         else {

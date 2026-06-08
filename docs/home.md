@@ -55,6 +55,7 @@ You want to *change* nose or understand how it works inside.
 - [evidence-records](evidence-records.md) — the internal pack-facing evidence substrate for source, domain, import, symbol, type, guard, place/effect, library API, and sequence-surface facts.
 - [source-facts](source-facts.md) — source-origin evidence for semantic contracts: construct syntax, async/generator/error boundaries, literal/operator provenance, pack boundaries, and fail-closed exact admission.
 - [semantic-kernel-snapshot](semantic-kernel-snapshot.md) — current implementation snapshot for semantic knowledge and the first internal kernel facade.
+- [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md) — post-PR #147 audit of remaining raw/local semantic pockets and follow-up owners.
 - [semantic-kernel-roadmap](semantic-kernel-roadmap.md) — decisions, history, phases, and open work for the semantic-kernel direction.
 - [fragment-contracts](fragment-contracts.md) — how exact sub-function fragments are modeled: classification, contract, the wrapper-synthesis behavior oracle, the effect algebra, and fail-closed receiver identity.
 - [formal-soundness](formal-soundness.md) — Lean 4 proof-obligation registry for proof-sensitive IL, normalization, fragment, and oracle contracts.

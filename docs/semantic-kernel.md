@@ -2,7 +2,9 @@
 
 Back to [home](home.md). Current implementation status is in
 [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
-work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). Source
+work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
+post-PR #147 raw/local pocket audit is recorded in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). Source
 origin evidence is detailed in [source-facts](source-facts.md); the shared
 internal evidence substrate is described in
 [evidence-records](evidence-records.md).

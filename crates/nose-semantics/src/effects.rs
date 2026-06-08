@@ -604,46 +604,6 @@ pub fn admitted_builder_append_method_call_args(
     Some((receiver, *item))
 }
 
-/// `(receiver, value)` of a source method call licensed by the first-party
-/// active-builder append method-effect contract.
-pub fn contracted_builder_append_method_call_args(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-) -> Option<(NodeId, NodeId)> {
-    let (receiver, method_text, item, arg_count) =
-        single_item_method_call_parts(il, interner, node)?;
-    let effect = builder_append_method_contract(il.meta.lang, method_text, arg_count)?;
-    if effect.effect != EffectEvidenceKind::BuilderAppendCall
-        || effect.receiver != MethodEffectReceiverContract::ActiveCollectionBuilder
-    {
-        return None;
-    }
-    Some((receiver, item))
-}
-
-fn single_item_method_call_parts<'a>(
-    il: &Il,
-    interner: &'a Interner,
-    node: NodeId,
-) -> Option<(NodeId, &'a str, NodeId, usize)> {
-    if il.kind(node) != NodeKind::Call || !matches!(il.node(node).payload, Payload::None) {
-        return None;
-    }
-    let kids = il.children(node);
-    let [callee, item] = kids else {
-        return None;
-    };
-    if il.kind(*callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(*callee).payload else {
-        return None;
-    };
-    let receiver = *il.children(*callee).first()?;
-    Some((receiver, interner.resolve(method), *item, kids.len() - 1))
-}
-
 fn canonical_append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
     if il.kind(node) != NodeKind::Call {
         return None;

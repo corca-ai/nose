@@ -3,7 +3,9 @@
 Back to [semantic-kernel](semantic-kernel.md). This page records the current
 implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
-record substrate is described in [evidence-records](evidence-records.md).
+record substrate is described in [evidence-records](evidence-records.md). The
+post-PR #147 raw/local pocket audit is recorded in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
 
 Snapshot date: 2026-06-09. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
@@ -754,4 +756,6 @@ These reduce recall in affected cases, but they are the correct precision trade
 until packs can emit the missing facts.
 
 Remaining migration targets are tracked in
-[semantic-kernel-roadmap](semantic-kernel-roadmap.md).
+[semantic-kernel-roadmap](semantic-kernel-roadmap.md), with the post-PR #147
+classification snapshot in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).

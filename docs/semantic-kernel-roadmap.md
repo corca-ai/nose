@@ -1,7 +1,9 @@
 # Semantic kernel roadmap
 
 Back to [semantic-kernel](semantic-kernel.md). Current code shape is recorded in
-[semantic-kernel-snapshot](semantic-kernel-snapshot.md).
+[semantic-kernel-snapshot](semantic-kernel-snapshot.md). The post-PR #147 audit
+of remaining raw/local semantic pockets is in
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
 
 This page tracks decisions, history, and remaining work for the semantic kernel
 and pack ecosystem.
@@ -618,6 +620,13 @@ and pack ecosystem.
   `tests/cli.rs` harness plus topic modules, and moved the Type-4 generator's
   axis metadata/model/aggregate helpers under `bench/type4/type4gen/` while
   preserving `bench/type4/generate.py` as the stable CLI/import entry point.
+- The post-PR #147 completion audit found and closed a high-risk list-builder
+  append consumer bypass where raw active-builder method selector spelling plus
+  a first-party language row could prove append semantics. Remaining raw-looking
+  pockets are first-party evidence producers, test fixtures, migrated
+  admitted-resolver consumers, intentionally opaque call identity policy, or
+  future pack surfaces. The detailed classification is in
+  [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
 
 ## Phase 0: documentation and vocabulary (landed)
 

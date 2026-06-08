@@ -2183,6 +2183,11 @@ fn method_call_contract_shape(
             Receiver::ExactCollection,
             Args::ReceiverThenAll,
         ),
+        (Lang::Java, "add", 1) | (Lang::Rust, "push", 1) => (
+            Builtin::Append,
+            Receiver::ExactCollection,
+            Args::ReceiverThenAll,
+        ),
 
         (
             Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,

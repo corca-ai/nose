@@ -744,6 +744,7 @@ pub(crate) fn library_method_selector_name(name: &str) -> Option<&'static str> {
         "Printf" => "Printf",
         "Println" => "Println",
         "abs" => "abs",
+        "add" => "add",
         "all" => "all",
         "all?" => "all?",
         "allMatch" => "allMatch",

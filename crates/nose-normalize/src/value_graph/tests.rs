@@ -197,9 +197,10 @@ fn builder_append_candidate_requires_contract_or_effect_and_seed_context() {
     let mut env = FxHashMap::default();
     env.insert(1, seed);
     let candidates = builder.builder_candidates(body, &env);
-    assert!(candidates
-        .iter()
-        .any(|candidate| candidate.cid == 1 && candidate.kind == BuilderKind::List));
+    assert!(
+        candidates.is_empty(),
+        "raw active-builder method selector must not prove append semantics"
+    );
 
     let mut api_il = il.clone();
     api_il.evidence.push(evidence(
