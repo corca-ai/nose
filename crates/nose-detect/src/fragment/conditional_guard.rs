@@ -12,7 +12,7 @@ use super::{Exit, FragmentKind};
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     builder_append_call_args, exact_non_overloadable_index_assignment,
-    exact_non_overloadable_index_assignment_parts, exact_self_field_write_assignment, semantics,
+    exact_non_overloadable_index_assignment_parts, exact_self_field_write_assignment,
 };
 use rustc_hash::FxHashSet;
 
@@ -370,12 +370,6 @@ fn ordered_append_effect_sequence(
 }
 
 fn ordered_index_assignment_effect_sequence(il: &Il, node: NodeId) -> Option<Vec<EffectSite>> {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-    {
-        return None;
-    }
     let kids = il.children(node);
     if il.kind(node) != NodeKind::Block || !(2..=5).contains(&kids.len()) {
         return None;
@@ -424,12 +418,6 @@ fn ordered_self_field_assignment_sequence(
     interner: &Interner,
     node: NodeId,
 ) -> Option<Vec<EffectSite>> {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-    {
-        return None;
-    }
     let kids = il.children(node);
     if il.kind(node) != NodeKind::Block || !(2..=3).contains(&kids.len()) {
         return None;

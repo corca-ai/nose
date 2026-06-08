@@ -2918,12 +2918,6 @@ fn exact_temp_chain_consumed_by_append_effect(
 }
 
 fn exact_ordered_index_assignment_effect_sequence_block(il: &Il, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-    {
-        return false;
-    }
     if il.kind(node) != NodeKind::Block {
         return false;
     }
@@ -2984,11 +2978,7 @@ fn exact_ordered_self_field_assignment_sequence_block(
     interner: &Interner,
     node: NodeId,
 ) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Block
-    {
+    if il.kind(node) != NodeKind::Block {
         return false;
     }
     let kids = il.children(node);

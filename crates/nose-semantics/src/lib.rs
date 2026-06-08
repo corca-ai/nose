@@ -2287,27 +2287,18 @@ fn place_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<PlaceEvi
     )
 }
 
-/// Exact Java `this` receiver proof for first-party self-field fragments.
-pub fn exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
+/// Exact self receiver proof for first-party self-field fragments.
+pub fn exact_java_this_var(il: &Il, _interner: &Interner, node: NodeId) -> bool {
     match place_evidence_for_node(il, node) {
         EvidenceResolution::Found(PlaceEvidenceKind::SelfReceiver) => {
-            return il.kind(node) == NodeKind::Var;
+            il.kind(node) == NodeKind::Var
         }
-        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
-        EvidenceResolution::Missing => {}
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => false,
+        EvidenceResolution::Missing => false,
     }
-    legacy_exact_java_this_var(il, interner, node)
 }
 
-fn legacy_exact_java_this_var(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && il.kind(node) == NodeKind::Var
-        && matches!(il.node(node).payload, Payload::Name(name) if interner.resolve(name) == "this")
-}
-
-/// Exact Java `this.field` place proof for receiver-aware field-write fingerprints.
+/// Exact self-field place proof for receiver-aware field-write fingerprints.
 pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match place_evidence_for_node(il, node) {
         EvidenceResolution::Found(PlaceEvidenceKind::SelfField { field_hash }) => {
@@ -2320,40 +2311,18 @@ pub fn exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool
             if stable_symbol_hash(interner.resolve(field)) != field_hash {
                 return false;
             }
-            return il
-                .children(node)
+            il.children(node)
                 .first()
-                .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver));
+                .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver))
         }
-        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
-        EvidenceResolution::Missing => {}
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => false,
+        EvidenceResolution::Missing => false,
     }
-    legacy_exact_java_this_field(il, interner, node)
 }
 
-fn legacy_exact_java_this_field(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Field
-    {
-        return false;
-    }
-    if !matches!(il.node(node).payload, Payload::Name(_)) {
-        return false;
-    }
-    il.children(node)
-        .first()
-        .is_some_and(|&receiver| exact_java_this_var(il, interner, receiver))
-}
-
-/// Exact Java `return this` proof used by self-field body fragments.
+/// Exact self-return proof used by self-field body fragments.
 pub fn exact_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    if !semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        || il.kind(node) != NodeKind::Return
-    {
+    if il.kind(node) != NodeKind::Return {
         return false;
     }
     let kids = il.children(node);
@@ -2362,24 +2331,19 @@ pub fn exact_java_return_this(il: &Il, interner: &Interner, node: NodeId) -> boo
 
 /// `(receiver, key, value)` of a first-party exact-safe index assignment.
 ///
-/// This is intentionally language-gated: languages with overloadable/user-dispatched index
-/// assignment remain fail-closed until a pack supplies a stronger receiver proof.
+/// This is intentionally evidence-gated: languages with overloadable/user-dispatched index
+/// assignment remain fail-closed unless a frontend or pack supplies effect proof.
 pub fn exact_non_overloadable_index_assignment_parts(
     il: &Il,
     node: NodeId,
 ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
     match effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::NonOverloadableIndexWrite) => {
-            return syntactic_index_assignment_parts(il, node);
+            syntactic_index_assignment_parts(il, node)
         }
-        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return None,
-        EvidenceResolution::Missing => {}
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => None,
     }
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .non_overloadable_index_assignment()
-        .then_some(())
-        .and_then(|()| syntactic_index_assignment_parts(il, node))
 }
 
 fn syntactic_index_assignment_parts(
@@ -2404,15 +2368,11 @@ pub fn exact_non_overloadable_index_assignment(il: &Il, node: NodeId) -> bool {
 pub fn exact_self_field_write_assignment(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::SelfFieldWrite { field_hash }) => {
-            return syntactic_self_field_write_assignment(il, interner, node, Some(field_hash));
+            syntactic_self_field_write_assignment(il, interner, node, Some(field_hash))
         }
-        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return false,
-        EvidenceResolution::Missing => {}
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => false,
+        EvidenceResolution::Missing => false,
     }
-    semantics(il.meta.lang)
-        .exact_fragments()
-        .java_this_field_place()
-        && syntactic_self_field_write_assignment(il, interner, node, None)
 }
 
 fn syntactic_self_field_write_assignment(
@@ -3926,10 +3886,9 @@ pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize
 /// `(receiver, value)` of a single-item append-like builder call admitted by first-party
 /// language/library contracts.
 ///
-/// This intentionally reads only the canonical `Builtin::Append` surface. Raw method
-/// selectors such as `push`, `append`, or `add` are not proof by themselves; callers that
-/// see those selectors must first prove the receiver/builder contract and lower the call to
-/// the canonical builtin.
+/// Raw method selectors such as `push`, `append`, or `add` are not proof by themselves;
+/// callers that see those selectors must first prove the receiver/builder contract, lower
+/// the call to the canonical builtin, and attach append-effect evidence.
 pub fn builder_append_call_args(
     il: &Il,
     _interner: &Interner,
@@ -3937,12 +3896,11 @@ pub fn builder_append_call_args(
 ) -> Option<(NodeId, NodeId)> {
     match effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::BuilderAppendCall) => {
-            return syntactic_append_call_args(il, node);
+            syntactic_append_call_args(il, node)
         }
-        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => return None,
-        EvidenceResolution::Missing => {}
+        EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => None,
+        EvidenceResolution::Missing => None,
     }
-    canonical_append_call_args(il, node)
 }
 
 fn canonical_append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
@@ -8340,6 +8298,55 @@ mod tests {
         }
     }
 
+    fn push_node_effect(
+        il: &mut Il,
+        id: u32,
+        node: NodeId,
+        effect: EffectEvidenceKind,
+    ) -> EvidenceId {
+        push_node_effect_with_dependencies(il, id, node, effect, Vec::new())
+    }
+
+    fn push_node_effect_with_dependencies(
+        il: &mut Il,
+        id: u32,
+        node: NodeId,
+        effect: EffectEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceId {
+        let evidence_id = EvidenceId(id);
+        il.evidence.push(evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            EvidenceKind::Effect(effect),
+            EvidenceStatus::Asserted,
+            dependencies,
+        ));
+        evidence_id
+    }
+
+    fn push_node_place(il: &mut Il, id: u32, node: NodeId, place: PlaceEvidenceKind) -> EvidenceId {
+        push_node_place_with_dependencies(il, id, node, place, Vec::new())
+    }
+
+    fn push_node_place_with_dependencies(
+        il: &mut Il,
+        id: u32,
+        node: NodeId,
+        place: PlaceEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceId {
+        let evidence_id = EvidenceId(id);
+        il.evidence.push(evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            EvidenceKind::Place(place),
+            EvidenceStatus::Asserted,
+            dependencies,
+        ));
+        evidence_id
+    }
+
     #[test]
     fn first_party_profile_wraps_each_language() {
         for &lang in ALL_LANGS {
@@ -12371,42 +12378,27 @@ mod tests {
     }
 
     #[test]
-    fn exact_java_this_helpers_are_language_and_shape_constrained() {
-        let interner = Interner::default();
-        let this = interner.intern("this");
-        let field_name = interner.intern("value");
-        let mut b = IlBuilder::new(FileId(0));
-        let receiver = b.add(NodeKind::Var, Payload::Name(this), sp(1), &[]);
-        let field = b.add(
-            NodeKind::Field,
-            Payload::Name(field_name),
-            sp(1),
-            &[receiver],
-        );
-        let ret = b.add(NodeKind::Return, Payload::None, sp(2), &[receiver]);
-        let root = b.add(NodeKind::Block, Payload::None, sp(1), &[field, ret]);
-        let il = finish_il(b, root, Lang::Java);
-
-        assert!(exact_java_this_var(&il, &interner, receiver));
-        assert!(exact_java_this_field(&il, &interner, field));
-        assert!(exact_java_return_this(&il, &interner, ret));
-
-        let mut js_il = il.clone();
-        js_il.meta.lang = Lang::JavaScript;
-        assert!(!exact_java_this_var(&js_il, &interner, receiver));
-        assert!(!exact_java_this_field(&js_il, &interner, field));
-        assert!(!exact_java_return_this(&js_il, &interner, ret));
-    }
-
-    #[test]
-    fn exact_index_assignment_parts_are_language_constrained() {
+    fn exact_index_assignment_parts_require_effect_evidence() {
         let mut b = IlBuilder::new(FileId(0));
         let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
         let key = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
         let target = b.add(NodeKind::Index, Payload::None, sp(1), &[receiver, key]);
         let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp(1), &[target, value]);
-        let il = finish_il(b, assign, Lang::Go);
+        let mut il = finish_il(b, assign, Lang::Go);
+
+        assert_eq!(
+            exact_non_overloadable_index_assignment_parts(&il, assign),
+            None
+        );
+        assert!(!exact_non_overloadable_index_assignment(&il, assign));
+
+        push_node_effect(
+            &mut il,
+            0,
+            assign,
+            EffectEvidenceKind::NonOverloadableIndexWrite,
+        );
 
         assert_eq!(
             exact_non_overloadable_index_assignment_parts(&il, assign),
@@ -12414,17 +12406,16 @@ mod tests {
         );
         assert!(exact_non_overloadable_index_assignment(&il, assign));
 
-        let mut ruby_il = il.clone();
-        ruby_il.meta.lang = Lang::Ruby;
+        push_node_effect(&mut il, 1, assign, EffectEvidenceKind::BuilderAppendCall);
         assert_eq!(
-            exact_non_overloadable_index_assignment_parts(&ruby_il, assign),
+            exact_non_overloadable_index_assignment_parts(&il, assign),
             None
         );
-        assert!(!exact_non_overloadable_index_assignment(&ruby_il, assign));
+        assert!(!exact_non_overloadable_index_assignment(&il, assign));
     }
 
     #[test]
-    fn builder_append_call_args_require_canonical_append_proof() {
+    fn builder_append_call_args_require_effect_evidence() {
         let interner = Interner::default();
         let append = interner.intern("append");
         let push = interner.intern("push");
@@ -12449,6 +12440,9 @@ mod tests {
         );
         let il = finish_il(b, root, Lang::Python);
 
+        assert_eq!(builder_append_call_args(&il, &interner, builtin), None);
+        let mut il = il;
+        push_node_effect(&mut il, 0, builtin, EffectEvidenceKind::BuilderAppendCall);
         assert_eq!(
             builder_append_call_args(&il, &interner, builtin),
             Some((receiver, value))
@@ -12479,23 +12473,23 @@ mod tests {
             None
         );
 
-        il.evidence.push(evidence(
+        push_node_effect(
+            &mut il,
             0,
-            EvidenceAnchor::node(sp(9), NodeKind::Assign),
-            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
-            EvidenceStatus::Asserted,
-        ));
+            assign,
+            EffectEvidenceKind::NonOverloadableIndexWrite,
+        );
         assert_eq!(
             exact_non_overloadable_index_assignment_parts(&il, assign),
             Some((receiver, Some(key), value))
         );
 
-        il.evidence.push(evidence(
+        push_node_effect(
+            &mut il,
             1,
-            EvidenceAnchor::node(sp(9), NodeKind::Assign),
-            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash: 1 }),
-            EvidenceStatus::Asserted,
-        ));
+            assign,
+            EffectEvidenceKind::SelfFieldWrite { field_hash: 1 },
+        );
         assert_eq!(
             exact_non_overloadable_index_assignment_parts(&il, assign),
             None
@@ -12508,12 +12502,12 @@ mod tests {
         let value = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
         let call = b.add(NodeKind::Call, Payload::None, sp(10), &[target, value]);
         let mut non_assign = finish_il(b, call, Lang::Ruby);
-        non_assign.evidence.push(evidence(
+        push_node_effect(
+            &mut non_assign,
             0,
-            EvidenceAnchor::node(sp(10), NodeKind::Call),
-            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
-            EvidenceStatus::Asserted,
-        ));
+            call,
+            EffectEvidenceKind::NonOverloadableIndexWrite,
+        );
         assert_eq!(
             exact_non_overloadable_index_assignment_parts(&non_assign, call),
             None
@@ -12533,23 +12527,18 @@ mod tests {
 
         assert_eq!(builder_append_call_args(&il, &interner, call), None);
 
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::node(sp(3), NodeKind::Call),
-            EvidenceKind::Effect(EffectEvidenceKind::BuilderAppendCall),
-            EvidenceStatus::Asserted,
-        ));
+        push_node_effect(&mut il, 0, call, EffectEvidenceKind::BuilderAppendCall);
         assert_eq!(
             builder_append_call_args(&il, &interner, call),
             Some((receiver, value))
         );
 
-        il.evidence.push(evidence(
+        push_node_effect(
+            &mut il,
             1,
-            EvidenceAnchor::node(sp(3), NodeKind::Call),
-            EvidenceKind::Effect(EffectEvidenceKind::NonOverloadableIndexWrite),
-            EvidenceStatus::Asserted,
-        ));
+            call,
+            EffectEvidenceKind::NonOverloadableIndexWrite,
+        );
         assert_eq!(builder_append_call_args(&il, &interner, call), None);
     }
 
@@ -12569,42 +12558,48 @@ mod tests {
         );
         let value = b.add(NodeKind::Var, Payload::Cid(1), sp(3), &[]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp(4), &[field, value]);
-        let mut il = finish_il(b, assign, Lang::Ruby);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(5), &[receiver]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(1), &[assign, ret]);
+        let mut il = finish_il(b, root, Lang::Ruby);
 
+        assert!(!exact_java_this_var(&il, &interner, receiver));
         assert!(!exact_java_this_field(&il, &interner, field));
+        assert!(!exact_java_return_this(&il, &interner, ret));
         assert!(!exact_self_field_write_assignment(&il, &interner, assign));
 
-        il.evidence.push(evidence(
-            0,
-            EvidenceAnchor::node(sp(1), NodeKind::Var),
-            EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver),
-            EvidenceStatus::Asserted,
-        ));
-        il.evidence.push(evidence_with_dependencies(
+        let receiver_evidence =
+            push_node_place(&mut il, 0, receiver, PlaceEvidenceKind::SelfReceiver);
+        let field_evidence = push_node_place_with_dependencies(
+            &mut il,
             1,
-            EvidenceAnchor::node(sp(2), NodeKind::Field),
-            EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash }),
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(0)],
-        ));
-        il.evidence.push(evidence_with_dependencies(
+            field,
+            PlaceEvidenceKind::SelfField { field_hash },
+            vec![receiver_evidence],
+        );
+        push_node_effect_with_dependencies(
+            &mut il,
             2,
-            EvidenceAnchor::node(sp(4), NodeKind::Assign),
-            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash }),
-            EvidenceStatus::Asserted,
-            vec![EvidenceId(1)],
-        ));
+            assign,
+            EffectEvidenceKind::SelfFieldWrite { field_hash },
+            vec![field_evidence],
+        );
+        assert!(exact_java_this_var(&il, &interner, receiver));
         assert!(exact_java_this_field(&il, &interner, field));
+        assert!(exact_java_return_this(&il, &interner, ret));
         assert!(exact_self_field_write_assignment(&il, &interner, assign));
 
-        il.evidence.push(evidence(
-            3,
-            EvidenceAnchor::node(sp(2), NodeKind::Field),
-            EvidenceKind::Place(PlaceEvidenceKind::SelfReceiver),
-            EvidenceStatus::Asserted,
-        ));
+        push_node_place(&mut il, 3, field, PlaceEvidenceKind::SelfReceiver);
         assert!(!exact_java_this_field(&il, &interner, field));
         assert!(!exact_self_field_write_assignment(&il, &interner, assign));
+
+        push_node_place(
+            &mut il,
+            4,
+            receiver,
+            PlaceEvidenceKind::SelfField { field_hash },
+        );
+        assert!(!exact_java_this_var(&il, &interner, receiver));
+        assert!(!exact_java_return_this(&il, &interner, ret));
 
         let other = interner.intern("other");
         let mut b = IlBuilder::new(FileId(0));
@@ -12618,18 +12613,18 @@ mod tests {
         let value = b.add(NodeKind::Var, Payload::Cid(1), sp(7), &[]);
         let assign = b.add(NodeKind::Assign, Payload::None, sp(8), &[field, value]);
         let mut il = finish_il(b, assign, Lang::Ruby);
-        il.evidence.push(evidence(
+        push_node_place(
+            &mut il,
             0,
-            EvidenceAnchor::node(sp(6), NodeKind::Field),
-            EvidenceKind::Place(PlaceEvidenceKind::SelfField { field_hash }),
-            EvidenceStatus::Asserted,
-        ));
-        il.evidence.push(evidence(
+            field,
+            PlaceEvidenceKind::SelfField { field_hash },
+        );
+        push_node_effect(
+            &mut il,
             1,
-            EvidenceAnchor::node(sp(8), NodeKind::Assign),
-            EvidenceKind::Effect(EffectEvidenceKind::SelfFieldWrite { field_hash }),
-            EvidenceStatus::Asserted,
-        ));
+            assign,
+            EffectEvidenceKind::SelfFieldWrite { field_hash },
+        );
         assert!(!exact_java_this_field(&il, &interner, field));
         assert!(!exact_self_field_write_assignment(&il, &interner, assign));
     }

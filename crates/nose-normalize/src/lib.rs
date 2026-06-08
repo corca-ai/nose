@@ -21,6 +21,7 @@ mod commutative;
 mod dataflow;
 mod dce;
 mod desugar;
+mod effect_evidence;
 mod idioms;
 mod interp;
 mod library_api_evidence;
@@ -233,6 +234,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     let mut timer = NormalizeTimer::new(&il.meta.path);
     let mut out = desugar::run(il, interner, opts);
     timer.lap("desugar");
+    effect_evidence::run(&mut out, interner);
+    timer.lap("effect-evidence");
     binding_evidence::run(&mut out, interner);
     timer.lap("binding");
     library_api_evidence::run(&mut out, interner);
@@ -269,6 +272,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
         cfg_norm::run(&mut out, interner);
         timer.lap("cfg-orient");
     }
+    effect_evidence::run(&mut out, interner);
+    timer.lap("effect-evidence-final");
     library_api_evidence::run(&mut out, interner);
     timer.lap("api-evidence-final");
     // IR-verifier discipline: in debug/test builds, assert the rewrite pipeline

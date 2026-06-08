@@ -414,6 +414,13 @@ and pack ecosystem.
   family member must fit the same normalized IL template with the same literal-leaf
   hole position. Mixed connected components are not given a weak witness merely
   because one representative pair looked actionable.
+- Exact-fragment place/effect gates became evidence-authoritative for the
+  producer-covered substrate. First-party normalize refreshes now upsert
+  `Effect(BuilderAppendCall)` for canonical append calls,
+  `Effect(NonOverloadableIndexWrite)` for C/Go/Java index assignments, and Java
+  self receiver/field/write `Place`/`Effect` records after canonical rewrites.
+  Exact fragment consumers no longer reopen append/index/self-field admission
+  through language/shape fallback when `Effect`/`Place` evidence is missing.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -470,10 +477,12 @@ Remaining in this phase:
 - Expand the exact fragment facade from first-party helper functions into
   versioned pack-facing effect/place evidence records. The first substrate now
   covers canonical append calls, C/Go/Java non-overloadable index writes, and
-  Java self-receiver/self-field writes through `Effect`/`Place` evidence.
+  Java self-receiver/self-field writes through required `Effect`/`Place`
+  evidence, including normalize refreshes after canonical rewrites.
 - Continue replacing remaining local exact-fragment proof helpers with
   versioned pack-facing evidence records, especially broader field/read/write
-  place facts and receiver-sensitive mutation/effect proofs.
+  place facts, receiver-sensitive mutation/effect proofs, and mutation
+  invalidation evidence shared with binding/import safety.
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is promise

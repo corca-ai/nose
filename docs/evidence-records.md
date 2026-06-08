@@ -204,16 +204,17 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
 
-Place and effect evidence are also authoritative where present. For example,
-raw method selectors such as `push`, `append`, or `add` do not prove an append
-effect; a consumer needs `Effect(BuilderAppendCall)` or the legacy canonical
-`Builtin::Append` compatibility path when no effect evidence exists. Likewise,
-non-overloadable index writes and fixed self-field writes are admitted through
-`Effect` records, with `Place(SelfReceiver)` and `Place(SelfField)` proving the
+Place and effect evidence are authoritative for the exact-fragment substrate.
+Raw method selectors such as `push`, `append`, or `add` do not prove an append
+effect; exact consumers need `Effect(BuilderAppendCall)`, even when the call has
+already been lowered to canonical `Builtin::Append`. Likewise, non-overloadable
+index writes and fixed self-field writes are admitted only through `Effect`
+records, with `Place(SelfReceiver)` and `Place(SelfField)` proving the
 receiver/place side. First-party `Place(SelfField)` depends on the matching
 `Place(SelfReceiver)`, and `Effect(SelfFieldWrite)` depends on the matching
-`Place(SelfField)`. Conflicting or ambiguous place/effect evidence blocks the
-legacy language-gated fallback.
+`Place(SelfField)`. Missing, conflicting, ambiguous, or dependency-broken
+place/effect evidence closes exact fragments instead of reopening a legacy
+language/shape fallback.
 
 Library API evidence follows the same fail-closed rule. If a call carries
 `LibraryApi` evidence for a selected API occurrence, consumers must validate the
@@ -271,12 +272,13 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   null/truthiness clause kind, whether JS loose equality was admitted, and
   asserted dependencies for the required `Array.isArray` API proof plus optional
   `Boolean` proof;
-- first-party lowering emits `Place(SelfReceiver)` for Java `this`,
-  `Place(SelfField)` for Java `this.field`, `Effect(SelfFieldWrite)` for Java
-  `this.field = ...`, `Effect(NonOverloadableIndexWrite)` for C/Go/Java index
-  writes, and `Effect(BuilderAppendCall)` for canonical `Builtin::Append`.
-  Self-field place/write evidence records include dependencies that link the
-  write proof back to the receiver proof;
+- first-party lowering and normalize refreshes emit `Place(SelfReceiver)` for
+  Java `this`, `Place(SelfField)` for Java `this.field`,
+  `Effect(SelfFieldWrite)` for Java `this.field = ...`,
+  `Effect(NonOverloadableIndexWrite)` for C/Go/Java index writes, and
+  `Effect(BuilderAppendCall)` for canonical `Builtin::Append`. Self-field
+  place/write evidence records include dependencies that link the write proof
+  back to the receiver proof;
 - first-party lowering emits `LibraryApi` evidence for selected API calls that
   remain as raw call nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
   `Boolean(...)`, `new Map(...)`, `new Set(...)`, and static
@@ -417,9 +419,8 @@ callers:
   so `composite_literal`/`keyed_element` tag spelling alone no longer admits the
   exact map-default path;
 - exact-fragment append, non-overloadable index-write, and self-field-write
-  gates now consult `Effect`/`Place` evidence first, falling back to the legacy
-  language-gated helper only when no relevant evidence record exists. Ambiguous
-  or conflicting evidence keeps the exact path closed.
+  gates now require `Effect`/`Place` evidence. Missing, ambiguous, conflicting,
+  or dependency-broken evidence keeps the exact path closed.
 
 Broader field/place/effect facts, promise receiver proof, async/sync protocol
 convergence, unmodeled stdlib/ecosystem APIs, broader inferred
