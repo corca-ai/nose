@@ -1205,11 +1205,13 @@ mod tests {
             "effect_opaque_argument_escape_test",
             Vec::new(),
         );
-        if nose_semantics::module_binding_mutating_method_contract(Lang::JavaScript, method) {
+        if let Some(contract) =
+            nose_semantics::module_binding_mutating_method_contract(Lang::JavaScript, method, 1)
+        {
             push_first_party_evidence_with_dependencies(
                 &mut il,
                 EvidenceAnchor::node(span, NodeKind::Call),
-                EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+                EvidenceKind::Effect(contract.effect),
                 "effect_receiver_mutation_test",
                 Vec::new(),
             );

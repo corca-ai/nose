@@ -202,10 +202,15 @@ impl<'a> Lowering<'a> {
         let Payload::Name(method) = self.b.node(callee).payload else {
             return;
         };
-        if module_binding_mutating_method_contract(self.lang, self.interner.resolve(method)) {
+        let arg_count = children.len().saturating_sub(1);
+        if let Some(contract) = module_binding_mutating_method_contract(
+            self.lang,
+            self.interner.resolve(method),
+            arg_count,
+        ) {
             self.record_evidence(
                 EvidenceAnchor::node(span, kind),
-                EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+                EvidenceKind::Effect(contract.effect),
                 "effect_receiver_mutation",
             );
         }

@@ -301,12 +301,15 @@ migrated.
   frontend/normalize paths must prove the receiver or active-builder contract,
   lower the call to canonical `Builtin::Append`, and emit
   `Effect(BuilderAppendCall)` before exact fragments can treat it as an append
-  effect. Value-graph active list-builder recognition can also use a
-  language-scoped builder-append method contract, but only after the receiver is
-  already proven to be an active local builder seeded by an explicit aggregate
-  surface. Active map-builder recognition requires binding-write evidence plus
-  an explicit map seed surface. Raw tuple or untagged sequence values no longer
-  reopen collection/map builder semantics.
+  effect. Value-graph active list-builder recognition consumes an explicit
+  first-party method-effect contract row whose obligations include language,
+  method, arity, `BuilderAppendCall`, and an active collection-builder receiver.
+  Active map-builder recognition similarly consumes an index-write contract row:
+  Python `d[k] = v` requires `Effect(BindingWrite)` plus an active map-builder
+  receiver seeded by an explicit map surface, while other languages need their
+  own row or the separate non-overloadable-index evidence path. Raw selectors,
+  raw index assignment, raw tuple values, and untagged sequence values no longer
+  reopen collection/map builder semantics by themselves.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
   non-overloadable C/Go/Java index assignment, and single-item builder append
   calls are now shared through `nose-semantics`; predicate and contract paths
@@ -428,9 +431,11 @@ migrated.
   spellings, and shadowed `Object` roots stay closed.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
-  unshadowed-global contract. Value-graph defaulting and strict exact-safe gates
-  consume that same proof, so temp-bound `Map.get(...)` defaulting can stay open
-  without admitting shadowed `undefined` bindings.
+  unshadowed-global contract. Value-graph nullish-value evaluation now requires
+  asserted `Symbol(UnshadowedGlobal("undefined"))` evidence instead of falling
+  back to raw spelling plus a file-scope scan; strict exact-safe gates consume
+  the same proof, so temp-bound `Map.get(...)` defaulting can stay open without
+  admitting shadowed `undefined` bindings.
 - Go literal map default lookup is represented by shared contracts for both the
   outer `composite_literal` and per-entry `keyed_element` sequence surfaces plus
   the supported zero-default payload classes. Normalize and strict exact paths

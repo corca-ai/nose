@@ -45,12 +45,13 @@ use crate::module_facts::{
     top_level_statements_for,
 };
 use nose_il::{
-    stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
-    Payload, SourceComprehensionKind, Span, Symbol, UnitKind,
+    stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LoopKind, NodeId,
+    NodeKind, Op, Payload, SourceComprehensionKind, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    binding_write_target, builder_append_call_args, builder_append_method_contract, builtin_tag,
-    construct_syntax_proof, domain_evidence_for_param as semantic_domain_evidence_for_param,
+    asserted_unshadowed_global_symbol, binding_write_target, builder_append_call_args,
+    builder_append_method_contract, builtin_tag, construct_syntax_proof,
+    domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
@@ -69,15 +70,16 @@ use nose_semantics::{
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_scalar_integer_method_contract, library_static_index_membership_contract,
-    nullish_global_contract, opaque_argument_escape_args, own_property_guard_evidence_at_span,
-    receiver_mutation_call_receiver, record_shape_guard_for_node, reduction_builtin_contract,
-    semantics, seq_surface_contract_for_node, source_comprehension_at_node,
-    source_operator_at_node, unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate,
-    CardinalityThreshold, ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind,
-    ImportFactKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
-    IteratorAdapterReceiverContract, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult,
-    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    map_builder_index_write_contract, nullish_global_contract, opaque_argument_escape_args,
+    own_property_guard_evidence_at_span, receiver_mutation_call_receiver,
+    record_shape_guard_for_node, reduction_builtin_contract, semantics,
+    seq_surface_contract_for_node, source_comprehension_at_node, source_operator_at_node,
+    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IndexWriteReceiverContract, IteratorAdapterReceiverContract,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
+    MapKeyViewKind, MethodBuiltinArgs, MethodEffectReceiverContract, MethodReceiverContract,
     MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
     StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
     SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_UNTAGGED,
@@ -3751,16 +3753,28 @@ impl<'a> Builder<'a> {
         &self,
         assign: NodeId,
     ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-        exact_non_overloadable_index_assignment_parts(self.il, assign).or_else(|| {
-            let target = binding_write_target(self.il, assign)?;
-            if self.il.kind(target) != NodeKind::Index {
-                return None;
-            }
-            let assign_kids = self.il.children(assign);
-            let value = *assign_kids.get(1)?;
-            let target_kids = self.il.children(target);
-            Some((*target_kids.first()?, target_kids.get(1).copied(), value))
-        })
+        exact_non_overloadable_index_assignment_parts(self.il, assign)
+            .or_else(|| self.contextual_map_builder_index_write_parts(assign))
+    }
+
+    fn contextual_map_builder_index_write_parts(
+        &self,
+        assign: NodeId,
+    ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
+        let contract = map_builder_index_write_contract(self.il.meta.lang)?;
+        if contract.required_effect != EffectEvidenceKind::BindingWrite
+            || contract.receiver != IndexWriteReceiverContract::ActiveMapBuilder
+        {
+            return None;
+        }
+        let target = binding_write_target(self.il, assign)?;
+        if self.il.kind(target) != NodeKind::Index {
+            return None;
+        }
+        let assign_kids = self.il.children(assign);
+        let value = *assign_kids.get(1)?;
+        let target_kids = self.il.children(target);
+        Some((*target_kids.first()?, target_kids.get(1).copied(), value))
     }
 
     /// If `e` is a single-item `append(r, item)` to an ACTIVE builder var `r`, record the
@@ -3786,7 +3800,11 @@ impl<'a> Builder<'a> {
             return None;
         }
         let (receiver, method, item) = self.single_arg_field_call_parts(node)?;
-        if !builder_append_method_contract(self.il.meta.lang, self.interner.resolve(method), 1) {
+        let contract =
+            builder_append_method_contract(self.il.meta.lang, self.interner.resolve(method), 1)?;
+        if contract.effect != EffectEvidenceKind::BuilderAppendCall
+            || contract.receiver != MethodEffectReceiverContract::ActiveCollectionBuilder
+        {
             return None;
         }
         Some((receiver, item))
@@ -7997,7 +8015,7 @@ impl<'a> Builder<'a> {
                     }
                     if let Some(contract) = nullish_global_contract(self.il.meta.lang, name) {
                         if !contract.requires_unshadowed
-                            || unshadowed_global_symbol(self.il, self.interner, expr, contract.name)
+                            || asserted_unshadowed_global_symbol(self.il, expr, contract.name)
                         {
                             return self.null_const();
                         }
@@ -9199,6 +9217,47 @@ mod tests {
         assert!(
             builder.builder_candidates(body, &env).is_empty(),
             "index writes require a proven map seed, not just any empty aggregate"
+        );
+
+        let mut unsupported = il.clone();
+        unsupported.meta.lang = Lang::Ruby;
+        let mut builder = Builder::new(&unsupported, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_MAP), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(2, seed);
+        assert!(
+            builder.builder_candidates(body, &env).is_empty(),
+            "binding-write evidence plus map seed still needs a language index-write contract"
+        );
+    }
+
+    #[test]
+    fn nullish_global_value_requires_symbol_evidence() {
+        let interner = Interner::new();
+        let undefined = interner.intern("undefined");
+        let mut b = IlBuilder::new(FileId(0));
+        let var = b.add(NodeKind::Var, Payload::Name(undefined), sp(1), &[]);
+        let mut il = finish_test_il(b, var, Lang::JavaScript);
+
+        let mut builder = Builder::new(&il, &interner);
+        let raw = builder.eval(var, &FxHashMap::default());
+        assert!(
+            !matches!(builder.nodes[raw as usize].op, ValOp::Const(k) if k == LitClass::Null as u32),
+            "raw undefined spelling must not prove the nullish constant"
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(1), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("undefined"),
+            }),
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let proven = builder.eval(var, &FxHashMap::default());
+        assert!(
+            matches!(builder.nodes[proven as usize].op, ValOp::Const(k) if k == LitClass::Null as u32),
+            "symbol evidence should admit the nullish constant"
         );
     }
 

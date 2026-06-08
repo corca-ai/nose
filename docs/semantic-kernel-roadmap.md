@@ -481,6 +481,15 @@ and pack ecosystem.
   `SequenceSurface(Collection)` so supported module-set membership remains
   covered, while direct/module tuple literals stay closed until a factory, typed
   receiver, or other contract supplies membership-collection evidence.
+- First-party method-effect policy moved from bool selector helpers into
+  explicit contract rows. Receiver-mutation producers now consume
+  language/method/arity/effect rows, value-graph list builders consume
+  builder-append rows with active-builder receiver obligations, and Python
+  dict-builder loops consume a separate map-builder index-write row plus
+  `Effect(BindingWrite)` and an explicit map seed. JS-like `undefined`
+  value-graph nullish evaluation is now evidence-only: the frontend-proven
+  `Symbol(UnshadowedGlobal("undefined"))` record is required, and raw spelling
+  plus file-scope fallback no longer opens the exact nullish value path.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -513,6 +522,11 @@ Remaining in this phase:
 
 - Continue replacing proof-sensitive `Lang`/selector checks that are still local
   to normalize, detect, and import proof.
+- Move the next raw fallback cluster behind pack-shaped contracts/evidence:
+  JS-like `typeof` source/operator proof, Python wildcard-import ambiguity,
+  JS/TS guard recognizer dependencies, per-language type-domain producers,
+  C include/typedef/cast evidence for byte-pack laws, raw `HoF` node admission,
+  and exact-fragment production currently driven by the predicate matrix.
 - Keep behavior-changing recall reductions documented when missing evidence
   blocks exact convergence.
 - Preserve the current precision gates while moving more first-party surfaces

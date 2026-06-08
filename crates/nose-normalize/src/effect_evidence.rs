@@ -109,11 +109,13 @@ fn record_call_mutation_effects(il: &mut Il, interner: &Interner, node: NodeId) 
     let Payload::Name(method) = il.node(callee).payload else {
         return;
     };
-    if module_binding_mutating_method_contract(il.meta.lang, interner.resolve(method)) {
+    if let Some(contract) =
+        module_binding_mutating_method_contract(il.meta.lang, interner.resolve(method), arg_count)
+    {
         upsert(
             il,
             node,
-            EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+            EvidenceKind::Effect(contract.effect),
             "effect_receiver_mutation_normalize",
             Vec::new(),
         );

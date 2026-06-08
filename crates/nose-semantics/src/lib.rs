@@ -1401,6 +1401,24 @@ pub fn unshadowed_global_symbol(il: &Il, interner: &Interner, node: NodeId, name
     node_name(il, interner, node) == Some(name) && !file_defines_name(il, interner, name)
 }
 
+/// Evidence-only proof that `node` denotes a language-defined unshadowed global.
+///
+/// This is the consumer-side API for exact value semantics. Producer-side scans may
+/// still use `unshadowed_global_symbol` as a compatibility bridge while migrating
+/// old frontend paths onto explicit `Symbol` evidence.
+pub fn asserted_unshadowed_global_symbol(il: &Il, node: NodeId, name: &str) -> bool {
+    if il.kind(node) != NodeKind::Var {
+        return false;
+    }
+    let expected = SymbolEvidenceKind::UnshadowedGlobal {
+        name_hash: stable_symbol_hash(name),
+    };
+    match symbol_identity_at_node_matches(il, node, expected) {
+        EvidenceResolution::Found(matches) => matches,
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => false,
+    }
+}
+
 /// Prove that `node` denotes a static imported namespace for `module`.
 pub fn imported_namespace_symbol(il: &Il, interner: &Interner, node: NodeId, module: &str) -> bool {
     let expected = SymbolEvidenceKind::ImportedNamespace {
@@ -2261,7 +2279,309 @@ pub struct EffectSemantics {
     lang: Lang,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MethodEffectContractId {
+    ExactBuilderAppendCall,
+    ReceiverMutationRisk,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MethodEffectArity {
+    Any,
+    Exact(usize),
+}
+
+impl MethodEffectArity {
+    pub fn matches(self, arg_count: usize) -> bool {
+        match self {
+            MethodEffectArity::Any => true,
+            MethodEffectArity::Exact(expected) => arg_count == expected,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MethodEffectReceiverContract {
+    ActiveCollectionBuilder,
+    PotentiallyMutableReceiver,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MethodEffectContract {
+    pub pack_id: &'static str,
+    pub id: MethodEffectContractId,
+    pub lang: Lang,
+    pub method: &'static str,
+    pub arity: MethodEffectArity,
+    pub receiver: MethodEffectReceiverContract,
+    pub effect: EffectEvidenceKind,
+    pub channel: ChannelEligibility,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IndexWriteContractId {
+    MapBuilderEntryWrite,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum IndexWriteReceiverContract {
+    ActiveMapBuilder,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct IndexWriteContract {
+    pub pack_id: &'static str,
+    pub id: IndexWriteContractId,
+    pub lang: Lang,
+    pub receiver: IndexWriteReceiverContract,
+    pub required_effect: EffectEvidenceKind,
+    pub channel: ChannelEligibility,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct MethodEffectContractSet {
+    id: MethodEffectContractId,
+    lang: Lang,
+    methods: &'static [&'static str],
+    arity: MethodEffectArity,
+    receiver: MethodEffectReceiverContract,
+    effect: EffectEvidenceKind,
+    channel: ChannelEligibility,
+}
+
+const BUILDER_APPEND_METHOD_EFFECTS: &[MethodEffectContractSet] = &[
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ExactBuilderAppendCall,
+        lang: Lang::Python,
+        methods: &["append"],
+        arity: MethodEffectArity::Exact(1),
+        receiver: MethodEffectReceiverContract::ActiveCollectionBuilder,
+        effect: EffectEvidenceKind::BuilderAppendCall,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ExactBuilderAppendCall,
+        lang: Lang::JavaScript,
+        methods: &["push"],
+        arity: MethodEffectArity::Exact(1),
+        receiver: MethodEffectReceiverContract::ActiveCollectionBuilder,
+        effect: EffectEvidenceKind::BuilderAppendCall,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ExactBuilderAppendCall,
+        lang: Lang::Java,
+        methods: &["add"],
+        arity: MethodEffectArity::Exact(1),
+        receiver: MethodEffectReceiverContract::ActiveCollectionBuilder,
+        effect: EffectEvidenceKind::BuilderAppendCall,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ExactBuilderAppendCall,
+        lang: Lang::Rust,
+        methods: &["push"],
+        arity: MethodEffectArity::Exact(1),
+        receiver: MethodEffectReceiverContract::ActiveCollectionBuilder,
+        effect: EffectEvidenceKind::BuilderAppendCall,
+        channel: ChannelEligibility::ExactProven,
+    },
+];
+
+const RECEIVER_MUTATION_METHOD_EFFECTS: &[MethodEffectContractSet] = &[
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ReceiverMutationRisk,
+        lang: Lang::JavaScript,
+        methods: &[
+            "add",
+            "clear",
+            "copyWithin",
+            "delete",
+            "fill",
+            "pop",
+            "push",
+            "reverse",
+            "set",
+            "shift",
+            "sort",
+            "splice",
+            "unshift",
+        ],
+        arity: MethodEffectArity::Any,
+        receiver: MethodEffectReceiverContract::PotentiallyMutableReceiver,
+        effect: EffectEvidenceKind::ReceiverMutation,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ReceiverMutationRisk,
+        lang: Lang::Python,
+        methods: &[
+            "add",
+            "append",
+            "clear",
+            "extend",
+            "insert",
+            "pop",
+            "remove",
+            "reverse",
+            "setdefault",
+            "sort",
+            "update",
+        ],
+        arity: MethodEffectArity::Any,
+        receiver: MethodEffectReceiverContract::PotentiallyMutableReceiver,
+        effect: EffectEvidenceKind::ReceiverMutation,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ReceiverMutationRisk,
+        lang: Lang::Ruby,
+        methods: &[
+            "add", "append", "clear", "delete", "merge!", "pop", "push", "reverse!", "shift",
+            "sort!", "store", "unshift", "update",
+        ],
+        arity: MethodEffectArity::Any,
+        receiver: MethodEffectReceiverContract::PotentiallyMutableReceiver,
+        effect: EffectEvidenceKind::ReceiverMutation,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ReceiverMutationRisk,
+        lang: Lang::Java,
+        methods: &[
+            "add",
+            "addAll",
+            "clear",
+            "compute",
+            "computeIfAbsent",
+            "computeIfPresent",
+            "merge",
+            "put",
+            "putAll",
+            "remove",
+            "removeAll",
+            "removeIf",
+            "replace",
+            "replaceAll",
+            "retainAll",
+            "set",
+            "sort",
+        ],
+        arity: MethodEffectArity::Any,
+        receiver: MethodEffectReceiverContract::PotentiallyMutableReceiver,
+        effect: EffectEvidenceKind::ReceiverMutation,
+        channel: ChannelEligibility::ExactProven,
+    },
+    MethodEffectContractSet {
+        id: MethodEffectContractId::ReceiverMutationRisk,
+        lang: Lang::Rust,
+        methods: &[
+            "clear",
+            "extend",
+            "insert",
+            "pop",
+            "push",
+            "remove",
+            "retain",
+            "reverse",
+            "sort",
+            "sort_by",
+            "sort_unstable",
+        ],
+        arity: MethodEffectArity::Any,
+        receiver: MethodEffectReceiverContract::PotentiallyMutableReceiver,
+        effect: EffectEvidenceKind::ReceiverMutation,
+        channel: ChannelEligibility::ExactProven,
+    },
+];
+
+const MAP_BUILDER_INDEX_WRITE_CONTRACTS: &[IndexWriteContract] = &[IndexWriteContract {
+    pack_id: FIRST_PARTY_PACK_ID,
+    id: IndexWriteContractId::MapBuilderEntryWrite,
+    lang: Lang::Python,
+    receiver: IndexWriteReceiverContract::ActiveMapBuilder,
+    required_effect: EffectEvidenceKind::BindingWrite,
+    channel: ChannelEligibility::ExactProven,
+}];
+
+fn method_effect_contract_lang(requested: Lang, contract_lang: Lang) -> Option<Lang> {
+    if requested == contract_lang || (js_like_lang(requested) && contract_lang == Lang::JavaScript)
+    {
+        Some(requested)
+    } else {
+        None
+    }
+}
+
 impl EffectSemantics {
+    pub fn method_effect_contracts(self) -> impl Iterator<Item = MethodEffectContract> {
+        BUILDER_APPEND_METHOD_EFFECTS
+            .iter()
+            .chain(RECEIVER_MUTATION_METHOD_EFFECTS.iter())
+            .copied()
+            .filter_map(move |set| {
+                let lang = method_effect_contract_lang(self.lang, set.lang)?;
+                Some((lang, set))
+            })
+            .flat_map(|(lang, set)| {
+                set.methods
+                    .iter()
+                    .copied()
+                    .map(move |method| MethodEffectContract {
+                        pack_id: FIRST_PARTY_PACK_ID,
+                        id: set.id,
+                        lang,
+                        method,
+                        arity: set.arity,
+                        receiver: set.receiver,
+                        effect: set.effect,
+                        channel: set.channel,
+                    })
+            })
+    }
+
+    pub fn method_effect_contract(
+        self,
+        id: MethodEffectContractId,
+        method: &str,
+        arg_count: usize,
+    ) -> Option<MethodEffectContract> {
+        self.method_effect_contracts().find(|contract| {
+            contract.id == id && contract.method == method && contract.arity.matches(arg_count)
+        })
+    }
+
+    pub fn builder_append_method_contract(
+        self,
+        method: &str,
+        arg_count: usize,
+    ) -> Option<MethodEffectContract> {
+        self.method_effect_contract(
+            MethodEffectContractId::ExactBuilderAppendCall,
+            method,
+            arg_count,
+        )
+    }
+
+    pub fn receiver_mutation_method_contract(
+        self,
+        method: &str,
+        arg_count: usize,
+    ) -> Option<MethodEffectContract> {
+        self.method_effect_contract(
+            MethodEffectContractId::ReceiverMutationRisk,
+            method,
+            arg_count,
+        )
+    }
+
+    pub fn map_builder_index_write_contract(self) -> Option<IndexWriteContract> {
+        MAP_BUILDER_INDEX_WRITE_CONTRACTS
+            .iter()
+            .copied()
+            .find(|contract| contract.lang == self.lang)
+    }
+
     /// `target[key] = value` is modeled as a non-overloadable observable index
     /// write. Languages with user-dispatched index assignment must stay fail-closed
     /// unless a future pack emits a stronger receiver proof.
@@ -3982,18 +4302,18 @@ pub fn nullish_global_contract(lang: Lang, name: &str) -> Option<NullishGlobalCo
     })
 }
 
-pub fn builder_append_method_contract(lang: Lang, method: &str, arg_count: usize) -> bool {
-    matches!(
-        (lang, method, arg_count),
-        (Lang::Python, "append", 1)
-            | (
-                Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
-                "push",
-                1
-            )
-            | (Lang::Java, "add", 1)
-            | (Lang::Rust, "push", 1)
-    )
+pub fn builder_append_method_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<MethodEffectContract> {
+    semantics(lang)
+        .effects()
+        .builder_append_method_contract(method, arg_count)
+}
+
+pub fn map_builder_index_write_contract(lang: Lang) -> Option<IndexWriteContract> {
+    semantics(lang).effects().map_builder_index_write_contract()
 }
 
 /// `(receiver, value)` of a single-item append-like builder call admitted by first-party
@@ -8614,107 +8934,14 @@ pub fn imported_literal_seq_tag_safe(lang: Lang, tag: &str) -> bool {
     seq_surface_contract(lang, Some(tag)).is_some_and(|contract| contract.imported_literal)
 }
 
-pub fn mutating_method_name(method: &str) -> bool {
-    matches!(
-        method,
-        "clear"
-            | "delete"
-            | "insert"
-            | "pop"
-            | "popitem"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "set"
-            | "setdefault"
-            | "update"
-    )
-}
-
-pub fn module_binding_mutating_method_contract(lang: Lang, method: &str) -> bool {
-    match lang {
-        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html => matches!(
-            method,
-            "add"
-                | "clear"
-                | "copyWithin"
-                | "delete"
-                | "fill"
-                | "pop"
-                | "push"
-                | "reverse"
-                | "set"
-                | "shift"
-                | "sort"
-                | "splice"
-                | "unshift"
-        ),
-        Lang::Python => matches!(
-            method,
-            "add"
-                | "append"
-                | "clear"
-                | "extend"
-                | "insert"
-                | "pop"
-                | "remove"
-                | "reverse"
-                | "setdefault"
-                | "sort"
-                | "update"
-        ),
-        Lang::Ruby => matches!(
-            method,
-            "add"
-                | "append"
-                | "clear"
-                | "delete"
-                | "merge!"
-                | "pop"
-                | "push"
-                | "reverse!"
-                | "shift"
-                | "sort!"
-                | "store"
-                | "unshift"
-                | "update"
-        ),
-        Lang::Java => matches!(
-            method,
-            "add"
-                | "addAll"
-                | "clear"
-                | "compute"
-                | "computeIfAbsent"
-                | "computeIfPresent"
-                | "merge"
-                | "put"
-                | "putAll"
-                | "remove"
-                | "removeAll"
-                | "removeIf"
-                | "replace"
-                | "replaceAll"
-                | "retainAll"
-                | "set"
-                | "sort"
-        ),
-        Lang::Rust => matches!(
-            method,
-            "clear"
-                | "extend"
-                | "insert"
-                | "pop"
-                | "push"
-                | "remove"
-                | "retain"
-                | "reverse"
-                | "sort"
-                | "sort_by"
-                | "sort_unstable"
-        ),
-        _ => false,
-    }
+pub fn module_binding_mutating_method_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<MethodEffectContract> {
+    semantics(lang)
+        .effects()
+        .receiver_mutation_method_contract(method, arg_count)
 }
 
 #[cfg(test)]
@@ -11972,26 +12199,21 @@ mod tests {
     }
 
     #[test]
-    fn mutating_method_sets_stay_distinct() {
-        assert!(mutating_method_name("put"));
-        assert!(!mutating_method_name("push"));
-        assert!(module_binding_mutating_method_contract(
-            Lang::JavaScript,
-            "push"
-        ));
-        assert!(!module_binding_mutating_method_contract(
-            Lang::JavaScript,
-            "addAll"
-        ));
-        assert!(module_binding_mutating_method_contract(
-            Lang::Java,
-            "addAll"
-        ));
-        assert!(module_binding_mutating_method_contract(
-            Lang::Python,
-            "append"
-        ));
-        assert!(!module_binding_mutating_method_contract(Lang::Go, "append"));
+    fn receiver_mutation_contracts_are_language_scoped_rows() {
+        let js_push = module_binding_mutating_method_contract(Lang::JavaScript, "push", 1)
+            .expect("js push receiver mutation contract");
+        assert_eq!(js_push.pack_id, FIRST_PARTY_PACK_ID);
+        assert_eq!(js_push.lang, Lang::JavaScript);
+        assert_eq!(js_push.effect, EffectEvidenceKind::ReceiverMutation);
+        assert_eq!(
+            js_push.receiver,
+            MethodEffectReceiverContract::PotentiallyMutableReceiver
+        );
+        assert!(module_binding_mutating_method_contract(Lang::TypeScript, "push", 1).is_some());
+        assert!(module_binding_mutating_method_contract(Lang::JavaScript, "addAll", 1).is_none());
+        assert!(module_binding_mutating_method_contract(Lang::Java, "addAll", 1).is_some());
+        assert!(module_binding_mutating_method_contract(Lang::Python, "append", 1).is_some());
+        assert!(module_binding_mutating_method_contract(Lang::Go, "append", 1).is_none());
     }
 
     #[test]
@@ -12937,12 +13159,35 @@ mod tests {
 
     #[test]
     fn builder_append_contracts_are_language_and_arity_constrained() {
-        assert!(builder_append_method_contract(Lang::Rust, "push", 1));
-        assert!(!builder_append_method_contract(Lang::Rust, "push", 2));
-        assert!(builder_append_method_contract(Lang::Java, "add", 1));
-        assert!(builder_append_method_contract(Lang::JavaScript, "push", 1));
-        assert!(builder_append_method_contract(Lang::Python, "append", 1));
-        assert!(!builder_append_method_contract(Lang::Ruby, "push", 1));
+        let rust_push = builder_append_method_contract(Lang::Rust, "push", 1)
+            .expect("rust push builder append contract");
+        assert_eq!(rust_push.effect, EffectEvidenceKind::BuilderAppendCall);
+        assert_eq!(
+            rust_push.receiver,
+            MethodEffectReceiverContract::ActiveCollectionBuilder
+        );
+        assert!(builder_append_method_contract(Lang::Rust, "push", 2).is_none());
+        assert!(builder_append_method_contract(Lang::Java, "add", 1).is_some());
+        assert!(builder_append_method_contract(Lang::JavaScript, "push", 1).is_some());
+        assert!(builder_append_method_contract(Lang::TypeScript, "push", 1).is_some());
+        assert!(builder_append_method_contract(Lang::Python, "append", 1).is_some());
+        assert!(builder_append_method_contract(Lang::Ruby, "push", 1).is_none());
+    }
+
+    #[test]
+    fn map_builder_index_write_contracts_are_language_scoped() {
+        let contract =
+            map_builder_index_write_contract(Lang::Python).expect("python map builder contract");
+        assert_eq!(contract.pack_id, FIRST_PARTY_PACK_ID);
+        assert_eq!(contract.id, IndexWriteContractId::MapBuilderEntryWrite);
+        assert_eq!(
+            contract.receiver,
+            IndexWriteReceiverContract::ActiveMapBuilder
+        );
+        assert_eq!(contract.required_effect, EffectEvidenceKind::BindingWrite);
+        assert_eq!(contract.channel, ChannelEligibility::ExactProven);
+        assert!(map_builder_index_write_contract(Lang::Ruby).is_none());
+        assert!(map_builder_index_write_contract(Lang::JavaScript).is_none());
     }
 
     #[test]

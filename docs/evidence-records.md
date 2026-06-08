@@ -235,7 +235,7 @@ closes exact fragments instead of reopening a legacy language/shape fallback.
 Mutation-risk effects are intentionally separate from exact effect proofs.
 `Effect(BindingWrite)` says an assignment node writes its syntactic target;
 `Effect(ReceiverMutation)` says a call is covered by a first-party
-language-scoped receiver-mutating method policy; and
+language-scoped receiver-mutating method-effect contract row; and
 `Effect(OpaqueArgumentEscape)` says an ordinary call argument may escape to
 unknown code. These records can invalidate immutable binding, module export,
 imported literal, value-graph, or exact-fragment context assumptions, but they
@@ -244,6 +244,14 @@ exact semantic law. Known admitted `LibraryApi` occurrences suppress the opaque
 escape helper for that call, so a modeled API such as an imported stdlib
 predicate is not treated as arbitrary mutation risk merely because it takes an
 argument.
+
+Builder and map-builder value laws consume separate contract rows. A
+method-effect row for list builders names the language, selector, arity,
+required `Effect(BuilderAppendCall)`, and active-builder receiver obligation.
+An index-write row for map builders names the language, required write evidence,
+and active-map-builder receiver obligation. `BindingWrite` alone remains a
+mutation-risk fact; it admits a map-builder contribution only when a matching
+index-write contract and explicit active map seed are also present.
 
 Library API evidence follows the same fail-closed rule. If a call carries
 `LibraryApi` evidence for a selected API occurrence, consumers must validate the
@@ -433,8 +441,9 @@ callers:
   raw import `Seq` payloads cannot hash-cons with proof-bearing import values;
 - unshadowed-global symbol proof for JS/TS `Math.*` method contracts,
   `new Map(...)`/`new Set(...)` constructor contracts, static `Array.isArray`
-  exact gates, and `undefined` nullish-default handling, with compatibility
-  fallback only when no relevant evidence record exists;
+  exact gates, and `undefined` nullish-default handling. Value-graph nullish
+  value semantics are evidence-only for `undefined`; raw spelling plus a
+  scope scan no longer reopens that exact path;
 - qualified-global symbol proof for selected JS/TS API paths: own-property
   guard evidence depends on `Object.hasOwn` or
   `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
