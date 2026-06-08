@@ -1403,7 +1403,7 @@ impl<'a> Builder<'a> {
                 }
                 match contract.result {
                     LibraryMapFactoryResult::EntrySequence { entry_seq_tag } => Some(entry_seq_tag),
-                    _ => None,
+                    LibraryMapFactoryResult::JavaFactory { .. } => None,
                 }
             })?;
         self.map_factory_from_seq(seq, entry_tag)
@@ -8455,7 +8455,7 @@ impl<'a> Builder<'a> {
                             None => self.mk(ValOp::Hof(HoFKind::Map as u32), vec![elem]),
                         }
                     }
-                    _ => {
+                    HoFKind::Reduce => {
                         let a: Vec<ValueId> = kids.iter().map(|&k| self.eval(k, env)).collect();
                         self.mk(ValOp::Hof(kind as u32), a)
                     }

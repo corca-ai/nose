@@ -1,0 +1,18 @@
+# Clippy configuration — complexity / readability ratchets.
+#
+# These thresholds are the tunable half of the lints enabled in
+# `[workspace.lints.clippy]` (Cargo.toml). They start at deliberately lenient
+# values so today's code passes `clippy -D warnings`; the plan is to ratchet them
+# DOWN (stricter) over time as the code is simplified. Lower = stricter.
+#
+# Run locally with: cargo clippy --all-targets --all-features -- -D warnings
+
+# Per-function cognitive complexity (branch/nesting weighted). Clippy's default
+# is 25; nose's current production ceiling is 68, so this lenient baseline sits
+# just above it. Ratchet downward as complex functions are simplified.
+cognitive-complexity-threshold = 80
+
+# Already enforced by clippy's default `complexity` group; pinned here so the
+# thresholds are visible and ratchetable alongside the others.
+too-many-arguments-threshold = 7
+type-complexity-threshold = 250

@@ -61,6 +61,16 @@ unused_qualifications = "warn"
 dbg_macro = "warn"                # no stray `dbg!` in committed code
 todo = "warn"                     # no `todo!()` left in shipped paths
 uninlined_format_args = "warn"    # prefer `format!("{x}")` to `format!("{}", x)`
+# Complexity / readability ratchets. Tunable thresholds live in `clippy.toml`
+# and start lenient so today's code passes; tighten them over time (see that
+# file). These are `warn` here, which CI's `clippy -D warnings` promotes to a
+# hard gate.
+cognitive_complexity = "warn"     # cap per-function branching complexity (tunable)
+# Exhaustiveness: a `_ =>` arm that only stands in for a single remaining enum
+# variant silently swallows the next variant added. Spell it out instead.
+# (The blunter `wildcard_enum_match_arm` is intentionally NOT used — the IL-kind
+# dispatch matches legitimately fold dozens of variants into `_`.)
+match_wildcard_for_single_variants = "warn"
 
 [profile.release]
 opt-level = 3

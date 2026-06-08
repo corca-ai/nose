@@ -67,9 +67,16 @@ Before merge or release-sensitive work, run the full local CI mirror:
 ```
 
 The full gate mirrors the GitHub Actions jobs: format, clippy, rustdoc warnings,
-release build/tests, the self-hosted duplication gate, MSRV check, supply-chain
-checks, docs wiki connectivity, the formal obligation registry, and Lean soundness proofs
-via [check-lean-proofs.sh](../scripts/check-lean-proofs.sh).
+release build/tests, the `cargo-llvm-cov` coverage floor, the self-hosted
+duplication gate, MSRV check, supply-chain checks, docs wiki connectivity, the
+formal obligation registry, and Lean soundness proofs via
+[check-lean-proofs.sh](../scripts/check-lean-proofs.sh).
+
+The clippy complexity thresholds (`clippy.toml`) and the coverage floor
+(`--fail-under-lines`) are deliberately **ratchets**: they start lenient so
+today's code is green and are tightened over time, never loosened to pass a red
+build. See [CONTRIBUTING](../CONTRIBUTING.md) for the gate table and the current
+values.
 
 ## External review bots
 

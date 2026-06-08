@@ -33,6 +33,25 @@ jobs:
       - name: duplication gate (nose on itself)
         run: ./scripts/check-duplication.sh
 
+  coverage:
+    name: test coverage (llvm-cov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      # Prebuilt binary — no compile cost.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      # Line-coverage ratchet. The bar starts lenient (current line coverage is
+      # ~87%); raise --fail-under-lines over time as coverage improves. Keep it
+      # in sync with scripts/check-ci-local.sh.
+      - name: coverage gate (>= 85% lines)
+        run: cargo llvm-cov --workspace --summary-only --fail-under-lines 85
+
   msrv:
     name: minimum supported rust version
     runs-on: ubuntu-latest
