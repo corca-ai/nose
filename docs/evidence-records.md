@@ -61,13 +61,14 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, generic Python/Go free-function builtins, and selected receiver-method families |
+| `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, generic Python/Go free-function builtins, and selected receiver-method families |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
-the contract id, callee coordinate, arity, and dependencies for a specific call
-node. `LibraryApiContract` rows in `nose-semantics` still name result semantics
-and the remaining obligations. Existing evidence kinds such as `Symbol`,
+the contract id, callee coordinate, arity, and dependencies for a specific
+`Call`, `Field`, or `Var` node, depending on the contract surface.
+`LibraryApiContract` rows in `nose-semantics` still name result semantics and
+the remaining obligations. Existing evidence kinds such as `Symbol`,
 `Import`, `Source`, `Domain`, and `SequenceSurface` prove those obligations; the
 contract decides whether the facts are enough to admit an exact or value-graph
 path. A future external pack schema may expose library API contracts, but
@@ -107,6 +108,10 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
   calls and depends on `SequenceSurface(Collection)` evidence for the exact
   receiver plus the static non-float literal receiver shape required by the
   contract.
+- `Property` names a language-scoped property surface such as JS/TS/Java
+  `length`. It is anchored to the `Field` node and depends on receiver proof
+  such as `Domain`, `SequenceSurface`, or nested admitted `LibraryApi`
+  evidence. It does not infer semantics from a property spelling alone.
 - `Method` and `IteratorAdapterMethod` name language-scoped receiver methods by
   exact method string and arity. They depend on receiver proof such as
   `Domain`, `SequenceSurface`, imported-namespace or unshadowed-global `Symbol`,
@@ -288,8 +293,8 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `Effect(BuilderAppendCall)` for canonical `Builtin::Append`. Self-field
   place/write evidence records include dependencies that link the write proof
   back to the receiver proof;
-- first-party lowering emits `LibraryApi` evidence for selected API calls that
-  remain as raw call nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
+- first-party lowering emits `LibraryApi` evidence for selected API occurrences
+  that remain as raw nodes: JS-like `Array.from(...)`, `Array.isArray(...)`,
   `Boolean(...)`, `new Map(...)`, `new Set(...)`, and static
   `indexOf`/`findIndex` membership calls whose receiver has collection
   sequence-surface proof; Python builtin collection factories such as
@@ -297,8 +302,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `collections.deque(...)` through imported binding/namespace proof; Python
   `math.prod(...)` through imported namespace proof; Rust
   `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
-  are proven, `Vec::new()`, and selected `std::collections::*::from(...)`
-  factory paths when their root-shadow policy is proven; Ruby
+  are proven, `Vec::new()`, `Some(...)`, bare `None`, and selected
+  `std::collections::*::from(...)` factory paths when their root-shadow policy
+  is proven; JS/TS/Java `length` property reads whose receiver proof is
+  satisfied; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
   plus unshadowed `require` and `Set` proof; Java `java.util` static
   factories/adapters including `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,
@@ -317,8 +324,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   occurrence evidence for selected receiver methods that remain as raw call
   nodes: map `get`, map-key views, iterator identity adapters, and the
   language-scoped method-call contracts currently used for collection/map
-  membership, map defaulting, count/length, predicates, Rust `zip`, HOF, and
-  reduction methods. The post-binding refresh exists because immutable
+  membership, map defaulting, count, predicates, Rust scalar integer methods,
+  Rust `Option::and_then`, Rust `zip`, HOF, and reduction methods. Property
+  cardinality such as JS/TS `length` is modeled as `Property`, not as a method
+  call. The post-binding refresh exists because immutable
   binding-domain evidence is inferred after lowering; the final refresh exists
   because CFG/dataflow/algebra rewrites can replace receiver expressions with
   equivalent sequence or result values. Refreshing upserts first-party occurrence
@@ -394,8 +403,8 @@ callers:
   evidence for `Array.from`;
 - selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
   evidence first for the migrated JS-like, Python builtin/imported, Rust
-  free-name/path, Ruby require-backed, Java static, regex-literal, and
-  receiver-method surfaces;
+  free-name/path/Option/scalar, Ruby require-backed, Java static/property,
+  regex-literal, property, and receiver-method surfaces;
   conflicting or dependency-broken API evidence keeps
   the value-graph, idiom, and strict exact paths closed. Missing API evidence is
   now also closed for those producer-covered surfaces; older symbol/source proof

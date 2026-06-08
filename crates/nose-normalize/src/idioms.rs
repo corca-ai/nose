@@ -8,15 +8,15 @@
 //! proof-obligation: normalize.value_graph.min_max
 
 use nose_il::{
-    contains_js_identifier, Builtin, DomainEvidence, EvidenceAnchor, EvidenceKind, EvidenceStatus,
-    HoFKind, Il, Interner, NodeId, NodeKind, Payload, Span, Symbol,
+    Builtin, DomainEvidence, EvidenceAnchor, EvidenceKind, EvidenceStatus, HoFKind, Il, Interner,
+    NodeId, NodeKind, Payload, Span, Symbol,
 };
 use nose_semantics::{
     domain_evidence_for_param, imported_namespace_symbol, library_api_contract_evidence_for_call,
     library_free_function_builtin_contract, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
-    library_static_collection_adapter_contract, rust_option_some_constructor_contract,
+    library_rust_option_some_constructor_contract, library_static_collection_adapter_contract,
     seq_surface_contract_for_node, unshadowed_global_symbol, BuiltinArgContract, DomainRequirement,
     LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryMapFactoryResult, MapKeyViewKind,
     MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
@@ -905,10 +905,15 @@ fn exact_option_receiver(
     if kids.len() != 2 || old.kind(kids[0]) != NodeKind::Var {
         return false;
     }
-    matches!(
-        old.node(kids[0]).payload,
-        Payload::Name(name) if rust_option_some_name(old, interner, interner.resolve(name))
-    )
+    let Payload::Name(name) = old.node(kids[0]).payload else {
+        return false;
+    };
+    let Some(contract) =
+        library_rust_option_some_constructor_contract(old.meta.lang, interner.resolve(name), 1)
+    else {
+        return false;
+    };
+    library_api_evidence_admitted(old, interner, node, contract.id, contract.callee, 1)
 }
 
 fn exact_string_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
@@ -927,11 +932,6 @@ fn exact_integer_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) ->
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
     ) || domains.receiver_satisfies_domain(old, node, DomainRequirement::Integer)
-}
-
-fn rust_option_some_name(old: &Il, interner: &Interner, text: &str) -> bool {
-    rust_option_some_constructor_contract(old.meta.lang, text)
-        .is_some_and(|contract| !file_defines_name(old, interner, contract.shadow_root))
 }
 
 fn proven_map_get_call_parts(
@@ -992,56 +992,6 @@ fn map_factory_entries_match_surface(
             && seq_surface_contract_for_node(old, interner, entry)
                 .is_some_and(|contract| contract.value_tag == entry_seq_tag)
     })
-}
-
-fn file_defines_name(old: &Il, interner: &Interner, name: &str) -> bool {
-    old.units
-        .iter()
-        .filter_map(|unit| unit.name)
-        .any(|symbol| interner.resolve(symbol) == name)
-        || old
-            .nodes
-            .iter()
-            .enumerate()
-            .any(|(idx, node)| match node.payload {
-                Payload::Cid(cid) => old
-                    .cid_names
-                    .get(cid as usize)
-                    .is_some_and(|symbol| symbol_defines_name(old, interner, *symbol, name)),
-                Payload::Name(symbol)
-                    if matches!(
-                        node.kind,
-                        NodeKind::Module | NodeKind::Block | NodeKind::Param
-                    ) =>
-                {
-                    symbol_defines_name(old, interner, symbol, name)
-                }
-                _ if node.kind == NodeKind::Assign => old
-                    .children(NodeId(idx as u32))
-                    .first()
-                    .is_some_and(|&lhs| node_defines_name(old, interner, lhs, name)),
-                _ => false,
-            })
-}
-
-fn node_defines_name(old: &Il, interner: &Interner, node: NodeId, name: &str) -> bool {
-    match old.node(node).payload {
-        Payload::Name(symbol) => symbol_defines_name(old, interner, symbol, name),
-        Payload::Cid(cid) => old
-            .cid_names
-            .get(cid as usize)
-            .is_some_and(|symbol| symbol_defines_name(old, interner, *symbol, name)),
-        _ => false,
-    }
-}
-
-fn symbol_defines_name(old: &Il, interner: &Interner, symbol: Symbol, name: &str) -> bool {
-    let text = interner.resolve(symbol);
-    text == name
-        || (nose_semantics::semantics(old.meta.lang)
-            .modules()
-            .js_like_shadowed_module_bindings()
-            && contains_js_identifier(text, name))
 }
 
 fn name_of<'a>(old: &Il, interner: &'a Interner, id: NodeId) -> Option<&'a str> {

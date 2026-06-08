@@ -12,7 +12,8 @@ use nose_il::{
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_api_free_name_shadow_safe, library_api_receiver_dependencies_for_call_with_cache,
+    library_api_free_name_shadow_safe, library_api_property_dependencies_for_field_with_cache,
+    library_api_receiver_dependencies_for_call_with_cache,
     library_collection_factory_result_domain_for_arity, library_free_function_builtin_contract,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
@@ -21,12 +22,14 @@ use nose_semantics::{
     library_js_array_is_array_contract, library_js_boolean_coercion_contract,
     library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
     library_map_factory_result_domain, library_map_key_view_wrapper_contract,
-    library_map_key_view_wrapper_result_domain, library_receiver_method_api_contract,
-    library_regex_test_contract, library_ruby_set_factory_contract,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_static_collection_adapter_contract, library_static_index_membership_contract,
-    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
-    LibraryApiDependencyCache, MethodReceiverContract, StaticIndexMembershipReceiverContract,
+    library_map_key_view_wrapper_result_domain, library_property_builtin_contract,
+    library_receiver_method_api_contract, library_regex_test_contract,
+    library_ruby_set_factory_contract, library_rust_option_none_sentinel_contract,
+    library_rust_option_some_constructor_contract, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
+    library_static_index_membership_contract, sequence_surface_kind_for_tag, ImportFactKind,
+    LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
+    MethodReceiverContract, StaticIndexMembershipReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -1255,6 +1258,18 @@ fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
                 .then_some(NodeId(idx as u32))
         })
         .collect();
+    let fields: Vec<NodeId> = il
+        .nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, node)| (node.kind == NodeKind::Field).then_some(NodeId(idx as u32)))
+        .collect();
+    let vars: Vec<NodeId> = il
+        .nodes
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, node)| (node.kind == NodeKind::Var).then_some(NodeId(idx as u32)))
+        .collect();
     let mut dependency_cache = LibraryApiDependencyCache::default();
     for call in calls {
         if record_post_lower_free_name_library_api(il, interner, call) {
@@ -1267,6 +1282,12 @@ fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
             continue;
         }
         record_post_lower_receiver_method_library_api(il, interner, call, &mut dependency_cache);
+    }
+    for field in fields {
+        record_post_lower_property_library_api(il, interner, field, &mut dependency_cache);
+    }
+    for var in vars {
+        record_post_lower_rust_option_none_library_api(il, interner, var);
     }
 }
 
@@ -1325,6 +1346,18 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                         library_collection_factory_result_domain_for_arity(contract, arg_count),
                     )
                 })
+        })
+        .or_else(|| {
+            library_rust_option_some_constructor_contract(il.meta.lang, callee_name, arg_count).map(
+                |contract| {
+                    (
+                        contract.id,
+                        contract.callee,
+                        "library_api_rust_option_some_constructor",
+                        Some(contract.result_domain),
+                    )
+                },
+            )
         })
         .or_else(|| {
             library_free_function_builtin_contract(il.meta.lang, callee_name, arg_count).map(
@@ -1401,6 +1434,79 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         dependencies,
     );
     post_lower_record_library_api_result_domain(il, call, result_domain, api);
+    true
+}
+
+fn record_post_lower_property_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    field: NodeId,
+    dependency_cache: &mut LibraryApiDependencyCache,
+) -> bool {
+    if il.kind(field) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(property) = il.node(field).payload else {
+        return false;
+    };
+    let Some(contract) =
+        library_property_builtin_contract(il.meta.lang, interner.resolve(property))
+    else {
+        return false;
+    };
+    let Some(dependencies) = library_api_property_dependencies_for_field_with_cache(
+        il,
+        interner,
+        field,
+        contract.callee,
+        dependency_cache,
+    ) else {
+        return false;
+    };
+    post_lower_library_api_node_evidence_id(
+        il,
+        field,
+        contract.id,
+        contract.callee,
+        0,
+        "library_api_property_builtin",
+        dependencies,
+    );
+    true
+}
+
+fn record_post_lower_rust_option_none_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    var: NodeId,
+) -> bool {
+    let Some(name) = post_lower_var_name(il, interner, var) else {
+        return false;
+    };
+    let Some(contract) = library_rust_option_none_sentinel_contract(il.meta.lang, name) else {
+        return false;
+    };
+    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        return false;
+    };
+    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+        post_lower_file_defines_name_visible_at(il, interner, candidate, il.node(var).span)
+    }) {
+        return false;
+    }
+    let Some(symbol_dependency) = post_lower_unshadowed_symbol_evidence_id(il, var, name) else {
+        return false;
+    };
+    let api = post_lower_library_api_node_evidence_id(
+        il,
+        var,
+        contract.id,
+        contract.callee,
+        0,
+        "library_api_rust_option_none_sentinel",
+        vec![symbol_dependency],
+    );
+    post_lower_record_library_api_node_result_domain(il, var, contract.result_domain, api);
     true
 }
 
@@ -1864,6 +1970,29 @@ fn post_lower_library_api_evidence_id(
     .expect("post-lower LibraryApi evidence insertion should always produce an id")
 }
 
+fn post_lower_library_api_node_evidence_id(
+    il: &mut Il,
+    node: NodeId,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arg_count: usize,
+    rule: &str,
+    dependencies: Vec<EvidenceId>,
+) -> EvidenceId {
+    post_lower_find_or_push_evidence(
+        il,
+        EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(id),
+            callee_hash: library_api_callee_contract_hash(callee),
+            arity: arg_count as u16,
+        }),
+        rule,
+        dependencies,
+    )
+    .expect("post-lower node LibraryApi evidence insertion should always produce an id")
+}
+
 fn post_lower_record_library_api_result_domain(
     il: &mut Il,
     call: NodeId,
@@ -1879,6 +2008,21 @@ fn post_lower_record_library_api_result_domain(
             vec![api],
         );
     }
+}
+
+fn post_lower_record_library_api_node_result_domain(
+    il: &mut Il,
+    node: NodeId,
+    domain: DomainEvidence,
+    api: EvidenceId,
+) {
+    let _ = post_lower_find_or_push_evidence(
+        il,
+        EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+        EvidenceKind::Domain(domain),
+        "library_api_result_domain",
+        vec![api],
+    );
 }
 
 fn post_lower_find_or_push_evidence(
@@ -2618,6 +2762,33 @@ mod tests {
             .collect()
     }
 
+    fn library_api_evidence_ids_at_node(
+        evidence: &[EvidenceRecord],
+        span: Span,
+        kind: NodeKind,
+        contract_hash: u64,
+        callee_hash: u64,
+        arity: u16,
+    ) -> Vec<EvidenceId> {
+        evidence
+            .iter()
+            .filter_map(|record| {
+                (record.anchor == EvidenceAnchor::node(span, kind)
+                    && matches!(
+                        record.kind,
+                        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                            contract_hash: actual_contract,
+                            callee_hash: actual_callee,
+                            arity: actual_arity,
+                        }) if actual_contract == contract_hash
+                            && actual_callee == callee_hash
+                            && actual_arity == arity
+                    ))
+                .then_some(record.id)
+            })
+            .collect()
+    }
+
     fn result_domain_depends_on_api(
         evidence: &[EvidenceRecord],
         span: Span,
@@ -2626,6 +2797,21 @@ mod tests {
     ) -> bool {
         evidence.iter().any(|record| {
             record.anchor == EvidenceAnchor::node(span, NodeKind::Call)
+                && record.kind == EvidenceKind::Domain(domain)
+                && record.dependencies.len() == 1
+                && api_ids.contains(&record.dependencies[0])
+        })
+    }
+
+    fn result_domain_depends_on_api_at_node(
+        evidence: &[EvidenceRecord],
+        span: Span,
+        kind: NodeKind,
+        domain: DomainEvidence,
+        api_ids: &[EvidenceId],
+    ) -> bool {
+        evidence.iter().any(|record| {
+            record.anchor == EvidenceAnchor::node(span, kind)
                 && record.kind == EvidenceKind::Domain(domain)
                 && record.dependencies.len() == 1
                 && api_ids.contains(&record.dependencies[0])
@@ -3647,6 +3833,146 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             ),
             0,
             "explicit same-name imports must close java.util wildcard constructor proof"
+        );
+    }
+
+    #[test]
+    fn post_lowering_emits_property_and_rust_option_occurrences() {
+        let interner = Interner::new();
+        let ts = crate::lower_source(
+            FileId(0),
+            "t.ts",
+            b"function f(xs: number[]) { return xs.length; }\n",
+            Lang::TypeScript,
+            &interner,
+        )
+        .expect("typescript lowering should succeed");
+        let property_contract =
+            library_property_builtin_contract(Lang::TypeScript, "length").unwrap();
+        let length_field = ts
+            .nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                (node.kind == NodeKind::Field
+                    && matches!(
+                        node.payload,
+                        Payload::Name(symbol) if interner.resolve(symbol) == "length"
+                    ))
+                .then_some((NodeId(idx as u32), node.span))
+            })
+            .expect("length field should be lowered");
+        let property_api = library_api_evidence_ids_at_node(
+            &ts.evidence,
+            length_field.1,
+            NodeKind::Field,
+            library_api_contract_id_hash(property_contract.id),
+            library_api_callee_contract_hash(property_contract.callee),
+            0,
+        );
+        assert_eq!(
+            property_api.len(),
+            1,
+            "typed exact-collection property access should carry LibraryApi occurrence evidence"
+        );
+
+        let rust_some = crate::lower_source(
+            FileId(0),
+            "t.rs",
+            b"fn f(x: i32) -> Option<i32> { Some(x) }\n",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        let some_contract =
+            library_rust_option_some_constructor_contract(Lang::Rust, "Some", 1).unwrap();
+        let some_call = rust_some
+            .nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                (node.kind == NodeKind::Call
+                    && rust_some
+                        .children(NodeId(idx as u32))
+                        .first()
+                        .is_some_and(|&callee| {
+                            matches!(
+                                rust_some.node(callee).payload,
+                                Payload::Name(symbol) if interner.resolve(symbol) == "Some"
+                            )
+                        }))
+                .then_some(node.span)
+            })
+            .expect("Some call should be lowered");
+        let some_api = library_api_evidence_ids_at(
+            &rust_some.evidence,
+            some_call,
+            library_api_contract_id_hash(some_contract.id),
+            library_api_callee_contract_hash(some_contract.callee),
+            1,
+        );
+        assert_eq!(some_api.len(), 1);
+        assert!(result_domain_depends_on_api(
+            &rust_some.evidence,
+            some_call,
+            DomainEvidence::Option,
+            &some_api,
+        ));
+
+        let rust_none = crate::lower_source(
+            FileId(0),
+            "t.rs",
+            b"fn f() -> Option<i32> { None }\n",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        let none_contract = library_rust_option_none_sentinel_contract(Lang::Rust, "None").unwrap();
+        let none_var = rust_none
+            .nodes
+            .iter()
+            .find_map(|node| {
+                (node.kind == NodeKind::Var
+                    && matches!(
+                        node.payload,
+                        Payload::Name(symbol) if interner.resolve(symbol) == "None"
+                    ))
+                .then_some(node.span)
+            })
+            .expect("None var should be lowered");
+        let none_api = library_api_evidence_ids_at_node(
+            &rust_none.evidence,
+            none_var,
+            NodeKind::Var,
+            library_api_contract_id_hash(none_contract.id),
+            library_api_callee_contract_hash(none_contract.callee),
+            0,
+        );
+        assert_eq!(none_api.len(), 1);
+        assert!(result_domain_depends_on_api_at_node(
+            &rust_none.evidence,
+            none_var,
+            NodeKind::Var,
+            DomainEvidence::Option,
+            &none_api,
+        ));
+
+        let shadowed_some = crate::lower_source(
+            FileId(0),
+            "t.rs",
+            b"fn Some(x: i32) -> Option<i32> { None }\nfn f(x: i32) -> Option<i32> { Some(x) }\n",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &shadowed_some.evidence,
+                library_api_contract_id_hash(some_contract.id),
+                library_api_callee_contract_hash(some_contract.callee),
+            ),
+            0,
+            "local Rust Some item must close the std Option constructor occurrence"
         );
     }
 

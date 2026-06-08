@@ -9,8 +9,8 @@
 
 use crate::lower::Lowering;
 use nose_il::{
-    Builtin, FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span,
-    Symbol, UnitKind,
+    FileId, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload, Span, Symbol,
+    UnitKind,
 };
 use tree_sitter::Node as TsNode;
 
@@ -913,35 +913,16 @@ fn lower_cond(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
     let Some(value_node) = node
         .child_by_field_name("value")
         .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
     else {
         return lower_expr(lo, node);
     };
-    let text = lo.text(node).trim();
-    let op = if text.starts_with("let Some") && !rust_file_defines_name(lo, "Some") {
-        Some(Builtin::IsNotNull)
-    } else if text.starts_with("let None") && !rust_file_defines_name(lo, "None") {
-        Some(Builtin::IsNull)
-    } else {
-        None
-    };
-    if let Some(op) = op {
-        let value = lower_expr(lo, value_node);
-        return lo.add(NodeKind::Call, Payload::Builtin(op), span, &[value]);
-    }
     lower_expr(lo, value_node)
 }
 
-fn rust_file_defines_name(lo: &Lowering, name: &str) -> bool {
-    let Ok(src) = std::str::from_utf8(lo.src) else {
-        return false;
-    };
-    rust_item_declares_name(src, name)
-}
-
+#[cfg(test)]
 fn rust_item_declares_name(src: &str, name: &str) -> bool {
     const ITEM_PREFIXES: &[&str] = &[
         "const", "static", "fn", "struct", "enum", "union", "type", "mod", "trait",
@@ -952,16 +933,19 @@ fn rust_item_declares_name(src: &str, name: &str) -> bool {
         .any(|tokens| rust_tokens_declare_name(&tokens, ITEM_PREFIXES, name))
 }
 
+#[cfg(test)]
 fn strip_rust_line_comment(line: &str) -> &str {
     line.split_once("//").map(|(code, _)| code).unwrap_or(line)
 }
 
+#[cfg(test)]
 fn rust_identifier_tokens(line: &str) -> Vec<&str> {
     line.split(|ch: char| !(ch == '_' || ch.is_ascii_alphanumeric()))
         .filter(|token| !token.is_empty())
         .collect()
 }
 
+#[cfg(test)]
 fn rust_tokens_declare_name(tokens: &[&str], item_prefixes: &[&str], name: &str) -> bool {
     tokens.iter().enumerate().any(|(idx, token)| {
         if !item_prefixes.contains(token) {
@@ -973,6 +957,7 @@ fn rust_tokens_declare_name(tokens: &[&str], item_prefixes: &[&str], name: &str)
     })
 }
 
+#[cfg(test)]
 fn rust_item_qualifier_token(token: &str) -> bool {
     matches!(
         token,

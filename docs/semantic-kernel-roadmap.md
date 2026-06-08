@@ -429,6 +429,14 @@ and pack ecosystem.
   inner HOF call's admitted `LibraryApi` occurrence instead of a raw method
   selector. Raw Python async-looking field names no longer rewrite to sync names
   until an explicit async/sync protocol evidence path exists.
+- The protocol/API occurrence closure slice extended `LibraryApi` beyond
+  call-only APIs. JS/TS/Java `length` property reads now require a
+  `PropertyBuiltin` occurrence anchored to the `Field` node, JS-like `length()`
+  is no longer a cardinality method contract, Rust `Some(...)` and bare `None`
+  now emit contract-backed Option occurrence evidence, Rust `Option::and_then`
+  and scalar integer methods require admitted receiver-method occurrences, and
+  value-graph/desugar/idiom consumers fail closed when those occurrence records
+  are missing, rejected, or dependency-broken.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -508,7 +516,8 @@ Remaining in this phase:
   static/global APIs, Python builtin/import-backed factories/functions, Rust
   free-name/path factories, Ruby require-backed factories, Java `java.util`
   static factories/adapters and selected empty constructors, JS regex literals,
-  JS/TS static-index membership, and selected receiver-method families.
+  JS/TS static-index membership, JS/TS/Java property builtins, Rust
+  Option/scalar APIs, and selected receiver-method families.
   Remaining stdlib and ecosystem APIs still need dependency-backed occurrence
   records before they become pack-facing. Producer-covered
   factory/API result calls now also emit dependent call-node `Domain` evidence
@@ -520,10 +529,9 @@ Remaining in this phase:
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
   evidence, as do generic Python/Go free-function builtins and selected
   receiver-method families. Lowered sequence-surface consumers are now
-  evidence-only where covered. Remaining API work is property occurrence
-  evidence, Rust Option constructor/sentinel/`and_then` occurrence evidence,
-  Rust scalar method occurrence evidence, promise receiver proof, and ecosystem
-  APIs only after demand, receiver, and effect obligations are expressible.
+  evidence-only where covered. Remaining API work is promise receiver proof,
+  async/sync protocol convergence, and ecosystem APIs only after demand,
+  receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
