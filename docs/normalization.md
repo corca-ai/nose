@@ -193,10 +193,17 @@ downstream value-graph.
   (fingerprint subgraphs) and the natural home for the downstream graph/vectorize
   experiments. Hard parts: φ-handling across control flow, effect ordering,
   canonical graph hashing.
-  The implementation keeps the public fingerprint facade in `value_graph.rs`
-  while focused internal modules own active builders, control/loop processing,
-  collection/HOF/library value recognition, output extraction, stdlib recognizers,
-  pure inlining, low-level ops, and proof-sensitive rule modules.
+  The implementation keeps `value_graph.rs` as a module/documentation hub:
+  public API entry points live in `value_graph/api.rs`, private value-graph
+  model and builder state live in `value_graph/model.rs`, evidence/state
+  helpers live in `value_graph/state.rs`, sink/path emission lives in
+  `value_graph/sinks.rs`, value interning and canonicalization live in
+  `value_graph/canonicalize.rs`, and expression dispatch lives in
+  `value_graph/eval.rs`. Other focused modules own active builders,
+  control/loop processing, collection/HOF/library value recognition, output
+  extraction, stdlib recognizers, pure inlining, low-level ops, and
+  proof-sensitive rule modules. New value-graph behavior should land in the
+  narrowest matching module instead of growing the hub file.
 
   A narrow Java-only selection idiom lives here: `x % 2 == 0 ? x + 1 : x - 1`
   and the equivalent `x % 2 != 0 ? x - 1 : x + 1` canonicalize to `x ^ 1`.
