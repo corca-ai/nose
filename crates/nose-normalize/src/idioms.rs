@@ -16,11 +16,11 @@ use nose_semantics::{
     library_api_contract_evidence_for_call, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
-    library_static_collection_adapter_contract, method_hof_contract,
-    rust_option_some_constructor_contract, seq_surface_contract_for_node, unshadowed_global_symbol,
-    BuiltinArgContract, DomainRequirement, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
-    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodCallContract,
-    MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
+    library_static_collection_adapter_contract, rust_option_some_constructor_contract,
+    seq_surface_contract_for_node, unshadowed_global_symbol, BuiltinArgContract, DomainRequirement,
+    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryMapFactoryResult, MapKeyViewKind,
+    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    SEQ_VALUE_MAP,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -328,6 +328,16 @@ pub(crate) fn canon_call_with_domains(
                 if let Some(contract) =
                     library_method_call_contract(old.meta.lang, fname, args.len())
                 {
+                    if !library_api_evidence_admitted(
+                        old,
+                        interner,
+                        call_id,
+                        contract.id,
+                        contract.callee,
+                        args.len(),
+                    ) {
+                        return CallCanon::None;
+                    }
                     let Some(base) = base else {
                         return CallCanon::None;
                     };
@@ -675,8 +685,16 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
                         method,
                         call_kids.len() - 1,
                     )
-                    .is_some()
-                    {
+                    .is_some_and(|contract| {
+                        library_api_evidence_admitted(
+                            old,
+                            interner,
+                            node,
+                            contract.id,
+                            contract.callee,
+                            call_kids.len() - 1,
+                        )
+                    }) {
                         if let Some(&base) = old.children(callee).first() {
                             return unwrap_iter(old, interner, base);
                         }
@@ -727,20 +745,50 @@ fn exact_protocol_receiver(
         return exact_collection_receiver(old, interner, domains, arg);
     }
     if let Some(contract) = library_method_call_contract(old.meta.lang, method, kids.len() - 1) {
-        let contract = contract.result;
-        if contract.semantic == MethodSemanticContract::Builtin(Builtin::Zip)
-            && contract.receiver == MethodReceiverContract::ExactProtocolPairArgument
-            && contract.args == MethodBuiltinArgs::RustZip
+        if contract.result.semantic == MethodSemanticContract::Builtin(Builtin::Zip)
+            && contract.result.receiver == MethodReceiverContract::ExactProtocolPairArgument
+            && contract.result.args == MethodBuiltinArgs::RustZip
+            && library_api_evidence_admitted(
+                old,
+                interner,
+                node,
+                contract.id,
+                contract.callee,
+                kids.len() - 1,
+            )
         {
             return exact_protocol_receiver(old, interner, domains, receiver)
                 && exact_protocol_receiver(old, interner, domains, kids[1]);
         }
     }
-    if library_iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1).is_some() {
+    if library_iterator_identity_adapter_contract(old.meta.lang, method, kids.len() - 1)
+        .is_some_and(|contract| {
+            library_api_evidence_admitted(
+                old,
+                interner,
+                node,
+                contract.id,
+                contract.callee,
+                kids.len() - 1,
+            )
+        })
+    {
         return exact_protocol_receiver(old, interner, domains, receiver);
     }
-    if method_hof_contract(old.meta.lang, method).is_some() && kids.len() >= 2 {
-        return exact_protocol_receiver(old, interner, domains, receiver);
+    if let Some(contract) = library_method_call_contract(old.meta.lang, method, kids.len() - 1) {
+        if matches!(contract.result.semantic, MethodSemanticContract::HoF(_))
+            && kids.len() >= 2
+            && library_api_evidence_admitted(
+                old,
+                interner,
+                node,
+                contract.id,
+                contract.callee,
+                kids.len() - 1,
+            )
+        {
+            return exact_protocol_receiver(old, interner, domains, receiver);
+        }
     }
     false
 }
@@ -777,6 +825,20 @@ fn static_collection_adapter_arg(
         LibraryApiEvidenceStatus::Missing => return None,
     }
     call_kids.get(1).copied()
+}
+
+fn library_api_evidence_admitted(
+    old: &Il,
+    interner: &Interner,
+    call: NodeId,
+    id: nose_semantics::LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arg_count: usize,
+) -> bool {
+    matches!(
+        library_api_contract_evidence_for_call(old, interner, call, id, callee, arg_count),
+        LibraryApiEvidenceStatus::Admitted
+    )
 }
 
 fn exact_set_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
@@ -1012,7 +1074,10 @@ fn map_get_call_parts(old: &Il, interner: &Interner, id: NodeId) -> Option<(Node
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    library_map_get_contract(old.meta.lang, interner.resolve(method), 1)?;
+    let contract = library_map_get_contract(old.meta.lang, interner.resolve(method), 1)?;
+    if !library_api_evidence_admitted(old, interner, id, contract.id, contract.callee, 1) {
+        return None;
+    }
     let receiver = *old.children(kids[0]).first()?;
     Some((receiver, kids[1]))
 }
@@ -1028,8 +1093,11 @@ fn key_set_receiver(old: &Il, interner: &Interner, id: NodeId) -> Option<NodeId>
     let Payload::Name(method) = old.node(kids[0]).payload else {
         return None;
     };
-    let contract =
-        library_map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?.result;
+    let contract = library_map_key_view_contract(old.meta.lang, interner.resolve(method), 0)?;
+    if !library_api_evidence_admitted(old, interner, id, contract.id, contract.callee, 0) {
+        return None;
+    }
+    let contract = contract.result;
     if contract.kind != MapKeyViewKind::Collection {
         return None;
     }
@@ -1138,6 +1206,88 @@ mod tests {
         }
     }
 
+    fn next_evidence_id(il: &Il) -> u32 {
+        il.evidence.len() as u32
+    }
+
+    fn method_call_receiver(il: &Il, call: NodeId) -> Option<NodeId> {
+        let callee = *il.children(call).first()?;
+        (il.kind(callee) == NodeKind::Field)
+            .then(|| il.children(callee).first().copied())
+            .flatten()
+    }
+
+    fn push_sequence_surface_evidence(
+        il: &mut Il,
+        node: NodeId,
+        surface: SequenceSurfaceKind,
+    ) -> EvidenceId {
+        let id = next_evidence_id(il);
+        il.evidence.push(evidence(
+            id,
+            EvidenceAnchor::sequence(il.node(node).span),
+            EvidenceKind::SequenceSurface(surface),
+            EvidenceStatus::Asserted,
+        ));
+        EvidenceId(id)
+    }
+
+    fn push_receiver_sequence_surface_evidence(
+        il: &mut Il,
+        call: NodeId,
+        surface: SequenceSurfaceKind,
+    ) -> EvidenceId {
+        let receiver = method_call_receiver(il, call).expect("method receiver");
+        push_sequence_surface_evidence(il, receiver, surface)
+    }
+
+    fn push_receiver_method_library_api_evidence(
+        il: &mut Il,
+        interner: &Interner,
+        call: NodeId,
+    ) -> Option<EvidenceId> {
+        let kids = il.children(call);
+        let (&callee, args) = kids.split_first()?;
+        if il.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = il.node(callee).payload else {
+            return None;
+        };
+        let method = interner.resolve(method);
+        let arg_count = args.len();
+        let contract = library_map_get_contract(il.meta.lang, method, arg_count)
+            .map(|contract| (contract.id, contract.callee))
+            .or_else(|| {
+                library_map_key_view_contract(il.meta.lang, method, arg_count)
+                    .map(|contract| (contract.id, contract.callee))
+            })
+            .or_else(|| {
+                library_iterator_identity_adapter_contract(il.meta.lang, method, arg_count)
+                    .map(|contract| (contract.id, contract.callee))
+            })
+            .or_else(|| {
+                library_method_call_contract(il.meta.lang, method, arg_count)
+                    .map(|contract| (contract.id, contract.callee))
+            })?;
+        let dependencies = nose_semantics::library_api_receiver_dependencies_for_call(
+            il, interner, call, contract.1,
+        )?;
+        let id = next_evidence_id(il);
+        il.evidence.push(evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: nose_semantics::library_api_contract_id_hash(contract.0),
+                callee_hash: nose_semantics::library_api_callee_contract_hash(contract.1),
+                arity: arg_count as u16,
+            }),
+            EvidenceStatus::Asserted,
+            dependencies,
+        ));
+        Some(EvidenceId(id))
+    }
+
     fn free_call_il(lang: Lang, name: &str, shadow_name: bool) -> (Il, Interner, NodeId) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
@@ -1207,7 +1357,7 @@ mod tests {
         );
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, func]);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1216,6 +1366,10 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        if literal_receiver {
+            push_receiver_sequence_surface_evidence(&mut il, call, SequenceSurfaceKind::Collection);
+            let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
+        }
         (il, interner, call)
     }
 
@@ -1249,7 +1403,7 @@ mod tests {
         );
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field]);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1258,6 +1412,10 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        if literal_receiver {
+            push_receiver_sequence_surface_evidence(&mut il, call, SequenceSurfaceKind::Collection);
+            let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
+        }
         (il, interner, call)
     }
 
@@ -1307,7 +1465,7 @@ mod tests {
         };
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1316,6 +1474,13 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        if literal_receiver {
+            push_receiver_sequence_surface_evidence(&mut il, call, SequenceSurfaceKind::Collection);
+        }
+        if literal_arg {
+            push_sequence_surface_evidence(&mut il, arg, SequenceSurfaceKind::Collection);
+        }
+        let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
         (il, interner, call)
     }
 
@@ -1358,7 +1523,7 @@ mod tests {
         };
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, key, fallback]);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &[call]);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1367,6 +1532,8 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        push_receiver_sequence_surface_evidence(&mut il, call, SequenceSurfaceKind::Map);
+        let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
         (il, interner, call, fallback_value)
     }
 
@@ -1435,6 +1602,7 @@ mod tests {
                 EvidenceStatus::Asserted,
             ));
         }
+        let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
         (il, interner, call)
     }
 
@@ -1482,6 +1650,7 @@ mod tests {
             EvidenceKind::Domain(domain),
             EvidenceStatus::Asserted,
         ));
+        let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
         (il, interner, call, receiver_span)
     }
 
@@ -1593,7 +1762,7 @@ mod tests {
         let call = b.add(NodeKind::Call, Payload::None, sp(), &[field, arg]);
         module_kids.push(call);
         let root = b.add(NodeKind::Module, Payload::None, sp(), &module_kids);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "t".to_string(),
@@ -1602,6 +1771,17 @@ mod tests {
             Vec::new(),
             cid_names,
         );
+        if !shadow_console {
+            il.evidence.push(evidence(
+                0,
+                EvidenceAnchor::node(il.node(receiver).span, NodeKind::Var),
+                EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                    name_hash: stable_symbol_hash("console"),
+                }),
+                EvidenceStatus::Asserted,
+            ));
+            let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
+        }
         (il, interner, call)
     }
 
@@ -1672,6 +1852,16 @@ mod tests {
                 }),
                 EvidenceStatus::Asserted,
             ));
+            il.evidence.push(evidence_with_dependencies(
+                2,
+                EvidenceAnchor::node(sp(), NodeKind::Var),
+                EvidenceKind::Symbol(SymbolEvidenceKind::ImportedNamespace {
+                    module_hash: stable_symbol_hash("math"),
+                }),
+                EvidenceStatus::Asserted,
+                vec![EvidenceId(1)],
+            ));
+            let _ = push_receiver_method_library_api_evidence(&mut il, &interner, call);
         }
         (il, interner, call)
     }
@@ -1826,7 +2016,7 @@ mod tests {
         let (mut il, interner, call, receiver_span) =
             receiver_domain_method_call_il(DomainEvidence::Collection);
         il.evidence.push(evidence(
-            1,
+            next_evidence_id(&il),
             EvidenceAnchor::node(receiver_span, NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Map),
             EvidenceStatus::Asserted,

@@ -23,6 +23,7 @@ mod dce;
 mod desugar;
 mod idioms;
 mod interp;
+mod library_api_evidence;
 mod literals;
 pub mod module_facts;
 mod recursion;
@@ -234,6 +235,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
     timer.lap("desugar");
     binding_evidence::run(&mut out, interner);
     timer.lap("binding");
+    library_api_evidence::run(&mut out, interner);
+    timer.lap("api-evidence");
     alpha::run(&mut out);
     timer.lap("alpha");
     if opts.oracle {
@@ -266,6 +269,8 @@ pub fn normalize(il: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il {
         cfg_norm::run(&mut out, interner);
         timer.lap("cfg-orient");
     }
+    library_api_evidence::run(&mut out, interner);
+    timer.lap("api-evidence-final");
     // IR-verifier discipline: in debug/test builds, assert the rewrite pipeline
     // produced a structurally well-formed arena. Free in release.
     debug_assert!(

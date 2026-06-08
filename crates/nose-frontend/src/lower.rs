@@ -11,7 +11,8 @@ use nose_il::{
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_api_free_name_shadow_safe, library_collection_factory_result_domain_for_arity,
+    library_api_free_name_shadow_safe, library_api_receiver_dependencies_for_call_with_cache,
+    library_collection_factory_result_domain_for_arity,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
     library_java_collection_factory_contract, library_java_map_entry_contract,
@@ -19,10 +20,11 @@ use nose_semantics::{
     library_js_boolean_coercion_contract, library_js_like_map_constructor_contract,
     library_js_like_set_constructor_contract, library_map_factory_result_domain,
     library_map_key_view_wrapper_contract, library_map_key_view_wrapper_result_domain,
-    library_regex_test_contract, library_ruby_set_factory_contract,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_static_collection_adapter_contract, sequence_surface_kind_for_tag, ImportFactKind,
-    LibraryApiCalleeContract, LibraryApiContractId,
+    library_receiver_method_api_contract, library_regex_test_contract,
+    library_ruby_set_factory_contract, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
+    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
+    LibraryApiDependencyCache, MethodReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -1174,11 +1176,15 @@ fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
                 .then_some(NodeId(idx as u32))
         })
         .collect();
+    let mut dependency_cache = LibraryApiDependencyCache::default();
     for call in calls {
         if record_post_lower_free_name_library_api(il, interner, call) {
             continue;
         }
-        record_post_lower_ruby_static_member_library_api(il, interner, call);
+        if record_post_lower_ruby_static_member_library_api(il, interner, call) {
+            continue;
+        }
+        record_post_lower_receiver_method_library_api(il, interner, call, &mut dependency_cache);
     }
 }
 
@@ -1372,6 +1378,87 @@ fn record_post_lower_ruby_static_member_library_api(
     true
 }
 
+fn record_post_lower_receiver_method_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+    dependency_cache: &mut LibraryApiDependencyCache,
+) -> bool {
+    let kids = il.children(call);
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    if il.kind(callee) != NodeKind::Field {
+        return false;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return false;
+    };
+    let method = interner.resolve(method);
+    let arg_count = args.len();
+    let Some(contract) = library_receiver_method_api_contract(il.meta.lang, method, arg_count)
+    else {
+        return false;
+    };
+    seed_post_lower_receiver_method_dependencies(il, interner, callee, contract.callee);
+    let Some(dependencies) = library_api_receiver_dependencies_for_call_with_cache(
+        il,
+        interner,
+        call,
+        contract.callee,
+        dependency_cache,
+    ) else {
+        return false;
+    };
+    post_lower_library_api_evidence_id(
+        il,
+        call,
+        contract.id,
+        contract.callee,
+        arg_count,
+        contract.rule,
+        dependencies,
+    );
+    true
+}
+
+fn seed_post_lower_receiver_method_dependencies(
+    il: &mut Il,
+    interner: &Interner,
+    callee: NodeId,
+    callee_contract: LibraryApiCalleeContract,
+) {
+    let LibraryApiCalleeContract::Method { receiver, .. } = callee_contract else {
+        return;
+    };
+    let Some(&receiver_node) = il.children(callee).first() else {
+        return;
+    };
+    match receiver {
+        MethodReceiverContract::UnshadowedGlobal(name) => {
+            if post_lower_var_name(il, interner, receiver_node) == Some(name)
+                && !post_lower_file_defines_name_visible_at(
+                    il,
+                    interner,
+                    name,
+                    il.node(receiver_node).span,
+                )
+            {
+                let _ = post_lower_unshadowed_symbol_evidence_id(il, receiver_node, name);
+            }
+        }
+        MethodReceiverContract::ImportedNamespace(module) => {
+            let _ = post_lower_imported_namespace_symbol_evidence_id(
+                il,
+                interner,
+                receiver_node,
+                module,
+            );
+        }
+        _ => {}
+    }
+}
+
 fn post_lower_var_name<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str> {
     if il.kind(node) != NodeKind::Var {
         return None;
@@ -1399,6 +1486,51 @@ fn post_lower_unshadowed_symbol_evidence_id(
         "symbol_unshadowed_global_post_lower",
         vec![],
     )
+}
+
+fn post_lower_imported_namespace_symbol_evidence_id(
+    il: &mut Il,
+    interner: &Interner,
+    node: NodeId,
+    module: &str,
+) -> Option<EvidenceId> {
+    let expected = SymbolEvidenceKind::ImportedNamespace {
+        module_hash: stable_symbol_hash(module),
+    };
+    let dependency = post_lower_binding_symbol_evidence_id(il, interner, node, expected)?;
+    post_lower_find_or_push_evidence(
+        il,
+        EvidenceAnchor::node(il.node(node).span, NodeKind::Var),
+        EvidenceKind::Symbol(expected),
+        "symbol_imported_namespace_occurrence_post_lower",
+        vec![dependency],
+    )
+}
+
+fn post_lower_binding_symbol_evidence_id(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: SymbolEvidenceKind,
+) -> Option<EvidenceId> {
+    if il.kind(node) != NodeKind::Var {
+        return None;
+    }
+    let Payload::Name(local) = il.node(node).payload else {
+        return None;
+    };
+    let local_hash = stable_symbol_hash(interner.resolve(local));
+    il.evidence.iter().find_map(|record| {
+        (matches!(
+            record.anchor,
+            EvidenceAnchor::Binding {
+                local_hash: anchor_hash,
+                ..
+            } if anchor_hash == local_hash
+        ) && record.kind == EvidenceKind::Symbol(expected)
+            && record.status == EvidenceStatus::Asserted)
+            .then_some(record.id)
+    })
 }
 
 fn post_lower_required_module_evidence_id(
@@ -1556,38 +1688,7 @@ fn post_lower_file_defines_name_visible_at(
     name: &str,
     occurrence_span: Span,
 ) -> bool {
-    let name_hash = stable_symbol_hash(name);
-    il.units.iter().any(|unit| {
-        il.node(unit.root).span.file == occurrence_span.file
-            && unit
-                .name
-                .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
-    }) || il.nodes.iter().enumerate().any(|(idx, node)| {
-        node.span.file == occurrence_span.file
-            && match node.kind {
-                NodeKind::Module | NodeKind::Block | NodeKind::Param => {
-                    post_lower_node_defines_name(il, interner, NodeId(idx as u32), name_hash)
-                }
-                NodeKind::Assign => il
-                    .children(NodeId(idx as u32))
-                    .first()
-                    .copied()
-                    .is_some_and(|lhs| post_lower_node_defines_name(il, interner, lhs, name_hash)),
-                _ => false,
-            }
-    })
-}
-
-fn post_lower_node_defines_name(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-    name_hash: u64,
-) -> bool {
-    matches!(
-        il.node(node).payload,
-        Payload::Name(symbol) if stable_symbol_hash(interner.resolve(symbol)) == name_hash
-    )
+    nose_semantics::file_defines_name_visible_at(il, interner, name, occurrence_span)
 }
 
 fn normalize_type_text(text: &str) -> String {

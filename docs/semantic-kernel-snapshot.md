@@ -17,8 +17,11 @@ Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
 occurrence evidence covering selected JS-like static/global APIs, Python
 builtin/import-backed APIs, Rust free-name/path APIs, Ruby require-backed APIs,
-Java `java.util` APIs, and JS regex API calls. Selected producer-covered
-factory/API calls now also emit dependent receiver-expression `Domain` evidence
+Java `java.util` APIs, JS regex API calls, and selected language-scoped
+receiver-method APIs such as collection membership, map lookup/defaulting,
+map-key views, iterator identity adapters, Rust `zip`, and HOF/reduction
+methods. Selected producer-covered factory/API calls now also emit dependent
+receiver-expression `Domain` evidence
 for their result container domain, and normalize emits binding-anchored `Domain`
 evidence for immutable local/module bindings whose initializer domain and
 non-mutation conditions are proven by first-party evidence/analysis.
@@ -138,11 +141,12 @@ migrated.
   is closed until a pack/frontend can prove a Promise-like receiver.
 - Rust iterator identity adapters (`iter`, `into_iter`, `collect`, `to_vec`,
   `copied`, `cloned`) are language-, arity-, and receiver-proof constrained
-  through `LibraryApiContract`. Normalize's exact protocol receiver admission
-  consumes this same contract instead of accepting same-named methods from other
-  languages.
+  through `LibraryApiContract` and admitted `LibraryApi` occurrence evidence.
+  Normalize's exact protocol receiver admission consumes this same contract
+  instead of accepting same-named methods from other languages.
 - Rust method `zip(...)` is admitted as a protocol-pair operation only through
-  the Rust library method-call contract and exact protocol proof for both sides.
+  the Rust library method-call occurrence contract and exact protocol proof for
+  both sides.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
   selector and shadow-root requirement through `nose-semantics`;
@@ -219,6 +223,26 @@ migrated.
   so broken API proof also closes receiver-domain proof. The `LibraryApi` record
   itself proves API identity only; source, exact-safe argument, result-shape,
   mutation, and demand/effect obligations remain separate.
+- Receiver-method calls that remain as raw `Field`/`Call` nodes now emit
+  `LibraryApi` occurrence evidence for the first-party method families currently
+  backed by `LibraryApiContract`: map `get`, map-key views, iterator identity
+  adapters, and generic language-scoped method-call contracts such as
+  collection/map membership, map defaulting, count/length methods,
+  string/collection predicates, Rust `zip`, and HOF/reduction methods. The
+  occurrence record is admitted only for the exact language/method/arity row and
+  depends on receiver proof: node/binding/parameter `Domain`, `SequenceSurface`,
+  imported namespace or unshadowed-global `Symbol`, or a nested admitted
+  `LibraryApi` result such as a collection/map factory, map-key view, iterator
+  adapter, HOF, or map `get`. First-party lowering seeds these records when the
+  receiver proof already exists; normalize refreshes and upserts first-party
+  records after immutable binding-domain inference and again after final
+  CFG/dataflow/algebra rewrites, so bindings such as
+  `VALUES = List.of(...); VALUES.contains(x)` keep the same semantic fingerprint
+  as direct factory receivers without reopening selector-only fallbacks.
+  Normalized HOF receivers keep their same-span admitted `MethodCall(HoF(...))`
+  occurrence as protocol evidence, so downstream adapters such as Rust
+  `.collect()` can consume a canonicalized `filter_map` receiver without trusting
+  the `collect` selector alone.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require `java.util` import proof and no
@@ -438,13 +462,14 @@ Semantic knowledge still appears in several forms outside the facade:
   instead of versioned `LawPack` records;
 - hard-coded oracle evaluation rules for eager calls, short-circuit operators,
   HOFs, nullish defaulting, recursion, and effect traces;
-- duplicated library/API proof gates in desugaring, idiom lowering, value-graph,
-  and strict exact paths. `LibraryApi` occurrence evidence now reduces this for
-  selected JS-like static/global APIs, Python builtin/import-backed
-  factories/functions, Rust free-name/path factories, Ruby
-  `require "set"; Set.new(...)`, Java `java.util` static factories/adapters, and
-  JS regex literals, but Java empty constructors and broad receiver-method
-  surfaces still rely on contract rows plus local proof.
+- remaining library/API proof gates that do not yet have occurrence records.
+  `LibraryApi` occurrence evidence now covers selected JS-like static/global
+  APIs, Python builtin/import-backed factories/functions, Rust free-name/path
+  factories, Ruby `require "set"; Set.new(...)`, Java `java.util` static
+  factories/adapters, JS regex literals, and selected receiver-method families.
+  Java empty constructors, JS/TS static-index membership, free-name builtin
+  calls, promise receiver proof, and ecosystem APIs still rely on contract rows
+  plus local proof or remain exact-closed.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.

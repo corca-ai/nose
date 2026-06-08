@@ -8,10 +8,10 @@
 
 use nose_il::{
     contains_js_identifier, stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor,
-    EvidenceEmitter, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind, HoFKind, Il,
-    ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op,
-    ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind, SourceFactKind,
-    SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
+    EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceRecord, EvidenceStatus, GuardEvidenceKind,
+    HoFKind, Il, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind, LitClass, NodeId,
+    NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SequenceSurfaceKind, SourceCallKind,
+    SourceFactKind, SourceLiteralKind, SourceOperatorKind, Span, Symbol, SymbolEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 
@@ -53,6 +53,7 @@ pub fn source_fact_contract(kind: SourceFactKind) -> SourceFactContract {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum EvidenceResolution<T> {
     Missing,
     Found(T),
@@ -1570,7 +1571,7 @@ fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
         })
 }
 
-fn file_defines_name_visible_at(
+pub fn file_defines_name_visible_at(
     il: &Il,
     interner: &Interner,
     name: &str,
@@ -4562,6 +4563,13 @@ pub struct LibraryMethodCallContract {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryReceiverMethodApiContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub rule: &'static str,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LibraryApiEvidenceStatus {
     Missing,
     Admitted,
@@ -4640,6 +4648,7 @@ pub fn library_api_contract_evidence_at_call_span(
         callee_hash: library_api_callee_contract_hash(query.callee),
         arity: query.arg_count as u16,
     };
+    let source_call = node_at_span_with_kind(il, span, NodeKind::Call);
     let mut saw_library_api_evidence = false;
     let mut admitted = false;
     for record in &il.evidence {
@@ -4650,18 +4659,28 @@ pub fn library_api_contract_evidence_at_call_span(
             continue;
         };
         saw_library_api_evidence = true;
+        let source_call_matches = source_call.is_some_and(|node| {
+            library_api_source_call_spans_match_query(
+                il,
+                node,
+                query.callee_span,
+                query.receiver_span,
+            ) && library_api_callee_shape_matches(il, interner, node, query.callee)
+                && library_api_dependencies_match_callee(il, interner, node, query.callee, record)
+        });
+        let span_query_matches = library_api_dependencies_match_callee_at_span(
+            il,
+            interner,
+            span,
+            query.callee_span,
+            query.receiver_span,
+            query.callee,
+            record,
+        );
         if record.status != EvidenceStatus::Asserted
             || api != expected
             || !il.evidence_dependencies_asserted(record)
-            || !library_api_dependencies_match_callee_at_span(
-                il,
-                interner,
-                span,
-                query.callee_span,
-                query.receiver_span,
-                query.callee,
-                record,
-            )
+            || (!source_call_matches && !span_query_matches)
         {
             return LibraryApiEvidenceStatus::Rejected;
         }
@@ -4673,6 +4692,69 @@ pub fn library_api_contract_evidence_at_call_span(
         LibraryApiEvidenceStatus::Rejected
     } else {
         LibraryApiEvidenceStatus::Missing
+    }
+}
+
+fn library_api_source_call_spans_match_query(
+    il: &Il,
+    source_call: NodeId,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+) -> bool {
+    let Some(&callee) = il.children(source_call).first() else {
+        return false;
+    };
+    if callee_span.is_some_and(|span| il.node(callee).span != span) {
+        return false;
+    }
+    if let Some(span) = receiver_span {
+        let Some(&receiver) = il.children(callee).first() else {
+            return false;
+        };
+        if il.node(receiver).span != span {
+            return false;
+        }
+    }
+    true
+}
+
+pub fn library_api_receiver_dependencies_for_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    callee: LibraryApiCalleeContract,
+) -> Option<Vec<EvidenceId>> {
+    let mut cache = LibraryApiDependencyCache::default();
+    library_api_receiver_dependencies_for_call_with_cache(il, interner, call, callee, &mut cache)
+}
+
+#[derive(Default)]
+pub struct LibraryApiDependencyCache {
+    nearest_scope_by_node: FxHashMap<NodeId, Option<NodeId>>,
+    binding_lhs_by_reference: FxHashMap<NodeId, EvidenceResolution<NodeId>>,
+    receiver_param_span_by_reference: FxHashMap<NodeId, Option<Span>>,
+    name_assigned_in_scope: FxHashMap<(NodeId, Symbol), bool>,
+}
+
+pub fn library_api_receiver_dependencies_for_call_with_cache(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    callee: LibraryApiCalleeContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    let (&callee_node, args) = il.children(call).split_first()?;
+    match callee {
+        LibraryApiCalleeContract::Method { method, receiver } => {
+            let receiver_node = method_callee_receiver(il, interner, callee_node, method)?;
+            method_receiver_dependency_ids(il, interner, receiver_node, receiver, args, cache)
+        }
+        LibraryApiCalleeContract::IteratorAdapterMethod { method, receiver } => {
+            let receiver_node = method_callee_receiver(il, interner, callee_node, method)?;
+            iterator_adapter_receiver_dependency_ids(il, interner, receiver_node, receiver, cache)
+        }
+        LibraryApiCalleeContract::AsyncMethod { .. } => None,
+        _ => Some(Vec::new()),
     }
 }
 
@@ -4731,6 +4813,11 @@ fn library_api_callee_shape_matches(
         }
         LibraryApiCalleeContract::StaticGlobalFunction { function, .. } => {
             var_name_matches(il, interner, callee_node, function)
+        }
+        LibraryApiCalleeContract::Method { method, .. }
+        | LibraryApiCalleeContract::AsyncMethod { method, .. }
+        | LibraryApiCalleeContract::IteratorAdapterMethod { method, .. } => {
+            method_callee_receiver(il, interner, callee_node, method).is_some()
         }
         _ => false,
     }
@@ -4852,6 +4939,12 @@ fn library_api_dependencies_match_callee(
             !requires_unshadowed_function
                 || dependency_has_unshadowed_global_node(il, record, callee_node, function)
         }
+        LibraryApiCalleeContract::Method { .. }
+        | LibraryApiCalleeContract::IteratorAdapterMethod { .. } => {
+            library_api_receiver_dependencies_for_call(il, interner, node, callee)
+                .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
+        }
+        LibraryApiCalleeContract::AsyncMethod { .. } => false,
         _ => false,
     }
 }
@@ -5030,8 +5123,1156 @@ fn library_api_dependencies_match_callee_at_span(
                     )
                 })
         }
+        LibraryApiCalleeContract::Method { method, receiver } => {
+            callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method))
+                && receiver_span.is_some_and(|span| {
+                    method_receiver_dependencies_at_span(il, interner, span, receiver).is_some_and(
+                        |dependencies| dependency_ids_are_present(record, &dependencies),
+                    )
+                })
+        }
+        LibraryApiCalleeContract::IteratorAdapterMethod { method, receiver } => {
+            callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method))
+                && receiver_span.is_some_and(|span| {
+                    iterator_adapter_receiver_dependencies_at_span(il, interner, span, receiver)
+                        .is_some_and(|dependencies| {
+                            dependency_ids_are_present(record, &dependencies)
+                        })
+                })
+        }
+        LibraryApiCalleeContract::AsyncMethod { .. } => false,
         _ => false,
     }
+}
+
+fn method_callee_receiver(
+    il: &Il,
+    interner: &Interner,
+    callee: NodeId,
+    expected_method: &str,
+) -> Option<NodeId> {
+    if !field_method_matches(il, interner, callee, expected_method) {
+        return None;
+    }
+    il.children(callee).first().copied()
+}
+
+fn field_method_at_span(il: &Il, interner: &Interner, span: Span, expected: &str) -> bool {
+    il.nodes.iter().any(|node| {
+        node.span == span
+            && node.kind == NodeKind::Field
+            && matches!(node.payload, Payload::Name(method) if interner.resolve(method) == expected)
+    })
+}
+
+fn method_receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    args: &[NodeId],
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    let mut dependencies = receiver_dependency_ids(il, interner, receiver, contract, cache)?;
+    if contract == MethodReceiverContract::ExactProtocolPairArgument {
+        let pair = *args.first()?;
+        dependencies.extend(receiver_dependency_ids(
+            il,
+            interner,
+            pair,
+            MethodReceiverContract::ExactProtocol,
+            cache,
+        )?);
+    }
+    Some(dependencies)
+}
+
+fn iterator_adapter_receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: IteratorAdapterReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    match contract {
+        IteratorAdapterReceiverContract::ExactIterableValue => receiver_dependency_ids(
+            il,
+            interner,
+            receiver,
+            MethodReceiverContract::ExactProtocol,
+            cache,
+        ),
+    }
+}
+
+fn method_receiver_dependencies_at_span(
+    il: &Il,
+    interner: &Interner,
+    receiver_span: Span,
+    contract: MethodReceiverContract,
+) -> Option<Vec<EvidenceId>> {
+    let receiver = node_at_span(il, receiver_span)?;
+    let mut cache = LibraryApiDependencyCache::default();
+    receiver_dependency_ids(il, interner, receiver, contract, &mut cache)
+}
+
+fn iterator_adapter_receiver_dependencies_at_span(
+    il: &Il,
+    interner: &Interner,
+    receiver_span: Span,
+    contract: IteratorAdapterReceiverContract,
+) -> Option<Vec<EvidenceId>> {
+    let receiver = node_at_span(il, receiver_span)?;
+    let mut cache = LibraryApiDependencyCache::default();
+    iterator_adapter_receiver_dependency_ids(il, interner, receiver, contract, &mut cache)
+}
+
+fn node_at_span(il: &Il, span: Span) -> Option<NodeId> {
+    let mut found = None;
+    for (idx, node) in il.nodes.iter().enumerate() {
+        if node.span != span {
+            continue;
+        }
+        let id = NodeId(idx as u32);
+        match found {
+            None => found = Some(id),
+            Some(existing)
+                if il.kind(existing) == node.kind && il.node(existing).payload == node.payload => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn node_at_span_with_kind(il: &Il, span: Span, kind: NodeKind) -> Option<NodeId> {
+    let mut found = None;
+    for (idx, node) in il.nodes.iter().enumerate() {
+        if node.span != span || node.kind != kind {
+            continue;
+        }
+        let id = NodeId(idx as u32);
+        match found {
+            None => found = Some(id),
+            Some(existing) if il.node(existing).payload == node.payload => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    match contract {
+        MethodReceiverContract::LiteralString => {
+            matches!(il.node(receiver).payload, Payload::LitStr(_)).then_some(Vec::new())
+        }
+        MethodReceiverContract::UnshadowedGlobal(global) => {
+            Some(vec![symbol_dependency_id_for_node(
+                il,
+                receiver,
+                SymbolEvidenceKind::UnshadowedGlobal {
+                    name_hash: stable_symbol_hash(global),
+                },
+            )?])
+        }
+        MethodReceiverContract::ImportedNamespace(module) => {
+            Some(vec![imported_symbol_dependency_id_for_node(
+                il,
+                interner,
+                receiver,
+                SymbolEvidenceKind::ImportedNamespace {
+                    module_hash: stable_symbol_hash(module),
+                },
+            )?])
+        }
+        MethodReceiverContract::ExactMapLiteral => {
+            Some(vec![sequence_surface_dependency_id_for_receiver(
+                il, interner, receiver, contract,
+            )?])
+        }
+        MethodReceiverContract::ExactCollectionOrMapLiteral => {
+            domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
+        }
+        MethodReceiverContract::ExactCollection | MethodReceiverContract::ExactCollectionOrMap => {
+            if let Some(ids) =
+                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
+            {
+                return Some(ids);
+            }
+            library_api_dependency_id_for_map_key_view_call(
+                il,
+                interner,
+                receiver,
+                &[MapKeyViewKind::Collection],
+            )
+            .map(|id| vec![id])
+        }
+        MethodReceiverContract::RustMapGetOrExactOption => {
+            if let Some(ids) =
+                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
+            {
+                return Some(ids);
+            }
+            library_api_dependency_id_for_call(il, interner, receiver, LibraryApiContractId::MapGet)
+                .map(|id| vec![id])
+        }
+        MethodReceiverContract::ExactCollectionOrJavaKeySet => {
+            if let Some(ids) =
+                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
+            {
+                return Some(ids);
+            }
+            if let Some(id) = library_api_dependency_id_for_call(
+                il,
+                interner,
+                receiver,
+                LibraryApiContractId::MapKeyView(MapKeyViewKind::Collection),
+            ) {
+                return Some(vec![id]);
+            }
+            library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+                .map(|id| vec![id])
+        }
+        MethodReceiverContract::ExactProtocol => {
+            if let Some(ids) =
+                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
+            {
+                return Some(ids);
+            }
+            if let Some(id) = library_api_dependency_id_for_map_key_view_call(
+                il,
+                interner,
+                receiver,
+                &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
+            ) {
+                return Some(vec![id]);
+            }
+            if let Some(id) =
+                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+            {
+                return Some(vec![id]);
+            }
+            if let Some(id) = library_api_dependency_id_for_normalized_hof(il, receiver) {
+                return Some(vec![id]);
+            }
+            library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
+        }
+        MethodReceiverContract::ExactProtocolPairArgument => domain_or_sequence_dependency_ids(
+            il,
+            interner,
+            receiver,
+            MethodReceiverContract::ExactProtocol,
+            cache,
+        )
+        .or_else(|| {
+            library_api_dependency_id_for_map_key_view_call(
+                il,
+                interner,
+                receiver,
+                &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
+            )
+            .map(|id| vec![id])
+        })
+        .or_else(|| {
+            library_api_dependency_id_for_receiver_domain_call(
+                il,
+                interner,
+                receiver,
+                MethodReceiverContract::ExactProtocol,
+            )
+            .map(|id| vec![id])
+        })
+        .or_else(|| library_api_dependency_id_for_normalized_hof(il, receiver).map(|id| vec![id]))
+        .or_else(|| {
+            library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
+        }),
+        _ => domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache).or_else(
+            || {
+                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+                    .map(|id| vec![id])
+            },
+        ),
+    }
+}
+
+fn domain_or_sequence_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    if let Some(id) = domain_dependency_id_for_receiver(il, interner, receiver, contract, cache) {
+        return Some(vec![id]);
+    }
+    sequence_surface_dependency_id_for_receiver(il, interner, receiver, contract).map(|id| vec![id])
+}
+
+fn domain_dependency_id_for_receiver(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<EvidenceId> {
+    let requirement = method_receiver_domain_requirement(contract)?;
+    let mut found = None;
+    for record in &il.evidence {
+        let EvidenceKind::Domain(domain) = record.kind else {
+            continue;
+        };
+        if record.status != EvidenceStatus::Asserted
+            || !il.evidence_dependencies_asserted(record)
+            || !requirement.accepts(domain)
+            || !domain_dependency_anchor_matches_receiver(
+                il,
+                interner,
+                receiver,
+                record.anchor,
+                cache,
+            )
+        {
+            continue;
+        }
+        match found {
+            None => found = Some((domain, record.id)),
+            Some((existing, _)) if existing == domain => {}
+            Some(_) => return None,
+        }
+    }
+    found.map(|(_, id)| id)
+}
+
+fn domain_dependency_anchor_matches_receiver(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    anchor: EvidenceAnchor,
+    cache: &mut LibraryApiDependencyCache,
+) -> bool {
+    match anchor {
+        EvidenceAnchor::Node { span, kind } => {
+            span == il.node(receiver).span && kind == il.kind(receiver)
+        }
+        EvidenceAnchor::Binding { span, local_hash } => {
+            matches!(
+                unique_binding_lhs_for_var_reference_cached(il, receiver, cache),
+                EvidenceResolution::Found(lhs)
+                    if il.node(lhs).span == span
+                        && node_name_hash(il, interner, lhs) == Some(local_hash)
+            )
+        }
+        EvidenceAnchor::Param { span } => {
+            receiver_param_span_cached(il, receiver, cache) == Some(span)
+        }
+        _ => false,
+    }
+}
+
+fn unique_binding_lhs_for_var_reference_cached(
+    il: &Il,
+    node: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> EvidenceResolution<NodeId> {
+    if let Some(&cached) = cache.binding_lhs_by_reference.get(&node) {
+        return cached;
+    }
+    let resolution = unique_binding_lhs_for_var_reference_with_cache(il, node, cache);
+    cache.binding_lhs_by_reference.insert(node, resolution);
+    resolution
+}
+
+fn unique_binding_lhs_for_var_reference_with_cache(
+    il: &Il,
+    node: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> EvidenceResolution<NodeId> {
+    let scope = nearest_scope_cached(il, node, cache);
+    let reference_is_free_name = matches!(il.node(node).payload, Payload::Name(_));
+    let mut found = None;
+    for (idx, candidate) in il.nodes.iter().enumerate() {
+        if candidate.kind != NodeKind::Assign {
+            continue;
+        }
+        let assign = NodeId(idx as u32);
+        let assignment_scope = nearest_scope_cached(il, assign, cache);
+        if assignment_scope != scope && !(reference_is_free_name && assignment_scope.is_none()) {
+            continue;
+        }
+        if !assignment_is_visible_at_reference(il, assign, node) {
+            continue;
+        }
+        let Some(&lhs) = il.children(assign).first() else {
+            continue;
+        };
+        if !var_references_same_binding(il, lhs, node) {
+            continue;
+        }
+        match found {
+            None => found = Some(lhs),
+            Some(existing) if existing == lhs => {}
+            Some(_) => return EvidenceResolution::Ambiguous,
+        }
+    }
+    found.map_or(EvidenceResolution::Missing, EvidenceResolution::Found)
+}
+
+fn nearest_scope_cached(
+    il: &Il,
+    node: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<NodeId> {
+    if let Some(cached) = cache.nearest_scope_by_node.get(&node).copied() {
+        return cached;
+    }
+    let scope = nearest_scope(il, node);
+    cache.nearest_scope_by_node.insert(node, scope);
+    scope
+}
+
+fn receiver_param_span_cached(
+    il: &Il,
+    receiver: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Span> {
+    if let Some(cached) = cache
+        .receiver_param_span_by_reference
+        .get(&receiver)
+        .copied()
+    {
+        return cached;
+    }
+    let span = receiver_var_payload(il, receiver).and_then(|payload| match payload {
+        Payload::Cid(cid) => receiver_cid_param_span_with_cache(il, receiver, cid, cache),
+        Payload::Name(name) => receiver_named_param_span_with_cache(il, receiver, name, cache),
+        _ => None,
+    });
+    cache
+        .receiver_param_span_by_reference
+        .insert(receiver, span);
+    span
+}
+
+fn receiver_var_payload(il: &Il, receiver: NodeId) -> Option<Payload> {
+    (il.kind(receiver) == NodeKind::Var).then_some(il.node(receiver).payload)
+}
+
+fn receiver_cid_param_span_with_cache(
+    il: &Il,
+    receiver: NodeId,
+    cid: u32,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Span> {
+    let scope = nearest_scope_cached(il, receiver, cache);
+    let mut found = None;
+    for (idx, candidate) in il.nodes.iter().enumerate() {
+        if candidate.kind != NodeKind::Param {
+            continue;
+        }
+        let id = NodeId(idx as u32);
+        if nearest_scope_cached(il, id, cache) != scope {
+            continue;
+        }
+        if !matches!(candidate.payload, Payload::Cid(param_cid) if param_cid == cid) {
+            continue;
+        }
+        match found {
+            None => found = Some(candidate.span),
+            Some(existing) if existing == candidate.span => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn receiver_named_param_span_with_cache(
+    il: &Il,
+    receiver: NodeId,
+    name: Symbol,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Span> {
+    let (scope, param) = nearest_named_param_scope(il, receiver, name)?;
+    (!name_is_assigned_in_scope_cached(il, name, scope, cache)).then_some(il.node(param).span)
+}
+
+fn name_is_assigned_in_scope_cached(
+    il: &Il,
+    name: Symbol,
+    scope: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> bool {
+    if let Some(&assigned) = cache.name_assigned_in_scope.get(&(scope, name)) {
+        return assigned;
+    }
+    let assigned = il.nodes.iter().enumerate().any(|(idx, node)| {
+        if node.kind != NodeKind::Assign {
+            return false;
+        }
+        let id = NodeId(idx as u32);
+        if nearest_scope_cached(il, id, cache) != Some(scope) {
+            return false;
+        }
+        let Some(&lhs) = il.children(id).first() else {
+            return false;
+        };
+        il.kind(lhs) == NodeKind::Var && il.node(lhs).payload == Payload::Name(name)
+    });
+    cache.name_assigned_in_scope.insert((scope, name), assigned);
+    assigned
+}
+
+fn sequence_surface_dependency_id_for_receiver(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+) -> Option<EvidenceId> {
+    if il.kind(receiver) != NodeKind::Seq {
+        return None;
+    }
+    let surface = seq_surface_contract_for_node(il, interner, receiver)?;
+    if !sequence_surface_satisfies_method_receiver(surface, contract) {
+        return None;
+    }
+    let anchor = EvidenceAnchor::sequence(il.node(receiver).span);
+    let mut found = None;
+    for record in &il.evidence {
+        let EvidenceKind::SequenceSurface(kind) = record.kind else {
+            continue;
+        };
+        if record.anchor != anchor
+            || record.status != EvidenceStatus::Asserted
+            || !il.evidence_dependencies_asserted(record)
+        {
+            continue;
+        }
+        match found {
+            None => found = Some((kind, record.id)),
+            Some((existing, _)) if existing == kind => {}
+            Some(_) => return None,
+        }
+    }
+    found.map(|(_, id)| id)
+}
+
+fn sequence_surface_satisfies_method_receiver(
+    surface: SeqSurfaceContract,
+    contract: MethodReceiverContract,
+) -> bool {
+    match contract {
+        MethodReceiverContract::ExactCollection
+        | MethodReceiverContract::ExactProtocol
+        | MethodReceiverContract::ExactProtocolPairArgument
+        | MethodReceiverContract::ExactCollectionOrJavaKeySet => surface.membership_collection,
+        MethodReceiverContract::ExactMap | MethodReceiverContract::ExactMapLiteral => {
+            surface.value_tag == SEQ_VALUE_MAP
+        }
+        MethodReceiverContract::ExactCollectionOrMap
+        | MethodReceiverContract::ExactCollectionOrMapLiteral => {
+            surface.membership_collection || surface.value_tag == SEQ_VALUE_MAP
+        }
+        MethodReceiverContract::ExactSetOrMap => surface.value_tag == SEQ_VALUE_MAP,
+        _ => false,
+    }
+}
+
+fn symbol_dependency_id_for_node(
+    il: &Il,
+    node: NodeId,
+    expected: SymbolEvidenceKind,
+) -> Option<EvidenceId> {
+    let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
+    il.evidence.iter().find_map(|record| {
+        (record.anchor == anchor
+            && record.status == EvidenceStatus::Asserted
+            && record.kind == EvidenceKind::Symbol(expected)
+            && il.evidence_dependencies_asserted(record))
+        .then_some(record.id)
+    })
+}
+
+fn imported_symbol_dependency_id_for_node(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    expected: SymbolEvidenceKind,
+) -> Option<EvidenceId> {
+    let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
+    il.evidence.iter().find_map(|record| {
+        (record.anchor == anchor
+            && record.status == EvidenceStatus::Asserted
+            && record.kind == EvidenceKind::Symbol(expected)
+            && imported_occurrence_symbol_dependencies_valid(il, interner, record, expected))
+        .then_some(record.id)
+    })
+}
+
+fn library_api_dependency_id_for_normalized_hof(il: &Il, receiver: NodeId) -> Option<EvidenceId> {
+    let Payload::HoF(kind) = il.node(receiver).payload else {
+        return None;
+    };
+    let expected_id = LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(kind));
+    let expected_contract_hash = library_api_contract_id_hash(expected_id);
+    let anchor = EvidenceAnchor::node(il.node(receiver).span, NodeKind::Call);
+    let mut found = None;
+    for record in &il.evidence {
+        if record.anchor != anchor
+            || record.status != EvidenceStatus::Asserted
+            || !il.evidence_dependencies_asserted(record)
+        {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash,
+            callee_hash,
+            ..
+        }) = record.kind
+        else {
+            continue;
+        };
+        if contract_hash != expected_contract_hash {
+            continue;
+        }
+        if library_api_callee_contract_for_hash(il.meta.lang, expected_id, callee_hash).is_none() {
+            continue;
+        }
+        match found {
+            None => found = Some(record.id),
+            Some(existing) if existing == record.id => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn library_api_dependency_id_for_protocol_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<EvidenceId> {
+    if let Some(id) = library_api_dependency_id_for_call(
+        il,
+        interner,
+        call,
+        LibraryApiContractId::IteratorIdentityAdapter,
+    ) {
+        return Some(id);
+    }
+    if let Some(id) = library_api_dependency_id_for_call(
+        il,
+        interner,
+        call,
+        LibraryApiContractId::StaticCollectionAdapter,
+    ) {
+        return Some(id);
+    }
+    library_api_dependency_id_for_call_predicate(il, interner, call, |id| {
+        matches!(
+            id,
+            LibraryApiContractId::MethodCall(
+                MethodSemanticContract::HoF(_) | MethodSemanticContract::Builtin(Builtin::Zip)
+            )
+        )
+    })
+}
+
+fn library_api_dependency_id_for_receiver_domain_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    contract: MethodReceiverContract,
+) -> Option<EvidenceId> {
+    let requirement = method_receiver_domain_requirement(contract)?;
+    library_api_dependency_id_for_call_contract(il, interner, call, |id, callee, arity| {
+        library_api_contract_result_domain_for_arity(id, callee, arity)
+            .is_some_and(|domain| requirement.accepts(domain))
+    })
+}
+
+fn library_api_dependency_id_for_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    id: LibraryApiContractId,
+) -> Option<EvidenceId> {
+    library_api_dependency_id_for_call_predicate(il, interner, call, |actual| actual == id)
+}
+
+fn library_api_dependency_id_for_map_key_view_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    allowed: &[MapKeyViewKind],
+) -> Option<EvidenceId> {
+    library_api_dependency_id_for_call_predicate(
+        il,
+        interner,
+        call,
+        |id| matches!(id, LibraryApiContractId::MapKeyView(kind) if allowed.contains(&kind)),
+    )
+}
+
+fn library_api_dependency_id_for_call_predicate(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    accepts: impl Fn(LibraryApiContractId) -> bool,
+) -> Option<EvidenceId> {
+    library_api_dependency_id_for_call_contract(il, interner, call, |id, _, _| accepts(id))
+}
+
+fn library_api_dependency_id_for_call_contract(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    accepts: impl Fn(LibraryApiContractId, LibraryApiCalleeContract, u16) -> bool,
+) -> Option<EvidenceId> {
+    if il.kind(call) != NodeKind::Call {
+        return None;
+    }
+    let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
+    let mut found = None;
+    for record in &il.evidence {
+        if record.anchor != anchor
+            || record.status != EvidenceStatus::Asserted
+            || !il.evidence_dependencies_asserted(record)
+        {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash,
+            callee_hash,
+            arity,
+        }) = record.kind
+        else {
+            continue;
+        };
+        let Some(id) = library_api_contract_id_from_hash(contract_hash) else {
+            continue;
+        };
+        let Some(callee) = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash)
+        else {
+            continue;
+        };
+        if !accepts(id, callee, arity) {
+            continue;
+        }
+        if !library_api_record_admitted_for_current_shape(il, interner, call, record) {
+            continue;
+        }
+        match found {
+            None => found = Some(record.id),
+            Some(existing) if existing == record.id => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn library_api_contract_result_domain_for_arity(
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    arity: u16,
+) -> Option<DomainEvidence> {
+    match id {
+        LibraryApiContractId::PythonBuiltinCollectionFactory
+        | LibraryApiContractId::PythonImportedCollectionFactory
+        | LibraryApiContractId::RustStdCollectionFactory
+        | LibraryApiContractId::RustVecMacroFactory
+        | LibraryApiContractId::RustVecNewFactory
+        | LibraryApiContractId::JavaCollectionFactory(_)
+        | LibraryApiContractId::JavaCollectionConstructor(_)
+        | LibraryApiContractId::RubySetFactory
+        | LibraryApiContractId::JsLikeSetConstructor => {
+            library_collection_factory_result_domain_for_arity(
+                LibraryCollectionFactoryContract {
+                    id,
+                    callee,
+                    result: LibraryCollectionFactoryResult::SequenceArgument,
+                },
+                arity as usize,
+            )
+        }
+        LibraryApiContractId::RustStdMapFactory
+        | LibraryApiContractId::JavaMapFactory(_)
+        | LibraryApiContractId::JsLikeMapConstructor => Some(library_map_factory_result_domain(
+            LibraryMapFactoryContract {
+                id,
+                callee,
+                result: LibraryMapFactoryResult::EntrySequence {
+                    entry_seq_tag: SEQ_VALUE_COLLECTION,
+                },
+            },
+        )),
+        LibraryApiContractId::MapKeyViewWrapper => Some(
+            library_map_key_view_wrapper_result_domain(LibraryMapKeyViewWrapperContract {
+                id,
+                callee,
+                result: MapKeyViewWrapperContract {
+                    receiver: "Array",
+                    method: "from",
+                    qualified_path: "Array.from",
+                },
+            }),
+        ),
+        _ => None,
+    }
+}
+
+fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiContractId> {
+    library_api_contract_ids()
+        .into_iter()
+        .find(|id| library_api_contract_id_hash(*id) == hash)
+}
+
+fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
+    let mut ids = vec![
+        LibraryApiContractId::PythonBuiltinCollectionFactory,
+        LibraryApiContractId::PythonImportedCollectionFactory,
+        LibraryApiContractId::RustStdCollectionFactory,
+        LibraryApiContractId::RustStdMapFactory,
+        LibraryApiContractId::RustVecMacroFactory,
+        LibraryApiContractId::RustVecNewFactory,
+        LibraryApiContractId::JavaMapEntryFactory,
+        LibraryApiContractId::RubySetFactory,
+        LibraryApiContractId::JsLikeSetConstructor,
+        LibraryApiContractId::JsLikeMapConstructor,
+        LibraryApiContractId::MapKeyViewWrapper,
+        LibraryApiContractId::MapGet,
+        LibraryApiContractId::JsArrayIsArray,
+        LibraryApiContractId::JsBooleanCoercion,
+        LibraryApiContractId::RegexTest,
+        LibraryApiContractId::PromiseThen,
+        LibraryApiContractId::IteratorIdentityAdapter,
+        LibraryApiContractId::StaticCollectionAdapter,
+    ];
+    ids.extend(
+        [
+            JavaCollectionFactoryKind::ListOf,
+            JavaCollectionFactoryKind::SetOf,
+            JavaCollectionFactoryKind::ArraysAsList,
+        ]
+        .into_iter()
+        .map(LibraryApiContractId::JavaCollectionFactory),
+    );
+    ids.push(LibraryApiContractId::JavaCollectionConstructor(
+        JavaCollectionConstructorKind::EmptyList,
+    ));
+    ids.extend(
+        [JavaMapFactoryKind::Of, JavaMapFactoryKind::OfEntries]
+            .into_iter()
+            .map(LibraryApiContractId::JavaMapFactory),
+    );
+    ids.extend(
+        [MapKeyViewKind::Collection, MapKeyViewKind::Iterator]
+            .into_iter()
+            .map(LibraryApiContractId::MapKeyView),
+    );
+    ids.extend(
+        [ImportedNamespaceFunctionSemantic::ProductReduction {
+            op: Op::Mul,
+            identity: 1,
+        }]
+        .into_iter()
+        .map(LibraryApiContractId::ImportedNamespaceFunction),
+    );
+    ids.extend(
+        [
+            MethodSemanticContract::Builtin(Builtin::Append),
+            MethodSemanticContract::Builtin(Builtin::Print),
+            MethodSemanticContract::Builtin(Builtin::Len),
+            MethodSemanticContract::Builtin(Builtin::IsEmpty),
+            MethodSemanticContract::Builtin(Builtin::IsNull),
+            MethodSemanticContract::Builtin(Builtin::IsNotNull),
+            MethodSemanticContract::Builtin(Builtin::StartsWith),
+            MethodSemanticContract::Builtin(Builtin::EndsWith),
+            MethodSemanticContract::Builtin(Builtin::Contains),
+            MethodSemanticContract::Builtin(Builtin::Join),
+            MethodSemanticContract::Builtin(Builtin::GetOrDefault),
+            MethodSemanticContract::Builtin(Builtin::ValueOrDefault),
+            MethodSemanticContract::Builtin(Builtin::Reduce),
+            MethodSemanticContract::Builtin(Builtin::Sum),
+            MethodSemanticContract::Builtin(Builtin::Abs),
+            MethodSemanticContract::Builtin(Builtin::Min),
+            MethodSemanticContract::Builtin(Builtin::Max),
+            MethodSemanticContract::Builtin(Builtin::Zip),
+            MethodSemanticContract::Builtin(Builtin::Any),
+            MethodSemanticContract::Builtin(Builtin::All),
+            MethodSemanticContract::HoF(HoFKind::Map),
+            MethodSemanticContract::HoF(HoFKind::Filter),
+            MethodSemanticContract::HoF(HoFKind::FlatMap),
+            MethodSemanticContract::HoF(HoFKind::FilterMap),
+        ]
+        .into_iter()
+        .map(LibraryApiContractId::MethodCall),
+    );
+    ids
+}
+
+fn library_api_record_admitted_for_current_shape(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    record: &EvidenceRecord,
+) -> bool {
+    let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+        contract_hash,
+        callee_hash,
+        arity,
+    }) = record.kind
+    else {
+        return false;
+    };
+    let Some(id) = library_api_contract_id_from_hash(contract_hash) else {
+        return false;
+    };
+    let Some(callee) = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash) else {
+        return false;
+    };
+    matches!(
+        library_api_contract_evidence_for_call(il, interner, call, id, callee, arity as usize),
+        LibraryApiEvidenceStatus::Admitted
+    )
+}
+
+fn library_api_callee_contract_for_hash(
+    lang: Lang,
+    id: LibraryApiContractId,
+    hash: u64,
+) -> Option<LibraryApiCalleeContract> {
+    library_api_callee_contracts_for_id(lang, id)
+        .into_iter()
+        .find(|callee| library_api_callee_contract_hash(*callee) == hash)
+}
+
+fn library_api_callee_contracts_for_id(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> Vec<LibraryApiCalleeContract> {
+    match id {
+        LibraryApiContractId::PythonBuiltinCollectionFactory
+        | LibraryApiContractId::RustStdCollectionFactory => {
+            library_free_name_collection_factory_contracts(lang)
+                .filter(|contract| contract.id == id)
+                .map(|contract| contract.callee)
+                .collect()
+        }
+        LibraryApiContractId::PythonImportedCollectionFactory => {
+            library_imported_collection_factory_contracts(lang)
+                .filter(|contract| contract.id == id)
+                .map(|contract| contract.callee)
+                .collect()
+        }
+        LibraryApiContractId::RustStdMapFactory => library_free_name_map_factory_contracts(lang)
+            .filter(|contract| contract.id == id)
+            .map(|contract| contract.callee)
+            .collect(),
+        LibraryApiContractId::RustVecMacroFactory => {
+            library_rust_vec_macro_factory_contract(lang, "vec")
+                .filter(|contract| contract.id == id)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::RustVecNewFactory => {
+            ["Vec::new", "std::vec::Vec::new", "alloc::vec::Vec::new"]
+                .into_iter()
+                .filter_map(|name| library_rust_vec_new_factory_contract(lang, name))
+                .filter(|contract| contract.id == id)
+                .map(|contract| contract.callee)
+                .collect()
+        }
+        LibraryApiContractId::JavaCollectionFactory(kind) => {
+            [("List", "of"), ("Set", "of"), ("Arrays", "asList")]
+                .into_iter()
+                .filter_map(|(receiver, method)| {
+                    library_java_collection_factory_contract(lang, receiver, method)
+                })
+                .filter(|contract| contract.id == LibraryApiContractId::JavaCollectionFactory(kind))
+                .map(|contract| contract.callee)
+                .collect()
+        }
+        LibraryApiContractId::JavaCollectionConstructor(kind) => [
+            "ArrayList",
+            "java.util.ArrayList",
+            "LinkedList",
+            "java.util.LinkedList",
+        ]
+        .into_iter()
+        .filter_map(|type_name| library_java_collection_constructor_contract(lang, type_name, 0))
+        .filter(|contract| contract.id == LibraryApiContractId::JavaCollectionConstructor(kind))
+        .map(|contract| contract.callee)
+        .collect(),
+        LibraryApiContractId::JavaMapFactory(kind) => ["of", "ofEntries"]
+            .into_iter()
+            .filter_map(|method| library_java_map_factory_contract(lang, "Map", method))
+            .filter(|contract| contract.id == LibraryApiContractId::JavaMapFactory(kind))
+            .map(|contract| contract.callee)
+            .collect(),
+        LibraryApiContractId::JavaMapEntryFactory => {
+            library_java_map_entry_contract(lang, "Map", "entry")
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::RubySetFactory => {
+            library_ruby_set_factory_contract(lang, "Set", "new", 1)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::JsLikeSetConstructor => {
+            library_js_like_set_constructor_contract(lang, "Set")
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::JsLikeMapConstructor => {
+            library_js_like_map_constructor_contract(lang, "Map")
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::MapKeyViewWrapper => {
+            library_map_key_view_wrapper_contract(lang, "Array", "from", 1)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::MapGet => ["get"]
+            .into_iter()
+            .filter_map(|method| {
+                library_map_get_contract(lang, method, 1).map(|contract| contract.callee)
+            })
+            .collect(),
+        LibraryApiContractId::MapKeyView(kind) => ["keys", "keySet"]
+            .into_iter()
+            .filter_map(|method| library_map_key_view_contract(lang, method, 0))
+            .filter(|contract| contract.result.kind == kind)
+            .map(|contract| contract.callee)
+            .collect(),
+        LibraryApiContractId::IteratorIdentityAdapter => {
+            let methods = [
+                "iter",
+                "into_iter",
+                "iter_mut",
+                "collect",
+                "to_vec",
+                "copied",
+                "cloned",
+                "stream",
+            ];
+            methods
+                .into_iter()
+                .filter_map(|method| {
+                    library_iterator_identity_adapter_contract(lang, method, 0)
+                        .map(|contract| contract.callee)
+                })
+                .collect()
+        }
+        LibraryApiContractId::StaticCollectionAdapter => {
+            library_static_collection_adapter_contract(lang, "Arrays", "stream", 1)
+                .map(|contract| vec![contract.callee])
+                .unwrap_or_default()
+        }
+        LibraryApiContractId::MethodCall(semantic) => {
+            method_call_contract_callees_for_semantic(lang, semantic)
+        }
+        _ => Vec::new(),
+    }
+}
+
+fn method_call_contract_callees_for_semantic(
+    lang: Lang,
+    semantic: MethodSemanticContract,
+) -> Vec<LibraryApiCalleeContract> {
+    let methods = [
+        "append",
+        "push",
+        "log",
+        "info",
+        "debug",
+        "Println",
+        "Printf",
+        "Print",
+        "Abs",
+        "HasPrefix",
+        "HasSuffix",
+        "Contains",
+        "len",
+        "size",
+        "length",
+        "is_empty",
+        "isEmpty",
+        "empty?",
+        "nil?",
+        "is_none",
+        "is_some",
+        "startsWith",
+        "startswith",
+        "starts_with",
+        "start_with?",
+        "endsWith",
+        "endswith",
+        "ends_with",
+        "end_with?",
+        "containsKey",
+        "contains_key",
+        "key?",
+        "has_key?",
+        "__contains__",
+        "includes",
+        "include?",
+        "member?",
+        "contains",
+        "has",
+        "join",
+        "get",
+        "fetch",
+        "getOrDefault",
+        "unwrap_or",
+        "unwrap_or_else",
+        "map_or",
+        "reduce",
+        "Min",
+        "Max",
+        "abs",
+        "min",
+        "max",
+        "zip",
+        "fold",
+        "inject",
+        "map",
+        "collect",
+        "filter",
+        "select",
+        "flatMap",
+        "flat_map",
+        "filter_map",
+        "some",
+        "every",
+        "all",
+        "any",
+        "all?",
+        "any?",
+        "allMatch",
+        "anyMatch",
+        "sum",
+        "count",
+    ];
+    methods
+        .into_iter()
+        .flat_map(|method| {
+            (0..=3).filter_map(move |arity| library_method_call_contract(lang, method, arity))
+        })
+        .filter(|contract| contract.result.semantic == semantic)
+        .map(|contract| contract.callee)
+        .collect()
+}
+
+fn dependency_ids_are_present(record: &EvidenceRecord, dependencies: &[EvidenceId]) -> bool {
+    dependencies
+        .iter()
+        .all(|dependency| record.dependencies.contains(dependency))
 }
 
 fn var_name_matches(il: &Il, interner: &Interner, node: NodeId, expected: &str) -> bool {
@@ -6256,6 +7497,46 @@ pub fn library_method_call_contract(
         },
         result,
     })
+}
+
+pub fn library_receiver_method_api_contract(
+    lang: Lang,
+    method: &str,
+    arg_count: usize,
+) -> Option<LibraryReceiverMethodApiContract> {
+    library_map_get_contract(lang, method, arg_count)
+        .map(|contract| LibraryReceiverMethodApiContract {
+            id: contract.id,
+            callee: contract.callee,
+            rule: "library_api_map_get",
+        })
+        .or_else(|| {
+            library_map_key_view_contract(lang, method, arg_count).map(|contract| {
+                LibraryReceiverMethodApiContract {
+                    id: contract.id,
+                    callee: contract.callee,
+                    rule: "library_api_map_key_view",
+                }
+            })
+        })
+        .or_else(|| {
+            library_iterator_identity_adapter_contract(lang, method, arg_count).map(|contract| {
+                LibraryReceiverMethodApiContract {
+                    id: contract.id,
+                    callee: contract.callee,
+                    rule: "library_api_iterator_identity_adapter",
+                }
+            })
+        })
+        .or_else(|| {
+            library_method_call_contract(lang, method, arg_count).map(|contract| {
+                LibraryReceiverMethodApiContract {
+                    id: contract.id,
+                    callee: contract.callee,
+                    rule: "library_api_method_call",
+                }
+            })
+        })
 }
 
 fn library_method_selector_name(name: &str) -> Option<&'static str> {

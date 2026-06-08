@@ -33,8 +33,8 @@ use nose_semantics::{
     typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
     IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
     LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    StaticIndexMembershipKind,
+    LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -1292,6 +1292,38 @@ fn library_api_evidence_required(
     )
 }
 
+fn call_arg_count(il: &Il, node: NodeId) -> usize {
+    il.children(node).len().saturating_sub(1)
+}
+
+fn admitted_method_call_contract(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    method: &str,
+) -> Option<(LibraryMethodCallContract, usize)> {
+    let arg_count = call_arg_count(il, node);
+    let contract = library_method_call_contract(il.meta.lang, method, arg_count)?;
+    library_api_evidence_required(il, interner, node, contract.id, contract.callee, arg_count)
+        .then_some((contract, arg_count))
+}
+
+fn admitted_map_get_contract(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    method: &str,
+) -> Option<(LibraryMapGetContract, usize)> {
+    let arg_count = call_arg_count(il, node);
+    let contract = library_map_get_contract(il.meta.lang, method, arg_count)?;
+    library_api_evidence_required(il, interner, node, contract.id, contract.callee, arg_count)
+        .then_some((contract, arg_count))
+}
+
+fn field_receiver(il: &Il, callee: NodeId) -> Option<NodeId> {
+    il.children(callee).first().copied()
+}
+
 fn strict_exact_regex_test_safe(
     il: &Il,
     interner: &Interner,
@@ -1326,7 +1358,7 @@ fn strict_exact_js_array_is_array_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(&receiver) = il.children(callee).first() else {
+    let Some(receiver) = field_receiver(il, callee) else {
         return false;
     };
     let (NodeKind::Var, Payload::Name(receiver_name)) =
@@ -1334,7 +1366,7 @@ fn strict_exact_js_array_is_array_safe(
     else {
         return false;
     };
-    let arg_count = il.children(node).len().saturating_sub(1);
+    let arg_count = call_arg_count(il, node);
     let Some(contract) = library_js_array_is_array_contract(
         il.meta.lang,
         interner.resolve(receiver_name),
@@ -1357,24 +1389,21 @@ fn strict_exact_collection_contains_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = library_method_call_contract(
-        il.meta.lang,
-        method,
-        il.children(node).len().saturating_sub(1),
-    ) else {
+    let Some((contract, _arg_count)) = admitted_method_call_contract(il, interner, node, method)
+    else {
         return false;
     };
-    let contract = contract.result;
-    if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
-        || contract.args != MethodBuiltinArgs::FirstThenReceiver
+    let result = contract.result;
+    if result.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+        || result.args != MethodBuiltinArgs::FirstThenReceiver
     {
         return false;
     }
-    let receiver_safe = match contract.receiver {
+    let receiver_safe = match result.receiver {
         MethodReceiverContract::ExactCollection
         | MethodReceiverContract::ExactCollectionOrMap
         | MethodReceiverContract::ExactCollectionOrJavaKeySet => {
-            let Some(&receiver) = il.children(callee).first() else {
+            let Some(receiver) = field_receiver(il, callee) else {
                 return false;
             };
             strict_exact_literal_collection_receiver_safe(il, interner, facts, receiver)
@@ -1387,7 +1416,7 @@ fn strict_exact_collection_contains_call_safe(
                 || strict_exact_map_key_view_collection_safe(il, interner, facts, receiver)
         }
         MethodReceiverContract::ExactSetOrMap => {
-            let Some(&receiver) = il.children(callee).first() else {
+            let Some(receiver) = field_receiver(il, callee) else {
                 return false;
             };
             strict_exact_typed_set_param_receiver_safe(il, interner, receiver)
@@ -1406,18 +1435,15 @@ fn strict_exact_map_contains_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = library_method_call_contract(
-        il.meta.lang,
-        method,
-        il.children(node).len().saturating_sub(1),
-    ) else {
+    let Some((contract, _arg_count)) = admitted_method_call_contract(il, interner, node, method)
+    else {
         return false;
     };
-    let contract = contract.result;
-    if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
-        || contract.args != MethodBuiltinArgs::FirstThenReceiver
+    let result = contract.result;
+    if result.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+        || result.args != MethodBuiltinArgs::FirstThenReceiver
         || !matches!(
-            contract.receiver,
+            result.receiver,
             MethodReceiverContract::ExactMap
                 | MethodReceiverContract::ExactCollectionOrMap
                 | MethodReceiverContract::ExactSetOrMap
@@ -1425,7 +1451,7 @@ fn strict_exact_map_contains_call_safe(
     {
         return false;
     }
-    let Some(&receiver) = il.children(callee).first() else {
+    let Some(receiver) = field_receiver(il, callee) else {
         return false;
     };
     strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, true)
@@ -1440,16 +1466,11 @@ fn strict_exact_map_get_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    if library_map_get_contract(
-        il.meta.lang,
-        method,
-        il.children(node).len().saturating_sub(1),
-    )
-    .is_none()
-    {
+    let Some((_contract, _arg_count)) = admitted_map_get_contract(il, interner, node, method)
+    else {
         return false;
-    }
-    let Some(&receiver) = il.children(callee).first() else {
+    };
+    let Some(receiver) = field_receiver(il, callee) else {
         return false;
     };
     strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, false)
@@ -1464,28 +1485,25 @@ fn strict_exact_map_get_default_call_safe(
     callee: NodeId,
     method: &str,
 ) -> bool {
-    let Some(contract) = library_method_call_contract(
-        il.meta.lang,
-        method,
-        il.children(node).len().saturating_sub(1),
-    ) else {
+    let Some((contract, _arg_count)) = admitted_method_call_contract(il, interner, node, method)
+    else {
         return false;
     };
-    let contract = contract.result;
-    if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
-        || contract.receiver != MethodReceiverContract::ExactMap
+    let result = contract.result;
+    if result.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+        || result.receiver != MethodReceiverContract::ExactMap
         || !matches!(
-            contract.args,
+            result.args,
             MethodBuiltinArgs::MapGetDefault | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
         )
     {
         return false;
     }
-    let Some(&receiver) = il.children(callee).first() else {
+    let Some(receiver) = field_receiver(il, callee) else {
         return false;
     };
     strict_exact_map_receiver_or_factory_safe(il, interner, facts, receiver, false)
-        && strict_exact_map_get_default_args_safe(il, interner, facts, node, contract.args)
+        && strict_exact_map_get_default_args_safe(il, interner, facts, node, result.args)
 }
 
 fn strict_exact_map_receiver_or_factory_safe(
@@ -1567,7 +1585,12 @@ fn strict_exact_iterator_identity_adapter_call_safe(
     let Some(arg_count) = kids.len().checked_sub(1) else {
         return false;
     };
-    if library_iterator_identity_adapter_contract(il.meta.lang, method, arg_count).is_none() {
+    let Some(contract) =
+        library_iterator_identity_adapter_contract(il.meta.lang, method, arg_count)
+    else {
+        return false;
+    };
+    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, arg_count) {
         return false;
     }
     if il.kind(callee) != NodeKind::Field {
@@ -1732,8 +1755,11 @@ fn strict_exact_map_key_view_safe_matching(
     else {
         return false;
     };
-    let contract = contract.result;
-    if !accepts(contract.kind) {
+    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 0) {
+        return false;
+    }
+    let result = contract.result;
+    if !accepts(result.kind) {
         return false;
     }
     let Some(&receiver) = il.children(kids[0]).first() else {
@@ -3886,7 +3912,8 @@ mod tests {
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
         library_java_collection_factory_contract, library_js_like_map_constructor_contract,
-        library_js_like_set_constructor_contract, FIRST_PARTY_PACK_ID,
+        library_js_like_set_constructor_contract, library_method_call_contract,
+        FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -3929,6 +3956,26 @@ mod tests {
                 callee_hash: library_api_callee_contract_hash(callee),
                 arity,
             }),
+            dependencies,
+        )
+    }
+
+    fn method_call_library_api_evidence(
+        id: u32,
+        lang: Lang,
+        method: &str,
+        call_span: Span,
+        arity: usize,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        let contract =
+            library_method_call_contract(lang, method, arity).expect("method call contract");
+        library_api_contract_evidence(
+            id,
+            call_span,
+            contract.id,
+            contract.callee,
+            arity as u16,
             dependencies,
         )
     }
@@ -4025,11 +4072,19 @@ mod tests {
             EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
             Vec::new(),
         ));
+        il.evidence.push(method_call_library_api_evidence(
+            1,
+            Lang::TypeScript,
+            "includes",
+            sp(53),
+            1,
+            vec![EvidenceId(0)],
+        ));
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
 
         il.evidence.push(evidence(
-            1,
+            2,
             EvidenceAnchor::node(receiver_span, NodeKind::Var),
             EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
             Vec::new(),
@@ -4074,6 +4129,14 @@ mod tests {
             EvidenceKind::Domain(nose_semantics::DomainEvidence::Collection),
             Vec::new(),
         ));
+        il.evidence.push(method_call_library_api_evidence(
+            1,
+            Lang::TypeScript,
+            "includes",
+            sp(35),
+            1,
+            vec![EvidenceId(0)],
+        ));
 
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_collection_contains_call_safe(
@@ -4081,7 +4144,7 @@ mod tests {
         ));
 
         il.evidence.push(evidence(
-            1,
+            2,
             EvidenceAnchor::binding(sp(30), stable_symbol_hash("xs")),
             EvidenceKind::Domain(nose_semantics::DomainEvidence::Map),
             Vec::new(),
@@ -4359,6 +4422,14 @@ mod tests {
             2,
             vec![EvidenceId(1)],
         ));
+        il.evidence.push(method_call_library_api_evidence(
+            3,
+            Lang::Java,
+            "contains",
+            sp(28),
+            1,
+            vec![EvidenceId(2)],
+        ));
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_java_collection_factory_safe(
             &il, &interner, &facts, factory
@@ -4367,6 +4438,7 @@ mod tests {
 
         let wrong = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
         il.evidence.pop();
+        il.evidence.pop();
         il.evidence.push(library_api_contract_evidence(
             2,
             sp(25),
@@ -4374,6 +4446,14 @@ mod tests {
             wrong.callee,
             2,
             vec![EvidenceId(1)],
+        ));
+        il.evidence.push(method_call_library_api_evidence(
+            3,
+            Lang::Java,
+            "contains",
+            sp(28),
+            1,
+            vec![EvidenceId(2)],
         ));
         let facts = StrictFacts::collect(&il, &interner);
         assert!(!strict_exact_java_collection_factory_safe(

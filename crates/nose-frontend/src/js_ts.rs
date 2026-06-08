@@ -2036,6 +2036,30 @@ mod tests {
             .collect()
     }
 
+    fn library_api_dependency_counts_for(
+        il: &Il,
+        contract_hash: u64,
+        callee_hash: u64,
+        arity: u16,
+    ) -> Vec<usize> {
+        il.evidence
+            .iter()
+            .filter_map(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash: actual_contract,
+                        callee_hash: actual_callee,
+                        arity: actual_arity,
+                    }) if actual_contract == contract_hash
+                        && actual_callee == callee_hash
+                        && actual_arity == arity
+                )
+                .then_some(record.dependencies.len())
+            })
+            .collect()
+    }
+
     fn js_record_shape_guard_evidence(il: &Il) -> Vec<&nose_il::EvidenceRecord> {
         il.evidence
             .iter()
@@ -2169,9 +2193,26 @@ mod tests {
         assert!(
             library_api_dependency_counts(&il)
                 .into_iter()
-                .all(|count| count >= 2),
-            "selected JS API evidence should depend on source/symbol proof"
+                .all(|count| count >= 1),
+            "selected JS API evidence should depend on explicit proof"
         );
+        for (id, callee, arity) in [
+            (map.id, map.callee, 1),
+            (set.id, set.callee, 1),
+            (is_array.id, is_array.callee, 1),
+        ] {
+            assert!(
+                library_api_dependency_counts_for(
+                    &il,
+                    library_api_contract_id_hash(id),
+                    library_api_callee_contract_hash(callee),
+                    arity,
+                )
+                .into_iter()
+                .all(|count| count >= 2),
+                "selected JS static/global API evidence should depend on source/symbol proof"
+            );
+        }
         assert!(
             !il.nodes
                 .iter()

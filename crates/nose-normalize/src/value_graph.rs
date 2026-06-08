@@ -1633,11 +1633,31 @@ impl<'a> Builder<'a> {
             LibraryApiSpanEvidenceQuery {
                 call_span: self.node_span[value as usize],
                 callee_span: self.library_api_value_span(callee),
-                receiver_span: receiver.and_then(|receiver| self.library_api_value_span(receiver)),
+                receiver_span: self.library_api_receiver_query_span(value, callee, receiver),
                 id,
                 callee: callee_contract,
                 arg_count,
             },
+        )
+    }
+
+    fn library_api_evidence_admitted(
+        &self,
+        call: NodeId,
+        id: nose_semantics::LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+        arg_count: usize,
+    ) -> bool {
+        matches!(
+            library_api_contract_evidence_for_call(
+                self.il,
+                self.interner,
+                call,
+                id,
+                callee,
+                arg_count,
+            ),
+            LibraryApiEvidenceStatus::Admitted
         )
     }
 
@@ -1646,6 +1666,46 @@ impl<'a> Builder<'a> {
             ValOp::ImportBinding { .. } | ValOp::ImportNamespace { .. } => None,
             _ => self.node_span[value as usize],
         }
+    }
+
+    fn library_api_receiver_query_span(
+        &self,
+        value: ValueId,
+        callee: ValueId,
+        receiver: Option<ValueId>,
+    ) -> Option<Span> {
+        let receiver_span = receiver.and_then(|receiver| self.library_api_value_span(receiver))?;
+        let Some(call_span) = self.node_span[value as usize] else {
+            return Some(receiver_span);
+        };
+        let Some(callee_span) = self.library_api_value_span(callee) else {
+            return Some(receiver_span);
+        };
+        if self
+            .source_call_receiver_span(call_span, callee_span)
+            .is_some_and(|source_receiver_span| source_receiver_span != receiver_span)
+        {
+            None
+        } else {
+            Some(receiver_span)
+        }
+    }
+
+    fn source_call_receiver_span(&self, call_span: Span, callee_span: Span) -> Option<Span> {
+        self.il.nodes.iter().enumerate().find_map(|(idx, node)| {
+            if node.kind != NodeKind::Call || node.span != call_span {
+                return None;
+            }
+            let call = NodeId(idx as u32);
+            let callee = self.il.children(call).first().copied()?;
+            if self.il.node(callee).span != callee_span {
+                return None;
+            }
+            self.il
+                .children(callee)
+                .first()
+                .map(|&receiver| self.il.node(receiver).span)
+        })
     }
 
     fn eval_js_like_constructed_collection_or_map(
@@ -1808,9 +1868,25 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return None;
         };
-        library_map_get_contract_by_hash(self.il.meta.lang, method, args.len().saturating_sub(1))?;
+        let contract = library_map_get_contract_by_hash(
+            self.il.meta.lang,
+            method,
+            args.len().saturating_sub(1),
+        )?;
         if callee.args.len() != 1 {
             return None;
+        }
+        match self.library_api_evidence_for_value_call(
+            value,
+            args[0],
+            Some(callee.args[0]),
+            contract.id,
+            contract.callee,
+            args.len().saturating_sub(1),
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => return None,
         }
         let map = callee.args[0];
         let map = if self.is_param_value(map, DomainEvidence::Map) {
@@ -1840,10 +1916,21 @@ impl<'a> Builder<'a> {
             let ValOp::Field(method) = callee.op else {
                 return None;
             };
-            let contract =
-                library_map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?.result;
-            if contract.kind != accepted || callee.args.len() != 1 {
+            let contract = library_map_key_view_contract_by_hash(self.il.meta.lang, method, 0)?;
+            if contract.result.kind != accepted || callee.args.len() != 1 {
                 return None;
+            }
+            match self.library_api_evidence_for_value_call(
+                value,
+                args[0],
+                Some(callee.args[0]),
+                contract.id,
+                contract.callee,
+                0,
+            ) {
+                LibraryApiEvidenceStatus::Admitted => {}
+                LibraryApiEvidenceStatus::Rejected => return None,
+                LibraryApiEvidenceStatus::Missing => return None,
             }
             let map = callee.args[0];
             return if self.is_param_value(map, DomainEvidence::Map) {
@@ -1902,6 +1989,7 @@ impl<'a> Builder<'a> {
 
     fn eval_proven_collection_membership_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -1917,15 +2005,23 @@ impl<'a> Builder<'a> {
         let receiver = callee_kids.first().copied();
 
         let contract =
-            library_method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?
-                .result;
-        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains) {
+            library_method_call_contract(self.il.meta.lang, method, kids.len().saturating_sub(1))?;
+        if !self.library_api_evidence_admitted(
+            expr,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            return None;
+        }
+        let result = contract.result;
+        if result.semantic != MethodSemanticContract::Builtin(Builtin::Contains) {
             return None;
         }
 
-        if contract.args == MethodBuiltinArgs::FirstThenReceiver
+        if result.args == MethodBuiltinArgs::FirstThenReceiver
             && matches!(
-                contract.receiver,
+                result.receiver,
                 MethodReceiverContract::ExactCollection
                     | MethodReceiverContract::ExactCollectionOrMap
                     | MethodReceiverContract::ExactCollectionOrJavaKeySet
@@ -1936,7 +2032,7 @@ impl<'a> Builder<'a> {
             let receiver = receiver?;
             let element = self.eval(kids[1], env);
             if matches!(
-                contract.receiver,
+                result.receiver,
                 MethodReceiverContract::ExactCollectionOrMap
                     | MethodReceiverContract::ExactCollectionOrJavaKeySet
             ) {
@@ -1952,7 +2048,7 @@ impl<'a> Builder<'a> {
                 let collection = self.canonical_membership_collection_value(collection);
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
-            let receiver_param_safe = match contract.receiver {
+            let receiver_param_safe = match result.receiver {
                 MethodReceiverContract::ExactSetOrMap => self.is_set_param_expr(receiver),
                 _ => self.is_collection_param_expr(receiver),
             };
@@ -1961,9 +2057,9 @@ impl<'a> Builder<'a> {
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             None
-        } else if contract.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
+        } else if result.args == MethodBuiltinArgs::GoSliceContains && kids.len() == 3 {
             let receiver = receiver?;
-            let MethodReceiverContract::ImportedNamespace(module) = contract.receiver else {
+            let MethodReceiverContract::ImportedNamespace(module) = result.receiver else {
                 return None;
             };
             if !self.is_import_namespace_expr(receiver, module, env)
@@ -1986,6 +2082,7 @@ impl<'a> Builder<'a> {
 
     fn eval_proven_map_key_membership_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -2000,11 +2097,15 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let contract = library_method_call_contract(self.il.meta.lang, method, 1)?.result;
-        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
-            || contract.args != MethodBuiltinArgs::FirstThenReceiver
+        let contract = library_method_call_contract(self.il.meta.lang, method, 1)?;
+        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 1) {
+            return None;
+        }
+        let result = contract.result;
+        if result.semantic != MethodSemanticContract::Builtin(Builtin::Contains)
+            || result.args != MethodBuiltinArgs::FirstThenReceiver
             || !matches!(
-                contract.receiver,
+                result.receiver,
                 MethodReceiverContract::ExactMap
                     | MethodReceiverContract::ExactCollectionOrMap
                     | MethodReceiverContract::ExactSetOrMap
@@ -2026,6 +2127,7 @@ impl<'a> Builder<'a> {
 
     fn eval_proven_map_get_default_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -2043,12 +2145,20 @@ impl<'a> Builder<'a> {
             self.il.meta.lang,
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
-        )?
-        .result;
-        if contract.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
-            || contract.receiver != MethodReceiverContract::ExactMap
+        )?;
+        if !self.library_api_evidence_admitted(
+            expr,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            return None;
+        }
+        let result = contract.result;
+        if result.semantic != MethodSemanticContract::Builtin(Builtin::GetOrDefault)
+            || result.receiver != MethodReceiverContract::ExactMap
             || !matches!(
-                contract.args,
+                result.args,
                 MethodBuiltinArgs::MapGetDefault | MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda
             )
         {
@@ -2063,7 +2173,7 @@ impl<'a> Builder<'a> {
                 .or_else(|| self.proven_local_map_binding_value(receiver, env))?
         };
         let key = self.eval(kids[1], env);
-        let default = self.eval_map_get_default_arg(contract.args, kids[2], env)?;
+        let default = self.eval_map_get_default_arg(result.args, kids[2], env)?;
         Some(self.mk(
             ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
             vec![map, key, default],
@@ -3531,13 +3641,7 @@ impl<'a> Builder<'a> {
             }
             (value_a, ret_a)
         };
-        if let Some((map, key)) = self.proven_map_get_value(value) {
-            return Some(self.mk(
-                ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
-                vec![map, key, default],
-            ));
-        }
-        Some(self.mk_value_default(value, default))
+        Some(self.mk_value_or_map_default(value, default))
     }
 
     fn value_default_from_guarded_fallthrough(
@@ -3558,7 +3662,7 @@ impl<'a> Builder<'a> {
             }
             guarded_ret
         };
-        Some(self.mk_value_default(value, default))
+        Some(self.mk_value_or_map_default(value, default))
     }
 
     fn guarded_return_parts(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
@@ -6700,13 +6804,7 @@ impl<'a> Builder<'a> {
             }
             then_v
         };
-        if let Some((map, key)) = self.proven_map_get_value(value) {
-            return Some(self.mk(
-                ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
-                vec![map, key, default],
-            ));
-        }
-        Some(self.mk_value_default(value, default))
+        Some(self.mk_value_or_map_default(value, default))
     }
 
     fn value_default_call(&self, value: ValueId) -> Option<(ValueId, ValueId)> {
@@ -6738,6 +6836,16 @@ impl<'a> Builder<'a> {
             ValOp::Call(builtin_tag(Builtin::ValueOrDefault)),
             vec![value, default],
         )
+    }
+
+    fn mk_value_or_map_default(&mut self, value: ValueId, default: ValueId) -> ValueId {
+        if let Some((map, key)) = self.proven_map_get_value(value) {
+            return self.mk(
+                ValOp::Call(builtin_tag(Builtin::GetOrDefault)),
+                vec![map, key, default],
+            );
+        }
+        self.mk_value_default(value, default)
     }
 
     fn null_condition(&self, cond: ValueId) -> Option<(ValueId, bool)> {
@@ -6883,9 +6991,26 @@ impl<'a> Builder<'a> {
         let ValOp::Field(method) = callee.op else {
             return false;
         };
-        if library_map_get_contract_by_hash(self.il.meta.lang, method, 1).is_none()
-            || callee.args.len() != 1
-        {
+        let Some(contract) = library_map_get_contract_by_hash(self.il.meta.lang, method, 1) else {
+            return false;
+        };
+        if callee.args.len() != 1 {
+            return false;
+        }
+        match self.library_api_evidence_for_value_call(
+            value,
+            args[0],
+            Some(callee.args[0]),
+            contract.id,
+            contract.callee,
+            1,
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected | LibraryApiEvidenceStatus::Missing => {
+                return false;
+            }
+        }
+        if callee.args.len() != 1 {
             return false;
         }
         let receiver = callee.args[0];
@@ -7027,6 +7152,7 @@ impl<'a> Builder<'a> {
 
     fn eval_count_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -7041,11 +7167,19 @@ impl<'a> Builder<'a> {
             self.il.meta.lang,
             self.interner.resolve(name),
             kids.len().saturating_sub(1),
-        )?
-        .result;
-        if contract.semantic != MethodSemanticContract::Builtin(Builtin::Len)
-            || contract.receiver != MethodReceiverContract::ExactProtocol
-            || contract.args != MethodBuiltinArgs::CollectionReduction
+        )?;
+        if !self.library_api_evidence_admitted(
+            expr,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            return None;
+        }
+        let result = contract.result;
+        if result.semantic != MethodSemanticContract::Builtin(Builtin::Len)
+            || result.receiver != MethodReceiverContract::ExactProtocol
+            || result.args != MethodBuiltinArgs::CollectionReduction
         {
             return None;
         }
@@ -7118,6 +7252,7 @@ impl<'a> Builder<'a> {
 
     fn eval_iterator_identity_adapter(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -7131,12 +7266,15 @@ impl<'a> Builder<'a> {
             self.il.meta.lang,
             self.interner.resolve(method),
             0,
-        )?
-        .result;
+        )?;
+        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 0) {
+            return None;
+        }
+        let result = contract.result;
         let base = *self.il.children(kids[0]).first()?;
         let value = self.eval(base, env);
         let value = self.param_domain_value(value);
-        self.iterator_adapter_receiver_proven(contract.receiver, value)
+        self.iterator_adapter_receiver_proven(result.receiver, value)
             .then_some(value)
     }
 
@@ -7155,6 +7293,7 @@ impl<'a> Builder<'a> {
 
     fn eval_rust_map_get_unwrap_or_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -7165,10 +7304,13 @@ impl<'a> Builder<'a> {
             return None;
         };
         let contract =
-            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?
-                .result;
-        if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
-            || contract.args != MethodBuiltinArgs::RustMapGetOrOptionDefault
+            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 1)?;
+        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 1) {
+            return None;
+        }
+        let result = contract.result;
+        if result.receiver != MethodReceiverContract::RustMapGetOrExactOption
+            || result.args != MethodBuiltinArgs::RustMapGetOrOptionDefault
         {
             return None;
         }
@@ -7184,6 +7326,7 @@ impl<'a> Builder<'a> {
 
     fn eval_rust_map_get_is_some_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -7194,11 +7337,14 @@ impl<'a> Builder<'a> {
             return None;
         };
         let contract =
-            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?
-                .result;
-        if contract.receiver != MethodReceiverContract::RustMapGetOrExactOption
-            || contract.args != MethodBuiltinArgs::ReceiverOnly
-            || contract.semantic != MethodSemanticContract::Builtin(Builtin::IsNotNull)
+            library_method_call_contract(self.il.meta.lang, self.interner.resolve(method), 0)?;
+        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 0) {
+            return None;
+        }
+        let result = contract.result;
+        if result.receiver != MethodReceiverContract::RustMapGetOrExactOption
+            || result.args != MethodBuiltinArgs::ReceiverOnly
+            || result.semantic != MethodSemanticContract::Builtin(Builtin::IsNotNull)
         {
             return None;
         }
@@ -7972,7 +8118,7 @@ impl<'a> Builder<'a> {
                     if let [value, default] = kids.as_slice() {
                         let value = self.eval(*value, env);
                         let default = self.eval(*default, env);
-                        return self.mk_value_default(value, default);
+                        return self.mk_value_or_map_default(value, default);
                     }
                 }
                 if let Payload::Builtin(b) = node.payload {
@@ -7980,7 +8126,7 @@ impl<'a> Builder<'a> {
                         return r;
                     }
                 }
-                if let Some(r) = self.eval_count_call(&kids, env) {
+                if let Some(r) = self.eval_count_call(expr, &kids, env) {
                     return r;
                 }
                 if let Some(r) = self.eval_product_call(expr, &kids, env) {
@@ -7989,10 +8135,10 @@ impl<'a> Builder<'a> {
                 if let Some(r) = self.eval_proven_integer_method_call(&kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_rust_map_get_unwrap_or_call(&kids, env) {
+                if let Some(r) = self.eval_rust_map_get_unwrap_or_call(expr, &kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_rust_map_get_is_some_call(&kids, env) {
+                if let Some(r) = self.eval_rust_map_get_is_some_call(expr, &kids, env) {
                     return r;
                 }
                 if kids.len() == 1 && self.is_rust_vec_new_call(expr, kids[0]) {
@@ -8004,19 +8150,19 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_java_map_factory_expr(expr, &kids, env) {
                     return v;
                 }
-                if let Some(v) = self.eval_iterator_identity_adapter(&kids, env) {
+                if let Some(v) = self.eval_iterator_identity_adapter(expr, &kids, env) {
                     return v;
                 }
                 if let Some(v) = self.eval_proven_free_minmax_call(&kids, env) {
                     return v;
                 }
-                if let Some(r) = self.eval_proven_collection_membership_call(&kids, env) {
+                if let Some(r) = self.eval_proven_collection_membership_call(expr, &kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_proven_map_key_membership_call(&kids, env) {
+                if let Some(r) = self.eval_proven_map_key_membership_call(expr, &kids, env) {
                     return r;
                 }
-                if let Some(r) = self.eval_proven_map_get_default_call(&kids, env) {
+                if let Some(r) = self.eval_proven_map_get_default_call(expr, &kids, env) {
                     return r;
                 }
                 if self.is_unproven_membership_like_call(expr, &kids) {
@@ -8669,7 +8815,8 @@ mod tests {
         library_free_name_collection_factory_contract,
         library_imported_collection_factory_contract, library_java_collection_factory_contract,
         library_java_map_factory_contract, library_js_like_map_constructor_contract,
-        library_js_like_set_constructor_contract, LibraryApiContractId, FIRST_PARTY_PACK_ID,
+        library_js_like_set_constructor_contract, library_method_call_contract,
+        LibraryApiContractId, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -8798,6 +8945,33 @@ mod tests {
         )
     }
 
+    fn push_method_call_library_api_evidence(
+        il: &mut Il,
+        interner: &Interner,
+        id: u32,
+        call: NodeId,
+        method: &str,
+        arity: usize,
+    ) {
+        let contract =
+            library_method_call_contract(il.meta.lang, method, arity).expect("method contract");
+        let dependencies = nose_semantics::library_api_receiver_dependencies_for_call(
+            il,
+            interner,
+            call,
+            contract.callee,
+        )
+        .expect("method receiver dependencies");
+        il.evidence.push(library_api_contract_evidence(
+            id,
+            il.node(call).span,
+            contract.id,
+            contract.callee,
+            arity as u16,
+            dependencies,
+        ));
+    }
+
     fn eval_proven_collection_op(il: &Il, interner: &Interner, call: NodeId) -> Option<ValOp> {
         let mut builder = Builder::new(il, interner);
         let raw = builder.eval(call, &FxHashMap::default());
@@ -8853,13 +9027,14 @@ mod tests {
             EvidenceAnchor::node(receiver_span, NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Collection),
         ));
+        push_method_call_library_api_evidence(&mut il, &interner, 1, call, "includes", 1);
         assert!(matches!(
             eval_op(&il, &interner, call),
             ValOp::Bin(op) if op == Op::In as u32
         ));
 
         il.evidence.push(evidence(
-            1,
+            2,
             EvidenceAnchor::node(receiver_span, NodeKind::Var),
             EvidenceKind::Domain(DomainEvidence::Map),
         ));
@@ -8926,6 +9101,7 @@ mod tests {
             EvidenceKind::Domain(DomainEvidence::Set),
             vec![EvidenceId(0)],
         ));
+        push_method_call_library_api_evidence(&mut il, &interner, 2, call, "includes", 1);
         assert!(matches!(
             eval_op(&il, &interner, call),
             ValOp::Bin(op) if op == Op::In as u32
@@ -9751,6 +9927,7 @@ mod tests {
             EvidenceKind::Domain(DomainEvidence::Map),
             vec![EvidenceId(5)],
         ));
+        push_method_call_library_api_evidence(&mut il, &interner, 7, get_call, "getOrDefault", 2);
 
         let mut builder = Builder::new(&il, &interner);
         builder.seed_module_value_bindings();

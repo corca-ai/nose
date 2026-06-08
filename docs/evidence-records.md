@@ -61,7 +61,7 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs plus selected Python, Rust, Ruby, Java, and regex APIs |
+| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global APIs, selected Python/Rust/Ruby/Java/regex APIs, and selected receiver-method families |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
@@ -97,6 +97,11 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `JsGlobalConstructor` and `RegexLiteralMethod` name APIs whose identity
   includes source provenance, such as construct syntax or regex-literal receiver
   proof.
+- `Method` and `IteratorAdapterMethod` name language-scoped receiver methods by
+  exact method string and arity. They depend on receiver proof such as
+  `Domain`, `SequenceSurface`, imported-namespace or unshadowed-global `Symbol`,
+  or nested admitted `LibraryApi` evidence for factory/result calls. They do not
+  infer semantics from a selector spelling alone.
 
 ## Consumption Rules
 
@@ -283,6 +288,19 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   arities, unsupported static paths, unresolved free-name/path factories, and
   Ruby require-backed APIs without require evidence do not emit API occurrence
   evidence;
+- first-party lowering plus post-binding and final-normalization refresh passes
+  emit `LibraryApi`
+  occurrence evidence for selected receiver methods that remain as raw call
+  nodes: map `get`, map-key views, iterator identity adapters, and the
+  language-scoped method-call contracts currently used for collection/map
+  membership, map defaulting, count/length, predicates, Rust `zip`, HOF, and
+  reduction methods. The post-binding refresh exists because immutable
+  binding-domain evidence is inferred after lowering; the final refresh exists
+  because CFG/dataflow/algebra rewrites can replace receiver expressions with
+  equivalent sequence or result values. Refreshing upserts first-party occurrence
+  records so `VALUES = List.of(...); VALUES.contains(x)` depends on the current
+  binding or sequence-domain proof rather than falling back to selector
+  matching;
 - selected `LibraryApi` producer-covered result calls emit dependent
   receiver-expression `Domain` evidence: Python `list`/`tuple` and
   `collections.deque`, Rust `Vec::new`, `vec!`, and
@@ -351,14 +369,25 @@ callers:
   evidence for `Array.from`;
 - selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
   evidence first for the migrated JS-like, Python builtin/imported, Rust
-  free-name/path, Ruby require-backed, Java static, and regex-literal surfaces;
+  free-name/path, Ruby require-backed, Java static, regex-literal, and
+  receiver-method surfaces;
   conflicting or dependency-broken API evidence keeps
   the value-graph, idiom, and strict exact paths closed. Missing API evidence is
   now also closed for those producer-covered surfaces; older symbol/source proof
   helpers remain dependency inputs to `LibraryApi` evidence, not fallback API
-  proofs. Other factory and method/view contract rows still name API
+  proofs. Other factory and constructor contract rows still name API
   identity/result semantics while local consumers prove their current `Symbol`,
   `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
+- value-graph consumers that query by source span re-check the original source
+  `Call` node shape and its evidence dependencies when that call can be
+  recovered. This preserves receiver-method precision when value-graph CSE has
+  collapsed a parameter receiver into a spanless input, and it still fails closed
+  if the source span does not identify a matching call occurrence;
+- normalized `HoF` nodes produced from admitted receiver-method calls preserve
+  the same-span `LibraryApi(MethodCall(HoF(...)))` occurrence record as protocol
+  receiver evidence. Downstream calls such as Rust `.collect()` can therefore
+  depend on the admitted `filter_map`/`map`/`filter` occurrence after IL
+  canonicalization, without reopening selector-only proof;
 - JS/TS record-shape guard exact admission and value-graph tagging require both
   `SequenceSurface(RecordGuard)` and `Guard::JsRecordShape`; raw
   `Seq("record_guard")` cannot enter the proof-bearing exact/value-graph path by
@@ -378,8 +407,9 @@ callers:
   language-gated helper only when no relevant evidence record exists. Ambiguous
   or conflicting evidence keeps the exact path closed.
 
-Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
-receiver-method APIs and unmodeled stdlib/ecosystem APIs, broader inferred
+Broader field/place/effect facts, `LibraryApi` occurrence evidence for Java
+constructors, JS/TS static-index membership, free-name builtin calls, promise
+receiver proof, and unmodeled stdlib/ecosystem APIs, broader inferred
 receiver-expression domain evidence, first-class mutation/effect evidence beyond
 the current first-party binding scan, full protocol/demand/effect receiver
 obligations, full scope-resolution and namespace-member evidence, broader guard

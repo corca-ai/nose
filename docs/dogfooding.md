@@ -113,3 +113,17 @@ shares a heavy sub-DAG, each site in the report carries `locations[].shared_subd
 — its OWN source range for the shared computation — and `nose scan`'s text output appends
 `(shared computation: lines X-Y)` to each site. So a partial / sub-DAG clone points at *where* the
 shared logic lives in every copy, not just that one exists.
+
+## Budget 21 → 22 and receiver-method LibraryApi occurrence evidence
+
+Moving receiver-method APIs onto admitted `LibraryApi` occurrence evidence briefly raised the
+dogfooding count to 25. The new occurrence-producer and strict-exact gate duplication was real and
+was deduped: receiver-method contract selection now lives in the semantic kernel, shadow checks use
+one semantic helper, bulk dependency lookup reuses a cache, and strict-exact call evidence gates
+share admitted-contract helpers.
+
+The remaining 22nd family is pre-existing domain/binding helper similarity (`ParamDomainIndex`,
+`domain_evidence_for_var_reference`, and `binding_lhs_name`). It crosses the substantial threshold
+because receiver-method occurrence evidence lets the near channel recognize more of the existing
+semantic proof plumbing, not because this PR added another copy. The gate budget is therefore
+re-baselined to 22 while continuing to ratchet against new avoidable duplication.

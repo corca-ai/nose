@@ -358,7 +358,26 @@ and pack ecosystem.
   `nose-semantics` resolves receiver-domain proof from exact receiver nodes,
   binding anchors, and scoped parameters through the same `DomainRequirement`
   helper, so value-graph and strict exact gates no longer maintain separate
-  collection/map binding proof sets.
+  receiver-domain scanners.
+- The receiver-method `LibraryApi` occurrence slice moved broad method-family
+  consumers behind dependency-backed call occurrence records. First-party
+  lowering now emits occurrence evidence for map `get`, map-key views, iterator
+  identity adapters, and language-scoped method-call contracts only when the
+  exact language/method/arity row and receiver proof are present. Normalize runs
+  receiver-method refresh passes after immutable binding-domain inference and
+  after final CFG/dataflow/algebra rewrites, so binding receivers such as
+  `VALUES.contains(x)` can depend on the current binding or sequence-domain
+  proof produced from `VALUES = List.of(...)`. Source-span evidence lookup
+  re-checks the recovered source `Call` node when value-graph CSE has collapsed
+  parameter receivers into spanless values, which keeps Java/TS/Python map
+  defaulting aligned without accepting selector-only proof. Normalize idioms,
+  value-graph rewrites, and strict exact gates for collection/map membership,
+  map defaulting, map-key views, iterator adapters, Rust `zip`, and
+  HOF/reduction methods now require admitted occurrence evidence instead of raw
+  selector plus receiver-domain scans. Normalized `HoF` nodes produced from
+  admitted method calls also remain admissible protocol receivers through their
+  same-span `MethodCall(HoF(...))` occurrence record, so downstream adapters can
+  consume canonicalized HOFs without trusting selector spelling alone.
 - Value-graph and structural-recursion domain gates moved from normalize-local
   `types.rs` / `Ty` inference to `nose-semantics` `ValueDomain` and `ValueLaw`
   contracts. The first contract set covers add non-concat ordering,
@@ -444,9 +463,9 @@ Remaining in this phase:
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is producer
-  coverage for Java constructors, broad receiver-method families, and
-  ecosystem APIs whose receiver/domain/demand obligations are not yet
-  expressible.
+  coverage for Java constructors, JS/TS static-index membership, free-name
+  builtin calls, promise receiver proof, and ecosystem APIs whose
+  receiver/domain/demand obligations are not yet expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -458,20 +477,20 @@ Remaining in this phase:
   call contracts. Occurrence-evidence slices now cover selected JS-like
   static/global APIs, Python builtin/import-backed factories/functions, Rust
   free-name/path factories, Ruby require-backed factories, Java `java.util`
-  static factories/adapters, and JS regex literals. Remaining stdlib and
-  ecosystem APIs still need dependency-backed occurrence records before they
-  become pack-facing. Producer-covered factory/API result calls now also emit
-  dependent call-node `Domain` evidence when the current `DomainEvidence`
-  vocabulary can represent the result.
+  static factories/adapters, JS regex literals, and selected receiver-method
+  families. Remaining stdlib and ecosystem APIs still need dependency-backed
+  occurrence records before they become pack-facing. Producer-covered
+  factory/API result calls now also emit dependent call-node `Domain` evidence
+  when the current `DomainEvidence` vocabulary can represent the result.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
   `LibraryApiContract` identity/result rows, and selected JS-like,
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
-  evidence. Remaining API work is to move raw sequence/tag, Java constructor,
-  and broad receiver-method proof dependencies into explicit evidence records,
-  then cover broader reduction/HOF and ecosystem APIs only after demand,
-  receiver, and effect obligations are expressible.
+  evidence, as do selected receiver-method families. Remaining API work is to
+  move raw sequence/tag, Java constructor, JS/TS static-index, and free-builtin
+  proof dependencies into explicit evidence records, then cover ecosystem APIs
+  only after demand, receiver, and effect obligations are expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement

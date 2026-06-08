@@ -29,7 +29,9 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # 20 → 21: weight-grading the sub-DAG score (a larger shared computation now scores higher, up to
 # 0.90) lifts one PRE-EXISTING partial-clone family in nose's own source past the substantial
 # (value ≥ 40) line — finer ranking surfacing real debt, not new code. Still a dedup candidate.
-BUDGET=21      # accepted substantial families today (see docs/dogfooding.md)
+# 21 → 22: receiver-method LibraryApi occurrence evidence makes the near channel admit one
+# PRE-EXISTING param-domain/binding helper family; new occurrence-producer duplication was deduped.
+BUDGET=22      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 
