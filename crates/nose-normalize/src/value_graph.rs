@@ -39,6 +39,7 @@ mod builders;
 mod collections;
 mod context;
 mod control;
+mod field_state;
 mod inline;
 mod ops;
 mod output;
@@ -54,6 +55,7 @@ use crate::module_facts::{
     node_symbol_in_scope, shadowed_js_like_module_binding_nodes_for_symbol_in_scope,
     top_level_statements_for,
 };
+use field_state::FieldStateKey;
 use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, HoFKind, Il, Interner, Lang, LoopKind, NodeId,
     NodeKind, Op, Payload, SourceCastKind, SourceComprehensionKind, SourceFactKind, Span, Symbol,
@@ -217,12 +219,6 @@ pub fn value_fingerprint_and_contracts(
 
 type ValueId = u32;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct FieldStateKey {
-    receiver: ValueId,
-    field: u64,
-}
-
 #[derive(Clone, PartialEq, Eq, Hash)]
 enum ValOp {
     Input(u32), // a parameter or free variable, keyed by canonical id
@@ -335,13 +331,10 @@ struct Builder<'a> {
     intern: FxHashMap<(ValOp, Vec<ValueId>), ValueId>,
     sinks: Vec<Sink>,
     opaque_ctr: u32,
-    /// Object field writes (`self.x = v`), keyed by receiver identity plus field name → its
-    /// CURRENT value (last-write-wins). Flushed to sinks at the end as one
-    /// (receiver, field, final-value) sink each. This makes the fingerprint depend on the
-    /// final per-place state — order-insensitive across DISTINCT places, yet correct for
-    /// same-place overwrites (`x=1;x=2` ≠ `x=2;x=1` — last value wins).
-    /// The old order-independent effect multiset got BOTH wrong (it split commuting
-    /// swaps — false split vs the oracle — and merged same-field overwrites — unsound).
+    /// Evidence-proven exact field writes, keyed by receiver identity plus field name → its
+    /// CURRENT value (last-write-wins). Today this is the Java `this.field` substrate backed
+    /// by `Place(SelfField)` and `Effect(SelfFieldWrite)`. Raw dynamic attribute writes stay
+    /// ordered effects because selector spelling alone is not place/effect proof.
     field_env: FxHashMap<FieldStateKey, ValueId>,
     /// Lazily-computed subtree hash per IL node (kind + payload + children), used to
     /// key unlowered `Raw` constructs and lambda bodies by content. Computed once per
@@ -555,23 +548,6 @@ impl<'a> Builder<'a> {
                 operators.builtin_result_domain(Builtin::Contains)
             }
             _ => ValueDomain::Unknown,
-        }
-    }
-
-    /// Flush accumulated object-field writes to sinks: one (receiver, field-name,
-    /// final-value) sink per distinct place, in canonical place order. See `field_env`.
-    fn flush_fields(&mut self) {
-        let mut entries: Vec<(FieldStateKey, ValueId)> = self.field_env.drain().collect();
-        entries.sort_unstable_by_key(|(key, _)| {
-            (
-                self.vhash[key.receiver as usize],
-                key.field,
-                key.receiver as u64,
-            )
-        });
-        for (key, v) in entries {
-            let f = self.mk(ValOp::Field(key.field), vec![key.receiver, v]);
-            self.sinks.push(Sink::new(SinkKind::Effect, f));
         }
     }
 
@@ -840,74 +816,6 @@ impl<'a> Builder<'a> {
     fn emit_throw(&mut self, v: ValueId) {
         let g = self.guarded(v);
         self.sinks.push(Sink::new(SinkKind::Throw, g));
-    }
-
-    fn field_state_key(&mut self, target: NodeId) -> Option<FieldStateKey> {
-        if self.il.kind(target) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(field) = self.il.node(target).payload else {
-            return None;
-        };
-        let receiver = self.il.children(target).first().copied()?;
-        let receiver = self.field_place_value(receiver)?;
-        Some(FieldStateKey {
-            receiver,
-            field: self.interner.symbol_hash(field),
-        })
-    }
-
-    fn field_place_value(&mut self, node: NodeId) -> Option<ValueId> {
-        match self.il.kind(node) {
-            NodeKind::Var => self.var_place_value(node),
-            NodeKind::Field => {
-                let receiver = self.il.children(node).first().copied()?;
-                let receiver = self.field_place_value(receiver)?;
-                let Payload::Name(field) = self.il.node(node).payload else {
-                    return None;
-                };
-                Some(self.mk(
-                    ValOp::Field(self.interner.symbol_hash(field)),
-                    vec![receiver],
-                ))
-            }
-            NodeKind::Index => {
-                let kids = self.il.children(node);
-                let receiver = kids.first().copied()?;
-                let receiver = self.field_place_value(receiver)?;
-                let key = kids
-                    .get(1)
-                    .and_then(|&key| self.field_place_key_value(key))?;
-                Some(self.mk(ValOp::Index, vec![receiver, key]))
-            }
-            _ => None,
-        }
-    }
-
-    fn var_place_value(&mut self, node: NodeId) -> Option<ValueId> {
-        match self.il.node(node).payload {
-            Payload::Cid(cid) => Some(self.mk(ValOp::Input(cid), vec![])),
-            Payload::Name(name) => Some(self.mk(ValOp::Input(self.free_name_key(name)), vec![])),
-            _ => None,
-        }
-    }
-
-    fn field_place_key_value(&mut self, node: NodeId) -> Option<ValueId> {
-        match self.il.node(node).payload {
-            Payload::LitInt(value) => Some(self.mk(
-                ValOp::Const(0x1000_0000u32.wrapping_add(value as u32)),
-                vec![],
-            )),
-            Payload::LitStr(hash) => Some(self.mk(
-                ValOp::Const(0x2000_0000u32.wrapping_add(hash as u32)),
-                vec![],
-            )),
-            Payload::Name(name) => Some(self.mk(ValOp::Input(self.free_name_key(name)), vec![])),
-            Payload::Cid(cid) if self.il.kind(node) == NodeKind::Var => {
-                Some(self.mk(ValOp::Input(cid), vec![]))
-            }
-            _ => None,
-        }
     }
 
     /// Tag a value with the current path condition: under branch conditions, the
@@ -2229,7 +2137,7 @@ impl<'a> Builder<'a> {
                     }
                 }
                 if a.len() == 1 {
-                    let Some(key) = self.field_state_key(expr) else {
+                    let Some(key) = self.exact_field_state_key(expr) else {
                         return self.mk(ValOp::Field(name), a);
                     };
                     if let Some(&written) = self.field_env.get(&key) {

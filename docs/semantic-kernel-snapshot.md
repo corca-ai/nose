@@ -6,7 +6,7 @@ implementation shape; planned work and decision history live in
 record substrate is described in [evidence-records](evidence-records.md).
 
 Snapshot date: 2026-06-09. The current implementation has an internal
-semantic-kernel facade, receiver-aware field state, sequence-surface contracts,
+semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
 receiver-domain evidence resolution, and a shared evidence-record substrate for
@@ -372,11 +372,13 @@ migrated.
   helpers. Raw selector-only append calls stay exact-closed as append effects,
   though they may still participate in the separate opaque-call policy as
   generic `Other` effect context.
-- Value-graph and oracle same-unit field state are receiver-aware: a cached write
-  is keyed by receiver/place plus field name, so `a.x = v` can satisfy `a.x`
-  but not `b.x`, and final field-write sinks preserve the receiver identity.
-  Same-unit value-graph readback uses syntactic receiver/place evidence only; it
-  does not assume aliasing or computed call-result receivers.
+- Value-graph and oracle same-unit field state are evidence-gated. A cached
+  write/readback/final field sink is admitted only for the current self-field
+  substrate: Java `this.field` proven by `Place(SelfReceiver)`,
+  `Place(SelfField)`, and `Effect(SelfFieldWrite)`. Raw dynamic attribute or
+  property spellings, including Python `self.x`, do not prove exact field state;
+  they remain ordered effects or unsupported until a pack supplies explicit
+  place/effect evidence.
 - Exact-fragment place/effect gates now have the first pack-facing evidence
   substrate. First-party lowering and normalize refreshes emit
   `Place(SelfReceiver)` and `Place(SelfField)` for Java `this`/`this.field`,
@@ -632,9 +634,9 @@ language.
 - Exact matching is conservative by design.
 - The value graph already separates behavioral fingerprints from fuzzy candidate
   structure.
-- The oracle models return values, ordered effects, final field state, `Err`
-  behavior, short-circuit `and`/`or`, `any`/`all`, HOFs, recursion, and selected
-  interprocedural calls.
+- The oracle models return values, ordered effects, evidence-admitted final
+  field state, `Err` behavior, short-circuit `and`/`or`, `any`/`all`, HOFs,
+  recursion, and selected interprocedural calls.
 - Proof-sensitive normalization already has named rule modules and a Lean
   obligation registry.
 - Raw-node coverage gives a practical measure of lowering gaps.

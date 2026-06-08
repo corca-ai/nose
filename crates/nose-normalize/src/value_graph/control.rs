@@ -1005,11 +1005,11 @@ impl<'a> Builder<'a> {
                             return;
                         }
                     }
-                    // A field write (`self.x = v`) updates per-place state
-                    // (last-write-wins), flushed as a (receiver, field, final-value) sink
-                    // later — order-insensitive across distinct places, correct for
-                    // same-place overwrites.
-                    if let Some(key) = self.field_state_key(kids[0]) {
+                    // An evidence-backed exact field write updates per-place state
+                    // (last-write-wins), flushed as a (receiver, field, final-value)
+                    // sink later — order-insensitive across distinct places, correct
+                    // for same-place overwrites.
+                    if let Some(key) = self.exact_field_write_state_key(stmt, kids[0]) {
                         let g = self.guarded(rhs);
                         self.field_env.insert(key, g);
                         return;

@@ -45,13 +45,14 @@ fn foreach_accumulator_is_interpretable_iterating_a_nonlist_is_err_not_unsupport
     use nose_normalize::{run_unit, Value};
     let list = Value::List(vec![Value::Int(2), Value::Int(-1), Value::Int(5)]);
     assert_eq!(
-        run_unit(&n, f, &[list])
+        run_unit(&n, &i, f, &[list])
             .expect("list input is interpretable")
             .ret,
         Value::Int(7),
         "summing the positives of [2,-1,5] is 7",
     );
-    let scalar = run_unit(&n, f, &[Value::Int(3)]).expect("scalar input stays interpretable (Err)");
+    let scalar =
+        run_unit(&n, &i, f, &[Value::Int(3)]).expect("scalar input stays interpretable (Err)");
     assert_eq!(
         scalar.ret,
         Value::Err,
@@ -3024,14 +3025,21 @@ fn value_graph_reads_field_written_in_unit() {
     let i = Interner::new();
     let read_field = "def f(self):\n    self.x = 7\n    return self.x\n";
     let return_value = "def f(self):\n    self.x = 7\n    return 7\n";
+    let java_read_field = "class C { int x; int f() { this.x = 7; return this.x; } }";
+    let java_return_value = "class C { int x; int f() { this.x = 7; return 7; } }";
     let read_other_receiver = "def f(a, b):\n    a.x = 7\n    return b.x\n";
     let read_written_receiver = "def f(a, b):\n    a.x = 7\n    return a.x\n";
     let unknown_alias_receiver = "def f(a):\n    r = receiver(a)\n    r.x = 7\n    return a.x\n";
     let computed_receiver = "def f(a):\n    receiver(a).x = 7\n    return receiver(a).x\n";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, read_field, Lang::Python),
         value_fp(&i, return_value, Lang::Python),
-        "a field read after a same-unit field write should resolve to the written value"
+        "raw Python attribute spelling is not enough proof for exact field-state readback"
+    );
+    assert_eq!(
+        value_fp(&i, java_read_field, Lang::Java),
+        value_fp(&i, java_return_value, Lang::Java),
+        "a Java this.field read after an effect-proven same-unit write should resolve to the written value"
     );
     assert_ne!(
         value_fp(&i, read_other_receiver, Lang::Python),
@@ -3055,12 +3063,21 @@ fn value_graph_field_state_is_receiver_aware() {
     let i = Interner::new();
     let same_receiver_order_a = "def f(self):\n    self.x = 1\n    self.y = 2\n";
     let same_receiver_order_b = "def f(self):\n    self.y = 2\n    self.x = 1\n";
+    let java_same_receiver_order_a =
+        "class C { int x; int y; void f() { this.x = 1; this.y = 2; } }";
+    let java_same_receiver_order_b =
+        "class C { int x; int y; void f() { this.y = 2; this.x = 1; } }";
     let crossed_receivers_a = "def f(a, b):\n    a.x = 1\n    b.x = 2\n";
     let crossed_receivers_b = "def f(a, b):\n    b.x = 1\n    a.x = 2\n";
-    assert_eq!(
+    assert_ne!(
         value_fp(&i, same_receiver_order_a, Lang::Python),
         value_fp(&i, same_receiver_order_b, Lang::Python),
-        "final writes to distinct fields on the same receiver should still commute"
+        "raw Python attribute writes stay ordered because property/setter effects are not proven"
+    );
+    assert_eq!(
+        value_fp(&i, java_same_receiver_order_a, Lang::Java),
+        value_fp(&i, java_same_receiver_order_b, Lang::Java),
+        "effect-proven Java final writes to distinct this.fields should commute"
     );
     assert_ne!(
         value_fp(&i, crossed_receivers_a, Lang::Python),
@@ -6122,7 +6139,7 @@ fn interp_executes_self_recursion() {
         },
     );
     let root = first_func(&oracle);
-    let beh = run_unit(&oracle, root, &[Value::Int(5)]).expect("recursion should interpret");
+    let beh = run_unit(&oracle, &i, root, &[Value::Int(5)]).expect("recursion should interpret");
     assert_eq!(
         beh.ret,
         Value::Int(120),

@@ -250,9 +250,10 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
 
-Place and effect evidence are authoritative for the exact-fragment substrate
-and for conservative mutation invalidation. Raw method selectors such as `push`,
-`append`, or `add` do not prove an append effect; exact consumers need
+Place and effect evidence are authoritative for the exact-fragment substrate,
+value-graph field-state consumers, oracle field state, and conservative mutation
+invalidation. Raw method selectors such as `push`, `append`, or `add` do not prove
+an append effect; exact consumers need
 `Effect(BuilderAppendCall)`, even when the call has already been lowered to
 canonical `Builtin::Append`. Likewise, non-overloadable index writes and fixed
 self-field writes are admitted only through exact `Effect` records, with
@@ -260,7 +261,8 @@ self-field writes are admitted only through exact `Effect` records, with
 First-party `Place(SelfField)` depends on the matching `Place(SelfReceiver)`,
 and `Effect(SelfFieldWrite)` depends on the matching `Place(SelfField)`.
 Missing, conflicting, ambiguous, or dependency-broken place/effect evidence
-closes exact fragments instead of reopening a legacy language/shape fallback.
+closes exact fragments, value-graph field readback/final field sinks, and oracle
+field state instead of reopening a legacy language/shape fallback.
 
 Mutation-risk effects are intentionally separate from exact effect proofs.
 `Effect(BindingWrite)` says an assignment node writes its syntactic target;

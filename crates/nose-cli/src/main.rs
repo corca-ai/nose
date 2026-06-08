@@ -1575,7 +1575,7 @@ fn cmd_behavioral_gate(
             let mut ok = true;
             for inputs in &battery {
                 let row = apply_contracts(inputs, &contracts);
-                match run_unit(&core, core_root, &row) {
+                match run_unit(&core, &corpus.interner, core_root, &row) {
                     Some(b) => beh.push(b),
                     None => {
                         ok = false;
@@ -1883,7 +1883,7 @@ fn cmd_verify(
             let mut ok = true;
             for inputs in &battery {
                 let row = apply_contracts(inputs, &contracts);
-                match run_unit(&core, core_root, &row) {
+                match run_unit(&core, &corpus.interner, core_root, &row) {
                     Some(b) => beh.push(b),
                     None => {
                         ok = false;
@@ -1902,7 +1902,7 @@ fn cmd_verify(
                 let mut full_ok = true;
                 for inputs in &battery {
                     let row = apply_contracts(inputs, &contracts);
-                    match run_unit(&n, root, &row) {
+                    match run_unit(&n, &corpus.interner, root, &row) {
                         Some(b) => full_beh.push(b),
                         None => {
                             full_ok = false;

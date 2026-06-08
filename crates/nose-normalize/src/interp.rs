@@ -18,10 +18,12 @@
 //! proof-obligation: normalize.value_graph.field_writes
 //! proof-obligation: normalize.value_graph.free_monoid
 
-use nose_il::{Builtin, Il, LoopKind, NodeId, NodeKind, Op, Payload};
+use nose_il::{stable_symbol_hash, Builtin, Il, Interner, LoopKind, NodeId, NodeKind, Op, Payload};
 use nose_semantics::{
     admitted_builtin_semantics_at_call, builtin_demand, direct_function_call_target_at_call,
-    eager_builtin_contract, hof_contract, BuiltinDemand, EagerBuiltinContract, HofContract,
+    eager_builtin_contract, exact_java_this_field, exact_java_this_var,
+    exact_self_field_write_assignment, hof_contract, BuiltinDemand, EagerBuiltinContract,
+    HofContract,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -48,22 +50,19 @@ pub enum Value {
 /// A receiver identity proven by the IL shape during interpretation.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum FieldPlace {
-    Name(i64),
-    Param(u32),
-    Field(Box<FieldPlace>, i64),
-    Index(Box<FieldPlace>, i64),
+    SelfReceiver,
 }
 
 /// A concrete final field-state slot: receiver identity plus field name.
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct FieldKey {
     pub receiver: FieldPlace,
-    pub field: i64,
+    pub field: u64,
 }
 
 /// The observable behavior of one run: the returned value, an ordered I/O effect trace
 /// (appended/printed values, in order — order IS observable), and the final per-place
-/// object state (`self.x = …`) as a receiver+name→value map in canonical place order.
+/// object state (`this.x = ...`) as a receiver+name→value map in canonical place order.
 /// Field state is order-INSENSITIVE across distinct places but reflects
 /// last-write-wins per receiver+field. Two units are behaviorally equal on an input iff
 /// all three components match.
@@ -99,6 +98,7 @@ const STEP_BUDGET: u64 = 200_000;
 
 struct Interp<'a> {
     il: &'a Il,
+    interner: &'a Interner,
     steps: u64,
     effects: Vec<Value>,
     fields: FxHashMap<FieldKey, Value>,
@@ -113,7 +113,7 @@ struct Interp<'a> {
 
 /// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
 /// Returns its [`Behavior`], or `None` if the unit is uninterpretable.
-pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
+pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
     if il.kind(root) != NodeKind::Func {
         return None;
     }
@@ -130,6 +130,7 @@ pub fn run_unit(il: &Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
         .collect();
     let mut it = Interp {
         il,
+        interner,
         steps: 0,
         effects: Vec::new(),
         fields: FxHashMap::default(),
@@ -174,45 +175,49 @@ impl<'a> Interp<'a> {
         }
     }
 
-    fn field_place(&self, node: NodeId) -> Option<FieldPlace> {
-        match self.il.kind(node) {
-            NodeKind::Var => match self.il.node(node).payload {
-                Payload::Cid(cid) => Some(FieldPlace::Param(cid)),
-                Payload::Name(name) => Some(FieldPlace::Name(nose_il::symbol_index(name) as i64)),
-                _ => None,
-            },
-            NodeKind::Field => {
-                let receiver = self.il.children(node).first().copied()?;
-                let receiver = self.field_place(receiver)?;
-                let Payload::Name(field) = self.il.node(node).payload else {
-                    return None;
-                };
-                Some(FieldPlace::Field(
-                    Box::new(receiver),
-                    nose_il::symbol_index(field) as i64,
-                ))
-            }
-            NodeKind::Index => {
-                let kids = self.il.children(node);
-                let receiver = kids.first().copied()?;
-                let receiver = self.field_place(receiver)?;
-                let key = kids
-                    .get(1)
-                    .and_then(|&key| self.field_place_key_hash(key))?;
-                Some(FieldPlace::Index(Box::new(receiver), key))
-            }
-            _ => None,
+    fn exact_field_place(&self, node: NodeId) -> Option<FieldPlace> {
+        if self.il.kind(node) == NodeKind::Var && exact_java_this_var(self.il, self.interner, node)
+        {
+            Some(FieldPlace::SelfReceiver)
+        } else {
+            None
         }
     }
 
-    fn field_place_key_hash(&self, node: NodeId) -> Option<i64> {
-        match self.il.node(node).payload {
-            Payload::LitInt(value) => Some(value),
-            Payload::LitStr(hash) => Some(hash as i64),
-            Payload::Name(symbol) => Some(nose_il::symbol_index(symbol) as i64),
-            Payload::Cid(cid) if self.il.kind(node) == NodeKind::Var => Some(i64::from(cid)),
-            _ => None,
+    fn exact_field_write_key(&self, assign: NodeId, target: NodeId) -> Option<FieldKey> {
+        if !exact_self_field_write_assignment(self.il, self.interner, assign) {
+            return None;
         }
+        self.exact_field_key(target)
+    }
+
+    fn exact_field_key(&self, target: NodeId) -> Option<FieldKey> {
+        if self.il.kind(target) != NodeKind::Field {
+            return None;
+        }
+        if !exact_java_this_field(self.il, self.interner, target) {
+            return None;
+        }
+        let Payload::Name(field) = self.il.node(target).payload else {
+            return None;
+        };
+        let receiver = self.il.children(target).first().copied()?;
+        let receiver = self.exact_field_place(receiver)?;
+        Some(FieldKey {
+            receiver,
+            field: stable_symbol_hash(self.interner.resolve(field)),
+        })
+    }
+
+    fn field_receiver_errored(
+        &mut self,
+        receiver: NodeId,
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<bool> {
+        if exact_java_this_var(self.il, self.interner, receiver) {
+            return Ok(false);
+        }
+        Ok(matches!(self.eval(receiver, env)?, Value::Err))
     }
 
     /// Execute a statement (or block), threading control flow.
@@ -237,7 +242,7 @@ impl<'a> Interp<'a> {
                 if matches!(rhs, Value::Err) {
                     return Ok(Flow::Err);
                 }
-                if self.bind(kids[0], rhs, env)? {
+                if self.bind(kids[0], rhs, env, Some(node))? {
                     return Ok(Flow::Err);
                 }
                 Ok(Flow::Normal)
@@ -337,7 +342,7 @@ impl<'a> Interp<'a> {
                 };
                 for item in seq {
                     self.tick()?;
-                    if self.bind(kids[0], item, env)? {
+                    if self.bind(kids[0], item, env, None)? {
                         return Ok(Flow::Err);
                     }
                     match self.exec(kids[2], env)? {
@@ -392,7 +397,13 @@ impl<'a> Interp<'a> {
 
     /// Bind a target (Var / tuple `Seq` / `Index` store) to a value.
     /// Returns true when evaluating the target itself raised a runtime `Err`.
-    fn bind(&mut self, target: NodeId, val: Value, env: &mut FxHashMap<u32, Value>) -> R<bool> {
+    fn bind(
+        &mut self,
+        target: NodeId,
+        val: Value,
+        env: &mut FxHashMap<u32, Value>,
+        assignment: Option<NodeId>,
+    ) -> R<bool> {
         match self.il.kind(target) {
             NodeKind::Var => {
                 if let Payload::Cid(c) = self.il.node(target).payload {
@@ -410,7 +421,7 @@ impl<'a> Interp<'a> {
                     _ => return Err(Unsupported),
                 };
                 for (t, v) in names.into_iter().zip(vals) {
-                    if self.bind(t, v, env)? {
+                    if self.bind(t, v, env, None)? {
                         return Ok(true);
                     }
                 }
@@ -423,21 +434,14 @@ impl<'a> Interp<'a> {
                 let Some(&receiver) = self.il.children(target).first() else {
                     return Err(Unsupported);
                 };
-                let receiver_value = self.eval(receiver, env)?;
-                if matches!(receiver_value, Value::Err) {
+                if self.field_receiver_errored(receiver, env)? {
                     return Ok(true);
                 }
-                if let Payload::Name(sym) = self.il.node(target).payload {
-                    let Some(receiver) = self.field_place(receiver) else {
+                if let Some(assign) = assignment {
+                    let Some(key) = self.exact_field_write_key(assign, target) else {
                         return Err(Unsupported);
                     };
-                    self.fields.insert(
-                        FieldKey {
-                            receiver,
-                            field: nose_il::symbol_index(sym) as i64,
-                        },
-                        val,
-                    );
+                    self.fields.insert(key, val);
                     Ok(false)
                 } else {
                     Err(Unsupported)
@@ -563,22 +567,15 @@ impl<'a> Interp<'a> {
                 let Some(&receiver) = self.il.children(node).first() else {
                     return Err(Unsupported);
                 };
-                let receiver_value = self.eval(receiver, env)?;
-                if matches!(receiver_value, Value::Err) {
+                if self.field_receiver_errored(receiver, env)? {
                     return Ok(Value::Err);
                 }
                 match n.payload {
-                    Payload::Name(sym) => {
-                        let Some(receiver) = self.field_place(receiver) else {
+                    Payload::Name(_) => {
+                        let Some(key) = self.exact_field_key(node) else {
                             return Err(Unsupported);
                         };
-                        self.fields
-                            .get(&FieldKey {
-                                receiver,
-                                field: nose_il::symbol_index(sym) as i64,
-                            })
-                            .cloned()
-                            .ok_or(Unsupported)
+                        self.fields.get(&key).cloned().ok_or(Unsupported)
                     }
                     _ => Err(Unsupported),
                 }
@@ -1278,9 +1275,10 @@ mod tests {
     use super::*;
     use nose_il::{
         stable_symbol_hash, CallTargetEvidenceKind, EffectEvidenceKind, EvidenceAnchor,
-        EvidenceEmitter, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId,
-        FileMeta, HoFKind, IlBuilder, Interner, Lang, LibraryApiEvidenceKind, LitClass,
-        SourceCastKind, SourceFactKind, Span, Unit, UnitKind,
+        EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
+        EvidenceStatus, FileId, FileMeta, HoFKind, IlBuilder, Interner, Lang,
+        LibraryApiEvidenceKind, LitClass, PlaceEvidenceKind, SourceCastKind, SourceFactKind, Span,
+        Unit, UnitKind,
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash, LibraryApiCalleeContract,
@@ -1289,7 +1287,12 @@ mod tests {
 
     fn run_admitted_unit(mut il: Il, root: NodeId, args: &[Value]) -> Option<Behavior> {
         admit_test_builtin_calls(&mut il);
-        run_unit(&il, root, args)
+        let interner = Interner::new();
+        run_unit(&il, &interner, root, args)
+    }
+
+    fn test_span(offset: u32) -> Span {
+        Span::new(FileId(0), offset, offset + 1, offset + 1, offset + 1)
     }
 
     fn admit_test_builtin_calls(il: &mut Il) {
@@ -1379,7 +1382,7 @@ mod tests {
         callee: LibraryApiCalleeContract,
     ) -> EvidenceRecord {
         EvidenceRecord {
-            id: nose_il::EvidenceId(id),
+            id: EvidenceId(id),
             anchor: EvidenceAnchor::node(span, NodeKind::Call),
             kind: EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
                 contract_hash: library_api_contract_id_hash(contract_id),
@@ -1398,7 +1401,7 @@ mod tests {
 
     fn test_effect_record(id: u32, span: Span, effect: EffectEvidenceKind) -> EvidenceRecord {
         EvidenceRecord {
-            id: nose_il::EvidenceId(id),
+            id: EvidenceId(id),
             anchor: EvidenceAnchor::node(span, NodeKind::Call),
             kind: EvidenceKind::Effect(effect),
             provenance: EvidenceProvenance {
@@ -1411,9 +1414,104 @@ mod tests {
         }
     }
 
+    fn test_node_place_record(
+        id: u32,
+        il: &Il,
+        node: NodeId,
+        place: PlaceEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            kind: EvidenceKind::Place(place),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies,
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn test_node_effect_record(
+        id: u32,
+        il: &Il,
+        node: NodeId,
+        effect: EffectEvidenceKind,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceRecord {
+        EvidenceRecord {
+            id: EvidenceId(id),
+            anchor: EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+            kind: EvidenceKind::Effect(effect),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: Some(stable_symbol_hash(FIRST_PARTY_PACK_ID)),
+                rule_hash: Some(stable_symbol_hash("interp-test")),
+            },
+            dependencies,
+            status: EvidenceStatus::Asserted,
+        }
+    }
+
+    fn admit_test_self_field(
+        il: &mut Il,
+        interner: &Interner,
+        receiver: NodeId,
+        field: NodeId,
+        field_name: nose_il::Symbol,
+        first_id: u32,
+    ) -> EvidenceId {
+        let receiver_id = EvidenceId(first_id);
+        let field_id = EvidenceId(first_id + 1);
+        let receiver_record = test_node_place_record(
+            first_id,
+            il,
+            receiver,
+            PlaceEvidenceKind::SelfReceiver,
+            Vec::new(),
+        );
+        let field_record = test_node_place_record(
+            first_id + 1,
+            il,
+            field,
+            PlaceEvidenceKind::SelfField {
+                field_hash: stable_symbol_hash(interner.resolve(field_name)),
+            },
+            vec![receiver_id],
+        );
+        il.evidence.push(receiver_record);
+        il.evidence.push(field_record);
+        field_id
+    }
+
+    fn admit_test_self_field_write(
+        il: &mut Il,
+        interner: &Interner,
+        receiver: NodeId,
+        field: NodeId,
+        assign: NodeId,
+        field_name: nose_il::Symbol,
+        first_id: u32,
+    ) {
+        let field_id = admit_test_self_field(il, interner, receiver, field, field_name, first_id);
+        let effect_record = test_node_effect_record(
+            first_id + 2,
+            il,
+            assign,
+            EffectEvidenceKind::SelfFieldWrite {
+                field_hash: stable_symbol_hash(interner.resolve(field_name)),
+            },
+            vec![field_id],
+        );
+        il.evidence.push(effect_record);
+    }
+
     fn test_source_record(id: u32, span: Span, fact: SourceFactKind) -> EvidenceRecord {
         EvidenceRecord {
-            id: nose_il::EvidenceId(id),
+            id: EvidenceId(id),
             anchor: EvidenceAnchor::source_span(span),
             kind: EvidenceKind::Source(fact),
             provenance: EvidenceProvenance {
@@ -1433,7 +1531,7 @@ mod tests {
         name_hash: u64,
     ) -> EvidenceRecord {
         EvidenceRecord {
-            id: nose_il::EvidenceId(id),
+            id: EvidenceId(id),
             anchor: EvidenceAnchor::node(call_span, NodeKind::Call),
             kind: EvidenceKind::CallTarget(CallTargetEvidenceKind::DirectFunction {
                 target_span,
@@ -1496,7 +1594,8 @@ mod tests {
             Vec::new(),
         );
 
-        assert!(run_unit(&il, func, &[]).is_none());
+        let interner = Interner::new();
+        assert!(run_unit(&il, &interner, func, &[]).is_none());
         assert_eq!(
             run_admitted_unit(il, func, &[]).expect("admitted run").ret,
             Value::Int(1)
@@ -1695,35 +1794,71 @@ mod tests {
     }
 
     fn run_field_write_read() -> (Behavior, FieldKey) {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
-        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+        let this_name = interner.intern("this");
         let field_name = interner.intern("x");
         let field_key = FieldKey {
-            receiver: FieldPlace::Param(0),
-            field: nose_il::symbol_index(field_name) as i64,
+            receiver: FieldPlace::SelfReceiver,
+            field: stable_symbol_hash(interner.resolve(field_name)),
         };
-        let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
-        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
-        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
-        let read_base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let read_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[read_base]);
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
-        let il = b.finish(
+        let mut b = IlBuilder::new(FileId(0));
+        let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(2),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[write_target, seven],
+        );
+        let read_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
+        let read_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(6),
+            &[read_receiver],
+        );
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(7),
+            &[read_target],
+        );
+        let block = b.add(NodeKind::Block, Payload::None, test_span(8), &[assign, ret]);
+        let func = b.add(NodeKind::Func, Payload::None, test_span(9), &[block]);
+        let mut il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
-                lang: Lang::Python,
+                path: "T.java".into(),
+                lang: Lang::Java,
             },
             Vec::new(),
             Vec::new(),
         );
+        admit_test_self_field_write(
+            &mut il,
+            &interner,
+            write_receiver,
+            write_target,
+            assign,
+            field_name,
+            2000,
+        );
+        admit_test_self_field(
+            &mut il,
+            &interner,
+            read_receiver,
+            read_target,
+            field_name,
+            2010,
+        );
         (
-            run_admitted_unit(il, func, &[]).expect("run_unit"),
+            run_unit(&il, &interner, func, &[]).expect("run_unit"),
             field_key,
         )
     }
@@ -1735,38 +1870,126 @@ mod tests {
         assert_eq!(behavior.fields, vec![(field_key, Value::Int(7))]);
     }
 
-    fn run_field_read_with_error_receiver() -> Behavior {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
+    #[test]
+    fn raw_python_attribute_write_is_not_oracle_field_state_proof() {
         let interner = Interner::new();
         let field_name = interner.intern("x");
-        let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let base = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let write_target = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[base]);
-        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), sp, &[]);
-        let assign = b.add(NodeKind::Assign, Payload::None, sp, &[write_target, seven]);
-        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
-        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), sp, &[]);
-        let error_receiver = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp, &[one, zero]);
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), test_span(1), &[]);
+        let write_receiver = b.add(NodeKind::Var, Payload::Cid(0), test_span(2), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(3),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(4), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(5),
+            &[write_target, seven],
+        );
+        let read_receiver = b.add(NodeKind::Var, Payload::Cid(0), test_span(6), &[]);
         let read_target = b.add(
             NodeKind::Field,
             Payload::Name(field_name),
-            sp,
-            &[error_receiver],
+            test_span(7),
+            &[read_receiver],
         );
-        let ret = b.add(NodeKind::Return, Payload::None, sp, &[read_target]);
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[assign, ret]);
-        let func = b.add(NodeKind::Func, Payload::None, sp, &[param, block]);
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(8),
+            &[read_target],
+        );
+        let block = b.add(NodeKind::Block, Payload::None, test_span(9), &[assign, ret]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            test_span(10),
+            &[param, block],
+        );
         let il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
+                path: "t.py".into(),
                 lang: Lang::Python,
             },
             Vec::new(),
             Vec::new(),
         );
-        run_admitted_unit(il, func, &[]).expect("run_unit")
+        assert!(
+            run_unit(&il, &interner, func, &[Value::Null]).is_none(),
+            "raw attribute spelling must not prove exact field readback"
+        );
+    }
+
+    fn run_field_read_with_error_receiver() -> Behavior {
+        let interner = Interner::new();
+        let this_name = interner.intern("this");
+        let field_name = interner.intern("x");
+        let mut b = IlBuilder::new(FileId(0));
+        let write_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let write_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(2),
+            &[write_receiver],
+        );
+        let seven = b.add(NodeKind::Lit, Payload::LitInt(7), test_span(3), &[]);
+        let assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[write_target, seven],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), test_span(5), &[]);
+        let zero = b.add(NodeKind::Lit, Payload::LitInt(0), test_span(6), &[]);
+        let error_receiver = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Div),
+            test_span(7),
+            &[one, zero],
+        );
+        let read_target = b.add(
+            NodeKind::Field,
+            Payload::Name(field_name),
+            test_span(8),
+            &[error_receiver],
+        );
+        let ret = b.add(
+            NodeKind::Return,
+            Payload::None,
+            test_span(9),
+            &[read_target],
+        );
+        let block = b.add(
+            NodeKind::Block,
+            Payload::None,
+            test_span(10),
+            &[assign, ret],
+        );
+        let func = b.add(NodeKind::Func, Payload::None, test_span(11), &[block]);
+        let mut il = b.finish(
+            func,
+            FileMeta {
+                path: "T.java".into(),
+                lang: Lang::Java,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        admit_test_self_field_write(
+            &mut il,
+            &interner,
+            write_receiver,
+            write_target,
+            assign,
+            field_name,
+            2000,
+        );
+        run_unit(&il, &interner, func, &[]).expect("run_unit")
     }
 
     #[test]
@@ -1813,60 +2036,70 @@ mod tests {
         assert!(behavior.fields.is_empty());
     }
 
-    fn run_receiver_field_writes(swapped: bool) -> Behavior {
-        let sp = Span::synthetic(FileId(0));
-        let mut b = IlBuilder::new(FileId(0));
+    fn run_self_field_writes(swapped: bool) -> Behavior {
         let interner = Interner::new();
-        let field_name = interner.intern("x");
-        let param_a = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
-        let param_b = b.add(NodeKind::Param, Payload::Cid(1), sp, &[]);
-        let a = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
-        let b_var = b.add(NodeKind::Var, Payload::Cid(1), sp, &[]);
-        let a_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[a]);
-        let b_x = b.add(NodeKind::Field, Payload::Name(field_name), sp, &[b_var]);
-        let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
-        let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
-        let (left_target, left_value, right_target, right_value) = if swapped {
-            (b_x, one, a_x, two)
+        let this_name = interner.intern("this");
+        let x_name = interner.intern("x");
+        let y_name = interner.intern("y");
+        let mut b = IlBuilder::new(FileId(0));
+        let x_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(1), &[]);
+        let x_target = b.add(
+            NodeKind::Field,
+            Payload::Name(x_name),
+            test_span(2),
+            &[x_receiver],
+        );
+        let one = b.add(NodeKind::Lit, Payload::LitInt(1), test_span(3), &[]);
+        let x_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(4),
+            &[x_target, one],
+        );
+        let y_receiver = b.add(NodeKind::Var, Payload::Name(this_name), test_span(5), &[]);
+        let y_target = b.add(
+            NodeKind::Field,
+            Payload::Name(y_name),
+            test_span(6),
+            &[y_receiver],
+        );
+        let two = b.add(NodeKind::Lit, Payload::LitInt(2), test_span(7), &[]);
+        let y_assign = b.add(
+            NodeKind::Assign,
+            Payload::None,
+            test_span(8),
+            &[y_target, two],
+        );
+        let statements = if swapped {
+            vec![y_assign, x_assign]
         } else {
-            (a_x, one, b_x, two)
+            vec![x_assign, y_assign]
         };
-        let left = b.add(
-            NodeKind::Assign,
-            Payload::None,
-            sp,
-            &[left_target, left_value],
-        );
-        let right = b.add(
-            NodeKind::Assign,
-            Payload::None,
-            sp,
-            &[right_target, right_value],
-        );
-        let block = b.add(NodeKind::Block, Payload::None, sp, &[left, right]);
-        let func = b.add(
-            NodeKind::Func,
-            Payload::None,
-            sp,
-            &[param_a, param_b, block],
-        );
-        let il = b.finish(
+        let block = b.add(NodeKind::Block, Payload::None, test_span(9), &statements);
+        let func = b.add(NodeKind::Func, Payload::None, test_span(10), &[block]);
+        let mut il = b.finish(
             func,
             FileMeta {
-                path: "t".into(),
-                lang: Lang::Python,
+                path: "T.java".into(),
+                lang: Lang::Java,
             },
             Vec::new(),
             Vec::new(),
         );
-        run_admitted_unit(il, func, &[]).expect("receiver field writes should interpret")
+        admit_test_self_field_write(
+            &mut il, &interner, x_receiver, x_target, x_assign, x_name, 2000,
+        );
+        admit_test_self_field_write(
+            &mut il, &interner, y_receiver, y_target, y_assign, y_name, 2010,
+        );
+        run_unit(&il, &interner, func, &[]).expect("self-field writes should interpret")
     }
 
     #[test]
-    fn field_state_preserves_receiver_identity() {
-        assert_ne!(
-            run_receiver_field_writes(false).fields,
-            run_receiver_field_writes(true).fields
+    fn self_field_final_state_is_order_insensitive() {
+        assert_eq!(
+            run_self_field_writes(false).fields,
+            run_self_field_writes(true).fields
         );
     }
 
@@ -2997,7 +3230,7 @@ mod tests {
             Vec::new(),
         );
 
-        assert!(run_unit(&il, func, &[]).is_none());
+        assert!(run_unit(&il, &interner, func, &[]).is_none());
     }
 
     /// `g(x) = x*x` and `f(x) = g(x) + 1` in one file — running `f(3)` must interpret the

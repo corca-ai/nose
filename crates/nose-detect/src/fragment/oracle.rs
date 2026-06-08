@@ -34,7 +34,7 @@ pub fn fragment_behavior(
     args: &[Value],
 ) -> Option<Behavior> {
     let (synth, func) = synthesize_wrapper(il, interner, contract)?;
-    run_unit(&synth, func, args)
+    run_unit(&synth, interner, func, args)
 }
 
 /// Lower `contract` into a fresh single-`Func` [`Il`] and return that IL plus the func id.
@@ -329,7 +329,7 @@ mod tests {
 
         let (synth, func) = synthesize_wrapper(&il, &i, &contract).expect("wrapper synthesizes");
         assert_eq!(synth.kind(func), NodeKind::Func);
-        let b = run_unit(&synth, func, &[Value::Int(4)]).expect("interpretable");
+        let b = run_unit(&synth, &i, func, &[Value::Int(4)]).expect("interpretable");
         assert_eq!(b.ret, Value::Int(17), "4*4 + 1 = 17");
     }
 

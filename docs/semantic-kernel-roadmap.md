@@ -184,10 +184,11 @@ and pack ecosystem.
 - Imported immutable literal replacement and exact module-binding gates now share
   stronger mutation evidence for top-level place writes such as
   `LOOKUP[key] = value`, closing importer-side direct-write false exact cases.
-- Value-graph and oracle field state now preserve receiver+field identity instead
-  of caching by field name alone. Same-place readback and distinct-field
-  commutation remain open, while cross-receiver reads/writes with the same field
-  name stay exact-distinct.
+- Value-graph and oracle field state no longer treat raw field spelling as place
+  proof. The admitted same-unit substrate is Java `this.field`, backed by
+  `Place(SelfReceiver)`, `Place(SelfField)`, and `Effect(SelfFieldWrite)`.
+  Raw dynamic attribute/property writes remain ordered or unsupported until a
+  pack supplies explicit place/effect evidence.
 - Lowered `Seq` surface admission now goes through `SeqSurfaceContract` instead
   of local raw-string allowlists. The contract separates exact-tree safety,
   membership collection admission, map-entry-list admission, imported-literal
@@ -203,10 +204,11 @@ and pack ecosystem.
   constructors now closes when another package explicitly imports the same
   simple type, matching Java import resolution before the constructor surface can
   enter the collection builder contract.
-- Same-unit value-graph field readback now uses the receiver/place proof shape
-  rather than an arbitrary evaluated receiver value, so aliases and computed
-  call-result receivers stay exact-closed until pack-facing place evidence
-  exists.
+- Same-unit value-graph and oracle field readback/final field state now consume
+  the self-field place/effect evidence boundary rather than arbitrary evaluated
+  receiver shape, so aliases, Python-style dynamic attributes, property
+  setters, and computed call-result receivers stay exact-closed until
+  pack-facing place evidence exists.
 - Import binding and namespace proof interpretation now goes through a typed
   `ImportFactKind`/`ImportFact` facade in `nose-semantics`. Frontend emitters,
   imported immutable literal replacement, normalize idiom gates, value-graph

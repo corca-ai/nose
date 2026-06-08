@@ -303,12 +303,13 @@ statically selected branches) with
 its handler. Richer exception control flow remains outside the oracle.
 Field writes and reads evaluate their receiver before consulting or updating same-unit
 field state, so receiver errors propagate instead of falling through to a cached field
-value. Same-unit field state is keyed by receiver identity plus field name; a write to
-`a.x` can satisfy a later read from `a.x`, but not a read from `b.x`. After that, reads
-are interpreted only when the same unit has written that receiver+field place; an unwritten
-field access remains unsupported rather than invented. The value graph follows the same
-boundary: `self.x = v; return self.x` resolves the read to `v`, while an unproven field
-read stays field-shaped.
+value. Same-unit field state is keyed by proven receiver identity plus field name; today
+the admitted first-party substrate is Java `this.field` backed by `Place(SelfReceiver)`,
+`Place(SelfField)`, and `Effect(SelfFieldWrite)`. After that, reads are interpreted only
+when the same unit has written that receiver+field place; an unwritten field access remains
+unsupported rather than invented. The value graph follows the same boundary:
+`this.x = v; return this.x` resolves the read to `v`, while an unproven field read stays
+field-shaped.
 
 Out of scope (sound but not yet convergent, or genuinely hard): tree & mutual recursion
 (multiple / non-tail self-calls); list-tail catamorphisms `head ⊕ f(xs[1:])`, whose slice is
