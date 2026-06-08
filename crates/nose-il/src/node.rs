@@ -296,6 +296,9 @@ pub enum ImportEvidenceKind {
     Namespace {
         module_hash: u64,
     },
+    Wildcard {
+        module_hash: u64,
+    },
     Require {
         module_hash: u64,
     },

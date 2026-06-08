@@ -58,26 +58,27 @@ use nose_semantics::{
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
     library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_iterator_identity_adapter_contract, library_java_collection_factory_contract_by_hash,
-    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
-    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
-    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
-    library_rust_vec_new_factory_contract, nullish_global_contract,
+    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
+    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
+    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
+    library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
+    library_method_call_contract, library_ruby_set_factory_contract_by_hash,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    library_static_index_membership_contract, nullish_global_contract,
     own_property_guard_evidence_at_span, record_shape_guard_for_node, reduction_builtin_contract,
     rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
-    seq_surface_contract_for_node, source_operator_at_node, static_index_membership_contract,
-    unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate, CardinalityThreshold,
-    ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind, ImportFactKind,
-    ImportedNamespaceFunctionSemantic, IndexMembershipThreshold, IteratorAdapterReceiverContract,
-    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
-    LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
-    ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract, StaticIndexMembershipKind,
-    ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD,
-    SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    seq_surface_contract_for_node, source_operator_at_node, unshadowed_global_symbol,
+    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
+    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
+    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
+    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
+    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
+    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
+    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -1094,6 +1095,45 @@ impl<'a> Builder<'a> {
             return None;
         }
         Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), args[1..].to_vec()))
+    }
+
+    fn eval_java_collection_constructor_expr(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+    ) -> Option<ValueId> {
+        if kids.len() != 1 || self.il.kind(kids[0]) != NodeKind::Var {
+            return None;
+        }
+        let Payload::Name(type_name) = self.il.node(kids[0]).payload else {
+            return None;
+        };
+        let contract = library_java_collection_constructor_contract(
+            self.il.meta.lang,
+            self.interner.resolve(type_name),
+            kids.len().saturating_sub(1),
+        )?;
+        let LibraryApiCalleeContract::JavaUtilConstructor { .. } = contract.callee else {
+            return None;
+        };
+        match library_api_contract_evidence_for_call(
+            self.il,
+            self.interner,
+            expr,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => return None,
+        }
+        match contract.result {
+            LibraryCollectionFactoryResult::EmptySequence => {
+                Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]))
+            }
+            _ => None,
+        }
     }
 
     fn proven_ruby_set_factory_value(&self, value: ValueId) -> Option<ValueId> {
@@ -6687,8 +6727,21 @@ impl<'a> Builder<'a> {
         if !self.is_static_non_float_collection_expr(receiver) {
             return None;
         }
-        let contract = static_index_membership_contract(self.il.meta.lang, method, kids.len() - 1)?;
-        match contract.kind {
+        let contract =
+            library_static_index_membership_contract(self.il.meta.lang, method, kids.len() - 1)?;
+        match library_api_contract_evidence_for_call(
+            self.il,
+            self.interner,
+            node,
+            contract.id,
+            contract.callee,
+            kids.len().saturating_sub(1),
+        ) {
+            LibraryApiEvidenceStatus::Admitted => {}
+            LibraryApiEvidenceStatus::Rejected => return None,
+            LibraryApiEvidenceStatus::Missing => return None,
+        }
+        match contract.result.kind {
             StaticIndexMembershipKind::IndexOf => {
                 let element = self.eval(kids[1], env);
                 let collection = self.eval_membership_collection(receiver, env);
@@ -7889,6 +7942,15 @@ impl<'a> Builder<'a> {
                         return self
                             .mk(ValOp::Call(JS_PROTOTYPE_IN_CODE), vec![element, collection]);
                     }
+                    if semantics(self.il.meta.lang)
+                        .operators()
+                        .membership_operator(Op::In)
+                        .is_none()
+                    {
+                        let collection = self.eval(kids[1], env);
+                        let salt = self.source_salted_hash(expr, 0x494E_4F50);
+                        return self.mk(ValOp::Opaque(salt), vec![element, collection]);
+                    }
                     if let Some(map) = self.proven_map_key_view_expr(kids[1], env) {
                         return self.mk(ValOp::Bin(op), vec![element, map]);
                     }
@@ -8143,6 +8205,9 @@ impl<'a> Builder<'a> {
                 }
                 if kids.len() == 1 && self.is_rust_vec_new_call(expr, kids[0]) {
                     return self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
+                }
+                if let Some(v) = self.eval_java_collection_constructor_expr(expr, &kids) {
+                    return v;
                 }
                 if let Some(v) = self.eval_js_like_constructed_collection_or_map(expr, &kids, env) {
                     return v;
@@ -8813,9 +8878,10 @@ mod tests {
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
         library_free_name_collection_factory_contract,
-        library_imported_collection_factory_contract, library_java_collection_factory_contract,
-        library_java_map_factory_contract, library_js_like_map_constructor_contract,
-        library_js_like_set_constructor_contract, library_method_call_contract,
+        library_imported_collection_factory_contract, library_java_collection_constructor_contract,
+        library_java_collection_factory_contract, library_java_map_factory_contract,
+        library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+        library_method_call_contract, library_static_index_membership_contract,
         LibraryApiContractId, FIRST_PARTY_PACK_ID,
     };
 
@@ -9643,6 +9709,109 @@ mod tests {
         let admitted = eval_proven_collection_op(&il, &interner, call)
             .expect("admitted LibraryApi evidence should prove the Java factory");
         assert!(matches!(admitted, ValOp::Seq(SEQ_VALUE_COLLECTION)));
+    }
+
+    #[test]
+    fn java_collection_constructor_value_graph_uses_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("ArrayList")),
+            sp(80),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(81), &[callee]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(79), &[call]);
+        let mut il = finish_test_il(b, root, Lang::Java);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::source_span(sp(81)),
+            EvidenceKind::Source(SourceFactKind::Call(SourceCallKind::Construct)),
+        ));
+        push_imported_binding_use(&mut il, 1, sp(70), 2, sp(80), "java.util", "ArrayList");
+        assert!(
+            !matches!(
+                eval_op(&il, &interner, call),
+                ValOp::Seq(SEQ_VALUE_COLLECTION)
+            ),
+            "source/import proof alone must not canonicalize a Java constructor"
+        );
+
+        let contract =
+            library_java_collection_constructor_contract(Lang::Java, "ArrayList", 0).unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            3,
+            sp(81),
+            contract.id,
+            contract.callee,
+            0,
+            vec![EvidenceId(0), EvidenceId(2)],
+        ));
+        assert!(matches!(
+            eval_op(&il, &interner, call),
+            ValOp::Seq(SEQ_VALUE_COLLECTION)
+        ));
+    }
+
+    #[test]
+    fn static_index_membership_value_graph_uses_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let red = b.add(
+            NodeKind::Lit,
+            Payload::LitStr(stable_symbol_hash("red")),
+            sp(90),
+            &[],
+        );
+        let array = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(91),
+            &[red],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("indexOf")),
+            sp(92),
+            &[array],
+        );
+        let value = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("value")),
+            sp(93),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(94), &[callee, value]);
+        let minus_one = b.add(NodeKind::Lit, Payload::LitInt(-1), sp(95), &[]);
+        let comparison = b.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Ne),
+            sp(96),
+            &[call, minus_one],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(89), &[comparison]);
+        let mut il = finish_test_il(b, root, Lang::JavaScript);
+        il.evidence.push(collection_sequence_evidence(0, sp(91)));
+        assert!(
+            !matches!(eval_op(&il, &interner, comparison), ValOp::Bin(op) if op == Op::In as u32),
+            "static array receiver proof alone must not prove indexOf membership"
+        );
+
+        let contract =
+            library_static_index_membership_contract(Lang::JavaScript, "indexOf", 1).unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            1,
+            sp(94),
+            contract.id,
+            contract.callee,
+            1,
+            vec![EvidenceId(0)],
+        ));
+        assert!(matches!(
+            eval_op(&il, &interner, comparison),
+            ValOp::Bin(op) if op == Op::In as u32
+        ));
     }
 
     #[test]

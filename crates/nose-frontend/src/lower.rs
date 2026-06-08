@@ -6,8 +6,9 @@ use nose_il::{
     stable_symbol_hash, Builtin, DomainEvidence, EffectEvidenceKind, EvidenceAnchor,
     EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus,
     FileId, FileMeta, Il, IlBuilder, ImportEvidenceKind, Interner, Lang, LibraryApiEvidenceKind,
-    LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind, SourceCallKind,
-    SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    LitClass, LoopKind, NodeId, NodeKind, Op, ParamSemantic, Payload, PlaceEvidenceKind,
+    SequenceSurfaceKind, SourceCallKind, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit,
+    UnitKind,
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
@@ -15,16 +16,17 @@ use nose_semantics::{
     library_collection_factory_result_domain_for_arity,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_java_collection_factory_contract, library_java_map_entry_contract,
-    library_java_map_factory_contract, library_js_array_is_array_contract,
-    library_js_boolean_coercion_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_map_factory_result_domain,
-    library_map_key_view_wrapper_contract, library_map_key_view_wrapper_result_domain,
-    library_receiver_method_api_contract, library_regex_test_contract,
-    library_ruby_set_factory_contract, library_rust_vec_macro_factory_contract,
-    library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
+    library_java_collection_constructor_contract, library_java_collection_factory_contract,
+    library_java_map_entry_contract, library_java_map_factory_contract,
+    library_js_array_is_array_contract, library_js_boolean_coercion_contract,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_factory_result_domain, library_map_key_view_wrapper_contract,
+    library_map_key_view_wrapper_result_domain, library_receiver_method_api_contract,
+    library_regex_test_contract, library_ruby_set_factory_contract,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    library_static_collection_adapter_contract, library_static_index_membership_contract,
     sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
-    LibraryApiDependencyCache, MethodReceiverContract,
+    LibraryApiDependencyCache, MethodReceiverContract, StaticIndexMembershipReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -234,6 +236,9 @@ impl<'a> Lowering<'a> {
         if let Some(result) = self.java_util_static_member_api_contract(callee, arg_count) {
             return Some(result);
         }
+        if let Some(result) = self.static_index_membership_api_contract(callee, arg_count) {
+            return Some(result);
+        }
         if let Some(result) = self.regex_literal_method_api_contract(callee, arg_count) {
             return Some(result);
         }
@@ -304,6 +309,19 @@ impl<'a> Lowering<'a> {
         Some((
             receiver_node,
             self.interner.resolve(receiver_name),
+            self.interner.resolve(method),
+        ))
+    }
+
+    fn field_callee_receiver_and_method(&self, callee: NodeId) -> Option<(NodeId, &str)> {
+        if self.b.kind(callee) != NodeKind::Field {
+            return None;
+        }
+        let Payload::Name(method) = self.b.payload(callee) else {
+            return None;
+        };
+        Some((
+            self.b.children(callee).first().copied()?,
             self.interner.resolve(method),
         ))
     }
@@ -403,20 +421,13 @@ impl<'a> Lowering<'a> {
         callee: NodeId,
         arg_count: usize,
     ) -> Option<LibraryApiEvidencePlan> {
-        if self.b.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.b.payload(callee) else {
-            return None;
-        };
-        let function = self.interner.resolve(method);
+        let (receiver, function) = self.field_callee_receiver_and_method(callee)?;
         let contract =
             library_imported_namespace_function_contract(self.lang, function, arg_count)?;
         let LibraryApiCalleeContract::ImportedNamespaceFunction { module, .. } = contract.callee
         else {
             return None;
         };
-        let receiver = self.b.children(callee).first().copied()?;
         let dependency = self.record_imported_namespace_symbol_for_node(receiver, module)?;
         Some(LibraryApiEvidencePlan {
             id: contract.id,
@@ -517,18 +528,90 @@ impl<'a> Lowering<'a> {
         })
     }
 
+    fn static_index_membership_api_contract(
+        &self,
+        callee: NodeId,
+        arg_count: usize,
+    ) -> Option<LibraryApiEvidencePlan> {
+        let (receiver_node, method) = self.field_callee_receiver_and_method(callee)?;
+        let contract = library_static_index_membership_contract(self.lang, method, arg_count)?;
+        let LibraryApiCalleeContract::StaticIndexMembershipMethod { receiver, .. } =
+            contract.callee
+        else {
+            return None;
+        };
+        let dependency =
+            self.static_index_membership_receiver_dependency(receiver_node, receiver)?;
+        Some(LibraryApiEvidencePlan {
+            id: contract.id,
+            callee: contract.callee,
+            dependencies: vec![dependency],
+            rule: "library_api_static_index_membership",
+            result_domain: None,
+        })
+    }
+
+    fn static_index_membership_receiver_dependency(
+        &self,
+        receiver: NodeId,
+        contract: StaticIndexMembershipReceiverContract,
+    ) -> Option<EvidenceId> {
+        match contract {
+            StaticIndexMembershipReceiverContract::StaticNonFloatLiteralCollection => {
+                if !self.static_non_float_collection_literal(receiver) {
+                    return None;
+                }
+                self.sequence_surface_evidence_id(receiver, SequenceSurfaceKind::Collection)
+            }
+        }
+    }
+
+    fn static_non_float_collection_literal(&self, node: NodeId) -> bool {
+        if self.b.kind(node) != NodeKind::Seq {
+            return false;
+        }
+        let Payload::Name(tag) = self.b.payload(node) else {
+            return false;
+        };
+        if sequence_surface_kind_for_tag(self.lang, Some(self.interner.resolve(tag)))
+            != Some(SequenceSurfaceKind::Collection)
+        {
+            return false;
+        }
+        let kids = self.b.children(node);
+        !kids.is_empty()
+            && kids.iter().all(|&kid| {
+                self.b.kind(kid) == NodeKind::Lit
+                    && matches!(
+                        self.b.payload(kid),
+                        Payload::LitInt(_)
+                            | Payload::LitBool(_)
+                            | Payload::LitStr(_)
+                            | Payload::Lit(LitClass::Null)
+                    )
+            })
+    }
+
+    fn sequence_surface_evidence_id(
+        &self,
+        node: NodeId,
+        surface: SequenceSurfaceKind,
+    ) -> Option<EvidenceId> {
+        let span = self.b.node(node).span;
+        self.evidence.iter().find_map(|record| {
+            (record.anchor == EvidenceAnchor::sequence(span)
+                && record.kind == EvidenceKind::SequenceSurface(surface)
+                && record.status == EvidenceStatus::Asserted)
+                .then_some(record.id)
+        })
+    }
+
     fn regex_literal_method_api_contract(
         &self,
         callee: NodeId,
         arg_count: usize,
     ) -> Option<LibraryApiEvidencePlan> {
-        if self.b.kind(callee) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.b.payload(callee) else {
-            return None;
-        };
-        let method = self.interner.resolve(method);
+        let (receiver, method) = self.field_callee_receiver_and_method(callee)?;
         let contract = library_regex_test_contract(self.lang, method, arg_count)?;
         let LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
@@ -537,7 +620,6 @@ impl<'a> Lowering<'a> {
         else {
             return None;
         };
-        let receiver = self.b.children(callee).first().copied()?;
         let dependency = self.source_fact_evidence_id(receiver, required_receiver_fact)?;
         Some(LibraryApiEvidencePlan {
             id: contract.id,
@@ -923,12 +1005,9 @@ impl<'a> Lowering<'a> {
             // `2.71` (JS has one `number` kind, so its floats arrive here). Hex/binary/
             // suffixed integers that don't parse stay the abstract `Int` class (unchanged).
             _ if t.contains(['.', 'e', 'E']) && !t.starts_with("0x") => self.float_lit(text, span),
-            _ => self.b.add(
-                NodeKind::Lit,
-                Payload::Lit(nose_il::LitClass::Int),
-                span,
-                &[],
-            ),
+            _ => self
+                .b
+                .add(NodeKind::Lit, Payload::Lit(LitClass::Int), span, &[]),
         }
     }
 
@@ -1184,6 +1263,9 @@ fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
         if record_post_lower_ruby_static_member_library_api(il, interner, call) {
             continue;
         }
+        if record_post_lower_java_collection_constructor_library_api(il, interner, call) {
+            continue;
+        }
         record_post_lower_receiver_method_library_api(il, interner, call, &mut dependency_cache);
     }
 }
@@ -1378,6 +1460,89 @@ fn record_post_lower_ruby_static_member_library_api(
     true
 }
 
+fn record_post_lower_java_collection_constructor_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+) -> bool {
+    let kids = il.children(call);
+    let Some((&callee, args)) = kids.split_first() else {
+        return false;
+    };
+    let arg_count = args.len();
+    let Some(type_name) = post_lower_var_name(il, interner, callee) else {
+        return false;
+    };
+    let Some(contract) =
+        library_java_collection_constructor_contract(il.meta.lang, type_name, arg_count)
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::JavaUtilConstructor {
+        simple_type,
+        qualified_type,
+        module,
+        requires_import_for_simple_type,
+        requires_no_local_type_shadow,
+    } = contract.callee
+    else {
+        return false;
+    };
+    let Some(source_dependency) =
+        post_lower_source_call_evidence_id(il, call, SourceCallKind::Construct)
+    else {
+        return false;
+    };
+    let mut dependencies = vec![source_dependency];
+    if type_name == simple_type {
+        if requires_no_local_type_shadow
+            && post_lower_unit_defines_name(il, interner, simple_type, il.node(callee).span)
+        {
+            return false;
+        }
+        if requires_import_for_simple_type {
+            if let Some(dependency) = post_lower_imported_binding_symbol_evidence_id(
+                il,
+                interner,
+                callee,
+                module,
+                simple_type,
+            ) {
+                dependencies.push(dependency);
+            } else {
+                let Some(dependency) = post_lower_java_wildcard_import_evidence_id(
+                    il,
+                    interner,
+                    module,
+                    simple_type,
+                    il.node(call).span,
+                ) else {
+                    return false;
+                };
+                dependencies.push(dependency);
+            }
+        }
+    } else if type_name != qualified_type {
+        return false;
+    }
+    let api = post_lower_library_api_evidence_id(
+        il,
+        call,
+        contract.id,
+        contract.callee,
+        arg_count,
+        "library_api_java_collection_constructor",
+        dependencies,
+    );
+    post_lower_record_library_api_result_domain(
+        il,
+        call,
+        library_collection_factory_result_domain_for_arity(contract, arg_count),
+        api,
+    );
+    true
+}
+
 fn record_post_lower_receiver_method_library_api(
     il: &mut Il,
     interner: &Interner,
@@ -1488,6 +1653,27 @@ fn post_lower_unshadowed_symbol_evidence_id(
     )
 }
 
+fn post_lower_imported_binding_symbol_evidence_id(
+    il: &mut Il,
+    interner: &Interner,
+    node: NodeId,
+    module: &str,
+    exported: &str,
+) -> Option<EvidenceId> {
+    let expected = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash(module),
+        exported_hash: stable_symbol_hash(exported),
+    };
+    let dependency = post_lower_binding_symbol_evidence_id(il, interner, node, expected)?;
+    post_lower_find_or_push_evidence(
+        il,
+        EvidenceAnchor::node(il.node(node).span, NodeKind::Var),
+        EvidenceKind::Symbol(expected),
+        "symbol_imported_binding_occurrence_post_lower",
+        vec![dependency],
+    )
+}
+
 fn post_lower_imported_namespace_symbol_evidence_id(
     il: &mut Il,
     interner: &Interner,
@@ -1530,6 +1716,54 @@ fn post_lower_binding_symbol_evidence_id(
         ) && record.kind == EvidenceKind::Symbol(expected)
             && record.status == EvidenceStatus::Asserted)
             .then_some(record.id)
+    })
+}
+
+fn post_lower_java_wildcard_import_evidence_id(
+    il: &Il,
+    interner: &Interner,
+    module: &str,
+    simple_type: &str,
+    use_span: Span,
+) -> Option<EvidenceId> {
+    if post_lower_explicit_import_conflicts(il, interner, module, simple_type) {
+        return None;
+    }
+    let kind = EvidenceKind::Import(ImportEvidenceKind::Wildcard {
+        module_hash: stable_symbol_hash(module),
+    });
+    il.evidence.iter().find_map(|record| {
+        (record.kind == kind
+            && record.status == EvidenceStatus::Asserted
+            && matches!(
+                record.anchor,
+                EvidenceAnchor::SourceSpan(span)
+                    if span.file == use_span.file && span.end_byte <= use_span.start_byte
+            ))
+        .then_some(record.id)
+    })
+}
+
+fn post_lower_explicit_import_conflicts(
+    il: &Il,
+    _interner: &Interner,
+    module: &str,
+    simple_type: &str,
+) -> bool {
+    let local_hash = stable_symbol_hash(simple_type);
+    let expected = SymbolEvidenceKind::ImportedBinding {
+        module_hash: stable_symbol_hash(module),
+        exported_hash: stable_symbol_hash(simple_type),
+    };
+    il.evidence.iter().any(|record| {
+        matches!(
+            record.anchor,
+            EvidenceAnchor::Binding {
+                local_hash: anchor_hash,
+                ..
+            } if anchor_hash == local_hash
+        ) && record.status == EvidenceStatus::Asserted
+            && matches!(record.kind, EvidenceKind::Symbol(actual) if actual != expected)
     })
 }
 
@@ -1689,6 +1923,21 @@ fn post_lower_file_defines_name_visible_at(
     occurrence_span: Span,
 ) -> bool {
     nose_semantics::file_defines_name_visible_at(il, interner, name, occurrence_span)
+}
+
+fn post_lower_unit_defines_name(
+    il: &Il,
+    interner: &Interner,
+    name: &str,
+    occurrence_span: Span,
+) -> bool {
+    let name_hash = stable_symbol_hash(name);
+    il.units.iter().any(|unit| {
+        il.node(unit.root).span.file == occurrence_span.file
+            && unit
+                .name
+                .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
+    })
 }
 
 fn normalize_type_text(text: &str) -> String {
@@ -3202,6 +3451,148 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             None,
             "receiver-domain proof must close when the LibraryApi dependency is ambiguous"
         );
+    }
+
+    #[test]
+    fn java_empty_collection_constructor_emits_occurrence_evidence() {
+        let interner = Interner::new();
+        let il = crate::lower_source(
+            FileId(0),
+            "C.java",
+            b"import java.util.ArrayList;\nclass C { Object f() { return new ArrayList<>(); } }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("java lowering should succeed");
+        let contract =
+            library_java_collection_constructor_contract(Lang::Java, "ArrayList", 0).unwrap();
+        let api = library_api_evidence_ids_in_records(
+            &il.evidence,
+            library_api_contract_id_hash(contract.id),
+            library_api_callee_contract_hash(contract.callee),
+        );
+        assert_eq!(api.len(), 1);
+        assert!(
+            il.evidence.iter().any(|record| {
+                record.kind == EvidenceKind::Domain(DomainEvidence::Collection)
+                    && record.dependencies.len() == 1
+                    && api.contains(&record.dependencies[0])
+            }),
+            "Java constructor result-domain evidence must depend on the LibraryApi occurrence"
+        );
+    }
+
+    #[test]
+    fn java_empty_collection_constructor_wildcard_import_is_dependency_backed() {
+        let interner = Interner::new();
+        let wildcard = crate::lower_source(
+            FileId(0),
+            "C.java",
+            b"import java.util.*;\nclass C { Object f() { return new ArrayList<>(); } }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("java lowering should succeed");
+        let contract =
+            library_java_collection_constructor_contract(Lang::Java, "ArrayList", 0).unwrap();
+        let api = wildcard
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash,
+                        callee_hash,
+                        ..
+                    }) if contract_hash == library_api_contract_id_hash(contract.id)
+                        && callee_hash == library_api_callee_contract_hash(contract.callee)
+                )
+            })
+            .expect("wildcard java.util import should admit supported ArrayList constructor");
+        assert!(api.dependencies.iter().any(|id| {
+            wildcard.evidence_record_by_id(*id).is_some_and(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::Import(ImportEvidenceKind::Wildcard { module_hash })
+                        if module_hash == stable_symbol_hash("java.util")
+                )
+            })
+        }));
+
+        let shadowed = crate::lower_source(
+            FileId(0),
+            "C.java",
+            b"import java.util.*;\nclass ArrayList<T> {}\nclass C { Object f() { return new ArrayList<>(); } }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("java lowering should succeed");
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &shadowed.evidence,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            0,
+            "local ArrayList type must close the java.util constructor occurrence"
+        );
+
+        let explicit_conflict = crate::lower_source(
+            FileId(0),
+            "C.java",
+            b"import java.util.*;\nimport other.ArrayList;\nclass C { Object f() { return new ArrayList<>(); } }\n",
+            Lang::Java,
+            &interner,
+        )
+        .expect("java lowering should succeed");
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &explicit_conflict.evidence,
+                library_api_contract_id_hash(contract.id),
+                library_api_callee_contract_hash(contract.callee),
+            ),
+            0,
+            "explicit same-name imports must close java.util wildcard constructor proof"
+        );
+    }
+
+    #[test]
+    fn js_static_index_membership_emits_occurrence_evidence() {
+        let interner = Interner::new();
+        let il = crate::lower_source(
+            FileId(0),
+            "index.js",
+            b"function f(value) { return [\"red\", \"blue\"].indexOf(value) !== -1; }\n",
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("js lowering should succeed");
+        let contract =
+            library_static_index_membership_contract(Lang::JavaScript, "indexOf", 1).unwrap();
+        let api = il
+            .evidence
+            .iter()
+            .find(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash,
+                        callee_hash,
+                        ..
+                    }) if contract_hash == library_api_contract_id_hash(contract.id)
+                        && callee_hash == library_api_callee_contract_hash(contract.callee)
+                )
+            })
+            .expect("static index membership should emit a LibraryApi occurrence");
+        assert!(api.dependencies.iter().any(|id| {
+            il.evidence_record_by_id(*id).is_some_and(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection)
+                )
+            })
+        }));
     }
 
     #[test]
