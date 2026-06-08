@@ -686,7 +686,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             );
             lo.add(NodeKind::Seq, Payload::None, span, &slots)
         }
-        "list" | "tuple" => {
+        "list" | "tuple" | "set" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|c| lower_expr(lo, c))
@@ -694,7 +694,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             let tag = lo.sym(node.kind());
             lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
         }
-        "set" | "pattern_list" | "expression_list" | "list_pattern" | "tuple_pattern" => {
+        "pattern_list" | "expression_list" | "list_pattern" | "tuple_pattern" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
                 .map(|c| lower_expr(lo, c))

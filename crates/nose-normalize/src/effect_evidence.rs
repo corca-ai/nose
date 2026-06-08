@@ -2,7 +2,7 @@ use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId,
     EvidenceKind, EvidenceStatus, Il, Interner, Lang, NodeId, NodeKind, Payload, PlaceEvidenceKind,
 };
-use nose_semantics::FIRST_PARTY_PACK_ID;
+use nose_semantics::{module_binding_mutating_method_contract, FIRST_PARTY_PACK_ID};
 
 pub(crate) fn run(il: &mut Il, interner: &Interner) {
     let nodes: Vec<NodeId> = il
@@ -20,6 +20,7 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
                 let _ = record_self_field(il, interner, node);
             }
             NodeKind::Call => {
+                record_call_mutation_effects(il, interner, node);
                 record_builder_append(il, node);
             }
             NodeKind::Assign => {
@@ -84,6 +85,41 @@ fn record_builder_append(il: &mut Il, node: NodeId) {
     );
 }
 
+fn record_call_mutation_effects(il: &mut Il, interner: &Interner, node: NodeId) {
+    if il.kind(node) != NodeKind::Call || !matches!(il.node(node).payload, Payload::None) {
+        return;
+    }
+    let arg_count = il.children(node).len().saturating_sub(1);
+    let callee = il.children(node).first().copied();
+    if arg_count > 0 {
+        upsert(
+            il,
+            node,
+            EvidenceKind::Effect(EffectEvidenceKind::OpaqueArgumentEscape),
+            "effect_opaque_argument_escape_normalize",
+            Vec::new(),
+        );
+    }
+    let Some(callee) = callee else {
+        return;
+    };
+    if il.kind(callee) != NodeKind::Field {
+        return;
+    }
+    let Payload::Name(method) = il.node(callee).payload else {
+        return;
+    };
+    if module_binding_mutating_method_contract(il.meta.lang, interner.resolve(method)) {
+        upsert(
+            il,
+            node,
+            EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+            "effect_receiver_mutation_normalize",
+            Vec::new(),
+        );
+    }
+}
+
 fn record_assignment_effect(il: &mut Il, interner: &Interner, node: NodeId) {
     if il.kind(node) != NodeKind::Assign {
         return;
@@ -91,6 +127,13 @@ fn record_assignment_effect(il: &mut Il, interner: &Interner, node: NodeId) {
     let Some(&target) = il.children(node).first() else {
         return;
     };
+    upsert(
+        il,
+        node,
+        EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
+        "effect_binding_write_normalize",
+        Vec::new(),
+    );
     if matches!(il.meta.lang, Lang::C | Lang::Go | Lang::Java) && il.kind(target) == NodeKind::Index
     {
         upsert(

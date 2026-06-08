@@ -1,9 +1,11 @@
 use nose_il::{
-    stable_symbol_hash, Builtin, DomainEvidence, EvidenceAnchor, EvidenceId, EvidenceKind,
-    EvidenceRecord, EvidenceStatus, Il, Interner, NodeId, NodeKind, Payload, SequenceSurfaceKind,
-    Symbol,
+    stable_symbol_hash, DomainEvidence, EvidenceAnchor, EvidenceId, EvidenceKind, EvidenceRecord,
+    EvidenceStatus, Il, Interner, NodeId, NodeKind, Payload, SequenceSurfaceKind, Symbol,
 };
-use nose_semantics::{module_binding_mutating_method_name, FIRST_PARTY_PACK_ID};
+use nose_semantics::{
+    binding_write_target, opaque_argument_escape_args, receiver_mutation_call_receiver,
+    FIRST_PARTY_PACK_ID,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 #[derive(Clone, Copy)]
@@ -246,7 +248,8 @@ fn binding_mutated_in_scope(
 ) -> bool {
     for assignment in assignments {
         if assignment.assign != binding.assign
-            && node_contains_name(il, assignment.lhs, binding.name)
+            && binding_write_target(il, assignment.assign)
+                .is_some_and(|target| node_contains_name(il, target, binding.name))
         {
             return true;
         }
@@ -258,26 +261,20 @@ fn binding_mutated_in_scope(
             return;
         }
         match il.kind(node) {
-            NodeKind::Call
-                if matches!(il.node(node).payload, Payload::Builtin(Builtin::Append)) =>
-            {
-                if let Some(&receiver) = il.children(node).first() {
+            NodeKind::Call => {
+                if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node) {
                     mutated = node_refers_to_name(il, receiver, binding.name);
                 }
-            }
-            NodeKind::Field => {
-                let Payload::Name(method) = il.node(node).payload else {
-                    return;
-                };
-                if !module_binding_mutating_method_name(interner.resolve(method)) {
-                    return;
-                }
-                if let Some(&receiver) = il.children(node).first() {
-                    mutated = node_refers_to_name(il, receiver, binding.name);
+                if !mutated {
+                    if let Some(args) = opaque_argument_escape_args(il, node) {
+                        mutated = args
+                            .iter()
+                            .any(|&arg| node_contains_name(il, arg, binding.name));
+                    }
                 }
             }
             NodeKind::Assign if node != binding.assign => {
-                if let Some(&lhs) = il.children(node).first() {
+                if let Some(lhs) = binding_write_target(il, node) {
                     mutated = node_contains_name(il, lhs, binding.name);
                 }
             }
@@ -391,6 +388,7 @@ fn binding_node_name(il: &Il, node: NodeId) -> Option<Symbol> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nose_il::Builtin;
     use nose_il::{
         EvidenceEmitter, EvidenceProvenance, FileId, FileMeta, IlBuilder, Lang,
         SequenceSurfaceKind, Span, Unit, UnitKind,
@@ -510,7 +508,9 @@ mod tests {
                 b.add(NodeKind::Func, Payload::None, sp(1), &[assign, nested])
             }
         };
-        finish_with_sequence_evidence(b, root)
+        let mut il = finish_with_sequence_evidence(b, root);
+        crate::effect_evidence::run(&mut il, interner);
+        il
     }
 
     #[test]

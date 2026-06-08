@@ -97,6 +97,39 @@ impl Il {
         &self.edges[s..s + n.child_len as usize]
     }
 
+    #[inline]
+    pub fn var_name(&self, id: NodeId) -> Option<Symbol> {
+        match (self.kind(id), self.node(id).payload) {
+            (NodeKind::Var, Payload::Name(name)) => Some(name),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn var_cid(&self, id: NodeId) -> Option<u32> {
+        match (self.kind(id), self.node(id).payload) {
+            (NodeKind::Var, Payload::Cid(cid)) => Some(cid),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn assignment_parts(&self, id: NodeId) -> Option<(NodeId, NodeId)> {
+        if self.kind(id) != NodeKind::Assign {
+            return None;
+        }
+        let [lhs, rhs] = self.children(id) else {
+            return None;
+        };
+        Some((*lhs, *rhs))
+    }
+
+    #[inline]
+    pub fn assignment_var_parts(&self, id: NodeId) -> Option<(NodeId, NodeId)> {
+        let (lhs, rhs) = self.assignment_parts(id)?;
+        (self.kind(lhs) == NodeKind::Var).then_some((lhs, rhs))
+    }
+
     pub fn find_or_push_first_party_evidence(
         &mut self,
         anchor: EvidenceAnchor,

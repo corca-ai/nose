@@ -5,14 +5,14 @@
 
 use crate::abstraction;
 use crate::fragment::{FragmentKind, ProofFacts};
+use crate::il_utils::{
+    local_nontrivial_assignment, local_nontrivial_assignment_chain, node_mentions_any_cid,
+};
 use nose_il::{
     Builtin, HoFKind, Il, Interner, Lang, LitClass, LoopKind, NodeId, NodeKind, Op, Payload,
     SourceComprehensionKind, Symbol, UnitKind,
 };
-use nose_normalize::{
-    module_facts::{collect_module_mutations, mutating_method_name},
-    node_tag,
-};
+use nose_normalize::{module_facts::collect_module_mutations, node_tag};
 use nose_semantics::{
     admitted_hof_api_at_node, builder_append_call_args, construct_syntax_proof,
     exact_java_return_this, exact_non_overloadable_index_assignment,
@@ -30,7 +30,8 @@ use nose_semantics::{
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
     library_rust_option_none_sentinel_contract, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, library_static_index_membership_contract,
-    nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node, semantics,
+    nullish_global_contract, opaque_argument_escape_args, own_property_guard_for_node,
+    receiver_mutation_call_receiver, record_shape_guard_for_node, semantics,
     seq_surface_contract_for_node, source_comprehension_at_node, source_operator_at_node,
     typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
     IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
@@ -786,16 +787,8 @@ fn top_level_statements(il: &Il) -> Vec<NodeId> {
 }
 
 fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
+    let (lhs, _) = il.assignment_var_parts(stmt)?;
+    let cid = il.var_cid(lhs)?;
     il.cid_names.get(cid as usize).copied()
 }
 
@@ -3031,7 +3024,7 @@ fn exact_temp_assignment_consumed_by_append_effect(
     assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((temp_cid, _)) = local_nontrivial_temp_assignment(il, assign) else {
+    let Some((temp_cid, _)) = local_nontrivial_assignment(il, assign) else {
         return false;
     };
     let mut temp_cids = FxHashSet::default();
@@ -3051,29 +3044,9 @@ fn exact_temp_chain_consumed_by_append_effect(
     second_assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((first_cid, first_rhs)) = local_nontrivial_temp_assignment(il, first_assign) else {
+    let Some(chain) = local_nontrivial_assignment_chain(il, first_assign, second_assign) else {
         return false;
     };
-    let Some((second_cid, second_rhs)) = local_nontrivial_temp_assignment(il, second_assign) else {
-        return false;
-    };
-    if first_cid == second_cid {
-        return false;
-    }
-    let mut first_temp = FxHashSet::default();
-    first_temp.insert(first_cid);
-    let mut second_temp = FxHashSet::default();
-    second_temp.insert(second_cid);
-    if node_mentions_any_cid(il, first_rhs, &first_temp)
-        || node_mentions_any_cid(il, first_rhs, &second_temp)
-        || !node_mentions_any_cid(il, second_rhs, &first_temp)
-    {
-        return false;
-    }
-    let mut all_temps = first_temp.clone();
-    all_temps.insert(second_cid);
-    let mut final_temp = FxHashSet::default();
-    final_temp.insert(second_cid);
     let empty = FxHashSet::default();
     let kids = il.children(effect);
     il.kind(effect) == NodeKind::ExprStmt
@@ -3084,9 +3057,9 @@ fn exact_temp_chain_consumed_by_append_effect(
             interner,
             kids[0],
             &empty,
-            &all_temps,
-            &final_temp,
-            &first_temp,
+            &chain.all,
+            &chain.second,
+            &chain.first,
         )
 }
 
@@ -3166,7 +3139,7 @@ fn exact_temp_assignment_consumed_by_index_assignment_effect(
     assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((temp_cid, _)) = local_nontrivial_temp_assignment(il, assign) else {
+    let Some((temp_cid, _)) = local_nontrivial_assignment(il, assign) else {
         return false;
     };
     exact_index_assignment_consumes_temp(il, effect, temp_cid, None)
@@ -3178,30 +3151,14 @@ fn exact_temp_chain_consumed_by_index_assignment_effect(
     second_assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((first_cid, first_rhs)) = local_nontrivial_temp_assignment(il, first_assign) else {
+    let Some(chain) = local_nontrivial_assignment_chain(il, first_assign, second_assign) else {
         return false;
     };
-    let Some((second_cid, second_rhs)) = local_nontrivial_temp_assignment(il, second_assign) else {
-        return false;
-    };
-    if first_cid == second_cid {
-        return false;
-    }
-    let mut first = FxHashSet::default();
-    first.insert(first_cid);
-    let mut second = FxHashSet::default();
-    second.insert(second_cid);
-    if node_mentions_any_cid(il, first_rhs, &first)
-        || node_mentions_any_cid(il, first_rhs, &second)
-        || !node_mentions_any_cid(il, second_rhs, &first)
-    {
-        return false;
-    }
-    exact_index_assignment_consumes_temp(il, effect, second_cid, Some(&first))
+    exact_index_assignment_consumes_temp(il, effect, chain.second_cid, Some(&chain.first))
 }
 
 fn exact_temp_assignment_consumed_by_statement(il: &Il, assign: NodeId, stmt: NodeId) -> bool {
-    let Some((temp_cid, _)) = local_nontrivial_temp_assignment(il, assign) else {
+    let Some((temp_cid, _)) = local_nontrivial_assignment(il, assign) else {
         return false;
     };
     exact_statement_consumes_temp(il, stmt, temp_cid, None)
@@ -3213,10 +3170,10 @@ fn exact_temp_chain_consumed_by_statement(
     second_assign: NodeId,
     stmt: NodeId,
 ) -> bool {
-    let Some((first_cid, _)) = local_nontrivial_temp_assignment(il, first_assign) else {
+    let Some((first_cid, _)) = local_nontrivial_assignment(il, first_assign) else {
         return false;
     };
-    let Some((second_cid, second_rhs)) = local_nontrivial_temp_assignment(il, second_assign) else {
+    let Some((second_cid, second_rhs)) = local_nontrivial_assignment(il, second_assign) else {
         return false;
     };
     if first_cid == second_cid {
@@ -3228,28 +3185,6 @@ fn exact_temp_chain_consumed_by_statement(
         return false;
     }
     exact_statement_consumes_temp(il, stmt, second_cid, Some(&first))
-}
-
-fn local_nontrivial_temp_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
-    if il.kind(node) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    if matches!(il.kind(kids[1]), NodeKind::Var | NodeKind::Lit) {
-        return None;
-    }
-    let Payload::Cid(temp_cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    let mut temp = FxHashSet::default();
-    temp.insert(temp_cid);
-    if node_mentions_any_cid(il, kids[1], &temp) {
-        return None;
-    }
-    Some((temp_cid, kids[1]))
 }
 
 fn exact_statement_consumes_temp(
@@ -3658,13 +3593,13 @@ fn loop_temp_chain_consumed_by_effect(
     effect: NodeId,
     iter_cids: &FxHashSet<u32>,
 ) -> bool {
-    let Some((first_cid, first_rhs)) = local_nontrivial_temp_assignment(il, first_assign) else {
+    let Some((first_cid, first_rhs)) = local_nontrivial_assignment(il, first_assign) else {
         return false;
     };
     if iter_cids.contains(&first_cid) || !node_mentions_any_cid(il, first_rhs, iter_cids) {
         return false;
     }
-    let Some((second_cid, second_rhs)) = local_nontrivial_temp_assignment(il, second_assign) else {
+    let Some((second_cid, second_rhs)) = local_nontrivial_assignment(il, second_assign) else {
         return false;
     };
     if iter_cids.contains(&second_cid) || first_cid == second_cid {
@@ -3697,27 +3632,17 @@ fn loop_local_iter_temp_assignment(
     node: NodeId,
     iter_cids: &FxHashSet<u32>,
 ) -> Option<u32> {
-    if il.kind(node) != NodeKind::Assign {
+    let (lhs, rhs) = il.assignment_var_parts(node)?;
+    if matches!(il.kind(rhs), NodeKind::Var | NodeKind::Lit) {
         return None;
     }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    if matches!(il.kind(kids[1]), NodeKind::Var | NodeKind::Lit) {
-        return None;
-    }
-    let Payload::Cid(temp_cid) = il.node(kids[0]).payload else {
-        return None;
-    };
+    let temp_cid = il.var_cid(lhs)?;
     if iter_cids.contains(&temp_cid) {
         return None;
     }
     let mut temp_cids = FxHashSet::default();
     temp_cids.insert(temp_cid);
-    if node_mentions_any_cid(il, kids[1], &temp_cids)
-        || !node_mentions_any_cid(il, kids[1], iter_cids)
-    {
+    if node_mentions_any_cid(il, rhs, &temp_cids) || !node_mentions_any_cid(il, rhs, iter_cids) {
         return None;
     }
     Some(temp_cid)
@@ -3975,55 +3900,16 @@ fn call_may_mutate_blocked_cid(
     if il.kind(node) != NodeKind::Call {
         return false;
     }
-    let kids = il.children(node);
-    if let Some((receiver, _)) = append_call_args(il, interner, node) {
+    if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node) {
         return node_mentions_any_cid(il, receiver, blocked);
     }
-    match il.node(node).payload {
-        Payload::Builtin(Builtin::Append) => kids
-            .first()
-            .is_some_and(|&receiver| node_mentions_any_cid(il, receiver, blocked)),
-        Payload::Builtin(_) => false,
-        _ => {
-            if let Some(&callee) = kids.first() {
-                if mutating_callee_touches_blocked_cid(il, interner, callee, blocked) {
-                    return true;
-                }
-            }
-            kids.iter()
-                .skip(1)
-                .any(|&arg| node_mentions_any_cid(il, arg, blocked))
-        }
-    }
-}
-
-fn mutating_callee_touches_blocked_cid(
-    il: &Il,
-    interner: &Interner,
-    callee: NodeId,
-    blocked: &FxHashSet<u32>,
-) -> bool {
-    if il.kind(callee) != NodeKind::Field {
+    if matches!(il.node(node).payload, Payload::Builtin(_)) {
         return false;
     }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return false;
-    };
-    mutating_method_name(interner.resolve(method))
-        && il
-            .children(callee)
-            .first()
-            .is_some_and(|&receiver| node_mentions_any_cid(il, receiver, blocked))
-}
-
-fn node_mentions_any_cid(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
-    match il.node(node).payload {
-        Payload::Cid(cid) if il.kind(node) == NodeKind::Var && cids.contains(&cid) => return true,
-        _ => {}
-    }
-    il.children(node)
-        .iter()
-        .any(|&child| node_mentions_any_cid(il, child, cids))
+    opaque_argument_escape_args(il, node).is_some_and(|args| {
+        args.iter()
+            .any(|&arg| node_mentions_any_cid(il, arg, blocked))
+    })
 }
 
 fn collect_cids(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {

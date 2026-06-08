@@ -34,7 +34,9 @@ precondition.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
 - Do not model demand evidence or every place/effect family in this slice. The
-  current place/effect records cover the first exact-fragment substrate only.
+  current place/effect records cover the first exact-fragment substrate plus
+  conservative binding-write, receiver-mutation, and opaque-argument-escape
+  risk facts needed to keep binding/import safety fail-closed.
 
 ## Record Shape
 
@@ -60,7 +62,7 @@ The current implemented kinds are:
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
-| `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
+| `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
 | `LibraryApi` | proof that a specific API occurrence matches a language/API contract coordinate, currently for selected call, property, and sentinel occurrences across JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, generic Python/Go free-function builtins, and selected receiver-method families |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
@@ -218,17 +220,30 @@ on one supported qualified-global API path, currently `Object.hasOwn` or
 `value.hasOwnProperty(...)`, shadowed `Object` roots, missing dependencies, or
 ambiguous guard evidence remain closed.
 
-Place and effect evidence are authoritative for the exact-fragment substrate.
-Raw method selectors such as `push`, `append`, or `add` do not prove an append
-effect; exact consumers need `Effect(BuilderAppendCall)`, even when the call has
-already been lowered to canonical `Builtin::Append`. Likewise, non-overloadable
-index writes and fixed self-field writes are admitted only through `Effect`
-records, with `Place(SelfReceiver)` and `Place(SelfField)` proving the
-receiver/place side. First-party `Place(SelfField)` depends on the matching
-`Place(SelfReceiver)`, and `Effect(SelfFieldWrite)` depends on the matching
-`Place(SelfField)`. Missing, conflicting, ambiguous, or dependency-broken
-place/effect evidence closes exact fragments instead of reopening a legacy
-language/shape fallback.
+Place and effect evidence are authoritative for the exact-fragment substrate
+and for conservative mutation invalidation. Raw method selectors such as `push`,
+`append`, or `add` do not prove an append effect; exact consumers need
+`Effect(BuilderAppendCall)`, even when the call has already been lowered to
+canonical `Builtin::Append`. Likewise, non-overloadable index writes and fixed
+self-field writes are admitted only through exact `Effect` records, with
+`Place(SelfReceiver)` and `Place(SelfField)` proving the receiver/place side.
+First-party `Place(SelfField)` depends on the matching `Place(SelfReceiver)`,
+and `Effect(SelfFieldWrite)` depends on the matching `Place(SelfField)`.
+Missing, conflicting, ambiguous, or dependency-broken place/effect evidence
+closes exact fragments instead of reopening a legacy language/shape fallback.
+
+Mutation-risk effects are intentionally separate from exact effect proofs.
+`Effect(BindingWrite)` says an assignment node writes its syntactic target;
+`Effect(ReceiverMutation)` says a call is covered by a first-party
+language-scoped receiver-mutating method policy; and
+`Effect(OpaqueArgumentEscape)` says an ordinary call argument may escape to
+unknown code. These records can invalidate immutable binding, module export,
+imported literal, value-graph, or exact-fragment context assumptions, but they
+do not prove collection membership, builder append, map update, or any other
+exact semantic law. Known admitted `LibraryApi` occurrences suppress the opaque
+escape helper for that call, so a modeled API such as an imported stdlib
+predicate is not treated as arbitrary mutation risk merely because it takes an
+argument.
 
 Library API evidence follows the same fail-closed rule. If a call carries
 `LibraryApi` evidence for a selected API occurrence, consumers must validate the
@@ -262,9 +277,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   at the exact call node after their `LibraryApi` occurrence has been admitted.
   Normalize also emits binding-anchored `Domain` evidence for single-assignment
   local/module bindings whose initializer has asserted sequence or result-domain
-  evidence and whose binding has no direct mutation under the current
-  first-party mutation scan. Future packs and inference producers should use
-  node or binding anchors for receiver-domain proof instead of selector spelling;
+  evidence and whose binding has no direct binding-write, receiver-mutation, or
+  opaque-argument-escape risk under the current first-party evidence producers.
+  Future packs and inference producers should use node or binding anchors for
+  receiver-domain proof instead of selector spelling;
 - source-origin facts become `Source` evidence. JS/TS, Python, and Rust `await`
   expressions preserve a raw async boundary and emit
   `Source::Protocol(Await)` at that source span. JS/TS and Python `yield`
@@ -302,7 +318,13 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   Java `this`, `Place(SelfField)` for Java `this.field`,
   `Effect(SelfFieldWrite)` for Java `this.field = ...`,
   `Effect(NonOverloadableIndexWrite)` for C/Go/Java index writes, and
-  `Effect(BuilderAppendCall)` for canonical `Builtin::Append`. Self-field
+  `Effect(BuilderAppendCall)` for canonical `Builtin::Append`. They also emit
+  mutation-risk effects: `Effect(BindingWrite)` for assignment nodes,
+  `Effect(ReceiverMutation)` for calls admitted by the first-party
+  language-scoped mutating-method policy, and
+  `Effect(OpaqueArgumentEscape)` for ordinary calls with arguments. The shared
+  semantic helper treats opaque escape as active mutation risk only when the
+  same call does not also have admitted `LibraryApi` evidence. Self-field
   place/write evidence records include dependencies that link the write proof
   back to the receiver proof;
 - first-party lowering emits `LibraryApi` evidence for selected API occurrences
@@ -367,10 +389,12 @@ First-party frontends now emit these facts as `EvidenceRecord`:
 Source-origin and parameter-domain proof no longer has side-table mirror storage:
 frontends emit `Source` and `Domain` records directly, and semantic lookups are
 evidence-only for those facts. First-party JS/TS record-shape guards now have
-dedicated guard evidence, and exact-fragment append/index/self-field gates now
-have the first place/effect evidence substrate. Broader guard families, richer
-source-clause dependencies, richer receiver/place families, and general evidence
-validation remain open.
+dedicated guard evidence, exact-fragment append/index/self-field gates now have
+the first place/effect evidence substrate, and binding/module/import mutation
+safety consumes mutation-risk `Effect` records instead of re-scanning raw call
+selectors and assignment shapes. Broader guard families, richer source-clause
+dependencies, richer receiver/place families, demand-aware effect contracts,
+and general evidence validation remain open.
 
 ## Current Consumers
 
@@ -451,14 +475,20 @@ callers:
   so `composite_literal`/`keyed_element` tag spelling alone no longer admits the
   exact map-default path;
 - exact-fragment append, non-overloadable index-write, and self-field-write
-  gates now require `Effect`/`Place` evidence. Missing, ambiguous, conflicting,
-  or dependency-broken evidence keeps the exact path closed.
+  gates now require exact `Effect`/`Place` evidence. Missing, ambiguous,
+  conflicting, or dependency-broken evidence keeps the exact path closed;
+- immutable binding-domain inference, module facts, imported literal
+  replacement, value-graph binding safety, imported binding use indexing, and
+  exact-fragment context blocking consume shared mutation-risk helpers for
+  `BindingWrite`, `ReceiverMutation`, and `OpaqueArgumentEscape` instead of
+  each re-scanning raw assignment shapes, raw method selectors, or call
+  arguments independently.
 
 Broader field/place/effect facts, promise receiver proof, async/sync and
-Go-channel protocol convergence, unmodeled stdlib/ecosystem APIs, broader inferred
-receiver-expression domain evidence, first-class mutation/effect evidence beyond
-the current first-party binding scan, full protocol/demand/effect receiver
-obligations for lazy generators, set/dict materialization, channels, and async,
-full scope-resolution and namespace-member evidence, broader guard
-evidence, general cross-module dependency manifests, report-level provenance,
-and external manifest loading are still open work.
+Go-channel protocol convergence, unmodeled stdlib/ecosystem APIs, broader
+inferred receiver-expression domain evidence, field/property/setter/proxy place
+facts, full protocol/demand/effect receiver obligations for lazy generators,
+set/dict materialization, channels, and async, full scope-resolution and
+namespace-member evidence, broader guard evidence, general cross-module
+dependency manifests, report-level provenance, and external manifest loading are
+still open work.

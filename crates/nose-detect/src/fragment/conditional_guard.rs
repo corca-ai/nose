@@ -9,6 +9,10 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
+use crate::il_utils::{
+    local_nontrivial_assignment, local_nontrivial_assignment_chain,
+    node_mentions_any_cid as mentions_any,
+};
 use nose_il::{Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
     builder_append_call_args, exact_non_overloadable_index_assignment,
@@ -639,29 +643,9 @@ fn temp_chain_consumed_by_append(
     second_assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((first_cid, first_rhs)) = local_nontrivial_assignment(il, first_assign) else {
+    let Some(chain) = local_nontrivial_assignment_chain(il, first_assign, second_assign) else {
         return false;
     };
-    let Some((second_cid, second_rhs)) = local_nontrivial_assignment(il, second_assign) else {
-        return false;
-    };
-    if first_cid == second_cid {
-        return false;
-    }
-    let mut first = FxHashSet::default();
-    first.insert(first_cid);
-    let mut second = FxHashSet::default();
-    second.insert(second_cid);
-    if mentions_any(il, first_rhs, &first)
-        || mentions_any(il, first_rhs, &second)
-        || !mentions_any(il, second_rhs, &first)
-    {
-        return false;
-    }
-    let mut all_temps = first.clone();
-    all_temps.insert(second_cid);
-    let mut final_temp = FxHashSet::default();
-    final_temp.insert(second_cid);
     il.kind(effect) == NodeKind::ExprStmt
         && il.children(effect).len() == 1
         && is_append_call(il, interner, il.children(effect)[0])
@@ -669,9 +653,9 @@ fn temp_chain_consumed_by_append(
             il,
             interner,
             il.children(effect)[0],
-            &all_temps,
-            &final_temp,
-            &first,
+            &chain.all,
+            &chain.second,
+            &chain.first,
         )
 }
 
@@ -688,26 +672,10 @@ fn temp_chain_consumed_by_index_assignment(
     second_assign: NodeId,
     effect: NodeId,
 ) -> bool {
-    let Some((first_cid, first_rhs)) = local_nontrivial_assignment(il, first_assign) else {
+    let Some(chain) = local_nontrivial_assignment_chain(il, first_assign, second_assign) else {
         return false;
     };
-    let Some((second_cid, second_rhs)) = local_nontrivial_assignment(il, second_assign) else {
-        return false;
-    };
-    if first_cid == second_cid {
-        return false;
-    }
-    let mut first = FxHashSet::default();
-    first.insert(first_cid);
-    let mut second = FxHashSet::default();
-    second.insert(second_cid);
-    if mentions_any(il, first_rhs, &first)
-        || mentions_any(il, first_rhs, &second)
-        || !mentions_any(il, second_rhs, &first)
-    {
-        return false;
-    }
-    index_assignment_consumes_temp(il, effect, second_cid, Some(&first))
+    index_assignment_consumes_temp(il, effect, chain.second_cid, Some(&chain.first))
 }
 
 fn index_assignment_consumes_temp(
@@ -783,37 +751,4 @@ fn is_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
 
 fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeId>, NodeId)> {
     exact_non_overloadable_index_assignment_parts(il, node)
-}
-
-fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
-    if il.kind(node) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    if matches!(il.kind(kids[1]), NodeKind::Var | NodeKind::Lit) {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    let mut target = FxHashSet::default();
-    target.insert(cid);
-    if mentions_any(il, kids[1], &target) {
-        return None;
-    }
-    Some((cid, kids[1]))
-}
-
-fn mentions_any(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
-    if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
-        if cids.contains(&cid) {
-            return true;
-        }
-    }
-    il.children(node)
-        .iter()
-        .any(|&child| mentions_any(il, child, cids))
 }

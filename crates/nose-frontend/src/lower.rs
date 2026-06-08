@@ -27,9 +27,9 @@ use nose_semantics::{
     library_ruby_set_factory_contract, library_rust_option_none_sentinel_contract,
     library_rust_option_some_constructor_contract, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
-    library_static_index_membership_contract, sequence_surface_kind_for_tag, ImportFactKind,
-    LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
-    MethodReceiverContract, StaticIndexMembershipReceiverContract,
+    library_static_index_membership_contract, module_binding_mutating_method_contract,
+    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
+    LibraryApiDependencyCache, MethodReceiverContract, StaticIndexMembershipReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -139,6 +139,7 @@ impl<'a> Lowering<'a> {
                     );
                 }
                 if matches!(payload, Payload::None) {
+                    self.record_call_mutation_evidence(span, kind, children);
                     self.record_library_api_evidence_for_call(span, children);
                 }
             }
@@ -157,6 +158,11 @@ impl<'a> Lowering<'a> {
             }
             NodeKind::Assign => {
                 if let [target, _value] = children {
+                    self.record_evidence(
+                        EvidenceAnchor::node(span, kind),
+                        EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
+                        "effect_binding_write",
+                    );
                     if self.non_overloadable_index_assignment_target(*target) {
                         self.record_evidence(
                             EvidenceAnchor::node(span, kind),
@@ -176,6 +182,32 @@ impl<'a> Lowering<'a> {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn record_call_mutation_evidence(&mut self, span: Span, kind: NodeKind, children: &[NodeId]) {
+        if children.len() > 1 {
+            self.record_evidence(
+                EvidenceAnchor::node(span, kind),
+                EvidenceKind::Effect(EffectEvidenceKind::OpaqueArgumentEscape),
+                "effect_opaque_argument_escape",
+            );
+        }
+        let Some(&callee) = children.first() else {
+            return;
+        };
+        if self.b.node(callee).kind != NodeKind::Field {
+            return;
+        }
+        let Payload::Name(method) = self.b.node(callee).payload else {
+            return;
+        };
+        if module_binding_mutating_method_contract(self.lang, self.interner.resolve(method)) {
+            self.record_evidence(
+                EvidenceAnchor::node(span, kind),
+                EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+                "effect_receiver_mutation",
+            );
         }
     }
 

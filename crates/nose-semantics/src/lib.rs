@@ -734,7 +734,9 @@ pub struct SeqSurfaceContract {
 pub fn sequence_surface_kind_for_tag(lang: Lang, tag: Option<&str>) -> Option<SequenceSurfaceKind> {
     match tag {
         None => Some(SequenceSurfaceKind::Untagged),
-        Some("array" | "array_expression" | "list") => Some(SequenceSurfaceKind::Collection),
+        Some("array" | "array_expression" | "list" | "set") => {
+            Some(SequenceSurfaceKind::Collection)
+        }
         Some("tuple" | "tuple_expression") => Some(SequenceSurfaceKind::Tuple),
         Some("dictionary" | "object" | "hash") => Some(SequenceSurfaceKind::Map),
         Some("pair") => Some(SequenceSurfaceKind::Pair),
@@ -2289,7 +2291,7 @@ impl FragmentSemantics {
     }
 }
 
-fn effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<EffectEvidenceKind> {
+fn exact_effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<EffectEvidenceKind> {
     let span = il.node(node).span;
     let kind = il.kind(node);
     unique_asserted_evidence_at(
@@ -2304,10 +2306,48 @@ fn effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<EffectE
             )
         },
         |evidence| match evidence {
-            EvidenceKind::Effect(effect) => Some(effect),
+            EvidenceKind::Effect(
+                effect @ (EffectEvidenceKind::BuilderAppendCall
+                | EffectEvidenceKind::NonOverloadableIndexWrite
+                | EffectEvidenceKind::SelfFieldWrite { .. }),
+            ) => Some(effect),
             _ => None,
         },
     )
+}
+
+fn asserted_effect_at_node(il: &Il, node: NodeId, wanted: EffectEvidenceKind) -> bool {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    il.evidence.iter().any(|record| {
+        record.status == EvidenceStatus::Asserted
+            && il.evidence_dependencies_asserted(record)
+            && record.kind == EvidenceKind::Effect(wanted)
+            && matches!(
+                record.anchor,
+                EvidenceAnchor::Node {
+                    span: anchor_span,
+                    kind: anchor_kind,
+                } if anchor_span == span && anchor_kind == kind
+            )
+    })
+}
+
+fn asserted_library_api_at_node(il: &Il, node: NodeId) -> bool {
+    let span = il.node(node).span;
+    let kind = il.kind(node);
+    il.evidence.iter().any(|record| {
+        record.status == EvidenceStatus::Asserted
+            && il.evidence_dependencies_asserted(record)
+            && matches!(record.kind, EvidenceKind::LibraryApi(_))
+            && matches!(
+                record.anchor,
+                EvidenceAnchor::Node {
+                    span: anchor_span,
+                    kind: anchor_kind,
+                } if anchor_span == span && anchor_kind == kind
+            )
+    })
 }
 
 fn place_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<PlaceEvidenceKind> {
@@ -2381,7 +2421,7 @@ pub fn exact_non_overloadable_index_assignment_parts(
     il: &Il,
     node: NodeId,
 ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
-    match effect_evidence_for_node(il, node) {
+    match exact_effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::NonOverloadableIndexWrite) => {
             syntactic_index_assignment_parts(il, node)
         }
@@ -2410,7 +2450,7 @@ pub fn exact_non_overloadable_index_assignment(il: &Il, node: NodeId) -> bool {
 }
 
 pub fn exact_self_field_write_assignment(il: &Il, interner: &Interner, node: NodeId) -> bool {
-    match effect_evidence_for_node(il, node) {
+    match exact_effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::SelfFieldWrite { field_hash }) => {
             syntactic_self_field_write_assignment(il, interner, node, Some(field_hash))
         }
@@ -3967,7 +4007,7 @@ pub fn builder_append_call_args(
     _interner: &Interner,
     node: NodeId,
 ) -> Option<(NodeId, NodeId)> {
-    match effect_evidence_for_node(il, node) {
+    match exact_effect_evidence_for_node(il, node) {
         EvidenceResolution::Found(EffectEvidenceKind::BuilderAppendCall) => {
             syntactic_append_call_args(il, node)
         }
@@ -4004,6 +4044,50 @@ fn syntactic_append_call_args(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)>
 
 pub fn builder_append_call(il: &Il, interner: &Interner, node: NodeId) -> bool {
     builder_append_call_args(il, interner, node).is_some()
+}
+
+pub fn binding_write_target(il: &Il, node: NodeId) -> Option<NodeId> {
+    if !asserted_effect_at_node(il, node, EffectEvidenceKind::BindingWrite) {
+        return None;
+    }
+    if il.kind(node) != NodeKind::Assign {
+        return None;
+    }
+    il.children(node).first().copied()
+}
+
+pub fn receiver_mutation_call_receiver(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+) -> Option<NodeId> {
+    if let Some((receiver, _)) = builder_append_call_args(il, interner, node) {
+        return Some(receiver);
+    }
+    if !asserted_effect_at_node(il, node, EffectEvidenceKind::ReceiverMutation) {
+        return None;
+    }
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    let callee = *il.children(node).first()?;
+    if il.kind(callee) != NodeKind::Field {
+        return None;
+    }
+    il.children(callee).first().copied()
+}
+
+pub fn opaque_argument_escape_args(il: &Il, node: NodeId) -> Option<&[NodeId]> {
+    if !asserted_effect_at_node(il, node, EffectEvidenceKind::OpaqueArgumentEscape) {
+        return None;
+    }
+    if asserted_library_api_at_node(il, node) {
+        return None;
+    }
+    if il.kind(node) != NodeKind::Call {
+        return None;
+    }
+    Some(il.children(node).get(1..).unwrap_or(&[]))
 }
 
 pub fn method_fold_name(lang: Lang, name: &str) -> bool {
@@ -8547,34 +8631,90 @@ pub fn mutating_method_name(method: &str) -> bool {
     )
 }
 
-pub fn module_binding_mutating_method_name(method: &str) -> bool {
-    matches!(
-        method,
-        "add"
-            | "addAll"
-            | "append"
-            | "delete"
-            | "clear"
-            | "compute"
-            | "computeIfAbsent"
-            | "computeIfPresent"
-            | "merge"
-            | "pop"
-            | "push"
-            | "put"
-            | "putAll"
-            | "remove"
-            | "removeAll"
-            | "removeIf"
-            | "replace"
-            | "replaceAll"
-            | "retainAll"
-            | "shift"
-            | "sort"
-            | "splice"
-            | "unshift"
-            | "set"
-    )
+pub fn module_binding_mutating_method_contract(lang: Lang, method: &str) -> bool {
+    match lang {
+        Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html => matches!(
+            method,
+            "add"
+                | "clear"
+                | "copyWithin"
+                | "delete"
+                | "fill"
+                | "pop"
+                | "push"
+                | "reverse"
+                | "set"
+                | "shift"
+                | "sort"
+                | "splice"
+                | "unshift"
+        ),
+        Lang::Python => matches!(
+            method,
+            "add"
+                | "append"
+                | "clear"
+                | "extend"
+                | "insert"
+                | "pop"
+                | "remove"
+                | "reverse"
+                | "setdefault"
+                | "sort"
+                | "update"
+        ),
+        Lang::Ruby => matches!(
+            method,
+            "add"
+                | "append"
+                | "clear"
+                | "delete"
+                | "merge!"
+                | "pop"
+                | "push"
+                | "reverse!"
+                | "shift"
+                | "sort!"
+                | "store"
+                | "unshift"
+                | "update"
+        ),
+        Lang::Java => matches!(
+            method,
+            "add"
+                | "addAll"
+                | "clear"
+                | "compute"
+                | "computeIfAbsent"
+                | "computeIfPresent"
+                | "merge"
+                | "put"
+                | "putAll"
+                | "remove"
+                | "removeAll"
+                | "removeIf"
+                | "replace"
+                | "replaceAll"
+                | "retainAll"
+                | "set"
+                | "sort"
+        ),
+        Lang::Rust => matches!(
+            method,
+            "clear"
+                | "extend"
+                | "insert"
+                | "pop"
+                | "push"
+                | "remove"
+                | "retain"
+                | "reverse"
+                | "sort"
+                | "sort_by"
+                | "sort_unstable"
+        ),
+        _ => false,
+    }
 }
 
 #[cfg(test)]
@@ -11835,8 +11975,23 @@ mod tests {
     fn mutating_method_sets_stay_distinct() {
         assert!(mutating_method_name("put"));
         assert!(!mutating_method_name("push"));
-        assert!(module_binding_mutating_method_name("push"));
-        assert!(module_binding_mutating_method_name("addAll"));
+        assert!(module_binding_mutating_method_contract(
+            Lang::JavaScript,
+            "push"
+        ));
+        assert!(!module_binding_mutating_method_contract(
+            Lang::JavaScript,
+            "addAll"
+        ));
+        assert!(module_binding_mutating_method_contract(
+            Lang::Java,
+            "addAll"
+        ));
+        assert!(module_binding_mutating_method_contract(
+            Lang::Python,
+            "append"
+        ));
+        assert!(!module_binding_mutating_method_contract(Lang::Go, "append"));
     }
 
     #[test]
@@ -12812,6 +12967,7 @@ mod tests {
             assign,
             EffectEvidenceKind::NonOverloadableIndexWrite,
         );
+        push_node_effect(&mut il, 2, assign, EffectEvidenceKind::BindingWrite);
 
         assert_eq!(
             exact_non_overloadable_index_assignment_parts(&il, assign),
@@ -12856,6 +13012,7 @@ mod tests {
         assert_eq!(builder_append_call_args(&il, &interner, builtin), None);
         let mut il = il;
         push_node_effect(&mut il, 0, builtin, EffectEvidenceKind::BuilderAppendCall);
+        push_node_effect(&mut il, 3, builtin, EffectEvidenceKind::ReceiverMutation);
         assert_eq!(
             builder_append_call_args(&il, &interner, builtin),
             Some((receiver, value))

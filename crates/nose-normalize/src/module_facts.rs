@@ -1,6 +1,8 @@
-use nose_il::{Builtin, Il, Interner, NodeId, NodeKind, Payload, Symbol};
-pub use nose_semantics::module_binding_mutating_method_name as mutating_method_name;
+use nose_il::{Il, Interner, NodeId, NodeKind, Payload, Symbol};
 use nose_semantics::semantics;
+use nose_semantics::{
+    binding_write_target, opaque_argument_escape_args, receiver_mutation_call_receiver,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub fn top_level_statements_for(il: &Il) -> Vec<NodeId> {
@@ -25,19 +27,11 @@ pub(crate) fn assignment_name_in_scope(
     stmt: NodeId,
     local_scope: &[bool],
 ) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
+    let (lhs, _) = il.assignment_var_parts(stmt)?;
+    if !cid_is_module_scoped(lhs, local_scope) {
         return None;
     }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    if !cid_is_module_scoped(kids[0], local_scope) {
-        return None;
-    }
+    let cid = il.var_cid(lhs)?;
     il.cid_names.get(cid as usize).copied()
 }
 
@@ -104,8 +98,8 @@ pub(crate) fn collect_module_mutations_in_scope_with_direct_definitions(
     for (idx, node) in il.nodes.iter().enumerate() {
         let node_id = NodeId(idx as u32);
         match node.kind {
-            NodeKind::Call if matches!(node.payload, Payload::Builtin(Builtin::Append)) => {
-                if let Some(receiver) = il.children(node_id).first().copied() {
+            NodeKind::Call => {
+                if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node_id) {
                     mark_direct_symbol(
                         il,
                         receiver,
@@ -115,27 +109,21 @@ pub(crate) fn collect_module_mutations_in_scope_with_direct_definitions(
                         &mut mutated,
                     );
                 }
-            }
-            NodeKind::Field => {
-                let Payload::Name(method) = node.payload else {
-                    continue;
-                };
-                if !mutating_method_name(interner.resolve(method)) {
-                    continue;
-                }
-                if let Some(receiver) = il.children(node_id).first().copied() {
-                    mark_direct_symbol(
-                        il,
-                        receiver,
-                        candidates,
-                        &shadowed,
-                        local_scope,
-                        &mut mutated,
-                    );
+                if let Some(args) = opaque_argument_escape_args(il, node_id) {
+                    for &arg in args {
+                        collect_unshadowed_node_symbols(
+                            il,
+                            arg,
+                            candidates,
+                            &shadowed,
+                            local_scope,
+                            &mut mutated,
+                        );
+                    }
                 }
             }
             NodeKind::Assign => {
-                if let Some(lhs) = il.children(node_id).first().copied() {
+                if let Some(lhs) = binding_write_target(il, node_id) {
                     let direct_top_level_definition =
                         is_top_level.get(idx).copied().unwrap_or(false)
                             && direct_definitions.contains(&node_id);
@@ -373,7 +361,7 @@ mod tests {
         );
         let module = b.add(NodeKind::Module, Payload::None, sp(1), &[assign_arr, func]);
 
-        let il = b.finish(
+        let mut il = b.finish(
             module,
             FileMeta {
                 path: "t.js".to_string(),
@@ -386,6 +374,7 @@ mod tests {
             }],
             vec![arr],
         );
+        crate::effect_evidence::run(&mut il, &interner);
         CidFixture {
             il,
             interner,
@@ -440,7 +429,7 @@ mod tests {
         let value = b.add(NodeKind::Lit, Payload::LitInt(9), sp(2), &[]);
         let write = b.add(NodeKind::Assign, Payload::None, sp(2), &[place, value]);
         let module = b.add(NodeKind::Module, Payload::None, sp(1), &[assign_arr, write]);
-        let il = b.finish(
+        let mut il = b.finish(
             module,
             FileMeta {
                 path: "t.js".to_string(),
@@ -449,6 +438,7 @@ mod tests {
             Vec::new(),
             vec![arr],
         );
+        crate::effect_evidence::run(&mut il, &interner);
 
         let mut candidates = FxHashSet::default();
         candidates.insert(arr);

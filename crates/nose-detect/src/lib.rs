@@ -11,6 +11,7 @@ mod align;
 mod cluster;
 mod contiguous;
 mod fragment;
+mod il_utils;
 mod lsh;
 mod minhash;
 mod report;

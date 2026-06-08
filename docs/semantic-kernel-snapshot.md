@@ -11,8 +11,8 @@ proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
 receiver-domain evidence resolution, and a shared evidence-record substrate for
 source, domain, import, symbol-identity, guard,
-place/effect, selected library API occurrence, value-domain/law contracts, and
-sequence-surface facts.
+place/effect, mutation-risk effect, selected library API occurrence,
+value-domain/law contracts, and sequence-surface facts.
 JS/TS, Python, and Rust `await` expressions are preserved as raw async protocol
 boundaries with `Source::Protocol(Await)` evidence instead of being erased into
 their operand. JS/TS and Python `yield` expressions are preserved as generator
@@ -152,15 +152,16 @@ migrated.
   canonicalization still run before immutable binding-domain inference and only
   see domain evidence already present at that point. This preserves the current
   Array/Collection/Set/Map/Option/String/Integer/Number and ByteArray
-  distinctions. First-party producers now attach
-  receiver-expression domain facts directly for selected admitted library/API
-  factory results, and normalize emits binding-anchored `Domain` evidence for
-  single-assignment local/module bindings whose initializer has asserted
-  sequence or result-domain evidence and whose binding has no direct mutation
-  under the current first-party mutation scan. Binding-domain lookup matches the
-  binding `local_hash` and only applies an assignment to receiver uses that occur
-  after it. That mutation scan is producer policy; general mutation/effect
-  evidence remains separate future work.
+  distinctions. First-party producers now attach receiver-expression domain
+  facts directly for selected admitted library/API factory results, and
+  normalize emits binding-anchored `Domain` evidence for single-assignment
+  local/module bindings whose initializer has asserted sequence or result-domain
+  evidence and whose binding has no direct binding-write, receiver-mutation, or
+  opaque-argument-escape risk under first-party `Effect` evidence. Binding-domain
+  lookup matches the binding `local_hash` and only applies an assignment to
+  receiver uses that occur after it. The current mutation-risk producers are
+  conservative and language-scoped; they invalidate exact assumptions but do not
+  prove exact library semantics.
 - Property builtin contracts are language-constrained occurrence contracts, not
   selector guesses. JS/TS/Vue/Svelte/HTML and Java `length` reads are admitted
   only when a `LibraryApi(PropertyBuiltin(Len))` record is anchored to the
@@ -300,8 +301,12 @@ migrated.
   frontend/normalize paths must prove the receiver or active-builder contract,
   lower the call to canonical `Builtin::Append`, and emit
   `Effect(BuilderAppendCall)` before exact fragments can treat it as an append
-  effect. Value-graph active list-builder paths still consume the method
-  selector only after a local builder seed is active.
+  effect. Value-graph active list-builder recognition can also use a
+  language-scoped builder-append method contract, but only after the receiver is
+  already proven to be an active local builder seeded by an explicit aggregate
+  surface. Active map-builder recognition requires binding-write evidence plus
+  an explicit map seed surface. Raw tuple or untagged sequence values no longer
+  reopen collection/map builder semantics.
 - Exact fragment surface proofs for Java `this.field`, Java `return this`,
   non-overloadable C/Go/Java index assignment, and single-item builder append
   calls are now shared through `nose-semantics`; predicate and contract paths
@@ -348,11 +353,12 @@ migrated.
   importer-local scopes or same-named classes from shadowing provider-proven API
   occurrences. The replacement records `ImportedLiteralSnapshot` provenance
   depending on the importer static import proof plus copied provider evidence.
-  Provider and importer module-binding mutation proof now rejects direct binding
-  mutations and direct place writes such as
-  `LOOKUP.clear()`, `LOOKUP.push(...)`, and `LOOKUP[key] = value`, and
-  provider-side opaque argument escapes such as `mutate(LOOKUP)`, before
-  imported literal provenance can enter exact matching.
+  Provider and importer module-binding mutation proof now consumes shared
+  mutation-risk `Effect` evidence and rejects direct binding mutations, direct
+  place writes such as `LOOKUP.clear()`, `LOOKUP.push(...)`, and
+  `LOOKUP[key] = value`, and provider-side opaque argument escapes such as
+  `mutate(LOOKUP)`, before imported literal provenance can enter exact
+  matching.
 - Membership and map-key membership selectors now consume language-scoped
   library method contracts before normalize/detect treat them as semantic
   containment. A method named `contains` is Java/Rust collection membership

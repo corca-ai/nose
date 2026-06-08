@@ -369,9 +369,22 @@ pub enum PlaceEvidenceKind {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub enum EffectEvidenceKind {
+    /// A write to a local/module binding or to a place rooted at such a binding.
+    /// Consumers must still check the syntactic target and scope before applying
+    /// this to a particular binding.
+    BindingWrite,
     BuilderAppendCall,
     NonOverloadableIndexWrite,
-    SelfFieldWrite { field_hash: u64 },
+    /// A call mutates its receiver. This is a mutation-risk fact, not proof that
+    /// the call participates in any exact builder or collection law.
+    ReceiverMutation,
+    /// A call argument may escape to unknown code and be mutated outside the
+    /// visible expression. Consumers must check the argument syntax before
+    /// applying this to a particular binding.
+    OpaqueArgumentEscape,
+    SelfFieldWrite {
+        field_hash: u64,
+    },
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

@@ -460,6 +460,27 @@ and pack ecosystem.
   receiver-method occurrences, and value-graph/desugar/idiom consumers fail
   closed when those occurrence records are missing, rejected, or
   dependency-broken.
+- Builder and mutation safety moved further onto the evidence substrate.
+  First-party producers now emit exact append/index/self-field effect evidence
+  separately from conservative binding-write, receiver-mutation, and
+  opaque-argument-escape risk evidence. Module facts, binding-domain inference,
+  imported literal replacement, imported binding use indexing, value-graph
+  mutation safety, and exact-fragment context blocking consume shared
+  `nose-semantics` helpers instead of each re-scanning raw assignment shapes,
+  method selectors, or call arguments. Receiver-mutation production is scoped by
+  language-specific first-party mutator policy, and those records only close
+  risky exact paths; they do not prove a same-named API's exact semantics.
+- Active aggregate builders now require contract-backed append/write proof plus
+  surface shape. Exact append evidence is still required for exact-fragment
+  append effects; value-graph list-builder recognition may also use a
+  language-scoped builder-append method contract once the receiver is already
+  proven to be an active local builder seeded by an explicit collection surface.
+  Map-builder recognition requires write evidence plus an explicit map seed.
+  Raw selectors, raw index assignment, untagged sequences, and tuple values no
+  longer prove builder semantics by themselves. Python set literals now emit
+  `SequenceSurface(Collection)` so supported module-set membership remains
+  covered, while direct/module tuple literals stay closed until a factory, typed
+  receiver, or other contract supplies membership-collection evidence.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -514,14 +535,16 @@ Remaining in this phase:
 - Add scope, dependency, and ambiguity validation for evidence records before
   they become a stable external extension surface.
 - Expand the exact fragment facade from first-party helper functions into
-  versioned pack-facing effect/place evidence records. The first substrate now
-  covers canonical append calls, C/Go/Java non-overloadable index writes, and
-  Java self-receiver/self-field writes through required `Effect`/`Place`
-  evidence, including normalize refreshes after canonical rewrites.
+  versioned pack-facing effect/place evidence records. The current substrate
+  covers canonical append calls, C/Go/Java non-overloadable index writes, Java
+  self-receiver/self-field writes, binding writes, receiver-mutation risks, and
+  opaque argument escapes through required `Effect`/`Place` evidence, including
+  normalize refreshes after canonical rewrites. Exact effect proofs and
+  mutation-risk effects remain separate contract families.
 - Continue replacing remaining local exact-fragment proof helpers with
   versioned pack-facing evidence records, especially broader field/read/write
-  place facts, receiver-sensitive mutation/effect proofs, and mutation
-  invalidation evidence shared with binding/import safety.
+  place facts, setter/proxy/property-write facts, and demand-aware effect
+  summaries shared with lazy/async/channel protocols.
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
   surfaces are now fail-closed on missing evidence; remaining work is promise
@@ -562,8 +585,9 @@ Remaining in this phase:
   imported-symbol exact proof are now evidence-only, imported literal replacement
   copies provider evidence, and selected JS/TS `QualifiedGlobal` paths are
   covered, but general qualified-member resolution, namespace export identity,
-  provider/export dependency manifests, richer scope/rebinding facts, and
-  manifest-level cross-module dependency evidence are not.
+  provider/export dependency manifests, richer scope/rebinding facts, opaque
+  call receiver identity for module-defined locals versus imported namespaces,
+  and manifest-level cross-module dependency evidence are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.
@@ -577,9 +601,9 @@ Remaining in this phase:
   facts, binding-anchored immutable local/module facts, and selected admitted
   library/API factory result facts. Remaining work is broader inferred receiver
   domains, Java constructor call-domain evidence if that lowering stops
-  collapsing directly to sequence surfaces, first-class mutation/effect evidence
-  beyond the current first-party binding scan, and protocol-specific receiver
-  facts that include demand/effect obligations.
+  collapsing directly to sequence surfaces, richer field/property mutation
+  facts, and protocol-specific receiver facts that include demand/effect
+  obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary. The
   first `ValueLaw` contract surface now covers current arithmetic/boolean

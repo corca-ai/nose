@@ -41,19 +41,19 @@ use crate::combine;
 use crate::module_facts::{
     assignment_name_in_scope, collect_all_node_symbols_in_scope,
     collect_module_mutations_in_scope_with_direct_definitions, local_scope_nodes,
-    mutating_method_name, node_symbol_in_scope,
-    shadowed_js_like_module_binding_nodes_for_symbol_in_scope, top_level_statements_for,
+    node_symbol_in_scope, shadowed_js_like_module_binding_nodes_for_symbol_in_scope,
+    top_level_statements_for,
 };
 use nose_il::{
     stable_symbol_hash, Builtin, HoFKind, Il, Interner, Lang, LoopKind, NodeId, NodeKind, Op,
     Payload, SourceComprehensionKind, Span, Symbol, UnitKind,
 };
 use nose_semantics::{
-    builder_append_method_contract, builtin_tag, construct_syntax_proof,
-    domain_evidence_for_param as semantic_domain_evidence_for_param,
-    exact_static_membership_predicate_operator, go_zero_map_default_kind,
-    go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
-    go_zero_map_lookup_contract, import_fact_evidence_rhs,
+    binding_write_target, builder_append_call_args, builder_append_method_contract, builtin_tag,
+    construct_syntax_proof, domain_evidence_for_param as semantic_domain_evidence_for_param,
+    exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
+    go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
+    go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
     library_api_contract_evidence_for_node, library_free_function_builtin_contract,
@@ -69,18 +69,18 @@ use nose_semantics::{
     library_rust_option_none_sentinel_contract, library_rust_option_some_constructor_contract,
     library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
     library_scalar_integer_method_contract, library_static_index_membership_contract,
-    nullish_global_contract, own_property_guard_evidence_at_span, record_shape_guard_for_node,
-    reduction_builtin_contract, semantics, seq_surface_contract_for_node,
-    source_comprehension_at_node, source_operator_at_node, unshadowed_global_symbol,
-    BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
-    DomainRequirement, GoZeroMapDefaultKind, ImportFactKind, ImportedNamespaceFunctionSemantic,
-    IndexMembershipThreshold, IteratorAdapterReceiverContract, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery,
-    LibraryCollectionFactoryResult, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod,
-    SeqSurfaceContract, StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION,
-    SEQ_VALUE_MAP, SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD,
-    SEQ_VALUE_TUPLE, SEQ_VALUE_UNTAGGED,
+    nullish_global_contract, opaque_argument_escape_args, own_property_guard_evidence_at_span,
+    receiver_mutation_call_receiver, record_shape_guard_for_node, reduction_builtin_contract,
+    semantics, seq_surface_contract_for_node, source_comprehension_at_node,
+    source_operator_at_node, unshadowed_global_symbol, BuiltinArgContract, CardinalityPredicate,
+    CardinalityThreshold, ComparisonLaw, DomainEvidence, DomainRequirement, GoZeroMapDefaultKind,
+    ImportFactKind, ImportedNamespaceFunctionSemantic, IndexMembershipThreshold,
+    IteratorAdapterReceiverContract, JavaMapFactoryKind, LibraryApiCalleeContract,
+    LibraryApiEvidenceStatus, LibraryApiSpanEvidenceQuery, LibraryCollectionFactoryResult,
+    LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, ReductionBuiltinContract, ScalarIntegerMethod, SeqSurfaceContract,
+    StaticIndexMembershipKind, ValueDomain, ValueLaw, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
+    SEQ_VALUE_OWN_PROPERTY_GUARD, SEQ_VALUE_PAIR, SEQ_VALUE_RECORD_GUARD, SEQ_VALUE_UNTAGGED,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -296,17 +296,8 @@ fn module_seed_assignment_name(il: &Il, stmt: NodeId, local_scope: &[bool]) -> O
 }
 
 fn evidence_backed_raw_assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    let Payload::Name(symbol) = il.node(kids[0]).payload else {
-        return None;
-    };
-    let rhs = kids[1];
+    let (lhs, rhs) = il.assignment_var_parts(stmt)?;
+    let symbol = il.var_name(lhs)?;
     if import_fact_evidence_rhs(il, rhs).is_some()
         || imported_literal_producer_evidence_for_node(il, rhs)
     {
@@ -431,6 +422,18 @@ impl Sink {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+enum BuilderKind {
+    List,
+    Map,
+}
+
+#[derive(Clone, Copy)]
+struct BuilderCandidate {
+    cid: u32,
+    kind: BuilderKind,
+}
+
 struct Builder<'a> {
     il: &'a Il,
     interner: &'a Interner,
@@ -489,12 +492,17 @@ struct Builder<'a> {
     /// `if` branches start from the same slot, then join at the max consumed slot, so
     /// branch-source order does not matter while sequential effects still do.
     effect_slot: u32,
-    /// Active list-builder variables during a loop body (`r = []; for x: r.append(f(x))`):
+    /// Active aggregate-builder variables during a loop body:
+    /// list builders (`r = []; for x: r.append(f(x))`) and map builders
+    /// (`d = {}; for x: d[k] = v`). Candidate activation requires preserved
+    /// collection/map surface evidence for the pre-loop seed.
+    ///
     /// cid → `Some((contrib, guard))` for a single clean per-element append, or `None` once
-    /// spoiled (a second append, multi-arg append, or other use). On loop exit a clean
+    /// spoiled (a second append/write, multi-arg append, or other use). On loop exit a clean
     /// builder's value becomes `Hof(Map, [contrib])` — the same node the comprehension
     /// `[f(x) for x in xs]` / `.map`/`.collect` builds, so the two converge.
     building: FxHashMap<u32, Option<(ValueId, Option<ValueId>)>>,
+    building_kind: FxHashMap<u32, BuilderKind>,
     /// Strictly captured module/global constants, keyed by their original symbol.
     /// Function units keep global references as `Name`, while module-level assignment
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
@@ -581,6 +589,7 @@ impl<'a> Builder<'a> {
             bound_order_facts: Vec::new(),
             effect_slot: 0,
             building: FxHashMap::default(),
+            building_kind: FxHashMap::default(),
             global_env: FxHashMap::default(),
             inline_fns: FxHashMap::default(),
             local_scope_nodes: Cow::Owned(local_scope_nodes(il)),
@@ -1268,18 +1277,6 @@ impl<'a> Builder<'a> {
             ValOp::Seq(SEQ_VALUE_COLLECTION)
         ) {
             return Some(value);
-        }
-        if matches!(self.nodes[value as usize].op, ValOp::Seq(SEQ_VALUE_TUPLE))
-            || (semantics(self.il.meta.lang)
-                .collections()
-                .empty_sequence_is_collection()
-                && matches!(
-                    self.nodes[value as usize].op,
-                    ValOp::Seq(SEQ_VALUE_UNTAGGED)
-                ))
-        {
-            let items = self.nodes[value as usize].args.clone();
-            return Some(self.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), items));
         }
         self.proven_free_name_collection_factory(value)
             .or_else(|| self.proven_java_collection_factory_value(value))
@@ -3223,7 +3220,6 @@ impl<'a> Builder<'a> {
             }
             match node.kind {
                 NodeKind::Call => self.call_mutates_binding(node_id, name).unwrap_or(false),
-                NodeKind::Field => self.field_mutates_binding(node_id, name).unwrap_or(false),
                 NodeKind::Assign if !top_level.contains(&node_id) => self
                     .assignment_mutates_binding(node_id, name)
                     .unwrap_or(false),
@@ -3233,30 +3229,18 @@ impl<'a> Builder<'a> {
     }
 
     fn assignment_mutates_binding(&self, assign: NodeId, name: Symbol) -> Option<bool> {
-        let lhs = self.il.children(assign).first().copied()?;
+        let lhs = binding_write_target(self.il, assign)?;
         Some(self.node_contains_symbol(lhs, name))
     }
 
     fn call_mutates_binding(&self, call: NodeId, name: Symbol) -> Option<bool> {
-        if !matches!(
-            self.il.node(call).payload,
-            Payload::Builtin(Builtin::Append)
-        ) {
-            return Some(false);
+        if let Some(receiver) = receiver_mutation_call_receiver(self.il, self.interner, call) {
+            return Some(self.node_refers_to_symbol(receiver, name));
         }
-        let receiver = self.il.children(call).first().copied()?;
-        Some(self.node_refers_to_symbol(receiver, name))
-    }
-
-    fn field_mutates_binding(&self, field: NodeId, name: Symbol) -> Option<bool> {
-        let Payload::Name(method) = self.il.node(field).payload else {
-            return Some(false);
-        };
-        if !mutating_method_name(self.interner.resolve(method)) {
-            return Some(false);
+        if let Some(args) = opaque_argument_escape_args(self.il, call) {
+            return Some(args.iter().any(|&arg| self.node_contains_symbol(arg, name)));
         }
-        let receiver = self.il.children(field).first().copied()?;
-        Some(self.node_refers_to_symbol(receiver, name))
+        Some(false)
     }
 
     fn node_refers_to_symbol(&self, node: NodeId, name: Symbol) -> bool {
@@ -3726,22 +3710,19 @@ impl<'a> Builder<'a> {
         self.mk(ValOp::Call(builtin_tag(Builtin::DictEntry)), kv)
     }
 
-    /// If `target = Index(Var c, k)` for an ACTIVE dict-builder `c` (seeded `{}`/empty), record
+    /// If `assign` writes `Index(Var c, k)` for an ACTIVE dict-builder `c` (seeded by a proven
+    /// empty map), record
     /// the per-element `DictEntry(k, rhs)` under the current path guard and return true — a
     /// `d[k] = v` write IS the build, so `d={}; for x: d[k]=v` converges with `{k: v for x}`.
-    /// A second write spoils it (→ ordinary effect). Sound: an empty collection only supports
-    /// keyed assignment as a dict (`[]​[k]=v` errors), so this fires only on genuine dict builds.
+    /// A second write spoils it (→ ordinary effect). The write must be backed by kernel effect
+    /// evidence; raw index shape alone is not proof.
     fn try_record_index_assign(
         &mut self,
-        target: NodeId,
+        assign: NodeId,
         rhs: ValueId,
         env: &FxHashMap<u32, ValueId>,
     ) -> bool {
-        if self.il.kind(target) != NodeKind::Index {
-            return false;
-        }
-        let tk = self.il.children(target).to_vec();
-        let Some(&base) = tk.first() else {
+        let Some((base, key, _value)) = self.builder_index_write_parts(assign) else {
             return false;
         };
         let (NodeKind::Var, Payload::Cid(c)) = (self.il.kind(base), self.il.node(base).payload)
@@ -3751,7 +3732,11 @@ impl<'a> Builder<'a> {
         if !self.building.contains_key(&c) {
             return false;
         }
-        let Some(&keyn) = tk.get(1) else {
+        if self.building_kind.get(&c) != Some(&BuilderKind::Map) {
+            self.building.insert(c, None);
+            return true;
+        }
+        let Some(keyn) = key else {
             self.building.insert(c, None);
             return true;
         };
@@ -3762,66 +3747,66 @@ impl<'a> Builder<'a> {
         true
     }
 
+    fn builder_index_write_parts(
+        &self,
+        assign: NodeId,
+    ) -> Option<(NodeId, Option<NodeId>, NodeId)> {
+        exact_non_overloadable_index_assignment_parts(self.il, assign).or_else(|| {
+            let target = binding_write_target(self.il, assign)?;
+            if self.il.kind(target) != NodeKind::Index {
+                return None;
+            }
+            let assign_kids = self.il.children(assign);
+            let value = *assign_kids.get(1)?;
+            let target_kids = self.il.children(target);
+            Some((*target_kids.first()?, target_kids.get(1).copied(), value))
+        })
+    }
+
     /// If `e` is a single-item `append(r, item)` to an ACTIVE builder var `r`, record the
     /// per-element contribution under the current path guard and return true (the append IS
     /// the build, not an effect). A multi-item form spoils the builder.
-    /// Recognize the two effect-append shapes to a var `r`, returning `(r_cid, item_args)`:
-    ///   • the canonical `Append(Var r, items…)` — Python/JS `.append`/`.push`, lowered by idioms;
-    ///   • Java's `r.add(item…)` List method call — `Call(Field("add", Var r), items…)`.
-    /// The caller spoils on `!= 1` item. The Java `.add` is recognized only structurally here;
-    /// it becomes a *build* only via `builder_candidates`' empty-Seq-seed gate, which is satisfied
-    /// only by `[]` / `new ArrayList<>()` — so overloaded `.add` (BigInteger, Set, `.add(i, x)`)
-    /// never enters the Map build.
+    /// Recognize a single-item builder append to a var `r`, returning `(r_cid, item_args)`.
+    /// Exact append-effect evidence is sufficient. For the local active-builder value law,
+    /// a language-scoped builder-append method contract is also sufficient once the caller
+    /// proves that `r` is an active builder seeded by an explicit collection surface.
     fn list_append_parts(&self, e: NodeId) -> Option<(u32, Vec<NodeId>)> {
-        // Ruby `r << item` appends to a list (`<<` lowers to `Shl`, a BinOp not a Call). Scoped
-        // to Ruby and — via `builder_candidates`' empty-Seq-seed gate — to a `[]`-seeded builder,
-        // so integer `a << b` shift (`a` is not a list-builder) never enters the Map build.
-        if semantics(self.il.meta.lang)
-            .collections()
-            .ruby_shovel_list_append()
-            && self.il.kind(e) == NodeKind::BinOp
-            && matches!(self.il.node(e).payload, Payload::Op(Op::Shl))
-        {
-            if let [recv, item] = self.il.children(e) {
-                if let (NodeKind::Var, Payload::Cid(c)) =
-                    (self.il.kind(*recv), self.il.node(*recv).payload)
-                {
-                    return Some((c, vec![*item]));
-                }
-            }
+        let (receiver, item) = builder_append_call_args(self.il, self.interner, e)
+            .or_else(|| self.contextual_builder_append_method_args(e))?;
+        let (NodeKind::Var, Payload::Cid(c)) =
+            (self.il.kind(receiver), self.il.node(receiver).payload)
+        else {
+            return None;
+        };
+        Some((c, vec![item]))
+    }
+
+    fn contextual_builder_append_method_args(&self, node: NodeId) -> Option<(NodeId, NodeId)> {
+        if !matches!(self.il.node(node).payload, Payload::None) {
             return None;
         }
-        if self.il.kind(e) != NodeKind::Call {
+        let (receiver, method, item) = self.single_arg_field_call_parts(node)?;
+        if !builder_append_method_contract(self.il.meta.lang, self.interner.resolve(method), 1) {
             return None;
         }
-        let kids = self.il.children(e).to_vec();
-        let &first = kids.first()?;
-        if matches!(self.il.node(e).payload, Payload::Builtin(Builtin::Append)) {
-            let (NodeKind::Var, Payload::Cid(c)) =
-                (self.il.kind(first), self.il.node(first).payload)
-            else {
-                return None;
-            };
-            return Some((c, kids[1..].to_vec()));
+        Some((receiver, item))
+    }
+
+    fn single_arg_field_call_parts(&self, node: NodeId) -> Option<(NodeId, Symbol, NodeId)> {
+        if self.il.kind(node) != NodeKind::Call {
+            return None;
         }
-        if self.il.kind(first) == NodeKind::Field {
-            if let Payload::Name(s) = self.il.node(first).payload {
-                if builder_append_method_contract(
-                    self.il.meta.lang,
-                    self.interner.resolve(s),
-                    kids.len() - 1,
-                ) {
-                    if let Some(&recv) = self.il.children(first).first() {
-                        if let (NodeKind::Var, Payload::Cid(c)) =
-                            (self.il.kind(recv), self.il.node(recv).payload)
-                        {
-                            return Some((c, kids[1..].to_vec()));
-                        }
-                    }
-                }
-            }
+        let [callee, arg] = self.il.children(node) else {
+            return None;
+        };
+        if self.il.kind(*callee) != NodeKind::Field {
+            return None;
         }
-        None
+        let Payload::Name(method) = self.il.node(*callee).payload else {
+            return None;
+        };
+        let receiver = *self.il.children(*callee).first()?;
+        Some((receiver, method, *arg))
     }
 
     fn try_record_append(&mut self, e: NodeId, env: &mut FxHashMap<u32, ValueId>) -> bool {
@@ -3830,6 +3815,10 @@ impl<'a> Builder<'a> {
         };
         if !self.building.contains_key(&c) {
             return false;
+        }
+        if self.building_kind.get(&c) != Some(&BuilderKind::List) {
+            self.building.insert(c, None);
+            return true;
         }
         if items.len() != 1 {
             self.building.insert(c, None); // multi-item append — not a clean map
@@ -3858,25 +3847,20 @@ impl<'a> Builder<'a> {
         if !self.building.contains_key(&c) {
             return false;
         }
-        if self.il.kind(rhs) != NodeKind::Call
-            || !matches!(self.il.node(rhs).payload, Payload::Builtin(Builtin::Append))
-        {
+        let Some((receiver, value)) = builder_append_call_args(self.il, self.interner, rhs) else {
             return false;
-        }
-        let rkids = self.il.children(rhs).to_vec();
+        };
         // The append's receiver must be the same var being reassigned (`r = append(r, …)`).
-        let same_receiver = rkids.first().is_some_and(|&f| {
-            self.il.kind(f) == NodeKind::Var
-                && matches!(self.il.node(f).payload, Payload::Cid(fc) if fc == c)
-        });
+        let same_receiver = self.il.kind(receiver) == NodeKind::Var
+            && matches!(self.il.node(receiver).payload, Payload::Cid(fc) if fc == c);
         if !same_receiver {
             return false;
         }
-        if rkids.len() != 2 {
-            self.building.insert(c, None); // multi-item append — not a clean map
+        if self.building_kind.get(&c) != Some(&BuilderKind::List) {
+            self.building.insert(c, None);
             return true;
         }
-        let contrib = self.eval(rkids[1], env);
+        let contrib = self.eval(value, env);
         let guard = self.path_cond();
         self.building.insert(c, Some((contrib, guard)));
         true
@@ -3886,8 +3870,12 @@ impl<'a> Builder<'a> {
     /// before the loop, (2) the target of exactly one single-item `append`, and (3) not
     /// otherwise mentioned in the body. Such a loop builds `Map(elem, contrib)` — the same
     /// node the comprehension `[contrib for x in xs]` / `.map`/`.collect` produces.
-    fn builder_candidates(&self, body: NodeId, env: &FxHashMap<u32, ValueId>) -> Vec<u32> {
-        let mut appends: FxHashMap<u32, u32> = FxHashMap::default();
+    fn builder_candidates(
+        &self,
+        body: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Vec<BuilderCandidate> {
+        let mut appends: FxHashMap<(u32, BuilderKind), u32> = FxHashMap::default();
         let mut mentions: FxHashMap<u32, u32> = FxHashMap::default();
         let mut spoiled: FxHashSet<u32> = FxHashSet::default();
         let mut stack = vec![body];
@@ -3901,25 +3889,15 @@ impl<'a> Builder<'a> {
                     if let (NodeKind::Var, Payload::Cid(c)) =
                         (self.il.kind(*tgt), self.il.node(*tgt).payload)
                     {
-                        if self.il.kind(*rhs) == NodeKind::Call
-                            && matches!(
-                                self.il.node(*rhs).payload,
-                                Payload::Builtin(Builtin::Append)
-                            )
+                        if let Some((receiver, value)) =
+                            builder_append_call_args(self.il, self.interner, *rhs)
                         {
-                            let rk = self.il.children(*rhs);
-                            let same = rk.first().is_some_and(|&f| {
-                                self.il.kind(f) == NodeKind::Var
-                                    && matches!(self.il.node(f).payload, Payload::Cid(fc) if fc == c)
-                            });
+                            let same = self.il.kind(receiver) == NodeKind::Var
+                                && matches!(self.il.node(receiver).payload, Payload::Cid(fc) if fc == c);
                             if same {
                                 *mentions.entry(c).or_insert(0) += 1;
-                                if rk.len() == 2 {
-                                    *appends.entry(c).or_insert(0) += 1;
-                                    stack.push(rk[1]);
-                                } else {
-                                    spoiled.insert(c);
-                                }
+                                *appends.entry((c, BuilderKind::List)).or_insert(0) += 1;
+                                stack.push(value);
                                 continue;
                             }
                         }
@@ -3934,7 +3912,7 @@ impl<'a> Builder<'a> {
             // scan above / below as the node's children are walked).
             if let Some((c, items)) = self.list_append_parts(n) {
                 if items.len() == 1 {
-                    *appends.entry(c).or_insert(0) += 1;
+                    *appends.entry((c, BuilderKind::List)).or_insert(0) += 1;
                 } else {
                     spoiled.insert(c);
                 }
@@ -3943,14 +3921,11 @@ impl<'a> Builder<'a> {
             // `d={}; for x: d[k]=v` is recognized as a builder (finalized to a `Map` of
             // `DictEntry`s, converging with `{k: v for x}`).
             if self.il.kind(n) == NodeKind::Assign {
-                let k = self.il.children(n);
-                if k.len() == 2 && self.il.kind(k[0]) == NodeKind::Index {
-                    if let Some(&base) = self.il.children(k[0]).first() {
-                        if let (NodeKind::Var, Payload::Cid(c)) =
-                            (self.il.kind(base), self.il.node(base).payload)
-                        {
-                            *appends.entry(c).or_insert(0) += 1;
-                        }
+                if let Some((base, _, _)) = self.builder_index_write_parts(n) {
+                    if let (NodeKind::Var, Payload::Cid(c)) =
+                        (self.il.kind(base), self.il.node(base).payload)
+                    {
+                        *appends.entry((c, BuilderKind::Map)).or_insert(0) += 1;
                     }
                 }
             }
@@ -3958,17 +3933,29 @@ impl<'a> Builder<'a> {
         }
         appends
             .iter()
-            .filter(|&(&c, &n)| {
+            .filter(|&(&(c, kind), &n)| {
                 n == 1
                     && !spoiled.contains(&c)
                     && mentions.get(&c).copied() == Some(1)
-                    && env.get(&c).is_some_and(|&v| {
-                        matches!(self.nodes[v as usize].op, ValOp::Seq(_))
-                            && self.nodes[v as usize].args.is_empty()
-                    })
+                    && env
+                        .get(&c)
+                        .and_then(|&v| self.builder_seed_kind(v))
+                        .is_some_and(|seed_kind| seed_kind == kind)
             })
-            .map(|(&c, _)| c)
+            .map(|(&(cid, kind), _)| BuilderCandidate { cid, kind })
             .collect()
+    }
+
+    fn builder_seed_kind(&self, value: ValueId) -> Option<BuilderKind> {
+        let node = &self.nodes[value as usize];
+        if !node.args.is_empty() {
+            return None;
+        }
+        match node.op {
+            ValOp::Seq(SEQ_VALUE_COLLECTION) => Some(BuilderKind::List),
+            ValOp::Seq(SEQ_VALUE_MAP) => Some(BuilderKind::Map),
+            _ => None,
+        }
     }
 
     /// Does `v`'s value subgraph reference an `Elem` (a collection element)? Bounded DAG
@@ -4629,7 +4616,7 @@ impl<'a> Builder<'a> {
                     }
                     // `d[k] = v` to an ACTIVE dict-builder records a `DictEntry` contribution
                     // (so the loop becomes a `Map` of entries, converging with `{k:v for x}`).
-                    if self.try_record_index_assign(kids[0], rhs, env) {
+                    if self.try_record_index_assign(stmt, rhs, env) {
                         return;
                     }
                     // store into an index / computed target → an ordered effect
@@ -4958,9 +4945,13 @@ impl<'a> Builder<'a> {
         // seed (empty-collection) check reads the PRE-loop `env` (the real `[]` seed; the body's
         // reassignment would otherwise hide it). Builders are excluded from `carried`.
         let builder_cands = self.builder_candidates(body, env);
-        let builder_set: FxHashSet<u32> = builder_cands.iter().copied().collect();
-        for &c in &builder_cands {
-            self.building.insert(c, None);
+        let builder_set: FxHashSet<u32> = builder_cands
+            .iter()
+            .map(|candidate| candidate.cid)
+            .collect();
+        for candidate in &builder_cands {
+            self.building.insert(candidate.cid, None);
+            self.building_kind.insert(candidate.cid, candidate.kind);
         }
         let mut carried: Vec<u32> = assigned
             .iter()
@@ -5041,7 +5032,8 @@ impl<'a> Builder<'a> {
         // If the append happens inside a nested loop, the inner loop has already produced a
         // `Map`/`FlatMap`; wrap that per-outer-iteration collection in a `FlatMap` so
         // `for x: for y: r.append(f(x,y))` converges with `[f(x,y) for x in xs for y in ys]`.
-        for &c in &builder_cands {
+        for candidate in &builder_cands {
+            let c = candidate.cid;
             if let Some(Some((mut contrib, guard))) = self.building.remove(&c) {
                 let map = if !index_vals.is_empty() {
                     let mut memo = FxHashMap::default();
@@ -5068,6 +5060,7 @@ impl<'a> Builder<'a> {
             } else {
                 self.building.remove(&c);
             }
+            self.building_kind.remove(&c);
         }
 
         // For each loop-carried accumulator, recognize an associative-commutative
@@ -6740,30 +6733,19 @@ impl<'a> Builder<'a> {
         node: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<(ValueId, ValueId)> {
-        if self.il.kind(node) != NodeKind::Call {
-            return None;
-        }
-        let kids = self.il.children(node);
-        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
+        let (receiver, method, arg) = self.single_arg_field_call_parts(node)?;
         let method = self.interner.resolve(method);
-        let receiver = *self.il.children(kids[0]).first()?;
         if !self.is_static_non_float_collection_expr(receiver) {
             return None;
         }
-        let contract =
-            library_static_index_membership_contract(self.il.meta.lang, method, kids.len() - 1)?;
+        let contract = library_static_index_membership_contract(self.il.meta.lang, method, 1)?;
         match library_api_contract_evidence_for_call(
             self.il,
             self.interner,
             node,
             contract.id,
             contract.callee,
-            kids.len().saturating_sub(1),
+            1,
         ) {
             LibraryApiEvidenceStatus::Admitted => {}
             LibraryApiEvidenceStatus::Rejected => return None,
@@ -6771,17 +6753,17 @@ impl<'a> Builder<'a> {
         }
         match contract.result.kind {
             StaticIndexMembershipKind::IndexOf => {
-                let element = self.eval(kids[1], env);
+                let element = self.eval(arg, env);
                 let collection = self.eval_membership_collection(receiver, env);
                 Some((element, collection))
             }
-            StaticIndexMembershipKind::FindIndex if self.il.kind(kids[1]) == NodeKind::Lambda => {
-                if !self.lambda_return_source_operator_allowed(kids[1], Op::Eq) {
+            StaticIndexMembershipKind::FindIndex if self.il.kind(arg) == NodeKind::Lambda => {
+                if !self.lambda_return_source_operator_allowed(arg, Op::Eq) {
                     return None;
                 }
                 let collection = self.eval(receiver, env);
                 let elem = self.elem(collection);
-                let pred = self.eval_lambda_body(kids[1], &[elem], env)?;
+                let pred = self.eval_lambda_body(arg, &[elem], env)?;
                 self.static_literal_membership_predicate(pred)
             }
             StaticIndexMembershipKind::FindIndex => None,
@@ -7766,17 +7748,10 @@ impl<'a> Builder<'a> {
         if !semantics(self.il.meta.lang)
             .stdlib()
             .rust_filter_map_option_contract()
-            || self.il.kind(node) != NodeKind::Call
         {
             return None;
         }
-        let kids = self.il.children(node);
-        if kids.len() != 2 || self.il.kind(kids[0]) != NodeKind::Field {
-            return None;
-        }
-        let Payload::Name(method) = self.il.node(kids[0]).payload else {
-            return None;
-        };
+        let (receiver, method, callback) = self.single_arg_field_call_parts(node)?;
         let method = self.interner.resolve(method);
         let contract = library_rust_option_and_then_contract(self.il.meta.lang, method, 1)?;
         if !matches!(
@@ -7792,8 +7767,7 @@ impl<'a> Builder<'a> {
         ) {
             return None;
         }
-        let receiver = *self.il.children(kids[0]).first()?;
-        Some((receiver, kids[1]))
+        Some((receiver, callback))
     }
 
     fn is_rust_vec_new_call(&self, call: NodeId, callee: NodeId) -> bool {
@@ -9002,9 +8976,9 @@ fn stable_float_const_key(value: &str) -> u32 {
 mod tests {
     use super::*;
     use nose_il::{
-        EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder,
-        ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
+        EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+        EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind,
+        IlBuilder, ImportEvidenceKind, JsRecordGuardComparison, JsRecordGuardNullCheck, Lang,
         LibraryApiEvidenceKind, LitClass, ParamSemantic, SequenceSurfaceKind, SourceCallKind,
         SourceFactKind, Span, SymbolEvidenceKind, Unit, UnitKind,
     };
@@ -9123,6 +9097,109 @@ mod tests {
             EvidenceAnchor::sequence(span),
             EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
         )
+    }
+
+    #[test]
+    fn builder_append_candidate_requires_contract_and_seed_context() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("push")),
+            sp(2),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(3), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(4), &[field, item]);
+        let stmt = b.add(NodeKind::ExprStmt, Payload::None, sp(4), &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(4), &[stmt]);
+        let il = finish_test_il(b, body, Lang::JavaScript);
+
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Input(0), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(1, seed);
+        assert!(
+            builder.builder_candidates(body, &env).is_empty(),
+            "a builder-append method contract without a collection seed must not prove a list builder"
+        );
+
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(1, seed);
+        let candidates = builder.builder_candidates(body, &env);
+        assert!(candidates
+            .iter()
+            .any(|candidate| candidate.cid == 1 && candidate.kind == BuilderKind::List));
+
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(1), sp(1), &[]);
+        let field = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("add")),
+            sp(2),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(3), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(4), &[field, item]);
+        let stmt = b.add(NodeKind::ExprStmt, Payload::None, sp(4), &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(4), &[stmt]);
+        let il = finish_test_il(b, body, Lang::JavaScript);
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(1, seed);
+        assert!(
+            builder.builder_candidates(body, &env).is_empty(),
+            "a mutating method name that is not a list-builder append contract must stay closed"
+        );
+    }
+
+    #[test]
+    fn map_builder_index_write_requires_write_evidence_and_map_seed() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let base = b.add(NodeKind::Var, Payload::Cid(2), sp(1), &[]);
+        let key = b.add(NodeKind::Var, Payload::Cid(3), sp(1), &[]);
+        let target = b.add(NodeKind::Index, Payload::None, sp(2), &[base, key]);
+        let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(3), &[]);
+        let assign = b.add(NodeKind::Assign, Payload::None, sp(4), &[target, value]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(4), &[assign]);
+        let mut il = finish_test_il(b, body, Lang::Python);
+
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_MAP), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(2, seed);
+        assert!(
+            builder.builder_candidates(body, &env).is_empty(),
+            "raw index assignment shape must not prove a dict builder"
+        );
+
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(4), NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
+        ));
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_MAP), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(2, seed);
+        let candidates = builder.builder_candidates(body, &env);
+        assert!(candidates
+            .iter()
+            .any(|candidate| candidate.cid == 2 && candidate.kind == BuilderKind::Map));
+
+        let mut builder = Builder::new(&il, &interner);
+        let seed = builder.mk(ValOp::Seq(SEQ_VALUE_COLLECTION), vec![]);
+        let mut env = FxHashMap::default();
+        env.insert(2, seed);
+        assert!(
+            builder.builder_candidates(body, &env).is_empty(),
+            "index writes require a proven map seed, not just any empty aggregate"
+        );
     }
 
     #[test]

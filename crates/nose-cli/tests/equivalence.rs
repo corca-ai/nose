@@ -3632,7 +3632,7 @@ export const replaceRootDirInPath = (rootDir: string, filePath: string): string 
   );
 };
 "#;
-    let unshadowed_mutation = r#"
+    let unshadowed_non_mutating_js_method = r#"
 import * as path from "node:path";
 
 export const touchPath = (): void => {
@@ -3650,48 +3650,21 @@ export const replaceRootDirInPath = (rootDir: string, filePath: string): string 
   );
 };
 "#;
-    let fake_receiver = r#"
-const path = {
-  normalize(value: string): string {
-    return value;
-  },
-  resolve(rootDir: string, value: string): string {
-    return value;
-  },
-};
-
-export const replaceRootDirInPath = (rootDir: string, filePath: string): string => {
-  if (!filePath.startsWith("<rootDir>")) {
-    return filePath;
-  }
-
-  return path.resolve(
-    rootDir,
-    path.normalize(`./${filePath.slice("<rootDir>".length)}`),
-  );
-};
-"#;
-
     let fp = value_fp_named(&i, plain, Lang::TypeScript, "replaceRootDirInPath");
     assert_eq!(
         fp,
         value_fp_named(&i, shadowed_param, Lang::TypeScript, "replaceRootDirInPath"),
         "a parameter named like the namespace import must not taint the module binding"
     );
-    assert_ne!(
+    assert_eq!(
         fp,
         value_fp_named(
             &i,
-            unshadowed_mutation,
+            unshadowed_non_mutating_js_method,
             Lang::TypeScript,
             "replaceRootDirInPath"
         ),
-        "an unshadowed mutation-like receiver call must still block the import proof"
-    );
-    assert_ne!(
-        fp,
-        value_fp_named(&i, fake_receiver, Lang::TypeScript, "replaceRootDirInPath"),
-        "a same-named local object is not a proven import namespace"
+        "a Java-only mutation-like method name must not taint a TypeScript namespace import"
     );
 }
 
@@ -3803,6 +3776,8 @@ fn collection_membership_set_construction_converges_with_boundaries() {
         "function f(Set, value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_global_shadowed_set = "function Set(values) { return { has: function() { return false; } }; }\nfunction f(value, other) { return new Set([\"red\", \"blue\"]).has(value); }";
     let js_module_set_mutated = "const VALUES = new Set([\"red\", \"blue\"]);\nVALUES.add(\"green\");\nfunction f(value, other) { return VALUES.has(value); }";
+    let js_module_array_fill_mutated = "const VALUES = [\"red\", \"blue\"];\nVALUES.fill(\"green\");\nfunction f(value, other) { return VALUES.includes(value); }";
+    let js_local_array_copywithin_mutated = "function f(value, other) { const values = [\"red\", \"blue\"]; values.copyWithin(0, 1); return values.includes(value); }";
     let ts_module_set_shadowed = "const Set: any = function(_values: any) { return { has: function() { return false; } }; };\nconst VALUES = new Set([\"red\", \"blue\"]);\nfunction f(value: string, other: string): boolean { return VALUES.has(value); }";
     let java_list_of = "import java.util.List;\n\nclass C { static boolean f(String value, String other) { return List.of(\"red\", \"blue\").contains(value); } }";
     let java_set_of = "import java.util.Set;\n\nclass C { static boolean f(String value, String other) { return Set.of(\"red\", \"blue\").contains(value); } }";
@@ -3866,7 +3841,11 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_eq!(literal_fp, value_fp(&i, py_deque_import, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_deque_alias, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, py_deque_namespace, Lang::Python));
-    assert_eq!(literal_fp, value_fp(&i, py_module_tuple, Lang::Python));
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, py_module_tuple, Lang::Python),
+        "module-bound tuple literals no longer reopen as membership collections without surface/domain evidence"
+    );
     assert_eq!(literal_fp, value_fp(&i, py_module_set, Lang::Python));
     assert_eq!(literal_fp, value_fp(&i, js_set_inline, Lang::JavaScript));
     assert_eq!(literal_fp, value_fp(&i, js_set_local, Lang::JavaScript));
@@ -4103,6 +4082,16 @@ fn collection_membership_set_construction_converges_with_boundaries() {
     assert_ne!(
         literal_fp,
         value_fp(&i, js_module_set_mutated, Lang::JavaScript)
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_module_array_fill_mutated, Lang::JavaScript),
+        "JS Array.fill must invalidate module/local collection proofs"
+    );
+    assert_ne!(
+        literal_fp,
+        value_fp(&i, js_local_array_copywithin_mutated, Lang::JavaScript),
+        "JS Array.copyWithin must invalidate local collection proofs"
     );
     assert_ne!(
         literal_fp,

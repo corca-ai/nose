@@ -366,23 +366,12 @@ fn collect_statements_for_root_except(
 }
 
 fn assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> {
-    if il.kind(stmt) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(stmt);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    match il.node(kids[0]).payload {
-        Payload::Name(name) => Some(name),
-        _ => None,
-    }
+    let (lhs, _) = il.assignment_var_parts(stmt)?;
+    il.var_name(lhs)
 }
 
 fn assignment_rhs(il: &Il, stmt: NodeId) -> Option<NodeId> {
-    (il.kind(stmt) == NodeKind::Assign)
-        .then(|| il.children(stmt))
-        .and_then(|kids| (kids.len() == 2).then_some(kids[1]))
+    il.assignment_parts(stmt).map(|(_, rhs)| rhs)
 }
 
 fn import_binding_key(il: &Il, stmt: NodeId) -> Option<(u64, u64)> {
@@ -605,7 +594,7 @@ fn var_text<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str
 
 struct BindingUseIndex {
     assignment_lhs_counts: FxHashMap<Symbol, usize>,
-    mutating_field_receivers: FxHashSet<Symbol>,
+    receiver_mutation_symbols: FxHashSet<Symbol>,
     escaping_call_arg_symbols: FxHashSet<Symbol>,
 }
 
@@ -613,14 +602,14 @@ impl BindingUseIndex {
     fn new(il: &Il, interner: &Interner) -> Self {
         let mut out = Self {
             assignment_lhs_counts: FxHashMap::default(),
-            mutating_field_receivers: FxHashSet::default(),
+            receiver_mutation_symbols: FxHashSet::default(),
             escaping_call_arg_symbols: FxHashSet::default(),
         };
         for (idx, node) in il.nodes.iter().enumerate() {
             let node_id = NodeId(idx as u32);
             match node.kind {
                 NodeKind::Assign => {
-                    if let Some(&lhs) = il.children(node_id).first() {
+                    if let Some(lhs) = nose_semantics::binding_write_target(il, node_id) {
                         let mut lhs_symbols = FxHashSet::default();
                         collect_symbols_into_set(il, lhs, &mut lhs_symbols);
                         for symbol in lhs_symbols {
@@ -628,8 +617,10 @@ impl BindingUseIndex {
                         }
                     }
                 }
-                NodeKind::Field => out.collect_mutating_field_receiver(il, interner, node_id),
-                NodeKind::Call => out.collect_call_argument_escapes(il, node_id),
+                NodeKind::Call => {
+                    out.collect_receiver_mutation_symbol(il, interner, node_id);
+                    out.collect_call_argument_escapes(il, node_id);
+                }
                 _ => {}
             }
         }
@@ -643,7 +634,7 @@ impl BindingUseIndex {
             .is_some_and(|&lhs| node_contains_symbol(il, lhs, name));
         let own_assignment = usize::from(defining_lhs_refs_name);
         self.assignment_lhs_counts.get(&name).copied().unwrap_or(0) > own_assignment
-            || self.mutating_field_receivers.contains(&name)
+            || self.receiver_mutation_symbols.contains(&name)
     }
 
     fn exported_binding_unsafe(&self, il: &Il, name: Symbol, defining_stmt: NodeId) -> bool {
@@ -651,23 +642,21 @@ impl BindingUseIndex {
             || self.escaping_call_arg_symbols.contains(&name)
     }
 
-    fn collect_mutating_field_receiver(&mut self, il: &Il, interner: &Interner, field: NodeId) {
-        let Payload::Name(method) = il.node(field).payload else {
-            return;
-        };
-        if !nose_semantics::module_binding_mutating_method_name(interner.resolve(method)) {
-            return;
-        }
-        let Some(&receiver) = il.children(field).first() else {
+    fn collect_receiver_mutation_symbol(&mut self, il: &Il, interner: &Interner, call: NodeId) {
+        let Some(receiver) = nose_semantics::receiver_mutation_call_receiver(il, interner, call)
+        else {
             return;
         };
         if let Payload::Name(name) = il.node(receiver).payload {
-            self.mutating_field_receivers.insert(name);
+            self.receiver_mutation_symbols.insert(name);
         }
     }
 
     fn collect_call_argument_escapes(&mut self, il: &Il, call: NodeId) {
-        for &arg in il.children(call).iter().skip(1) {
+        let Some(args) = nose_semantics::opaque_argument_escape_args(il, call) else {
+            return;
+        };
+        for &arg in args {
             collect_symbols_into_set(il, arg, &mut self.escaping_call_arg_symbols);
         }
     }
@@ -1164,7 +1153,10 @@ fn prepend_root_statement(il: &mut Il, stmt: NodeId) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nose_il::{FileId, FileMeta, IlBuilder, Lang, SequenceSurfaceKind, SymbolEvidenceKind};
+    use nose_il::{
+        EffectEvidenceKind, FileId, FileMeta, IlBuilder, Lang, SequenceSurfaceKind,
+        SymbolEvidenceKind,
+    };
 
     fn module_with_binding_method(method: &str) -> (Il, Interner, Symbol, NodeId) {
         let interner = Interner::new();
@@ -1190,7 +1182,7 @@ mod tests {
         let call = b.add(NodeKind::Call, Payload::None, span, &[field, arg]);
         let stmt = b.add(NodeKind::ExprStmt, Payload::None, span, &[call]);
         let root = b.add(NodeKind::Module, Payload::None, span, &[assign, stmt]);
-        let il = b.finish(
+        let mut il = b.finish(
             root,
             FileMeta {
                 path: "tables.js".into(),
@@ -1199,6 +1191,29 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        push_first_party_evidence_with_dependencies(
+            &mut il,
+            EvidenceAnchor::node(span, NodeKind::Assign),
+            EvidenceKind::Effect(EffectEvidenceKind::BindingWrite),
+            "effect_binding_write_test",
+            Vec::new(),
+        );
+        push_first_party_evidence_with_dependencies(
+            &mut il,
+            EvidenceAnchor::node(span, NodeKind::Call),
+            EvidenceKind::Effect(EffectEvidenceKind::OpaqueArgumentEscape),
+            "effect_opaque_argument_escape_test",
+            Vec::new(),
+        );
+        if nose_semantics::module_binding_mutating_method_contract(Lang::JavaScript, method) {
+            push_first_party_evidence_with_dependencies(
+                &mut il,
+                EvidenceAnchor::node(span, NodeKind::Call),
+                EvidenceKind::Effect(EffectEvidenceKind::ReceiverMutation),
+                "effect_receiver_mutation_test",
+                Vec::new(),
+            );
+        }
         (il, interner, lookup, assign)
     }
 

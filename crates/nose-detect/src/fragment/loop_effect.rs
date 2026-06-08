@@ -18,6 +18,7 @@
 use super::contract::{Effect, EffectSite, FragmentContract};
 use super::oracle::free_input_cids;
 use super::{Exit, FragmentKind};
+use crate::il_utils::{local_nontrivial_assignment, node_mentions_any_cid as mentions_any};
 use nose_il::{Il, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{builder_append_call_args, exact_non_overloadable_index_assignment_parts};
 use rustc_hash::FxHashSet;
@@ -394,30 +395,6 @@ fn index_assignment_parts(il: &Il, node: NodeId) -> Option<(NodeId, Option<NodeI
     exact_non_overloadable_index_assignment_parts(il, node)
 }
 
-/// A local `var = rhs` where `rhs` is not a bare var/lit and does not read the target itself.
-/// Returns `(target cid, rhs node)`.
-fn local_nontrivial_assignment(il: &Il, node: NodeId) -> Option<(u32, NodeId)> {
-    if il.kind(node) != NodeKind::Assign {
-        return None;
-    }
-    let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Var {
-        return None;
-    }
-    if matches!(il.kind(kids[1]), NodeKind::Var | NodeKind::Lit) {
-        return None;
-    }
-    let Payload::Cid(cid) = il.node(kids[0]).payload else {
-        return None;
-    };
-    let mut target = FxHashSet::default();
-    target.insert(cid);
-    if mentions_any(il, kids[1], &target) {
-        return None;
-    }
-    Some((cid, kids[1]))
-}
-
 // ---- generic AST utilities (substrate-level, shareable) -----------------------------------
 
 /// Collect every canonical id read as a `Var` in the subtree.
@@ -428,16 +405,4 @@ fn collect_var_cids(il: &Il, node: NodeId, out: &mut FxHashSet<u32>) {
     for &child in il.children(node) {
         collect_var_cids(il, child, out);
     }
-}
-
-/// Whether the subtree reads any of `cids` as a `Var`.
-fn mentions_any(il: &Il, node: NodeId, cids: &FxHashSet<u32>) -> bool {
-    if let (NodeKind::Var, Payload::Cid(cid)) = (il.kind(node), il.node(node).payload) {
-        if cids.contains(&cid) {
-            return true;
-        }
-    }
-    il.children(node)
-        .iter()
-        .any(|&child| mentions_any(il, child, cids))
 }
