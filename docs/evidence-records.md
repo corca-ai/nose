@@ -512,7 +512,10 @@ callers:
   subgraph into the importer while preserving provider source-origin spans and
   rewiring dependency ids, then records `Import(ImportedLiteralSnapshot)`
   provenance that depends on the importer import proof and copied provider
-  evidence;
+  evidence. Provider literal export safety is now a shared `nose-semantics`
+  policy requiring sequence-surface proof for literal containers and admitted
+  `LibraryApi` proof for supported Java/Rust map factories, while corpus-level
+  module/export matching remains frontend-owned;
 - imported namespace/binding symbol proof for normalize idiom admission,
   value-graph namespace fallbacks, and strict exact gates, without raw assignment
   fallback;

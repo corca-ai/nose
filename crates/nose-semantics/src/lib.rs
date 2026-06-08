@@ -21,6 +21,7 @@ mod demand;
 mod effects;
 mod evidence;
 mod library_api;
+mod module_exports;
 mod type_domain;
 
 pub use api_guards::*;
@@ -38,6 +39,7 @@ use library_api::{
     imported_occurrence_symbol_dependencies_valid, language_core_builtin_at_call,
     library_api_dependency_id_for_normalized_hof, library_method_selector_name,
 };
+pub use module_exports::*;
 pub use nose_il::DomainEvidence;
 pub use type_domain::{python_stdlib_type_domain, type_domain_from_source_text};
 

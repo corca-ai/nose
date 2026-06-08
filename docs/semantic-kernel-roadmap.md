@@ -690,12 +690,13 @@ Remaining in this phase:
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
-  copies provider evidence, and selected JS/TS `QualifiedGlobal` paths are
-  covered with same-span root dependencies, but general qualified-member
-  resolution, namespace export identity, provider/export dependency manifests,
-  richer scope/rebinding facts, opaque call receiver identity for module-defined
-  locals versus imported namespaces, and manifest-level cross-module dependency
-  evidence are not.
+  copies provider evidence, provider literal export safety consumes a shared
+  `nose-semantics` helper, and selected JS/TS `QualifiedGlobal` paths are covered
+  with same-span root dependencies, but general qualified-member resolution,
+  namespace export identity, provider/export dependency manifests, richer
+  scope/rebinding facts, opaque call receiver identity for module-defined locals
+  versus imported namespaces, and manifest-level cross-module dependency evidence
+  are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.

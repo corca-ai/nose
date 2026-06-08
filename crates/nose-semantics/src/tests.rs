@@ -905,6 +905,61 @@ fn sequence_surface_evidence_must_match_the_lowered_surface() {
 }
 
 #[test]
+fn imported_literal_export_safety_requires_sequence_evidence() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let object = interner.intern("object");
+    let key = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("ready")),
+        sp(6),
+        &[],
+    );
+    let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(6), &[]);
+    let entry = b.add(NodeKind::Seq, Payload::Name(object), sp(6), &[key, value]);
+    let root = b.add(NodeKind::Block, Payload::None, sp(6), &[entry]);
+    let mut il = finish_il(b, root, Lang::JavaScript);
+
+    assert!(!imported_literal_export_safe(&il, &interner, entry));
+
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::sequence(sp(6)),
+        EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
+        EvidenceStatus::Asserted,
+    ));
+    assert!(imported_literal_export_safe(&il, &interner, entry));
+}
+
+#[test]
+fn imported_literal_export_safety_rejects_import_coordinate_children() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let object = interner.intern("object");
+    let imported = b.add(NodeKind::Seq, Payload::None, sp(7), &[]);
+    let root_value = b.add(NodeKind::Seq, Payload::Name(object), sp(8), &[imported]);
+    let root = b.add(NodeKind::Block, Payload::None, sp(8), &[root_value]);
+    let mut il = finish_il(b, root, Lang::JavaScript);
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::sequence(sp(8)),
+        EvidenceKind::SequenceSurface(SequenceSurfaceKind::Map),
+        EvidenceStatus::Asserted,
+    ));
+    il.evidence.push(evidence(
+        1,
+        EvidenceAnchor::sequence(sp(7)),
+        EvidenceKind::Import(ImportEvidenceKind::Binding {
+            module_hash: stable_symbol_hash("provider"),
+            exported_hash: stable_symbol_hash("VALUE"),
+        }),
+        EvidenceStatus::Asserted,
+    ));
+
+    assert!(!imported_literal_export_safe(&il, &interner, root_value));
+}
+
+#[test]
 fn go_zero_map_surface_helpers_require_evidence() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));

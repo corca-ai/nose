@@ -422,6 +422,10 @@ migrated.
   importer-local scopes or same-named classes from shadowing provider-proven API
   occurrences. The replacement records `ImportedLiteralSnapshot` provenance
   depending on the importer static import proof plus copied provider evidence.
+  Provider-side literal export safety now consumes a shared `nose-semantics`
+  helper that requires sequence-surface proof for literal containers and admitted
+  `LibraryApi` proof for Java/Rust map factory calls; raw import-coordinate
+  sequences remain rejected as provider literal children.
   Provider and importer module-binding mutation proof now consumes shared
   mutation-risk `Effect` evidence and rejects direct binding mutations, direct
   place writes such as `LOOKUP.clear()`, `LOOKUP.push(...)`, and
@@ -598,13 +602,14 @@ Semantic knowledge still appears in several forms outside the facade:
   `Seq("import_namespace")` payloads. Frontends keep an assignment plus
   untagged coordinate literals for structural similarity and nearby syntax, but
   import identity is proven only by `EvidenceRecord::Import` and associated
-  `Symbol` evidence. Module/export dependency and provider-scope validation are
-  still local to `nose-frontend`;
-- module/import proof logic for immutable sibling-module literal bindings is
-  still local to `nose-frontend`, although replacement now copies the provider's
-  closed evidence subgraph into the importer, preserves provider source-origin
-  spans, rewires dependency ids, and records `ImportedLiteralSnapshot`
-  provenance tied to the importer static import proof;
+  `Symbol` evidence. Corpus-level module/export matching and snapshot stitching
+  are still local to `nose-frontend`;
+- module/import proof logic for immutable sibling-module literal bindings still
+  has frontend-local corpus orchestration, but provider literal export safety is
+  now a shared `nose-semantics` policy. Replacement copies the provider's closed
+  evidence subgraph into the importer, preserves provider source-origin spans,
+  rewires dependency ids, and records `ImportedLiteralSnapshot` provenance tied
+  to the importer static import proof;
 - broader value-domain evidence and LawPack records beyond the first
   `ValueDomain` / `ValueLaw` contracts now used by value-graph arithmetic,
   boolean, factor, large-formula, and structural-recursion gates;
