@@ -127,3 +127,17 @@ The remaining 22nd family is pre-existing domain/binding helper similarity (`Par
 because receiver-method occurrence evidence lets the near channel recognize more of the existing
 semantic proof plumbing, not because this PR added another copy. The gate budget is therefore
 re-baselined to 22 while continuing to ratchet against new avoidable duplication.
+
+## Budget 22 → 23 and the Java collection constructor exact-safe recognizer
+
+Restoring exact-safety for wildcard-imported Java empty collection constructors (PR #141) adds one
+`strict_exact_java_collection_constructor_safe` recognizer and wires it into the
+`strict_exact_safe_call` dispatch chain with a single `if recognizer { return true }` line. That
+one line lengthens `strict_exact_safe_call` just enough to lift a **pre-existing** near-family —
+`strict_exact_safe_call` ↔ `strict_exact_in_membership_safe` — past the substantial (value ≥ 40)
+line. The overlap is incidental (~4 removable lines between a recognizer dispatch and a membership
+checker that merely share the early-return / `strict_exact_safe_tree`-recursion shape); it is not
+extractable duplication, and merging the two would conflate unrelated responsibilities. No new copy
+of the recognizer logic was introduced — the new recognizer mirrors the value graph's existing
+admission check rather than re-implementing it. The gate budget is therefore re-baselined to 23
+while continuing to ratchet against new avoidable duplication.

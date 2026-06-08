@@ -31,7 +31,12 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # (value ≥ 40) line — finer ranking surfacing real debt, not new code. Still a dedup candidate.
 # 21 → 22: receiver-method LibraryApi occurrence evidence makes the near channel admit one
 # PRE-EXISTING param-domain/binding helper family; new occurrence-producer duplication was deduped.
-BUDGET=22      # accepted substantial families today (see docs/dogfooding.md)
+# 22 → 23: adding the Java empty-collection constructor recognizer to the `strict_exact_safe_call`
+# dispatch chain (one `if recognizer { return true }` line) lifts the PRE-EXISTING
+# `strict_exact_safe_call` ↔ `strict_exact_in_membership_safe` similarity (a ~4-line incidental
+# overlap between a recognizer dispatch and a membership checker, not extractable duplication) past
+# the value ≥ 40 line — not new avoidable duplication. See docs/dogfooding.md.
+BUDGET=23      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 
