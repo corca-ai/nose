@@ -71,6 +71,18 @@ release build/tests, the self-hosted duplication gate, MSRV check, supply-chain
 checks, docs wiki connectivity, the formal obligation registry, and Lean soundness proofs
 via [check-lean-proofs.sh](../scripts/check-lean-proofs.sh).
 
+## External review bots
+
+CodeRabbit is disabled for this repository with the root `.coderabbit.yaml`. The
+file opts out of inherited CodeRabbit settings and disables automatic review,
+incremental review, review file scope, chat auto-replies, finishing touches,
+pre-merge checks, issue enrichment, and knowledge-base retention for nose.
+
+The CodeRabbit GitHub App is installed at the `corca-ai` organization level. Fully
+removing repository access requires an organization owner to change the app
+installation from "all repositories" to a selected-repositories installation that
+excludes `corca-ai/nose`, or to uninstall CodeRabbit from the organization.
+
 ## Baselines — incremental adoption
 
 An existing codebase already has dozens of clone families, so a bare `--fail-on any`

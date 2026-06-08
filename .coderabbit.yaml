@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# CodeRabbit is intentionally disabled for this repository.
+# The GitHub App is installed at the corca-ai organization level; this file
+# prevents repository-level CodeRabbit activity without changing other repos.
+inheritance: false
+early_access: false
+
+reviews:
+  request_changes_workflow: false
+  path_filters:
+    - "!**/*"
+    - "!**/.*"
+    - "!.*"
+  high_level_summary: false
+  high_level_summary_placeholder: ""
+  high_level_summary_in_walkthrough: false
+  review_status: false
+  commit_status: false
+  fail_commit_status: false
+  changed_files_summary: false
+  sequence_diagrams: false
+  assess_linked_issues: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  enable_prompt_for_ai_agents: false
+  slop_detection:
+    enabled: false
+  auto_review:
+    enabled: false
+    auto_incremental_review: false
+    auto_pause_after_reviewed_commits: 0
+    description_keyword: ""
+    labels: []
+    drafts: false
+    base_branches: []
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+    simplify:
+      enabled: false
+    custom: []
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: "off"
+    issue_assessment:
+      mode: "off"
+    custom_checks: []
+
+chat:
+  auto_reply: false
+  art: false
+  allow_non_org_members: false
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  labeling:
+    auto_apply_labels: false
+    labeling_instructions: []
+  planning:
+    enabled: false
+    auto_planning:
+      enabled: false
+      labels: []
+
+knowledge_base:
+  opt_out: true
+  automatic_repository_linking: false
+  code_guidelines:
+    enabled: false
+  web_search:
+    enabled: false
