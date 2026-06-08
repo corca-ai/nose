@@ -7,10 +7,10 @@
 
 use crate::lower::{common_bin_op, Lowering};
 use nose_il::{
-    contains_c_identifier, stable_symbol_hash, Builtin, CTypeTarget, EvidenceAnchor, EvidenceId,
-    EvidenceKind, FileId, Il, ImportEvidenceKind, Interner, Lang, LitClass, LoopKind, NodeId,
-    NodeKind, Op, ParamSemantic, Payload, SourceCastKind, SourceFactKind, Span, TypeEvidenceKind,
-    UnitKind,
+    contains_c_identifier, stable_symbol_hash, Builtin, CTypeTarget, DomainEvidence,
+    EvidenceAnchor, EvidenceId, EvidenceKind, FileId, Il, ImportEvidenceKind, Interner, Lang,
+    LitClass, LoopKind, NodeId, NodeKind, Op, Payload, SourceCastKind, SourceFactKind, Span,
+    TypeEvidenceKind, UnitKind,
 };
 use std::{fs, path::Path};
 use tree_sitter::Node as TsNode;
@@ -90,9 +90,9 @@ fn record_c_direct_include_type_aliases(path: &str, src: &[u8], lo: &mut Lowerin
                             CTypeTarget::UnsignedInteger { bits: 8 },
                             vec![include_id],
                         );
-                        lo.record_param_semantic_alias_exact_with_evidence(
+                        lo.record_type_domain_alias_exact_with_evidence(
                             &alias,
-                            ParamSemantic::ByteArray,
+                            DomainEvidence::ByteArray,
                             Some(type_id),
                         );
                     }
@@ -254,10 +254,10 @@ fn lower_func(lo: &mut Lowering, node: TsNode) -> NodeId {
                     .child_by_field_name("declarator")
                     .and_then(|x| declarator_name(lo, x));
                 let param_name = sym.map(|symbol| lo.interner.resolve(symbol));
-                if let Some((semantic, dependencies)) =
-                    c_param_semantic_from_text(lo, lo.text(p), param_name)
+                if let Some((domain, dependencies)) =
+                    c_param_domain_from_text(lo, lo.text(p), param_name)
                 {
-                    lo.record_param_semantic_with_dependencies(pspan, semantic, dependencies);
+                    lo.record_param_domain_with_dependencies(pspan, domain, dependencies);
                 }
                 kids.push(lo.add(
                     NodeKind::Param,
@@ -288,9 +288,9 @@ fn record_c_type_definition(lo: &mut Lowering, node: TsNode) {
             CTypeTarget::UnsignedInteger { bits: 8 },
             Vec::new(),
         );
-        lo.record_param_semantic_alias_exact_with_evidence(
+        lo.record_type_domain_alias_exact_with_evidence(
             &alias,
-            ParamSemantic::ByteArray,
+            DomainEvidence::ByteArray,
             Some(type_id),
         );
     }
@@ -329,15 +329,16 @@ fn c_unsigned_32_typedef_alias(text: &str) -> Option<String> {
     is_c_identifier(alias).then(|| alias.to_string())
 }
 
-fn c_param_semantic_from_text(
+fn c_param_domain_from_text(
     lo: &Lowering,
     text: &str,
     param_name: Option<&str>,
-) -> Option<(ParamSemantic, Vec<EvidenceId>)> {
+) -> Option<(DomainEvidence, Vec<EvidenceId>)> {
     if let Some(dependencies) = c_byte_buffer_param_dependencies(lo, text, param_name) {
-        Some((ParamSemantic::ByteArray, dependencies))
+        Some((DomainEvidence::ByteArray, dependencies))
     } else {
-        crate::lower::param_semantic_from_text(text).map(|semantic| (semantic, Vec::new()))
+        nose_semantics::type_domain_from_source_text(Lang::C, text)
+            .map(|domain| (domain, Vec::new()))
     }
 }
 
@@ -357,8 +358,8 @@ fn c_byte_buffer_param_dependencies(
     {
         return Some(Vec::new());
     }
-    lo.param_semantic_aliases.iter().find_map(|known| {
-        (known.semantic == ParamSemantic::ByteArray
+    lo.type_domain_aliases.iter().find_map(|known| {
+        (known.domain == DomainEvidence::ByteArray
             && c_type_tokens_contain_plain_alias(&tokens, &known.alias))
         .then(|| known.evidence.into_iter().collect())
     })
@@ -1024,7 +1025,7 @@ mod tests {
         let domain = il
             .evidence
             .iter()
-            .find(|record| record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::ByteArray))
+            .find(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray))
             .expect("u8 pointer parameter must emit ByteArray domain evidence");
         assert_eq!(domain.dependencies, vec![u8_type.id]);
         let cast = il
@@ -1093,7 +1094,7 @@ mod tests {
         let domain = il
             .evidence
             .iter()
-            .find(|record| record.kind == EvidenceKind::Domain(nose_il::DomainEvidence::ByteArray))
+            .find(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray))
             .expect("byte pointer parameter must emit ByteArray domain evidence");
         assert_eq!(domain.dependencies, vec![byte_type.id]);
         let cast = il
@@ -1123,9 +1124,27 @@ mod tests {
         assert!(
             !il.evidence
                 .iter()
-                .any(|record| record.kind
-                    == EvidenceKind::Domain(nose_il::DomainEvidence::ByteArray)),
+                .any(|record| record.kind == EvidenceKind::Domain(DomainEvidence::ByteArray)),
             "struct tags or parameter names must not satisfy a typedef alias proof"
+        );
+    }
+
+    #[test]
+    fn scalar_pointer_param_does_not_emit_integer_domain() {
+        let interner = Interner::new();
+        let il = lower(
+            FileId(0),
+            "t.c",
+            b"int f(int *xs){ return xs[0]; }",
+            &interner,
+        )
+        .expect("lower");
+
+        assert!(
+            !il.evidence
+                .iter()
+                .any(|record| record.kind == EvidenceKind::Domain(DomainEvidence::Integer)),
+            "C pointer parameters must not inherit scalar integer domain evidence"
         );
     }
 

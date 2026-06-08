@@ -221,6 +221,50 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
 }
 
 #[test]
+fn type_domain_contracts_are_language_scoped_and_exact_enough() {
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Array<string>"),
+        Some(DomainEvidence::Array)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: string[]"),
+        Some(DomainEvidence::Array)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Bitmap<string, number>"),
+        None
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Blacklist<string>"),
+        None
+    );
+
+    assert_eq!(
+        type_domain_from_source_text(Lang::Java, "@Nonnull List<String> xs"),
+        Some(DomainEvidence::Collection)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Java, "@Ann(\"...\") String value"),
+        Some(DomainEvidence::String)
+    );
+
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "std::collections::HashMap<String, i32>"),
+        Some(DomainEvidence::Map)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "HashSet<i32>"),
+        Some(DomainEvidence::Set)
+    );
+
+    assert_eq!(type_domain_from_source_text(Lang::C, "int *xs"), None);
+    assert_eq!(
+        type_domain_from_source_text(Lang::C, "int xs"),
+        Some(DomainEvidence::Integer)
+    );
+}
+
+#[test]
 fn method_receiver_contracts_expose_only_domain_backed_obligations() {
     assert_eq!(
         method_receiver_domain_requirement(MethodReceiverContract::ExactCollection),

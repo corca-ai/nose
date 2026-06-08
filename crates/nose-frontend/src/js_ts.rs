@@ -353,8 +353,9 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some(semantic) = crate::lower::param_semantic_from_text(lo.text(p)) {
-            lo.record_param_semantic(span, semantic);
+        if let Some((domain, dependencies)) = lo.type_domain_from_text_with_dependencies(lo.text(p))
+        {
+            lo.record_param_domain_with_dependencies(span, domain, dependencies);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }

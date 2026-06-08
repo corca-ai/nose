@@ -164,20 +164,29 @@ migrated.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
-- Source-level `ParamSemantic` facts are stored directly as
-  `EvidenceRecord::Domain`, and `nose-semantics` resolves receiver-domain
-  evidence through a shared `DomainRequirement` contract. Consumers check exact
-  receiver node evidence first, then immutable binding evidence for local or
-  module variables, then scoped parameter evidence, and fail closed on
-  ambiguous/conflicting/dependency-broken records without consulting a side-table
-  mirror. Desugaring/idiom canonicalization, post-desugar value-graph receiver
-  gates, and strict exact receiver gates consume this same helper layer through
-  the shared `ReceiverDomainEvidenceIndex` cache. Desugaring and early idiom
-  canonicalization still run before normalize emits additional immutable
+- First-party parameter type-domain producers live in `nose-semantics` as
+  language-scoped contracts and are emitted by frontends as
+  `EvidenceRecord::Domain` on `Param` anchors. The old common substring fallback
+  over whole parameter text is gone; hard negatives such as TypeScript
+  `Bitmap<K,V>` and `Blacklist<T>` do not prove map/collection domains, Java
+  annotation text is ignored before array/varargs recognition, Rust fully
+  qualified `std::collections` paths are covered, and C pointer parameters do
+  not inherit scalar integer domains. Python imported type aliases from
+  `typing`/`collections.abc` carry `ImportedBinding` symbol-evidence
+  dependencies, and rebound aliases stop emitting parameter-domain evidence.
+  `nose-semantics` resolves receiver-domain evidence through a shared
+  `DomainRequirement` contract. Consumers check exact receiver node evidence
+  first, then immutable binding evidence for local or module variables, then
+  scoped parameter evidence, and fail closed on
+  ambiguous/conflicting/dependency-broken records without consulting a
+  side-table mirror. Desugaring/idiom canonicalization, post-desugar value-graph
+  receiver gates, and strict exact receiver gates consume this same helper layer
+  through the shared `ReceiverDomainEvidenceIndex` cache. Desugaring and early
+  idiom canonicalization still run before normalize emits additional immutable
   binding-domain evidence and therefore only see domain evidence already present
   at that point. This preserves the current
   Array/Collection/Set/Map/Option/String/Integer/Number and ByteArray
-  distinctions. First-party producers now attach receiver-expression domain
+  distinctions. First-party producers also attach receiver-expression domain
   facts directly for selected admitted library/API factory results, and
   normalize emits binding-anchored `Domain` evidence for single-assignment
   local/module bindings whose initializer has asserted sequence or result-domain

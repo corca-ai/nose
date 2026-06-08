@@ -19,6 +19,7 @@ use rustc_hash::FxHashMap;
 
 mod evidence;
 mod library_api;
+mod type_domain;
 
 pub use evidence::*;
 use evidence::{
@@ -33,6 +34,7 @@ use library_api::{
     library_api_dependency_id_for_normalized_hof, library_method_selector_name,
 };
 pub use nose_il::DomainEvidence;
+pub use type_domain::{python_stdlib_type_domain, type_domain_from_source_text};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";

@@ -173,20 +173,25 @@ alias is rebound or ambiguous, the exact path stays closed until a node-level
 symbol fact or stronger scope-resolution evidence exists.
 
 Domain evidence follows the same fail-closed rule. First-party parameter
-annotations emit `Domain` evidence on `Param` anchors, and `nose-semantics`
-resolves `Domain` evidence on exact receiver-expression node anchors, then
-binding anchors for immutable local/module variables, then parameter anchors. A
-conflicting, ambiguous, or dependency-broken receiver-domain record closes that
-receiver proof and must not fall back to side-table mirrors or selector
-spelling. Binding-anchor lookup matches both source span and `local_hash`, and a
-binding proof is applied to a receiver only when the assignment is visible before
-that receiver use. When a receiver is an alpha-renamed parameter or local binding
-reference, lookup is constrained to the nearest function/lambda scope where
-appropriate so same-numbered parameter/local ids from other units do not prove
-the current receiver. Method receiver contracts expose their domain-backed
-obligations through `DomainRequirement`; obligations such as imported namespace,
-unshadowed global, exact map literal, and future demand/effect constraints remain
-separate checks.
+annotations emit `Domain` evidence on `Param` anchors only through
+language-scoped type-domain contracts in `nose-semantics`, not through a shared
+substring fallback over arbitrary parameter text. The frontend owns evidence
+emission and alias lifecycle: for example, Python `typing`/`collections.abc`
+aliases record dependency-backed parameter `Domain` evidence that depends on the
+corresponding `ImportedBinding` symbol evidence, and a rebound alias closes that
+path. `nose-semantics` resolves `Domain` evidence on exact receiver-expression
+node anchors, then binding anchors for immutable local/module variables, then
+parameter anchors. A conflicting, ambiguous, or dependency-broken
+receiver-domain record closes that receiver proof and must not fall back to
+side-table mirrors or selector spelling. Binding-anchor lookup matches both
+source span and `local_hash`, and a binding proof is applied to a receiver only
+when the assignment is visible before that receiver use. When a receiver is an
+alpha-renamed parameter or local binding reference, lookup is constrained to the
+nearest function/lambda scope where appropriate so same-numbered parameter/local
+ids from other units do not prove the current receiver. Method receiver
+contracts expose their domain-backed obligations through `DomainRequirement`;
+obligations such as imported namespace, unshadowed global, exact map literal, and
+future demand/effect constraints remain separate checks.
 
 Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
 contract used by value-graph and recursion laws. That bridge is intentionally

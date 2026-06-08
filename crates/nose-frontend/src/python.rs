@@ -132,23 +132,25 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
         }
         for part in names.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (exported, local) = py_import_specifier(part);
-            if let Some(semantic) = crate::lower::stdlib_type_semantic(module.trim(), exported) {
-                lo.record_param_semantic_alias(local, semantic);
-            } else {
-                lo.clear_param_semantic_alias(local);
-            }
-            assigns.push(crate::lower::import_binding(
+            let (assign, import_evidence) = crate::lower::import_binding_with_symbol_evidence(
                 lo,
                 span,
                 local,
                 module.trim(),
                 exported,
-            ));
+            );
+            if let Some(domain) = nose_semantics::python_stdlib_type_domain(module.trim(), exported)
+            {
+                lo.record_type_domain_alias_with_evidence(local, domain, import_evidence);
+            } else {
+                lo.clear_type_domain_alias(local);
+            }
+            assigns.push(assign);
         }
     } else if let Some(rest) = text.strip_prefix("import ") {
         for part in rest.split(',').map(str::trim).filter(|p| !p.is_empty()) {
             let (module, local) = py_import_specifier(part);
-            lo.clear_param_semantic_alias(local);
+            lo.clear_type_domain_alias(local);
             assigns.push(crate::lower::import_namespace(
                 lo,
                 span,
@@ -242,8 +244,9 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some(semantic) = lo.param_semantic_from_text(lo.text(p)) {
-            lo.record_param_semantic(span, semantic);
+        if let Some((domain, dependencies)) = lo.type_domain_from_text_with_dependencies(lo.text(p))
+        {
+            lo.record_param_domain_with_dependencies(span, domain, dependencies);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }
@@ -311,7 +314,7 @@ fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn clear_assigned_param_alias(lo: &mut Lowering, node: TsNode) {
     if node.kind() == "identifier" {
         let name = lo.text(node).to_string();
-        lo.clear_param_semantic_alias(&name);
+        lo.clear_type_domain_alias(&name);
     }
 }
 

@@ -740,7 +740,7 @@ impl<'a> Builder<'a> {
             self.il,
             self.interner,
             expr,
-            DomainRequirement::CollectionOrSet,
+            DomainRequirement::ArrayCollectionOrSet,
         )
     }
 

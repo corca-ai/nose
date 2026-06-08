@@ -78,9 +78,13 @@ and pack ecosystem.
 - New value-graph rewrites began moving into named `rules/*` modules with
   mechanical formal-obligation pairing; `clamp` is the current proof-backed
   example.
-- Per-semantic parameter recognizers were folded into `is_param_value`, making
-  `ParamSemantic` the current internal vocabulary for receiver/domain proof
-  facts until packs provide versioned evidence records.
+- The common parameter-type substring recognizer moved behind first-party,
+  language-scoped type-domain contracts in `nose-semantics`. Frontends now emit
+  parameter `Domain` evidence from those contracts, while imported Python
+  `typing`/`collections.abc` aliases carry `ImportedBinding` dependencies and
+  rebound aliases close the path. `ParamSemantic` remains a compatibility
+  vocabulary in tests and lower-level helpers, not the producer boundary for
+  newly emitted parameter-domain facts.
 - Rust scalar integer methods (`abs`, `min`, `max`, `clamp`) now consume a
   language-, signature-, and integer-domain-constrained first-party contract
   instead of a bare method-name recognizer. Float/NaN-sensitive methods remain a
@@ -90,9 +94,10 @@ and pack ecosystem.
   calls moved into `nose-semantics`, so predicate and contract paths no longer
   duplicate those language/API gates.
 - The first receiver-domain evidence facade landed as `DomainEvidence`.
-  Frontend `ParamSemantic` facts still provide the current evidence source, but
-  normalize and detect exact gates now consume the kernel-facing domain
-  vocabulary so pack-provided evidence can replace the source fact later.
+  Parameter type domains, selected library/API result domains, and inferred
+  immutable binding domains now feed the same kernel-facing domain vocabulary so
+  pack-provided evidence can replace first-party producers later without adding
+  new consumer paths.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
   kernel facade with explicit shadow-root obligations. The caller still proves
@@ -594,11 +599,11 @@ Remaining in this phase:
 - Continue replacing proof-sensitive `Lang`/selector checks that are still local
   to normalize, detect, and import proof.
 - Move the next raw fallback cluster behind pack-shaped contracts/evidence:
-  JS/TS guard recognizer dependencies, per-language type-domain producers
-  beyond the first C alias slice, broader C type-system evidence beyond current
-  byte-pack aliases, remaining lowered sequence/tag surfaces, and exact-fragment
-  predicate code that is now differential/debug support rather than production
-  authority.
+  JS/TS guard recognizer dependencies, parsed/versioned type-surface manifests
+  for external type-domain producers, broader C type-system evidence beyond
+  current byte-pack aliases and scalar/pointer guards, remaining lowered
+  sequence/tag surfaces, and exact-fragment predicate code that is now
+  differential/debug support rather than production authority.
 - Keep behavior-changing recall reductions documented when missing evidence
   blocks exact convergence.
 - Preserve the current precision gates while moving more first-party surfaces
@@ -704,7 +709,8 @@ Remaining in this phase:
 
 - Convert Python, JavaScript/TypeScript, Go, Rust, Java, C, Ruby, and embedded
   JS/TS containers into first-party compiled packs.
-- Split stdlib knowledge into first-party `StdlibPack`s.
+- Split stdlib knowledge, including dependency-backed type-domain alias rows,
+  into first-party `StdlibPack`s.
 - Define conformance manifests for each pack: positive convergence cases, hard
   negatives, Raw coverage expectations, oracle coverage, and proof obligations.
 - Ensure existing docs and capabilities are generated from or checked against pack
