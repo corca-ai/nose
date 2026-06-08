@@ -57,7 +57,8 @@ still being migrated toward it.
   method-call, property, async, iterator-adapter, builder-append, and factory
   contracts. The public crate surface remains a flat facade, while internal
   evidence/source/domain proof helpers, demand profiles, effect/place helpers,
-  library API contract identities, negative API guard rows, and library API
+  library API contract identities, library API row constructors, library API
+  evidence-hash registry helpers, negative API guard rows, and library API
   occurrence/admission logic are split into focused modules.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/

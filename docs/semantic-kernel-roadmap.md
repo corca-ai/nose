@@ -572,9 +572,12 @@ and pack ecosystem.
   evidence/source/domain proof helpers live in `evidence.rs`, effect/place proof
   helpers live in `effects.rs`, negative API guard policy lives in
   `api_guards.rs`, library API contract identities and result wrappers live in
-  `library_api/contracts.rs`, library API occurrence evidence/admission logic
-  lives in `library_api.rs`, and `lib.rs` preserves the existing flat public
-  facade while shedding the mixed 9k-line implementation body.
+  `library_api/contracts.rs`, first-party library API row constructors live in
+  `library_api/rows.rs`, evidence-hash-to-row registry helpers live in
+  `library_api/registry.rs`, library API occurrence evidence/admission and
+  dependency validation logic live in `library_api.rs`, and `lib.rs` preserves
+  the existing flat public facade while shedding the mixed 9k-line
+  implementation body.
 - The same code-quality pass split the CLI end-to-end test target into a small
   `tests/cli.rs` harness plus topic modules, and moved the Type-4 generator's
   axis metadata/model/aggregate helpers under `bench/type4/type4gen/` while

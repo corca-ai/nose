@@ -75,11 +75,14 @@ The current implemented kinds are:
 the contract id, callee coordinate, arity, and dependencies for a specific
 `Call`, `Field`, or `Var` node, depending on the contract surface.
 `LibraryApiContract` rows in `nose-semantics` still name result semantics and
-the remaining obligations. Existing evidence kinds such as `Symbol`,
-`Import`, `Source`, `Domain`, and `SequenceSurface` prove those obligations; the
-contract decides whether the facts are enough to admit an exact or value-graph
-path. A future external pack schema may expose library API contracts, but
-providers still emit facts and contracts rather than exact-clone verdicts.
+the remaining obligations. The implementation keeps contract identities, row
+constructors, evidence-hash registry helpers, and occurrence admission separate
+so this boundary can narrow into a future pack schema. Existing evidence kinds
+such as `Symbol`, `Import`, `Source`, `Domain`, and `SequenceSurface` prove
+those obligations; the contract decides whether the facts are enough to admit an
+exact or value-graph path. A future external pack schema may expose library API
+contracts, but providers still emit facts and contracts rather than exact-clone
+verdicts.
 
 `CallTarget` evidence is the occurrence proof for user-defined calls. A raw
 callee spelling such as `f(...)` is only a selector that a producer may inspect;
