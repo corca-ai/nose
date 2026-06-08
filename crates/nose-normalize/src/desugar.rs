@@ -11,12 +11,13 @@
 //! Unit roots (`Func`/`Method`/class `Block`) are stable node kinds across this
 //! pass, so we remap their ids as we go.
 
-use crate::idioms::{canon_call_with_domains, CallCanon, ParamDomainIndex};
+use crate::idioms::{canon_call_with_domains, CallCanon};
 use crate::NormalizeOptions;
 use nose_il::{Il, IlBuilder, Interner, LoopKind, NodeId, NodeKind, Payload};
 use nose_semantics::{
     library_api_contract_evidence_for_node, library_property_builtin_contract,
     seq_surface_contract_for_node, DomainRequirement, LibraryApiEvidenceStatus,
+    ReceiverDomainEvidenceIndex,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -29,7 +30,7 @@ pub(crate) fn run(old: &Il, interner: &Interner, opts: &NormalizeOptions) -> Il 
         opts,
         remap: FxHashMap::default(),
         unit_root_set,
-        param_domains: ParamDomainIndex::new(old),
+        receiver_domains: ReceiverDomainEvidenceIndex::new(old, interner),
     };
     let new_root = rb.go(old.root);
 
@@ -44,7 +45,7 @@ struct Rebuilder<'a> {
     opts: &'a NormalizeOptions,
     remap: FxHashMap<u32, NodeId>,
     unit_root_set: FxHashSet<u32>,
-    param_domains: ParamDomainIndex,
+    receiver_domains: ReceiverDomainEvidenceIndex<'a>,
 }
 
 impl Rebuilder<'_> {
@@ -213,7 +214,7 @@ impl Rebuilder<'_> {
 
     fn call(&mut self, old_id: NodeId) -> NodeId {
         let span = self.old.node(old_id).span;
-        match canon_call_with_domains(self.old, self.interner, &self.param_domains, old_id) {
+        match canon_call_with_domains(self.old, self.interner, &self.receiver_domains, old_id) {
             CallCanon::Builtin { op, arg_olds } => {
                 let kids: Vec<NodeId> = arg_olds.iter().map(|&a| self.go(a)).collect();
                 self.b
@@ -257,7 +258,7 @@ impl Rebuilder<'_> {
                     if !property_receiver_exact_safe(
                         self.old,
                         self.interner,
-                        &self.param_domains,
+                        &self.receiver_domains,
                         base,
                     ) {
                         return self.generic(old_id);
@@ -279,15 +280,11 @@ impl Rebuilder<'_> {
 fn property_receiver_exact_safe(
     il: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
     seq_receiver_exact_collection_safe(il, interner, node)
-        || domains.property_receiver_satisfies_domain(
-            il,
-            node,
-            DomainRequirement::ArrayOrCollection,
-        )
+        || domains.receiver_satisfies_domain(node, DomainRequirement::ArrayOrCollection)
         || property_receiver_exact_hof_node(il, interner, domains, node)
         || property_receiver_exact_hof_call(il, interner, domains, node)
 }
@@ -303,7 +300,7 @@ fn seq_receiver_exact_collection_safe(il: &Il, interner: &Interner, node: NodeId
 fn property_receiver_exact_hof_call(
     il: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
     if il.kind(node) != NodeKind::Call {
@@ -354,7 +351,7 @@ fn property_receiver_exact_hof_call(
 fn property_receiver_exact_hof_node(
     il: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
     if il.kind(node) != NodeKind::HoF {

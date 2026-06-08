@@ -122,11 +122,12 @@ was deduped: receiver-method contract selection now lives in the semantic kernel
 one semantic helper, bulk dependency lookup reuses a cache, and strict-exact call evidence gates
 share admitted-contract helpers.
 
-The remaining 22nd family is pre-existing domain/binding helper similarity (`ParamDomainIndex`,
-`domain_evidence_for_var_reference`, and `binding_lhs_name`). It crosses the substantial threshold
-because receiver-method occurrence evidence lets the near channel recognize more of the existing
-semantic proof plumbing, not because this PR added another copy. The gate budget is therefore
-re-baselined to 22 while continuing to ratchet against new avoidable duplication.
+The remaining 22nd family was pre-existing domain/binding helper similarity
+(`domain_evidence_for_var_reference` and `binding_lhs_name` after the receiver-domain cache moved
+behind `nose-semantics`). It crosses the substantial threshold because receiver-method occurrence
+evidence lets the near channel recognize more of the existing semantic proof plumbing, not because
+this PR added another copy. The gate budget is therefore re-baselined to 22 while continuing to
+ratchet against new avoidable duplication.
 
 ## Budget 22 → 23 and the Java collection constructor exact-safe recognizer
 

@@ -167,10 +167,12 @@ migrated.
   receiver node evidence first, then immutable binding evidence for local or
   module variables, then scoped parameter evidence, and fail closed on
   ambiguous/conflicting/dependency-broken records without consulting a side-table
-  mirror. Post-desugar value-graph receiver gates and strict exact receiver
-  gates consume this same helper layer; desugaring and early idiom
-  canonicalization still run before immutable binding-domain inference and only
-  see domain evidence already present at that point. This preserves the current
+  mirror. Desugaring/idiom canonicalization, post-desugar value-graph receiver
+  gates, and strict exact receiver gates consume this same helper layer through
+  the shared `ReceiverDomainEvidenceIndex` cache. Desugaring and early idiom
+  canonicalization still run before normalize emits additional immutable
+  binding-domain evidence and therefore only see domain evidence already present
+  at that point. This preserves the current
   Array/Collection/Set/Map/Option/String/Integer/Number and ByteArray
   distinctions. First-party producers now attach receiver-expression domain
   facts directly for selected admitted library/API factory results, and

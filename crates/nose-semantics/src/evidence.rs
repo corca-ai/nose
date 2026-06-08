@@ -4,6 +4,8 @@
 //! lightweight value/domain contracts consumed by operators, normalize, and detect.
 
 use super::*;
+use rustc_hash::FxHashMap;
+use std::cell::RefCell;
 
 pub struct SourceFactContract {
     pub kind: SourceFactKind,
@@ -474,6 +476,46 @@ pub fn receiver_satisfies_domain(
 ) -> bool {
     domain_evidence_for_receiver(il, interner, receiver)
         .is_some_and(|domain| requirement.accepts(domain))
+}
+
+/// Cached receiver-domain resolver for consumers that inspect many call/property receivers.
+///
+/// The proof policy is identical to [`domain_evidence_for_receiver`]: exact node evidence first,
+/// then immutable binding evidence, then scoped parameter evidence, with ambiguous/conflicting or
+/// dependency-broken records closing the proof. This type exists so normalize/detect consumers do
+/// not need local domain side tables that can drift from the kernel facade.
+pub struct ReceiverDomainEvidenceIndex<'a> {
+    il: &'a Il,
+    interner: &'a Interner,
+    cache: RefCell<FxHashMap<NodeId, Option<DomainEvidence>>>,
+}
+
+impl<'a> ReceiverDomainEvidenceIndex<'a> {
+    pub fn new(il: &'a Il, interner: &'a Interner) -> Self {
+        Self {
+            il,
+            interner,
+            cache: RefCell::new(FxHashMap::default()),
+        }
+    }
+
+    pub fn domain_evidence_for_receiver(&self, receiver: NodeId) -> Option<DomainEvidence> {
+        if let Some(domain) = self.cache.borrow().get(&receiver).copied() {
+            return domain;
+        }
+        let domain = domain_evidence_for_receiver(self.il, self.interner, receiver);
+        self.cache.borrow_mut().insert(receiver, domain);
+        domain
+    }
+
+    pub fn receiver_satisfies_domain(
+        &self,
+        receiver: NodeId,
+        requirement: DomainRequirement,
+    ) -> bool {
+        self.domain_evidence_for_receiver(receiver)
+            .is_some_and(|domain| requirement.accepts(domain))
+    }
 }
 
 fn domain_evidence_for_var_reference(il: &Il, node: NodeId) -> Option<DomainEvidence> {

@@ -685,6 +685,38 @@ fn dependency_broken_receiver_domain_evidence_blocks_param_fallback() {
 }
 
 #[test]
+fn receiver_domain_index_uses_kernel_fail_closed_policy() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let param = b.add(NodeKind::Param, Payload::Cid(0), span(10, 12, 1), &[]);
+    let receiver = b.add(NodeKind::Var, Payload::Cid(0), span(20, 22, 2), &[]);
+    let body = b.add(NodeKind::Block, Payload::None, span(18, 24, 2), &[receiver]);
+    let root = b.add(
+        NodeKind::Func,
+        Payload::None,
+        span(0, 30, 1),
+        &[param, body],
+    );
+    let mut il = finish_il(b, root, Lang::TypeScript);
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::param(span(10, 12, 1)),
+        EvidenceKind::Domain(DomainEvidence::Collection),
+        EvidenceStatus::Asserted,
+    ));
+    il.evidence.push(evidence(
+        1,
+        EvidenceAnchor::node(span(20, 22, 2), NodeKind::Var),
+        EvidenceKind::Domain(DomainEvidence::Map),
+        EvidenceStatus::Ambiguous,
+    ));
+
+    let domains = ReceiverDomainEvidenceIndex::new(&il, &interner);
+    assert_eq!(domains.domain_evidence_for_receiver(receiver), None);
+    assert!(!domains.receiver_satisfies_domain(receiver, DomainRequirement::Collection));
+}
+
+#[test]
 fn named_receiver_domain_requires_unassigned_param_scope() {
     let interner = Interner::new();
     let xs = interner.intern("xs");

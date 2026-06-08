@@ -7,21 +7,18 @@
 //! proof-obligation: normalize.value_graph.functor
 //! proof-obligation: normalize.value_graph.min_max
 
-use nose_il::{
-    Builtin, DomainEvidence, EvidenceAnchor, EvidenceKind, EvidenceStatus, HoFKind, Il, Interner,
-    NodeId, NodeKind, Payload, Span, Symbol,
-};
+use nose_il::{Builtin, HoFKind, Il, Interner, NodeId, NodeKind, Payload};
 use nose_semantics::{
-    asserted_unshadowed_global_symbol, domain_evidence_for_param, imported_namespace_symbol,
+    asserted_unshadowed_global_symbol, imported_namespace_symbol,
     library_api_contract_evidence_for_call, library_free_function_builtin_contract,
     library_free_name_map_factory_contract, library_iterator_identity_adapter_contract,
     library_map_get_contract, library_map_key_view_contract, library_method_call_contract,
     library_rust_option_some_constructor_contract, library_static_collection_adapter_contract,
     seq_surface_contract_for_node, BuiltinArgContract, DomainRequirement, LibraryApiCalleeContract,
     LibraryApiEvidenceStatus, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
-    MethodCallContract, MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
+    MethodCallContract, MethodReceiverContract, MethodSemanticContract,
+    ReceiverDomainEvidenceIndex, SEQ_VALUE_MAP,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
 
 /// The result of inspecting a `Call`: it canonicalizes to a builtin, to a
 /// higher-order op (`HoF`), or stays an ordinary call. The carried `NodeId`s are
@@ -41,241 +38,16 @@ pub(crate) enum CallCanon {
     None,
 }
 
-pub(crate) struct ParamDomainIndex {
-    global_cid_domains: FxHashMap<u32, DomainLookup>,
-    node_domains: FxHashMap<(Span, NodeKind), DomainLookup>,
-    scopes: Vec<ParamScope>,
-}
-
-struct ParamScope {
-    span: Span,
-    cid_domains: FxHashMap<u32, DomainLookup>,
-    params: FxHashMap<Symbol, Option<DomainEvidence>>,
-    assigned_names: FxHashSet<Symbol>,
-}
-
-#[derive(Clone, Copy)]
-enum DomainLookup {
-    Missing,
-    Found(DomainEvidence),
-    Ambiguous,
-}
-
-impl DomainLookup {
-    fn option(self) -> Option<DomainEvidence> {
-        match self {
-            DomainLookup::Found(domain) => Some(domain),
-            DomainLookup::Missing | DomainLookup::Ambiguous => None,
-        }
-    }
-
-    fn insert(&mut self, domain: DomainEvidence) {
-        match *self {
-            DomainLookup::Missing => *self = DomainLookup::Found(domain),
-            DomainLookup::Found(existing) if existing == domain => {}
-            DomainLookup::Found(_) | DomainLookup::Ambiguous => *self = DomainLookup::Ambiguous,
-        }
-    }
-}
-
-impl ParamDomainIndex {
-    pub(crate) fn new(old: &Il) -> Self {
-        let mut global_cid_domains = FxHashMap::default();
-        let node_domains = node_domain_index(old);
-        let mut scopes = Vec::new();
-        for (idx, node) in old.nodes.iter().enumerate() {
-            if !matches!(node.kind, NodeKind::Func | NodeKind::Lambda) {
-                continue;
-            }
-            let scope = NodeId(idx as u32);
-            let mut cid_domains = FxHashMap::default();
-            let mut params = FxHashMap::default();
-            for &child in old.children(scope) {
-                if old.kind(child) != NodeKind::Param {
-                    continue;
-                }
-                let domain = domain_evidence_for_param(old, child);
-                match old.node(child).payload {
-                    Payload::Cid(cid) => {
-                        merge_domain(&mut cid_domains, cid, domain);
-                    }
-                    Payload::Name(name) => {
-                        params.entry(name).or_insert(domain);
-                    }
-                    _ => {}
-                }
-            }
-            scopes.push(ParamScope {
-                span: node.span,
-                cid_domains,
-                params,
-                assigned_names: FxHashSet::default(),
-            });
-        }
-        for (idx, node) in old.nodes.iter().enumerate() {
-            if node.kind != NodeKind::Param {
-                continue;
-            }
-            let Payload::Cid(cid) = node.payload else {
-                continue;
-            };
-            merge_domain(
-                &mut global_cid_domains,
-                cid,
-                domain_evidence_for_param(old, NodeId(idx as u32)),
-            );
-        }
-
-        scopes.sort_by_key(|scope| scope.span.end_byte.saturating_sub(scope.span.start_byte));
-        for (idx, node) in old.nodes.iter().enumerate() {
-            if node.kind != NodeKind::Assign {
-                continue;
-            }
-            let id = NodeId(idx as u32);
-            let Some(&lhs) = old.children(id).first() else {
-                continue;
-            };
-            if old.kind(lhs) != NodeKind::Var {
-                continue;
-            }
-            let Payload::Name(name) = old.node(lhs).payload else {
-                continue;
-            };
-            if let Some(scope) = scopes
-                .iter_mut()
-                .find(|scope| span_contains(scope.span, node.span))
-            {
-                scope.assigned_names.insert(name);
-            }
-        }
-
-        Self {
-            global_cid_domains,
-            node_domains,
-            scopes,
-        }
-    }
-
-    fn domain_evidence_for_receiver(&self, old: &Il, node: NodeId) -> Option<DomainEvidence> {
-        match self
-            .node_domains
-            .get(&(old.node(node).span, old.kind(node)))
-            .copied()
-            .unwrap_or(DomainLookup::Missing)
-        {
-            DomainLookup::Found(domain) => return Some(domain),
-            DomainLookup::Ambiguous => return None,
-            DomainLookup::Missing => {}
-        }
-        self.domain_evidence_for_var_reference(old, node)
-    }
-
-    fn receiver_satisfies_domain(
-        &self,
-        old: &Il,
-        node: NodeId,
-        requirement: DomainRequirement,
-    ) -> bool {
-        self.domain_evidence_for_receiver(old, node)
-            .is_some_and(|domain| requirement.accepts(domain))
-    }
-
-    fn domain_evidence_for_var_reference(&self, old: &Il, node: NodeId) -> Option<DomainEvidence> {
-        if old.kind(node) != NodeKind::Var {
-            return None;
-        }
-        match old.node(node).payload {
-            Payload::Cid(cid) => {
-                for scope in &self.scopes {
-                    if span_contains(scope.span, old.node(node).span) {
-                        return scope
-                            .cid_domains
-                            .get(&cid)
-                            .copied()
-                            .unwrap_or(DomainLookup::Missing)
-                            .option();
-                    }
-                }
-                self.global_cid_domains
-                    .get(&cid)
-                    .copied()
-                    .unwrap_or(DomainLookup::Missing)
-                    .option()
-            }
-            Payload::Name(name) => {
-                let span = old.node(node).span;
-                for scope in &self.scopes {
-                    if !span_contains(scope.span, span) {
-                        continue;
-                    }
-                    let Some(&domain) = scope.params.get(&name) else {
-                        continue;
-                    };
-                    if scope.assigned_names.contains(&name) {
-                        return None;
-                    }
-                    return domain;
-                }
-                None
-            }
-            _ => None,
-        }
-    }
-
-    pub(crate) fn property_receiver_satisfies_domain(
-        &self,
-        old: &Il,
-        node: NodeId,
-        requirement: DomainRequirement,
-    ) -> bool {
-        self.receiver_satisfies_domain(old, node, requirement)
-    }
-}
-
-fn merge_domain(
-    domains: &mut FxHashMap<u32, DomainLookup>,
-    key: u32,
-    domain: Option<DomainEvidence>,
-) {
-    let Some(domain) = domain else {
-        return;
-    };
-    domains
-        .entry(key)
-        .or_insert(DomainLookup::Missing)
-        .insert(domain);
-}
-
-fn node_domain_index(old: &Il) -> FxHashMap<(Span, NodeKind), DomainLookup> {
-    let mut domains = FxHashMap::default();
-    for record in &old.evidence {
-        let EvidenceAnchor::Node { span, kind } = record.anchor else {
-            continue;
-        };
-        let EvidenceKind::Domain(domain) = record.kind else {
-            continue;
-        };
-        let entry = domains.entry((span, kind)).or_insert(DomainLookup::Missing);
-        if record.status != EvidenceStatus::Asserted || !old.evidence_dependencies_asserted(record)
-        {
-            *entry = DomainLookup::Ambiguous;
-        } else {
-            entry.insert(domain);
-        }
-    }
-    domains
-}
-
 #[cfg(test)]
 fn canon_call(old: &Il, interner: &Interner, call_id: NodeId) -> CallCanon {
-    let domains = ParamDomainIndex::new(old);
+    let domains = ReceiverDomainEvidenceIndex::new(old, interner);
     canon_call_with_domains(old, interner, &domains, call_id)
 }
 
 pub(crate) fn canon_call_with_domains(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     call_id: NodeId,
 ) -> CallCanon {
     let kids = old.children(call_id);
@@ -375,7 +147,7 @@ enum ProvenReceiver {
 fn prove_method_receiver(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     contract: MethodReceiverContract,
     base: NodeId,
     args: &[NodeId],
@@ -430,8 +202,8 @@ fn prove_method_receiver(
             }
             None
         }
-        MethodReceiverContract::ExactSetOrMap => (exact_set_param(old, domains, base)
-            || exact_map_param(old, domains, base))
+        MethodReceiverContract::ExactSetOrMap => (exact_set_param(domains, base)
+            || exact_map_param(domains, base))
         .then_some(ProvenReceiver::Direct(base)),
         MethodReceiverContract::LiteralString => {
             literal_string_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
@@ -715,7 +487,7 @@ fn unwrap_iter(old: &Il, interner: &Interner, node: NodeId) -> NodeId {
 fn exact_collection_receiver(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
     exact_protocol_receiver(old, interner, domains, node)
@@ -724,10 +496,10 @@ fn exact_collection_receiver(
 fn exact_protocol_receiver(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
-    if exact_collection_literal(old, interner, node) || exact_collection_param(old, domains, node) {
+    if exact_collection_literal(old, interner, node) || exact_collection_param(domains, node) {
         return true;
     }
     if old.kind(node) != NodeKind::Call {
@@ -799,8 +571,8 @@ fn exact_protocol_receiver(
     false
 }
 
-fn exact_collection_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(old, node, DomainRequirement::ArrayCollectionOrSet)
+fn exact_collection_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(node, DomainRequirement::ArrayCollectionOrSet)
 }
 
 fn static_collection_adapter_arg(
@@ -847,31 +619,25 @@ fn library_api_evidence_admitted(
     )
 }
 
-fn exact_set_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(old, node, DomainRequirement::Set)
+fn exact_set_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(node, DomainRequirement::Set)
 }
 
-fn exact_map_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(old, node, DomainRequirement::Map)
+fn exact_map_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(node, DomainRequirement::Map)
 }
 
 fn exact_map_receiver(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
-    exact_map_param(old, domains, node) || map_like_literal(old, interner, node)
+    exact_map_param(domains, node) || map_like_literal(old, interner, node)
 }
 
-fn exact_option_param(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
-    domains.receiver_satisfies_domain(old, node, DomainRequirement::Option)
-}
-
-fn span_contains(outer: Span, inner: Span) -> bool {
-    outer.file == inner.file
-        && outer.start_byte <= inner.start_byte
-        && outer.end_byte >= inner.end_byte
+fn exact_option_param(domains: &ReceiverDomainEvidenceIndex<'_>, node: NodeId) -> bool {
+    domains.receiver_satisfies_domain(node, DomainRequirement::Option)
 }
 
 fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -885,10 +651,10 @@ fn exact_collection_literal(old: &Il, interner: &Interner, node: NodeId) -> bool
 fn exact_option_receiver(
     old: &Il,
     interner: &Interner,
-    domains: &ParamDomainIndex,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
     node: NodeId,
 ) -> bool {
-    if exact_option_param(old, domains, node) {
+    if exact_option_param(domains, node) {
         return true;
     }
     if matches!(
@@ -915,22 +681,34 @@ fn exact_option_receiver(
     library_api_evidence_admitted(old, interner, node, contract.id, contract.callee, 1)
 }
 
-fn exact_string_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+fn exact_string_receiver(
+    old: &Il,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
+    node: NodeId,
+) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitStr(_) | Payload::Lit(nose_il::LitClass::Str)
-    ) || domains.receiver_satisfies_domain(old, node, DomainRequirement::String)
+    ) || domains.receiver_satisfies_domain(node, DomainRequirement::String)
 }
 
-fn literal_string_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+fn literal_string_receiver(
+    old: &Il,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
+    node: NodeId,
+) -> bool {
     exact_string_receiver(old, domains, node)
 }
 
-fn exact_integer_receiver(old: &Il, domains: &ParamDomainIndex, node: NodeId) -> bool {
+fn exact_integer_receiver(
+    old: &Il,
+    domains: &ReceiverDomainEvidenceIndex<'_>,
+    node: NodeId,
+) -> bool {
     matches!(
         old.node(node).payload,
         Payload::LitInt(_) | Payload::Lit(nose_il::LitClass::Int)
-    ) || domains.receiver_satisfies_domain(old, node, DomainRequirement::Integer)
+    ) || domains.receiver_satisfies_domain(node, DomainRequirement::Integer)
 }
 
 fn proven_map_get_call_parts(
@@ -1110,10 +888,10 @@ mod tests {
     use super::*;
     use nose_il::stable_symbol_hash;
     use nose_il::{
-        EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance,
-        EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder, ImportEvidenceKind, Lang,
-        LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span, SymbolEvidenceKind, Unit,
-        UnitKind,
+        DomainEvidence, EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind,
+        EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, IlBuilder,
+        ImportEvidenceKind, Lang, LibraryApiEvidenceKind, ParamSemantic, SequenceSurfaceKind, Span,
+        SymbolEvidenceKind, Unit, UnitKind,
     };
 
     fn sp() -> Span {
@@ -1935,14 +1713,14 @@ mod tests {
     #[test]
     fn iterator_identity_adapter_requires_kernel_contract() {
         let (js, js_interner, js_iter) = method_call_no_arg_il(Lang::JavaScript, "iter", true);
-        let js_domains = ParamDomainIndex::new(&js);
+        let js_domains = ReceiverDomainEvidenceIndex::new(&js, &js_interner);
         assert!(
             !exact_protocol_receiver(&js, &js_interner, &js_domains, js_iter),
             "a JS method named iter is not a Rust iterator adapter"
         );
 
         let (rust_bad, rust_bad_interner, rust_bad_iter) = method_call_il(Lang::Rust, "iter", true);
-        let rust_bad_domains = ParamDomainIndex::new(&rust_bad);
+        let rust_bad_domains = ReceiverDomainEvidenceIndex::new(&rust_bad, &rust_bad_interner);
         assert!(
             !exact_protocol_receiver(
                 &rust_bad,
@@ -1954,7 +1732,7 @@ mod tests {
         );
 
         let (rust, rust_interner, rust_iter) = method_call_no_arg_il(Lang::Rust, "iter", true);
-        let rust_domains = ParamDomainIndex::new(&rust);
+        let rust_domains = ReceiverDomainEvidenceIndex::new(&rust, &rust_interner);
         assert!(
             exact_protocol_receiver(&rust, &rust_interner, &rust_domains, rust_iter),
             "Rust iter stays admitted through iterator_identity_adapter_contract"
@@ -1965,7 +1743,7 @@ mod tests {
     fn zip_protocol_pair_requires_kernel_contract() {
         let (js, js_interner, js_zip) =
             method_call_with_arg_il(Lang::JavaScript, "zip", true, true);
-        let js_domains = ParamDomainIndex::new(&js);
+        let js_domains = ReceiverDomainEvidenceIndex::new(&js, &js_interner);
         assert!(
             !exact_protocol_receiver(&js, &js_interner, &js_domains, js_zip),
             "a JS method named zip is not a Rust zip protocol contract"
@@ -1973,7 +1751,7 @@ mod tests {
 
         let (rust, rust_interner, rust_zip) =
             method_call_with_arg_il(Lang::Rust, "zip", true, true);
-        let rust_domains = ParamDomainIndex::new(&rust);
+        let rust_domains = ReceiverDomainEvidenceIndex::new(&rust, &rust_interner);
         assert!(
             exact_protocol_receiver(&rust, &rust_interner, &rust_domains, rust_zip),
             "Rust zip stays admitted through method_call_contract"

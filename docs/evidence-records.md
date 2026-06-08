@@ -468,15 +468,18 @@ callers:
 - source-fact lookup for construct syntax, async/generator/error and Go
   concurrency/channel protocol boundaries, Python comprehension surfaces, C
   unsigned-cast syntax, regex literal, and operator provenance;
-- receiver-domain lookup used by post-desugar semantic/value-graph
-  membership/property/map/integer gates and strict exact receiver gates.
-  Consumers ask `nose-semantics` whether a receiver satisfies a
-  `DomainRequirement`, so node-anchored receiver evidence, immutable
-  local/module binding evidence, scoped parameter evidence, selected API
-  result-domain evidence, ambiguity handling, and compatibility fallback are no
-  longer reimplemented separately in those paths. Desugaring and early idiom
-  canonicalization still run before immutable binding-domain inference, so they
-  only consume the domain evidence already present at that point. Coarse API
+- receiver-domain lookup used by desugaring/idiom canonicalization,
+  post-desugar semantic/value-graph membership/property/map/integer gates, and
+  strict exact receiver gates. Consumers ask `nose-semantics` whether a receiver
+  satisfies a `DomainRequirement`, using the shared
+  `ReceiverDomainEvidenceIndex` cache when they inspect many receivers. That
+  keeps node-anchored receiver evidence, immutable local/module binding
+  evidence, scoped parameter evidence, selected API result-domain evidence,
+  ambiguity handling, and compatibility fallback under one kernel-owned policy
+  instead of reimplementing those rules per consumer. Desugaring and early idiom
+  canonicalization still run before normalize emits additional immutable
+  binding-domain evidence, so they only consume the domain evidence already
+  present at that point. Coarse API
   result-domain and binding-domain evidence is not exact-tree proof: value-graph
   consumers prefer concrete factory/result-shape canonicalization before using a
   domain-shaped fallback, and strict exact consumers still require the receiver
