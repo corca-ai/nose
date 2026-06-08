@@ -1735,6 +1735,9 @@ fn strict_exact_typed_receiver_safe(
     receiver: NodeId,
     requirement: DomainRequirement,
 ) -> bool {
+    if il.kind(receiver) != NodeKind::Var {
+        return false;
+    }
     nose_semantics::receiver_satisfies_domain(il, receiver, requirement)
 }
 
@@ -4110,6 +4113,81 @@ mod tests {
         assert!(
             !strict_exact_safe_tree(&il, &interner, &facts, call),
             "conflicting receiver-domain evidence must close strict exact fallback"
+        );
+    }
+
+    #[test]
+    fn strict_exact_contains_does_not_use_result_domain_as_exact_tree_proof() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let factory_callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("Set")),
+            sp(40),
+            &[],
+        );
+        let seed = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(41),
+            &[],
+        );
+        let receiver = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(42),
+            &[factory_callee, seed],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("includes")),
+            sp(43),
+            &[receiver],
+        );
+        let item = b.add(NodeKind::Lit, Payload::LitInt(7), sp(44), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp(45), &[callee, item]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(39), &[call]);
+        let mut il = b.finish(
+            root,
+            FileMeta {
+                path: "t.ts".into(),
+                lang: Lang::TypeScript,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, call),
+            "call-result receiver must not be collection-like without domain evidence"
+        );
+
+        let api = library_js_like_set_constructor_contract(Lang::TypeScript, "Set").unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            0,
+            sp(42),
+            api.id,
+            api.callee,
+            1,
+            Vec::new(),
+        ));
+        il.evidence.push(evidence(
+            1,
+            EvidenceAnchor::node(sp(42), NodeKind::Call),
+            EvidenceKind::Domain(nose_semantics::DomainEvidence::Set),
+            vec![EvidenceId(0)],
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, call),
+            "result-domain evidence proves the call result's receiver domain, not the exact-safety of the receiver expression"
+        );
+
+        il.evidence[0].status = EvidenceStatus::Ambiguous;
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, call),
+            "ambiguous LibraryApi dependency must close strict exact receiver proof"
         );
     }
 

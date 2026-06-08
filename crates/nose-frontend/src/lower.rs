@@ -11,25 +11,28 @@ use nose_il::{
 };
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
-    library_api_free_name_shadow_safe, library_free_name_collection_factory_contract,
-    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
-    library_imported_namespace_function_contract, library_java_collection_factory_contract,
-    library_java_map_entry_contract, library_java_map_factory_contract,
-    library_js_array_is_array_contract, library_js_boolean_coercion_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_key_view_wrapper_contract, library_regex_test_contract,
-    library_ruby_set_factory_contract, library_rust_vec_macro_factory_contract,
-    library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
-    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
+    library_api_free_name_shadow_safe, library_collection_factory_result_domain_for_arity,
+    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
+    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
+    library_java_collection_factory_contract, library_java_map_entry_contract,
+    library_java_map_factory_contract, library_js_array_is_array_contract,
+    library_js_boolean_coercion_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_factory_result_domain,
+    library_map_key_view_wrapper_contract, library_map_key_view_wrapper_result_domain,
+    library_regex_test_contract, library_ruby_set_factory_contract,
+    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
+    library_static_collection_adapter_contract, sequence_surface_kind_for_tag, ImportFactKind,
+    LibraryApiCalleeContract, LibraryApiContractId,
 };
 use tree_sitter::Node as TsNode;
 
-type LibraryApiEvidencePlan = (
-    LibraryApiContractId,
-    LibraryApiCalleeContract,
-    Vec<EvidenceId>,
-    &'static str,
-);
+struct LibraryApiEvidencePlan {
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+    dependencies: Vec<EvidenceId>,
+    rule: &'static str,
+    result_domain: Option<DomainEvidence>,
+}
 
 /// Mutable state threaded through a single file's lowering.
 pub(crate) struct Lowering<'a> {
@@ -178,18 +181,33 @@ impl<'a> Lowering<'a> {
             return;
         };
         let arg_count = args.len();
-        if let Some((id, callee_contract, dependencies, rule)) =
-            self.library_api_contract_for_call(span, callee, arg_count)
-        {
-            self.record_evidence_with_dependencies(
+        if let Some(plan) = self.library_api_contract_for_call(span, callee, arg_count) {
+            let api = self.record_evidence_with_dependencies(
                 EvidenceAnchor::node(span, NodeKind::Call),
                 EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
-                    contract_hash: library_api_contract_id_hash(id),
-                    callee_hash: library_api_callee_contract_hash(callee_contract),
+                    contract_hash: library_api_contract_id_hash(plan.id),
+                    callee_hash: library_api_callee_contract_hash(plan.callee),
                     arity: arg_count as u16,
                 }),
-                rule,
-                dependencies,
+                plan.rule,
+                plan.dependencies,
+            );
+            self.record_library_api_result_domain(span, plan.result_domain, api);
+        }
+    }
+
+    fn record_library_api_result_domain(
+        &mut self,
+        span: Span,
+        result_domain: Option<DomainEvidence>,
+        api: EvidenceId,
+    ) {
+        if let Some(domain) = result_domain {
+            self.record_evidence_with_dependencies(
+                EvidenceAnchor::node(span, NodeKind::Call),
+                EvidenceKind::Domain(domain),
+                "library_api_result_domain",
+                vec![api],
             );
         }
     }
@@ -239,6 +257,7 @@ impl<'a> Lowering<'a> {
                     contract.result.requires_unshadowed_receiver,
                     contract.result.receiver,
                     "library_api_js_array_is_array",
+                    None,
                 )
             })
             .or_else(|| {
@@ -251,6 +270,7 @@ impl<'a> Lowering<'a> {
                             true,
                             contract.result.receiver,
                             "library_api_map_key_view_wrapper",
+                            Some(library_map_key_view_wrapper_result_domain(contract)),
                         )
                     },
                 )
@@ -260,7 +280,13 @@ impl<'a> Lowering<'a> {
         if contract.3 {
             dependencies.push(self.unshadowed_global_evidence_id(receiver_node, contract.4)?);
         }
-        Some((contract.0, contract.1, dependencies, contract.5))
+        Some(LibraryApiEvidencePlan {
+            id: contract.0,
+            callee: contract.1,
+            dependencies,
+            rule: contract.5,
+            result_domain: contract.6,
+        })
     }
 
     fn static_member_callee(&self, callee: NodeId) -> Option<(NodeId, &str, &str)> {
@@ -302,12 +328,13 @@ impl<'a> Lowering<'a> {
             dependencies
                 .push(self.unshadowed_global_evidence_id(callee, contract.result.function)?);
         }
-        Some((
-            contract.id,
-            contract.callee,
+        Some(LibraryApiEvidencePlan {
+            id: contract.id,
+            callee: contract.callee,
             dependencies,
-            "library_api_js_boolean_coercion",
-        ))
+            rule: "library_api_js_boolean_coercion",
+            result_domain: None,
+        })
     }
 
     fn imported_collection_factory_api_contract(
@@ -330,12 +357,15 @@ impl<'a> Lowering<'a> {
                     };
                     let dependency =
                         self.record_imported_binding_symbol_for_node(callee, module, expected)?;
-                    Some((
-                        contract.id,
-                        contract.callee,
-                        vec![dependency],
-                        "library_api_imported_collection_factory",
-                    ))
+                    Some(LibraryApiEvidencePlan {
+                        id: contract.id,
+                        callee: contract.callee,
+                        dependencies: vec![dependency],
+                        rule: "library_api_imported_collection_factory",
+                        result_domain: library_collection_factory_result_domain_for_arity(
+                            contract, arg_count,
+                        ),
+                    })
                 })
             }
             NodeKind::Field => {
@@ -355,12 +385,15 @@ impl<'a> Lowering<'a> {
                     }
                     let dependency =
                         self.record_imported_namespace_symbol_for_node(receiver, module)?;
-                    Some((
-                        contract.id,
-                        contract.callee,
-                        vec![dependency],
-                        "library_api_imported_collection_factory",
-                    ))
+                    Some(LibraryApiEvidencePlan {
+                        id: contract.id,
+                        callee: contract.callee,
+                        dependencies: vec![dependency],
+                        rule: "library_api_imported_collection_factory",
+                        result_domain: library_collection_factory_result_domain_for_arity(
+                            contract, arg_count,
+                        ),
+                    })
                 })
             }
             _ => None,
@@ -387,12 +420,13 @@ impl<'a> Lowering<'a> {
         };
         let receiver = self.b.children(callee).first().copied()?;
         let dependency = self.record_imported_namespace_symbol_for_node(receiver, module)?;
-        Some((
-            contract.id,
-            contract.callee,
-            vec![dependency],
-            "library_api_imported_namespace_function",
-        ))
+        Some(LibraryApiEvidencePlan {
+            id: contract.id,
+            callee: contract.callee,
+            dependencies: vec![dependency],
+            rule: "library_api_imported_namespace_function",
+            result_domain: None,
+        })
     }
 
     fn java_util_static_member_api_contract(
@@ -401,18 +435,24 @@ impl<'a> Lowering<'a> {
         arg_count: usize,
     ) -> Option<LibraryApiEvidencePlan> {
         let (receiver_node, receiver, method) = self.static_member_callee(callee)?;
-        let (id, callee_contract, rule) =
+        let (id, callee_contract, rule, result_domain) =
             library_java_collection_factory_contract(self.lang, receiver, method)
                 .map(|contract| {
                     (
                         contract.id,
                         contract.callee,
                         "library_api_java_collection_factory",
+                        library_collection_factory_result_domain_for_arity(contract, arg_count),
                     )
                 })
                 .or_else(|| {
                     library_java_map_factory_contract(self.lang, receiver, method).map(|contract| {
-                        (contract.id, contract.callee, "library_api_java_map_factory")
+                        (
+                            contract.id,
+                            contract.callee,
+                            "library_api_java_map_factory",
+                            Some(library_map_factory_result_domain(contract)),
+                        )
                     })
                 })
                 .or_else(|| {
@@ -424,6 +464,7 @@ impl<'a> Lowering<'a> {
                                 contract.id,
                                 contract.callee,
                                 "library_api_java_map_entry_factory",
+                                None,
                             )
                         })
                 })
@@ -436,10 +477,17 @@ impl<'a> Lowering<'a> {
                             contract.id,
                             contract.callee,
                             "library_api_java_static_collection_adapter",
+                            None,
                         )
                     })
                 })?;
-        self.java_util_static_member_evidence_plan(receiver_node, id, callee_contract, rule)
+        self.java_util_static_member_evidence_plan(
+            receiver_node,
+            id,
+            callee_contract,
+            rule,
+            result_domain,
+        )
     }
 
     fn java_util_static_member_evidence_plan(
@@ -448,6 +496,7 @@ impl<'a> Lowering<'a> {
         id: LibraryApiContractId,
         callee_contract: LibraryApiCalleeContract,
         rule: &'static str,
+        result_domain: Option<DomainEvidence>,
     ) -> Option<LibraryApiEvidencePlan> {
         let LibraryApiCalleeContract::JavaUtilStaticMember {
             receiver: expected_receiver,
@@ -461,7 +510,13 @@ impl<'a> Lowering<'a> {
             "java.util",
             expected_receiver,
         )?;
-        Some((id, callee_contract, vec![dependency], rule))
+        Some(LibraryApiEvidencePlan {
+            id,
+            callee: callee_contract,
+            dependencies: vec![dependency],
+            rule,
+            result_domain,
+        })
     }
 
     fn regex_literal_method_api_contract(
@@ -486,12 +541,13 @@ impl<'a> Lowering<'a> {
         };
         let receiver = self.b.children(callee).first().copied()?;
         let dependency = self.source_fact_evidence_id(receiver, required_receiver_fact)?;
-        Some((
-            contract.id,
-            contract.callee,
-            vec![dependency],
-            "library_api_regex_literal_method",
-        ))
+        Some(LibraryApiEvidencePlan {
+            id: contract.id,
+            callee: contract.callee,
+            dependencies: vec![dependency],
+            rule: "library_api_regex_literal_method",
+            result_domain: None,
+        })
     }
 
     fn js_global_constructor_api_contract(
@@ -515,6 +571,7 @@ impl<'a> Lowering<'a> {
                     contract.callee,
                     receiver,
                     "library_api_js_set_constructor",
+                    library_collection_factory_result_domain_for_arity(contract, arg_count),
                 )
             })
             .or_else(|| {
@@ -526,6 +583,7 @@ impl<'a> Lowering<'a> {
                             contract.callee,
                             receiver,
                             "library_api_js_map_constructor",
+                            Some(library_map_factory_result_domain(contract)),
                         )
                     })
             })?;
@@ -540,7 +598,13 @@ impl<'a> Lowering<'a> {
                 dependencies.push(self.unshadowed_global_evidence_id(callee, contract.2)?);
             }
         }
-        Some((contract.0, contract.1, dependencies, contract.3))
+        Some(LibraryApiEvidencePlan {
+            id: contract.0,
+            callee: contract.1,
+            dependencies,
+            rule: contract.3,
+            result_domain: contract.4,
+        })
     }
 
     fn source_fact_evidence_id(
@@ -1145,6 +1209,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                 contract.id,
                 contract.callee,
                 "library_api_free_name_collection_factory",
+                library_collection_factory_result_domain_for_arity(contract, arg_count),
             )
         })
         .or_else(|| {
@@ -1156,6 +1221,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                         contract.id,
                         contract.callee,
                         "library_api_free_name_map_factory",
+                        Some(library_map_factory_result_domain(contract)),
                     )
                 })
         })
@@ -1165,6 +1231,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                     contract.id,
                     contract.callee,
                     "library_api_rust_vec_macro_factory",
+                    library_collection_factory_result_domain_for_arity(contract, arg_count),
                 )
             })
         })
@@ -1177,10 +1244,11 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                         contract.id,
                         contract.callee,
                         "library_api_rust_vec_new_factory",
+                        library_collection_factory_result_domain_for_arity(contract, arg_count),
                     )
                 })
         });
-    let Some((id, callee_contract, rule)) = contract else {
+    let Some((id, callee_contract, rule, result_domain)) = contract else {
         return false;
     };
     if il.meta.lang == Lang::Python
@@ -1233,7 +1301,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         }
         _ => return false,
     }
-    post_lower_library_api_evidence_id(
+    let api = post_lower_library_api_evidence_id(
         il,
         call,
         id,
@@ -1242,6 +1310,7 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         rule,
         dependencies,
     );
+    post_lower_record_library_api_result_domain(il, call, result_domain, api);
     true
 }
 
@@ -1295,7 +1364,7 @@ fn record_post_lower_ruby_static_member_library_api(
     else {
         return false;
     };
-    post_lower_library_api_evidence_id(
+    let api = post_lower_library_api_evidence_id(
         il,
         call,
         contract.id,
@@ -1303,6 +1372,12 @@ fn record_post_lower_ruby_static_member_library_api(
         arg_count,
         "library_api_ruby_require_static_member",
         vec![receiver_dependency, require_dependency],
+    );
+    post_lower_record_library_api_result_domain(
+        il,
+        call,
+        library_collection_factory_result_domain_for_arity(contract, arg_count),
+        api,
     );
     true
 }
@@ -1419,6 +1494,23 @@ fn post_lower_library_api_evidence_id(
         dependencies,
     )
     .expect("post-lower LibraryApi evidence insertion should always produce an id")
+}
+
+fn post_lower_record_library_api_result_domain(
+    il: &mut Il,
+    call: NodeId,
+    result_domain: Option<DomainEvidence>,
+    api: EvidenceId,
+) {
+    if let Some(domain) = result_domain {
+        let _ = post_lower_find_or_push_evidence(
+            il,
+            EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+            EvidenceKind::Domain(domain),
+            "library_api_result_domain",
+            vec![api],
+        );
+    }
 }
 
 fn post_lower_find_or_push_evidence(
@@ -2143,6 +2235,118 @@ mod tests {
             .count()
     }
 
+    fn library_api_evidence_ids_in_records(
+        evidence: &[EvidenceRecord],
+        contract_hash: u64,
+        callee_hash: u64,
+    ) -> Vec<EvidenceId> {
+        evidence
+            .iter()
+            .filter_map(|record| {
+                matches!(
+                    record.kind,
+                    EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                        contract_hash: actual_contract,
+                        callee_hash: actual_callee,
+                        ..
+                    }) if actual_contract == contract_hash && actual_callee == callee_hash
+                )
+                .then_some(record.id)
+            })
+            .collect()
+    }
+
+    fn library_api_evidence_ids_at(
+        evidence: &[EvidenceRecord],
+        span: Span,
+        contract_hash: u64,
+        callee_hash: u64,
+        arity: u16,
+    ) -> Vec<EvidenceId> {
+        evidence
+            .iter()
+            .filter_map(|record| {
+                (record.anchor == EvidenceAnchor::node(span, NodeKind::Call)
+                    && matches!(
+                        record.kind,
+                        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                            contract_hash: actual_contract,
+                            callee_hash: actual_callee,
+                            arity: actual_arity,
+                        }) if actual_contract == contract_hash
+                            && actual_callee == callee_hash
+                            && actual_arity == arity
+                    ))
+                .then_some(record.id)
+            })
+            .collect()
+    }
+
+    fn result_domain_depends_on_api(
+        evidence: &[EvidenceRecord],
+        span: Span,
+        domain: DomainEvidence,
+        api_ids: &[EvidenceId],
+    ) -> bool {
+        evidence.iter().any(|record| {
+            record.anchor == EvidenceAnchor::node(span, NodeKind::Call)
+                && record.kind == EvidenceKind::Domain(domain)
+                && record.dependencies.len() == 1
+                && api_ids.contains(&record.dependencies[0])
+        })
+    }
+
+    fn result_domain_any_count_at(evidence: &[EvidenceRecord], span: Span) -> usize {
+        evidence
+            .iter()
+            .filter(|record| {
+                record.anchor == EvidenceAnchor::node(span, NodeKind::Call)
+                    && matches!(record.kind, EvidenceKind::Domain(_))
+            })
+            .count()
+    }
+
+    fn result_domain_depends_on_any_api(
+        evidence: &[EvidenceRecord],
+        domain: DomainEvidence,
+        api_ids: &[EvidenceId],
+    ) -> bool {
+        evidence.iter().any(|record| {
+            matches!(record.kind, EvidenceKind::Domain(actual) if actual == domain)
+                && record.dependencies.len() == 1
+                && api_ids.contains(&record.dependencies[0])
+        })
+    }
+
+    fn result_domain_record_count(evidence: &[EvidenceRecord], domain: DomainEvidence) -> usize {
+        evidence
+            .iter()
+            .filter(
+                |record| matches!(record.kind, EvidenceKind::Domain(actual) if actual == domain),
+            )
+            .filter(|record| !record.dependencies.is_empty())
+            .count()
+    }
+
+    fn call_node_with_result_domain(il: &Il, domain: DomainEvidence) -> Option<NodeId> {
+        let span = il
+            .evidence
+            .iter()
+            .find_map(|record| match (record.anchor, record.kind) {
+                (
+                    EvidenceAnchor::Node {
+                        span,
+                        kind: NodeKind::Call,
+                    },
+                    EvidenceKind::Domain(actual),
+                ) if actual == domain => Some(span),
+                _ => None,
+            })?;
+        il.nodes.iter().enumerate().find_map(|(idx, node)| {
+            (node.kind == NodeKind::Call && node.span == span).then_some(NodeId(idx as u32))
+        })
+    }
+
     #[test]
     fn core_lowering_emits_import_backed_library_api_occurrences() {
         let interner = Interner::new();
@@ -2216,6 +2420,318 @@ mod tests {
                 library_api_callee_contract_hash(contract.callee),
             ),
             1
+        );
+    }
+
+    #[test]
+    fn core_lowering_emits_result_domain_evidence_for_library_api_factories() {
+        let interner = Interner::new();
+
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
+        import_binding(&mut lo, sp_at(1), "Values", "collections", "deque");
+        let callee = lo.var("Values", sp_at(2));
+        let seq = lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp_at(3),
+            &[],
+        );
+        lo.add(NodeKind::Call, Payload::None, sp_at(4), &[callee, seq]);
+        let deque = nose_semantics::library_imported_collection_factory_contract(
+            Lang::Python,
+            "collections",
+            "deque",
+        )
+        .expect("deque contract");
+        let deque_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(deque.id),
+            library_api_callee_contract_hash(deque.callee),
+        );
+        assert!(
+            result_domain_depends_on_api(
+                &lo.evidence,
+                sp_at(4),
+                DomainEvidence::Collection,
+                &deque_api,
+            ),
+            "collections.deque result domain should depend on the admitted LibraryApi occurrence"
+        );
+
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Java, &interner);
+        import_binding(&mut lo, sp_at(10), "List", "java.util", "List");
+        import_binding(&mut lo, sp_at(11), "Set", "java.util", "Set");
+        import_binding(&mut lo, sp_at(12), "Map", "java.util", "Map");
+        import_binding(&mut lo, sp_at(13), "Arrays", "java.util", "Arrays");
+
+        let list = lo.var("List", sp_at(20));
+        let list_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp_at(21),
+            &[list],
+        );
+        let item = lo.int_lit("1", sp_at(22));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(23),
+            &[list_callee, item],
+        );
+        let list_contract =
+            library_java_collection_factory_contract(Lang::Java, "List", "of").unwrap();
+        let list_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(list_contract.id),
+            library_api_callee_contract_hash(list_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(23),
+            DomainEvidence::Collection,
+            &list_api,
+        ));
+
+        let set = lo.var("Set", sp_at(30));
+        let set_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp_at(31),
+            &[set],
+        );
+        let item = lo.int_lit("1", sp_at(32));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(33),
+            &[set_callee, item],
+        );
+        let set_contract =
+            library_java_collection_factory_contract(Lang::Java, "Set", "of").unwrap();
+        let set_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(set_contract.id),
+            library_api_callee_contract_hash(set_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(33),
+            DomainEvidence::Set,
+            &set_api,
+        ));
+
+        let map = lo.var("Map", sp_at(40));
+        let map_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("of")),
+            sp_at(41),
+            &[map],
+        );
+        let key = lo.str_lit("\"red\"", sp_at(42));
+        let value = lo.int_lit("1", sp_at(43));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(44),
+            &[map_callee, key, value],
+        );
+        let map_contract = library_java_map_factory_contract(Lang::Java, "Map", "of").unwrap();
+        let map_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(map_contract.id),
+            library_api_callee_contract_hash(map_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(44),
+            DomainEvidence::Map,
+            &map_api,
+        ));
+
+        let arrays = lo.var("Arrays", sp_at(46));
+        let as_list_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("asList")),
+            sp_at(47),
+            &[arrays],
+        );
+        let maybe_array = lo.var("items", sp_at(48));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(49),
+            &[as_list_callee, maybe_array],
+        );
+        assert_eq!(
+            result_domain_any_count_at(&lo.evidence, sp_at(49)),
+            0,
+            "single-argument Arrays.asList must not emit any result-domain evidence"
+        );
+
+        let arrays = lo.var("Arrays", sp_at(55));
+        let as_list_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("asList")),
+            sp_at(56),
+            &[arrays],
+        );
+        let red = lo.str_lit("\"red\"", sp_at(57));
+        let blue = lo.str_lit("\"blue\"", sp_at(58));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(59),
+            &[as_list_callee, red, blue],
+        );
+        let as_list_contract =
+            library_java_collection_factory_contract(Lang::Java, "Arrays", "asList").unwrap();
+        let as_list_api = library_api_evidence_ids_at(
+            &lo.evidence,
+            sp_at(59),
+            library_api_contract_id_hash(as_list_contract.id),
+            library_api_callee_contract_hash(as_list_contract.callee),
+            2,
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(59),
+            DomainEvidence::Collection,
+            &as_list_api,
+        ));
+
+        let map = lo.var("Map", sp_at(50));
+        let entry_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("entry")),
+            sp_at(51),
+            &[map],
+        );
+        let key = lo.str_lit("\"red\"", sp_at(52));
+        let value = lo.int_lit("1", sp_at(53));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(54),
+            &[entry_callee, key, value],
+        );
+        let entry_contract = library_java_map_entry_contract(Lang::Java, "Map", "entry").unwrap();
+        assert_eq!(
+            library_api_evidence_count(
+                &lo,
+                library_api_contract_id_hash(entry_contract.id),
+                library_api_callee_contract_hash(entry_contract.callee),
+            ),
+            1
+        );
+        assert_eq!(
+            result_domain_any_count_at(&lo.evidence, sp_at(54)),
+            0,
+            "Map.entry returns an entry value, not any receiver-domain container"
+        );
+
+        let arrays = lo.var("Arrays", sp_at(60));
+        let stream_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("stream")),
+            sp_at(61),
+            &[arrays],
+        );
+        let values = lo.var("values", sp_at(62));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(63),
+            &[stream_callee, values],
+        );
+        assert_eq!(
+            result_domain_any_count_at(&lo.evidence, sp_at(63)),
+            0,
+            "Arrays.stream produces a stream/protocol surface, not any receiver-domain container"
+        );
+
+        let mut lo = Lowering::new(FileId(0), b"", Lang::JavaScript, &interner);
+        let set = lo.unshadowed_global_var("Set", sp_at(70));
+        let seq = lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp_at(71),
+            &[],
+        );
+        lo.record_source_fact(sp_at(72), SourceFactKind::Call(SourceCallKind::Construct));
+        lo.add(NodeKind::Call, Payload::None, sp_at(72), &[set, seq]);
+        let set_contract = library_js_like_set_constructor_contract(Lang::JavaScript, "Set")
+            .expect("Set constructor");
+        let set_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(set_contract.id),
+            library_api_callee_contract_hash(set_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(72),
+            DomainEvidence::Set,
+            &set_api,
+        ));
+
+        let map = lo.unshadowed_global_var("Map", sp_at(80));
+        let seq = lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp_at(81),
+            &[],
+        );
+        lo.record_source_fact(sp_at(82), SourceFactKind::Call(SourceCallKind::Construct));
+        lo.add(NodeKind::Call, Payload::None, sp_at(82), &[map, seq]);
+        let map_contract = library_js_like_map_constructor_contract(Lang::JavaScript, "Map")
+            .expect("Map constructor");
+        let map_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(map_contract.id),
+            library_api_callee_contract_hash(map_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(82),
+            DomainEvidence::Map,
+            &map_api,
+        ));
+
+        let array = lo.unshadowed_global_var("Array", sp_at(90));
+        let from_callee = lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("from")),
+            sp_at(91),
+            &[array],
+        );
+        lo.record_qualified_global_symbol(sp_at(91), NodeKind::Field, "Array.from");
+        let iterable = lo.var("iterable", sp_at(92));
+        lo.add(
+            NodeKind::Call,
+            Payload::None,
+            sp_at(93),
+            &[from_callee, iterable],
+        );
+        let from_contract =
+            library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1).unwrap();
+        let from_api = library_api_evidence_ids_in_records(
+            &lo.evidence,
+            library_api_contract_id_hash(from_contract.id),
+            library_api_callee_contract_hash(from_contract.callee),
+        );
+        assert!(result_domain_depends_on_api(
+            &lo.evidence,
+            sp_at(93),
+            DomainEvidence::Array,
+            &from_api,
+        ));
+
+        let boolean = lo.unshadowed_global_var("Boolean", sp_at(100));
+        let value = lo.var("value", sp_at(101));
+        lo.add(NodeKind::Call, Payload::None, sp_at(102), &[boolean, value]);
+        assert_eq!(
+            result_domain_any_count_at(&lo.evidence, sp_at(102)),
+            0,
+            "Boolean(...) has LibraryApi identity but no container result-domain"
         );
     }
 
@@ -2443,6 +2959,173 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
                 library_api_callee_contract_hash(ruby_contract.callee),
             ),
             0
+        );
+    }
+
+    #[test]
+    fn post_lowering_emits_result_domains_for_supported_factories() {
+        let interner = Interner::new();
+
+        let py_list = crate::lower_source(
+            FileId(0),
+            "builtin_list.py",
+            b"def f(values):\n    return list(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let list_contract =
+            library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
+        let list_api = library_api_evidence_ids_in_records(
+            &py_list.evidence,
+            library_api_contract_id_hash(list_contract.id),
+            library_api_callee_contract_hash(list_contract.callee),
+        );
+        assert!(result_domain_depends_on_any_api(
+            &py_list.evidence,
+            DomainEvidence::Collection,
+            &list_api,
+        ));
+
+        let py_set = crate::lower_source(
+            FileId(0),
+            "builtin_set.py",
+            b"def f(values):\n    return set(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let set_contract =
+            library_free_name_collection_factory_contract(Lang::Python, "set").unwrap();
+        let set_api = library_api_evidence_ids_in_records(
+            &py_set.evidence,
+            library_api_contract_id_hash(set_contract.id),
+            library_api_callee_contract_hash(set_contract.callee),
+        );
+        assert!(result_domain_depends_on_any_api(
+            &py_set.evidence,
+            DomainEvidence::Set,
+            &set_api,
+        ));
+
+        let shadowed_py = crate::lower_source(
+            FileId(0),
+            "shadowed.py",
+            b"def f(list, values):\n    return list(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            result_domain_record_count(&shadowed_py.evidence, DomainEvidence::Collection),
+            0,
+            "shadowed list(...) must not emit result-domain evidence"
+        );
+
+        let rust_vec = crate::lower_source(
+            FileId(0),
+            "vec.rs",
+            b"fn f() { let xs = Vec::new(); }",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        let vec_contract = library_rust_vec_new_factory_contract(Lang::Rust, "Vec::new").unwrap();
+        let vec_api = library_api_evidence_ids_in_records(
+            &rust_vec.evidence,
+            library_api_contract_id_hash(vec_contract.id),
+            library_api_callee_contract_hash(vec_contract.callee),
+        );
+        assert!(result_domain_depends_on_any_api(
+            &rust_vec.evidence,
+            DomainEvidence::Collection,
+            &vec_api,
+        ));
+
+        let rust_map = crate::lower_source(
+            FileId(0),
+            "hash_map.rs",
+            b"fn f() { let xs = std::collections::HashMap::from([(\"red\", 1)]); }",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        let map_contract =
+            library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from")
+                .unwrap();
+        let map_api = library_api_evidence_ids_in_records(
+            &rust_map.evidence,
+            library_api_contract_id_hash(map_contract.id),
+            library_api_callee_contract_hash(map_contract.callee),
+        );
+        assert!(result_domain_depends_on_any_api(
+            &rust_map.evidence,
+            DomainEvidence::Map,
+            &map_api,
+        ));
+
+        let ruby = crate::lower_source(
+            FileId(0),
+            "set.rb",
+            b"require \"set\"\n\ndef f(values)\n  Set.new(values)\nend\n",
+            Lang::Ruby,
+            &interner,
+        )
+        .expect("ruby lowering should succeed");
+        let ruby_contract = library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap();
+        let ruby_api = library_api_evidence_ids_in_records(
+            &ruby.evidence,
+            library_api_contract_id_hash(ruby_contract.id),
+            library_api_callee_contract_hash(ruby_contract.callee),
+        );
+        assert!(result_domain_depends_on_any_api(
+            &ruby.evidence,
+            DomainEvidence::Set,
+            &ruby_api,
+        ));
+
+        let missing_require = crate::lower_source(
+            FileId(0),
+            "set_missing_require.rb",
+            b"def f(values)\n  Set.new(values)\nend\n",
+            Lang::Ruby,
+            &interner,
+        )
+        .expect("ruby lowering should succeed");
+        assert_eq!(
+            result_domain_record_count(&missing_require.evidence, DomainEvidence::Set),
+            0,
+            "Ruby Set.new must not emit result-domain evidence without require proof"
+        );
+    }
+
+    #[test]
+    fn result_domain_evidence_requires_live_library_api_dependency() {
+        let interner = Interner::new();
+        let mut il = crate::lower_source(
+            FileId(0),
+            "set.js",
+            b"function f(value) { return new Set([value]).has(value); }",
+            Lang::JavaScript,
+            &interner,
+        )
+        .expect("js lowering should succeed");
+        let call = call_node_with_result_domain(&il, DomainEvidence::Set)
+            .expect("new Set result should carry Set domain evidence");
+        assert_eq!(
+            nose_semantics::domain_evidence_for_node(&il, call),
+            Some(DomainEvidence::Set)
+        );
+
+        for record in &mut il.evidence {
+            if matches!(record.kind, EvidenceKind::LibraryApi(_)) {
+                record.status = EvidenceStatus::Ambiguous;
+            }
+        }
+        assert_eq!(
+            nose_semantics::domain_evidence_for_node(&il, call),
+            None,
+            "receiver-domain proof must close when the LibraryApi dependency is ambiguous"
         );
     }
 

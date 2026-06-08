@@ -145,6 +145,15 @@ obligations through `DomainRequirement`; obligations such as imported namespace,
 unshadowed global, exact map literal, and future demand/effect constraints remain
 separate checks.
 
+Selected `LibraryApi` result-domain evidence follows the same model. A
+first-party factory call result may carry `Domain(Collection)`, `Domain(Set)`,
+`Domain(Map)`, or `Domain(Array)` only after the call occurrence has admitted
+`LibraryApi` evidence. The `Domain` record depends on that `LibraryApi` record,
+so broken import, source, shadowing, or symbol proof closes the receiver-domain
+claim as well. The result-domain record proves only the container/protocol shape
+of the call result; exact consumers still prove argument safety, entry shape,
+mutation, receiver requirements, and demand/effect obligations separately.
+
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,
@@ -205,10 +214,11 @@ instead of accepting an unrelated imported symbol elsewhere in the file.
 
 First-party frontends now mirror these facts into `EvidenceRecord`:
 
-- parameter semantic annotations become `Domain` evidence. Current first-party
-  frontends do not yet emit receiver-expression `Domain` evidence directly, but
-  the internal consumer contract already accepts exact node-anchored receiver
-  facts for future packs and inference producers;
+- parameter semantic annotations become `Domain` evidence. Selected first-party
+  library/API factory calls now also emit receiver-expression `Domain` evidence
+  at the exact call node after their `LibraryApi` occurrence has been admitted.
+  Future packs and inference producers should use the same node-anchored
+  receiver-domain shape instead of selector spelling;
 - source-origin facts become `Source` evidence;
 - import binding and namespace lowering emits `Import` evidence for the proof RHS
   and `Symbol` evidence for the local alias identity;
@@ -257,6 +267,20 @@ First-party frontends now mirror these facts into `EvidenceRecord`:
   arities, unsupported static paths, unresolved free-name/path factories, and
   Ruby require-backed APIs without require evidence do not emit API occurrence
   evidence;
+- selected `LibraryApi` producer-covered result calls emit dependent
+  receiver-expression `Domain` evidence: Python `list`/`tuple` and
+  `collections.deque`, Rust `Vec::new`, `vec!`, and
+  `std::collections::VecDeque::from`, Java `List.of` and zero- or multi-argument
+  `Arrays.asList` as `Collection`; Python `set`/`frozenset`, Rust
+  `std::collections::{HashSet,BTreeSet}::from`, Java `Set.of`, Ruby
+  `Set.new`, and JS-like `new Set` as `Set`; Rust
+  `std::collections::{HashMap,BTreeMap}::from`, Java `Map.of`/`Map.ofEntries`,
+  and JS-like `new Map` as `Map`; and JS-like one-argument `Array.from` as
+  `Array`. `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`,
+  `math.prod`, `Arrays.stream`, map `get`, iterator adapters, promise `.then`,
+  and generic method contracts do not emit `Domain` records because their
+  results are not simple container receiver domains under the current
+  vocabulary;
 - lowered `Seq` surfaces emit `SequenceSurface` evidence, including Go map
   literal and Go map-entry surfaces where those tags carry first-party meaning.
 
@@ -277,8 +301,13 @@ callers:
   value-graph membership/property/map/integer gates, and strict exact receiver
   gates. Consumers ask `nose-semantics` whether a receiver satisfies a
   `DomainRequirement`, so node-anchored receiver evidence, scoped parameter
-  evidence, ambiguity handling, and compatibility fallback are no longer
-  reimplemented separately in each crate;
+  evidence, selected API result-domain evidence, ambiguity handling, and
+  compatibility fallback are no longer reimplemented separately in each crate.
+  Coarse API result-domain evidence is not exact-tree proof: value-graph
+  consumers prefer concrete factory/result-shape canonicalization before using a
+  domain-shaped fallback, and strict exact consumers still require the receiver
+  expression itself to satisfy the relevant factory, literal, binding, or
+  typed-variable safety contract;
 - import proof parsing for compatibility helpers, with value-graph import
   identity and imported literal replacement consuming evidence-only facts;
 - cross-file imported literal replacement copies the provider's closed evidence
@@ -330,7 +359,7 @@ callers:
   or conflicting evidence keeps the exact path closed.
 
 Broader field/place/effect facts, `LibraryApi` occurrence evidence for remaining
-receiver-method APIs and unmodeled stdlib/ecosystem APIs, producer coverage for
+receiver-method APIs and unmodeled stdlib/ecosystem APIs, broader inferred
 receiver-expression domain evidence, immutable local/module binding domain
 evidence, full protocol/demand/effect receiver obligations, full
 scope-resolution and namespace-member evidence, broader guard evidence, general

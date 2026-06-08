@@ -1803,20 +1803,20 @@ impl<'a> Builder<'a> {
                     return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, map]));
                 }
             }
-            let receiver_param_safe = match contract.receiver {
-                MethodReceiverContract::ExactSetOrMap => self.is_set_param_expr(receiver),
-                _ => self.is_collection_param_expr(receiver),
-            };
-            if receiver_param_safe {
-                let collection = self.eval_membership_collection(receiver, env);
-                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
-            }
             let receiver_value = self.eval(receiver, env);
             if let Some(collection) = self
                 .proven_collection_value(receiver_value)
                 .or_else(|| self.proven_local_collection_binding_value(receiver, env))
             {
                 let collection = self.canonical_membership_collection_value(collection);
+                return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
+            }
+            let receiver_param_safe = match contract.receiver {
+                MethodReceiverContract::ExactSetOrMap => self.is_set_param_expr(receiver),
+                _ => self.is_collection_param_expr(receiver),
+            };
+            if receiver_param_safe {
+                let collection = self.eval_membership_collection(receiver, env);
                 return Some(self.mk(ValOp::Bin(Op::In as u32), vec![element, collection]));
             }
             None
@@ -6752,10 +6752,6 @@ impl<'a> Builder<'a> {
         collection: NodeId,
         env: &FxHashMap<u32, ValueId>,
     ) -> ValueId {
-        if self.is_collection_param_expr(collection) {
-            let value = self.eval(collection, env);
-            return self.mk(ValOp::CollectionParam, vec![value]);
-        }
         if self.il.kind(collection) == NodeKind::Seq {
             if self
                 .seq_surface(collection)
@@ -6771,11 +6767,16 @@ impl<'a> Builder<'a> {
             return self.canonical_membership_collection_value(value);
         }
         let value = self.eval(collection, env);
-        let collection = self
+        if let Some(collection) = self
             .proven_collection_value(value)
             .or_else(|| self.proven_local_collection_binding_value(collection, env))
-            .unwrap_or(value);
-        self.canonical_membership_collection_value(collection)
+        {
+            return self.canonical_membership_collection_value(collection);
+        }
+        if self.is_collection_param_expr(collection) {
+            return self.mk(ValOp::CollectionParam, vec![value]);
+        }
+        self.canonical_membership_collection_value(value)
     }
 
     fn canonical_membership_collection_value(&mut self, value: ValueId) -> ValueId {
@@ -8718,6 +8719,75 @@ mod tests {
         assert!(
             !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == Op::In as u32),
             "conflicting receiver-domain evidence must close the exact membership rewrite"
+        );
+    }
+
+    #[test]
+    fn membership_call_consumes_library_api_result_domain_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let factory_callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("list")),
+            sp(40),
+            &[],
+        );
+        let seed = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(41),
+            &[],
+        );
+        let receiver = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(42),
+            &[factory_callee, seed],
+        );
+        let callee = b.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern("includes")),
+            sp(43),
+            &[receiver],
+        );
+        let item = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("item")),
+            sp(44),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(45), &[callee, item]);
+        let root = b.add(NodeKind::Block, Payload::None, sp(39), &[call]);
+        let mut il = finish_test_il(b, root, Lang::TypeScript);
+        assert!(
+            !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == Op::In as u32),
+            "call-result receiver must not be collection-like without domain evidence"
+        );
+
+        let api = library_js_like_set_constructor_contract(Lang::TypeScript, "Set").unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            0,
+            sp(42),
+            api.id,
+            api.callee,
+            1,
+            Vec::new(),
+        ));
+        il.evidence.push(evidence_with_dependencies(
+            1,
+            EvidenceAnchor::node(sp(42), NodeKind::Call),
+            EvidenceKind::Domain(DomainEvidence::Set),
+            vec![EvidenceId(0)],
+        ));
+        assert!(matches!(
+            eval_op(&il, &interner, call),
+            ValOp::Bin(op) if op == Op::In as u32
+        ));
+
+        il.evidence[0].status = EvidenceStatus::Ambiguous;
+        assert!(
+            !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == Op::In as u32),
+            "ambiguous LibraryApi dependency must close the call-result receiver proof"
         );
     }
 

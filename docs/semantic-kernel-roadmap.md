@@ -334,6 +334,18 @@ and pack ecosystem.
   `MethodReceiverContract` exposes the subset of receiver obligations that are
   domain-backed, while imported namespace, unshadowed global, map-literal,
   demand, and effect obligations remain separate checks.
+- Selected first-party library/API factory result domains now produce
+  node-anchored `Domain` evidence after the call occurrence has admitted
+  `LibraryApi` evidence. This covers Python builtin/imported collection
+  factories, Rust `Vec::new`/`vec!`/selected `std::collections::*::from`
+  factories, Ruby `Set.new`, Java `List.of`/`Set.of`/zero- or multi-argument
+  `Arrays.asList`/`Map.of`/`Map.ofEntries`, JS-like `new Set`/`new Map`, and
+  JS-like one-argument `Array.from`. The mapping is contract-scoped and
+  deliberately excludes lookalikes, Java single-argument `Arrays.asList(x)`
+  without element-provenance proof, and non-container results such as
+  `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`, `math.prod`,
+  `Arrays.stream`, map `get`, promise `.then`, iterator adapters, and generic
+  method contracts.
 - An experimental `abstraction` scan mode landed as a weak sibling claim over a
   narrow `near` subset. It emits typed literal-hole witnesses and caveats for
   refactoring-template candidates, but does not feed `semantic`, `verify`, or exact
@@ -423,7 +435,9 @@ Remaining in this phase:
   free-name/path factories, Ruby require-backed factories, Java `java.util`
   static factories/adapters, and JS regex literals. Remaining stdlib and
   ecosystem APIs still need dependency-backed occurrence records before they
-  become pack-facing.
+  become pack-facing. Producer-covered factory/API result calls now also emit
+  dependent call-node `Domain` evidence when the current `DomainEvidence`
+  vocabulary can represent the result.
 - Keep value-graph and strict exact gates on the same contract source. Factory,
   constructor, and selected method/view/adapter gates now share
   `LibraryApiContract` identity/result rows, and selected JS-like,
@@ -449,10 +463,12 @@ Remaining in this phase:
   requires per-entry surface evidence.
 - Continue expanding domain evidence beyond parameter annotations. The shared
   receiver-domain consumer contract now accepts exact node-anchored receiver
-  facts, but first-party producers still mostly emit parameter-derived domain
-  evidence. Remaining work is producer coverage for inferred receiver domains,
-  immutable local/module binding domain evidence, mutation exclusion, and
-  protocol-specific receiver facts that include demand/effect obligations.
+  facts, and first-party producers now emit them for selected admitted
+  library/API factory results. Remaining work is broader inferred receiver
+  domains, Java constructor call-domain evidence if that lowering stops
+  collapsing directly to sequence surfaces, immutable local/module binding
+  domain evidence, mutation exclusion, and protocol-specific receiver facts that
+  include demand/effect obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary.
 - Add receiver/place facts so field read/write and property contracts are not

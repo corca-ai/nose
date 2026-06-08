@@ -16,7 +16,9 @@ Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, and selected non-factory method/view surfaces, with
 occurrence evidence covering selected JS-like static/global APIs, Python
 builtin/import-backed APIs, Rust free-name/path APIs, Ruby require-backed APIs,
-Java `java.util` APIs, and JS regex API calls.
+Java `java.util` APIs, and JS regex API calls. Selected producer-covered
+factory/API calls now also emit dependent receiver-expression `Domain` evidence
+for their result container domain.
 
 ## What exists today
 
@@ -97,8 +99,10 @@ migrated.
   fallback. Desugaring, normalize idiom canonicalization, value-graph receiver
   gates, and strict exact receiver gates consume this same helper layer. This
   preserves the current Array/Collection/Set/Map/Option/String/Integer/Number
-  and ByteArray distinctions while opening the internal boundary for future packs
-  or inference passes to attach receiver-expression domain facts directly.
+  and ByteArray distinctions. First-party producers now attach
+  receiver-expression domain facts directly for selected admitted library/API
+  factory results, while future packs or inference passes can use the same
+  node-anchored shape for broader domains.
 - Property builtin contracts are language-constrained; a selector such as
   `length` is not enough without receiver proof. JS/TS `filter(...).length`
   is admitted only after the receiver has already entered a proven collection/HOF
@@ -133,9 +137,17 @@ migrated.
   source. Producer-covered surfaces additionally require admitted `LibraryApi`
   occurrence evidence whose dependencies carry the local import, earlier
   top-level require, unshadowed-global, macro-invocation source,
-  construct-syntax, or regex-literal proof. Receiver/domain, entry-shape,
-  mutation, demand, and exact-safety obligations remain separate contract checks
-  at the consumer.
+  construct-syntax, or regex-literal proof. Selected producer-covered result
+  calls emit dependent `Domain` evidence for the result receiver:
+  collection-like factories as `Collection`, set factories/constructors as
+  `Set`, map factories as `Map`, and JS-like one-argument `Array.from` as
+  `Array`. Java `Arrays.asList(x)` with exactly one argument is excluded because
+  array-spread versus single-element provenance is ambiguous without additional
+  proof. `Map.entry`, `Array.isArray`, `Boolean`, regex `.test`, `math.prod`,
+  `Arrays.stream`, map `get`, iterator adapters, promise `.then`, and generic
+  method contracts do not emit result-domain evidence under the current
+  vocabulary. Entry-shape, mutation, demand, and exact-safety obligations remain
+  separate contract checks at the consumer.
 - Selected non-factory library/API surfaces also consume `LibraryApiContract`
   rows before normalize, value-graph, or strict exact paths assign semantics.
   Current rows cover map-key views and wrappers, Java/Rust/JS-like map `get`,
@@ -175,16 +187,20 @@ migrated.
   evidence; missing, conflicting, or dependency-broken API evidence keeps the
   exact path closed. Older import/symbol/source facts are still required
   dependencies of the occurrence evidence, but they no longer act as fallback
-  API-identity proof for these surfaces. The record proves API identity only;
-  receiver/domain, source, exact-safe argument, result-shape, and mutation
-  obligations remain separate.
+  API-identity proof for these surfaces. Where a producer emits result-domain
+  evidence, that `Domain` record depends on the `LibraryApi` occurrence record,
+  so broken API proof also closes receiver-domain proof. The `LibraryApi` record
+  itself proves API identity only; source, exact-safe argument, result-shape,
+  mutation, and demand/effect obligations remain separate.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require `java.util` import proof and no
   local type declaration with the same simple name. A `java.util.*` wildcard
   import is not enough when another package explicitly imports the same simple
   type; fully-qualified `java.util.*List` names carry the namespace proof in the
-  selector itself.
+  selector itself. These constructors currently lower directly to a sequence
+  surface rather than remaining as raw call nodes, so they do not emit call-node
+  result-domain evidence yet.
 - Builder append contracts are separate from arbitrary method calls. A selector
   such as `push`, `append`, or `add` is not proof by itself. First-party
   frontend/normalize paths must prove the receiver or active-builder contract and

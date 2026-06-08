@@ -4049,6 +4049,55 @@ pub struct LibraryMapKeyViewWrapperContract {
     pub result: MapKeyViewWrapperContract,
 }
 
+pub fn library_collection_factory_result_domain(
+    contract: LibraryCollectionFactoryContract,
+) -> DomainEvidence {
+    match contract.id {
+        LibraryApiContractId::PythonBuiltinCollectionFactory => match contract.callee {
+            LibraryApiCalleeContract::FreeName {
+                name: "set" | "frozenset",
+                ..
+            } => DomainEvidence::Set,
+            _ => DomainEvidence::Collection,
+        },
+        LibraryApiContractId::RustStdCollectionFactory => match contract.callee {
+            LibraryApiCalleeContract::FreeName {
+                name: "std::collections::HashSet::from" | "std::collections::BTreeSet::from",
+                ..
+            } => DomainEvidence::Set,
+            _ => DomainEvidence::Collection,
+        },
+        LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::SetOf)
+        | LibraryApiContractId::RubySetFactory
+        | LibraryApiContractId::JsLikeSetConstructor => DomainEvidence::Set,
+        _ => DomainEvidence::Collection,
+    }
+}
+
+pub fn library_collection_factory_result_domain_for_arity(
+    contract: LibraryCollectionFactoryContract,
+    arg_count: usize,
+) -> Option<DomainEvidence> {
+    match contract.id {
+        LibraryApiContractId::JavaCollectionFactory(JavaCollectionFactoryKind::ArraysAsList)
+            if arg_count == 1 =>
+        {
+            None
+        }
+        _ => Some(library_collection_factory_result_domain(contract)),
+    }
+}
+
+pub fn library_map_factory_result_domain(_contract: LibraryMapFactoryContract) -> DomainEvidence {
+    DomainEvidence::Map
+}
+
+pub fn library_map_key_view_wrapper_result_domain(
+    _contract: LibraryMapKeyViewWrapperContract,
+) -> DomainEvidence {
+    DomainEvidence::Array
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LibraryMapGetContract {
     pub id: LibraryApiContractId,
@@ -8477,6 +8526,129 @@ mod tests {
         assert_eq!(
             library_java_map_factory_contract(Lang::Java, "List", "of"),
             None
+        );
+    }
+
+    #[test]
+    fn library_api_result_domain_mapping_is_contract_scoped() {
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_free_name_collection_factory_contract(Lang::Python, "list").unwrap()
+            ),
+            DomainEvidence::Collection
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_free_name_collection_factory_contract(Lang::Python, "set").unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_free_name_collection_factory_contract(Lang::Python, "frozenset").unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_imported_collection_factory_contract(Lang::Python, "collections", "deque",)
+                    .unwrap()
+            ),
+            DomainEvidence::Collection
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_free_name_collection_factory_contract(
+                    Lang::Rust,
+                    "std::collections::HashSet::from",
+                )
+                .unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_free_name_collection_factory_contract(
+                    Lang::Rust,
+                    "std::collections::VecDeque::from",
+                )
+                .unwrap()
+            ),
+            DomainEvidence::Collection
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_rust_vec_macro_factory_contract(Lang::Rust, "vec").unwrap()
+            ),
+            DomainEvidence::Collection
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_java_collection_factory_contract(Lang::Java, "List", "of").unwrap()
+            ),
+            DomainEvidence::Collection
+        );
+        let as_list =
+            library_java_collection_factory_contract(Lang::Java, "Arrays", "asList").unwrap();
+        assert_eq!(
+            library_collection_factory_result_domain_for_arity(as_list, 0),
+            Some(DomainEvidence::Collection)
+        );
+        assert_eq!(
+            library_collection_factory_result_domain_for_arity(as_list, 1),
+            None,
+            "single-argument Arrays.asList has ambiguous element provenance"
+        );
+        assert_eq!(
+            library_collection_factory_result_domain_for_arity(as_list, 2),
+            Some(DomainEvidence::Collection)
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_java_collection_factory_contract(Lang::Java, "Set", "of").unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_collection_factory_result_domain(
+                library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap()
+            ),
+            DomainEvidence::Set
+        );
+        assert_eq!(
+            library_map_factory_result_domain(
+                library_free_name_map_factory_contract(
+                    Lang::Rust,
+                    "std::collections::HashMap::from",
+                )
+                .unwrap()
+            ),
+            DomainEvidence::Map
+        );
+        assert_eq!(
+            library_map_factory_result_domain(
+                library_java_map_factory_contract(Lang::Java, "Map", "of").unwrap()
+            ),
+            DomainEvidence::Map
+        );
+        assert_eq!(
+            library_map_factory_result_domain(
+                library_js_like_map_constructor_contract(Lang::JavaScript, "Map").unwrap()
+            ),
+            DomainEvidence::Map
+        );
+        assert_eq!(
+            library_map_key_view_wrapper_result_domain(
+                library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1)
+                    .unwrap()
+            ),
+            DomainEvidence::Array
         );
     }
 
