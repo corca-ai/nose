@@ -14,7 +14,8 @@ use nose_il::{
 };
 use nose_normalize::{module_facts::collect_module_mutations, node_tag};
 use nose_semantics::{
-    admitted_hof_api_at_node, builder_append_call_args, construct_syntax_proof,
+    admitted_builtin_semantics_at_call, admitted_hof_api_at_node,
+    asserted_unshadowed_global_symbol, builder_append_call_args, construct_syntax_proof,
     exact_java_return_this, exact_non_overloadable_index_assignment,
     exact_non_overloadable_index_assignment_parts, exact_self_field_write_assignment,
     exact_static_membership_predicate_operator, go_zero_map_default_kind,
@@ -33,11 +34,11 @@ use nose_semantics::{
     nullish_global_contract, opaque_argument_escape_args, own_property_guard_for_node,
     receiver_mutation_call_receiver, record_shape_guard_for_node, semantics,
     seq_surface_contract_for_node, source_comprehension_at_node, source_fact_at_node,
-    source_operator_at_node, typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
-    IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    source_operator_at_node, typeof_operator_contract, DomainRequirement, IndexMembershipThreshold,
+    JavaMapFactoryKind, LibraryApiCalleeContract, LibraryApiEvidenceStatus,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, LibraryMapGetContract,
+    LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract,
+    MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -836,7 +837,10 @@ fn function_binding_safe(
         | NodeKind::Try
         | NodeKind::Throw => false,
         NodeKind::Func if node != root => false,
-        NodeKind::Call => matches!(il.node(node).payload, Payload::Builtin(_)),
+        NodeKind::Call => match il.node(node).payload {
+            Payload::Builtin(builtin) => admitted_builtin_semantics_at_call(il, node, builtin),
+            _ => false,
+        },
         NodeKind::Seq => strict_exact_safe_seq(il, interner, node),
         NodeKind::Lit => exact_literal_safe(il, node),
         NodeKind::Var => {
@@ -1261,7 +1265,7 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
     let Some(contract) = nullish_global_contract(il.meta.lang, name) else {
         return false;
     };
-    !contract.requires_unshadowed || unshadowed_global_symbol(il, interner, node, contract.name)
+    !contract.requires_unshadowed || asserted_unshadowed_global_symbol(il, node, contract.name)
 }
 
 fn strict_exact_rust_option_none_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
@@ -1297,15 +1301,16 @@ fn strict_exact_own_property_guard_seq_safe(il: &Il, interner: &Interner, node: 
 }
 
 fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, node: NodeId) -> bool {
-    if matches!(il.node(node).payload, Payload::Builtin(Builtin::Contains)) {
-        let kids = il.children(node);
-        return kids.len() == 2
-            && strict_exact_safe_tree(il, interner, facts, kids[0])
-            && strict_exact_membership_collection_safe(il, interner, facts, kids[1]);
-    }
     if let Payload::Builtin(builtin) = il.node(node).payload {
+        if !admitted_builtin_semantics_at_call(il, node, builtin) {
+            return false;
+        }
         let kids = il.children(node);
         return match builtin {
+            Builtin::Contains if kids.len() == 2 => {
+                strict_exact_safe_tree(il, interner, facts, kids[0])
+                    && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
+            }
             Builtin::Len if kids.len() == 1 => {
                 strict_exact_len_arg_safe(il, interner, facts, kids[0])
             }
@@ -3904,8 +3909,14 @@ fn call_may_mutate_blocked_cid(
     if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node) {
         return node_mentions_any_cid(il, receiver, blocked);
     }
-    if matches!(il.node(node).payload, Payload::Builtin(_)) {
-        return false;
+    if let Payload::Builtin(builtin) = il.node(node).payload {
+        if admitted_builtin_semantics_at_call(il, node, builtin) {
+            return false;
+        }
+        return il
+            .children(node)
+            .iter()
+            .any(|&arg| node_mentions_any_cid(il, arg, blocked));
     }
     opaque_argument_escape_args(il, node).is_some_and(|args| {
         args.iter()
@@ -3973,9 +3984,9 @@ mod tests {
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
-        library_java_collection_factory_contract, library_js_like_map_constructor_contract,
-        library_js_like_set_constructor_contract, library_method_call_contract,
-        FIRST_PARTY_PACK_ID,
+        library_free_function_builtin_contract, library_java_collection_factory_contract,
+        library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+        library_method_call_contract, FIRST_PARTY_PACK_ID,
     };
 
     fn sp(line: u32) -> Span {
@@ -4166,6 +4177,28 @@ mod tests {
         (il, call, receiver_span)
     }
 
+    fn canonical_python_abs_il() -> (Il, NodeId) {
+        let mut b = IlBuilder::new(FileId(0));
+        let arg = b.add(NodeKind::Lit, Payload::LitInt(-1), sp(71), &[]);
+        let call = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Abs),
+            sp(72),
+            &[arg],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(70), &[call]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.py".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        (il, call)
+    }
+
     #[test]
     fn strict_exact_sequence_surfaces_require_evidence() {
         let interner = Interner::new();
@@ -4211,6 +4244,87 @@ mod tests {
         let facts = StrictFacts::collect(&il, &interner);
 
         assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+    }
+
+    #[test]
+    fn strict_exact_raw_builtin_payload_requires_admission() {
+        let interner = Interner::new();
+        let (mut il, call) = canonical_python_abs_il();
+        let facts = StrictFacts::collect(&il, &interner);
+
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, call),
+            "canonical Abs payload alone must not make a call strict-exact safe"
+        );
+
+        let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
+            .expect("Python abs contract");
+        il.evidence.push(library_api_contract_evidence(
+            0,
+            sp(72),
+            contract.id,
+            contract.callee,
+            1,
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+    }
+
+    #[test]
+    fn function_binding_safe_raw_builtin_payload_requires_admission() {
+        let interner = Interner::new();
+        let (mut il, call) = canonical_python_abs_il();
+        let facts = StrictFacts::collect(&il, &interner);
+
+        assert!(
+            !function_binding_safe(&il, &interner, &facts, call, call),
+            "function binding safety must not trust a raw canonical Abs payload"
+        );
+
+        let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
+            .expect("Python abs contract");
+        il.evidence.push(library_api_contract_evidence(
+            0,
+            sp(72),
+            contract.id,
+            contract.callee,
+            1,
+            Vec::new(),
+        ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(function_binding_safe(&il, &interner, &facts, call, call));
+    }
+
+    #[test]
+    fn raw_append_payload_without_effect_does_not_bypass_mutation_blocking() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let receiver = b.add(NodeKind::Var, Payload::Cid(7), sp(80), &[]);
+        let appended = b.add(NodeKind::Lit, Payload::LitInt(1), sp(81), &[]);
+        let append = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Append),
+            sp(82),
+            &[receiver, appended],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(79), &[append]);
+        let il = b.finish(
+            root,
+            FileMeta {
+                path: "t.py".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        let mut blocked = FxHashSet::default();
+        blocked.insert(7);
+
+        assert!(
+            call_may_mutate_blocked_cid(&il, &interner, append, &blocked),
+            "raw Append payload must not be treated as a proven non-mutating builtin"
+        );
     }
 
     #[test]

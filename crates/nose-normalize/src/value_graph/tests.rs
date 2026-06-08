@@ -187,6 +187,83 @@ fn c_unsigned_cast32_value_graph_requires_source_cast_evidence() {
 }
 
 #[test]
+fn raw_library_builtin_payloads_do_not_fold_without_admission() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let arg = b.add(NodeKind::Lit, Payload::LitInt(-7), sp(1), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Abs),
+        sp(2),
+        &[arg],
+    );
+    let mut il = finish_test_il(b, call, Lang::Python);
+
+    let mut builder = Builder::new(&il, &interner);
+    let raw = builder.eval(call, &FxHashMap::default());
+    assert!(
+        matches!(builder.nodes[raw as usize].op, ValOp::Opaque(_)),
+        "raw canonical Abs payload must not imply Python abs semantics"
+    );
+
+    let contract = library_free_function_builtin_contract(Lang::Python, "abs", 1)
+        .expect("Python abs contract");
+    il.evidence.push(library_api_contract_evidence(
+        0,
+        il.node(call).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    let mut builder = Builder::new(&il, &interner);
+    let admitted = builder.eval(call, &FxHashMap::default());
+    assert!(
+        matches!(builder.nodes[admitted as usize].op, ValOp::Un(code) if code == ABS_CODE),
+        "admitted Python abs payload should fold to the canonical absolute value"
+    );
+}
+
+#[test]
+fn raw_contains_payload_does_not_prove_membership() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let item = b.add(NodeKind::Var, Payload::Cid(0), sp(1), &[]);
+    let collection = b.add(NodeKind::Var, Payload::Cid(1), sp(2), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Contains),
+        sp(3),
+        &[item, collection],
+    );
+    let py_il = finish_test_il(b, call, Lang::Python);
+
+    let mut builder = Builder::new(&py_il, &interner);
+    let raw = builder.eval(call, &FxHashMap::default());
+    assert!(
+        matches!(builder.nodes[raw as usize].op, ValOp::Opaque(_)),
+        "raw Contains payload must not become a membership predicate"
+    );
+
+    let mut b = IlBuilder::new(FileId(0));
+    let item = b.add(NodeKind::Var, Payload::Cid(0), sp(1), &[]);
+    let collection = b.add(NodeKind::Var, Payload::Cid(1), sp(2), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Contains),
+        sp(3),
+        &[item, collection],
+    );
+    let go_il = finish_test_il(b, call, Lang::Go);
+    let mut builder = Builder::new(&go_il, &interner);
+    let admitted = builder.eval(call, &FxHashMap::default());
+    assert!(
+        matches!(builder.nodes[admitted as usize].op, ValOp::Bin(op) if op == Op::In as u32),
+        "Go map lookup-ok lowering remains a language-core membership predicate"
+    );
+}
+
+#[test]
 fn raw_hof_value_graph_requires_source_or_api_admission() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
@@ -1129,7 +1206,40 @@ fn int_lit(b: &mut IlBuilder, value: i64) -> NodeId {
 }
 
 fn builtin(b: &mut IlBuilder, op: Builtin, args: &[NodeId]) -> NodeId {
-    b.add(NodeKind::Call, Payload::Builtin(op), sp(30), args)
+    b.add(
+        NodeKind::Call,
+        Payload::Builtin(op),
+        sp(30 + b.len() as u32),
+        args,
+    )
+}
+
+fn push_canonical_java_minmax_builtin_evidence(il: &mut Il, first_id: u32) {
+    let mut next_id = first_id;
+    for idx in 0..il.nodes.len() {
+        let node = NodeId(idx as u32);
+        let (Payload::Builtin(builtin), arg_count) =
+            (il.node(node).payload, il.children(node).len())
+        else {
+            continue;
+        };
+        let method = match builtin {
+            Builtin::Min => "min",
+            Builtin::Max => "max",
+            _ => continue,
+        };
+        let contract = library_method_call_contract(il.meta.lang, method, arg_count)
+            .expect("min/max contract");
+        il.evidence.push(library_api_contract_evidence(
+            next_id,
+            il.node(node).span,
+            contract.id,
+            contract.callee,
+            arg_count as u16,
+            Vec::new(),
+        ));
+        next_id += 1;
+    }
 }
 
 fn clamp_expr(b: &mut IlBuilder, shape: ClampShape, x: NodeId, lo: NodeId, hi: NodeId) -> NodeId {
@@ -1214,6 +1324,7 @@ fn guarded_function(
             ));
         }
     }
+    push_canonical_java_minmax_builtin_evidence(&mut il, 100);
     let mut builder = Builder::new(&il, &interner);
     builder.build_unit(func);
     (
@@ -1252,6 +1363,7 @@ fn literal_bound_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (u
         EvidenceAnchor::param(sp(1)),
         EvidenceKind::Domain(DomainEvidence::Integer),
     ));
+    push_canonical_java_minmax_builtin_evidence(&mut il, 100);
     let mut builder = Builder::new(&il, &interner);
     builder.build_unit(func);
     (

@@ -3,7 +3,8 @@ use nose_il::{
     EvidenceAnchor, EvidenceEmitter, EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord,
     EvidenceStatus, FileId, FileMeta, GuardEvidenceKind, IlBuilder, ImportEvidenceKind, Interner,
     JsRecordGuardComparison, JsRecordGuardNullCheck, LibraryApiEvidenceKind, ParamSemantic,
-    SequenceSurfaceKind, Span, Symbol, SymbolEvidenceKind, Unit, UnitKind,
+    SequenceSurfaceKind, SourceCastKind, SourceFactKind, Span, Symbol, SymbolEvidenceKind, Unit,
+    UnitKind,
 };
 
 mod js_symbol_guards;
@@ -1247,6 +1248,201 @@ fn library_api_record(
         status,
         dependencies.iter().copied().map(EvidenceId).collect(),
     )
+}
+
+fn canonical_builtin_call_il(
+    lang: Lang,
+    builtin: Builtin,
+    args: &[NodeId],
+    builder: IlBuilder,
+    root: NodeId,
+) -> (Il, NodeId) {
+    let mut builder = builder;
+    let call = builder.add(NodeKind::Call, Payload::Builtin(builtin), sp(40), args);
+    let root = builder.add(NodeKind::Func, Payload::None, sp(41), &[root, call]);
+    (finish_il(builder, root, lang), call)
+}
+
+fn python_len_canonical_call_il() -> (Il, NodeId) {
+    let mut b = IlBuilder::new(FileId(0));
+    let arg = b.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    canonical_builtin_call_il(Lang::Python, Builtin::Len, &[arg], b, arg)
+}
+
+#[test]
+fn canonical_builtin_admission_requires_language_core_or_library_api_evidence() {
+    let (mut il, call) = python_len_canonical_call_il();
+
+    assert!(!admitted_builtin_semantics_at_call(&il, call, Builtin::Len));
+
+    let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
+        .expect("Python len contract");
+    il.evidence.push(library_api_record(
+        10,
+        il.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+    assert!(admitted_builtin_semantics_at_call(&il, call, Builtin::Len));
+    assert!(!admitted_builtin_semantics_at_call(&il, call, Builtin::Abs));
+}
+
+#[test]
+fn canonical_builtin_admission_fails_closed_on_bad_library_api_evidence() {
+    let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
+        .expect("Python len contract");
+
+    let (mut broken, broken_call) = python_len_canonical_call_il();
+    broken.evidence.push(library_api_record(
+        10,
+        broken.node(broken_call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[99],
+    ));
+    assert!(!admitted_builtin_semantics_at_call(
+        &broken,
+        broken_call,
+        Builtin::Len
+    ));
+
+    let (mut ambiguous, ambiguous_call) = python_len_canonical_call_il();
+    ambiguous.evidence.push(library_api_record(
+        10,
+        ambiguous.node(ambiguous_call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Ambiguous,
+        &[],
+    ));
+    assert!(!admitted_builtin_semantics_at_call(
+        &ambiguous,
+        ambiguous_call,
+        Builtin::Len
+    ));
+
+    let (mut conflicting, conflicting_call) = python_len_canonical_call_il();
+    let abs = library_free_function_builtin_contract(Lang::Python, "abs", 1)
+        .expect("Python abs contract");
+    conflicting.evidence.push(library_api_record(
+        10,
+        conflicting.node(conflicting_call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+    conflicting.evidence.push(library_api_record(
+        11,
+        conflicting.node(conflicting_call).span,
+        abs.id,
+        abs.callee,
+        EvidenceStatus::Asserted,
+        &[],
+    ));
+    assert!(!admitted_builtin_semantics_at_call(
+        &conflicting,
+        conflicting_call,
+        Builtin::Len
+    ));
+}
+
+#[test]
+fn canonical_property_builtin_admission_accepts_field_span_evidence() {
+    let mut b = IlBuilder::new(FileId(0));
+    let collection = b.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        sp(40),
+        &[collection],
+    );
+    let root = b.add(NodeKind::Func, Payload::None, sp(41), &[call]);
+    let mut il = finish_il(b, root, Lang::JavaScript);
+    let contract =
+        library_property_builtin_contract(Lang::JavaScript, "length").expect("length contract");
+    il.evidence.push(evidence_with_dependencies(
+        10,
+        EvidenceAnchor::node(il.node(call).span, NodeKind::Field),
+        EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash: library_api_contract_id_hash(contract.id),
+            callee_hash: library_api_callee_contract_hash(contract.callee),
+            arity: 0,
+        }),
+        EvidenceStatus::Asserted,
+        Vec::new(),
+    ));
+
+    assert!(admitted_builtin_semantics_at_call(&il, call, Builtin::Len));
+}
+
+#[test]
+fn canonical_builtin_admission_keeps_language_core_exceptions_narrow() {
+    let mut go = IlBuilder::new(FileId(0));
+    let key = go.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    let map = go.add(NodeKind::Var, Payload::Cid(1), sp(40), &[]);
+    let (go_il, contains) =
+        canonical_builtin_call_il(Lang::Go, Builtin::Contains, &[key, map], go, map);
+    assert!(admitted_builtin_semantics_at_call(
+        &go_il,
+        contains,
+        Builtin::Contains
+    ));
+
+    let mut py = IlBuilder::new(FileId(0));
+    let dict_key = py.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    let dict_value = py.add(NodeKind::Var, Payload::Cid(1), sp(40), &[]);
+    let (py_il, dict_entry) = canonical_builtin_call_il(
+        Lang::Python,
+        Builtin::DictEntry,
+        &[dict_key, dict_value],
+        py,
+        dict_value,
+    );
+    assert!(admitted_builtin_semantics_at_call(
+        &py_il,
+        dict_entry,
+        Builtin::DictEntry
+    ));
+
+    let mut raw_len = IlBuilder::new(FileId(0));
+    let arg = raw_len.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    let (go_len_il, go_len) =
+        canonical_builtin_call_il(Lang::Go, Builtin::Len, &[arg], raw_len, arg);
+    assert!(!admitted_builtin_semantics_at_call(
+        &go_len_il,
+        go_len,
+        Builtin::Len
+    ));
+}
+
+#[test]
+fn c_unsigned_cast_builtin_admission_requires_source_cast_evidence() {
+    let mut b = IlBuilder::new(FileId(0));
+    let arg = b.add(NodeKind::Var, Payload::Cid(0), sp(39), &[]);
+    let (mut il, call) =
+        canonical_builtin_call_il(Lang::C, Builtin::UnsignedCast32, &[arg], b, arg);
+
+    assert!(!admitted_builtin_semantics_at_call(
+        &il,
+        call,
+        Builtin::UnsignedCast32
+    ));
+
+    il.evidence.push(evidence(
+        10,
+        EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
+        EvidenceKind::Source(SourceFactKind::Cast(SourceCastKind::CUnsigned32)),
+        EvidenceStatus::Asserted,
+    ));
+    assert!(admitted_builtin_semantics_at_call(
+        &il,
+        call,
+        Builtin::UnsignedCast32
+    ));
 }
 
 fn java_list_of_import_evidence_il(

@@ -503,6 +503,15 @@ and pack ecosystem.
   occurrence evidence. Set comprehensions and synthetic raw `HoF` payloads stay
   closed; source-proven comprehension internals can still compose their filter
   HOFs within the proven surface.
+- Raw canonical `Payload::Builtin` admission now goes through
+  `admitted_builtin_semantics_at_call` before value-graph folding, builtin
+  fallback tagging, range/len/zip/enumerate loop patterns, strict-exact builtin
+  calls, function-binding safety, or mutation-risk blocking can consume builtin
+  semantics. Same-span `LibraryApi` occurrence evidence admits post-desugar
+  library builtins, while only narrow syntax-owned language-core lowerings such
+  as Go map lookup-ok `Contains`, Go `Enumerate`, Python dict-comprehension
+  `DictEntry`, JS-like `Keys`, C source-proven `UnsignedCast32`, and
+  effect-proven append remain raw-payload eligible.
 - C byte-pack proof moved onto evidence-backed alias and cast records. Local
   typedefs and direct quote includes emit `Type(CTypeAlias)` evidence, included
   aliases depend on `Import(CQuoteInclude)`, alias-based `Domain(ByteArray)` and
@@ -556,8 +565,9 @@ Remaining in this phase:
 - Move the next raw fallback cluster behind pack-shaped contracts/evidence:
   JS/TS guard recognizer dependencies, per-language type-domain producers
   beyond the first C alias slice, broader C type-system evidence beyond current
-  byte-pack aliases, and remaining exact-fragment predicate code that is now
-  differential/debug support rather than production authority.
+  byte-pack aliases, remaining lowered sequence/tag surfaces, and exact-fragment
+  predicate code that is now differential/debug support rather than production
+  authority.
 - Keep behavior-changing recall reductions documented when missing evidence
   blocks exact convergence.
 - Preserve the current precision gates while moving more first-party surfaces

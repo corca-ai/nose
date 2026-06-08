@@ -5,7 +5,7 @@ implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
 record substrate is described in [evidence-records](evidence-records.md).
 
-Snapshot date: 2026-06-08. The current implementation has an internal
+Snapshot date: 2026-06-09. The current implementation has an internal
 semantic-kernel facade, receiver-aware field state, sequence-surface contracts,
 proof-backed append fragment evidence, operator-law contracts, typed import
 facts, source-fact gates for construct/macro/literal/operator provenance,
@@ -140,6 +140,17 @@ migrated.
   Go `append` require admitted `LibraryApi(FreeFunctionBuiltin)` occurrence
   evidence whose dependencies prove the unshadowed builtin/global callee before
   exact lowering.
+- Canonical `Payload::Builtin` calls now have an explicit admission gate. A
+  builtin payload is only a normalized operation shape; it is not itself proof
+  that a language/library API has that meaning. Value-graph builtin folding,
+  builtin fallback tags, range/len/zip/enumerate loop patterns, strict-exact
+  builtin calls, function-binding safety, and mutation-risk blocking now consume
+  builtin semantics through `admitted_builtin_semantics_at_call`. That helper
+  admits same-span `LibraryApi` occurrence evidence after desugaring, plus the
+  narrow syntax-owned lowerings for Go map lookup-ok `Contains`, Go
+  `Enumerate`, Python dict-comprehension `DictEntry`, JS-like `Keys`, C
+  `UnsignedCast32` with source-cast evidence, and append calls with
+  `Effect(BuilderAppendCall)`. Raw builtin payloads remain opaque or exact-closed.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.

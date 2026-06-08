@@ -50,8 +50,8 @@ use nose_il::{
     UnitKind,
 };
 use nose_semantics::{
-    asserted_unshadowed_global_symbol, binding_write_target, builder_append_call_args,
-    builder_append_method_contract, builtin_tag, construct_syntax_proof,
+    admitted_builtin_semantics_at_call, asserted_unshadowed_global_symbol, binding_write_target,
+    builder_append_call_args, builder_append_method_contract, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
     exact_non_overloadable_index_assignment_parts, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
@@ -799,6 +799,10 @@ impl<'a> Builder<'a> {
                 | "member?"
                 | "__contains__"
         )
+    }
+
+    fn admitted_builtin_call(&self, node: NodeId, builtin: Builtin) -> bool {
+        admitted_builtin_semantics_at_call(self.il, node, builtin)
     }
 
     fn domain_evidence_for_param(&self, param: NodeId) -> Option<DomainEvidence> {
@@ -3430,7 +3434,10 @@ impl<'a> Builder<'a> {
             | NodeKind::Try
             | NodeKind::Throw => false,
             NodeKind::Func if node != root => false,
-            NodeKind::Call if !matches!(self.il.node(node).payload, Payload::Builtin(_)) => false,
+            NodeKind::Call => match self.il.node(node).payload {
+                Payload::Builtin(builtin) => self.admitted_builtin_call(node, builtin),
+                _ => false,
+            },
             NodeKind::Var => match self.il.node(node).payload {
                 Payload::Cid(_) => true,
                 Payload::Name(s) => self.global_env.contains_key(&s),
@@ -4415,13 +4422,23 @@ impl<'a> Builder<'a> {
     ) -> bool {
         let kids = self.il.children(call).to_vec();
         match self.il.node(call).payload {
-            Payload::Builtin(Builtin::ValueOrDefault) => kids
-                .first()
-                .is_some_and(|&value| self.expr_is_static_runtime_err(value, env)),
-            Payload::Builtin(Builtin::Any | Builtin::All) => kids
-                .first()
-                .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env)),
-            Payload::Builtin(Builtin::Reduce) => {
+            Payload::Builtin(Builtin::ValueOrDefault)
+                if self.admitted_builtin_call(call, Builtin::ValueOrDefault) =>
+            {
+                kids.first()
+                    .is_some_and(|&value| self.expr_is_static_runtime_err(value, env))
+            }
+            Payload::Builtin(Builtin::Any) if self.admitted_builtin_call(call, Builtin::Any) => {
+                kids.first()
+                    .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env))
+            }
+            Payload::Builtin(Builtin::All) if self.admitted_builtin_call(call, Builtin::All) => {
+                kids.first()
+                    .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env))
+            }
+            Payload::Builtin(Builtin::Reduce)
+                if self.admitted_builtin_call(call, Builtin::Reduce) =>
+            {
                 kids.get(1)
                     .is_some_and(|&coll| self.expr_is_static_runtime_err(coll, env))
                     || kids
@@ -4434,7 +4451,9 @@ impl<'a> Builder<'a> {
                             self.lambda_body_is_static_runtime_err(lambda, env)
                         }))
             }
-            Payload::Builtin(Builtin::Range) => {
+            Payload::Builtin(Builtin::Range)
+                if self.admitted_builtin_call(call, Builtin::Range) =>
+            {
                 self.call_args_have_static_runtime_err(kids.iter().copied(), env)
                     || self.range_has_static_zero_step(&kids)
             }
@@ -4841,6 +4860,7 @@ impl<'a> Builder<'a> {
                         self.il.node(it).payload,
                         Payload::Builtin(Builtin::Enumerate)
                     )
+                    && self.admitted_builtin_call(it, Builtin::Enumerate)
                 {
                     // `for i, x in enumerate(C)`: `i` is the index, `x` the element.
                     let cids = self.pattern_cids(pat);
@@ -5353,11 +5373,12 @@ impl<'a> Builder<'a> {
         }
         // The other operand is `len(iterable)` → a Len builtin Call with one arg.
         for &k in &kids {
-            if self.il.kind(k) == NodeKind::Call {
-                if let Payload::Builtin(Builtin::Len) = self.il.node(k).payload {
-                    if let Some(&arg) = self.il.children(k).first() {
-                        return Some(arg);
-                    }
+            if self.il.kind(k) == NodeKind::Call
+                && matches!(self.il.node(k).payload, Payload::Builtin(Builtin::Len))
+                && self.admitted_builtin_call(k, Builtin::Len)
+            {
+                if let Some(&arg) = self.il.children(k).first() {
+                    return Some(arg);
                 }
             }
         }
@@ -6320,6 +6341,7 @@ impl<'a> Builder<'a> {
     fn range_len_collection(&self, node: NodeId) -> Option<NodeId> {
         let len_arg = if self.il.kind(node) == NodeKind::Call
             && matches!(self.il.node(node).payload, Payload::Builtin(Builtin::Range))
+            && self.admitted_builtin_call(node, Builtin::Range)
         {
             let kids = self.il.children(node);
             match kids.len() {
@@ -6348,6 +6370,7 @@ impl<'a> Builder<'a> {
                 self.il.node(len_arg).payload,
                 Payload::Builtin(Builtin::Len)
             )
+            && self.admitted_builtin_call(len_arg, Builtin::Len)
         {
             return self.il.children(len_arg).first().copied();
         }
@@ -7200,7 +7223,9 @@ impl<'a> Builder<'a> {
         if self.il.kind(node) != NodeKind::Call {
             return None;
         }
-        if !matches!(self.il.node(node).payload, Payload::Builtin(Builtin::Len)) {
+        if !matches!(self.il.node(node).payload, Payload::Builtin(Builtin::Len))
+            || !self.admitted_builtin_call(node, Builtin::Len)
+        {
             return None;
         }
         self.il.children(node).first().copied()
@@ -7471,6 +7496,7 @@ impl<'a> Builder<'a> {
         };
         if self.il.kind(c) == NodeKind::Call
             && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
+            && self.admitted_builtin_call(c, Builtin::Zip)
         {
             return (self.elem_bindings(Some(c), env), None);
         }
@@ -7626,6 +7652,7 @@ impl<'a> Builder<'a> {
         };
         if self.il.kind(c) == NodeKind::Call
             && matches!(self.il.node(c).payload, Payload::Builtin(Builtin::Zip))
+            && self.admitted_builtin_call(c, Builtin::Zip)
         {
             let mut out = Vec::new();
             for k in self.il.children(c).to_vec() {
@@ -8383,6 +8410,11 @@ impl<'a> Builder<'a> {
                 // opaque.
                 if let Some(v) = rules::promise_then::apply(self, expr, env) {
                     return v;
+                }
+                if let Payload::Builtin(builtin) = node.payload {
+                    if !self.admitted_builtin_call(expr, builtin) {
+                        return self.source_salted_opaque(expr, 0x4255_494C);
+                    }
                 }
                 // Reduction builtins fold a collection to one value — canonicalize to
                 // the same `Reduce(op, init, per-element contrib)` a loop produces, so

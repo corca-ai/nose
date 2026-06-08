@@ -12,15 +12,14 @@ use nose_il::{
     NodeId, NodeKind, Payload, Span, Symbol,
 };
 use nose_semantics::{
-    domain_evidence_for_param, imported_namespace_symbol, library_api_contract_evidence_for_call,
-    library_free_function_builtin_contract, library_free_name_map_factory_contract,
-    library_iterator_identity_adapter_contract, library_map_get_contract,
-    library_map_key_view_contract, library_method_call_contract,
+    asserted_unshadowed_global_symbol, domain_evidence_for_param, imported_namespace_symbol,
+    library_api_contract_evidence_for_call, library_free_function_builtin_contract,
+    library_free_name_map_factory_contract, library_iterator_identity_adapter_contract,
+    library_map_get_contract, library_map_key_view_contract, library_method_call_contract,
     library_rust_option_some_constructor_contract, library_static_collection_adapter_contract,
-    seq_surface_contract_for_node, unshadowed_global_symbol, BuiltinArgContract, DomainRequirement,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryMapFactoryResult, MapKeyViewKind,
-    MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
-    SEQ_VALUE_MAP,
+    seq_surface_contract_for_node, BuiltinArgContract, DomainRequirement, LibraryApiCalleeContract,
+    LibraryApiEvidenceStatus, LibraryMapFactoryResult, MapKeyViewKind, MethodBuiltinArgs,
+    MethodCallContract, MethodReceiverContract, MethodSemanticContract, SEQ_VALUE_MAP,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -438,7 +437,7 @@ fn prove_method_receiver(
             literal_string_receiver(old, domains, base).then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::UnshadowedGlobal(global) => {
-            unshadowed_global_symbol(old, interner, base, global)
+            asserted_unshadowed_global_symbol(old, base, global)
                 .then_some(ProvenReceiver::Direct(base))
         }
         MethodReceiverContract::ImportedNamespace(module) => {

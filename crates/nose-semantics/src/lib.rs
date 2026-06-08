@@ -205,6 +205,14 @@ pub fn admitted_hof_api_at_node(il: &Il, node: NodeId, kind: HoFKind) -> bool {
     library_api_dependency_id_for_normalized_hof(il, node).is_some()
 }
 
+pub fn admitted_builtin_semantics_at_call(il: &Il, node: NodeId, builtin: Builtin) -> bool {
+    if il.kind(node) != NodeKind::Call || il.node(node).payload != Payload::Builtin(builtin) {
+        return false;
+    }
+    language_core_builtin_at_call(il, node, builtin)
+        || library_api_dependency_id_for_canonical_builtin_call(il, node, builtin).is_some()
+}
+
 pub fn construct_syntax_proof(il: &Il, node: NodeId) -> bool {
     source_call_at_node(il, node) == Some(SourceCallKind::Construct)
 }
@@ -7063,6 +7071,85 @@ fn library_api_dependency_id_for_call(
     id: LibraryApiContractId,
 ) -> Option<EvidenceId> {
     library_api_dependency_id_for_call_predicate(il, interner, call, |actual| actual == id)
+}
+
+fn language_core_builtin_at_call(il: &Il, call: NodeId, builtin: Builtin) -> bool {
+    let arity = il.children(call).len();
+    match (il.meta.lang, builtin, arity) {
+        (Lang::Go, Builtin::Contains, 2) => true,
+        (Lang::Go, Builtin::Enumerate, 1) => true,
+        (Lang::Python, Builtin::DictEntry, 2) => true,
+        (
+            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
+            Builtin::Keys,
+            1,
+        ) => true,
+        (Lang::C, Builtin::UnsignedCast32, 1) => {
+            source_cast_at_node(il, call) == Some(SourceCastKind::CUnsigned32)
+        }
+        (_, Builtin::Append, 2) => {
+            asserted_effect_at_node(il, call, EffectEvidenceKind::BuilderAppendCall)
+        }
+        _ => false,
+    }
+}
+
+fn library_api_dependency_id_for_canonical_builtin_call(
+    il: &Il,
+    call: NodeId,
+    builtin: Builtin,
+) -> Option<EvidenceId> {
+    if il.kind(call) != NodeKind::Call {
+        return None;
+    }
+    let span = il.node(call).span;
+    let mut found = None;
+    for record in &il.evidence {
+        if !matches!(
+            record.anchor,
+            EvidenceAnchor::Node {
+                span: record_span,
+                kind: NodeKind::Call | NodeKind::Field,
+            } if record_span == span
+        ) {
+            continue;
+        }
+        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract { contract_hash, .. }) =
+            record.kind
+        else {
+            continue;
+        };
+        let Some(id) = library_api_contract_id_from_hash(contract_hash) else {
+            continue;
+        };
+        let Some(record_builtin) = library_api_contract_id_builtin_result(id) else {
+            continue;
+        };
+        if record_builtin != builtin {
+            return None;
+        }
+        if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {
+            return None;
+        }
+        match found {
+            None => found = Some(record.id),
+            Some(existing) if existing == record.id => {}
+            Some(_) => return None,
+        }
+    }
+    found
+}
+
+fn library_api_contract_id_builtin_result(id: LibraryApiContractId) -> Option<Builtin> {
+    match id {
+        LibraryApiContractId::PropertyBuiltin(builtin)
+        | LibraryApiContractId::FreeFunctionBuiltin(builtin) => Some(builtin),
+        LibraryApiContractId::MethodCall(MethodSemanticContract::Builtin(builtin)) => Some(builtin),
+        LibraryApiContractId::ScalarIntegerMethod(ScalarIntegerMethod::Abs) => Some(Builtin::Abs),
+        LibraryApiContractId::ScalarIntegerMethod(ScalarIntegerMethod::Min) => Some(Builtin::Min),
+        LibraryApiContractId::ScalarIntegerMethod(ScalarIntegerMethod::Max) => Some(Builtin::Max),
+        _ => None,
+    }
 }
 
 fn library_api_dependency_id_for_map_key_view_call(

@@ -277,6 +277,18 @@ only API identity; exact consumers still separately prove receiver/domain facts,
 source-surface requirements, argument safety, result shape, mutation safety, and
 demand/effect obligations.
 
+Canonical `Payload::Builtin` calls are not proof by themselves. They are the
+shared operation shape after syntax/lowering/desugaring has erased a concrete
+callee, so value-graph, strict-exact, function-binding, and mutation-risk
+consumers must first ask `nose-semantics` whether that call is admitted for the
+specific builtin. Admission currently comes from either a same-span admitted
+`LibraryApi` occurrence record whose contract id maps to that builtin, or a
+narrow first-party language-core lowering: Go map lookup-ok `Contains`, Go
+`range` `Enumerate`, Python dict-comprehension `DictEntry`, JS-like `for-in`
+`Keys`, C `UnsignedCast32` with `Source(Cast(CUnsigned32))`, or canonical
+`Append` with `Effect(BuilderAppendCall)`. Raw or unadmitted builtin payloads
+stay opaque in the value graph and closed in exact consumers.
+
 Imported API occurrence evidence is not a broad name guess. A call-site
 `Symbol(ImportedBinding)` or `Symbol(ImportedNamespace)` dependency must itself
 depend on the matching binding-anchor symbol, pass rebinding and local/parameter
