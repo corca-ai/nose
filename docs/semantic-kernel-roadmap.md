@@ -575,6 +575,10 @@ and pack ecosystem.
   moved tests kept adjacent as Rust test modules. The follow-up range/pattern
   slice also split source-fact and value-graph proof/admission tests into
   focused adjacent modules so raw-shape regression cases are easier to audit.
+  The LibraryApi resolver slice then split the remaining large
+  `nose-semantics` test root into domain/symbol evidence, LibraryApi evidence,
+  LibraryApi contract, and effect/place test modules before adding more
+  occurrence-admission coverage.
 - The detect strict exact safety gate was split from unit extraction into
   `crates/nose-detect/src/strict_exact.rs`, reducing `units.rs` to extraction,
   fragment classification, and feature orchestration while keeping proof-policy
@@ -697,9 +701,9 @@ Remaining in this phase:
   receiver-method families. Selected value-graph and strict exact consumers now
   call shared `nose-semantics` admitted occurrence resolvers for method,
   map-get, map-key-view, regex, JS static/global, static-index,
-  iterator-adapter, and Rust Option/`Vec::new` calls instead of locally
-  recombining raw selector parsing with evidence admission. Lowered
-  sequence-surface consumers are now evidence-only where
+  iterator-adapter, Rust Option/`Vec::new`, and first-party factory/constructor
+  calls instead of locally recombining raw selector parsing with evidence
+  admission. Lowered sequence-surface consumers are now evidence-only where
   covered. Remaining API work is promise receiver proof, explicit async/sync
   protocol convergence contracts, and ecosystem APIs only after demand,
   receiver, and effect obligations are expressible.

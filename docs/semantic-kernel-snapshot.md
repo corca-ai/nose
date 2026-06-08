@@ -77,9 +77,10 @@ still being migrated toward it.
   fragment contracts, effect fragments, value/shape features, candidate
   generation, clustering, and ranking. The strict exact gate lives in its own
   module so evidence-backed proof policy is not mixed with unit extraction
-  orchestration, and selected strict exact API paths now consume the shared
-  `nose-semantics` admitted occurrence resolvers instead of locally recombining
-  selector parsing with `LibraryApi` evidence checks.
+  orchestration, and selected strict exact API paths, including first-party
+  factory/constructor paths, now consume the shared `nose-semantics` admitted
+  occurrence resolvers instead of locally recombining selector parsing with
+  `LibraryApi` evidence checks.
 - `formal/obligations` records proof obligations for proof-sensitive rules.
 
 The current model already enforces the main product principle: exact semantic

@@ -141,6 +141,157 @@ pub fn admitted_map_key_view_wrapper_at_call(
     )
 }
 
+pub fn admitted_free_name_collection_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, name, arg_count) = free_name_call_parts(il, interner, call)?;
+    let contract = library_free_name_collection_factory_contract(il.meta.lang, name)?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_imported_collection_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, args) = call_parts(il, call)?;
+    let arg_count = args.len();
+    library_imported_collection_factory_contracts(il.meta.lang).find_map(|contract| {
+        admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+    })
+}
+
+pub fn admitted_ruby_set_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    let receiver_name = node_name(il, interner, receiver)?;
+    let contract =
+        library_ruby_set_factory_contract(il.meta.lang, receiver_name, method, arg_count)?;
+    admitted_library_call(
+        il,
+        interner,
+        call,
+        callee,
+        Some(receiver),
+        arg_count,
+        contract,
+    )
+}
+
+pub fn admitted_rust_vec_macro_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, args) = call_parts(il, call)?;
+    let arg_count = args.len();
+    let contract = library_rust_vec_macro_factory_contract(il.meta.lang, "vec")?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_java_collection_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    let receiver_name = node_name(il, interner, receiver)?;
+    let contract = library_java_collection_factory_contract(il.meta.lang, receiver_name, method)?;
+    admitted_library_call(
+        il,
+        interner,
+        call,
+        callee,
+        Some(receiver),
+        arg_count,
+        contract,
+    )
+}
+
+pub fn admitted_java_collection_constructor_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, type_name, arg_count) = free_name_call_parts(il, interner, call)?;
+    let contract =
+        library_java_collection_constructor_contract(il.meta.lang, type_name, arg_count)?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_js_like_set_constructor_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryCollectionFactoryContract>> {
+    let (callee, name, arg_count) = free_name_call_parts(il, interner, call)?;
+    let contract = library_js_like_set_constructor_contract(il.meta.lang, name)?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_free_name_map_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMapFactoryContract>> {
+    let (callee, name, arg_count) = free_name_call_parts(il, interner, call)?;
+    let contract = library_free_name_map_factory_contract(il.meta.lang, name)?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
+pub fn admitted_java_map_factory_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMapFactoryContract>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    let receiver_name = node_name(il, interner, receiver)?;
+    let contract = library_java_map_factory_contract(il.meta.lang, receiver_name, method)?;
+    admitted_library_call(
+        il,
+        interner,
+        call,
+        callee,
+        Some(receiver),
+        arg_count,
+        contract,
+    )
+}
+
+pub fn admitted_java_map_entry_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMapEntryFactoryContract>> {
+    let (callee, receiver, method, arg_count) = receiver_method_call_parts(il, interner, call)?;
+    let receiver_name = node_name(il, interner, receiver)?;
+    let contract = library_java_map_entry_contract(il.meta.lang, receiver_name, method)?;
+    admitted_library_call(
+        il,
+        interner,
+        call,
+        callee,
+        Some(receiver),
+        arg_count,
+        contract,
+    )
+}
+
+pub fn admitted_js_like_map_constructor_at_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+) -> Option<AdmittedLibraryApiCall<LibraryMapFactoryContract>> {
+    let (callee, name, arg_count) = free_name_call_parts(il, interner, call)?;
+    let contract = library_js_like_map_constructor_contract(il.meta.lang, name)?;
+    admitted_library_call(il, interner, call, callee, None, arg_count, contract)
+}
+
 pub fn admitted_imported_namespace_function_at_call(
     il: &Il,
     interner: &Interner,
@@ -385,6 +536,26 @@ impl LibraryApiContractParts for LibraryCollectionFactoryContract {
     }
 }
 
+impl LibraryApiContractParts for LibraryMapFactoryContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
+impl LibraryApiContractParts for LibraryMapEntryFactoryContract {
+    fn contract_id(self) -> LibraryApiContractId {
+        self.id
+    }
+
+    fn callee_contract(self) -> LibraryApiCalleeContract {
+        self.callee
+    }
+}
+
 fn receiver_method_call_parts<'a>(
     il: &Il,
     interner: &'a Interner,
@@ -409,9 +580,14 @@ fn free_name_call_parts<'a>(
     interner: &'a Interner,
     call: NodeId,
 ) -> Option<(NodeId, &'a str, usize)> {
+    let (callee, args) = call_parts(il, call)?;
+    Some((callee, node_name(il, interner, callee)?, args.len()))
+}
+
+fn call_parts(il: &Il, call: NodeId) -> Option<(NodeId, &[NodeId])> {
     if il.kind(call) != NodeKind::Call {
         return None;
     }
     let (callee, args) = il.children(call).split_first()?;
-    Some((*callee, node_name(il, interner, *callee)?, args.len()))
+    Some((*callee, args))
 }

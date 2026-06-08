@@ -10,29 +10,27 @@ use nose_il::{
 };
 use nose_normalize::module_facts::collect_module_mutations;
 use nose_semantics::{
-    admitted_builtin_semantics_at_call, admitted_hof_api_at_node,
-    admitted_iterator_identity_adapter_at_call, admitted_js_array_is_array_at_call,
-    admitted_library_method_call_at_call, admitted_map_get_at_call, admitted_map_key_view_at_call,
-    admitted_map_key_view_wrapper_at_call, admitted_regex_test_at_call,
-    admitted_rust_option_none_sentinel_at_node, admitted_rust_vec_new_factory_at_call,
-    admitted_static_index_membership_at_call, asserted_unshadowed_global_symbol,
-    construct_syntax_proof, direct_function_call_target_at_call,
+    admitted_builtin_semantics_at_call, admitted_free_name_collection_factory_at_call,
+    admitted_free_name_map_factory_at_call, admitted_hof_api_at_node,
+    admitted_imported_collection_factory_at_call, admitted_iterator_identity_adapter_at_call,
+    admitted_java_collection_constructor_at_call, admitted_java_collection_factory_at_call,
+    admitted_java_map_entry_at_call, admitted_java_map_factory_at_call,
+    admitted_js_array_is_array_at_call, admitted_js_like_map_constructor_at_call,
+    admitted_js_like_set_constructor_at_call, admitted_library_method_call_at_call,
+    admitted_map_get_at_call, admitted_map_key_view_at_call, admitted_map_key_view_wrapper_at_call,
+    admitted_regex_test_at_call, admitted_ruby_set_factory_at_call,
+    admitted_rust_option_none_sentinel_at_node, admitted_rust_vec_macro_factory_at_call,
+    admitted_rust_vec_new_factory_at_call, admitted_static_index_membership_at_call,
+    asserted_unshadowed_global_symbol, construct_syntax_proof, direct_function_call_target_at_call,
     exact_static_membership_predicate_operator, go_zero_map_default_kind,
     go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
-    go_zero_map_lookup_contract, library_api_contract_evidence_for_call,
-    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
-    library_imported_collection_factory_contracts, library_java_collection_constructor_contract,
-    library_java_collection_factory_contract, library_java_map_entry_contract,
-    library_java_map_factory_contract, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_ruby_set_factory_contract,
-    library_rust_vec_macro_factory_contract, nullish_global_contract, own_property_guard_for_node,
+    go_zero_map_lookup_contract, nullish_global_contract, own_property_guard_for_node,
     record_shape_guard_for_node, semantics, seq_surface_contract_for_node,
     source_comprehension_at_node, source_fact_at_node, source_operator_at_node,
     typeof_operator_contract, DomainRequirement, IndexMembershipThreshold, JavaMapFactoryKind,
-    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryCollectionFactoryResult,
-    LibraryMapFactoryResult, LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, ReceiverDomainEvidenceIndex,
-    StaticIndexMembershipKind,
+    LibraryCollectionFactoryResult, LibraryMapFactoryResult, LibraryMethodCallContract,
+    MapKeyViewKind, MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract,
+    ReceiverDomainEvidenceIndex, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -756,20 +754,6 @@ fn strict_exact_typeof_operator_safe(
         && strict_exact_call_args_safe(il, interner, facts, node)
 }
 
-fn library_api_evidence_required(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-    id: nose_semantics::LibraryApiContractId,
-    callee: LibraryApiCalleeContract,
-    arg_count: usize,
-) -> bool {
-    matches!(
-        library_api_contract_evidence_for_call(il, interner, node, id, callee, arg_count),
-        LibraryApiEvidenceStatus::Admitted
-    )
-}
-
 fn admitted_method_call_contract(
     il: &Il,
     interner: &Interner,
@@ -1240,22 +1224,6 @@ pub(crate) fn strict_exact_membership_collection_safe(
             .all(|&c| strict_exact_safe_tree(il, interner, facts, c))
 }
 
-fn strict_exact_two_arg_var_call(il: &Il, node: NodeId) -> Option<(NodeId, Symbol, NodeId)> {
-    if il.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let [callee, argument] = il.children(node) else {
-        return None;
-    };
-    if il.kind(*callee) != NodeKind::Var {
-        return None;
-    }
-    match il.node(*callee).payload {
-        Payload::Name(name) => Some((*callee, name, *argument)),
-        _ => None,
-    }
-}
-
 pub(crate) fn strict_exact_set_constructor_collection_safe(
     il: &Il,
     interner: &Interner,
@@ -1265,21 +1233,16 @@ pub(crate) fn strict_exact_set_constructor_collection_safe(
     if !construct_syntax_proof(il, node) {
         return false;
     };
-    let Some((_callee, name, collection)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some(occurrence) = admitted_js_like_set_constructor_at_call(il, interner, node) else {
         return false;
     };
-    let Some(contract) =
-        library_js_like_set_constructor_contract(il.meta.lang, interner.resolve(name))
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } = contract.callee else {
-        return false;
-    };
-    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1) {
+    if occurrence.arg_count != 1 {
         return false;
     }
-    receiver == "Set" && strict_exact_static_non_float_collection(il, interner, collection)
+    let [_, collection] = il.children(node) else {
+        return false;
+    };
+    strict_exact_static_non_float_collection(il, interner, *collection)
 }
 
 pub(crate) fn strict_exact_python_collection_factory_safe(
@@ -1299,36 +1262,12 @@ pub(crate) fn strict_exact_python_collection_factory_safe(
     if kids.len() != 2 {
         return false;
     }
-    let builtin = if il.kind(kids[0]) == NodeKind::Var {
-        match il.node(kids[0]).payload {
-            Payload::Name(name) => {
-                let name = interner.resolve(name);
-                library_free_name_collection_factory_contract(il.meta.lang, name).is_some_and(
-                    |contract| {
-                        library_api_evidence_required(
-                            il,
-                            interner,
-                            node,
-                            contract.id,
-                            contract.callee,
-                            1,
-                        )
-                    },
-                )
-            }
-            _ => false,
-        }
-    } else {
-        false
+    let Some(occurrence) = admitted_free_name_collection_factory_at_call(il, interner, node)
+        .or_else(|| admitted_imported_collection_factory_at_call(il, interner, node))
+    else {
+        return false;
     };
-    let imported_stdlib_factory =
-        library_imported_collection_factory_contracts(il.meta.lang).any(|contract| {
-            let LibraryApiCalleeContract::ImportedBinding { .. } = contract.callee else {
-                return false;
-            };
-            library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1)
-        });
-    (builtin || imported_stdlib_factory)
+    occurrence.arg_count == 1
         && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
 
@@ -1342,34 +1281,14 @@ fn strict_exact_ruby_set_factory_safe(
         return false;
     }
     let kids = il.children(node);
-    if kids.len() != 2 || il.kind(kids[0]) != NodeKind::Field {
+    if kids.len() != 2 {
         return false;
     }
-    let Payload::Name(method) = il.node(kids[0]).payload else {
+    let Some(occurrence) = admitted_ruby_set_factory_at_call(il, interner, node) else {
         return false;
     };
-    let method = interner.resolve(method);
-    let Some(&receiver) = il.children(kids[0]).first() else {
-        return false;
-    };
-    if il.kind(receiver) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(receiver_name) = il.node(receiver).payload else {
-        return false;
-    };
-    let receiver_name = interner.resolve(receiver_name);
-    let Some(contract) = library_ruby_set_factory_contract(il.meta.lang, receiver_name, method, 1)
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::RubyRequireStaticMember { .. } = contract.callee else {
-        return false;
-    };
-    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1) {
-        return false;
-    }
-    strict_exact_membership_collection_safe(il, interner, facts, kids[1])
+    occurrence.arg_count == 1
+        && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
 }
 
 fn strict_exact_rust_vec_macro_collection_safe(
@@ -1383,20 +1302,7 @@ fn strict_exact_rust_vec_macro_collection_safe(
         return false;
     }
     let kids = il.children(node);
-    if kids.is_empty() {
-        return false;
-    }
-    let Some(contract) = library_rust_vec_macro_factory_contract(il.meta.lang, "vec") else {
-        return false;
-    };
-    if !library_api_evidence_required(
-        il,
-        interner,
-        node,
-        contract.id,
-        contract.callee,
-        kids.len().saturating_sub(1),
-    ) {
+    if admitted_rust_vec_macro_factory_at_call(il, interner, node).is_none() {
         return false;
     }
     kids.iter()
@@ -1428,20 +1334,16 @@ fn strict_exact_rust_std_collection_factory_safe(
     {
         return false;
     }
-    let Some((_, name, collection)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some(occurrence) = admitted_free_name_collection_factory_at_call(il, interner, node) else {
         return false;
     };
-    let name = interner.resolve(name);
-    let Some(contract) = library_free_name_collection_factory_contract(il.meta.lang, name) else {
-        return false;
-    };
-    let LibraryApiCalleeContract::FreeName { .. } = contract.callee else {
-        return false;
-    };
-    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1) {
+    if occurrence.arg_count != 1 {
         return false;
     }
-    strict_exact_membership_collection_safe(il, interner, facts, collection)
+    let [_, collection] = il.children(node) else {
+        return false;
+    };
+    strict_exact_membership_collection_safe(il, interner, facts, *collection)
 }
 
 pub(crate) fn strict_exact_java_collection_factory_safe(
@@ -1455,45 +1357,17 @@ pub(crate) fn strict_exact_java_collection_factory_safe(
     {
         return false;
     }
-    let kids = il.children(node);
-    if kids.len() < 2 || il.kind(kids[0]) != NodeKind::Field {
-        return false;
-    }
-    let Payload::Name(method) = il.node(kids[0]).payload else {
-        return false;
-    };
-    let Some(&_receiver) = il.children(kids[0]).first() else {
-        return false;
-    };
-    let method = interner.resolve(method);
-    let Some(contract) = ["List", "Set", "Arrays"]
-        .into_iter()
-        .find_map(|receiver_name| {
-            let contract =
-                library_java_collection_factory_contract(il.meta.lang, receiver_name, method)?;
-            let LibraryApiCalleeContract::JavaUtilStaticMember { .. } = contract.callee else {
-                return None;
-            };
-            library_api_evidence_required(
-                il,
-                interner,
-                node,
-                contract.id,
-                contract.callee,
-                kids.len().saturating_sub(1),
-            )
-            .then_some(contract)
-        })
-    else {
+    let Some(occurrence) = admitted_java_collection_factory_at_call(il, interner, node) else {
         return false;
     };
     if !matches!(
-        contract.result,
+        occurrence.contract.result,
         LibraryCollectionFactoryResult::VariadicElements { .. }
     ) {
         return false;
     }
-    kids.iter()
+    il.children(node)
+        .iter()
         .skip(1)
         .all(|&arg| strict_exact_safe_tree(il, interner, facts, arg))
 }
@@ -1513,60 +1387,14 @@ fn strict_exact_java_collection_constructor_safe(
     if il.kind(node) != NodeKind::Call {
         return false;
     }
-    let kids = il.children(node);
-    // Empty constructor: just the type callee, no arguments.
-    if kids.len() != 1 || il.kind(kids[0]) != NodeKind::Var {
-        return false;
-    }
-    let Payload::Name(type_name) = il.node(kids[0]).payload else {
+    let Some(occurrence) = admitted_java_collection_constructor_at_call(il, interner, node) else {
         return false;
     };
-    let Some(contract) =
-        library_java_collection_constructor_contract(il.meta.lang, interner.resolve(type_name), 0)
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::JavaUtilConstructor { .. } = contract.callee else {
-        return false;
-    };
-    if !matches!(
-        contract.result,
-        LibraryCollectionFactoryResult::EmptySequence
-    ) {
-        return false;
-    }
-    library_api_evidence_required(il, interner, node, contract.id, contract.callee, 0)
-}
-
-fn java_util_static_member_call<'a>(
-    il: &'a Il,
-    interner: &'a Interner,
-    node: NodeId,
-) -> Option<(&'a str, NodeId, &'a [NodeId])> {
-    if il.kind(node) != NodeKind::Call {
-        return None;
-    }
-    let kids = il.children(node);
-    let (&callee, args) = kids.split_first()?;
-    if il.kind(callee) != NodeKind::Field {
-        return None;
-    }
-    let Payload::Name(method) = il.node(callee).payload else {
-        return None;
-    };
-    let receiver = il.children(callee).first().copied()?;
-    Some((interner.resolve(method), receiver, args))
-}
-
-fn java_util_static_member_evidence_required(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-    contract_id: nose_semantics::LibraryApiContractId,
-    callee: LibraryApiCalleeContract,
-) -> bool {
-    let arg_count = il.children(node).len().saturating_sub(1);
-    library_api_evidence_required(il, interner, node, contract_id, callee, arg_count)
+    occurrence.arg_count == 0
+        && matches!(
+            occurrence.contract.result,
+            LibraryCollectionFactoryResult::EmptySequence
+        )
 }
 
 pub(crate) fn strict_exact_java_map_factory_safe(
@@ -1578,19 +1406,13 @@ pub(crate) fn strict_exact_java_map_factory_safe(
     if !semantics(il.meta.lang).stdlib().java_map_factories() {
         return false;
     }
-    let Some((method, _receiver, args)) = java_util_static_member_call(il, interner, node) else {
+    let Some(occurrence) = admitted_java_map_factory_at_call(il, interner, node) else {
         return false;
     };
-    let Some(contract) = library_java_map_factory_contract(il.meta.lang, "Map", method) else {
+    let LibraryMapFactoryResult::JavaFactory { kind } = occurrence.contract.result else {
         return false;
     };
-    if !java_util_static_member_evidence_required(il, interner, node, contract.id, contract.callee)
-    {
-        return false;
-    }
-    let LibraryMapFactoryResult::JavaFactory { kind } = contract.result else {
-        return false;
-    };
+    let args = &il.children(node)[1..];
     match kind {
         JavaMapFactoryKind::Of => {
             args.len() % 2 == 0
@@ -1610,17 +1432,14 @@ fn strict_exact_java_map_entry_safe(
     facts: &StrictFacts,
     node: NodeId,
 ) -> bool {
-    let Some((method, _receiver, args)) = java_util_static_member_call(il, interner, node) else {
+    let Some(occurrence) = admitted_java_map_entry_at_call(il, interner, node) else {
         return false;
     };
+    let args = &il.children(node)[1..];
     if args.len() != 2 {
         return false;
     }
-    let Some(contract) = library_java_map_entry_contract(il.meta.lang, "Map", method) else {
-        return false;
-    };
-    if !java_util_static_member_evidence_required(il, interner, node, contract.id, contract.callee)
-    {
+    if occurrence.arg_count != 2 {
         return false;
     }
     args.iter()
@@ -1636,26 +1455,19 @@ fn strict_exact_map_constructor_entries_safe(
     if !construct_syntax_proof(il, node) {
         return false;
     }
-    let Some((_callee, name, entries)) = strict_exact_two_arg_var_call(il, node) else {
+    let Some(occurrence) = admitted_js_like_map_constructor_at_call(il, interner, node) else {
         return false;
     };
-    let Some(contract) =
-        library_js_like_map_constructor_contract(il.meta.lang, interner.resolve(name))
-    else {
-        return false;
-    };
-    let LibraryApiCalleeContract::JsGlobalConstructor { receiver, .. } = contract.callee else {
-        return false;
-    };
-    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1) {
+    if occurrence.arg_count != 1 {
         return false;
     }
-    receiver == "Map"
-        && matches!(
-            contract.result,
-            LibraryMapFactoryResult::EntrySequence { .. }
-        )
-        && strict_exact_map_entries_safe(il, interner, facts, entries)
+    let [_, entries] = il.children(node) else {
+        return false;
+    };
+    matches!(
+        occurrence.contract.result,
+        LibraryMapFactoryResult::EntrySequence { .. }
+    ) && strict_exact_map_entries_safe(il, interner, facts, *entries)
 }
 
 fn strict_exact_rust_std_map_factory_safe(
@@ -1667,26 +1479,22 @@ fn strict_exact_rust_std_map_factory_safe(
     if !semantics(il.meta.lang).stdlib().rust_std_map_factories() {
         return false;
     }
-    let Some((_, name, entries)) = strict_exact_two_arg_var_call(il, node) else {
-        return false;
-    };
-    let name = interner.resolve(name);
-    let Some(contract) = library_free_name_map_factory_contract(il.meta.lang, name) else {
-        return false;
-    };
-    let LibraryApiCalleeContract::FreeName { .. } = contract.callee else {
+    let Some(occurrence) = admitted_free_name_map_factory_at_call(il, interner, node) else {
         return false;
     };
     if !matches!(
-        contract.result,
+        occurrence.contract.result,
         LibraryMapFactoryResult::EntrySequence { .. }
     ) {
         return false;
     }
-    if !library_api_evidence_required(il, interner, node, contract.id, contract.callee, 1) {
+    if occurrence.arg_count != 1 {
         return false;
     }
-    strict_exact_map_entries_safe(il, interner, facts, entries)
+    let [_, entries] = il.children(node) else {
+        return false;
+    };
+    strict_exact_map_entries_safe(il, interner, facts, *entries)
 }
 
 fn strict_exact_map_entries_safe(

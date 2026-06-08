@@ -549,15 +549,16 @@ callers:
   the value-graph, idiom, and strict exact paths closed. Missing API evidence is
   now also closed for those producer-covered surfaces; older symbol/source proof
   helpers remain dependency inputs to `LibraryApi` evidence, not fallback API
-  proofs. Other factory and constructor contract rows still name API
-  identity/result semantics while local consumers prove their current `Symbol`,
-  `Import`, `Source`, `Domain`, and `SequenceSurface` obligations;
+  proofs. Factory and constructor consumers still prove their channel-specific
+  argument, entry-shape, mutation, `Source`, `Domain`, and `SequenceSurface`
+  obligations, but API occurrence admission itself is shared where covered;
 - strict exact consumers share the same admitted occurrence resolver layer for
   selected method, map-get, map-key-view, regex, JS static/global, static-index,
-  iterator-adapter, Rust Option sentinel, and Rust `Vec::new` paths instead of
-  locally recombining selector strings with evidence checks. Opaque same-callee
-  exact identity remains separate: it can keep identical calls comparable, but
-  it does not assign cross-language or library semantics;
+  iterator-adapter, Rust Option sentinel, Rust `Vec::new`, and first-party
+  collection/map factory and constructor paths instead of locally recombining
+  selector strings with evidence checks. Opaque same-callee exact identity
+  remains separate: it can keep identical calls comparable, but it does not
+  assign cross-language or library semantics;
 - value-graph consumers that query by source span re-check the original source
   `Call` node shape and its evidence dependencies when that call can be
   recovered. This preserves receiver-method precision when value-graph CSE has
