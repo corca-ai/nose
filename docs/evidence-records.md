@@ -207,7 +207,10 @@ keeps the exact/value-graph path closed.
 Qualified global identity is also evidence, not a selector guess. The current
 first-party JS/TS producer emits `QualifiedGlobal` only for selected static paths
 whose root is proven unshadowed, such as `Object.hasOwn`,
-`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`.
+`Object.prototype.hasOwnProperty.call`, `Array.from`, and `Array.isArray`. The
+`QualifiedGlobal` record itself depends on same-span source evidence for the
+unshadowed root (`Object` or `Array` today), and exact/value consumers reject the
+path when that dependency is missing, ambiguous, or broken.
 
 Guard identity is separate from sequence shape. A raw `Seq("record_guard")` or a
 matching `SequenceSurface(RecordGuard)` fact proves only that the frontend
@@ -319,10 +322,11 @@ First-party frontends now emit these facts as `EvidenceRecord`:
 - selected JS/TS qualified static global paths emit `QualifiedGlobal` symbol
   evidence at the lowered node anchor: own-property guards at their
   `Seq("own_property_guard")` node, and static member expressions such as
-  `Array.from` and `Array.isArray` at their `Field` node;
+  `Array.from` and `Array.isArray` at their `Field` node. These records depend
+  on a same-span source `UnshadowedGlobal` proof for the qualified root;
 - JS/TS own-property guard lowering emits `Guard::JsOwnProperty` evidence for
   the lowered `Seq("own_property_guard")`, with an asserted `QualifiedGlobal`
-  dependency for the admitted API path;
+  dependency for the admitted API path and that API record's root proof;
 - JS/TS record-shape guard lowering emits `Guard::JsRecordShape` evidence for
   the lowered `Seq("record_guard")`, including the shared subject hash, the
   null/truthiness clause kind, whether JS loose equality was admitted, and
@@ -464,7 +468,9 @@ callers:
 - qualified-global symbol proof for selected JS/TS API paths: own-property
   guard evidence depends on `Object.hasOwn` or
   `Object.prototype.hasOwnProperty.call`, and map-key view wrappers require
-  evidence for `Array.from`;
+  evidence for `Array.from`. Those `QualifiedGlobal` records themselves depend
+  on the appropriate unshadowed root proof, so path-shaped text or a detached API
+  record does not prove identity;
 - selected `LibraryApiContract` consumers now consult `LibraryApi` occurrence
   evidence first for the migrated JS-like, Python builtin/imported, Rust
   free-name/path/Option/scalar, Ruby require-backed, Java static/property,
@@ -493,7 +499,8 @@ callers:
 - JS/TS own-property guard exact admission and value-graph map-default
   normalization require both `SequenceSurface(OwnPropertyGuard)` and
   `Guard::JsOwnProperty`; raw `Seq("own_property_guard")` plus a path-shaped
-  spelling is not proof by itself;
+  spelling, or `QualifiedGlobal` evidence without the required root proof, is not
+  proof by itself;
 - sequence-surface admission for normalize/value-graph/detect exact paths where
   the surface contract is independently exact-safe; guard surfaces use their
   dedicated guard helper instead. Go zero-map literal lookup also requires

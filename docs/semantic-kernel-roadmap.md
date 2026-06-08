@@ -266,8 +266,10 @@ and pack ecosystem.
   evidence. `Object.hasOwn` and
   `Object.prototype.hasOwnProperty.call` are dependencies of own-property guard
   evidence, while `Array.from` gates JS-like map-key iterator wrappers.
-  `Array.isArray` emits the same path evidence for strict exact call gates. Full
-  namespace-member resolution remains open.
+  `Array.isArray` emits the same path evidence for strict exact call gates. These
+  qualified path records now depend on same-span `UnshadowedGlobal` root proof,
+  so consumers no longer accept detached path evidence without the root identity
+  proof. Full namespace-member resolution remains open.
 - Value-graph import identity now consumes sequence `Import` evidence into
   dedicated internal `ImportNamespace`/`ImportBinding` value ops instead of
   treating raw `ValOp::Seq(import_*)` shapes as proof objects. Imported
@@ -511,6 +513,10 @@ and pack ecosystem.
   `fragment::recognize::recognize_contract` as the production authority, while
   the old predicate matrix remains as a debug/differential guard until it can be
   deleted or reduced.
+- Large semantic test modules were split out of the production implementation
+  files while continuing this migration. `nose-semantics/src/lib.rs` and
+  `nose-normalize/src/value_graph.rs` are both back under 10k lines, with their
+  moved tests kept adjacent as Rust test modules.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -619,10 +625,11 @@ Remaining in this phase:
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
   copies provider evidence, and selected JS/TS `QualifiedGlobal` paths are
-  covered, but general qualified-member resolution, namespace export identity,
-  provider/export dependency manifests, richer scope/rebinding facts, opaque
-  call receiver identity for module-defined locals versus imported namespaces,
-  and manifest-level cross-module dependency evidence are not.
+  covered with same-span root dependencies, but general qualified-member
+  resolution, namespace export identity, provider/export dependency manifests,
+  richer scope/rebinding facts, opaque call receiver identity for module-defined
+  locals versus imported namespaces, and manifest-level cross-module dependency
+  evidence are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency
   validation, subject/place identity, and truthiness/null semantics.

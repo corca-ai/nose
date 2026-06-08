@@ -28,8 +28,9 @@ use nose_semantics::{
     library_rust_option_some_constructor_contract, library_rust_vec_macro_factory_contract,
     library_rust_vec_new_factory_contract, library_static_collection_adapter_contract,
     library_static_index_membership_contract, module_binding_mutating_method_contract,
-    sequence_surface_kind_for_tag, ImportFactKind, LibraryApiCalleeContract, LibraryApiContractId,
-    LibraryApiDependencyCache, MethodReceiverContract, StaticIndexMembershipReceiverContract,
+    qualified_global_symbol_contract, sequence_surface_kind_for_tag, ImportFactKind,
+    LibraryApiCalleeContract, LibraryApiContractId, LibraryApiDependencyCache,
+    MethodReceiverContract, StaticIndexMembershipReceiverContract,
 };
 use tree_sitter::Node as TsNode;
 
@@ -1086,13 +1087,50 @@ impl<'a> Lowering<'a> {
         kind: NodeKind,
         path: &str,
     ) -> EvidenceId {
-        self.record_evidence(
+        let dependencies = self.qualified_global_root_dependencies(span, path);
+        self.record_evidence_with_dependencies(
             EvidenceAnchor::node(span, kind),
             EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
                 path_hash: stable_symbol_hash(path),
             }),
             "symbol_qualified_global",
+            dependencies,
         )
+    }
+
+    /// Record a qualified global API proof for a source-level semantic contract
+    /// that is not represented by a preserved IL node.
+    pub(crate) fn record_qualified_global_source_symbol(
+        &mut self,
+        span: Span,
+        path: &str,
+        rule: &str,
+    ) -> EvidenceId {
+        let dependencies = self.qualified_global_root_dependencies(span, path);
+        self.record_evidence_with_dependencies(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+                path_hash: stable_symbol_hash(path),
+            }),
+            rule,
+            dependencies,
+        )
+    }
+
+    fn qualified_global_root_dependencies(&mut self, span: Span, path: &str) -> Vec<EvidenceId> {
+        let Some(contract) = qualified_global_symbol_contract(self.lang, path) else {
+            return Vec::new();
+        };
+        if !contract.requires_unshadowed_root {
+            return Vec::new();
+        }
+        vec![self.record_evidence(
+            EvidenceAnchor::source_span(span),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash(contract.root),
+            }),
+            "symbol_qualified_global_root",
+        )]
     }
 
     /// Lower an integer literal, retaining its **value** as [`Payload::LitInt`] so the

@@ -388,7 +388,8 @@ migrated.
   Python/Ruby `keys` and Java `keySet` are collection views, while JS-like
   `Map.keys()` is an iterator view and needs the `Array.from(...)` wrapper
   contract plus `QualifiedGlobal("Array.from")` symbol evidence before it can
-  feed exact membership.
+  feed exact membership. That qualified-global record must depend on same-span
+  source proof that the `Array` root is unshadowed.
 - Map lookup surfaces that return a value/option are now explicit library API contracts for
   Java/Rust/JS-like `get(key)` plus an exact-map receiver requirement. Python
   `dict.get(key, default)`, Java `getOrDefault`, and Ruby `fetch` still use the
@@ -427,7 +428,8 @@ migrated.
   A raw `Call(Var("typeof"), arg)` shape, same-named function from another
   language, or unresolved provider is not treated as the JS operator.
 - JS-like `Array.isArray(...)` exact-safety now consumes a static-global method
-  contract and requires the `Array` global to be unshadowed.
+  contract and requires the `Array` global to be unshadowed through the
+  qualified-global record's root dependency.
 - JS-like record-shape guards that use `Boolean(value)` as the non-null/truthy
   clause consume a static-global function contract and require the `Boolean`
   global to be unshadowed. `value !== null` and `!!value` remain available when
@@ -440,10 +442,11 @@ migrated.
 - JS/TS own-property guards are also evidence-backed. The frontend emits
   `Guard::JsOwnProperty` for admitted `Object.hasOwn(obj, key)` and
   `Object.prototype.hasOwnProperty.call(obj, key)` surfaces, with a dependency
-  on the corresponding `QualifiedGlobal` proof. Strict exact and value-graph
+  on the corresponding `QualifiedGlobal` proof, which in turn depends on
+  same-span unshadowed `Object` root evidence. Strict exact and value-graph
   map-default paths require both `SequenceSurface(OwnPropertyGuard)` and that
   dedicated guard evidence; raw `Seq("own_property_guard")`, object method
-  spellings, and shadowed `Object` roots stay closed.
+  spellings, detached API evidence, and shadowed `Object` roots stay closed.
 - JS-like `undefined` is no longer frontend-collapsed to null unconditionally.
   It is preserved as a name and only treated as the nullish sentinel through an
   unshadowed-global contract. Value-graph nullish-value evaluation now requires
@@ -492,8 +495,10 @@ migrated.
   Selected JS/TS qualified static global paths now emit `QualifiedGlobal`
   evidence as well: `Object.hasOwn` and
   `Object.prototype.hasOwnProperty.call` gate own-property guards, while
-  `Array.from` gates JS-like map-key iterator wrappers. This does not cover all
-  qualified members or namespace exports.
+  `Array.from` gates JS-like map-key iterator wrappers. The path evidence is not
+  enough by itself: consumers require its dependency on same-span
+  `UnshadowedGlobal` root proof. This does not cover all qualified members or
+  namespace exports.
   A spelling such as `Math`, `fmt`, or `deque` is still only a selector; exact
   consumers need symbol identity proof plus the language/API contract. Binding
   evidence does not prove later uses if the alias is rebound or ambiguous.
