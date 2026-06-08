@@ -19,22 +19,23 @@ use nose_semantics::{
     exact_self_field_write_assignment, exact_static_membership_predicate_operator,
     go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
     go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract,
-    library_api_contract_evidence_for_call, library_free_name_collection_factory_contract,
-    library_free_name_map_factory_contract, library_imported_collection_factory_contracts,
-    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
-    library_java_collection_factory_contract, library_java_map_entry_contract,
-    library_java_map_factory_contract, library_js_array_is_array_contract,
-    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
-    library_map_get_contract, library_map_key_view_contract, library_map_key_view_wrapper_contract,
+    library_api_contract_evidence_for_call, library_api_contract_evidence_for_node,
+    library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
+    library_imported_collection_factory_contracts, library_iterator_identity_adapter_contract,
+    library_java_collection_constructor_contract, library_java_collection_factory_contract,
+    library_java_map_entry_contract, library_java_map_factory_contract,
+    library_js_array_is_array_contract, library_js_like_map_constructor_contract,
+    library_js_like_set_constructor_contract, library_map_get_contract,
+    library_map_key_view_contract, library_map_key_view_wrapper_contract,
     library_method_call_contract, library_regex_test_contract, library_ruby_set_factory_contract,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_static_index_membership_contract, nullish_global_contract, own_property_guard_for_node,
-    record_shape_guard_for_node, semantics, seq_surface_contract_for_node, source_operator_at_node,
-    typeof_operator_contract, unshadowed_global_symbol, DomainRequirement,
-    IndexMembershipThreshold, JavaMapFactoryKind, LibraryApiCalleeContract,
-    LibraryApiEvidenceStatus, LibraryCollectionFactoryResult, LibraryMapFactoryResult,
-    LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind, MethodBuiltinArgs,
-    MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
+    library_rust_option_none_sentinel_contract, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, library_static_index_membership_contract,
+    nullish_global_contract, own_property_guard_for_node, record_shape_guard_for_node, semantics,
+    seq_surface_contract_for_node, source_operator_at_node, typeof_operator_contract,
+    unshadowed_global_symbol, DomainRequirement, IndexMembershipThreshold, JavaMapFactoryKind,
+    LibraryApiCalleeContract, LibraryApiEvidenceStatus, LibraryCollectionFactoryResult,
+    LibraryMapFactoryResult, LibraryMapGetContract, LibraryMethodCallContract, MapKeyViewKind,
+    MethodBuiltinArgs, MethodReceiverContract, MethodSemanticContract, StaticIndexMembershipKind,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::time::Instant;
@@ -847,6 +848,7 @@ fn function_binding_safe(
         NodeKind::Var => {
             strict_exact_safe_var(il, facts, node)
                 || strict_exact_nullish_global_safe(il, interner, node)
+                || strict_exact_rust_option_none_safe(il, interner, node)
         }
         _ => il
             .children(node)
@@ -881,6 +883,7 @@ fn strict_exact_safe_tree(il: &Il, interner: &Interner, facts: &StrictFacts, nod
         NodeKind::Var => {
             strict_exact_safe_var(il, facts, node)
                 || strict_exact_nullish_global_safe(il, interner, node)
+                || strict_exact_rust_option_none_safe(il, interner, node)
         }
         _ => il
             .children(node)
@@ -1164,6 +1167,20 @@ fn strict_exact_nullish_global_safe(il: &Il, interner: &Interner, node: NodeId) 
         return false;
     };
     !contract.requires_unshadowed || unshadowed_global_symbol(il, interner, node, contract.name)
+}
+
+fn strict_exact_rust_option_none_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
+    let (NodeKind::Var, Payload::Name(name)) = (il.kind(node), il.node(node).payload) else {
+        return false;
+    };
+    let name = interner.resolve(name);
+    let Some(contract) = library_rust_option_none_sentinel_contract(il.meta.lang, name) else {
+        return false;
+    };
+    matches!(
+        library_api_contract_evidence_for_node(il, interner, node, contract.id, contract.callee, 0,),
+        LibraryApiEvidenceStatus::Admitted
+    )
 }
 
 fn strict_exact_safe_seq(il: &Il, interner: &Interner, node: NodeId) -> bool {

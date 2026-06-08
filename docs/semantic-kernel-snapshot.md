@@ -162,11 +162,11 @@ migrated.
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` carry the exact
   selector and shadow-root requirement through `nose-semantics`. First-party
   lowering/normalization now emits admitted `LibraryApi` occurrence evidence for
-  `Some(...)` calls, bare `None` `Var` occurrences, and `and_then(...)` calls
-  only when the shadow and receiver obligations are satisfied. The Rust
-  frontend preserves bare `None` and `if let` scrutinees instead of lowering
-  them directly to null/not-null builtins, so Option absence/presence is
-  admitted only through the contract-backed occurrence path.
+  `Some(...)` calls, `Some(_)` pattern selectors, bare `None` `Var`
+  occurrences, and `and_then(...)` calls only when the shadow and receiver
+  obligations are satisfied. The Rust frontend preserves `if let` pattern tests
+  instead of lowering them directly to null/not-null builtins, so Option
+  absence/presence is admitted only through the contract-backed occurrence path.
 - Collection factory, map factory, and selected constructor identity now have an
   internal `LibraryApiContract`
   shape in `nose-semantics`. It separates API identity from result eligibility,

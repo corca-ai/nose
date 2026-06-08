@@ -96,8 +96,8 @@ and pack ecosystem.
 - Rust stdlib path contracts for `Some`/`Option::Some`,
   `None`/`Option::None`, `Option::and_then`, and `Vec::new` moved into the
   kernel facade with explicit shadow-root obligations. The caller still proves
-  local shadow safety, and the Rust frontend no longer lowers bare `None`
-  directly to null before that proof.
+  local shadow safety, and the Rust frontend preserves `if let` pattern tests
+  instead of lowering `Some`/`None` directly to null/not-null before that proof.
 - Java collection/map factory selectors, Python free-name/imported collection
   factories, Rust std collection/map factory paths, Ruby `Set.new`, and JS-like
   `new Map`/`new Set` moved behind internal `LibraryApiContract` rows in
@@ -432,11 +432,12 @@ and pack ecosystem.
 - The protocol/API occurrence closure slice extended `LibraryApi` beyond
   call-only APIs. JS/TS/Java `length` property reads now require a
   `PropertyBuiltin` occurrence anchored to the `Field` node, JS-like `length()`
-  is no longer a cardinality method contract, Rust `Some(...)` and bare `None`
-  now emit contract-backed Option occurrence evidence, Rust `Option::and_then`
-  and scalar integer methods require admitted receiver-method occurrences, and
-  value-graph/desugar/idiom consumers fail closed when those occurrence records
-  are missing, rejected, or dependency-broken.
+  is no longer a cardinality method contract, Rust `Some(...)`, `Some(_)`
+  pattern selectors, and bare `None` now emit contract-backed Option occurrence
+  evidence, Rust `Option::and_then` and scalar integer methods require admitted
+  receiver-method occurrences, and value-graph/desugar/idiom consumers fail
+  closed when those occurrence records are missing, rejected, or
+  dependency-broken.
 
 ## Phase 0: documentation and vocabulary (landed)
 

@@ -302,10 +302,10 @@ First-party frontends now emit these facts as `EvidenceRecord`:
   `collections.deque(...)` through imported binding/namespace proof; Python
   `math.prod(...)` through imported namespace proof; Rust
   `vec!(...)` when macro-invocation source syntax and macro-name shadow policy
-  are proven, `Vec::new()`, `Some(...)`, bare `None`, and selected
-  `std::collections::*::from(...)` factory paths when their root-shadow policy
-  is proven; JS/TS/Java `length` property reads whose receiver proof is
-  satisfied; Ruby
+  are proven, `Vec::new()`, `Some(...)`, `Some(_)` pattern selectors, bare
+  `None`, and selected `std::collections::*::from(...)` factory paths when
+  their root-shadow policy is proven; JS/TS/Java `length` property reads whose
+  receiver proof is satisfied; Ruby
   earlier top-level `require "set"; Set.new(...)` through `Import::Require`
   plus unshadowed `require` and `Set` proof; Java `java.util` static
   factories/adapters including `List.of`, `Set.of`, `Arrays.asList`, `Map.of`,

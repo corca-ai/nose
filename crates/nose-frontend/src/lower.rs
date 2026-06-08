@@ -1287,6 +1287,7 @@ fn record_post_lower_library_api_evidence(il: &mut Il, interner: &Interner) {
         record_post_lower_property_library_api(il, interner, field, &mut dependency_cache);
     }
     for var in vars {
+        record_post_lower_rust_option_some_pattern_library_api(il, interner, var);
         record_post_lower_rust_option_none_library_api(il, interner, var);
     }
 }
@@ -1507,6 +1508,41 @@ fn record_post_lower_rust_option_none_library_api(
         vec![symbol_dependency],
     );
     post_lower_record_library_api_node_result_domain(il, var, contract.result_domain, api);
+    true
+}
+
+fn record_post_lower_rust_option_some_pattern_library_api(
+    il: &mut Il,
+    interner: &Interner,
+    var: NodeId,
+) -> bool {
+    let Some(name) = post_lower_var_name(il, interner, var) else {
+        return false;
+    };
+    let Some(contract) = library_rust_option_some_constructor_contract(il.meta.lang, name, 1)
+    else {
+        return false;
+    };
+    let LibraryApiCalleeContract::FreeName { name, shadow } = contract.callee else {
+        return false;
+    };
+    if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+        post_lower_file_defines_name_visible_at(il, interner, candidate, il.node(var).span)
+    }) {
+        return false;
+    }
+    let Some(symbol_dependency) = post_lower_unshadowed_symbol_evidence_id(il, var, name) else {
+        return false;
+    };
+    post_lower_library_api_node_evidence_id(
+        il,
+        var,
+        contract.id,
+        contract.callee,
+        1,
+        "library_api_rust_option_some_pattern",
+        vec![symbol_dependency],
+    );
     true
 }
 
@@ -3875,6 +3911,40 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             1,
             "typed exact-collection property access should carry LibraryApi occurrence evidence"
         );
+        let ts_filter_length = crate::lower_source(
+            FileId(0),
+            "t.ts",
+            b"function f(value: string) { return [\"red\", \"blue\"].filter((item: string) => item === value).length >= 1; }\n",
+            Lang::TypeScript,
+            &interner,
+        )
+        .expect("typescript lowering should succeed");
+        let filter_length_field = ts_filter_length
+            .nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                (node.kind == NodeKind::Field
+                    && matches!(
+                        node.payload,
+                        Payload::Name(symbol) if interner.resolve(symbol) == "length"
+                    ))
+                .then_some((NodeId(idx as u32), node.span))
+            })
+            .expect("filter length field should be lowered");
+        let filter_length_api = library_api_evidence_ids_at_node(
+            &ts_filter_length.evidence,
+            filter_length_field.1,
+            NodeKind::Field,
+            library_api_contract_id_hash(property_contract.id),
+            library_api_callee_contract_hash(property_contract.callee),
+            0,
+        );
+        assert_eq!(
+            filter_length_api.len(),
+            1,
+            "HOF result property access should carry LibraryApi occurrence evidence"
+        );
 
         let rust_some = crate::lower_source(
             FileId(0),
@@ -3918,6 +3988,46 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             DomainEvidence::Option,
             &some_api,
         ));
+
+        let rust_some_pattern = crate::lower_source(
+            FileId(0),
+            "t.rs",
+            b"pub fn f(value: Option<i32>) -> bool { if let Some(_) = value { true } else { false } }\n",
+            Lang::Rust,
+            &interner,
+        )
+        .expect("rust lowering should succeed");
+        let some_pattern_var = rust_some_pattern
+            .nodes
+            .iter()
+            .find_map(|node| {
+                (node.kind == NodeKind::Var
+                    && matches!(
+                        node.payload,
+                        Payload::Name(symbol) if interner.resolve(symbol) == "Some"
+                    ))
+                .then_some(node.span)
+            })
+            .expect("Some pattern var should be preserved");
+        let some_pattern_api = library_api_evidence_ids_at_node(
+            &rust_some_pattern.evidence,
+            some_pattern_var,
+            NodeKind::Var,
+            library_api_contract_id_hash(some_contract.id),
+            library_api_callee_contract_hash(some_contract.callee),
+            1,
+        );
+        assert_eq!(some_pattern_api.len(), 1);
+        assert!(
+            !result_domain_depends_on_api_at_node(
+                &rust_some_pattern.evidence,
+                some_pattern_var,
+                NodeKind::Var,
+                DomainEvidence::Option,
+                &some_pattern_api,
+            ),
+            "pattern occurrence identity must not become a constructor result domain"
+        );
 
         let rust_none = crate::lower_source(
             FileId(0),

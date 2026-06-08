@@ -3,8 +3,8 @@
 //! Convergence-friendly lowering: `?` and `.await` are stripped to their operand;
 //! `&x`/`&mut x`/`*x` references peel to the operand; `x op= y` desugars to an
 //! assignment; `for`/`while`/`loop` map to the unified `Loop`; `match` becomes an
-//! `if`/`else if` chain (arm pattern as the condition); `if let`/`while let` keep
-//! their scrutinee as the condition. `fn` items become function units; `impl`,
+//! `if`/`else if` chain (arm pattern as the condition); `if let`/`while let`
+//! preserve their pattern tests. `fn` items become function units; `impl`,
 //! `trait`, `struct`, `enum` become class-like units so similar types cluster.
 
 use crate::lower::Lowering;
@@ -898,8 +898,9 @@ fn lower_if(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::If, Payload::None, span, &kids)
 }
 
-/// `if let PAT = expr` / `let PAT = expr` condition → use the scrutinee expression
-/// as the condition (the pattern binding is irrelevant to behavioral shape).
+/// `if let PAT = expr` / `let PAT = expr` condition → preserve the pattern test
+/// as `expr == PAT`. Rust enum-variant/const pattern resolution is still carried
+/// by post-lower occurrence evidence on the lowered pattern nodes.
 fn lower_cond(lo: &mut Lowering, node: TsNode) -> NodeId {
     match node.kind() {
         "let_condition" => lower_let_condition(lo, node),
@@ -913,13 +914,17 @@ fn lower_cond(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_let_condition(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
     let Some(value_node) = node
         .child_by_field_name("value")
         .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
     else {
         return lower_expr(lo, node);
     };
-    lower_expr(lo, value_node)
+    let value = lower_expr(lo, value_node);
+    node.child_by_field_name("pattern")
+        .and_then(|pattern| lower_match_pattern_condition(lo, value, pattern, span))
+        .unwrap_or(value)
 }
 
 #[cfg(test)]
@@ -1320,6 +1325,30 @@ mod tests {
             "if let Some(_) = value { true } else { false }",
             "Some"
         ));
+    }
+
+    #[test]
+    fn if_let_option_patterns_preserve_pattern_surface() {
+        let (interner, il) = lower_rust(
+            "pub fn f(value: Option<i32>) -> bool { if let None = value { true } else { false } }",
+        );
+
+        assert!(il.nodes.iter().any(|node| {
+            node.kind == NodeKind::Var
+                && matches!(node.payload, Payload::Name(sym) if interner.resolve(sym) == "None")
+        }));
+        assert!(il
+            .nodes
+            .iter()
+            .any(|node| node.kind == NodeKind::BinOp && node.payload == Payload::Op(Op::Eq)));
+
+        let (shadowed_interner, shadowed) = lower_rust(
+            "pub const None: Option<i32> = Some(0);\npub fn f(value: Option<i32>) -> bool { if let None = value { true } else { false } }",
+        );
+        assert!(shadowed.nodes.iter().any(|node| {
+            node.kind == NodeKind::Var
+                && matches!(node.payload, Payload::Name(sym) if shadowed_interner.resolve(sym) == "None")
+        }));
     }
 
     #[test]

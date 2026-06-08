@@ -5917,6 +5917,11 @@ fn receiver_dependency_ids(
             {
                 return Some(ids);
             }
+            if let Some(id) =
+                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+            {
+                return Some(vec![id]);
+            }
             library_api_dependency_id_for_map_key_view_call(
                 il,
                 interner,
@@ -6612,6 +6617,10 @@ fn library_api_contract_result_domain_for_arity(
             }),
         ),
         LibraryApiContractId::RustOptionSomeConstructor => Some(DomainEvidence::Option),
+        LibraryApiContractId::ScalarIntegerMethod(_) => Some(DomainEvidence::Integer),
+        LibraryApiContractId::MethodCall(MethodSemanticContract::HoF(_)) => {
+            Some(DomainEvidence::Collection)
+        }
         _ => None,
     }
 }
