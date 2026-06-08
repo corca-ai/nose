@@ -59,10 +59,14 @@ still being migrated toward it.
   sequence evidence emission, and Raw-node coverage.
 - `nose-normalize` owns desugaring, alpha-renaming, recursion normalization,
   immutable binding-domain evidence inference, dataflow, CFG/algebra
-  normalization, type-gated value-graph rules, and the interpreter oracle.
-- proof-sensitive value-graph laws are starting to move into named rule modules
-  under `crates/nose-normalize/src/value_graph/rules/`; `clamp` and
-  `promise_then` are the current examples.
+  normalization, type-gated value-graph rules, and the interpreter oracle. The
+  value graph keeps its public facade in `value_graph.rs`, with focused internal
+  modules for active builders, control/loop processing, collection/HOF/library
+  value recognition, output extraction, stdlib recognizers, pure inlining,
+  low-level ops, and proof-sensitive rules.
+- proof-sensitive value-graph laws continue to live in named rule modules under
+  `crates/nose-normalize/src/value_graph/rules/`; `clamp` and `promise_then`
+  are the current examples.
 - `nose-detect` owns unit extraction, strict exact-safety proof gates, exact
   fragment contracts, effect fragments, value/shape features, candidate
   generation, clustering, and ranking. The strict exact gate lives in its own

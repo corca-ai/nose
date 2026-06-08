@@ -4,7 +4,8 @@ Normalization is step 2 of the pipeline in [architecture](architecture.md); the
 experiments that validated these passes are in [experiments](experiments.md).
 
 > **Status (all three tracks landed):** Track 1 — dataflow copy/expr propagation
-> (`dataflow.rs`) + value-graph/GVN (`value_graph.rs`, the detection substrate;
+> (`dataflow.rs`) + value-graph/GVN (`value_graph.rs` plus focused internal
+> modules under `value_graph/`, the detection substrate;
 > Stage 2 statement-order subsumed). Track 2 — algebraic canonicalization
 > (`algebra.rs`: assoc/comm flatten, comparison-direction, De Morgan;
 > value-independent). Track 3 — CFG normalization (`cfg_norm.rs` `structure()`:
@@ -192,6 +193,10 @@ downstream value-graph.
   (fingerprint subgraphs) and the natural home for the downstream graph/vectorize
   experiments. Hard parts: φ-handling across control flow, effect ordering,
   canonical graph hashing.
+  The implementation keeps the public fingerprint facade in `value_graph.rs`
+  while focused internal modules own active builders, control/loop processing,
+  collection/HOF/library value recognition, output extraction, stdlib recognizers,
+  pure inlining, low-level ops, and proof-sensitive rule modules.
 
   A narrow Java-only selection idiom lives here: `x % 2 == 0 ? x + 1 : x - 1`
   and the equivalent `x % 2 != 0 ? x - 1 : x + 1` canonicalize to `x ^ 1`.
