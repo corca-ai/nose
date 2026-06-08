@@ -52,8 +52,8 @@ still being migrated toward it.
   source-fact, operator, effect, fragment, module, stdlib, builtin, method-call,
   property, async, iterator-adapter, builder-append, and factory contracts. The
   public crate surface remains a flat facade, while internal evidence/source/domain
-  proof helpers and library API occurrence/admission logic are split into focused
-  modules.
+  proof helpers, library API contract identities, and library API
+  occurrence/admission logic are split into focused modules.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
   sequence evidence emission, and Raw-node coverage.
