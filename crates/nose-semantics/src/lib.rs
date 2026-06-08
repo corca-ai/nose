@@ -2722,9 +2722,95 @@ pub enum BuiltinArgContract {
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct FreeFunctionBuiltinContract {
+    pub name: &'static str,
     pub builtin: Builtin,
     pub args: BuiltinArgContract,
     pub requires_unshadowed: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum FreeFunctionBuiltinArity {
+    Exact(usize),
+    AtLeast(usize),
+    OneOf(&'static [usize]),
+}
+
+impl FreeFunctionBuiltinArity {
+    fn accepts(self, arg_count: usize) -> bool {
+        match self {
+            FreeFunctionBuiltinArity::Exact(expected) => arg_count == expected,
+            FreeFunctionBuiltinArity::AtLeast(minimum) => arg_count >= minimum,
+            FreeFunctionBuiltinArity::OneOf(expected) => expected.contains(&arg_count),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct FreeFunctionBuiltinRow {
+    lang: Lang,
+    name: &'static str,
+    builtin: Builtin,
+    args: BuiltinArgContract,
+    arity: FreeFunctionBuiltinArity,
+    requires_unshadowed: bool,
+}
+
+const ONE_OR_TWO_ARGS: &[usize] = &[1, 2];
+const ONE_TO_THREE_ARGS: &[usize] = &[1, 2, 3];
+const PY: Lang = Lang::Python;
+const GO: Lang = Lang::Go;
+const FIRST_ARG: BuiltinArgContract = BuiltinArgContract::First;
+const ALL_ARGS: BuiltinArgContract = BuiltinArgContract::All;
+const ARITY_ANY: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::AtLeast(0);
+const ARITY_ONE: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::Exact(1);
+const ARITY_TWO: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::Exact(2);
+const ARITY_AT_LEAST_TWO: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::AtLeast(2);
+const ARITY_ONE_OR_TWO: FreeFunctionBuiltinArity = FreeFunctionBuiltinArity::OneOf(ONE_OR_TWO_ARGS);
+const ARITY_ONE_TO_THREE: FreeFunctionBuiltinArity =
+    FreeFunctionBuiltinArity::OneOf(ONE_TO_THREE_ARGS);
+
+const fn free_function_builtin_row(
+    lang: Lang,
+    name: &'static str,
+    builtin: Builtin,
+    args: BuiltinArgContract,
+    arity: FreeFunctionBuiltinArity,
+) -> FreeFunctionBuiltinRow {
+    FreeFunctionBuiltinRow {
+        lang,
+        name,
+        builtin,
+        args,
+        arity,
+        requires_unshadowed: true,
+    }
+}
+
+const FREE_FUNCTION_BUILTINS: &[FreeFunctionBuiltinRow] = &[
+    free_function_builtin_row(PY, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(GO, "len", Builtin::Len, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(GO, "append", Builtin::Append, ALL_ARGS, ARITY_AT_LEAST_TWO),
+    free_function_builtin_row(PY, "print", Builtin::Print, ALL_ARGS, ARITY_ANY),
+    free_function_builtin_row(PY, "range", Builtin::Range, ALL_ARGS, ARITY_ONE_TO_THREE),
+    free_function_builtin_row(PY, "sum", Builtin::Sum, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(PY, "min", Builtin::Min, ALL_ARGS, ARITY_ONE_OR_TWO),
+    free_function_builtin_row(PY, "max", Builtin::Max, ALL_ARGS, ARITY_ONE_OR_TWO),
+    free_function_builtin_row(PY, "abs", Builtin::Abs, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(PY, "zip", Builtin::Zip, ALL_ARGS, ARITY_TWO),
+    free_function_builtin_row(PY, "enumerate", Builtin::Enumerate, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(PY, "any", Builtin::Any, FIRST_ARG, ARITY_ONE),
+    free_function_builtin_row(PY, "all", Builtin::All, FIRST_ARG, ARITY_ONE),
+];
+
+fn free_function_builtin_contract_from_row(
+    row: &FreeFunctionBuiltinRow,
+) -> FreeFunctionBuiltinContract {
+    FreeFunctionBuiltinContract {
+        name: row.name,
+        builtin: row.builtin,
+        args: row.args,
+        requires_unshadowed: row.requires_unshadowed,
+    }
 }
 
 pub fn free_function_builtin_contract(
@@ -2732,44 +2818,10 @@ pub fn free_function_builtin_contract(
     name: &str,
     arg_count: usize,
 ) -> Option<FreeFunctionBuiltinContract> {
-    let contract = match name {
-        "len" if matches!(lang, Lang::Python | Lang::Go) && arg_count == 1 => {
-            (Builtin::Len, BuiltinArgContract::First)
-        }
-        "append" if lang == Lang::Go && arg_count >= 2 => {
-            (Builtin::Append, BuiltinArgContract::All)
-        }
-        "print" if lang == Lang::Python => (Builtin::Print, BuiltinArgContract::All),
-        "range" if lang == Lang::Python => (Builtin::Range, BuiltinArgContract::All),
-        "sum" if lang == Lang::Python && arg_count == 1 => {
-            (Builtin::Sum, BuiltinArgContract::First)
-        }
-        "min" if lang == Lang::Python && (arg_count == 1 || arg_count == 2) => {
-            (Builtin::Min, BuiltinArgContract::All)
-        }
-        "max" if lang == Lang::Python && (arg_count == 1 || arg_count == 2) => {
-            (Builtin::Max, BuiltinArgContract::All)
-        }
-        "abs" if lang == Lang::Python && arg_count == 1 => {
-            (Builtin::Abs, BuiltinArgContract::First)
-        }
-        "zip" if lang == Lang::Python && arg_count == 2 => (Builtin::Zip, BuiltinArgContract::All),
-        "enumerate" if lang == Lang::Python && arg_count == 1 => {
-            (Builtin::Enumerate, BuiltinArgContract::First)
-        }
-        "any" if lang == Lang::Python && arg_count == 1 => {
-            (Builtin::Any, BuiltinArgContract::First)
-        }
-        "all" if lang == Lang::Python && arg_count == 1 => {
-            (Builtin::All, BuiltinArgContract::First)
-        }
-        _ => return None,
-    };
-    Some(FreeFunctionBuiltinContract {
-        builtin: contract.0,
-        args: contract.1,
-        requires_unshadowed: true,
-    })
+    FREE_FUNCTION_BUILTINS
+        .iter()
+        .find(|row| row.lang == lang && row.name == name && row.arity.accepts(arg_count))
+        .map(free_function_builtin_contract_from_row)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -4086,6 +4138,7 @@ const IMPORTED_COLLECTION_FACTORIES: &[ImportedCollectionFactory] = &[ImportedCo
 pub enum LibraryApiContractId {
     PythonBuiltinCollectionFactory,
     PythonImportedCollectionFactory,
+    FreeFunctionBuiltin(Builtin),
     RustStdCollectionFactory,
     RustStdMapFactory,
     RustVecMacroFactory,
@@ -4122,6 +4175,9 @@ fn library_api_contract_id_key(id: LibraryApiContractId) -> String {
         }
         LibraryApiContractId::PythonImportedCollectionFactory => {
             "python.imported.collection_factory".into()
+        }
+        LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
+            format!("free_function_builtin.{}", builtin as u32)
         }
         LibraryApiContractId::RustStdCollectionFactory => "rust.std.collection_factory".into(),
         LibraryApiContractId::RustStdMapFactory => "rust.std.map_factory".into(),
@@ -4601,6 +4657,13 @@ pub struct LibraryMethodCallContract {
     pub id: LibraryApiContractId,
     pub callee: LibraryApiCalleeContract,
     pub result: MethodCallContract,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct LibraryFreeFunctionBuiltinContract {
+    pub id: LibraryApiContractId,
+    pub callee: LibraryApiCalleeContract,
+    pub result: FreeFunctionBuiltinContract,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -6281,6 +6344,18 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
     let mut ids = vec![
         LibraryApiContractId::PythonBuiltinCollectionFactory,
         LibraryApiContractId::PythonImportedCollectionFactory,
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Len),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Append),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Print),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Range),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Sum),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Min),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Max),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Abs),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Zip),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Enumerate),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::Any),
+        LibraryApiContractId::FreeFunctionBuiltin(Builtin::All),
         LibraryApiContractId::RustStdCollectionFactory,
         LibraryApiContractId::RustStdMapFactory,
         LibraryApiContractId::RustVecMacroFactory,
@@ -6417,6 +6492,9 @@ fn library_api_callee_contracts_for_id(
                 .map(|contract| contract.callee)
                 .collect()
         }
+        LibraryApiContractId::FreeFunctionBuiltin(builtin) => {
+            library_free_function_builtin_callee_contracts_for_id(lang, builtin)
+        }
         LibraryApiContractId::RustStdMapFactory => library_free_name_map_factory_contracts(lang)
             .filter(|contract| contract.id == id)
             .map(|contract| contract.callee)
@@ -6536,6 +6614,32 @@ fn library_api_callee_contracts_for_id(
         }
         _ => Vec::new(),
     }
+}
+
+fn library_free_function_builtin_callee_contracts_for_id(
+    lang: Lang,
+    builtin: Builtin,
+) -> Vec<LibraryApiCalleeContract> {
+    let candidate = match (lang, builtin) {
+        (Lang::Python, Builtin::Len) => Some(("len", 1)),
+        (Lang::Go, Builtin::Len) => Some(("len", 1)),
+        (Lang::Go, Builtin::Append) => Some(("append", 2)),
+        (Lang::Python, Builtin::Print) => Some(("print", 0)),
+        (Lang::Python, Builtin::Range) => Some(("range", 1)),
+        (Lang::Python, Builtin::Sum) => Some(("sum", 1)),
+        (Lang::Python, Builtin::Min) => Some(("min", 1)),
+        (Lang::Python, Builtin::Max) => Some(("max", 1)),
+        (Lang::Python, Builtin::Abs) => Some(("abs", 1)),
+        (Lang::Python, Builtin::Zip) => Some(("zip", 2)),
+        (Lang::Python, Builtin::Enumerate) => Some(("enumerate", 1)),
+        (Lang::Python, Builtin::Any) => Some(("any", 1)),
+        (Lang::Python, Builtin::All) => Some(("all", 1)),
+        _ => None,
+    };
+    candidate
+        .and_then(|(name, arg_count)| library_free_function_builtin_contract(lang, name, arg_count))
+        .map(|contract| vec![contract.callee])
+        .unwrap_or_default()
 }
 
 fn method_call_contract_callees_for_semantic(
@@ -7257,6 +7361,22 @@ pub fn library_free_name_collection_factory_contracts(
                 .iter()
                 .filter_map(move |name| library_free_name_collection_factory_contract(lang, name))
         })
+}
+
+pub fn library_free_function_builtin_contract(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<LibraryFreeFunctionBuiltinContract> {
+    let result = free_function_builtin_contract(lang, name, arg_count)?;
+    Some(LibraryFreeFunctionBuiltinContract {
+        id: LibraryApiContractId::FreeFunctionBuiltin(result.builtin),
+        callee: LibraryApiCalleeContract::FreeName {
+            name: result.name,
+            shadow: library_free_name_shadow_policy(lang, result.requires_unshadowed),
+        },
+        result,
+    })
 }
 
 pub fn library_imported_collection_factory_contract(
@@ -10435,6 +10555,52 @@ mod tests {
         );
 
         let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("len")),
+            sp(45),
+            &[],
+        );
+        let arg = b.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp(46),
+            &[],
+        );
+        let call = b.add(NodeKind::Call, Payload::None, sp(47), &[callee, arg]);
+        let root = b.add(NodeKind::Module, Payload::None, sp(44), &[call]);
+        let mut il = finish_il(b, root, Lang::Python);
+        let contract = library_free_function_builtin_contract(Lang::Python, "len", 1)
+            .expect("Python len contract");
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(45), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("len"),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        il.evidence.push(library_api_record(
+            1,
+            sp(47),
+            contract.id,
+            contract.callee,
+            EvidenceStatus::Asserted,
+            &[0],
+        ));
+        assert_eq!(
+            library_api_contract_evidence_for_call(
+                &il,
+                &interner,
+                call,
+                contract.id,
+                contract.callee,
+                1,
+            ),
+            LibraryApiEvidenceStatus::Admitted
+        );
+
+        let mut b = IlBuilder::new(FileId(0));
         let require_callee = b.add(
             NodeKind::Var,
             Payload::Name(interner.intern("require")),
@@ -10736,6 +10902,22 @@ mod tests {
                     shadow: LibraryApiShadowPolicy::SameName,
                 },
                 result: LibraryCollectionFactoryResult::SequenceArgument,
+            })
+        );
+        assert_eq!(
+            library_free_function_builtin_contract(Lang::Python, "len", 1),
+            Some(LibraryFreeFunctionBuiltinContract {
+                id: LibraryApiContractId::FreeFunctionBuiltin(Builtin::Len),
+                callee: LibraryApiCalleeContract::FreeName {
+                    name: "len",
+                    shadow: LibraryApiShadowPolicy::SameName,
+                },
+                result: FreeFunctionBuiltinContract {
+                    name: "len",
+                    builtin: Builtin::Len,
+                    args: BuiltinArgContract::First,
+                    requires_unshadowed: true,
+                },
             })
         );
         assert_eq!(
@@ -11264,6 +11446,7 @@ mod tests {
         assert_eq!(
             free_function_builtin_contract(Lang::Python, "len", 1),
             Some(FreeFunctionBuiltinContract {
+                name: "len",
                 builtin: Builtin::Len,
                 args: BuiltinArgContract::First,
                 requires_unshadowed: true,
@@ -11277,6 +11460,7 @@ mod tests {
         assert_eq!(
             free_function_builtin_contract(Lang::Python, "print", 3),
             Some(FreeFunctionBuiltinContract {
+                name: "print",
                 builtin: Builtin::Print,
                 args: BuiltinArgContract::All,
                 requires_unshadowed: true,
@@ -11285,6 +11469,7 @@ mod tests {
         assert_eq!(
             free_function_builtin_contract(Lang::Go, "append", 2),
             Some(FreeFunctionBuiltinContract {
+                name: "append",
                 builtin: Builtin::Append,
                 args: BuiltinArgContract::All,
                 requires_unshadowed: true,
@@ -11297,8 +11482,18 @@ mod tests {
             None
         );
         assert_eq!(
+            free_function_builtin_contract(Lang::Python, "range", 0),
+            None
+        );
+        assert!(free_function_builtin_contract(Lang::Python, "range", 3).is_some());
+        assert_eq!(
+            free_function_builtin_contract(Lang::Python, "range", 4),
+            None
+        );
+        assert_eq!(
             free_function_builtin_contract(Lang::Python, "max", 2),
             Some(FreeFunctionBuiltinContract {
+                name: "max",
                 builtin: Builtin::Max,
                 args: BuiltinArgContract::All,
                 requires_unshadowed: true,

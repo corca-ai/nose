@@ -61,7 +61,7 @@ The current implemented kinds are:
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect facts currently covering canonical builder append calls, non-overloadable index writes, and fixed self-field writes |
-| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, and selected receiver-method families |
+| `LibraryApi` | proof that a specific call occurrence matches a language/API contract coordinate, currently for selected JS-like static/global/static-index APIs, selected Python/Rust/Ruby/Java/regex APIs, generic Python/Go free-function builtins, and selected receiver-method families |
 | `SequenceSurface` | lowered aggregate surface such as collection, tuple, map, pair, import proof, guard surfaces, Go composite map literals, or Go map entries |
 
 `LibraryApi` evidence is an occurrence fact, not the whole contract. It records
@@ -81,9 +81,10 @@ Current first-party `LibraryApi` callee coordinates are intentionally specific:
 - `ImportedBinding` and `ImportedNamespaceFunction` name a module/export or
   namespace/function identity and depend on import-backed call-site symbol
   evidence. They do not infer semantics from the local alias spelling.
-- `FreeName` names a language-scoped free identifier, such as Python `list` or
-  Rust `Vec`, and depends on `Symbol(UnshadowedGlobal)` evidence at the callee
-  anchor plus the contract's shadow policy.
+- `FreeName` names a language-scoped free identifier, such as Python `list`,
+  Python `len`, Go `append`, or Rust `Vec`, and depends on
+  `Symbol(UnshadowedGlobal)` evidence at the callee anchor plus the contract's
+  shadow policy.
 - `JavaUtilStaticMember` names selected Java `java.util` static factory/adaptor
   calls and depends on matching Java import-binding evidence plus source-origin
   local type shadow checks.
@@ -420,12 +421,10 @@ callers:
   language-gated helper only when no relevant evidence record exists. Ambiguous
   or conflicting evidence keeps the exact path closed.
 
-Broader field/place/effect facts, `LibraryApi` occurrence evidence for
-free-name builtin calls outside the current factory/function rows, promise
-receiver proof, async/sync protocol convergence, and unmodeled
-stdlib/ecosystem APIs, broader inferred receiver-expression domain evidence,
-first-class mutation/effect evidence beyond the current first-party binding
-scan, full protocol/demand/effect receiver obligations, full scope-resolution
-and namespace-member evidence, broader guard evidence, general cross-module
-dependency manifests, report-level provenance, and external manifest loading are
-still open work.
+Broader field/place/effect facts, promise receiver proof, async/sync protocol
+convergence, unmodeled stdlib/ecosystem APIs, broader inferred
+receiver-expression domain evidence, first-class mutation/effect evidence beyond
+the current first-party binding scan, full protocol/demand/effect receiver
+obligations, full scope-resolution and namespace-member evidence, broader guard
+evidence, general cross-module dependency manifests, report-level provenance,
+and external manifest loading are still open work.

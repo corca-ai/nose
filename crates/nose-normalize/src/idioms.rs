@@ -12,8 +12,8 @@ use nose_il::{
     HoFKind, Il, Interner, NodeId, NodeKind, Payload, Span, Symbol,
 };
 use nose_semantics::{
-    domain_evidence_for_param, free_function_builtin_contract, imported_namespace_symbol,
-    library_api_contract_evidence_for_call, library_free_name_map_factory_contract,
+    domain_evidence_for_param, imported_namespace_symbol, library_api_contract_evidence_for_call,
+    library_free_function_builtin_contract, library_free_name_map_factory_contract,
     library_iterator_identity_adapter_contract, library_map_get_contract,
     library_map_key_view_contract, library_method_call_contract,
     library_static_collection_adapter_contract, rust_option_some_constructor_contract,
@@ -306,17 +306,24 @@ pub(crate) fn canon_call_with_domains(
     match cn.kind {
         NodeKind::Var => {
             if let Payload::Name(s) = cn.payload {
-                if let Some(contract) =
-                    free_function_builtin_contract(old.meta.lang, interner.resolve(s), args.len())
-                {
-                    if contract.requires_unshadowed
-                        && file_defines_name(old, interner, interner.resolve(s))
-                    {
+                if let Some(contract) = library_free_function_builtin_contract(
+                    old.meta.lang,
+                    interner.resolve(s),
+                    args.len(),
+                ) {
+                    if !library_api_evidence_admitted(
+                        old,
+                        interner,
+                        call_id,
+                        contract.id,
+                        contract.callee,
+                        args.len(),
+                    ) {
                         return CallCanon::None;
                     }
-                    match contract.args {
-                        BuiltinArgContract::First => builtin!(contract.builtin, first),
-                        BuiltinArgContract::All => builtin!(contract.builtin, all),
+                    match contract.result.args {
+                        BuiltinArgContract::First => builtin!(contract.result.builtin, first),
+                        BuiltinArgContract::All => builtin!(contract.result.builtin, all),
                     }
                 }
             }
@@ -1288,6 +1295,45 @@ mod tests {
         Some(EvidenceId(id))
     }
 
+    fn push_free_function_builtin_library_api_evidence(
+        il: &mut Il,
+        interner: &Interner,
+        call: NodeId,
+    ) -> Option<EvidenceId> {
+        let kids = il.children(call);
+        let (&callee, args) = kids.split_first()?;
+        let arg_count = args.len();
+        let callee_span = il.node(callee).span;
+        let call_span = il.node(call).span;
+        let Payload::Name(symbol) = il.node(callee).payload else {
+            return None;
+        };
+        let name = interner.resolve(symbol);
+        let contract = library_free_function_builtin_contract(il.meta.lang, name, arg_count)?;
+        let symbol_id = next_evidence_id(il);
+        il.evidence.push(evidence(
+            symbol_id,
+            EvidenceAnchor::node(callee_span, NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash(name),
+            }),
+            EvidenceStatus::Asserted,
+        ));
+        let id = next_evidence_id(il);
+        il.evidence.push(evidence_with_dependencies(
+            id,
+            EvidenceAnchor::node(call_span, NodeKind::Call),
+            EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+                contract_hash: nose_semantics::library_api_contract_id_hash(contract.id),
+                callee_hash: nose_semantics::library_api_callee_contract_hash(contract.callee),
+                arity: arg_count as u16,
+            }),
+            EvidenceStatus::Asserted,
+            vec![EvidenceId(symbol_id)],
+        ));
+        Some(EvidenceId(id))
+    }
+
     fn free_call_il(lang: Lang, name: &str, shadow_name: bool) -> (Il, Interner, NodeId) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
@@ -1874,13 +1920,17 @@ mod tests {
 
     #[test]
     fn free_name_builtin_requires_no_shadowing() {
-        let (il, interner, call) = free_call_il(Lang::Python, "len", true);
+        let (mut il, interner, call) = free_call_il(Lang::Python, "len", true);
+        let _ = push_free_function_builtin_library_api_evidence(&mut il, &interner, call);
         assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
     }
 
     #[test]
-    fn python_unshadowed_builtin_is_admitted() {
-        let (il, interner, call) = free_call_il(Lang::Python, "len", false);
+    fn python_unshadowed_builtin_requires_library_api_evidence() {
+        let (mut il, interner, call) = free_call_il(Lang::Python, "len", false);
+        assert!(matches!(canon_call(&il, &interner, call), CallCanon::None));
+
+        let _ = push_free_function_builtin_library_api_evidence(&mut il, &interner, call);
         assert!(matches!(
             canon_call(&il, &interner, call),
             CallCanon::Builtin {

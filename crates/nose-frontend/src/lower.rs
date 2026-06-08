@@ -13,7 +13,7 @@ use nose_il::{
 use nose_semantics::{
     library_api_callee_contract_hash, library_api_contract_id_hash,
     library_api_free_name_shadow_safe, library_api_receiver_dependencies_for_call_with_cache,
-    library_collection_factory_result_domain_for_arity,
+    library_collection_factory_result_domain_for_arity, library_free_function_builtin_contract,
     library_free_name_collection_factory_contract, library_free_name_map_factory_contract,
     library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
     library_java_collection_constructor_contract, library_java_collection_factory_contract,
@@ -1325,6 +1325,18 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
                         library_collection_factory_result_domain_for_arity(contract, arg_count),
                     )
                 })
+        })
+        .or_else(|| {
+            library_free_function_builtin_contract(il.meta.lang, callee_name, arg_count).map(
+                |contract| {
+                    (
+                        contract.id,
+                        contract.callee,
+                        "library_api_free_function_builtin",
+                        None,
+                    )
+                },
+            )
         });
     let Some((id, callee_contract, rule, result_domain)) = contract else {
         return false;
@@ -3143,6 +3155,87 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
                 library_api_callee_contract_hash(py_contract.callee),
             ),
             0
+        );
+
+        let py_len = crate::lower_source(
+            FileId(0),
+            "len.py",
+            b"def f(values):\n    return len(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let py_len_contract =
+            library_free_function_builtin_contract(Lang::Python, "len", 1).unwrap();
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &py_len.evidence,
+                library_api_contract_id_hash(py_len_contract.id),
+                library_api_callee_contract_hash(py_len_contract.callee),
+            ),
+            1
+        );
+
+        let shadowed_py_len = crate::lower_source(
+            FileId(0),
+            "shadowed_len.py",
+            b"def f(len, values):\n    return len(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &shadowed_py_len.evidence,
+                library_api_contract_id_hash(py_len_contract.id),
+                library_api_callee_contract_hash(py_len_contract.callee),
+            ),
+            0
+        );
+
+        let wildcard_py_len = crate::lower_source(
+            FileId(0),
+            "wildcard_len.py",
+            b"from custom import *\n\ndef f(values):\n    return len(values)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &wildcard_py_len.evidence,
+                library_api_contract_id_hash(py_len_contract.id),
+                library_api_callee_contract_hash(py_len_contract.callee),
+            ),
+            0
+        );
+
+        let go = crate::lower_source(
+            FileId(0),
+            "builtin.go",
+            b"package p\nfunc f(xs []int, x int) int { return len(xs) }\nfunc g(xs []int, x int) []int { return append(xs, x) }\n",
+            Lang::Go,
+            &interner,
+        )
+        .expect("go lowering should succeed");
+        let go_len_contract = library_free_function_builtin_contract(Lang::Go, "len", 1).unwrap();
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &go.evidence,
+                library_api_contract_id_hash(go_len_contract.id),
+                library_api_callee_contract_hash(go_len_contract.callee),
+            ),
+            1
+        );
+        let go_append_contract =
+            library_free_function_builtin_contract(Lang::Go, "append", 2).unwrap();
+        assert_eq!(
+            library_api_evidence_count_in_records(
+                &go.evidence,
+                library_api_contract_id_hash(go_append_contract.id),
+                library_api_callee_contract_hash(go_append_contract.callee),
+            ),
+            1
         );
 
         let rust = crate::lower_source(

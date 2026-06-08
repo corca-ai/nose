@@ -109,8 +109,11 @@ migrated.
   stored directly as `EvidenceRecord::Source`; there is no source-fact side-table
   fallback. Normalize and detect consume source facts only where a semantic
   contract requires that exact source surface.
-- Free-function builtin contracts are language- and arity-constrained and require
-  unshadowed builtin/global proof before exact lowering.
+- Free-function builtin contracts are language- and arity-constrained. Supported
+  Python/Go free builtins such as `len`, `sum`, `min`, `max`, `any`, `all`, and
+  Go `append` require admitted `LibraryApi(FreeFunctionBuiltin)` occurrence
+  evidence whose dependencies prove the unshadowed builtin/global callee before
+  exact lowering.
 - Method contracts carry receiver obligations such as exact collection, exact
   protocol, exact option, exact string, exact primitive integer, exact map literal,
   imported namespace, or unshadowed global.
@@ -356,8 +359,10 @@ migrated.
   contracts with an unshadowed `Math` receiver requirement instead of frontend
   text-only builtin lowering.
 - Two-argument free `min(...)`/`max(...)` normalization consumes the Python
-  free-function builtin contract. Same-named functions from other languages,
-  including JS `min(...)`, and locally shadowed Python names stay exact-closed.
+  free-function builtin `LibraryApi` occurrence contract. Same-named functions
+  from other languages, including JS `min(...)`, locally shadowed Python names,
+  and manually constructed calls without admitted occurrence evidence stay
+  exact-closed.
 - JS-like `typeof` exact-safety now consumes a language- and arity-constrained
   operator contract. A same-named function from another language or unresolved
   provider is not treated as the JS operator.
@@ -478,10 +483,10 @@ Semantic knowledge still appears in several forms outside the facade:
   APIs and static-index membership, Python builtin/import-backed
   factories/functions, Rust free-name/path factories, Ruby
   `require "set"; Set.new(...)`, Java `java.util` static factories/adapters and
-  selected empty constructors, JS regex literals, and selected receiver-method
-  families. Free-name builtin calls outside the current factory/function rows,
-  promise receiver proof, async/sync protocol convergence, and ecosystem APIs
-  still rely on contract rows plus local proof or remain exact-closed.
+  selected empty constructors, JS regex literals, generic Python/Go
+  free-function builtins, and selected receiver-method families. Promise
+  receiver proof, async/sync protocol convergence, and ecosystem APIs still rely
+  on contract rows plus local proof or remain exact-closed.
 
 These are valuable, but they do not yet share one complete semantic contract
 language.

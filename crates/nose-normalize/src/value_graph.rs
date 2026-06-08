@@ -51,23 +51,23 @@ use nose_il::{
 use nose_semantics::{
     builder_append_method_contract, builtin_tag, construct_syntax_proof,
     domain_evidence_for_param as semantic_domain_evidence_for_param,
-    exact_static_membership_predicate_operator, free_function_builtin_contract,
-    go_zero_map_default_kind, go_zero_map_entry_contract_for_node,
-    go_zero_map_literal_contract_for_node, go_zero_map_lookup_contract, import_fact_evidence_rhs,
+    exact_static_membership_predicate_operator, go_zero_map_default_kind,
+    go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
+    go_zero_map_lookup_contract, import_fact_evidence_rhs,
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     library_api_contract_evidence_at_call_span, library_api_contract_evidence_for_call,
-    library_free_name_collection_factory_contracts, library_free_name_map_factory_contracts,
-    library_imported_collection_factory_contracts, library_imported_namespace_function_contract,
-    library_iterator_identity_adapter_contract, library_java_collection_constructor_contract,
-    library_java_collection_factory_contract_by_hash, library_java_map_entry_contract_by_hash,
-    library_java_map_factory_contract_by_hash, library_js_like_map_constructor_contract,
-    library_js_like_set_constructor_contract, library_map_get_contract_by_hash,
-    library_map_key_view_contract_by_hash, library_map_key_view_wrapper_contract_by_hash,
-    library_method_call_contract, library_ruby_set_factory_contract_by_hash,
-    library_rust_vec_macro_factory_contract, library_rust_vec_new_factory_contract,
-    library_static_index_membership_contract, nullish_global_contract,
-    own_property_guard_evidence_at_span, record_shape_guard_for_node, reduction_builtin_contract,
-    rust_option_and_then_contract, rust_option_none_sentinel_contract,
+    library_free_function_builtin_contract, library_free_name_collection_factory_contracts,
+    library_free_name_map_factory_contracts, library_imported_collection_factory_contracts,
+    library_imported_namespace_function_contract, library_iterator_identity_adapter_contract,
+    library_java_collection_constructor_contract, library_java_collection_factory_contract_by_hash,
+    library_java_map_entry_contract_by_hash, library_java_map_factory_contract_by_hash,
+    library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
+    library_map_get_contract_by_hash, library_map_key_view_contract_by_hash,
+    library_map_key_view_wrapper_contract_by_hash, library_method_call_contract,
+    library_ruby_set_factory_contract_by_hash, library_rust_vec_macro_factory_contract,
+    library_rust_vec_new_factory_contract, library_static_index_membership_contract,
+    nullish_global_contract, own_property_guard_evidence_at_span, record_shape_guard_for_node,
+    reduction_builtin_contract, rust_option_and_then_contract, rust_option_none_sentinel_contract,
     rust_option_some_constructor_contract, scalar_integer_method_contract, semantics,
     seq_surface_contract_for_node, source_operator_at_node, unshadowed_global_symbol,
     BuiltinArgContract, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,
@@ -2308,6 +2308,7 @@ impl<'a> Builder<'a> {
 
     fn eval_proven_free_minmax_call(
         &mut self,
+        expr: NodeId,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
     ) -> Option<ValueId> {
@@ -2318,11 +2319,11 @@ impl<'a> Builder<'a> {
             return None;
         };
         let method = self.interner.resolve(name);
-        let contract = free_function_builtin_contract(self.il.meta.lang, method, 2)?;
-        if contract.requires_unshadowed && self.file_defines_name(method) {
+        let contract = library_free_function_builtin_contract(self.il.meta.lang, method, 2)?;
+        if !self.library_api_evidence_admitted(expr, contract.id, contract.callee, 2) {
             return None;
         }
-        let op = match (contract.builtin, contract.args) {
+        let op = match (contract.result.builtin, contract.result.args) {
             (Builtin::Min, BuiltinArgContract::All) => MIN_CODE,
             (Builtin::Max, BuiltinArgContract::All) => MAX_CODE,
             _ => return None,
@@ -8218,7 +8219,7 @@ impl<'a> Builder<'a> {
                 if let Some(v) = self.eval_iterator_identity_adapter(expr, &kids, env) {
                     return v;
                 }
-                if let Some(v) = self.eval_proven_free_minmax_call(&kids, env) {
+                if let Some(v) = self.eval_proven_free_minmax_call(expr, &kids, env) {
                     return v;
                 }
                 if let Some(r) = self.eval_proven_collection_membership_call(expr, &kids, env) {
@@ -8877,7 +8878,7 @@ mod tests {
     };
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash,
-        library_free_name_collection_factory_contract,
+        library_free_function_builtin_contract, library_free_name_collection_factory_contract,
         library_imported_collection_factory_contract, library_java_collection_constructor_contract,
         library_java_collection_factory_contract, library_java_map_factory_contract,
         library_js_like_map_constructor_contract, library_js_like_set_constructor_contract,
@@ -9366,6 +9367,53 @@ mod tests {
         assert!(matches!(
             eval_proven_collection_op(&il, &interner, call),
             Some(ValOp::Seq(SEQ_VALUE_COLLECTION))
+        ));
+    }
+
+    #[test]
+    fn free_name_minmax_value_graph_requires_library_api_evidence() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(
+            NodeKind::Var,
+            Payload::Name(interner.intern("min")),
+            sp(24),
+            &[],
+        );
+        let left = b.add(NodeKind::Lit, Payload::LitInt(1), sp(25), &[]);
+        let right = b.add(NodeKind::Lit, Payload::LitInt(2), sp(26), &[]);
+        let call = b.add(
+            NodeKind::Call,
+            Payload::None,
+            sp(27),
+            &[callee, left, right],
+        );
+        let root = b.add(NodeKind::Block, Payload::None, sp(23), &[call]);
+        let mut il = finish_test_il(b, root, Lang::Python);
+        il.evidence.push(evidence(
+            0,
+            EvidenceAnchor::node(sp(24), NodeKind::Var),
+            EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+                name_hash: stable_symbol_hash("min"),
+            }),
+        ));
+        assert!(
+            !matches!(eval_op(&il, &interner, call), ValOp::Bin(op) if op == MIN_CODE),
+            "symbol proof alone must not prove the migrated Python min builtin"
+        );
+
+        let contract = library_free_function_builtin_contract(Lang::Python, "min", 2).unwrap();
+        il.evidence.push(library_api_contract_evidence(
+            1,
+            sp(27),
+            contract.id,
+            contract.callee,
+            2,
+            vec![EvidenceId(0)],
+        ));
+        assert!(matches!(
+            eval_op(&il, &interner, call),
+            ValOp::Bin(op) if op == MIN_CODE
         ));
     }
 

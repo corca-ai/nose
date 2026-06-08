@@ -167,9 +167,11 @@ and pack ecosystem.
   unshadowed `Math` receiver, and JS record-shape guards using `Boolean(...)`
   consume a static-global function contract with an unshadowed `Boolean`
   requirement.
-- Value-graph two-argument free `min(...)`/`max(...)` now consumes the Python
-  free-function builtin contract instead of the raw callee name, closing
-  unqualified JS `min(...)` and local-shadowing false positives.
+- Generic Python/Go free-function builtins now have `LibraryApi` occurrence
+  rows. Early idiom canonicalization and value-graph two-argument
+  `min(...)`/`max(...)` require admitted occurrence evidence instead of raw
+  callee spelling, closing unqualified JS `min(...)`, local-shadowing, and
+  missing-producer bypasses.
 - Ruby `fetch(key) { fallback }` map-default handling now consumes an explicit
   zero-arg-lambda fallback argument contract, and Go `slices.Contains` value-graph
   membership proof consumes the imported namespace carried by the method contract
@@ -474,10 +476,9 @@ Remaining in this phase:
   place facts and receiver-sensitive mutation/effect proofs.
 - Continue moving library API recognition into `LibraryApiContract` rows and
   `LibraryApi` occurrence evidence. The already producer-covered occurrence
-  surfaces are now fail-closed on missing evidence; remaining work is producer
-  coverage for free-name builtin calls outside the current factory/function
-  rows, promise receiver proof, async/sync protocol convergence, and ecosystem
-  APIs whose receiver/domain/demand obligations are not yet expressible.
+  surfaces are now fail-closed on missing evidence; remaining work is promise
+  receiver proof, async/sync protocol convergence, and ecosystem APIs whose
+  receiver/domain/demand obligations are not yet expressible.
   The first internal slice covers collection/map factories, selected
   constructors, Java empty collection constructors, Java `Map.entry`, and the
   shared shadow/import/result
@@ -500,10 +501,11 @@ Remaining in this phase:
   `LibraryApiContract` identity/result rows, and selected JS-like,
   Python builtin/import-backed, Rust free-name/path, Ruby require-backed, Java
   `java.util`, and regex calls now additionally share `LibraryApi` occurrence
-  evidence, as do selected receiver-method families. Remaining API work is to
-  move the remaining raw sequence/tag and free-builtin proof dependencies into
-  explicit evidence records, then cover ecosystem APIs only after demand,
-  receiver, and effect obligations are expressible.
+  evidence, as do generic Python/Go free-function builtins and selected
+  receiver-method families. Remaining API work is to move the remaining raw
+  sequence/tag proof dependencies into explicit evidence records, then cover
+  ecosystem APIs only after demand, receiver, and effect obligations are
+  expressible.
 - Continue import/module proof migration beyond the removed raw import payloads
   and evidence-only import identity path. Value-graph import identity and
   imported-symbol exact proof are now evidence-only, imported literal replacement
