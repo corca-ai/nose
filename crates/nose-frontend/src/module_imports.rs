@@ -77,7 +77,11 @@ struct AppendedSnapshot {
 }
 
 pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &Interner) {
-    let exports = collect_literal_exports(files, interner);
+    let contexts: Vec<FileImportContext> = files
+        .iter()
+        .map(|il| FileImportContext::new(il, interner))
+        .collect();
+    let exports = collect_literal_exports(files, interner, &contexts);
     if exports.is_empty() {
         return;
     }
@@ -95,8 +99,16 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
         .iter()
         .enumerate()
         .map(|(file_idx, il)| {
-            collect_top_level_statements(il)
-                .into_iter()
+            let context = &contexts[file_idx];
+            let Some(top_level) = context.top_level.as_deref() else {
+                return Vec::new();
+            };
+            let Some(binding_uses) = context.binding_uses.as_ref() else {
+                return Vec::new();
+            };
+            top_level
+                .iter()
+                .copied()
                 .filter_map(|stmt| {
                     let local = assignment_name(il, stmt)?;
                     let proof = import_binding_proof(il, stmt)?;
@@ -105,7 +117,7 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
                     if export.file_idx == file_idx {
                         return None;
                     }
-                    if binding_mutated(il, interner, local, stmt) {
+                    if binding_uses.binding_mutated(il, local, stmt) {
                         return None;
                     }
                     Some(ImportReplacement {
@@ -144,24 +156,55 @@ pub(crate) fn resolve_imported_immutable_bindings(files: &mut [Il], interner: &I
     }
 }
 
+struct FileImportContext {
+    top_level: Option<Vec<NodeId>>,
+    module_hashes: Vec<u64>,
+    binding_uses: Option<BindingUseIndex>,
+}
+
+impl FileImportContext {
+    fn new(il: &Il, interner: &Interner) -> Self {
+        let module_semantics = semantics(il.meta.lang).modules();
+        let participates = module_semantics.sibling_literal_exports()
+            || module_semantics.java_class_literal_exports();
+        Self {
+            top_level: participates.then(|| collect_top_level_statements(il)),
+            module_hashes: file_module_hashes(il),
+            binding_uses: participates.then(|| BindingUseIndex::new(il, interner)),
+        }
+    }
+}
+
 fn collect_literal_exports(
     files: &[Il],
     interner: &Interner,
+    contexts: &[FileImportContext],
 ) -> FxHashMap<(u64, u64), ExportedBinding> {
     let mut exports = FxHashMap::default();
     let mut ambiguous = FxHashSet::default();
     for (file_idx, il) in files.iter().enumerate() {
-        let module_hashes = file_module_hashes(il);
-        if !module_hashes.is_empty() {
-            let top_level = collect_top_level_statements(il);
+        let context = &contexts[file_idx];
+        if !context.module_hashes.is_empty() {
+            let Some(top_level) = context.top_level.as_deref() else {
+                continue;
+            };
+            let Some(binding_uses) = context.binding_uses.as_ref() else {
+                continue;
+            };
             collect_statement_exports(
                 il,
                 interner,
-                file_idx,
-                &top_level,
-                &module_hashes,
-                &mut exports,
-                &mut ambiguous,
+                StatementExportScope {
+                    file_idx,
+                    statements: top_level,
+                    top_level,
+                    module_hashes: &context.module_hashes,
+                    binding_uses,
+                },
+                ExportCollections {
+                    exports: &mut exports,
+                    ambiguous: &mut ambiguous,
+                },
             );
         }
 
@@ -182,15 +225,27 @@ fn collect_literal_exports(
             if class_module_hashes.is_empty() {
                 continue;
             }
+            let Some(top_level) = context.top_level.as_deref() else {
+                continue;
+            };
+            let Some(binding_uses) = context.binding_uses.as_ref() else {
+                continue;
+            };
             let statements = collect_statements_for_root(il, unit.root);
             collect_statement_exports(
                 il,
                 interner,
-                file_idx,
-                &statements,
-                &class_module_hashes,
-                &mut exports,
-                &mut ambiguous,
+                StatementExportScope {
+                    file_idx,
+                    statements: &statements,
+                    top_level,
+                    module_hashes: &class_module_hashes,
+                    binding_uses,
+                },
+                ExportCollections {
+                    exports: &mut exports,
+                    ambiguous: &mut ambiguous,
+                },
             );
         }
     }
@@ -200,29 +255,39 @@ fn collect_literal_exports(
     exports
 }
 
+struct StatementExportScope<'a> {
+    file_idx: usize,
+    statements: &'a [NodeId],
+    top_level: &'a [NodeId],
+    module_hashes: &'a [u64],
+    binding_uses: &'a BindingUseIndex,
+}
+
+struct ExportCollections<'a> {
+    exports: &'a mut FxHashMap<(u64, u64), ExportedBinding>,
+    ambiguous: &'a mut FxHashSet<(u64, u64)>,
+}
+
 fn collect_statement_exports(
     il: &Il,
     interner: &Interner,
-    file_idx: usize,
-    statements: &[NodeId],
-    module_hashes: &[u64],
-    exports: &mut FxHashMap<(u64, u64), ExportedBinding>,
-    ambiguous: &mut FxHashSet<(u64, u64)>,
+    scope: StatementExportScope<'_>,
+    out: ExportCollections<'_>,
 ) {
     let mut counts: FxHashMap<Symbol, usize> = FxHashMap::default();
-    for &stmt in statements {
+    for &stmt in scope.statements {
         if let Some(name) = assignment_name(il, stmt) {
             *counts.entry(name).or_insert(0) += 1;
         }
     }
-    for &stmt in statements {
+    for &stmt in scope.statements {
         let Some(name) = assignment_name(il, stmt) else {
             continue;
         };
         if counts.get(&name).copied().unwrap_or(0) != 1 {
             continue;
         }
-        if exported_binding_unsafe(il, interner, name, stmt) {
+        if scope.binding_uses.exported_binding_unsafe(il, name, stmt) {
             continue;
         }
         let Some(rhs) = assignment_rhs(il, stmt) else {
@@ -232,29 +297,31 @@ fn collect_statement_exports(
             continue;
         }
         let exported = stable_symbol_hash(interner.resolve(name));
-        let deps = import_dependency_snapshots(il, rhs);
-        for &module in module_hashes {
+        let deps = import_dependency_snapshots(il, rhs, scope.top_level);
+        for &module in scope.module_hashes {
             let key = (module, exported);
-            if exports
+            if out
+                .exports
                 .insert(
                     key,
                     ExportedBinding {
-                        file_idx,
+                        file_idx: scope.file_idx,
                         deps: deps.clone(),
                         rhs,
                     },
                 )
                 .is_some()
             {
-                ambiguous.insert(key);
+                out.ambiguous.insert(key);
             }
         }
     }
 }
 
-fn import_dependency_snapshots(il: &Il, rhs: NodeId) -> Vec<SubtreeSnapshot> {
-    collect_top_level_statements(il)
-        .into_iter()
+fn import_dependency_snapshots(il: &Il, rhs: NodeId, top_level: &[NodeId]) -> Vec<SubtreeSnapshot> {
+    top_level
+        .iter()
+        .copied()
         .filter(|&stmt| {
             assignment_rhs(il, stmt).is_some_and(|dep_rhs| {
                 import_binding_key(il, stmt).is_some() && il.kind(dep_rhs) == NodeKind::Seq
@@ -536,55 +603,74 @@ fn var_text<'a>(il: &Il, interner: &'a Interner, node: NodeId) -> Option<&'a str
     Some(interner.resolve(name))
 }
 
-fn binding_mutated(il: &Il, interner: &Interner, name: Symbol, defining_stmt: NodeId) -> bool {
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        let node_id = NodeId(idx as u32);
-        if node_id == defining_stmt {
-            return false;
-        }
-        match node.kind {
-            NodeKind::Assign => il
-                .children(node_id)
-                .first()
-                .is_some_and(|&lhs| node_contains_symbol(il, lhs, name)),
-            NodeKind::Field => field_mutates_binding(il, interner, node_id, name),
-            _ => false,
-        }
-    })
+struct BindingUseIndex {
+    assignment_lhs_counts: FxHashMap<Symbol, usize>,
+    mutating_field_receivers: FxHashSet<Symbol>,
+    escaping_call_arg_symbols: FxHashSet<Symbol>,
 }
 
-fn exported_binding_unsafe(
-    il: &Il,
-    interner: &Interner,
-    name: Symbol,
-    defining_stmt: NodeId,
-) -> bool {
-    binding_mutated(il, interner, name, defining_stmt)
-        || il.nodes.iter().enumerate().any(|(idx, node)| {
+impl BindingUseIndex {
+    fn new(il: &Il, interner: &Interner) -> Self {
+        let mut out = Self {
+            assignment_lhs_counts: FxHashMap::default(),
+            mutating_field_receivers: FxHashSet::default(),
+            escaping_call_arg_symbols: FxHashSet::default(),
+        };
+        for (idx, node) in il.nodes.iter().enumerate() {
             let node_id = NodeId(idx as u32);
-            node_id != defining_stmt
-                && node.kind == NodeKind::Call
-                && call_argument_escapes_binding(il, node_id, name)
-        })
-}
-
-fn call_argument_escapes_binding(il: &Il, call: NodeId, name: Symbol) -> bool {
-    il.children(call)
-        .iter()
-        .skip(1)
-        .any(|&arg| node_contains_symbol(il, arg, name))
-}
-
-fn field_mutates_binding(il: &Il, interner: &Interner, field: NodeId, name: Symbol) -> bool {
-    let Payload::Name(method) = il.node(field).payload else {
-        return false;
-    };
-    if !nose_semantics::module_binding_mutating_method_name(interner.resolve(method)) {
-        return false;
+            match node.kind {
+                NodeKind::Assign => {
+                    if let Some(&lhs) = il.children(node_id).first() {
+                        let mut lhs_symbols = FxHashSet::default();
+                        collect_symbols_into_set(il, lhs, &mut lhs_symbols);
+                        for symbol in lhs_symbols {
+                            *out.assignment_lhs_counts.entry(symbol).or_insert(0) += 1;
+                        }
+                    }
+                }
+                NodeKind::Field => out.collect_mutating_field_receiver(il, interner, node_id),
+                NodeKind::Call => out.collect_call_argument_escapes(il, node_id),
+                _ => {}
+            }
+        }
+        out
     }
-    il.children(field)
-        .first()
-        .is_some_and(|&receiver| node_refers_to_symbol(il, receiver, name))
+
+    fn binding_mutated(&self, il: &Il, name: Symbol, defining_stmt: NodeId) -> bool {
+        let defining_lhs_refs_name = il
+            .children(defining_stmt)
+            .first()
+            .is_some_and(|&lhs| node_contains_symbol(il, lhs, name));
+        let own_assignment = usize::from(defining_lhs_refs_name);
+        self.assignment_lhs_counts.get(&name).copied().unwrap_or(0) > own_assignment
+            || self.mutating_field_receivers.contains(&name)
+    }
+
+    fn exported_binding_unsafe(&self, il: &Il, name: Symbol, defining_stmt: NodeId) -> bool {
+        self.binding_mutated(il, name, defining_stmt)
+            || self.escaping_call_arg_symbols.contains(&name)
+    }
+
+    fn collect_mutating_field_receiver(&mut self, il: &Il, interner: &Interner, field: NodeId) {
+        let Payload::Name(method) = il.node(field).payload else {
+            return;
+        };
+        if !nose_semantics::module_binding_mutating_method_name(interner.resolve(method)) {
+            return;
+        }
+        let Some(&receiver) = il.children(field).first() else {
+            return;
+        };
+        if let Payload::Name(name) = il.node(receiver).payload {
+            self.mutating_field_receivers.insert(name);
+        }
+    }
+
+    fn collect_call_argument_escapes(&mut self, il: &Il, call: NodeId) {
+        for &arg in il.children(call).iter().skip(1) {
+            collect_symbols_into_set(il, arg, &mut self.escaping_call_arg_symbols);
+        }
+    }
 }
 
 fn node_refers_to_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
@@ -600,6 +686,15 @@ fn node_contains_symbol(il: &Il, node: NodeId, name: Symbol) -> bool {
             .children(node)
             .iter()
             .any(|&child| node_contains_symbol(il, child, name))
+}
+
+fn collect_symbols_into_set(il: &Il, node: NodeId, out: &mut FxHashSet<Symbol>) {
+    if let Payload::Name(symbol) = il.node(node).payload {
+        out.insert(symbol);
+    }
+    for &child in il.children(node) {
+        collect_symbols_into_set(il, child, out);
+    }
 }
 
 fn file_module_hashes(il: &Il) -> Vec<u64> {
@@ -1110,8 +1205,9 @@ mod tests {
     #[test]
     fn module_binding_push_marks_export_unsafe() {
         let (il, interner, lookup, assign) = module_with_binding_method("push");
+        let binding_uses = BindingUseIndex::new(&il, &interner);
         assert!(
-            exported_binding_unsafe(&il, &interner, lookup, assign),
+            binding_uses.exported_binding_unsafe(&il, lookup, assign),
             "exported literal bindings mutated through push must not be imported as immutable"
         );
     }
@@ -1119,8 +1215,9 @@ mod tests {
     #[test]
     fn module_binding_get_is_not_a_mutation() {
         let (il, interner, lookup, assign) = module_with_binding_method("get");
+        let binding_uses = BindingUseIndex::new(&il, &interner);
         assert!(
-            !binding_mutated(&il, &interner, lookup, assign),
+            !binding_uses.binding_mutated(&il, lookup, assign),
             "read-only lookup methods should not block immutable import replacement"
         );
     }

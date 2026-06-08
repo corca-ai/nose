@@ -134,12 +134,21 @@ pub fn lower_corpus_filtered(roots: &[&Path], exclude: &[String]) -> Corpus {
             lower_source(FileId(i as u32), path, &src, *lang, &interner).ok()
         })
         .collect();
-    module_imports::resolve_imported_immutable_bindings(&mut files, &interner);
     if timing {
         eprintln!(
             "  [time] {:<12} {:>7.1}ms  (read+parse+lower, parallel)",
             "parse+lower",
             t1.elapsed().as_secs_f64() * 1e3
+        );
+    }
+
+    let t2 = std::time::Instant::now();
+    module_imports::resolve_imported_immutable_bindings(&mut files, &interner);
+    if timing {
+        eprintln!(
+            "  [time] {:<12} {:>7.1}ms  (corpus import facts)",
+            "import-resolve",
+            t2.elapsed().as_secs_f64() * 1e3
         );
     }
     Corpus::new(interner, files)

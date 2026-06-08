@@ -795,3 +795,15 @@ Representative output JSON was byte-equivalent to `origin/main` after canonical 
 12ms→9ms (1.3x). Whole-pipeline speedups are lower where parse/lower now
 dominates; this moves the next performance frontier toward lower/parse and remaining
 multi-pass normalization overhead rather than file selection policy.
+
+Follow-up profiling split frontend timing into `parse+lower` and `import-resolve`
+inside `NOSE_TIME`. The import pass is corpus-level, not JS-specific: sibling literal
+exports are modeled through language semantics for Python, JavaScript/TypeScript, Java,
+and Rust, while unsupported languages such as Go/C/Ruby do not build the added indexes.
+Caching file top-level statements, path-derived module hashes, and binding-use facts
+reduced representative `import-resolve` costs without changing output JSON: `tex`
+~31–34ms→~4ms, `moonlight-server` ~21–25ms→~6ms, `nose-normalize` ~7–8ms→<1ms,
+and `episteme2` ~6–7ms→~2ms; Go corpora stayed at 0ms. Two tempting follow-ups were
+rejected after output checks: skipping import resolution for `syntax`-only scans changed
+`moonlight-server` syntax families, and caching pure-inline registries changed one
+Python near-family. Both are behavior changes, not safe speedups.
