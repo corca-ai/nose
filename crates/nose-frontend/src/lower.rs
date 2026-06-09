@@ -3703,6 +3703,34 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
         assert_eq!(py_domains.len(), 1);
         assert_eq!(py_domains[0].dependencies, import_ids);
 
+        let py_iter_alias = crate::lower_source(
+            FileId(0),
+            "typing_iter_alias.py",
+            b"from typing import Iterable as I\ndef f(xs: I[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let import_ids = imported_binding_symbol_ids(&py_iter_alias.evidence, "typing", "Iterable");
+        assert_eq!(import_ids.len(), 1);
+        let py_domains = param_domain_records(&py_iter_alias.evidence, DomainEvidence::Iterable);
+        assert_eq!(py_domains.len(), 1);
+        assert_eq!(py_domains[0].dependencies, import_ids);
+
+        let py_iter_shadowed = crate::lower_source(
+            FileId(0),
+            "typing_iter_alias_shadowed.py",
+            b"from typing import Iterable as I\nI = object\ndef f(xs: I[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&py_iter_shadowed.evidence, DomainEvidence::Iterable),
+            0,
+            "a rebound iterable alias must not emit parameter Domain evidence"
+        );
+
         let py_shadowed = crate::lower_source(
             FileId(0),
             "typing_alias_shadowed.py",
@@ -3744,6 +3772,39 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             param_domain_record_count(&ts.evidence, DomainEvidence::Set),
             1,
             "Set<T> should still emit set domain evidence"
+        );
+
+        let ts_rich = crate::lower_source(
+            FileId(0),
+            "domain_types_rich.ts",
+            b"function f(a: Iterable<string>, b: Iterator<string>, c: Promise<string>, d: Record<string, number>, e: Result<string, Error>, f: boolean) { return f; }\n",
+            Lang::TypeScript,
+            &interner,
+        )
+        .expect("typescript lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::Iterable),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::Iterator),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::PromiseLike),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::Record),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::Result),
+            1
+        );
+        assert_eq!(
+            param_domain_record_count(&ts_rich.evidence, DomainEvidence::Boolean),
+            1
         );
 
         let java = crate::lower_source(

@@ -164,8 +164,8 @@ schema:
 | `Source` | construct syntax, macro invocation, regex literal, equality/operator family, ranges, patterns, async/generator/error and Go channel/concurrency protocol boundaries, Python comprehension surfaces |
 | `Symbol` | unshadowed language global, imported binding, imported namespace, qualified global path |
 | `Import` | binding import, namespace import, wildcard import, Ruby require, C quote include, imported literal snapshot |
-| `Domain` | array, collection, set, map, option, promise-like, string, integer, number, byte array |
-| `Type` | currently C type-alias proofs for exact byte-pack surfaces |
+| `Domain` | array, collection, iterable, iterator, set, map, record, option/result, promise/future-like, string, boolean, integer/float/number, byte array, nominal type |
+| `Type` | C type-alias proofs for exact byte-pack surfaces and nominal type-domain rows |
 | `Guard` | JS/TS record-shape and own-property guard facts |
 | `Place` | fixed receiver/place facts such as self receiver and self field |
 | `Effect` | builder append, non-overloadable index write, self-field write, binding write, receiver mutation, opaque argument escape |

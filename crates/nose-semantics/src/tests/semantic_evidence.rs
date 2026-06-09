@@ -28,27 +28,93 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
         domain_evidence_from_param_semantic(ParamSemantic::Array),
         DomainEvidence::Array
     );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Boolean),
+        DomainEvidence::Boolean
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Float),
+        DomainEvidence::Float
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::FutureLike),
+        DomainEvidence::FutureLike
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Iterable),
+        DomainEvidence::Iterable
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Iterator),
+        DomainEvidence::Iterator
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Record),
+        DomainEvidence::Record
+    );
+    assert_eq!(
+        domain_evidence_from_param_semantic(ParamSemantic::Result),
+        DomainEvidence::Result
+    );
     assert!(DomainEvidence::Array.is_array_collection_or_set());
+    assert!(DomainEvidence::Boolean.is_boolean());
     assert!(DomainEvidence::Collection.is_array_or_collection());
     assert!(DomainEvidence::Set.is_collection_or_set());
+    assert!(DomainEvidence::Float.is_float());
+    assert!(DomainEvidence::FutureLike.is_future_like());
+    assert!(DomainEvidence::PromiseLike.is_future_like());
+    assert!(DomainEvidence::Iterable.is_iterable_or_iterator());
+    assert!(DomainEvidence::Iterator.is_iterable_or_iterator());
     assert!(DomainEvidence::Map.is_map());
+    assert!(DomainEvidence::Nominal {
+        type_hash: stable_symbol_hash("pkg.Widget")
+    }
+    .is_nominal(stable_symbol_hash("pkg.Widget")));
     assert!(DomainEvidence::Option.is_option());
     assert!(DomainEvidence::PromiseLike.is_promise_like());
+    assert!(DomainEvidence::Record.is_record());
+    assert!(DomainEvidence::Result.is_result());
     assert!(DomainEvidence::String.is_string());
     assert!(DomainEvidence::ByteArray.is_byte_array());
     assert!(DomainEvidence::Integer.is_integer());
     assert!(DomainEvidence::Number.is_integer_or_number());
+    assert!(DomainEvidence::Float.is_integer_or_number());
     assert!(DomainEvidence::Integer.is_integer_or_number());
     assert!(!DomainEvidence::Number.is_integer());
     assert!(!DomainEvidence::Array.is_collection_or_set());
     assert!(!DomainEvidence::Set.is_array_or_collection());
+    assert!(DomainRequirement::Boolean.accepts(DomainEvidence::Boolean));
     assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Array));
     assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Map));
+    assert!(DomainRequirement::Float.accepts(DomainEvidence::Float));
+    assert!(DomainRequirement::FutureLike.accepts(DomainEvidence::FutureLike));
+    assert!(DomainRequirement::FutureLike.accepts(DomainEvidence::PromiseLike));
+    assert!(DomainRequirement::Iterable.accepts(DomainEvidence::Iterable));
+    assert!(DomainRequirement::Iterator.accepts(DomainEvidence::Iterator));
+    assert!(DomainRequirement::IterableOrIterator.accepts(DomainEvidence::Iterable));
+    assert!(DomainRequirement::IterableOrIterator.accepts(DomainEvidence::Iterator));
+    assert!(DomainRequirement::Nominal {
+        type_hash: stable_symbol_hash("pkg.Widget")
+    }
+    .accepts(DomainEvidence::Nominal {
+        type_hash: stable_symbol_hash("pkg.Widget")
+    }));
+    assert!(DomainRequirement::Number.accepts(DomainEvidence::Float));
+    assert!(DomainRequirement::Record.accepts(DomainEvidence::Record));
+    assert!(DomainRequirement::Result.accepts(DomainEvidence::Result));
     assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Set));
     assert!(DomainRequirement::SetOrMap.accepts(DomainEvidence::Map));
     assert!(!DomainRequirement::SetOrMap.accepts(DomainEvidence::Collection));
     assert!(DomainRequirement::PromiseLike.accepts(DomainEvidence::PromiseLike));
     assert!(!DomainRequirement::PromiseLike.accepts(DomainEvidence::String));
+    assert_eq!(
+        ValueDomain::from_domain_evidence(DomainEvidence::Boolean),
+        Some(ValueDomain::Boolean)
+    );
+    assert_eq!(
+        ValueDomain::from_domain_evidence(DomainEvidence::Float),
+        Some(ValueDomain::Number)
+    );
     assert_eq!(
         ValueDomain::from_domain_evidence(DomainEvidence::PromiseLike),
         None
@@ -66,6 +132,30 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         Some(DomainEvidence::Array)
     );
     assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Iterable<string>"),
+        Some(DomainEvidence::Iterable)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Iterator<string>"),
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Promise<string>"),
+        Some(DomainEvidence::PromiseLike)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Record<string, number>"),
+        Some(DomainEvidence::Record)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: Result<string, Error>"),
+        Some(DomainEvidence::Result)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::TypeScript, "xs: boolean"),
+        Some(DomainEvidence::Boolean)
+    );
+    assert_eq!(
         type_domain_from_source_text(Lang::TypeScript, "xs: Bitmap<string, number>"),
         None
     );
@@ -77,6 +167,18 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
     assert_eq!(
         type_domain_from_source_text(Lang::Java, "@Nonnull List<String> xs"),
         Some(DomainEvidence::Collection)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Java, "Iterator<String> xs"),
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Java, "CompletableFuture<String> xs"),
+        Some(DomainEvidence::FutureLike)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Java, "boolean value"),
+        Some(DomainEvidence::Boolean)
     );
     assert_eq!(
         type_domain_from_source_text(Lang::Java, "@Ann(\"...\") String value"),
@@ -91,11 +193,106 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         type_domain_from_source_text(Lang::Rust, "HashSet<i32>"),
         Some(DomainEvidence::Set)
     );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "Result<String, Error>"),
+        Some(DomainEvidence::Result)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "impl Iterator<Item = i32>"),
+        Some(DomainEvidence::Iterator)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "std::pin::Pin<Box<T>>"),
+        None
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Rust, "bool"),
+        Some(DomainEvidence::Boolean)
+    );
 
     assert_eq!(type_domain_from_source_text(Lang::C, "int *xs"), None);
     assert_eq!(
         type_domain_from_source_text(Lang::C, "int xs"),
         Some(DomainEvidence::Integer)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::C, "_Bool ok"),
+        Some(DomainEvidence::Boolean)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Go, "value bool"),
+        Some(DomainEvidence::Boolean)
+    );
+    assert_eq!(
+        type_domain_from_source_text(Lang::Go, "type User struct { id int }"),
+        Some(DomainEvidence::Record)
+    );
+}
+
+#[test]
+fn nominal_type_domain_evidence_is_dependency_backed_and_fail_closed() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let receiver = b.add(
+        NodeKind::Var,
+        Payload::Name(interner.intern("value")),
+        sp(12),
+        &[],
+    );
+    let root = b.add(NodeKind::Block, Payload::None, sp(11), &[receiver]);
+    let mut il = finish_il(b, root, Lang::TypeScript);
+    let widget = stable_symbol_hash("pkg.Widget");
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(sp(12), NodeKind::Var),
+        EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
+            type_hash: widget,
+            domain: DomainEvidence::Record,
+        }),
+        EvidenceStatus::Asserted,
+    ));
+
+    assert_eq!(
+        nominal_type_domain_at_node(&il, receiver, widget),
+        Some(DomainEvidence::Record)
+    );
+
+    il.evidence.push(evidence(
+        1,
+        EvidenceAnchor::node(sp(12), NodeKind::Var),
+        EvidenceKind::Domain(DomainEvidence::Record),
+        EvidenceStatus::Ambiguous,
+    ));
+    let gadget = stable_symbol_hash("pkg.Gadget");
+    il.evidence.push(evidence_with_dependencies(
+        2,
+        EvidenceAnchor::node(sp(12), NodeKind::Var),
+        EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
+            type_hash: gadget,
+            domain: DomainEvidence::Record,
+        }),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(1)],
+    ));
+    assert_eq!(
+        nominal_type_domain_at_node(&il, receiver, gadget),
+        None,
+        "dependency-broken nominal type-domain records must fail closed"
+    );
+
+    il.evidence.push(evidence(
+        3,
+        EvidenceAnchor::node(sp(12), NodeKind::Var),
+        EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
+            type_hash: widget,
+            domain: DomainEvidence::Map,
+        }),
+        EvidenceStatus::Asserted,
+    ));
+    assert_eq!(
+        nominal_type_domain_at_node(&il, receiver, widget),
+        None,
+        "conflicting nominal type-domain records must fail closed"
     );
 }
 

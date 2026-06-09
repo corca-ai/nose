@@ -377,6 +377,15 @@ migrated.
   `len(filter(...))`, explicit reductions over a filter, and static literal
   membership shortcuts reuse HOF admission as well, so raw `HoF(Filter)` cannot
   bypass the source/API HOF gate by appearing under another operation.
+- Type/domain evidence now has vocabulary for arrays, collections, iterables,
+  iterators, sets, maps, records, options, results, promise/future-like values,
+  strings, booleans, integer/float/number distinctions, byte arrays, and hashed
+  nominal domains. `Type(NominalDomain)` rows can connect provider-proven
+  nominal type identities to domains, while raw type names still do not prove
+  semantics. The `ValueDomain` bridge remains deliberately narrow:
+  integer/float/number, boolean, string, and array/collection/set facts can seed
+  current value laws; iterable, iterator, record, option/result, future-like, and
+  nominal facts stay separate until a consumer names those obligations.
 - Java empty collection constructor contracts cover `new ArrayList<>()` and
   `new LinkedList<>()` through `LibraryApiContract` rows only for the Java
   `java.util` list types. Simple names require exact `java.util` import proof or

@@ -4,8 +4,8 @@ use nose_il::{
     EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta, GuardEvidenceKind,
     IlBuilder, ImportEvidenceKind, Interner, JsRecordGuardComparison, JsRecordGuardNullCheck,
     LibraryApiEvidenceKind, ParamSemantic, PlaceEvidenceKind, SequenceSurfaceKind, SourceCastKind,
-    SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind, Unit,
-    UnitKind,
+    SourceFactKind, SourcePatternKind, SourceRangeKind, Span, Symbol, SymbolEvidenceKind,
+    TypeEvidenceKind, Unit, UnitKind,
 };
 
 mod call_targets;

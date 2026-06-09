@@ -13,7 +13,7 @@ use nose_il::{
     LibraryApiEvidenceKind, LitClass, NodeId, NodeKind, Op, ParamSemantic, Payload,
     SequenceSurfaceKind, SourceCallKind, SourceCastKind, SourceComprehensionKind, SourceFactKind,
     SourceLiteralKind, SourceOperatorKind, SourcePatternKind, SourceProtocolKind, SourceRangeKind,
-    Span, Symbol, SymbolEvidenceKind,
+    Span, Symbol, SymbolEvidenceKind, TypeEvidenceKind,
 };
 use rustc_hash::FxHashMap;
 

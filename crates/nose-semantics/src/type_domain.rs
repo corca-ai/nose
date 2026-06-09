@@ -21,9 +21,30 @@ pub fn python_stdlib_type_domain(module: &str, exported: &str) -> Option<DomainE
         return Some(DomainEvidence::Map);
     }
     if matches!(module, "typing" | "collections.abc")
+        && matches!(exported, "Iterable" | "AsyncIterable")
+    {
+        return Some(DomainEvidence::Iterable);
+    }
+    if matches!(module, "typing" | "collections.abc")
+        && matches!(exported, "Iterator" | "AsyncIterator")
+    {
+        return Some(DomainEvidence::Iterator);
+    }
+    if matches!(module, "typing" | "collections.abc")
         && matches!(exported, "FrozenSet" | "MutableSet" | "Set")
     {
         return Some(DomainEvidence::Set);
+    }
+    if matches!(module, "typing") && matches!(exported, "Optional") {
+        return Some(DomainEvidence::Option);
+    }
+    if matches!(module, "typing") && matches!(exported, "TypedDict") {
+        return Some(DomainEvidence::Record);
+    }
+    if matches!(module, "typing" | "asyncio")
+        && matches!(exported, "Awaitable" | "Coroutine" | "Future")
+    {
+        return Some(DomainEvidence::FutureLike);
     }
     if matches!(module, "typing" | "collections.abc")
         && matches!(
@@ -54,6 +75,24 @@ fn ts_type_domain(text: &str) -> Option<DomainEvidence> {
     if ty.starts_with("set<") || ty.starts_with("readonlyset<") {
         return Some(DomainEvidence::Set);
     }
+    if ty.starts_with("iterable<") || ty.starts_with("asynciterable<") {
+        return Some(DomainEvidence::Iterable);
+    }
+    if ty.starts_with("iterator<") || ty.starts_with("asynciterator<") {
+        return Some(DomainEvidence::Iterator);
+    }
+    if ty.starts_with("promise<") {
+        return Some(DomainEvidence::PromiseLike);
+    }
+    if ty.starts_with("record<") {
+        return Some(DomainEvidence::Record);
+    }
+    if ty.starts_with("result<") {
+        return Some(DomainEvidence::Result);
+    }
+    if ty == "boolean" {
+        return Some(DomainEvidence::Boolean);
+    }
     if ty == "string" {
         return Some(DomainEvidence::String);
     }
@@ -71,8 +110,26 @@ fn python_type_domain(text: &str) -> Option<DomainEvidence> {
     if ty.starts_with("dict[") || ty.starts_with("mapping[") || ty.starts_with("mutablemapping[") {
         return Some(DomainEvidence::Map);
     }
+    if ty.starts_with("typeddict[") {
+        return Some(DomainEvidence::Record);
+    }
     if ty.starts_with("set[") || ty.starts_with("frozenset[") || ty.starts_with("mutableset[") {
         return Some(DomainEvidence::Set);
+    }
+    if ty.starts_with("iterable[") || ty.starts_with("asynciterable[") {
+        return Some(DomainEvidence::Iterable);
+    }
+    if ty.starts_with("iterator[") || ty.starts_with("asynciterator[") {
+        return Some(DomainEvidence::Iterator);
+    }
+    if ty.starts_with("optional[") {
+        return Some(DomainEvidence::Option);
+    }
+    if ty.starts_with("awaitable[") || ty.starts_with("coroutine[") || ty.starts_with("future[") {
+        return Some(DomainEvidence::FutureLike);
+    }
+    if ty.starts_with("result[") {
+        return Some(DomainEvidence::Result);
     }
     if ty.starts_with("list[")
         || ty.starts_with("tuple[")
@@ -81,14 +138,14 @@ fn python_type_domain(text: &str) -> Option<DomainEvidence> {
         || ty.starts_with("deque[")
         || ty.starts_with("sequence[")
         || ty.starts_with("mutablesequence[")
-        || ty.starts_with("iterable[")
     {
         return Some(DomainEvidence::Collection);
     }
     match ty {
+        "bool" => Some(DomainEvidence::Boolean),
         "str" => Some(DomainEvidence::String),
         "int" => Some(DomainEvidence::Integer),
-        "float" => Some(DomainEvidence::Number),
+        "float" => Some(DomainEvidence::Float),
         _ => None,
     }
 }
@@ -103,6 +160,12 @@ fn rust_type_domain(text: &str) -> Option<DomainEvidence> {
     if matches!(type_name, "vec" | "vecdeque") {
         return Some(DomainEvidence::Collection);
     }
+    if matches!(type_name, "iter" | "iterator" | "intoiter" | "impliterator") {
+        return Some(DomainEvidence::Iterator);
+    }
+    if type_name == "intoiterator" {
+        return Some(DomainEvidence::Iterable);
+    }
     if matches!(type_name, "hashmap" | "btreemap") {
         return Some(DomainEvidence::Map);
     }
@@ -112,6 +175,15 @@ fn rust_type_domain(text: &str) -> Option<DomainEvidence> {
     if type_name == "option" {
         return Some(DomainEvidence::Option);
     }
+    if type_name == "result" {
+        return Some(DomainEvidence::Result);
+    }
+    if matches!(type_name, "future" | "ready") {
+        return Some(DomainEvidence::FutureLike);
+    }
+    if type_name == "bool" {
+        return Some(DomainEvidence::Boolean);
+    }
     if matches!(type_name, "str" | "string") {
         return Some(DomainEvidence::String);
     }
@@ -119,7 +191,7 @@ fn rust_type_domain(text: &str) -> Option<DomainEvidence> {
         return Some(DomainEvidence::Integer);
     }
     if matches!(type_name, "f32" | "f64") {
-        return Some(DomainEvidence::Number);
+        return Some(DomainEvidence::Float);
     }
     None
 }
@@ -136,13 +208,18 @@ fn java_type_domain(text: &str) -> Option<DomainEvidence> {
             Some(DomainEvidence::Map)
         }
         "set" | "hashset" | "linkedhashset" | "treeset" => Some(DomainEvidence::Set),
-        "list" | "arraylist" | "linkedlist" | "collection" | "deque" | "queue" | "iterable" => {
+        "iterable" => Some(DomainEvidence::Iterable),
+        "iterator" | "listiterator" => Some(DomainEvidence::Iterator),
+        "list" | "arraylist" | "linkedlist" | "collection" | "deque" | "queue" => {
             Some(DomainEvidence::Collection)
         }
+        "completablefuture" | "completionstage" | "future" => Some(DomainEvidence::FutureLike),
         "optional" => Some(DomainEvidence::Option),
+        "record" => Some(DomainEvidence::Record),
+        "boolean" => Some(DomainEvidence::Boolean),
         "string" => Some(DomainEvidence::String),
         "byte" | "short" | "int" | "integer" | "long" => Some(DomainEvidence::Integer),
-        "float" | "double" => Some(DomainEvidence::Number),
+        "float" | "double" => Some(DomainEvidence::Float),
         _ => None,
     }
 }
@@ -155,12 +232,16 @@ fn go_type_domain(text: &str) -> Option<DomainEvidence> {
     if compact.contains("[]") {
         return Some(DomainEvidence::Collection);
     }
+    if compact.contains("struct{") {
+        return Some(DomainEvidence::Record);
+    }
     let ty = last_identifier(text)?;
     if go_integer_type(&ty) {
         return Some(DomainEvidence::Integer);
     }
     match ty.as_str() {
-        "float32" | "float64" => Some(DomainEvidence::Number),
+        "bool" => Some(DomainEvidence::Boolean),
+        "float32" | "float64" => Some(DomainEvidence::Float),
         "string" => Some(DomainEvidence::String),
         _ => None,
     }
@@ -181,7 +262,13 @@ fn c_type_domain(text: &str) -> Option<DomainEvidence> {
         .iter()
         .any(|token| matches!(*token, "float" | "double"))
     {
-        return Some(DomainEvidence::Number);
+        return Some(DomainEvidence::Float);
+    }
+    if tokens
+        .iter()
+        .any(|token| matches!(*token, "bool" | "_Bool"))
+    {
+        return Some(DomainEvidence::Boolean);
     }
     None
 }
@@ -330,11 +417,9 @@ fn strip_java_leading_annotation(text: &str) -> Option<&str> {
 }
 
 fn last_identifier(text: &str) -> Option<String> {
-    let compact = compact_lower(text);
-    compact
-        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+    text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
         .rfind(|token| !token.is_empty())
-        .map(str::to_string)
+        .map(|token| token.to_ascii_lowercase())
 }
 
 fn identifier_tokens(text: &str) -> Vec<&str> {

@@ -100,8 +100,13 @@ semantic meaning.
   asserted evidence, admitted occurrence evidence, or kernel contracts before
   assigning exact meaning.
 - `crates/nose-semantics/src/type_domain.rs` still recognizes first-party
-  type-domain surfaces from source text. This is accepted as a first-party
-  producer; it is not yet a parsed/versioned external pack surface.
+  type-domain surfaces from source text for arrays, collections,
+  iterable/iterator facts, records, options/results, promise/future-like facts,
+  strings, booleans, integer/float/number distinctions, maps, sets, and byte
+  arrays where the language-specific annotation surface is exact enough. This is
+  accepted as a first-party producer; it is not yet a parsed/versioned external
+  pack surface. Alias lifecycle and shadowing remain the frontend or pack
+  producer's responsibility.
 - `crates/nose-semantics/src/module_exports.rs` and import helpers consume
   evidence-backed provider/import facts. Raw import-coordinate `Seq` values may
   still carry lowered structure, but they no longer prove import identity by
@@ -166,7 +171,7 @@ These are not #150 fixes; they are the next independent work items.
 | P0 | #151 | Pack extension API v0 | First-party producers still call compiled Rust helper functions directly. The external boundary needs stable fact, contract, dependency, and channel-eligibility schemas before those producers can be expressed as packs. |
 | P0 | #153 | Demand/effect substrate | Lazy, repeated, async, generator, channel, observable, and callback effect visibility cannot be represented by the current first-party demand profiles. Exact laws for those surfaces must remain closed. |
 | P0 | #155 | Call-target and dispatch evidence | The shared vocabulary and resolver now cover direct functions, direct methods, imported functions/members, and dynamic-dispatch facts. Remaining work is broader producer coverage for method/imported/module targets, trait/interface dispatch, and overload-specific target proof. |
-| P0 | #156 | Type/domain evidence expansion | Receiver/domain proof covers current parameter, binding, and selected API-result facts. Broader type aliases, constructor result domains, field/property domains, protocol receiver facts, and versioned library domains still need evidence vocabulary. |
+| P0 | #156 | Type/domain evidence expansion | The shared vocabulary now covers richer scalar, protocol, record, future/result, and nominal domains. Remaining work is broader producer coverage for constructor result domains, field/property domains, protocol receiver facts with demand/effect obligations, and versioned library domains. |
 | P1 | #154 | Async and Promise receiver proof | `crates/nose-normalize/src/value_graph/rules/promise_then.rs` has a JS-like `.then` contract but returns fail-closed until Promise-like receiver proof exists. This should depend on #153 and #156. |
 | P1 | #152 | Pack loading, provenance, and opt-in trust | The internal provenance/trust model exists, but there is no loadable pack runtime, manifest validation, user opt-in path, or report-level pack provenance. |
 | P1 | #157 | Pack conformance harness and ecosystem workflow | The first-party regression suite covers many hard negatives, but external pack providers need a defined conformance fixture layout and workflow. |

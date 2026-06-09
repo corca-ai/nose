@@ -62,10 +62,10 @@ The current implemented kinds are:
 | kind | purpose |
 |---|---|
 | `Source` | construct syntax, Rust macro invocation/range/pattern syntax, async/generator/error and Go concurrency/channel protocol boundary syntax, Python comprehension surface provenance, C unsigned-cast syntax, regex literal provenance, and source operator family including JS-like unary `typeof` |
-| `Domain` | parameter, receiver-expression, or value/binding domain such as collection, map, option, string, integer, or byte array |
+| `Domain` | parameter, receiver-expression, or value/binding domain such as array, collection, iterable, iterator, set, map, record, option/result, promise/future-like, string, boolean, integer/float/number, byte array, or nominal type |
 | `Import` | static import binding/namespace proof, Python wildcard-import ambiguity proof, Java wildcard import proof, C quote-include proof, Ruby `require` module proof, and imported-literal snapshot provenance |
 | `Symbol` | resolved or proven symbol identity, with record kinds for unshadowed globals, static imported binding/namespace aliases, and selected qualified global API paths |
-| `Type` | type alias proof, currently exact-spelling C aliases to unsigned 8-bit and supported unsigned 32-bit integer forms |
+| `Type` | type alias or type-to-domain proof, currently exact-spelling C aliases to unsigned 8-bit and supported unsigned 32-bit integer forms plus nominal type-domain rows |
 | `Guard` | multi-obligation guard proof facts such as JS/TS record-shape and own-property guard contracts |
 | `Place` | fixed receiver/place facts currently covering `SelfReceiver` and `SelfField` |
 | `Effect` | observable effect and mutation-risk facts currently covering canonical builder append calls, non-overloadable index writes, fixed self-field writes, binding writes, receiver-mutating calls, and opaque argument escapes |
@@ -198,35 +198,46 @@ symbol fact or stronger scope-resolution evidence exists.
 Domain evidence follows the same fail-closed rule. First-party parameter
 annotations emit `Domain` evidence on `Param` anchors only through
 language-scoped type-domain contracts in `nose-semantics`, not through a shared
-substring fallback over arbitrary parameter text. The frontend owns evidence
-emission and alias lifecycle: for example, Python `typing`/`collections.abc`
-aliases record dependency-backed parameter `Domain` evidence that depends on the
-corresponding `ImportedBinding` symbol evidence, and a rebound alias closes that
-path. `nose-semantics` resolves `Domain` evidence on exact receiver-expression
-node anchors, then binding anchors for immutable local/module variables, then
-parameter anchors. A conflicting, ambiguous, or dependency-broken
-receiver-domain record closes that receiver proof and must not fall back to
-side-table mirrors or selector spelling. Binding-anchor lookup matches both
-source span and `local_hash`, and a binding proof is applied to a receiver only
-when the assignment is visible before that receiver use. When a receiver is an
-alpha-renamed parameter or local binding reference, lookup is constrained to the
-nearest function/lambda scope where appropriate so same-numbered parameter/local
-ids from other units do not prove the current receiver. Method receiver
-contracts expose their domain-backed obligations through `DomainRequirement`;
-obligations such as imported namespace, unshadowed global, exact map literal, and
-future demand/effect constraints remain separate checks.
+substring fallback over arbitrary parameter text. The current vocabulary covers
+container/protocol domains (`Array`, `Collection`, `Iterable`, `Iterator`,
+`Set`, `Map`, `Record`), nullable/effect domains (`Option`, `Result`,
+`PromiseLike`, `FutureLike`), scalar domains (`String`, `Boolean`, `Integer`,
+`Float`, `Number`, `ByteArray`), and a hashed `Nominal` domain for
+provider-proven user/library types. The frontend owns evidence emission and
+alias lifecycle: for example, Python `typing`/`collections.abc` aliases record
+dependency-backed parameter `Domain` evidence that depends on the corresponding
+`ImportedBinding` symbol evidence, and a rebound alias closes that path.
+`Type(NominalDomain)` rows can map a scoped nominal type hash to a domain, but
+type names alone are not proof; the dependent `Domain` record still needs a
+valid symbol/import/scope chain. `nose-semantics` resolves `Domain` evidence on
+exact receiver-expression node anchors, then binding anchors for immutable
+local/module variables, then parameter anchors. A conflicting, ambiguous, or
+dependency-broken receiver-domain record closes that receiver proof and must not
+fall back to side-table mirrors or selector spelling. Binding-anchor lookup
+matches both source span and `local_hash`, and a binding proof is applied to a
+receiver only when the assignment is visible before that receiver use. When a
+receiver is an alpha-renamed parameter or local binding reference, lookup is
+constrained to the nearest function/lambda scope where appropriate so
+same-numbered parameter/local ids from other units do not prove the current
+receiver. Method receiver contracts expose their domain-backed obligations
+through `DomainRequirement`; obligations such as imported namespace, unshadowed
+global, exact map literal, and future demand/effect constraints remain separate
+checks.
 
 Parameter `Domain` evidence also seeds the semantic-kernel `ValueDomain`
 contract used by value-graph and recursion laws. That bridge is intentionally
-narrow: integer/number domains seed `Number`, string seeds `String`, and
-array/collection/set domains seed `Sequence`. The value graph may additionally
-infer a domain from strict operator use, literal result domains, modeled builtin
-result domains, and subexpression result domains, but the law itself is admitted
-only through a `ValueLaw` contract in `nose-semantics`. This keeps string and
-sequence concatenation ordered when evidence proves those domains, while numeric
-and boolean laws still require positive domain proof. Today that contract records
-the law id and domain requirement; pack-facing per-use value-law provenance and
-conformance status remain future work rather than an emitted evidence family.
+narrow: integer/float/number domains seed `Number`, boolean seeds `Boolean`,
+string seeds `String`, and only array/collection/set domains seed `Sequence`.
+Iterable, iterator, record, option/result, future-like, and nominal domains do
+not automatically become sequence or exact value-law proof. The value graph may
+additionally infer a domain from strict operator use, literal result domains,
+modeled builtin result domains, and subexpression result domains, but the law
+itself is admitted only through a `ValueLaw` contract in `nose-semantics`. This
+keeps string and sequence concatenation ordered when evidence proves those
+domains, while numeric and boolean laws still require positive domain proof.
+Today that contract records the law id and domain requirement; pack-facing
+per-use value-law provenance and conformance status remain future work rather
+than an emitted evidence family.
 
 Selected `LibraryApi` result-domain evidence follows the same model. A
 first-party factory call result may carry `Domain(Collection)`, `Domain(Set)`,

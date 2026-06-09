@@ -423,6 +423,8 @@ impl ValueDomain {
     pub fn from_domain_evidence(domain: DomainEvidence) -> Option<ValueDomain> {
         if domain.is_integer_or_number() {
             Some(ValueDomain::Number)
+        } else if domain.is_boolean() {
+            Some(ValueDomain::Boolean)
         } else if domain.is_string() {
             Some(ValueDomain::String)
         } else if domain.is_array_collection_or_set() {
@@ -526,17 +528,27 @@ pub fn domain_evidence_for_param(il: &Il, param: NodeId) -> Option<DomainEvidenc
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DomainRequirement {
     Array,
+    Boolean,
     ByteArray,
     Collection,
     CollectionOrSet,
     CollectionOrMap,
+    Float,
+    FutureLike,
     ArrayOrCollection,
     ArrayCollectionOrSet,
+    Iterable,
+    IterableOrIterator,
+    Iterator,
     Set,
     SetOrMap,
     Map,
+    Nominal { type_hash: u64 },
+    Number,
     Option,
     PromiseLike,
+    Record,
+    Result,
     String,
     Integer,
     IntegerOrNumber,
@@ -546,23 +558,56 @@ impl DomainRequirement {
     pub fn accepts(self, domain: DomainEvidence) -> bool {
         match self {
             DomainRequirement::Array => domain.is_array(),
+            DomainRequirement::Boolean => domain.is_boolean(),
             DomainRequirement::ByteArray => domain.is_byte_array(),
             DomainRequirement::Collection => domain == DomainEvidence::Collection,
             DomainRequirement::CollectionOrSet => domain.is_collection_or_set(),
             DomainRequirement::CollectionOrMap => {
                 domain.is_array_collection_or_set() || domain.is_map()
             }
+            DomainRequirement::Float => domain.is_float(),
+            DomainRequirement::FutureLike => domain.is_future_like(),
             DomainRequirement::ArrayOrCollection => domain.is_array_or_collection(),
             DomainRequirement::ArrayCollectionOrSet => domain.is_array_collection_or_set(),
+            DomainRequirement::Iterable => domain.is_iterable(),
+            DomainRequirement::IterableOrIterator => domain.is_iterable_or_iterator(),
+            DomainRequirement::Iterator => domain.is_iterator(),
             DomainRequirement::Set => domain.is_set(),
             DomainRequirement::SetOrMap => domain.is_set() || domain.is_map(),
             DomainRequirement::Map => domain.is_map(),
+            DomainRequirement::Nominal { type_hash } => domain.is_nominal(type_hash),
+            DomainRequirement::Number => {
+                matches!(domain, DomainEvidence::Number | DomainEvidence::Float)
+            }
             DomainRequirement::Option => domain.is_option(),
             DomainRequirement::PromiseLike => domain.is_promise_like(),
+            DomainRequirement::Record => domain.is_record(),
+            DomainRequirement::Result => domain.is_result(),
             DomainRequirement::String => domain.is_string(),
             DomainRequirement::Integer => domain.is_integer(),
             DomainRequirement::IntegerOrNumber => domain.is_integer_or_number(),
         }
+    }
+}
+
+pub fn nominal_type_domain_at_node(
+    il: &Il,
+    node: NodeId,
+    type_hash: u64,
+) -> Option<DomainEvidence> {
+    match unique_asserted_evidence_at(
+        il,
+        |anchor| anchor == EvidenceAnchor::node(il.node(node).span, il.kind(node)),
+        |evidence| match evidence {
+            EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
+                type_hash: actual_hash,
+                domain,
+            }) if actual_hash == type_hash => Some(domain),
+            _ => None,
+        },
+    ) {
+        EvidenceResolution::Found(domain) => Some(domain),
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
 

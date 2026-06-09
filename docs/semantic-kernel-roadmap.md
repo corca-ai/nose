@@ -366,6 +366,13 @@ and pack ecosystem.
   `MethodReceiverContract` exposes the subset of receiver obligations that are
   domain-backed, while imported namespace, unshadowed global, map-literal,
   demand, and effect obligations remain separate checks.
+- The type/domain expansion slice broadened `DomainEvidence` and
+  `DomainRequirement` beyond the initial container/scalar set. The vocabulary now
+  includes iterable/iterator, record, result, future-like, boolean, float, and
+  nominal domains; `Type(NominalDomain)` rows can tie provider-proven nominal
+  type identities to domains without letting raw type names prove semantics.
+  The value-law bridge remains narrow, so these richer facts do not automatically
+  become sequence or exact algebraic proof.
 - Selected first-party library/API factory result domains now produce
   node-anchored `Domain` evidence after the call occurrence has admitted
   `LibraryApi` evidence. This covers Python builtin/imported collection
@@ -793,14 +800,15 @@ Remaining in this phase:
   exported-literal eligibility. Current exact/value-graph consumers are
   evidence-only for covered lowered surfaces, but richer aggregate semantics
   still need versioned records beyond the first tag-kind vocabulary.
-- Continue expanding domain evidence beyond parameter annotations. The shared
-  receiver-domain consumer contract now accepts exact node-anchored receiver
-  facts, binding-anchored immutable local/module facts, and selected admitted
-  library/API factory result facts. Remaining work is broader inferred receiver
-  domains, Java constructor call-domain evidence if that lowering stops
-  collapsing directly to sequence surfaces, richer field/property mutation
-  facts, and protocol-specific receiver facts that include demand/effect
-  obligations.
+- Continue expanding domain evidence producers beyond the current first-party
+  annotation/alias and selected API-result facts. The shared receiver-domain
+  consumer contract now accepts exact node-anchored receiver facts,
+  binding-anchored immutable local/module facts, selected admitted library/API
+  factory result facts, and a broader domain vocabulary. Remaining work is
+  broader inferred receiver domains, richer field/property and nominal-type
+  producer coverage, Java constructor call-domain evidence if that lowering
+  stops collapsing directly to sequence surfaces, and protocol-specific receiver
+  facts that include demand/effect obligations.
 - Turn named value-graph rule modules into LawPack-facing law ids/contracts while
   retaining formal-obligation metadata as the first-party proof boundary. The
   first `ValueLaw` contract surface now covers current arithmetic/boolean
