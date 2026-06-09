@@ -252,13 +252,15 @@ and pack ecosystem.
   calls, explicit reductions, short-circuit quantifiers, append mutation,
   nullish defaulting, per-element callback demand for
   map/flat-map/filter-map/filter/reduce, pull-lazy Python generator expressions,
+  eager JS-like/Ruby library HOFs, pull-lazy Rust iterator/Java Stream HOFs,
   async continuation boundaries, generator suspension, channel boundaries, and
   non-channel protocol boundaries. The oracle consumes those profiles for
-  admitted builtins instead of matching local demand enums; value-graph
-  generator exception timing and Promise `.then` beta-reduction also read the
-  shared profiles. API admission and receiver/protocol proof remain
-  evidence/contract-row gated, and library HOF callback timing remains closed
-  until the admitted row carries explicit demand timing.
+  admitted builtins instead of matching local demand enums; value-graph HOF
+  callback exception timing, HOF materialization gates, strict-exact HOF gates,
+  and Promise `.then` beta-reduction also read shared profiles. API admission
+  and receiver/protocol proof remain evidence/contract-row gated; raw HOF
+  payloads, unsupported source HOFs, selector-only calls, and broken API evidence
+  stay closed.
 - Primitive operator gates now enter through `OperatorSemantics` contracts for
   comparison transforms, comparison laws, cardinality thresholds, static
   `indexOf`/`findIndex` thresholds, and source membership operators. Algebra,
@@ -719,7 +721,10 @@ Remaining after the foundation tranche:
   selector/name/type/tag fallbacks.
 - Expand demand/effect contracts (#168) for lazy, iterator, generator, async,
   channel, repeated, and call-by-need semantics before ecosystem APIs can enter
-  exact matching.
+  exact matching. The first iterator/HOF slice now distinguishes eager
+  JS-like/Ruby library HOF callback demand from pull-lazy Rust iterator/Java
+  Stream callback demand; broader protocol families and pack-facing schema rows
+  remain open.
 - Move internal value laws toward pack-facing law ids, conformance status, and
   per-finding provenance (#167).
 - Keep behavior-changing recall reductions documented when missing evidence
@@ -886,14 +891,19 @@ different APIs.
 - Refactor oracle and value graph to consume demand rules instead of local
   hard-coded evaluation behavior. The oracle consumes internal builtin
   demand/effect profiles; value-graph Python generator exception timing consumes
-  source-backed HOF demand/effect profiles; and supported Promise `.then` chains
-  consume the async-continuation profile while preserving a Promise boundary.
-  The pack-facing schema and most protocol-specific consumers remain open.
+  source-backed HOF demand/effect profiles; admitted library HOF consumers now
+  resolve eager JS-like/Ruby timing versus pull-lazy Rust/Java timing before
+  opening callback exception, `len`, terminal-reduction, value, or strict-exact
+  paths; and supported Promise `.then` chains consume the async-continuation
+  profile while preserving a Promise boundary. The pack-facing schema and most
+  protocol-specific consumers remain open.
 - Keep expanding lazy iterator/generator/channel hard negatives before enabling
   new exact laws. The first Python generator/list/set and Go channel/goroutine
-  hard negatives are now in place. Remaining work is richer repeated,
-  call-by-need, iterator, async/generator/channel, callback-effect, scheduling,
-  and report-provenance contracts.
+  hard negatives are now in place, along with hard negatives for pull-lazy
+  library HOF callback timing and `len` materialization. Remaining work is
+  richer repeated, call-by-need, iterator exact-size/materialization,
+  async/generator/channel, callback-effect, scheduling, and report-provenance
+  contracts.
 
 ## Phase 6: ecosystem packs
 

@@ -796,6 +796,28 @@ fn builtin_contracts_preserve_current_special_demand_split() {
     )
     .unwrap()
     .proves_eager_per_element_callback_demand());
+    assert!(
+        library_hof_demand_effect_profile(Lang::TypeScript, HoFKind::Map)
+            .unwrap()
+            .proves_eager_per_element_callback_demand()
+    );
+    assert!(
+        library_hof_demand_effect_profile(Lang::Ruby, HoFKind::Filter)
+            .unwrap()
+            .proves_eager_per_element_callback_demand()
+    );
+    assert!(library_hof_demand_effect_profile(Lang::Rust, HoFKind::Map)
+        .unwrap()
+        .callback_effects_delayed_until_pull());
+    assert!(
+        library_hof_demand_effect_profile(Lang::Java, HoFKind::FlatMap)
+            .unwrap()
+            .callback_effects_delayed_until_pull()
+    );
+    assert_eq!(
+        library_hof_demand_effect_profile(Lang::Python, HoFKind::Map),
+        None
+    );
     assert_eq!(
         promise_then_demand_effect_profile(),
         DemandEffectProfile {

@@ -354,6 +354,39 @@ pub fn admitted_hof_api_at_node(il: &Il, node: NodeId, kind: HoFKind) -> bool {
     library_api_dependency_id_for_normalized_hof(il, node).is_some()
 }
 
+pub fn admitted_hof_demand_effect_profile_at_node(
+    il: &Il,
+    node: NodeId,
+    kind: HoFKind,
+) -> Option<DemandEffectProfile> {
+    if il.kind(node) != NodeKind::HoF || il.node(node).payload != Payload::HoF(kind) {
+        return None;
+    }
+    if let Some(source) = source_comprehension_at_node(il, node) {
+        return source_comprehension_hof_demand_effect_profile(kind, source);
+    }
+    admitted_hof_api_at_node(il, node, kind)
+        .then(|| library_hof_demand_effect_profile(il.meta.lang, kind))
+        .flatten()
+}
+
+pub fn admitted_terminal_count_reduction_at_call(il: &Il, node: NodeId) -> bool {
+    if il.kind(node) != NodeKind::Call || il.node(node).payload != Payload::Builtin(Builtin::Len) {
+        return false;
+    }
+    let Some(contract) = library_method_call_contract(il.meta.lang, "count", 0) else {
+        return false;
+    };
+    library_api_dependency_id_for_canonical_builtin_method_call(
+        il,
+        node,
+        Builtin::Len,
+        contract.callee,
+        0,
+    )
+    .is_some()
+}
+
 pub fn admitted_builtin_semantics_at_call(il: &Il, node: NodeId, builtin: Builtin) -> bool {
     if il.kind(node) != NodeKind::Call || il.node(node).payload != Payload::Builtin(builtin) {
         return false;

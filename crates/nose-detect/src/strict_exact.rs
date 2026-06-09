@@ -11,7 +11,7 @@ use nose_il::{
 use nose_normalize::module_facts::collect_module_mutations;
 use nose_semantics::{
     admitted_builtin_semantics_at_call, admitted_free_name_collection_factory_at_call,
-    admitted_free_name_map_factory_at_call, admitted_hof_api_at_node,
+    admitted_free_name_map_factory_at_call, admitted_hof_demand_effect_profile_at_node,
     admitted_imported_collection_factory_at_call, admitted_iterator_identity_adapter_at_call,
     admitted_java_collection_constructor_at_call, admitted_java_collection_factory_at_call,
     admitted_java_map_entry_at_call, admitted_java_map_factory_at_call,
@@ -21,7 +21,8 @@ use nose_semantics::{
     admitted_regex_test_at_call, admitted_ruby_set_factory_at_call,
     admitted_rust_option_none_sentinel_at_node, admitted_rust_vec_macro_factory_at_call,
     admitted_rust_vec_new_factory_at_call, admitted_static_index_membership_at_call,
-    asserted_unshadowed_global_symbol, call_target_evidence_status_at_call, construct_syntax_proof,
+    admitted_terminal_count_reduction_at_call, asserted_unshadowed_global_symbol,
+    call_target_evidence_status_at_call, construct_syntax_proof,
     direct_function_call_target_at_call, direct_method_call_target_at_call,
     exact_static_membership_predicate_operator, go_zero_map_default_kind,
     go_zero_map_entry_contract_for_node, go_zero_map_literal_contract_for_node,
@@ -267,7 +268,9 @@ fn strict_exact_safe_hof(il: &Il, interner: &Interner, facts: &StrictFacts, node
             | SourceComprehensionKind::PythonSetComprehension,
         ) => false,
         None => match il.node(node).payload {
-            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+            Payload::HoF(kind)
+                if admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some() =>
+            {
                 strict_exact_hof_children_safe(il, interner, facts, node)
             }
             _ => false,
@@ -294,7 +297,9 @@ fn strict_exact_terminal_reduction_arg_safe(
             | SourceComprehensionKind::PythonSetComprehension,
         ) => false,
         None => match il.node(node).payload {
-            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+            Payload::HoF(kind)
+                if admitted_hof_demand_effect_profile_at_node(il, node, kind).is_some() =>
+            {
                 strict_exact_hof_children_safe(il, interner, facts, node)
             }
             _ => false,
@@ -321,7 +326,10 @@ fn strict_exact_len_arg_safe(
             | SourceComprehensionKind::PythonSetComprehension,
         ) => false,
         None => match il.node(node).payload {
-            Payload::HoF(kind) if admitted_hof_api_at_node(il, node, kind) => {
+            Payload::HoF(kind)
+                if admitted_hof_demand_effect_profile_at_node(il, node, kind)
+                    .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()) =>
+            {
                 strict_exact_hof_children_safe(il, interner, facts, node)
             }
             _ => false,
@@ -651,7 +659,11 @@ fn strict_exact_safe_call(il: &Il, interner: &Interner, facts: &StrictFacts, nod
                     && strict_exact_membership_collection_safe(il, interner, facts, kids[1])
             }
             Builtin::Len if kids.len() == 1 => {
-                strict_exact_len_arg_safe(il, interner, facts, kids[0])
+                if admitted_terminal_count_reduction_at_call(il, node) {
+                    strict_exact_terminal_reduction_arg_safe(il, interner, facts, kids[0])
+                } else {
+                    strict_exact_len_arg_safe(il, interner, facts, kids[0])
+                }
             }
             Builtin::Sum | Builtin::Any | Builtin::All if kids.len() == 1 => {
                 strict_exact_terminal_reduction_arg_safe(il, interner, facts, kids[0])
@@ -1780,6 +1792,62 @@ mod tests {
             EvidenceKind::CallTarget(target),
             dependencies,
         )
+    }
+
+    #[test]
+    fn strict_exact_len_rejects_pull_lazy_library_hof_arg() {
+        let interner = Interner::new();
+        let mut b = IlBuilder::new(FileId(0));
+        let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
+        let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
+        let param = b.add(NodeKind::Param, Payload::Cid(0), sp(2), &[]);
+        let body_value = b.add(NodeKind::Var, Payload::Cid(0), sp(2), &[]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp(2), &[body_value]);
+        let body = b.add(NodeKind::Block, Payload::None, sp(2), &[ret]);
+        let lambda = b.add(NodeKind::Lambda, Payload::None, sp(2), &[param, body]);
+        let hof = b.add(
+            NodeKind::HoF,
+            Payload::HoF(HoFKind::Map),
+            sp(3),
+            &[coll, lambda],
+        );
+        let len = b.add(
+            NodeKind::Call,
+            Payload::Builtin(Builtin::Len),
+            sp(4),
+            &[hof],
+        );
+        let mut il = b.finish(
+            len,
+            FileMeta {
+                path: "t.rs".into(),
+                lang: Lang::Rust,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.evidence.push(method_call_library_api_evidence(
+            0,
+            Lang::Rust,
+            "map",
+            il.node(hof).span,
+            1,
+            Vec::new(),
+        ));
+        il.evidence.push(method_call_library_api_evidence(
+            1,
+            Lang::Rust,
+            "len",
+            il.node(len).span,
+            0,
+            Vec::new(),
+        ));
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(
+            !strict_exact_safe_tree(&il, &interner, &facts, len),
+            "len must not treat an admitted pull-lazy iterator HOF as an exact materialized collection"
+        );
     }
 
     #[test]

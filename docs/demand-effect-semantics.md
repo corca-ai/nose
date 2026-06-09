@@ -50,9 +50,12 @@ Higher-order forms have per-element callback profiles for `map`, `flat_map`,
 or lazy timing. Timing comes from an explicit demand source. Python
 list/dict-comprehension surfaces use eager per-element demand where modeled.
 Python generator-expression surfaces use pull-lazy demand: callback errors and
-effects are delayed until a terminal consumer pulls an element. Library/API HOF
-rows need their own admitted demand timing before exact consumers may observe
-callback effects; admitted HOF identity alone is not enough.
+effects are delayed until a terminal consumer pulls an element. First-party
+library/API HOF rows now carry explicit timing for the supported surfaces:
+JS-like and Ruby `map`/`flatMap`/`filter` rows are eager per element where
+available, while Rust iterator and Java Stream `map`/`flatMap`/`filter` rows are
+pull-lazy. Admitted HOF identity alone is still not enough; consumers resolve
+the node-level demand/effect profile before opening exact behavior.
 
 Promise `.then` now carries an async-continuation demand/effect profile in its
 contract row. That does not open exact beta-reduction by itself. The value-graph
@@ -78,13 +81,15 @@ The interpreter oracle consumes builtin demand/effect profiles for admitted
 builtin calls instead of branching on local demand enums. This preserves current
 behavior while giving the oracle a single semantic contract source.
 
-The value graph consumes HOF demand/effect profiles for Python comprehension
-exception timing. A list comprehension with a statically failing callback can
-trigger the surrounding handler when the collection is known non-empty. A
-generator expression with the same callback does not, because construction is
-pull-lazy and the callback is not demanded until observation. Admitted library
-HOFs currently stay closed for this exact timing path until their contract row
-proves eager callback demand.
+The value graph consumes node-level HOF demand/effect profiles for source and
+admitted library HOFs. A Python list comprehension or admitted eager JS-like/Ruby
+HOF with a statically failing callback can trigger the surrounding handler when
+the collection is known non-empty. A Python generator expression or admitted
+Rust/Java pull-lazy HOF with the same callback does not, because construction is
+pull-lazy and the callback is not demanded until observation. `len` over a HOF is
+opened only for materialized/eager profiles; terminal reductions may consume
+profile-backed pull-lazy iterator HOFs. Raw HOF payloads, selector-only calls,
+unsupported source HOFs, and broken `LibraryApi` evidence remain closed.
 
 The Promise `.then` value-graph rule consumes the async-continuation contract,
 PromiseLike receiver proof, and supported settled-value proof. It keeps the
@@ -114,7 +119,7 @@ work includes:
 - pack-facing schema names for demand/effect rows (coordinated with issue #151);
 - conformance fixtures that let pack authors prove demand/effect behavior
   without giving packs exact-clone authority (issue #157);
-- richer iterator, generator, channel, call-by-need, observable, scheduling, and
-  callback-effect contracts;
+- richer iterator, generator, channel, call-by-need, observable, scheduling,
+  exact-size/materialization, and callback-effect contracts;
 - report-level provenance for which demand/effect contract influenced an exact
   result.

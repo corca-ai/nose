@@ -326,7 +326,7 @@ impl<'a> Builder<'a> {
                     }
                 }
                 if let Payload::Builtin(b) = node.payload {
-                    if let Some(r) = self.eval_reduction_builtin(b, &kids, env) {
+                    if let Some(r) = self.eval_reduction_builtin(expr, b, &kids, env) {
                         return r;
                     }
                 }

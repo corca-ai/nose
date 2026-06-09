@@ -39,7 +39,10 @@ per-element callback, pull-lazy generator, async-continuation, generator
 suspension, channel-boundary, and protocol-boundary shapes; these profiles
 describe how an already-admitted operation is consumed, not which source API is
 admitted. HOF callback timing comes from an explicit source or API demand source,
-not from the raw HOF kind alone.
+not from the raw HOF kind alone. The node-level HOF resolver distinguishes
+source comprehensions, eager first-party JS-like/Ruby library HOFs, and pull-lazy
+Rust iterator/Java Stream HOFs before value-graph and exact consumers open HOF
+behavior.
 Promise `.then` carries an async-continuation demand/effect profile in its
 contract row. Exact value-graph reduction is open only for admitted
 Promise-like receivers whose settled value can be recovered from supported
@@ -753,9 +756,11 @@ language.
   external pack manifest contracts.
 - Evaluation strategy is only partially shared. Internal demand profiles now
   cover the currently admitted eager, short-circuit, append, nullish-default,
-  reduction, and HOF callback shapes, but pull-lazy, call-by-need, async,
-  generator, channel/protocol, and richer observable-effect behavior are not
-  represented by a common pack-facing demand/effect abstraction.
+  reduction, eager HOF callback, pull-lazy library iterator/stream HOF, and
+  selected source protocol shapes, but call-by-need, richer async/generator,
+  channel/protocol, observable-effect, exact-size/materialization, and
+  callback-effect behavior are not represented by a common pack-facing
+  demand/effect abstraction.
 - External producer execution does not exist. New languages and libraries that
   affect analysis must still be added inside the main crates.
 - Report output now exposes pack-level provenance, but not contract-id, law-id,

@@ -4,7 +4,7 @@
 //! children and callbacks. They do not admit APIs by spelling; language/library
 //! admission remains the job of the occurrence contract tables and evidence checks.
 
-use nose_il::{Builtin, HoFKind, SourceComprehensionKind, SourceProtocolKind};
+use nose_il::{Builtin, HoFKind, Lang, SourceComprehensionKind, SourceProtocolKind};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum DemandOperation {
@@ -434,6 +434,26 @@ pub fn hof_demand_effect_profile(
     source
         .timing()
         .map(|timing| hof_contract(kind).demand.demand_effect_profile(timing))
+}
+
+pub fn library_hof_demand_timing(lang: Lang, kind: HoFKind) -> Option<HofDemandTiming> {
+    Some(match (lang, kind) {
+        (
+            Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
+            HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter,
+        )
+        | (Lang::Ruby, HoFKind::Map | HoFKind::Filter) => HofDemandTiming::EagerPerElement,
+        (Lang::Rust, HoFKind::Map | HoFKind::FlatMap | HoFKind::FilterMap | HoFKind::Filter)
+        | (Lang::Java, HoFKind::Map | HoFKind::FlatMap | HoFKind::Filter) => {
+            HofDemandTiming::PullLazy
+        }
+        _ => return None,
+    })
+}
+
+pub fn library_hof_demand_effect_profile(lang: Lang, kind: HoFKind) -> Option<DemandEffectProfile> {
+    let timing = library_hof_demand_timing(lang, kind)?;
+    hof_demand_effect_profile(kind, HofDemandSource::LibraryApi(timing))
 }
 
 pub fn source_comprehension_hof_demand_effect_profile(

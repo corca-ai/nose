@@ -245,6 +245,11 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
 
     let mut builder = Builder::new(&il, &interner);
     let value = builder.eval(hof, &FxHashMap::default());
+    assert_eq!(
+        admitted_hof_demand_effect_profile_at_node(&il, hof, HoFKind::Map),
+        None,
+        "raw HOF payloads must not resolve demand/effect profiles"
+    );
     assert!(
         matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
         "raw HOF payloads must stay opaque without source or API proof"
@@ -258,6 +263,11 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
     );
     let mut builder = Builder::new(&il, &interner);
     let value = builder.eval(hof, &FxHashMap::default());
+    assert!(
+        admitted_hof_demand_effect_profile_at_node(&il, hof, HoFKind::Map)
+            .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
+        "a source-proven Python list comprehension should resolve eager callback demand"
+    );
     assert!(
         matches!(builder.nodes[value as usize].op, ValOp::Hof(k) if k == HoFKind::Map as u32),
         "a source-proven Python list comprehension should still enter HOF value semantics"
@@ -273,6 +283,11 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
     );
     let mut builder = Builder::new(&set_il, &interner);
     let value = builder.eval(hof, &FxHashMap::default());
+    assert_eq!(
+        admitted_hof_demand_effect_profile_at_node(&set_il, hof, HoFKind::Map),
+        None,
+        "unsupported source comprehension proofs must keep HOF demand profiles closed"
+    );
     assert!(
         matches!(builder.nodes[value as usize].op, ValOp::Opaque(_)),
         "set comprehension proof must not reuse list-like HOF value semantics"
@@ -292,7 +307,13 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         sp(3),
         &[coll, lambda],
     );
-    let mut il = finish_test_il(b, hof, Lang::Rust);
+    let count = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        sp(4),
+        &[hof],
+    );
+    let mut il = finish_test_il(b, count, Lang::Rust);
     let contract = library_method_call_contract(Lang::Rust, "map", 1).expect("Rust map contract");
     il.evidence.push(library_api_contract_evidence(
         0,
@@ -307,11 +328,87 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         hof,
         HoFKind::Map
     ));
+    assert!(
+        admitted_hof_demand_effect_profile_at_node(&il, hof, HoFKind::Map)
+            .is_some_and(|profile| profile.callback_effects_delayed_until_pull()),
+        "Rust iterator map resolves to pull-lazy callback demand"
+    );
 
     let mut builder = Builder::new(&il, &interner);
     assert!(
         !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
         "admitted library HOF payloads must not prove eager callback exception timing"
+    );
+
+    let mut js_il = il.clone();
+    js_il.meta.lang = Lang::JavaScript;
+    js_il.evidence.clear();
+    let contract =
+        library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS map contract");
+    js_il.evidence.push(library_api_contract_evidence(
+        0,
+        js_il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    assert!(nose_semantics::admitted_hof_api_at_node(
+        &js_il,
+        hof,
+        HoFKind::Map
+    ));
+    assert!(
+        admitted_hof_demand_effect_profile_at_node(&js_il, hof, HoFKind::Map)
+            .is_some_and(|profile| profile.proves_eager_per_element_callback_demand()),
+        "JS Array.map resolves to eager per-element callback demand"
+    );
+    let mut builder = Builder::new(&js_il, &interner);
+    assert!(
+        builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "an admitted eager JS Array.map demand profile exposes callback exception timing"
+    );
+
+    let mut broken_js_il = js_il.clone();
+    broken_js_il.evidence[0].status = EvidenceStatus::Ambiguous;
+    assert_eq!(
+        admitted_hof_demand_effect_profile_at_node(&broken_js_il, hof, HoFKind::Map),
+        None,
+        "broken library API evidence must not resolve HOF demand profiles"
+    );
+    let mut builder = Builder::new(&broken_js_il, &interner);
+    assert!(
+        !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "broken library API evidence must keep callback exception timing closed"
+    );
+
+    let mut java_il = il.clone();
+    java_il.meta.lang = Lang::Java;
+    java_il.evidence.clear();
+    let contract =
+        library_method_call_contract(Lang::Java, "map", 1).expect("Java stream map contract");
+    java_il.evidence.push(library_api_contract_evidence(
+        0,
+        java_il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    assert!(nose_semantics::admitted_hof_api_at_node(
+        &java_il,
+        hof,
+        HoFKind::Map
+    ));
+    assert!(
+        admitted_hof_demand_effect_profile_at_node(&java_il, hof, HoFKind::Map)
+            .is_some_and(|profile| profile.callback_effects_delayed_until_pull()),
+        "Java Stream.map resolves to pull-lazy callback demand"
+    );
+    let mut builder = Builder::new(&java_il, &interner);
+    assert!(
+        !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "an admitted pull-lazy Java Stream.map profile delays callback exception timing"
     );
 
     let mut list_il = il.clone();
@@ -341,6 +438,93 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
     assert!(
         !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
         "a source-proven Python generator expression remains pull-lazy"
+    );
+}
+
+#[test]
+fn len_of_library_hof_requires_materialized_demand_profile() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
+    let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
+    let lambda = identity_lambda(&mut b, 2, sp(2));
+    let hof = b.add(
+        NodeKind::HoF,
+        Payload::HoF(HoFKind::Map),
+        sp(3),
+        &[coll, lambda],
+    );
+    let count = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::Len),
+        sp(4),
+        &[hof],
+    );
+    let mut il = finish_test_il(b, count, Lang::Rust);
+    let contract = library_method_call_contract(Lang::Rust, "map", 1).expect("Rust map contract");
+    il.evidence.push(library_api_contract_evidence(
+        0,
+        il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    let mut builder = Builder::new(&il, &interner);
+    assert!(
+        builder.terminal_reduction_arg_admitted(hof),
+        "terminal reductions may force admitted pull-lazy iterator HOFs"
+    );
+    assert!(
+        !builder.len_arg_admitted(hof),
+        "len must not treat pull-lazy iterator HOFs as materialized collections"
+    );
+    assert_eq!(
+        builder.eval_len_builtin(hof, &FxHashMap::default()),
+        None,
+        "len over pull-lazy iterator HOFs stays closed without an exact-size contract"
+    );
+    let contract =
+        library_method_call_contract(Lang::Rust, "count", 0).expect("Rust count contract");
+    il.evidence.push(library_api_contract_evidence(
+        1,
+        il.node(count).span,
+        contract.id,
+        contract.callee,
+        0,
+        Vec::new(),
+    ));
+    assert!(admitted_terminal_count_reduction_at_call(&il, count));
+    let mut builder = Builder::new(&il, &interner);
+    let value = builder.eval(count, &FxHashMap::default());
+    assert!(
+        matches!(builder.nodes[value as usize].op, ValOp::Reduce(op) if op == Op::Add as u32),
+        "Rust count() over pull-lazy iterator HOFs should use terminal reduction demand"
+    );
+
+    let mut js_il = il.clone();
+    js_il.meta.lang = Lang::JavaScript;
+    js_il.evidence.clear();
+    let contract =
+        library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS map contract");
+    js_il.evidence.push(library_api_contract_evidence(
+        0,
+        js_il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    let mut builder = Builder::new(&js_il, &interner);
+    assert!(
+        builder.len_arg_admitted(hof),
+        "len may consume admitted eager/materialized library HOF profiles"
+    );
+    assert!(
+        builder
+            .eval_len_builtin(hof, &FxHashMap::default())
+            .is_some(),
+        "eager Array.map keeps enough materialized value semantics for len"
     );
 }
 

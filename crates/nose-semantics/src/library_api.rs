@@ -1759,6 +1759,39 @@ pub fn library_api_dependency_id_for_canonical_builtin_call(
     call: NodeId,
     builtin: Builtin,
 ) -> Option<EvidenceId> {
+    library_api_dependency_id_for_canonical_builtin_call_contract(il, call, |record, id, _, _| {
+        library_api_record_models_canonical_builtin(il, record, id, builtin)
+    })
+}
+
+pub fn library_api_dependency_id_for_canonical_builtin_method_call(
+    il: &Il,
+    call: NodeId,
+    builtin: Builtin,
+    expected_callee: LibraryApiCalleeContract,
+    expected_arity: u16,
+) -> Option<EvidenceId> {
+    library_api_dependency_id_for_canonical_builtin_call_contract(
+        il,
+        call,
+        |record, id, callee, arity| {
+            library_api_record_models_canonical_builtin(il, record, id, builtin)
+                && callee == Some(expected_callee)
+                && arity == expected_arity
+        },
+    )
+}
+
+fn library_api_dependency_id_for_canonical_builtin_call_contract(
+    il: &Il,
+    call: NodeId,
+    accepts: impl Fn(
+        &EvidenceRecord,
+        LibraryApiContractId,
+        Option<LibraryApiCalleeContract>,
+        u16,
+    ) -> bool,
+) -> Option<EvidenceId> {
     if il.kind(call) != NodeKind::Call {
         return None;
     }
@@ -1774,15 +1807,19 @@ pub fn library_api_dependency_id_for_canonical_builtin_call(
         ) {
             continue;
         }
-        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract { contract_hash, .. }) =
-            record.kind
+        let EvidenceKind::LibraryApi(LibraryApiEvidenceKind::Contract {
+            contract_hash,
+            callee_hash,
+            arity,
+        }) = record.kind
         else {
             continue;
         };
         let Some(id) = library_api_contract_id_from_hash(contract_hash) else {
             continue;
         };
-        if !library_api_record_models_canonical_builtin(il, record, id, builtin) {
+        let callee = library_api_callee_contract_for_hash(il.meta.lang, id, callee_hash);
+        if !accepts(record, id, callee, arity) {
             return None;
         }
         if record.status != EvidenceStatus::Asserted || !il.evidence_dependencies_asserted(record) {

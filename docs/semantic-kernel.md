@@ -208,11 +208,13 @@ Examples:
 
 The implemented first-party substrate now names these as
 `DemandEffectProfile` contracts for admitted operations. The profiles cover
-current eager, short-circuit, per-element HOF, pull-lazy generator, async
+current eager, short-circuit, eager HOF, pull-lazy HOF/generator, async
 continuation, generator suspension, channel-boundary, and protocol-boundary
-classes. HOF timing must come from an explicit source or API demand source. The
-profiles describe how an already-proven operation is consumed; they do not prove
-that a selector or raw source protocol anchor has that meaning.
+classes. HOF timing must come from an explicit source or API demand source; the
+node-level resolver distinguishes source comprehensions, eager JS-like/Ruby
+library HOFs, and pull-lazy Rust/Java library HOFs. The profiles describe how an
+already-proven operation is consumed; they do not prove that a selector or raw
+source protocol anchor has that meaning.
 
 ### Values and domains
 

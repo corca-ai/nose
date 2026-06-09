@@ -157,6 +157,7 @@ impl<'a> Builder<'a> {
     /// `None` if it isn't a recognized clean reduction (caller falls back to a Call).
     pub(super) fn eval_reduction_builtin(
         &mut self,
+        call: NodeId,
         b: Builtin,
         kids: &[NodeId],
         env: &FxHashMap<u32, ValueId>,
@@ -164,7 +165,11 @@ impl<'a> Builder<'a> {
         match reduction_builtin_contract(b)? {
             ReductionBuiltinContract::Len => {
                 if kids.len() == 1 {
-                    self.eval_len_builtin(kids[0], env)
+                    if admitted_terminal_count_reduction_at_call(self.il, call) {
+                        self.eval_terminal_count_builtin(kids[0], env)
+                    } else {
+                        self.eval_len_builtin(kids[0], env)
+                    }
                 } else {
                     None
                 }
@@ -343,33 +348,62 @@ impl<'a> Builder<'a> {
         self.eval_len_value(av)
     }
 
+    pub(super) fn eval_terminal_count_builtin(
+        &mut self,
+        arg: NodeId,
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if !self.terminal_reduction_arg_admitted(arg) {
+            return None;
+        }
+        if let Some(count) = self.eval_filter_count(arg, env) {
+            return Some(count);
+        }
+
+        let av = self.eval(arg, env);
+        self.eval_len_value(av)
+    }
+
     pub(super) fn len_arg_admitted(&self, arg: NodeId) -> bool {
         if self.il.kind(arg) != NodeKind::HoF {
             return true;
         }
-        matches!(
-            source_comprehension_at_node(self.il, arg),
-            Some(SourceComprehensionKind::PythonListComprehension)
-        ) || self.admitted_hof_api_at_node(arg)
+        match source_comprehension_at_node(self.il, arg) {
+            Some(SourceComprehensionKind::PythonListComprehension) => true,
+            Some(
+                SourceComprehensionKind::PythonDictComprehension
+                | SourceComprehensionKind::PythonGeneratorExpression
+                | SourceComprehensionKind::PythonSetComprehension,
+            ) => false,
+            None => match self.il.node(arg).payload {
+                Payload::HoF(kind) => {
+                    admitted_hof_demand_effect_profile_at_node(self.il, arg, kind)
+                        .is_some_and(|profile| profile.proves_eager_per_element_callback_demand())
+                }
+                _ => false,
+            },
+        }
     }
 
     pub(super) fn terminal_reduction_arg_admitted(&self, arg: NodeId) -> bool {
         if self.il.kind(arg) != NodeKind::HoF {
             return true;
         }
-        matches!(
-            source_comprehension_at_node(self.il, arg),
+        match source_comprehension_at_node(self.il, arg) {
             Some(
                 SourceComprehensionKind::PythonGeneratorExpression
-                    | SourceComprehensionKind::PythonListComprehension
-            )
-        ) || self.admitted_hof_api_at_node(arg)
-    }
-
-    pub(super) fn admitted_hof_api_at_node(&self, node: NodeId) -> bool {
-        match self.il.node(node).payload {
-            Payload::HoF(kind) => nose_semantics::admitted_hof_api_at_node(self.il, node, kind),
-            _ => false,
+                | SourceComprehensionKind::PythonListComprehension,
+            ) => true,
+            Some(
+                SourceComprehensionKind::PythonDictComprehension
+                | SourceComprehensionKind::PythonSetComprehension,
+            ) => false,
+            None => match self.il.node(arg).payload {
+                Payload::HoF(kind) => {
+                    admitted_hof_demand_effect_profile_at_node(self.il, arg, kind).is_some()
+                }
+                _ => false,
+            },
         }
     }
 
@@ -381,7 +415,7 @@ impl<'a> Builder<'a> {
                 | SourceComprehensionKind::PythonListComprehension,
             ) => Some(HofAdmission::SourceComprehension),
             Some(SourceComprehensionKind::PythonSetComprehension) => None,
-            None if nose_semantics::admitted_hof_api_at_node(self.il, node, kind) => {
+            None if admitted_hof_demand_effect_profile_at_node(self.il, node, kind).is_some() => {
                 Some(HofAdmission::LibraryApi)
             }
             None => None,
