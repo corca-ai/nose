@@ -1076,17 +1076,7 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
     for proof in &manifest.conformance.proofs {
         require_non_empty("conformance.proofs[]", proof)?;
     }
-    let mut conformance_refs = HashSet::new();
-    collect_unique_refs(
-        "conformance fixtures",
-        manifest
-            .conformance
-            .positive_fixtures
-            .iter()
-            .chain(&manifest.conformance.hard_negatives)
-            .map(|fixture| &fixture.id),
-        &mut conformance_refs,
-    )?;
+    let conformance_refs = collect_conformance_fixture_refs(manifest)?;
 
     for producer in &manifest.declares.evidence_producers {
         validate_evidence_producer(producer, &known_refs)?;
@@ -1103,6 +1093,7 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
         }
         optional_non_empty("contract.notes", contract.notes.as_deref())?;
         validate_contract(
+            "contract",
             &contract.id,
             &contract.requires,
             &contract.semantics,
@@ -1116,6 +1107,7 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
     }
     for law in &manifest.declares.value_laws {
         validate_contract(
+            "value law",
             &law.id,
             &law.requires,
             &law.semantics,
@@ -1126,6 +1118,47 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
             &conformance_refs,
             false,
         )?;
+    }
+    Ok(())
+}
+
+#[derive(Default)]
+struct ConformanceFixtureRefs {
+    all: HashSet<String>,
+    positive: HashSet<String>,
+    hard_negative: HashSet<String>,
+}
+
+impl ConformanceFixtureRefs {
+    fn has_positive_and_hard_negative_refs(&self, refs: &[String]) -> bool {
+        refs.iter().any(|id| self.positive.contains(id))
+            && refs.iter().any(|id| self.hard_negative.contains(id))
+    }
+}
+
+fn collect_conformance_fixture_refs(
+    manifest: &SemanticPackManifest,
+) -> Result<ConformanceFixtureRefs, String> {
+    let mut refs = ConformanceFixtureRefs::default();
+    for fixture in &manifest.conformance.positive_fixtures {
+        collect_conformance_fixture_ref("conformance.positive_fixtures", &fixture.id, &mut refs)?;
+        refs.positive.insert(fixture.id.clone());
+    }
+    for fixture in &manifest.conformance.hard_negatives {
+        collect_conformance_fixture_ref("conformance.hard_negatives", &fixture.id, &mut refs)?;
+        refs.hard_negative.insert(fixture.id.clone());
+    }
+    Ok(refs)
+}
+
+fn collect_conformance_fixture_ref(
+    label: &str,
+    id: &str,
+    refs: &mut ConformanceFixtureRefs,
+) -> Result<(), String> {
+    require_stable_id(label, id)?;
+    if !refs.all.insert(id.to_string()) {
+        return Err(format!("duplicate id `{id}` in `conformance fixtures`"));
     }
     Ok(())
 }
@@ -1191,6 +1224,7 @@ fn validate_evidence_producer(
 
 #[allow(clippy::too_many_arguments)]
 fn validate_contract(
+    kind: &str,
     id: &str,
     requirements: &[ManifestRequirement],
     semantics: &serde_json::Value,
@@ -1198,32 +1232,37 @@ fn validate_contract(
     _proof_status: SemanticPackProofStatus,
     conformance_refs: &[String],
     known_refs: &HashSet<String>,
-    fixture_refs: &HashSet<String>,
+    fixture_refs: &ConformanceFixtureRefs,
     requires_surface: bool,
 ) -> Result<(), String> {
     require_stable_id("declares.contracts[].id", id)?;
     if requires_surface && !semantics.is_object() {
-        return Err(format!("contract `{id}` semantics must be an object"));
+        return Err(format!("{kind} `{id}` semantics must be an object"));
     }
     for ref_id in conformance_refs {
-        if !fixture_refs.contains(ref_id) {
+        if !fixture_refs.all.contains(ref_id) {
             return Err(format!(
-                "contract `{id}` references missing conformance fixture `{ref_id}`"
+                "{kind} `{id}` references missing conformance fixture `{ref_id}`"
             ));
         }
     }
     if channel.exact_capable() {
         if requirements.is_empty() {
             return Err(format!(
-                "exact-capable contract `{id}` must declare evidence requirements"
+                "exact-capable {kind} `{id}` must declare evidence requirements"
             ));
         }
         let semantics = semantics
             .as_object()
-            .ok_or_else(|| format!("exact-capable contract `{id}` semantics must be an object"))?;
+            .ok_or_else(|| format!("exact-capable {kind} `{id}` semantics must be an object"))?;
         if !semantics.contains_key("demand") || !semantics.contains_key("effects") {
             return Err(format!(
-                "exact-capable contract `{id}` must declare demand and effects"
+                "exact-capable {kind} `{id}` must declare demand and effects"
+            ));
+        }
+        if !fixture_refs.has_positive_and_hard_negative_refs(conformance_refs) {
+            return Err(format!(
+                "exact-capable {kind} `{id}` must reference at least one positive and one hard-negative conformance fixture"
             ));
         }
     }
@@ -1660,6 +1699,28 @@ mod tests {
         assert!(err
             .to_string()
             .contains("unsupported version constraint `current`"));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn exact_capable_contracts_must_reference_positive_and_hard_negative_fixtures() {
+        let dir = unique_dir("contract_fixture_refs");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""conformance_refs": ["positive", "negative"]"#,
+                r#""conformance_refs": ["positive"]"#,
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path)
+            .expect_err("exact-capable contracts need both fixture polarities");
+        assert!(
+            err.to_string()
+                .contains("must reference at least one positive and one hard-negative"),
+            "{err}"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 
