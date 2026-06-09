@@ -5,7 +5,9 @@ implementation shape; planned work and decision history live in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The internal evidence
 record substrate is described in [evidence-records](evidence-records.md). The
 post-PR #147 raw/local pocket audit is recorded in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
+v0 provider-facing extension API is defined in
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md).
 
 Snapshot date: 2026-06-09. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
@@ -62,6 +64,9 @@ still being migrated toward it.
   library API contract identities, library API row constructors, library API
   evidence-hash registry helpers, negative API guard rows, and library API
   occurrence/admission logic are split into focused modules.
+- The external pack API is documented as a v0 manifest/schema with examples, but
+  there is still no filesystem/network pack loader. First-party producers remain
+  compiled Rust and are expected to map onto the same vocabulary.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
   sequence evidence emission, and Raw-node coverage.

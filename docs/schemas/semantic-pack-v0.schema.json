@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/corca-ai/nose/docs/schemas/semantic-pack-v0.schema.json",
+  "title": "nose semantic pack manifest v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "api_version",
+    "pack",
+    "provenance",
+    "compatibility",
+    "supported_languages",
+    "declares",
+    "conformance"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "api_version": {
+      "const": "nose.semantic-pack.v0"
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "version",
+        "display_name",
+        "trust",
+        "enabled_by_default"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": [
+            "LanguagePack",
+            "StdlibPack",
+            "LibraryPack",
+            "ProtocolPack",
+            "LawPack"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "trust": {
+          "enum": [
+            "default-first-party",
+            "first-party-optional",
+            "external-opt-in"
+          ]
+        },
+        "enabled_by_default": {
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "draft-example",
+            "experimental",
+            "stable",
+            "deprecated"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "license",
+        "repository"
+      ],
+      "properties": {
+        "provider": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contact": {
+              "type": "string"
+            }
+          }
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "type": "string"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nose"
+      ],
+      "properties": {
+        "nose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "const": "v0"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "supported_languages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/language"
+      }
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/package"
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      }
+    },
+    "declares": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_producers",
+        "contracts"
+      ],
+      "properties": {
+        "evidence_producers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_producer"
+          }
+        },
+        "contracts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contract"
+          }
+        },
+        "value_laws": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value_law"
+          }
+        }
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "positive_fixtures",
+        "hard_negatives",
+        "known_unsupported"
+      ],
+      "properties": {
+        "positive_fixtures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fixture"
+          }
+        },
+        "hard_negatives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fixture"
+          }
+        },
+        "known_unsupported": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "command": {
+          "type": "string"
+        },
+        "proofs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_.:-]*$"
+    },
+    "language": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language_version": {
+          "type": "string"
+        },
+        "runtime": {
+          "type": "string"
+        },
+        "runtime_versions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "package": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ecosystem",
+        "name",
+        "versions"
+      ],
+      "properties": {
+        "ecosystem": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "string"
+        },
+        "stdlib": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "required"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "version": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence_producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "anchors",
+        "channel",
+        "stable_hash_inputs",
+        "conflict_policy"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "$ref": "#/$defs/evidence_kind"
+        },
+        "anchors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/anchor"
+          }
+        },
+        "channel": {
+          "$ref": "#/$defs/channel"
+        },
+        "emits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_kind"
+          }
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        },
+        "stable_hash_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflict_policy": {
+          "enum": [
+            "fail-closed",
+            "near-only"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "surface",
+        "requires",
+        "semantics",
+        "channel",
+        "proof_status",
+        "conformance_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "surface": {
+          "type": "object"
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        },
+        "semantics": {
+          "type": "object"
+        },
+        "channel": {
+          "$ref": "#/$defs/channel"
+        },
+        "proof_status": {
+          "$ref": "#/$defs/proof_status"
+        },
+        "conformance_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          }
+        },
+        "known_unsupported": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "value_law": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "requires",
+        "semantics",
+        "channel",
+        "proof_status",
+        "conformance_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        },
+        "semantics": {
+          "type": "object"
+        },
+        "channel": {
+          "$ref": "#/$defs/channel"
+        },
+        "proof_status": {
+          "$ref": "#/$defs/proof_status"
+        },
+        "conformance_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          }
+        }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "subject",
+        "required"
+      ],
+      "properties": {
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "same_anchor_as": {
+          "type": "string"
+        },
+        "within_scope": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        }
+      }
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string"
+        },
+        "expectation": {
+          "type": "string"
+        }
+      }
+    },
+    "channel": {
+      "enum": [
+        "syntax-only",
+        "near-only",
+        "abstraction-witness",
+        "exact-empirical",
+        "exact-proven"
+      ]
+    },
+    "proof_status": {
+      "enum": [
+        "proven",
+        "covered",
+        "missing",
+        "empirical-only",
+        "rejected-counterexample"
+      ]
+    },
+    "anchor": {
+      "enum": [
+        "source-span",
+        "node",
+        "param",
+        "binding",
+        "sequence",
+        "module",
+        "package"
+      ]
+    },
+    "evidence_kind": {
+      "type": "string",
+      "pattern": "^(Source|Symbol|Import|Domain|Type|Guard|Place|Effect|LibraryApi|CallTarget|SequenceSurface)\\.[A-Za-z0-9_.:-]+$"
+    }
+  }
+}

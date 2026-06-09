@@ -4,7 +4,9 @@ Back to [home](home.md). Current implementation status is in
 [semantic-kernel-snapshot](semantic-kernel-snapshot.md); history and remaining
 work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
 post-PR #147 raw/local pocket audit is recorded in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). Source
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
+versioned provider-facing extension surface is defined in
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Source
 origin evidence is detailed in [source-facts](source-facts.md); the shared
 internal evidence substrate is described in
 [evidence-records](evidence-records.md).
@@ -26,6 +28,10 @@ makes soundness depend on scattered `Lang` checks.
 The semantic kernel is the boundary that all exact semantic reasoning must cross.
 The first internal facade now lives in `nose-semantics`; it is still a compiled
 first-party implementation, not a loadable external pack runtime.
+The external API design starts at
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md): it narrows
+the current internal evidence and contract vocabulary into a manifest shape for
+future language/library packs.
 
 Evidence records are one kernel input at that boundary. They preserve facts that
 the IL deliberately abstracts away, but they do not approve semantic equivalence

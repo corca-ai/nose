@@ -1,0 +1,191 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v0.schema.json",
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {
+    "id": "com.example.javascript-core-mini",
+    "kind": "LanguagePack",
+    "version": "0.1.0",
+    "display_name": "Example JavaScript core surface pack",
+    "description": "Illustrative v0 language pack metadata for source and symbol facts. This is not a loadable pack.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false,
+    "status": "draft-example"
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/javascript-core-mini",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.5.0 <0.6.0",
+    "schema": "v0",
+    "notes": "Example only. Future loaders must compare this range before enabling the pack."
+  },
+  "supported_languages": [
+    {
+      "id": "javascript",
+      "language_version": "ES2020+",
+      "runtime": "ecmascript",
+      "runtime_versions": [
+        "ES2020+"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "nose.protocol.core",
+      "version": ">=0.1.0 <1.0.0",
+      "required": true
+    }
+  ],
+  "declares": {
+    "evidence_producers": [
+      {
+        "id": "js.source.construct",
+        "kind": "Source.Call.Construct",
+        "anchors": [
+          "node",
+          "source-span"
+        ],
+        "channel": "syntax-only",
+        "emits": [
+          "Source.Call.Construct"
+        ],
+        "requires": [],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "source_span",
+          "node_kind"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "Preserves new-expression syntax. It does not prove constructor identity by itself."
+      },
+      {
+        "id": "js.source.strict-equality",
+        "kind": "Source.Operator.StrictEquality",
+        "anchors": [
+          "node",
+          "source-span"
+        ],
+        "channel": "syntax-only",
+        "emits": [
+          "Source.Operator.StrictEquality"
+        ],
+        "requires": [],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "source_span"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "Distinguishes === from == so equality-sensitive contracts can require the exact source family."
+      },
+      {
+        "id": "js.symbol.unshadowed-global",
+        "kind": "Symbol.UnshadowedGlobal",
+        "anchors": [
+          "node",
+          "source-span"
+        ],
+        "channel": "syntax-only",
+        "emits": [
+          "Symbol.UnshadowedGlobal"
+        ],
+        "requires": [],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "source_span",
+          "global_name"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "A selected global is asserted only when local scope analysis proves no binding shadows it."
+      }
+    ],
+    "contracts": [
+      {
+        "id": "js.operator.strict-equality-source-contract",
+        "surface": {
+          "kind": "operator",
+          "language": "javascript",
+          "selector": "===",
+          "arity": {
+            "min": 2,
+            "max": 2
+          }
+        },
+        "requires": [
+          {
+            "ref": "js.source.strict-equality",
+            "subject": "source",
+            "required": true,
+            "same_anchor_as": "operator-node"
+          }
+        ],
+        "semantics": {
+          "operation": "LanguageCore.StrictEqualitySource",
+          "result_domain": "Boolean",
+          "demand": {
+            "arguments": "eager-left-to-right",
+            "callbacks": "none"
+          },
+          "effects": [
+            "argument-effects-in-order"
+          ],
+          "exceptions": "language-default"
+        },
+        "channel": "syntax-only",
+        "proof_status": "covered",
+        "conformance_refs": [
+          "js-strict-equality-positive",
+          "js-loose-equality-hard-negative"
+        ],
+        "known_unsupported": [
+          "This contract preserves source provenance only; it does not claim all JavaScript equality laws are exact-safe."
+        ],
+        "notes": "Library packs can depend on this source fact when loose equality would be unsound."
+      }
+    ],
+    "value_laws": []
+  },
+  "conformance": {
+    "positive_fixtures": [
+      {
+        "id": "js-strict-equality-positive",
+        "description": "A strict equality source surface emits Source.Operator.StrictEquality.",
+        "path": "fixtures/javascript/strict_equality.js",
+        "expectation": "source-fact-present"
+      }
+    ],
+    "hard_negatives": [
+      {
+        "id": "js-loose-equality-hard-negative",
+        "description": "A loose equality source surface must not satisfy contracts requiring strict equality.",
+        "path": "fixtures/javascript/loose_equality.js",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "js-shadowed-global-hard-negative",
+        "description": "A locally rebound global name must not emit an unshadowed-global fact.",
+        "path": "fixtures/javascript/shadowed_global.js",
+        "expectation": "symbol-proof-closed"
+      }
+    ],
+    "known_unsupported": [
+      "Dynamic eval and with-scope semantics are outside this example.",
+      "This example does not model JavaScript object identity or equality conversion rules."
+    ],
+    "command": "nose-semantic-pack check --manifest language-pack.json"
+  }
+}

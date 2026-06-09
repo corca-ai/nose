@@ -93,8 +93,8 @@ jobs:
       # awiki lints the docs/ wiki: fails on orphan pages or disconnected islands.
       - name: install awiki
         run: go install github.com/corca-ai/awiki/cmd/awiki@v0.1.4
-      - name: lint docs graph
-        run: awiki lint --root docs
+      - name: lint docs and semantic pack examples
+        run: ./scripts/check-docs.sh
 
   formal:
     name: formal obligations · lean proofs

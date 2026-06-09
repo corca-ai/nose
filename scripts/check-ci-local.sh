@@ -47,7 +47,8 @@ need_cmd() {
 
 run_docs_wiki_lint() {
     need_cmd awiki "install it with: brew install corca-ai/tap/awiki"
-    awiki lint --root docs
+    need_cmd python3
+    ./scripts/check-docs.sh
 }
 
 run_formal_obligations_lint() {

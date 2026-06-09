@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Docs quality gate. awiki checks the docs/ wiki is a single connected graph —
-# no orphan pages, no disconnected islands — so every doc stays reachable and the
-# wiki navigable. Mirrors the `docs` job in .github/workflows/ci.yml.
+# Docs quality gate. The semantic-pack example check keeps checked-in v0
+# manifests structurally honest; awiki checks the docs/ wiki is a single
+# connected graph with no orphan pages or disconnected islands. Mirrors the
+# `docs` job in .github/workflows/ci.yml.
 #
 #   ./scripts/check-docs.sh
 #
@@ -11,6 +12,12 @@
 #   # or: go install github.com/corca-ai/awiki/cmd/awiki@latest
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+if command -v python3 >/dev/null 2>&1; then
+    python3 scripts/check-semantic-pack-examples.py
+else
+    echo "skipped semantic-pack example check — python3 not installed"
+fi
 
 if ! command -v awiki >/dev/null 2>&1; then
     echo "skipped — awiki not installed (brew install corca-ai/tap/awiki)"

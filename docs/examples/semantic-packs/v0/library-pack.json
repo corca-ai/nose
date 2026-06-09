@@ -1,0 +1,206 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v0.schema.json",
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {
+    "id": "com.example.python-math-prod",
+    "kind": "LibraryPack",
+    "version": "0.1.0",
+    "display_name": "Example Python math.prod semantic pack",
+    "description": "Illustrative v0 library pack metadata for one imported namespace function. This is not a loadable pack.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false,
+    "status": "draft-example"
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/python-math-prod",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.5.0 <0.6.0",
+    "schema": "v0",
+    "notes": "Example only. Future loaders must compare this range before enabling the pack."
+  },
+  "supported_languages": [
+    {
+      "id": "python",
+      "language_version": ">=3.8",
+      "runtime": "cpython",
+      "runtime_versions": [
+        ">=3.8"
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "ecosystem": "python-stdlib",
+      "name": "math",
+      "versions": ">=3.8",
+      "stdlib": true
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "nose.protocol.reduction",
+      "version": ">=0.1.0 <1.0.0",
+      "required": true
+    }
+  ],
+  "declares": {
+    "evidence_producers": [
+      {
+        "id": "python.import.namespace.math",
+        "kind": "Import.Namespace",
+        "anchors": [
+          "binding",
+          "module"
+        ],
+        "channel": "syntax-only",
+        "emits": [
+          "Import.Namespace",
+          "Symbol.ImportedNamespace"
+        ],
+        "requires": [],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "module_name",
+          "binding_hash",
+          "source_span"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "Proves that a local namespace binding denotes the Python stdlib math module."
+      },
+      {
+        "id": "python.library-api.math-prod",
+        "kind": "LibraryApi.Contract",
+        "anchors": [
+          "node"
+        ],
+        "channel": "exact-empirical",
+        "emits": [
+          "LibraryApi.Contract"
+        ],
+        "requires": [
+          {
+            "ref": "python.import.namespace.math",
+            "subject": "callee.namespace",
+            "required": true,
+            "within_scope": "call"
+          }
+        ],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "module_name",
+          "exported_name",
+          "arity",
+          "call_span",
+          "dependency_ids"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "The occurrence proof is for imported stdlib math.prod, not for any function locally named prod."
+      }
+    ],
+    "contracts": [
+      {
+        "id": "python.math.prod.reduction",
+        "surface": {
+          "kind": "imported-namespace-function",
+          "language": "python",
+          "package": "math",
+          "module": "math",
+          "export": "prod",
+          "arity": {
+            "min": 1,
+            "max": 2
+          },
+          "receiver": "none"
+        },
+        "requires": [
+          {
+            "ref": "python.library-api.math-prod",
+            "subject": "call",
+            "required": true,
+            "same_anchor_as": "call-node"
+          },
+          {
+            "ref": "python.import.namespace.math",
+            "subject": "callee.namespace",
+            "required": true,
+            "within_scope": "call"
+          }
+        ],
+        "semantics": {
+          "operation": "Protocol.ProductReduction",
+          "result_domain": "NumberOrUnknown",
+          "demand": {
+            "arguments": "eager-left-to-right",
+            "iterable": "eager-consumer",
+            "callbacks": "none"
+          },
+          "effects": [
+            "argument-effects-in-order",
+            "iteration-effects-in-order"
+          ],
+          "exceptions": "python-math-prod-default",
+          "mutation": "does-not-mutate-input-by-contract",
+          "identity": "no-allocation-identity-claim"
+        },
+        "channel": "exact-empirical",
+        "proof_status": "covered",
+        "conformance_refs": [
+          "python-math-prod-positive",
+          "python-math-prod-local-shadow-hard-negative",
+          "python-math-prod-wrong-namespace-hard-negative"
+        ],
+        "known_unsupported": [
+          "Exact product laws still require domain and overflow/float semantics from a value-law contract.",
+          "Iterables with externally observable iteration side effects require the demand/effect contract to stay in force."
+        ],
+        "notes": "This contract connects a specific imported namespace function to a reduction protocol only after import and occurrence evidence are present."
+      }
+    ],
+    "value_laws": []
+  },
+  "conformance": {
+    "positive_fixtures": [
+      {
+        "id": "python-math-prod-positive",
+        "description": "import math; math.prod(xs) emits the imported-namespace function occurrence evidence.",
+        "path": "fixtures/python/math_prod_positive.py",
+        "expectation": "library-api-occurrence-present"
+      }
+    ],
+    "hard_negatives": [
+      {
+        "id": "python-math-prod-local-shadow-hard-negative",
+        "description": "A local math binding must close the imported namespace function contract.",
+        "path": "fixtures/python/math_prod_shadowed_math.py",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "python-math-prod-wrong-namespace-hard-negative",
+        "description": "other.prod(xs) must not satisfy the Python stdlib math.prod contract.",
+        "path": "fixtures/python/math_prod_wrong_namespace.py",
+        "expectation": "exact-contract-closed"
+      }
+    ],
+    "known_unsupported": [
+      "This example does not prove numeric algebraic product laws.",
+      "This example does not certify behavior for monkey-patched module objects."
+    ],
+    "command": "nose-semantic-pack check --manifest library-pack.json",
+    "proofs": [
+      "https://example.invalid/semantic-packs/python-math-prod/conformance"
+    ]
+  }
+}

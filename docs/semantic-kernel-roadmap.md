@@ -3,7 +3,9 @@
 Back to [semantic-kernel](semantic-kernel.md). Current code shape is recorded in
 [semantic-kernel-snapshot](semantic-kernel-snapshot.md). The post-PR #147 audit
 of remaining raw/local semantic pockets is in
-[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
+[semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
+provider-facing v0 extension API is in
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md).
 
 This page tracks decisions, history, and remaining work for the semantic kernel
 and pack ecosystem.
@@ -627,6 +629,10 @@ and pack ecosystem.
   admitted-resolver consumers, intentionally opaque call identity policy, or
   future pack surfaces. The detailed classification is in
   [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md).
+- The v0 pack extension API defined the first provider-facing manifest shape for
+  language/library packs, including evidence producers, contract rows, anchors,
+  dependencies, channel eligibility, trust/default status, provider/user
+  responsibility boundaries, examples, and a lightweight checked example gate.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -637,6 +643,9 @@ and pack ecosystem.
   formal-soundness.
 - The docs distinguish implemented facade behavior from planned external-pack
   capability.
+- The v0 provider-facing pack API is documented separately from the snapshot and
+  roadmap so current implementation status, history, and extension design do not
+  blur together.
 
 ## Phase 1: kernel facade and fail-closed migration (first slice landed)
 
@@ -794,8 +803,10 @@ Remaining in this phase:
 
 ## Phase 4: external pack contract
 
-- Define a versioned pack manifest schema.
-- Start with data-only external packs for simple APIs.
+- The first versioned pack manifest schema is defined in
+  [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). It is a
+  design/API artifact, not a loader.
+- Start with data-only external packs for simple APIs once pack loading exists.
 - Add restricted recognizer hooks only after the manifest path is stable.
 - Require pack metadata: provider, license, version range, supported analysis
   channels, evidence status, conformance commands, and semantic provenance ids.
