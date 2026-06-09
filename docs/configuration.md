@@ -18,15 +18,16 @@ min-members = 3
 min-size    = 30
 top         = 50
 ignore-file = "nose.ignore.json"
+semantic-packs = ["semantic-packs/python-math-prod.json"]
 ```
 
 Pass an alternate file with `--config <file>`. A malformed config is a **hard
 error** — a silently-ignored typo'd setting would be worse than a crash.
 
 Put stable project policy in `nose.toml`: excludes, scan modes, ranking, size/value
-thresholds, report limits, and the structured-ignore file. Keep one-off workflow choices on
-the command line: output format, `--show` views, baselines, cache location, and CI failure
-mode.
+thresholds, report limits, the structured-ignore file, and explicit local
+semantic-pack opt-ins. Keep one-off workflow choices on the command line: output
+format, `--show` views, baselines, cache location, and CI failure mode.
 
 ### Keys
 
@@ -44,6 +45,7 @@ the built-in default". Keys are kebab-case and live under the `[scan]` table.
 | `min-lines` | int (advanced) | `5` | `--min-lines` |
 | `top` | int | `30` | `--top` |
 | `ignore-file` | string path | auto-read `nose.ignore.json` when present | `--ignore-file` |
+| `semantic-packs` | list of file or directory paths | `[]` | `--semantic-pack` |
 
 `mode` is a TOML array, even for one channel:
 
@@ -72,6 +74,12 @@ cutoff.
 ```sh
 nose scan src --mode syntax,semantic,near:0.70
 ```
+
+`semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
+an explicit local opt-in to a semantic-pack v0 manifest file or a directory of
+direct `*.json` manifests. Loaded external packs are reported as
+`metadata-only`; they do not emit evidence or enable exact contracts yet. See
+[semantic-pack-loading](semantic-pack-loading.md).
 
 ## Excludes
 

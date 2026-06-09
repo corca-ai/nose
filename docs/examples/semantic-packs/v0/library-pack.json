@@ -6,7 +6,7 @@
     "kind": "LibraryPack",
     "version": "0.1.0",
     "display_name": "Example Python math.prod semantic pack",
-    "description": "Illustrative v0 library pack metadata for one imported namespace function. This is not a loadable pack.",
+    "description": "Illustrative v0 library pack metadata for one imported namespace function. It can be loaded for metadata/provenance reporting only.",
     "trust": "external-opt-in",
     "enabled_by_default": false,
     "status": "draft-example"
@@ -198,7 +198,7 @@
       "This example does not prove numeric algebraic product laws.",
       "This example does not certify behavior for monkey-patched module objects."
     ],
-    "command": "nose-semantic-pack check --manifest library-pack.json",
+    "command": "nose scan fixtures --semantic-pack library-pack.json --format json",
     "proofs": [
       "https://example.invalid/semantic-packs/python-math-prod/conformance"
     ]

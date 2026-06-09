@@ -111,12 +111,18 @@ release so it can't drift.
 | `commands.stable` | array | Stable user-facing commands that integrations may invoke. Hidden research commands are intentionally omitted. |
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
 | `schemas.scan_json` | array | Supported `nose scan --format json` schema versions. |
+| `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0`. |
 | `scan.modes` | array | Supported `--mode` values. |
 | `scan.default_modes` | array | Modes used by `nose scan` when `--mode` is omitted. |
 | `scan.output_formats` | array | Supported `nose scan --format` values. |
 | `scan.sort_keys` | array | Supported `nose scan --sort` values. |
 | `scan.config_keys` | array | Supported `[scan]` keys in `nose.toml` / `.nose.toml`. |
 | `scan.capabilities` | object | Stable boolean capability flags for scan workflows. |
+| `semantic_packs.api_versions` | array | Supported semantic-pack manifest API versions. |
+| `semantic_packs.loading` | array | Supported loading sources: compiled first-party and local manifest files/directories. |
+| `semantic_packs.trust` | array | Supported trust policy labels. |
+| `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
+| `semantic_packs.external_pack_influence` | string | Current influence of loaded external packs, `metadata-only`. |
 | `il.output_formats` | array | Supported `nose il --format` values. |
 | `il.normalized` | boolean | Whether `nose il --normalized` is supported. |
 | `il.cfg_norm_toggle` | boolean | Whether `nose il --no-cfg-norm` is supported. |
@@ -142,4 +148,5 @@ Version 1 defines these `scan.capabilities` keys:
 | `hotspots` | the `--show hotspots` directory duplicated-line summary is supported. |
 | `inline_suppression` | Source-level `nose-ignore` markers are supported. |
 | `proposal` | the `--show proposal` extraction-skeleton view is supported. |
+| `semantic_pack_loading` | local semantic-pack v0 manifest files/directories can be loaded for provenance reporting. |
 | `structured_ignores` | `nose.ignore.json` / `--ignore-file` audited suppressions are supported. |

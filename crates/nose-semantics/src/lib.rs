@@ -23,6 +23,7 @@ mod effects;
 mod evidence;
 mod library_api;
 mod module_exports;
+mod packs;
 mod type_domain;
 
 pub use api_guards::*;
@@ -42,6 +43,7 @@ use library_api::{
 };
 pub use module_exports::*;
 pub use nose_il::DomainEvidence;
+pub use packs::*;
 pub use type_domain::{python_stdlib_type_domain, type_domain_from_source_text};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.

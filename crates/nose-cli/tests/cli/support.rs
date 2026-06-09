@@ -187,6 +187,34 @@ pub(crate) fn assert_scan_json_v1_contract(json: &serde_json::Value) {
         json["scope"]["languages"].as_array().is_some(),
         "scope.languages should be an array: {json}"
     );
+    let packs = json["semantic_packs"]
+        .as_array()
+        .expect("semantic_packs should be an array");
+    let first_party = packs
+        .first()
+        .and_then(|pack| pack.as_object())
+        .expect("semantic_packs should include first-party provenance");
+    for key in [
+        "id",
+        "hash",
+        "kind",
+        "version",
+        "display_name",
+        "trust",
+        "enabled_by_default",
+        "source",
+        "influence",
+        "provider",
+        "repository",
+        "license",
+        "supported_languages",
+        "counts",
+    ] {
+        assert!(
+            first_party.contains_key(key),
+            "semantic_packs[0].{key} missing: {json}"
+        );
+    }
 
     let ranking = json["ranking"].as_object().expect("ranking object");
     for key in ["sort", "total_families", "shown_families", "limit"] {

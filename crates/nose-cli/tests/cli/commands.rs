@@ -475,6 +475,155 @@ fn config_file_supplies_defaults() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+fn semantic_pack_manifest(id: &str) -> String {
+    format!(
+        r#"{{
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {{
+    "id": "{id}",
+    "kind": "LibraryPack",
+    "version": "0.1.0",
+    "display_name": "Example semantic pack",
+    "trust": "external-opt-in",
+    "enabled_by_default": false
+  }},
+  "provenance": {{
+    "provider": {{ "name": "Example Packs" }},
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-pack"
+  }},
+  "compatibility": {{ "nose": ">=0.5.0 <0.6.0" }},
+  "supported_languages": [{{ "id": "python" }}],
+  "declares": {{
+    "evidence_producers": [{{
+      "id": "python.library-api.example",
+      "kind": "LibraryApi.Contract",
+      "anchors": ["node"],
+      "channel": "exact-empirical",
+      "stable_hash_inputs": ["pack.id", "producer.id", "call_span"],
+      "conflict_policy": "fail-closed"
+    }}],
+    "contracts": [{{
+      "id": "python.example.contract",
+      "surface": {{ "kind": "function" }},
+      "requires": [{{
+        "ref": "python.library-api.example",
+        "subject": "call",
+        "required": true
+      }}],
+      "semantics": {{
+        "operation": "Example",
+        "demand": {{ "arguments": "eager-left-to-right" }},
+        "effects": ["argument-effects-in-order"]
+      }},
+      "channel": "exact-empirical",
+      "proof_status": "covered",
+      "conformance_refs": ["positive", "negative"]
+    }}],
+    "value_laws": []
+  }},
+  "conformance": {{
+    "positive_fixtures": [{{ "id": "positive", "description": "positive" }}],
+    "hard_negatives": [{{ "id": "negative", "description": "negative" }}],
+    "known_unsupported": []
+  }}
+}}"#
+    )
+}
+
+#[test]
+fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
+    let dir = make_project("semantic_pack_cli");
+    let pack = dir.join("pack.json");
+    fs::write(&pack, semantic_pack_manifest("com.example.semantic-pack")).unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--format",
+        "json",
+        "--min-size",
+        "12",
+        "--semantic-pack",
+        pack.to_str().unwrap(),
+    ]);
+    let json = scan_json(&out);
+    let packs = json["semantic_packs"]
+        .as_array()
+        .expect("semantic_packs array");
+    assert_eq!(packs.len(), 2, "first-party + local opt-in pack: {json}");
+    assert_eq!(packs[0]["id"], "nose.first_party");
+    assert_eq!(packs[0]["source"], "compiled-first-party");
+    assert_eq!(packs[0]["influence"], "evidence-and-contracts");
+    assert_eq!(packs[1]["id"], "com.example.semantic-pack");
+    assert_eq!(packs[1]["trust"], "external-opt-in");
+    assert_eq!(packs[1]["source"], "local-manifest");
+    assert_eq!(packs[1]["influence"], "metadata-only");
+    assert_eq!(packs[1]["counts"]["contracts"], 1);
+    assert!(packs[1]["hash"]
+        .as_str()
+        .is_some_and(|hash| hash.len() == 16));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_human_reports_local_semantic_pack_opt_in() {
+    let dir = make_project("semantic_pack_human");
+    let pack = dir.join("pack.json");
+    fs::write(&pack, semantic_pack_manifest("com.example.semantic-pack")).unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-size",
+        "12",
+        "--semantic-pack",
+        pack.to_str().unwrap(),
+    ]);
+    assert!(
+        out.contains(
+            "semantic packs: nose.first_party first-party default · 1 local opt-in: \
+             com.example.semantic-pack@0.1.0 (metadata-only)"
+        ),
+        "human scan output should disclose local semantic pack opt-ins: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn config_semantic_packs_are_explicit_opt_ins() {
+    let dir = make_project("semantic_pack_cfg");
+    fs::write(
+        dir.join("pack.json"),
+        semantic_pack_manifest("com.example.config-pack"),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("nose.toml"),
+        "[scan]\nmin-size = 12\nsemantic-packs = [\"pack.json\"]\n",
+    )
+    .unwrap();
+    let out = Command::new(bin())
+        .args(["scan", ".", "--format", "json"])
+        .current_dir(&dir)
+        .output()
+        .expect("run");
+    assert!(
+        out.status.success(),
+        "scan should load config semantic pack: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json = scan_json(&stdout);
+    let packs = json["semantic_packs"]
+        .as_array()
+        .expect("semantic_packs array");
+    assert!(packs.iter().any(
+        |pack| pack["id"] == "com.example.config-pack" && pack["influence"] == "metadata-only"
+    ));
+    let _ = fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn inline_nose_ignore_suppresses_a_site() {
     // A `nose-ignore` marker above a function drops that site; with only one copy
@@ -875,6 +1024,10 @@ fn capabilities_command_emits_machine_readable_contract() {
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);
     assert_eq!(
+        json["schemas"]["semantic_packs"][0],
+        "nose.semantic-pack.v0"
+    );
+    assert_eq!(
         json_array_strings(&json["scan"], "modes"),
         vec!["syntax", "semantic", "near"]
     );
@@ -891,7 +1044,20 @@ fn capabilities_command_emits_machine_readable_contract() {
         vec!["extractability", "value", "sites", "hazard"]
     );
     assert_eq!(json["scan"]["capabilities"]["baseline"], true);
+    assert_eq!(json["scan"]["capabilities"]["semantic_pack_loading"], true);
     assert_eq!(json["scan"]["capabilities"]["structured_ignores"], true);
+    assert_eq!(
+        json["semantic_packs"]["api_versions"][0],
+        "nose.semantic-pack.v0"
+    );
+    assert_eq!(
+        json["semantic_packs"]["external_pack_influence"],
+        "metadata-only"
+    );
+    assert_eq!(
+        json["semantic_packs"]["external_packs_enabled_by_default"],
+        false
+    );
     assert_eq!(
         json_array_strings(&json["il"], "output_formats"),
         vec!["sexpr", "json"]

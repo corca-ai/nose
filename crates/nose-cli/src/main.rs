@@ -168,6 +168,10 @@ enum Cmd {
         /// to `nose.ignore.json` when that file exists.
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
+        /// Local semantic-pack v0 manifest file or directory to load. Repeatable;
+        /// each path is an explicit opt-in and currently contributes provenance metadata only.
+        #[arg(long = "semantic-pack", value_name = "FILE_OR_DIR")]
+        semantic_pack: Vec<PathBuf>,
         /// Write the current families to the `--baseline` file (accept today's state)
         /// and exit, instead of reporting.
         #[arg(long, requires = "baseline")]
@@ -693,6 +697,7 @@ struct CapabilitiesReport {
     commands: CapabilitiesCommands,
     schemas: CapabilitiesSchemas,
     scan: CapabilitiesScan,
+    semantic_packs: CapabilitiesSemanticPacks,
     il: CapabilitiesIl,
     stats: CapabilitiesStats,
 }
@@ -726,6 +731,7 @@ struct CapabilitiesCommands {
 struct CapabilitiesSchemas {
     capabilities: Vec<u32>,
     scan_json: Vec<u32>,
+    semantic_packs: Vec<&'static str>,
 }
 
 #[derive(serde::Serialize)]
@@ -736,6 +742,15 @@ struct CapabilitiesScan {
     sort_keys: Vec<&'static str>,
     config_keys: Vec<&'static str>,
     capabilities: std::collections::BTreeMap<&'static str, bool>,
+}
+
+#[derive(serde::Serialize)]
+struct CapabilitiesSemanticPacks {
+    api_versions: Vec<&'static str>,
+    loading: Vec<&'static str>,
+    trust: Vec<&'static str>,
+    external_packs_enabled_by_default: bool,
+    external_pack_influence: &'static str,
 }
 
 #[derive(serde::Serialize)]
@@ -774,6 +789,7 @@ impl CapabilitiesReport {
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
                 scan_json: vec![SCAN_JSON_SCHEMA_VERSION],
+                semantic_packs: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
             },
             scan: CapabilitiesScan {
                 modes: vec!["syntax", "semantic", "near"],
@@ -788,10 +804,26 @@ impl CapabilitiesReport {
                     "min-size",
                     "min-value",
                     "mode",
+                    "semantic-packs",
                     "sort",
                     "top",
                 ],
                 capabilities: scan_capability_flags(),
+            },
+            semantic_packs: CapabilitiesSemanticPacks {
+                api_versions: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
+                loading: vec![
+                    "compiled-first-party",
+                    "local-manifest-file",
+                    "local-manifest-directory",
+                ],
+                trust: vec![
+                    "default-first-party",
+                    "first-party-optional",
+                    "external-opt-in",
+                ],
+                external_packs_enabled_by_default: false,
+                external_pack_influence: "metadata-only",
             },
             il: CapabilitiesIl {
                 output_formats: vec!["sexpr", "json"],
@@ -815,6 +847,7 @@ fn scan_capability_flags() -> std::collections::BTreeMap<&'static str, bool> {
         ("hotspots", true),
         ("inline_suppression", true),
         ("proposal", true),
+        ("semantic_pack_loading", true),
         ("structured_ignores", true),
     ]
     .into_iter()
@@ -826,6 +859,7 @@ struct ScanJsonReport<'a> {
     schema_version: u32,
     tool_version: &'static str,
     scope: ScanJsonScope<'a>,
+    semantic_packs: Vec<ScanJsonSemanticPack<'a>>,
     ranking: ScanJsonRanking,
     #[serde(skip_serializing_if = "Option::is_none")]
     baseline: Option<&'a BaselineSummary>,
@@ -846,6 +880,35 @@ struct ScanJsonScope<'a> {
 struct ScanJsonLanguage<'a> {
     language: &'a str,
     files: usize,
+}
+
+#[derive(serde::Serialize)]
+struct ScanJsonSemanticPack<'a> {
+    id: &'a str,
+    hash: String,
+    kind: &'static str,
+    version: &'a str,
+    display_name: &'a str,
+    trust: &'static str,
+    enabled_by_default: bool,
+    source: &'static str,
+    influence: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    path: Option<String>,
+    provider: &'a str,
+    repository: &'a str,
+    license: &'a str,
+    supported_languages: &'a [String],
+    counts: ScanJsonSemanticPackCounts,
+}
+
+#[derive(serde::Serialize)]
+struct ScanJsonSemanticPackCounts {
+    evidence_producers: usize,
+    contracts: usize,
+    value_laws: usize,
+    positive_fixtures: usize,
+    hard_negatives: usize,
 }
 
 #[derive(serde::Serialize)]
@@ -886,6 +949,7 @@ struct ScanJsonInput<'a> {
     baseline: Option<&'a BaselineComparison>,
     ignore_set: Option<&'a ignores::IgnoreSet>,
     ignored_families: &'a [IgnoredFamily],
+    semantic_packs: &'a nose_semantics::SemanticPackSet,
 }
 
 impl<'a> ScanJsonReport<'a> {
@@ -906,6 +970,37 @@ impl<'a> ScanJsonReport<'a> {
                     })
                     .collect(),
             },
+            semantic_packs: input
+                .semantic_packs
+                .packs()
+                .iter()
+                .map(|pack| ScanJsonSemanticPack {
+                    id: &pack.id,
+                    hash: pack.hash_hex(),
+                    kind: pack.kind.as_str(),
+                    version: &pack.version,
+                    display_name: &pack.display_name,
+                    trust: pack.trust.as_manifest_str(),
+                    enabled_by_default: pack.enabled_by_default,
+                    source: pack.source.as_str(),
+                    influence: pack.influence.as_str(),
+                    path: pack
+                        .manifest_path
+                        .as_ref()
+                        .map(|path| path.display().to_string()),
+                    provider: &pack.provider,
+                    repository: &pack.repository,
+                    license: &pack.license,
+                    supported_languages: &pack.supported_languages,
+                    counts: ScanJsonSemanticPackCounts {
+                        evidence_producers: pack.counts.evidence_producers,
+                        contracts: pack.counts.contracts,
+                        value_laws: pack.counts.value_laws,
+                        positive_fixtures: pack.counts.positive_fixtures,
+                        hard_negatives: pack.counts.hard_negatives,
+                    },
+                })
+                .collect(),
             ranking: ScanJsonRanking {
                 sort: input.sort.json_name(),
                 total_families: input.families.len(),
@@ -1279,6 +1374,7 @@ fn run() -> Result<()> {
             fail_on,
             baseline,
             ignore_file,
+            semantic_pack,
             write_baseline,
             format,
             exclude,
@@ -1297,6 +1393,7 @@ fn run() -> Result<()> {
             fail_on,
             baseline,
             ignore_file,
+            semantic_pack,
             write_baseline,
             format,
             exclude,
@@ -2400,6 +2497,7 @@ struct ScanArgs {
     fail_on: Option<FailOn>,
     baseline: Option<PathBuf>,
     ignore_file: Option<PathBuf>,
+    semantic_pack: Vec<PathBuf>,
     write_baseline: bool,
     format: ReportFormat,
     exclude: Vec<String>,
@@ -2541,6 +2639,23 @@ fn warn_no_files(paths: &[PathBuf]) {
     );
 }
 
+fn semantic_pack_summary_line(packs: &nose_semantics::SemanticPackSet) -> Option<String> {
+    let local = packs
+        .packs()
+        .iter()
+        .filter(|pack| pack.source == nose_semantics::SemanticPackSource::LocalManifest)
+        .map(|pack| format!("{}@{} ({})", pack.id, pack.version, pack.influence.as_str()))
+        .collect::<Vec<_>>();
+    (!local.is_empty()).then(|| {
+        format!(
+            "semantic packs: {} first-party default · {} local opt-in: {}",
+            nose_semantics::FIRST_PARTY_PACK_ID,
+            local.len(),
+            local.join(", ")
+        )
+    })
+}
+
 fn cmd_scan(args: ScanArgs) -> Result<()> {
     // `--fail-on new` gates on families that are new/changed vs a baseline, so without
     // `--baseline` the gate could never fire — reject the combination instead of silently
@@ -2564,6 +2679,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let ignore_file = args.ignore_file.or(cfg.ignore_file);
+    let mut semantic_pack_paths = cfg.semantic_packs;
+    semantic_pack_paths.extend(args.semantic_pack.iter().cloned());
+    let semantic_packs = nose_semantics::SemanticPackSet::new_local(&semantic_pack_paths)?;
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;
     exclude.extend(args.exclude.iter().cloned());
@@ -2743,6 +2861,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
                 baseline: baseline_comparison.as_ref(),
                 ignore_set: ignore_set.as_ref(),
                 ignored_families: &ignored_families,
+                semantic_packs: &semantic_packs,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
@@ -2750,6 +2869,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             // Scope line first — tells the reader what was actually scanned (so a small
             // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
             println!("{}\n", scope.summary());
+            if let Some(line) = semantic_pack_summary_line(&semantic_packs) {
+                println!("{line}\n");
+            }
             print_refactor_markdown(
                 &reportable_families,
                 &shown_reportable,
@@ -2762,6 +2884,9 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         }
         ReportFormat::Human => {
             println!("{}", scope.summary());
+            if let Some(line) = semantic_pack_summary_line(&semantic_packs) {
+                println!("{line}");
+            }
             if let Some(comparison) = &baseline_comparison {
                 println!("{}", comparison.summary.line());
             }

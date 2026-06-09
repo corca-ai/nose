@@ -28,7 +28,9 @@ makes soundness depend on scattered `Lang` checks.
 
 The semantic kernel is the boundary that all exact semantic reasoning must cross.
 The first internal facade now lives in `nose-semantics`; it is still a compiled
-first-party implementation, not a loadable external pack runtime.
+first-party implementation for evidence/contract execution. Local external
+manifests can be loaded for metadata/provenance reporting, but they are not an
+external producer runtime.
 The external API design starts at
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md): it narrows
 the current internal evidence and contract vocabulary into a manifest shape for
@@ -269,9 +271,9 @@ separately.
 | `external-opt-in` | provider/user responsibility; enabled only by explicit user choice |
 
 External packs may declare their intended eligibility, but users choose whether
-to trust that declaration. The default nose distribution should enable exact
-matching only for default first-party packs and any external packs the user
-explicitly opts into.
+to trust that declaration. Today, explicitly loaded external packs are reported
+as `metadata-only`; exact matching is enabled only by compiled first-party
+evidence/contracts.
 
 ## Pack conformance
 

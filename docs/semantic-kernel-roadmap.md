@@ -819,17 +819,22 @@ Remaining in this phase:
 ## Phase 4: external pack contract
 
 - The first versioned pack manifest schema is defined in
-  [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). It is a
-  design/API artifact, not a loader.
-- Start with data-only external packs for simple APIs once pack loading exists.
+  [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Local
+  metadata loading is implemented for manifest files/directories and documented
+  in [semantic-pack-loading](semantic-pack-loading.md); external packs remain
+  metadata-only.
+- Start with data-only external packs for simple APIs once producer execution and
+  conformance checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.
 - Require pack metadata: provider, license, version range, supported analysis
   channels, evidence status, conformance commands, and semantic provenance ids.
 - Document the pack conformance checklist as part of the extension schema; make
   clear that conformance evidence is provider/user responsibility unless the pack
   is first-party.
-- Add user configuration for enabling external packs explicitly.
-- Report which external packs influenced `near` candidates and exact matches.
+- User configuration and `--semantic-pack` can enable local manifests explicitly.
+- Scan JSON reports active pack provenance and whether each pack influenced
+  evidence/contracts or metadata only. Per-finding contract/law provenance and
+  external pack influence on `near`/exact results remain open.
 
 The external schema must make proof obligations first-class. For example, a pack
 claiming `pkg.Foo.map` maps to the `Map` protocol must say how `pkg.Foo` is

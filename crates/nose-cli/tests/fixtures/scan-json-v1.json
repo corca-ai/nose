@@ -10,6 +10,30 @@
       }
     ]
   },
+  "semantic_packs": [
+    {
+      "id": "nose.first_party",
+      "hash": "87b19e582546aed9",
+      "kind": "LanguagePack",
+      "version": "<version>",
+      "display_name": "nose first-party semantic kernel",
+      "trust": "default-first-party",
+      "enabled_by_default": true,
+      "source": "compiled-first-party",
+      "influence": "evidence-and-contracts",
+      "provider": "Corca, Inc.",
+      "repository": "https://github.com/corca-ai/nose",
+      "license": "MIT",
+      "supported_languages": [],
+      "counts": {
+        "evidence_producers": 0,
+        "contracts": 0,
+        "value_laws": 0,
+        "positive_fixtures": 0,
+        "hard_negatives": 0
+      }
+    }
+  ],
   "ranking": {
     "sort": "extractability",
     "total_families": 1,

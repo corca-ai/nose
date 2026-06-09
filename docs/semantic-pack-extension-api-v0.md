@@ -12,10 +12,13 @@ Schema artifacts:
 - [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
 - [language-pack example](examples/semantic-packs/v0/language-pack.json)
 - [library-pack example](examples/semantic-packs/v0/library-pack.json)
+- [semantic-pack-loading](semantic-pack-loading.md)
 
-Status: design v0. nose does not load external packs yet. This page defines the
-extension surface that first-party compiled packs and future external packs must
-use.
+Status: design v0 plus local metadata loading. nose can load local manifests for
+explicit opt-in provenance reporting, but external packs are still
+`metadata-only`: they do not emit evidence or open exact contracts. This page
+defines the extension surface that first-party compiled packs and future
+external packs must use.
 
 ## Context
 
@@ -29,7 +32,8 @@ The current implementation already has the internal pieces that this API narrows
 into a public boundary: `EvidenceRecord` facts in `nose-il`, contract rows and
 admission helpers in `nose-semantics`, and evidence-only consumers in normalize,
 detect, value-graph, fragment, and oracle paths. v0 is intentionally a schema and
-contract vocabulary, not a loader.
+contract vocabulary. The current loader validates local manifest shape and
+reports provenance; it does not execute external producers.
 
 ## Goal
 
@@ -47,8 +51,8 @@ contract vocabulary, not a loader.
 
 ## Non-goals
 
-- Do not implement filesystem, network, or registry pack loading in this issue.
-- Do not add a user configuration path for enabling packs.
+- Do not implement network or registry pack loading.
+- Do not let local pack loading make external producers executable yet.
 - Do not expand language or library coverage.
 - Do not let packs mint fingerprints, rewrite value graphs directly, approve
   exact clone pairs, or bypass the law registry.
@@ -91,9 +95,11 @@ A v0 manifest has these top-level sections:
 | `conformance` | positive fixtures, hard negatives, commands, proof links, and unsupported edges |
 
 The manifest is declarative. It is not a hook API. A data-only external pack can
-declare rows that a future loader can validate and feed into kernel helpers.
-First-party compiled packs can generate the same manifest metadata for reports
-and conformance gates while still emitting facts from Rust.
+declare rows that the local metadata loader validates and reports. A later
+producer runtime may feed compatible rows into kernel helpers only after the same
+fail-closed evidence obligations are satisfied. First-party compiled packs can
+generate the same manifest metadata for reports and conformance gates while
+still emitting facts from Rust.
 
 ## Pack Kinds
 
@@ -402,8 +408,8 @@ nose should validate:
   proof status, positive fixtures, and hard negatives;
 - external packs are opt-in and not enabled by default;
 - declared compatibility ranges are syntactically valid enough to compare;
-- examples and fixtures are present at declared paths when a loader or harness
-  supports them.
+- examples and fixtures are present at declared paths when a producer runtime or
+  conformance harness supports them.
 
 nose does not validate or certify for external packs:
 

@@ -66,6 +66,7 @@ source metadata.
 | `tool_version` | string | The `nose` package version that emitted the report. |
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
+| `semantic_packs` | array | Active semantic packs for this scan. Always includes compiled `nose.first_party`; local `--semantic-pack`/config packs are listed with `metadata-only` influence. |
 | `ranking.sort` | string | Sort key used for `families`: `extractability` (default), `value`, `sites`, or `hazard`. |
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
@@ -83,6 +84,26 @@ new families and changed families. Exact baseline matches are counted in
 When structured ignores are active, `families` contains only active findings.
 Ignored current families are omitted from `ranking.total_families` and appear in
 `ignored_families` instead.
+
+## Semantic pack fields
+
+Each `semantic_packs[]` entry has:
+
+| field | type | meaning |
+|---|---|---|
+| `id` | string | Stable manifest pack id. |
+| `hash` | string | Stable 16-hex-digit hash derived from the pack id; first-party evidence provenance uses the same id-hash policy. |
+| `kind` | string | `LanguagePack`, `StdlibPack`, `LibraryPack`, `ProtocolPack`, or `LawPack`. |
+| `version` | string | Pack version from the manifest or the nose package version for `nose.first_party`. |
+| `display_name` | string | Human-readable pack name. |
+| `trust` | string | `default-first-party`, `first-party-optional`, or `external-opt-in`. |
+| `enabled_by_default` | boolean | Whether the pack claims default enablement. External opt-in packs with `true` are rejected before reporting. |
+| `source` | string | `compiled-first-party` or `local-manifest`. |
+| `influence` | string | `evidence-and-contracts` for compiled first-party semantics, `metadata-only` for loaded local external packs today. |
+| `path` | string, optional | Local manifest path for loaded manifests. |
+| `provider`, `repository`, `license` | string | Manifest provenance fields. |
+| `supported_languages` | array | Manifest language ids. |
+| `counts` | object | Counts of declared evidence producers, contracts, value laws, positive fixtures, and hard negatives. |
 
 ## Baseline fields
 

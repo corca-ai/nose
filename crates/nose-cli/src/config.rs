@@ -11,6 +11,7 @@
 //! min-members = 3
 //! min-size = 30                             # minimum unit size in IL tokens
 //! ignore-file = "nose.ignore.json"
+//! semantic-packs = ["semantic-packs/python-math-prod.json"]
 //! ```
 
 use serde::Deserialize;
@@ -32,6 +33,8 @@ pub(crate) struct ScanConfig {
     pub min_size: Option<usize>,
     pub top: Option<usize>,
     pub ignore_file: Option<PathBuf>,
+    /// Local semantic-pack v0 manifest files or directories. These are explicit opt-ins.
+    pub semantic_packs: Vec<PathBuf>,
 }
 
 #[derive(Deserialize, Default)]
@@ -99,9 +102,13 @@ mod tests {
 
     #[test]
     fn valid_config_still_loads() {
-        let p = write_cfg("ok", "[scan]\nmin-value = 200\nmin-size = 30\n");
+        let p = write_cfg(
+            "ok",
+            "[scan]\nmin-value = 200\nmin-size = 30\nsemantic-packs = [\"packs\"]\n",
+        );
         let cfg = load_scan(Some(&p)).expect("valid config must load");
         assert_eq!(cfg.min_value, Some(200.0));
         assert_eq!(cfg.min_size, Some(30));
+        assert_eq!(cfg.semantic_packs, vec![PathBuf::from("packs")]);
     }
 }

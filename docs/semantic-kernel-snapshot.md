@@ -75,8 +75,10 @@ still being migrated toward it.
   library API contract identities, library API row constructors, library API
   evidence-hash registry helpers, negative API guard rows, and library API
   occurrence/admission logic are split into focused modules.
-- The external pack API is documented as a v0 manifest/schema with examples, but
-  there is still no filesystem/network pack loader. First-party producers remain
+- The external pack API is documented as a v0 manifest/schema with examples.
+  `nose-semantics` can load local manifest files/directories for metadata and
+  provenance reporting, and `nose scan --format json` reports active packs.
+  External packs are still `metadata-only`; first-party producers remain
   compiled Rust and are expected to map onto the same vocabulary.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
@@ -723,13 +725,14 @@ language.
   reduction, and HOF callback shapes, but pull-lazy, call-by-need, async,
   generator, channel/protocol, and richer observable-effect behavior are not
   represented by a common pack-facing demand/effect abstraction.
-- External extension points do not exist. New languages and libraries must be
-  added inside the main crates.
-- Report output does not yet expose semantic provenance such as pack id, contract
-  id, law id, or proof status.
-- First-party and external responsibility boundaries are documented and
-  represented in the internal facade as provenance/trust policy, but there are no
-  loadable external packs or report-level pack provenance fields yet.
+- External producer execution does not exist. New languages and libraries that
+  affect analysis must still be added inside the main crates.
+- Report output now exposes pack-level provenance, but not contract-id, law-id,
+  or proof-status provenance per finding.
+- First-party and external responsibility boundaries are documented, represented
+  in the internal facade as provenance/trust policy, and visible in scan JSON.
+  Loaded external manifests remain metadata-only until a producer runtime and
+  conformance harness exist.
 
 ## Current fail-closed choices
 

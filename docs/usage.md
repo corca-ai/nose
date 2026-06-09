@@ -70,6 +70,7 @@ Grouped by what they do. Config-backed scan defaults are listed in
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default. Experimental `abstraction[:T]` is accepted but not a stable capabilities mode. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |
+| `--semantic-pack <file-or-dir>` | explicitly load local semantic-pack v0 manifest metadata for provenance reporting; external packs are metadata-only today |
 
 ### Ranking
 
@@ -109,8 +110,9 @@ chance** — see [hazard-ranking](hazard-ranking.md) for the full, honest evalua
 scan scope, ranking metadata, and a `families` array. The stable contract and
 compatibility rule are documented in [scan-json](scan-json.md).
 
-**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`) is covered in
-[continuous-integration](continuous-integration.md) and [configuration](configuration.md).
+**Workflow** (`--baseline`, `--write-baseline`, `--fail-on any|new`, `--ignore-file`, `--cache-dir`, `--config`, `--semantic-pack`) is covered in
+[continuous-integration](continuous-integration.md), [configuration](configuration.md), and
+[semantic-pack-loading](semantic-pack-loading.md).
 Structured suppressions are covered in [structured-ignores](structured-ignores.md).
 
 ### Scan modes

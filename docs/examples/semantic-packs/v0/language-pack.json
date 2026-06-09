@@ -6,7 +6,7 @@
     "kind": "LanguagePack",
     "version": "0.1.0",
     "display_name": "Example JavaScript core surface pack",
-    "description": "Illustrative v0 language pack metadata for source and symbol facts. This is not a loadable pack.",
+    "description": "Illustrative v0 language pack metadata for source and symbol facts. It can be loaded for metadata/provenance reporting only.",
     "trust": "external-opt-in",
     "enabled_by_default": false,
     "status": "draft-example"
@@ -186,6 +186,6 @@
       "Dynamic eval and with-scope semantics are outside this example.",
       "This example does not model JavaScript object identity or equality conversion rules."
     ],
-    "command": "nose-semantic-pack check --manifest language-pack.json"
+    "command": "nose scan fixtures --semantic-pack language-pack.json --format json"
   }
 }
