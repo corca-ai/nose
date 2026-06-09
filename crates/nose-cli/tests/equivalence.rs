@@ -5589,23 +5589,35 @@ fn normalization_is_idempotent() {
 /// a shared multiplicand out of a sum of products when every leaf is proven numeric
 /// (`value_graph/rules/factor_distribute.rs`, Lean obligation
 /// `normalize.value_graph.factor_distribute`). The `*`
-/// operands here are provably `Num`, so the factoring fires and the two forms converge.
+/// operands here are statically typed integers, so the factoring fires and the two forms converge.
 #[test]
 fn distribution_factors_common_multiplicand() {
     let i = Interner::new();
     assert_eq!(
-        value_fp(&i, "def f(a,b,c):\n    return a*c+b*c\n", Lang::Python),
-        value_fp(&i, "def g(a,b,c):\n    return (a+b)*c\n", Lang::Python),
+        value_fp(
+            &i,
+            "fn f(a: i64, b: i64, c: i64) -> i64 { a*c+b*c }\n",
+            Lang::Rust
+        ),
+        value_fp(
+            &i,
+            "fn g(a: i64, b: i64, c: i64) -> i64 { (a+b)*c }\n",
+            Lang::Rust
+        ),
         "a*c+b*c should factor to (a+b)*c on proven-numeric leaves"
     );
     // Three-term chain factors transitively: `a*c + b*c + d*c` ≡ `(a+b+d)*c`.
     assert_eq!(
         value_fp(
             &i,
-            "def f(a,b,c,d):\n    return a*c+b*c+d*c\n",
-            Lang::Python
+            "fn f(a: i64, b: i64, c: i64, d: i64) -> i64 { a*c+b*c+d*c }\n",
+            Lang::Rust
         ),
-        value_fp(&i, "def g(a,b,c,d):\n    return (a+b+d)*c\n", Lang::Python),
+        value_fp(
+            &i,
+            "fn g(a: i64, b: i64, c: i64, d: i64) -> i64 { (a+b+d)*c }\n",
+            Lang::Rust
+        ),
         "a*c+b*c+d*c should factor to (a+b+d)*c"
     );
 }

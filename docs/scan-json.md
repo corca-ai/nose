@@ -114,7 +114,7 @@ source metadata.
 | `tool_version` | string | The `nose` package version that emitted the report. |
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
-| `semantic_packs` | array, optional in v1 | Active semantic packs for this scan. Binaries that advertise `scan.capabilities.semantic_pack_loading` in [capabilities](capabilities.md) emit it and include compiled first-party packs such as `nose.first_party` and `nose.python.stdlib.type_domain`; local `--semantic-pack`/config packs are listed with `metadata-only` influence. Older v1 binaries omit this field. |
+| `semantic_packs` | array, optional in v1 | Active semantic packs for this scan. Binaries that advertise `scan.capabilities.semantic_pack_loading` in [capabilities](capabilities.md) emit it and include compiled first-party packs such as `nose.first_party`, `nose.python.stdlib.type_domain`, and `nose.value_graph.laws`; local `--semantic-pack`/config packs are listed with `metadata-only` influence. Older v1 binaries omit this field. |
 | `ranking.sort` | string | Sort key used for `families`: `extractability` (default), `value`, `sites`, or `hazard`. |
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
@@ -220,6 +220,7 @@ schema version 1:
 | `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling. This is ranking/presentation policy, not detector exactness. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 | `abstraction_witness` | object, optional | Experimental weak-claim witness emitted only for `--mode abstraction` families that share a normalized template with one supported literal leaf hole. |
+| `semantic_laws` | array, optional | Deduped pack-facing law provenance for value-graph laws that actually rewrote or bridged this family. Current first-party rows include `pack_id`, `pack_hash`, `law_id`, `channel`, `proof_status`, and `proof_obligation_id`. External local LawPack manifests are `metadata-only` today and do not appear here unless future producer execution admits them through the kernel. |
 
 Each `locations[]` item has:
 

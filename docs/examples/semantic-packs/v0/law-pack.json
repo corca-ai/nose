@@ -1,0 +1,192 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v0.schema.json",
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {
+    "id": "com.example.value-graph-laws",
+    "kind": "LawPack",
+    "version": "0.1.0",
+    "display_name": "Example value-graph law pack",
+    "description": "Illustrative v0 metadata for reusable value laws. Loading this example is metadata-only and does not register external laws.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false,
+    "status": "draft-example"
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/value-graph-laws",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.5.0 <0.6.0",
+    "schema": "v0",
+    "notes": "Example only. nose's built-in value-graph law pack uses compiled first-party code and reports as nose.value_graph.laws."
+  },
+  "supported_languages": [
+    {
+      "id": "python",
+      "language_version": ">=3.8",
+      "runtime": "cpython",
+      "runtime_versions": [
+        ">=3.8"
+      ]
+    },
+    {
+      "id": "rust",
+      "language_version": ">=1.70",
+      "runtime": "rustc",
+      "runtime_versions": [
+        ">=1.70"
+      ]
+    },
+    {
+      "id": "java",
+      "language_version": ">=17",
+      "runtime": "jvm",
+      "runtime_versions": [
+        ">=17"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "nose.protocol.core",
+      "version": ">=0.1.0 <1.0.0",
+      "required": true
+    }
+  ],
+  "declares": {
+    "evidence_producers": [],
+    "contracts": [],
+    "value_laws": [
+      {
+        "id": "value-graph.factor-distribute.numeric-common-factor",
+        "requires": [
+          {
+            "ref": "Domain.Number",
+            "subject": "distributed-operands-and-shared-factor",
+            "required": true
+          },
+          {
+            "ref": "nose.formal.normalize.value_graph.factor_distribute",
+            "subject": "proof-obligation",
+            "required": true
+          }
+        ],
+        "semantics": {
+          "law": "x*f + y*f == (x+y)*f",
+          "domain": "numeric-only",
+          "demand": {
+            "arguments": "preserve-original-expression-demand",
+            "callbacks": "none"
+          },
+          "effects": [
+            "no-new-effects",
+            "preserve-operand-effect-order"
+          ],
+          "proof_obligation": "normalize.value_graph.factor_distribute"
+        },
+        "channel": "exact-proven",
+        "proof_status": "proven",
+        "conformance_refs": [
+          "factor-distribute-numeric-positive",
+          "factor-distribute-string-repetition-hard-negative"
+        ]
+      },
+      {
+        "id": "value-graph.clamp.integer-ordered-minmax",
+        "requires": [
+          {
+            "ref": "Domain.Integer",
+            "subject": "x-lo-hi-operands",
+            "required": true
+          },
+          {
+            "ref": "Guard.BoundOrder",
+            "subject": "lo-before-hi",
+            "required": true
+          },
+          {
+            "ref": "nose.formal.normalize.value_graph.clamp",
+            "subject": "proof-obligation",
+            "required": true
+          }
+        ],
+        "semantics": {
+          "law": "min(max(x, lo), hi) == clamp(x, lo, hi)",
+          "domain": "integer-only",
+          "demand": {
+            "arguments": "preserve-original-expression-demand",
+            "callbacks": "none"
+          },
+          "effects": [
+            "no-new-effects",
+            "preserve-operand-effect-order"
+          ],
+          "proof_obligation": "normalize.value_graph.clamp"
+        },
+        "channel": "exact-proven",
+        "proof_status": "proven",
+        "conformance_refs": [
+          "clamp-ordered-minmax-positive",
+          "clamp-unproven-bound-hard-negative",
+          "clamp-swapped-bound-hard-negative",
+          "clamp-float-hard-negative"
+        ]
+      }
+    ]
+  },
+  "conformance": {
+    "positive_fixtures": [
+      {
+        "id": "factor-distribute-numeric-positive",
+        "description": "Typed Rust integer a*c + b*c converges with (a+b)*c under the factor-distribution law.",
+        "path": "fixtures/rust/factor_distribute_positive.rs",
+        "expectation": "semantic-law-provenance-present"
+      },
+      {
+        "id": "clamp-ordered-minmax-positive",
+        "description": "Integer min(max(x, lo), hi) can enter the clamp law only when lo <= hi is proven by literal or source facts.",
+        "path": "fixtures/rust/clamp_ordered_minmax.rs",
+        "expectation": "internal-law-unit-positive"
+      }
+    ],
+    "hard_negatives": [
+      {
+        "id": "factor-distribute-string-repetition-hard-negative",
+        "description": "String/list repetition must not satisfy numeric factor distribution.",
+        "path": "fixtures/python/factor_distribute_string_repetition.py",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "clamp-unproven-bound-hard-negative",
+        "description": "Parameter bounds without lo <= hi proof must not satisfy clamp equivalence.",
+        "path": "fixtures/rust/clamp_unproven_bound.rs",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "clamp-swapped-bound-hard-negative",
+        "description": "Swapped min/max bounds are not the same clamp law.",
+        "path": "fixtures/rust/clamp_swapped_bound.rs",
+        "expectation": "exact-contract-closed"
+      },
+      {
+        "id": "clamp-float-hard-negative",
+        "description": "Float/NaN-sensitive clamp behavior needs a separate law and proof.",
+        "path": "fixtures/rust/clamp_float.rs",
+        "expectation": "exact-contract-closed"
+      }
+    ],
+    "known_unsupported": [
+      "External LawPack declarations are metadata-only in v0 and do not register new value-graph laws.",
+      "The first-party law registry owns exact fingerprint rewrites."
+    ],
+    "command": "nose semantic-pack check law-pack.json --format json",
+    "proofs": [
+      "https://example.invalid/semantic-packs/value-graph-laws/conformance"
+    ]
+  }
+}

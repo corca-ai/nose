@@ -12,6 +12,7 @@ Schema artifacts:
 - [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
 - [language-pack example](examples/semantic-packs/v0/language-pack.json)
 - [library-pack example](examples/semantic-packs/v0/library-pack.json)
+- [law-pack example](examples/semantic-packs/v0/law-pack.json)
 - [Python stdlib type-domain pack example](examples/semantic-packs/v0/python-typing-domain-pack.json)
 - [semantic-pack-conformance](semantic-pack-conformance.md)
 - [semantic-pack-loading](semantic-pack-loading.md)
@@ -369,6 +370,14 @@ External law declarations do not let a pack bypass the first-party law registry
 or emit private value-graph nodes. Until the law registry is pack-facing, external
 law packs should stay `near-only` unless nose adopts them as first-party.
 
+The first compiled first-party `LawPack` pilot is `nose.value_graph.laws`. It
+reports pack-facing law provenance for two proof-backed value-graph laws:
+numeric common-factor distribution and integer ordered min/max clamp. Those laws
+still execute from compiled first-party Rust and their exact status is tied to
+the project's formal obligation registry. The [law-pack example](examples/semantic-packs/v0/law-pack.json)
+shows the external v0 declaration shape and fixtures, but loading that manifest
+locally remains `metadata-only`.
+
 ## Conflict And Ambiguity Policy
 
 The default policy is fail closed:
@@ -434,6 +443,11 @@ nose does not validate or certify for external packs:
 
 First-party default packs are different: nose owns their tests, hard negatives,
 proof obligations, release gating, and documentation.
+
+Expectation labels are provider-authored strings. The example LawPack uses
+`semantic-law-provenance-present` only for report-visible provenance and
+`internal-law-unit-positive` for narrower fixtures that exercise a first-party
+law without promising a scan-family JSON row.
 
 ## First-Party Mapping
 

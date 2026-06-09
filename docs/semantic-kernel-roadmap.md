@@ -725,8 +725,10 @@ Remaining after the foundation tranche:
   JS-like/Ruby library HOF callback demand from pull-lazy Rust iterator/Java
   Stream callback demand; broader protocol families and pack-facing schema rows
   remain open.
-- Move internal value laws toward pack-facing law ids, conformance status, and
-  per-finding provenance (#167).
+- Expand the first pack-facing value-law provenance pilot beyond
+  `factor_distribute` and `clamp` (#167) to reduction laws, parity/toggle laws,
+  low-level byte-pack laws, structural recursion, ecosystem law packs, and
+  external LawPack producer execution.
 - Keep behavior-changing recall reductions documented when missing evidence
   blocks exact convergence, and preserve the current precision gates while more
   first-party surfaces move behind shared contracts.
@@ -834,11 +836,13 @@ Remaining after the foundation tranche:
   producer coverage, Java constructor call-domain evidence if that lowering
   stops collapsing directly to sequence surfaces, and protocol-specific receiver
   facts that include demand/effect obligations.
-- Turn named value-graph rule modules into LawPack-facing law ids/contracts while
-  retaining formal-obligation metadata as the first-party proof boundary. The
-  first `ValueLaw` contract surface now covers current arithmetic/boolean
-  domain gates, but reduction laws, parity/toggle laws, low-level byte-pack
-  laws, and ecosystem law packs remain local first-party code.
+- Turn the remaining named value-graph rule modules into LawPack-facing law
+  ids/contracts while retaining formal-obligation metadata as the first-party
+  proof boundary. The first compiled `nose.value_graph.laws` pilot now reports
+  per-family provenance for numeric common-factor distribution and integer
+  ordered min/max clamp. Reduction laws, parity/toggle laws, low-level byte-pack
+  laws, structural recursion, and ecosystem law packs remain local first-party
+  code or metadata-only declarations.
 - Add receiver/place facts so field read/write and property contracts are not
   field-name-only.
 - Add provenance fields internally before exposing them in scan JSON.

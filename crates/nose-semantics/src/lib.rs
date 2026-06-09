@@ -52,6 +52,7 @@ pub use type_domain::{
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";
+pub const FIRST_PARTY_VALUE_LAW_PACK_ID: &str = "nose.value_graph.laws";
 
 /// Channel a semantic fact or contract is safe to influence.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -60,6 +61,17 @@ pub enum ChannelEligibility {
     NearOnly,
     ExactEmpirical,
     ExactProven,
+}
+
+impl ChannelEligibility {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            ChannelEligibility::SyntaxOnly => "syntax-only",
+            ChannelEligibility::NearOnly => "near-only",
+            ChannelEligibility::ExactEmpirical => "exact-empirical",
+            ChannelEligibility::ExactProven => "exact-proven",
+        }
+    }
 }
 
 /// Trust/provenance policy for a pack, separate from which analysis channel a fact may enter.
@@ -1301,6 +1313,7 @@ impl OperatorSemantics {
             ValueLaw::BooleanIdempotence
             | ValueLaw::BooleanCommutativity
             | ValueLaw::BooleanAssociativity => ValueDomainRequirement::BooleanOperands,
+            ValueLaw::IntegerClampOrderedMinMax => return None,
         };
         Some(ValueLawContract {
             law,
@@ -1311,11 +1324,18 @@ impl OperatorSemantics {
     }
 
     pub fn strict_operand_domain(self, op: Op) -> Option<ValueDomain> {
-        if strict_numeric_operand_operator(op) {
+        if self.strict_numeric_operand_operator(op) {
             Some(ValueDomain::Number)
         } else {
             None
         }
+    }
+
+    fn strict_numeric_operand_operator(self, op: Op) -> bool {
+        if op == Op::Mul && matches!(self.lang, Lang::Python | Lang::Ruby) {
+            return false;
+        }
+        strict_numeric_operand_operator(op)
     }
 
     pub fn unary_operand_domain(self, op: Op) -> Option<ValueDomain> {
@@ -1341,7 +1361,7 @@ impl OperatorSemantics {
     ) -> ValueDomain {
         if op == Op::Mul && (left == ValueDomain::String || right == ValueDomain::String) {
             ValueDomain::String
-        } else if strict_numeric_operand_operator(op) {
+        } else if self.strict_numeric_operand_operator(op) {
             if left.is_known() || right.is_known() {
                 if left == ValueDomain::Number && right == ValueDomain::Number {
                     ValueDomain::Number

@@ -5,8 +5,8 @@
 //! require occurrence evidence and kernel-owned admission checks.
 
 use crate::{
-    PackTrust, FIRST_PARTY_PACK_ID, PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS,
-    PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID,
+    pack_facing_value_laws, PackTrust, FIRST_PARTY_PACK_ID, FIRST_PARTY_VALUE_LAW_PACK_ID,
+    PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID,
 };
 use nose_il::stable_symbol_hash;
 use serde::Deserialize;
@@ -298,10 +298,54 @@ pub fn python_stdlib_type_domain_pack() -> SemanticPackSummary {
     }
 }
 
+pub fn first_party_value_law_pack() -> SemanticPackSummary {
+    let laws = pack_facing_value_laws();
+    SemanticPackSummary {
+        id: FIRST_PARTY_VALUE_LAW_PACK_ID.to_string(),
+        hash: semantic_pack_hash(FIRST_PARTY_VALUE_LAW_PACK_ID),
+        kind: SemanticPackKind::LawPack,
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        display_name: "nose value-graph law pack".to_string(),
+        trust: PackTrust::DefaultFirstParty,
+        enabled_by_default: true,
+        source: SemanticPackSource::CompiledFirstParty,
+        influence: SemanticPackInfluence::EvidenceAndContracts,
+        manifest_path: None,
+        provider: "Corca, Inc.".to_string(),
+        repository: "https://github.com/corca-ai/nose".to_string(),
+        license: "MIT".to_string(),
+        supported_languages: Vec::new(),
+        counts: SemanticPackCounts {
+            evidence_producers: 0,
+            contracts: 0,
+            value_laws: laws.len(),
+            positive_fixtures: laws
+                .iter()
+                .map(|law| {
+                    law.conformance_refs
+                        .iter()
+                        .filter(|id| !id.contains("hard-negative"))
+                        .count()
+                })
+                .sum(),
+            hard_negatives: laws
+                .iter()
+                .map(|law| {
+                    law.conformance_refs
+                        .iter()
+                        .filter(|id| id.contains("hard-negative"))
+                        .count()
+                })
+                .sum(),
+        },
+    }
+}
+
 fn compiled_first_party_packs() -> Vec<SemanticPackSummary> {
     vec![
         first_party_semantic_pack(),
         python_stdlib_type_domain_pack(),
+        first_party_value_law_pack(),
     ]
 }
 
@@ -1407,6 +1451,13 @@ mod tests {
             python.counts.positive_fixtures,
             PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS.len()
         );
+        let laws = first_party_value_law_pack();
+        assert_eq!(laws.id, FIRST_PARTY_VALUE_LAW_PACK_ID);
+        assert_eq!(laws.hash, stable_symbol_hash(FIRST_PARTY_VALUE_LAW_PACK_ID));
+        assert_eq!(laws.kind, SemanticPackKind::LawPack);
+        assert_eq!(laws.counts.value_laws, pack_facing_value_laws().len());
+        assert_eq!(laws.counts.positive_fixtures, 2);
+        assert_eq!(laws.counts.hard_negatives, 4);
     }
 
     #[test]
@@ -1415,9 +1466,10 @@ mod tests {
         let path = dir.join("pack.json");
         fs::write(&path, manifest("com.example.pack")).unwrap();
         let set = SemanticPackSet::new_local(&[path]).expect("pack loads");
-        assert_eq!(set.packs().len(), 3);
+        assert_eq!(set.packs().len(), 4);
         assert_eq!(set.packs()[1].id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
-        let external = &set.packs()[2];
+        assert_eq!(set.packs()[2].id, FIRST_PARTY_VALUE_LAW_PACK_ID);
+        let external = &set.packs()[3];
         assert_eq!(external.id, "com.example.pack");
         assert_eq!(external.hash, stable_symbol_hash("com.example.pack"));
         assert_eq!(external.trust, PackTrust::ExternalOptIn);

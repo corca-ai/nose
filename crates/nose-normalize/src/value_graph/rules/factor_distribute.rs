@@ -37,6 +37,7 @@ pub(in super::super) fn apply(
         return None;
     }
     let sum = builder.mk(ValOp::Bin(Op::Add as u32), vec![x, y]);
+    builder.record_value_law(ValueLaw::NumericFactorDistribution);
     Some(builder.mk(ValOp::Bin(mul), vec![sum, f]))
 }
 
