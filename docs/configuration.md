@@ -75,13 +75,16 @@ cutoff.
 nose scan src --mode syntax,semantic,near:0.70
 ```
 
+Config file paths are resolved from the config file's directory, so committed
+project paths do not depend on where `nose` was invoked. This applies to
+`ignore-file` and `semantic-packs`. CLI path flags such as `--ignore-file` and
+`--semantic-pack` remain current-working-directory relative.
+
 `semantic-packs` is additive with repeated `--semantic-pack` flags. Each entry is
 an explicit local opt-in to a semantic-pack v0 manifest file or a directory of
-direct `*.json` manifests. Relative config paths are resolved from the config
-file's directory, so committed project opt-ins do not depend on where `nose` was
-invoked; CLI `--semantic-pack` paths remain current-working-directory relative.
-Loaded external packs are reported as `metadata-only`; they do not emit evidence
-or enable exact contracts yet. See [semantic-pack-loading](semantic-pack-loading.md).
+direct `*.json` manifests. Loaded external packs are reported as `metadata-only`;
+they do not emit evidence or enable exact contracts yet. See
+[semantic-pack-loading](semantic-pack-loading.md).
 
 ## Excludes
 
