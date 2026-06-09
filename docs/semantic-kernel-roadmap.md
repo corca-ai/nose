@@ -679,6 +679,13 @@ and pack ecosystem.
 - The first first-party pack pilot moved Python stdlib type-domain aliases from
   a raw helper table into a pack-shaped contract row set with active
   `nose.python.stdlib.type_domain` provenance.
+- Post-closeout hardening tightened the local pack validator to match the
+  published v0 schema shape more closely, rejected absolute conformance fixture
+  paths, required exact-capable rows to contain required evidence obligations,
+  and closed two raw-shape exact fallbacks: unadmitted builtin payloads no
+  longer prove static argument demand, and Rust `HashMap::from` map proof now
+  requires outer entry-list sequence-surface evidence as well as per-entry
+  tuple evidence.
 
 ## Phase 0: documentation and vocabulary (landed)
 

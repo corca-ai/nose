@@ -16,7 +16,7 @@ use nose_semantics::{
     asserted_unshadowed_global_symbol, imported_namespace_symbol, seq_surface_contract_for_node,
     BuiltinArgContract, DomainRequirement, LibraryMapFactoryResult, MapKeyViewKind,
     MethodBuiltinArgs, MethodCallContract, MethodReceiverContract, MethodSemanticContract,
-    ReceiverDomainEvidenceIndex, SEQ_VALUE_MAP,
+    ReceiverDomainEvidenceIndex, SEQ_VALUE_COLLECTION, SEQ_VALUE_MAP,
 };
 
 #[cfg(test)]
@@ -604,6 +604,11 @@ fn rust_std_map_factory_call(old: &Il, interner: &Interner, node: NodeId) -> boo
     let LibraryMapFactoryResult::EntrySequence { entry_seq_tag } = admitted.contract.result else {
         return false;
     };
+    if seq_surface_contract_for_node(old, interner, kids[1])
+        .is_none_or(|contract| contract.value_tag != SEQ_VALUE_COLLECTION)
+    {
+        return false;
+    }
     map_factory_entries_match_surface(old, interner, kids[1], entry_seq_tag)
 }
 
@@ -1665,7 +1670,11 @@ mod tests {
         );
     }
 
-    fn rust_hash_map_from_call(entry_surface: &str, shadow_std: bool) -> (Il, Interner, NodeId) {
+    fn rust_hash_map_from_call(
+        entry_surface: &str,
+        shadow_std: bool,
+        with_entries_surface: bool,
+    ) -> (Il, Interner, NodeId) {
         let interner = Interner::new();
         let mut b = IlBuilder::new(FileId(0));
         let entry_span = sp_at(10, 20, 1);
@@ -1721,12 +1730,14 @@ mod tests {
             EvidenceKind::SequenceSurface(entry_kind),
             EvidenceStatus::Asserted,
         ));
-        il.evidence.push(evidence(
-            1,
-            EvidenceAnchor::sequence(entries_span),
-            EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
-            EvidenceStatus::Asserted,
-        ));
+        if with_entries_surface {
+            il.evidence.push(evidence(
+                1,
+                EvidenceAnchor::sequence(entries_span),
+                EvidenceKind::SequenceSurface(SequenceSurfaceKind::Collection),
+                EvidenceStatus::Asserted,
+            ));
+        }
         (il, interner, call)
     }
 
@@ -1759,7 +1770,7 @@ mod tests {
 
     #[test]
     fn rust_std_map_factory_requires_entry_surface_and_shadow_proof() {
-        let (mut il, interner, call) = rust_hash_map_from_call("tuple", false);
+        let (mut il, interner, call) = rust_hash_map_from_call("tuple", false, true);
         assert!(
             !rust_std_map_factory_call(&il, &interner, call),
             "raw Rust std path proof must not prove the migrated factory"
@@ -1767,18 +1778,28 @@ mod tests {
         push_rust_hash_map_library_api_evidence(&mut il);
         assert!(rust_std_map_factory_call(&il, &interner, call));
 
-        let (mut il, interner, call) = rust_hash_map_from_call("array", false);
+        let (mut il, interner, call) = rust_hash_map_from_call("array", false, true);
         push_rust_hash_map_library_api_evidence(&mut il);
         assert!(
             !rust_std_map_factory_call(&il, &interner, call),
             "HashMap::from exact map proof requires tuple-shaped entries"
         );
 
-        let (mut il, interner, call) = rust_hash_map_from_call("tuple", true);
+        let (mut il, interner, call) = rust_hash_map_from_call("tuple", true, true);
         push_rust_hash_map_library_api_evidence(&mut il);
         assert!(
             !rust_std_map_factory_call(&il, &interner, call),
             "a local std binding must close the Rust stdlib factory path"
+        );
+    }
+
+    #[test]
+    fn rust_std_map_factory_requires_outer_entries_sequence_surface() {
+        let (mut il, interner, call) = rust_hash_map_from_call("tuple", false, false);
+        push_rust_hash_map_library_api_evidence(&mut il);
+        assert!(
+            !rust_std_map_factory_call(&il, &interner, call),
+            "HashMap::from exact map proof requires evidence for the outer entry list surface"
         );
     }
 

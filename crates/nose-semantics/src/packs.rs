@@ -409,6 +409,7 @@ pub enum SemanticPackFixtureIssue {
     MissingPath,
     MissingFile,
     MissingExpectation,
+    AbsolutePath,
 }
 
 impl SemanticPackFixtureIssue {
@@ -417,6 +418,7 @@ impl SemanticPackFixtureIssue {
             SemanticPackFixtureIssue::MissingPath => "missing-path",
             SemanticPackFixtureIssue::MissingFile => "missing-file",
             SemanticPackFixtureIssue::MissingExpectation => "missing-expectation",
+            SemanticPackFixtureIssue::AbsolutePath => "absolute-path",
         }
     }
 }
@@ -663,8 +665,13 @@ fn fixture_check(
     let mut issues = Vec::new();
     if fixture.path.is_none() {
         issues.push(SemanticPackFixtureIssue::MissingPath);
-    } else if !resolved_path.as_ref().is_some_and(|path| path.is_file()) {
-        issues.push(SemanticPackFixtureIssue::MissingFile);
+    } else if let Some(declared_path) = fixture.path.as_deref() {
+        if Path::new(declared_path).is_absolute() {
+            issues.push(SemanticPackFixtureIssue::AbsolutePath);
+        }
+        if !resolved_path.as_ref().is_some_and(|path| path.is_file()) {
+            issues.push(SemanticPackFixtureIssue::MissingFile);
+        }
     }
     if fixture.expectation.is_none() {
         issues.push(SemanticPackFixtureIssue::MissingExpectation);
@@ -1102,7 +1109,6 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
             &contract.conformance_refs,
             &known_refs,
             &conformance_refs,
-            true,
         )?;
     }
     for law in &manifest.declares.value_laws {
@@ -1116,7 +1122,6 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
             &law.conformance_refs,
             &known_refs,
             &conformance_refs,
-            false,
         )?;
     }
     Ok(())
@@ -1168,7 +1173,7 @@ fn validate_evidence_producer(
     known_refs: &HashSet<String>,
 ) -> Result<(), String> {
     require_stable_id("declares.evidence_producers[].id", &producer.id)?;
-    if !producer.kind.starts_with_evidence_prefix() {
+    if !is_valid_evidence_kind(&producer.kind) {
         return Err(format!(
             "evidence producer `{}` has unknown kind `{}`",
             producer.id, producer.kind
@@ -1208,7 +1213,7 @@ fn validate_evidence_producer(
         ));
     }
     for emitted in &producer.emits {
-        if !emitted.starts_with_evidence_prefix() {
+        if !is_valid_evidence_kind(emitted) {
             return Err(format!(
                 "evidence producer `{}` emits unknown evidence kind `{emitted}`",
                 producer.id
@@ -1233,12 +1238,11 @@ fn validate_contract(
     conformance_refs: &[String],
     known_refs: &HashSet<String>,
     fixture_refs: &ConformanceFixtureRefs,
-    requires_surface: bool,
 ) -> Result<(), String> {
     require_stable_id("declares.contracts[].id", id)?;
-    if requires_surface && !semantics.is_object() {
-        return Err(format!("{kind} `{id}` semantics must be an object"));
-    }
+    let semantics = semantics
+        .as_object()
+        .ok_or_else(|| format!("{kind} `{id}` semantics must be an object"))?;
     for ref_id in conformance_refs {
         if !fixture_refs.all.contains(ref_id) {
             return Err(format!(
@@ -1247,14 +1251,11 @@ fn validate_contract(
         }
     }
     if channel.exact_capable() {
-        if requirements.is_empty() {
+        if !requirements.iter().any(|requirement| requirement.required) {
             return Err(format!(
-                "exact-capable {kind} `{id}` must declare evidence requirements"
+                "exact-capable {kind} `{id}` must declare at least one required evidence requirement"
             ));
         }
-        let semantics = semantics
-            .as_object()
-            .ok_or_else(|| format!("exact-capable {kind} `{id}` semantics must be an object"))?;
         if !semantics.contains_key("demand") || !semantics.contains_key("effects") {
             return Err(format!(
                 "exact-capable {kind} `{id}` must declare demand and effects"
@@ -1297,6 +1298,14 @@ fn validate_requirement(
     {
         return Err(format!(
             "`{context}` requirement references unknown id `{}`",
+            requirement.ref_id
+        ));
+    }
+    if requirement.ref_id.starts_with_evidence_prefix()
+        && !is_valid_evidence_kind(&requirement.ref_id)
+    {
+        return Err(format!(
+            "`{context}` requirement has invalid evidence ref `{}`",
             requirement.ref_id
         ));
     }
@@ -1385,6 +1394,20 @@ impl EvidenceKindPrefix for str {
             .iter()
             .any(|prefix| self.starts_with(prefix))
     }
+}
+
+fn is_valid_evidence_kind(value: &str) -> bool {
+    let Some(prefix) = ALLOWED_REQUIREMENT_PREFIXES[..ALLOWED_REQUIREMENT_PREFIXES.len() - 1]
+        .iter()
+        .find(|prefix| value.starts_with(**prefix))
+    else {
+        return false;
+    };
+    let suffix = &value[prefix.len()..];
+    !suffix.is_empty()
+        && suffix
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | ':' | '-'))
 }
 
 #[cfg(test)]
@@ -1722,6 +1745,100 @@ mod tests {
             "{err}"
         );
         let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn value_law_semantics_must_be_an_object_even_when_not_exact_capable() {
+        let dir = unique_dir("value_law_semantics_shape");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""value_laws": []"#,
+                r#""value_laws": [{
+      "id": "python.example.near-law",
+      "requires": [],
+      "semantics": "not an object",
+      "channel": "near-only",
+      "proof_status": "missing",
+      "conformance_refs": []
+    }]"#,
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path).expect_err("value law semantics must match schema");
+        assert!(
+            err.to_string().contains("semantics must be an object"),
+            "{err}"
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn exact_capable_contracts_must_have_required_evidence_requirements() {
+        let dir = unique_dir("required_evidence_requirement");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(r#""required": true"#, r#""required": false"#),
+        )
+        .unwrap();
+        let err =
+            load_local_manifest(&path).expect_err("optional-only requirements must not open exact");
+        assert!(
+            err.to_string()
+                .contains("must declare at least one required evidence requirement"),
+            "{err}"
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn evidence_kind_must_match_schema_shape() {
+        let dir = unique_dir("evidence_kind_shape");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""kind": "LibraryApi.Contract""#,
+                r#""kind": "LibraryApi.""#,
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path).expect_err("empty evidence-kind suffix is invalid");
+        assert!(
+            err.to_string().contains("unknown kind `LibraryApi.`"),
+            "{err}"
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn conformance_fixtures_must_use_manifest_relative_paths() {
+        let dir = unique_dir("absolute_fixture_path");
+        let outside = unique_dir("absolute_fixture_path_outside");
+        let absolute_fixture = outside.join("positive.py");
+        fs::write(&absolute_fixture, "print('external fixture')\n").unwrap();
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack")
+                .replace("fixtures/positive.py", absolute_fixture.to_str().unwrap()),
+        )
+        .unwrap();
+
+        let report =
+            check_semantic_pack_conformance(&[path]).expect("manifest is structurally valid");
+
+        assert!(!report.passed());
+        let issues = report.manifests[0]
+            .fixtures
+            .iter()
+            .flat_map(|fixture| fixture.issues.iter().map(|issue| issue.as_str()))
+            .collect::<Vec<_>>();
+        assert_eq!(issues, vec!["absolute-path", "missing-file"]);
+        let _ = fs::remove_dir_all(dir);
+        let _ = fs::remove_dir_all(outside);
     }
 
     #[test]

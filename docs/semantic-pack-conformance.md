@@ -19,8 +19,8 @@ pack meets the extension contract's minimum structural obligations:
   declarations are present;
 - evidence producers, contracts, laws, dependencies, and conformance references
   are internally linked;
-- exact-capable contracts declare evidence requirements plus demand/effect
-  semantics;
+- contracts and value laws declare object-shaped semantics, and exact-capable
+  declarations add evidence requirements plus demand/effect semantics;
 - positive fixtures and hard negatives are declared with expectation labels;
 - fixture files exist at paths relative to the manifest file.
 
@@ -95,7 +95,8 @@ execute them.
 
 Each manifest entry includes pack provenance, declaration counts, the optional
 provider-supplied conformance command, proof links, and per-fixture issue labels
-such as `missing-path`, `missing-expectation`, and `missing-file`.
+such as `missing-path`, `missing-expectation`, `missing-file`, and
+`absolute-path`.
 
 Integrations should discover support through [capabilities](capabilities.md):
 `commands.stable` includes `semantic-pack`, `schemas.semantic_pack_conformance`

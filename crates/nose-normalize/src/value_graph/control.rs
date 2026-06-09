@@ -817,7 +817,10 @@ impl<'a> Builder<'a> {
                 self.call_args_have_static_runtime_err(kids.iter().copied(), env)
                     || self.range_has_static_zero_step(&kids)
             }
-            Payload::Builtin(_) => self.call_args_have_static_runtime_err(kids, env),
+            Payload::Builtin(builtin) if self.admitted_builtin_call(call, builtin) => {
+                self.call_args_have_static_runtime_err(kids, env)
+            }
+            Payload::Builtin(_) => false,
             _ => self.call_args_have_static_runtime_err(kids.into_iter().skip(1), env),
         }
     }

@@ -442,6 +442,28 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
 }
 
 #[test]
+fn raw_builtin_payload_does_not_prove_static_error_demand() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let value = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
+    let lhs = b.add(NodeKind::Lit, Payload::LitInt(1), sp(2), &[]);
+    let rhs = b.add(NodeKind::Lit, Payload::LitInt(0), sp(2), &[]);
+    let fallback = b.add(NodeKind::BinOp, Payload::Op(Op::Div), sp(2), &[lhs, rhs]);
+    let call = b.add(
+        NodeKind::Call,
+        Payload::Builtin(Builtin::ValueOrDefault),
+        sp(3),
+        &[value, fallback],
+    );
+    let il = finish_test_il(b, call, Lang::JavaScript);
+    let mut builder = Builder::new(&il, &interner);
+    assert!(
+        !builder.expr_is_static_runtime_err(call, &FxHashMap::default()),
+        "raw builtin payloads do not prove fallback demand without admitted semantics"
+    );
+}
+
+#[test]
 fn len_of_library_hof_requires_materialized_demand_profile() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
