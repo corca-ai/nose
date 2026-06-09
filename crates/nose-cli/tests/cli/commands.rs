@@ -625,6 +625,49 @@ fn config_semantic_packs_are_explicit_opt_ins() {
 }
 
 #[test]
+fn explicit_config_semantic_pack_paths_resolve_from_config_directory() {
+    let dir = make_project("semantic_pack_explicit_cfg");
+    fs::write(
+        dir.join("pack.json"),
+        semantic_pack_manifest("com.example.explicit-config-pack"),
+    )
+    .unwrap();
+    let config = dir.join("nose.toml");
+    fs::write(
+        &config,
+        "[scan]\nmin-size = 12\nsemantic-packs = [\"pack.json\"]\n",
+    )
+    .unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--config",
+            config.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .current_dir(dir.parent().expect("test project has a parent"))
+        .output()
+        .expect("run");
+    assert!(
+        out.status.success(),
+        "scan should load config-relative semantic pack: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json = scan_json(&stdout);
+    let packs = json["semantic_packs"]
+        .as_array()
+        .expect("semantic_packs array");
+    assert!(packs
+        .iter()
+        .any(|pack| pack["id"] == "com.example.explicit-config-pack"));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn inline_nose_ignore_suppresses_a_site() {
     // A `nose-ignore` marker above a function drops that site; with only one copy
     // left there's no family.

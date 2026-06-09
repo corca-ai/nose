@@ -46,7 +46,8 @@ nose capabilities
   },
   "schemas": {
     "capabilities": [1],
-    "scan_json": [1]
+    "scan_json": [1],
+    "semantic_packs": ["nose.semantic-pack.v0"]
   },
   "scan": {
     "modes": ["syntax", "semantic", "near"],
@@ -61,6 +62,7 @@ nose capabilities
       "min-size",
       "min-value",
       "mode",
+      "semantic-packs",
       "sort",
       "top"
     ],
@@ -73,8 +75,24 @@ nose capabilities
       "hotspots": true,
       "inline_suppression": true,
       "proposal": true,
+      "semantic_pack_loading": true,
       "structured_ignores": true
     }
+  },
+  "semantic_packs": {
+    "api_versions": ["nose.semantic-pack.v0"],
+    "loading": [
+      "compiled-first-party",
+      "local-manifest-file",
+      "local-manifest-directory"
+    ],
+    "trust": [
+      "default-first-party",
+      "first-party-optional",
+      "external-opt-in"
+    ],
+    "external_packs_enabled_by_default": false,
+    "external_pack_influence": "metadata-only"
   },
   "il": {
     "output_formats": ["sexpr", "json"],

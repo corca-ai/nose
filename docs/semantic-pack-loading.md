@@ -24,9 +24,11 @@ Commit stable project opt-ins in `nose.toml`:
 semantic-packs = ["semantic-packs/python-math-prod.json"]
 ```
 
-Each path may be a manifest file or a directory. Directory loading reads direct
-`*.json` children in sorted order; it does not recurse and it does not contact a
-registry or network service.
+Each path may be a manifest file or a directory. Paths from `[scan].semantic-packs`
+are resolved relative to the config file that declared them; paths from
+`--semantic-pack` are resolved by the shell/current working directory like other
+CLI paths. Directory loading reads direct `*.json` children in sorted order; it
+does not recurse and it does not contact a registry or network service.
 
 ## Trust policy
 
@@ -35,8 +37,9 @@ Trust is separate from channel eligibility.
 - The compiled first-party pack `nose.first_party` is enabled by default and is
   the only pack that currently influences evidence and contracts.
 - Local external packs require explicit user opt-in through CLI or config.
-- A manifest with `trust = "external-opt-in"` and `enabled_by_default = true` is
-  rejected.
+- Local manifests must declare `trust = "external-opt-in"` and
+  `enabled_by_default = false`; manifests that claim first-party trust or default
+  enablement are rejected.
 - Duplicate pack ids fail the scan instead of letting provenance become
   ambiguous.
 

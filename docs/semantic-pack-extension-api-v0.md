@@ -71,9 +71,10 @@ Every manifest must declare:
 - stable ids for packs, evidence producers, contracts, laws, fixtures, and
   dependencies.
 
-v0 is allowed to evolve only by adding optional fields or new enum values that
-old consumers can ignore. Removing fields, changing the meaning of an existing
-field, or changing exact-channel admission rules requires a new API version.
+v0 is a strict manifest contract: the published schema rejects unknown fields,
+and the local loader rejects unknown fields and enum values. Adding fields,
+adding enum values, removing fields, changing the meaning of an existing field,
+or changing exact-channel admission rules requires a new API version.
 
 ## Manifest Shape
 
@@ -126,10 +127,12 @@ Trust policy is separate from channel eligibility.
 | `first-party-optional` | maintained and tested by nose, but not enabled by default |
 | `external-opt-in` | provider/user responsibility; must be enabled explicitly by the user |
 
-External packs must set `enabled_by_default: false`. A manifest may declare that
-a contract is intended for `exact-empirical` or `exact-proven`, but nose does not
-certify that claim for external packs. A user may still opt into such a pack, and
-nose should surface provenance so the user can see which external pack affected a
+Local external manifests must set `trust: "external-opt-in"` and
+`enabled_by_default: false`. The loader rejects local manifests that claim
+first-party trust or default enablement. A manifest may declare that a contract
+is intended for `exact-empirical` or `exact-proven`, but nose does not certify
+that claim for external packs. A user may still opt into such a pack, and nose
+should surface provenance so the user can see which external pack affected a
 match.
 
 ## Channel Eligibility

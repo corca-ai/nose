@@ -679,8 +679,11 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
         "compatibility.notes",
         manifest.compatibility.notes.as_deref(),
     )?;
-    if manifest.pack.trust == PackTrust::ExternalOptIn && manifest.pack.enabled_by_default {
-        return Err("external-opt-in packs must not be enabled by default".to_string());
+    if manifest.pack.trust != PackTrust::ExternalOptIn || manifest.pack.enabled_by_default {
+        return Err(
+            "local semantic pack manifests must be external-opt-in and disabled by default"
+                .to_string(),
+        );
     }
     if manifest.supported_languages.is_empty() {
         return Err("`supported_languages` must contain at least one language".to_string());
@@ -1117,7 +1120,27 @@ mod tests {
         let err = load_local_manifest(&path).expect_err("must reject implicit external default");
         assert!(err
             .to_string()
-            .contains("external-opt-in packs must not be enabled"));
+            .contains("must be external-opt-in and disabled by default"));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn local_manifest_claiming_first_party_trust_is_rejected() {
+        let dir = unique_dir("first_party_trust");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""trust": "external-opt-in""#,
+                r#""trust": "default-first-party""#,
+            ),
+        )
+        .unwrap();
+        let err =
+            load_local_manifest(&path).expect_err("local manifest must not claim first-party");
+        assert!(err
+            .to_string()
+            .contains("must be external-opt-in and disabled by default"));
         let _ = fs::remove_dir_all(dir);
     }
 
