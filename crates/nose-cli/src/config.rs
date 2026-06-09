@@ -71,6 +71,11 @@ fn discover() -> Option<PathBuf> {
 
 fn resolve_config_relative_paths(mut cfg: ScanConfig, path: &Path) -> ScanConfig {
     let base = path.parent().unwrap_or_else(|| Path::new(""));
+    if let Some(ignore_file) = &mut cfg.ignore_file {
+        if ignore_file.is_relative() {
+            *ignore_file = base.join(&ignore_file);
+        }
+    }
     for pack in &mut cfg.semantic_packs {
         if pack.is_relative() {
             *pack = base.join(&pack);
@@ -114,11 +119,15 @@ mod tests {
     fn valid_config_still_loads() {
         let p = write_cfg(
             "ok",
-            "[scan]\nmin-value = 200\nmin-size = 30\nsemantic-packs = [\"packs\"]\n",
+            "[scan]\nmin-value = 200\nmin-size = 30\nignore-file = \"nose.ignore.json\"\nsemantic-packs = [\"packs\"]\n",
         );
         let cfg = load_scan(Some(&p)).expect("valid config must load");
         assert_eq!(cfg.min_value, Some(200.0));
         assert_eq!(cfg.min_size, Some(30));
+        assert_eq!(
+            cfg.ignore_file,
+            Some(p.parent().unwrap().join("nose.ignore.json"))
+        );
         assert_eq!(cfg.semantic_packs, vec![p.parent().unwrap().join("packs")]);
     }
 }

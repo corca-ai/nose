@@ -876,6 +876,56 @@ fn explicit_config_semantic_pack_paths_resolve_from_config_directory() {
 }
 
 #[test]
+fn explicit_config_ignore_file_resolves_from_config_directory() {
+    let dir = make_project("ignore_explicit_cfg");
+    fs::write(
+        dir.join("nose.ignore.json"),
+        "{\"ignores\":[{\"paths\":[\"**/a/**\"],\"reason\":\"template-copy\"}]}\n",
+    )
+    .unwrap();
+    let config = dir.join("nose.toml");
+    fs::write(
+        &config,
+        "[scan]\nmin-size = 12\nignore-file = \"nose.ignore.json\"\n",
+    )
+    .unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--config",
+            config.to_str().unwrap(),
+            "--mode",
+            "semantic",
+            "--format",
+            "json",
+            "--top",
+            "0",
+        ])
+        .current_dir(dir.parent().expect("test project has a parent"))
+        .output()
+        .expect("run");
+    assert!(
+        out.status.success(),
+        "scan should load config-relative ignore file: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json = scan_json(&stdout);
+    assert!(
+        scan_families(&json).is_empty(),
+        "config-relative ignore file should suppress the family: {stdout}"
+    );
+    assert_eq!(json["ignore"]["active_entries"], 1);
+    assert_eq!(json["ignore"]["ignored_families"], 1);
+    assert!(json["ignore"]["path"]
+        .as_str()
+        .is_some_and(|path| path.ends_with("nose.ignore.json")));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn inline_nose_ignore_suppresses_a_site() {
     // A `nose-ignore` marker above a function drops that site; with only one copy
     // left there's no family.
