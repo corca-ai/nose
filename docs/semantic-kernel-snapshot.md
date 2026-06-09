@@ -10,7 +10,7 @@ v0 provider-facing extension API is defined in
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md), and the
 local provider/user conformance workflow is in
 [semantic-pack-conformance](semantic-pack-conformance.md). The closeout for the
-first #109 foundation tranche is in
+#109 semantic-kernel migration is in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
 
 Snapshot date: 2026-06-09. The current implementation has an internal
@@ -677,7 +677,7 @@ Semantic knowledge still appears in several forms outside the facade:
   unsigned-cast syntax. Consumption is still limited to narrow contracts such as
   JS-like static membership callbacks, the strict `typeof` exact gate, Python
   HOF/comprehension admission, and C byte-pack casts. General equality
-  dispatch, report provenance, and external pack manifests remain open;
+  dispatch and producer-executed external pack influence remain open;
 - language-specific import, symbol, or module proof mechanics that are still
   local to frontend, normalize, detect, or value-graph callers;
 - C quote-include and typedef alias proof now has `Import`/`Type` evidence for
@@ -754,8 +754,9 @@ language.
 - Language semantics are not first-class. Many rules ask "which language is this?"
   instead of "which semantic capability has been proven?"
 - Library semantics are still compiled into engine/first-party facade code.
-  Internal `LibraryApiContract` rows exist, but they are not yet versioned
-  external pack manifest contracts.
+  Internal `LibraryApiContract` rows exist, and v0 manifests can describe
+  contract metadata, but local external packs cannot yet execute producers or
+  open exact consumers.
 - Evaluation strategy is only partially shared. Internal demand profiles now
   cover the currently admitted eager, short-circuit, append, nullish-default,
   reduction, eager HOF callback, pull-lazy library iterator/stream HOF, and
@@ -821,5 +822,5 @@ Remaining migration targets are tracked in
 [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The post-PR #147
 classification snapshot is in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and
-the completed #150-#157 foundation tranche plus next issue map are in
+the completed #109 foundation and follow-up tranche is in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).

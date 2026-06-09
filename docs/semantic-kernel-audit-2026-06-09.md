@@ -166,8 +166,10 @@ semantic meaning.
 
 ## Closeout Update
 
-This audit's follow-up queue was completed in the #109 foundation tranche:
+This audit's follow-up queue was completed in the #109 foundation and follow-up
+tranches:
 
+- #150 completed the post-PR #147 raw/local semantic pocket audit.
 - #151 defined the provider-facing extension API v0.
 - #152 added local metadata loading, opt-in trust plumbing, and scan JSON pack
   provenance.
@@ -177,6 +179,11 @@ This audit's follow-up queue was completed in the #109 foundation tranche:
 - #155 expanded call-target and dispatch evidence.
 - #156 expanded type/domain evidence.
 - #157 added the semantic pack conformance harness and provider/user workflow.
+- #166 shipped the first compiled first-party pack pilot.
+- #169 broadened first-party producer coverage for imported call-target facts.
+- #168 expanded demand/effect contracts for admitted library HOF timing.
+- #167 shipped the first compiled LawPack pilot and family-level value-law
+  provenance.
 
-The next issue map is recorded in
+The #109 closeout is recorded in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
