@@ -12,6 +12,7 @@ Schema artifacts:
 - [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
 - [language-pack example](examples/semantic-packs/v0/language-pack.json)
 - [library-pack example](examples/semantic-packs/v0/library-pack.json)
+- [Python stdlib type-domain pack example](examples/semantic-packs/v0/python-typing-domain-pack.json)
 - [semantic-pack-conformance](semantic-pack-conformance.md)
 - [semantic-pack-loading](semantic-pack-loading.md)
 
@@ -19,8 +20,10 @@ Status: design v0 plus local metadata loading and a local conformance harness.
 nose can load local manifests for explicit opt-in provenance reporting, and pack
 authors can run `nose semantic-pack check` against manifests and declared fixture
 assets. External packs are still `metadata-only`: they do not emit evidence or
-open exact contracts. This page defines the extension surface that first-party
-compiled packs and future external packs must use.
+open exact contracts. The first compiled first-party pilot pack now reports
+Python `typing`, `collections.abc`, and `asyncio` stdlib type-domain alias
+evidence through this vocabulary. This page defines the extension surface that
+first-party compiled packs and future external packs must use.
 
 ## Context
 
@@ -103,6 +106,9 @@ producer runtime may feed compatible rows into kernel helpers only after the sam
 fail-closed evidence obligations are satisfied. First-party compiled packs can
 generate the same manifest metadata for reports and conformance gates while
 still emitting facts from Rust.
+The Python stdlib type-domain example mirrors the first compiled first-party pilot
+surface; loading that example locally remains metadata-only because local
+manifests cannot claim first-party trust.
 
 ## Pack Kinds
 

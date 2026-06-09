@@ -87,10 +87,16 @@ and pack ecosystem.
 - The common parameter-type substring recognizer moved behind first-party,
   language-scoped type-domain contracts in `nose-semantics`. Frontends now emit
   parameter `Domain` evidence from those contracts, while imported Python
-  `typing`/`collections.abc` aliases carry `ImportedBinding` dependencies and
-  rebound aliases close the path. `ParamSemantic` remains a compatibility
-  vocabulary in tests and lower-level helpers, not the producer boundary for
-  newly emitted parameter-domain facts.
+  `typing`, `collections.abc`, and `asyncio` aliases carry `ImportedBinding`
+  dependencies and rebound aliases close the path. `ParamSemantic` remains a
+  compatibility vocabulary in tests and lower-level helpers, not the producer
+  boundary for newly emitted parameter-domain facts.
+- The first first-party pack pilot moved Python stdlib type-domain aliases from
+  a raw helper table into a pack-shaped contract row set. Imported
+  `typing`, `collections.abc`, and `asyncio` alias-derived `Domain` evidence now
+  reports `nose.python.stdlib.type_domain` provenance while preserving
+  shadow/rebind hard negatives and metadata-only behavior for local external
+  manifests.
 - Rust scalar integer methods (`abs`, `min`, `max`, `clamp`) now consume a
   language-, signature-, and integer-domain-constrained first-party contract
   instead of a bare method-name recognizer. Float/NaN-sensitive methods remain a
@@ -667,6 +673,9 @@ and pack ecosystem.
   domain foundation and opens the next tranche around first-party pack pilots,
   broader producer coverage, richer demand/effect contracts, and pack-facing
   value-law provenance.
+- The first first-party pack pilot moved Python stdlib type-domain aliases from
+  a raw helper table into a pack-shaped contract row set with active
+  `nose.python.stdlib.type_domain` provenance.
 
 ## Phase 0: documentation and vocabulary (landed)
 

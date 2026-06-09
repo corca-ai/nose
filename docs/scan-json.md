@@ -42,6 +42,30 @@ The top-level value is always an object:
         "positive_fixtures": 0,
         "hard_negatives": 0
       }
+    },
+    {
+      "id": "nose.python.stdlib.type_domain",
+      "hash": "783a582a461f58f3",
+      "kind": "StdlibPack",
+      "version": "<version>",
+      "display_name": "nose Python stdlib type-domain pack",
+      "trust": "default-first-party",
+      "enabled_by_default": true,
+      "source": "compiled-first-party",
+      "influence": "evidence-and-contracts",
+      "provider": "Corca, Inc.",
+      "repository": "https://github.com/corca-ai/nose",
+      "license": "MIT",
+      "supported_languages": [
+        "python"
+      ],
+      "counts": {
+        "evidence_producers": 1,
+        "contracts": 1,
+        "value_laws": 0,
+        "positive_fixtures": 36,
+        "hard_negatives": 2
+      }
     }
   ],
   "ranking": {
@@ -90,7 +114,7 @@ source metadata.
 | `tool_version` | string | The `nose` package version that emitted the report. |
 | `scope.files` | integer | Number of supported source files scanned after ignores and excludes. |
 | `scope.languages` | array | Per-language file counts, largest first. |
-| `semantic_packs` | array, optional in v1 | Active semantic packs for this scan. Binaries that advertise `scan.capabilities.semantic_pack_loading` in [capabilities](capabilities.md) emit it and include compiled `nose.first_party`; local `--semantic-pack`/config packs are listed with `metadata-only` influence. Older v1 binaries omit this field. |
+| `semantic_packs` | array, optional in v1 | Active semantic packs for this scan. Binaries that advertise `scan.capabilities.semantic_pack_loading` in [capabilities](capabilities.md) emit it and include compiled first-party packs such as `nose.first_party` and `nose.python.stdlib.type_domain`; local `--semantic-pack`/config packs are listed with `metadata-only` influence. Older v1 binaries omit this field. |
 | `ranking.sort` | string | Sort key used for `families`: `extractability` (default), `value`, `sites`, or `hazard`. |
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
@@ -118,10 +142,10 @@ When `semantic_packs` is present, each entry has:
 | `id` | string | Stable manifest pack id. |
 | `hash` | string | Stable 16-hex-digit hash derived from the pack id; first-party evidence provenance uses the same id-hash policy. |
 | `kind` | string | `LanguagePack`, `StdlibPack`, `LibraryPack`, `ProtocolPack`, or `LawPack`. |
-| `version` | string | Pack version from the manifest or the nose package version for `nose.first_party`. |
+| `version` | string | Pack version from the manifest or the nose package version for compiled first-party packs. |
 | `display_name` | string | Human-readable pack name. |
 | `trust` | string | `default-first-party`, `first-party-optional`, or `external-opt-in`. Local manifests are rejected unless they use `external-opt-in`; first-party trust comes only from compiled packs. |
-| `enabled_by_default` | boolean | Whether the pack is default-enabled. Local manifests are rejected unless this is `false`; compiled `nose.first_party` reports `true`. |
+| `enabled_by_default` | boolean | Whether the pack is default-enabled. Local manifests are rejected unless this is `false`; compiled first-party packs report `true`. |
 | `source` | string | `compiled-first-party` or `local-manifest`. |
 | `influence` | string | `evidence-and-contracts` for compiled first-party semantics, `metadata-only` for loaded local external packs today. |
 | `path` | string, optional | Local manifest path for loaded manifests. |

@@ -1,0 +1,186 @@
+{
+  "$schema": "../../../schemas/semantic-pack-v0.schema.json",
+  "api_version": "nose.semantic-pack.v0",
+  "pack": {
+    "id": "com.example.python-typing-domain",
+    "kind": "StdlibPack",
+    "version": "0.1.0",
+    "display_name": "Example Python stdlib type-domain pack",
+    "description": "Illustrative v0 metadata mirroring nose's compiled first-party Python typing, collections.abc, and asyncio type-domain pilot. Loading this example is metadata-only.",
+    "trust": "external-opt-in",
+    "enabled_by_default": false,
+    "status": "draft-example"
+  },
+  "provenance": {
+    "provider": {
+      "name": "Example Semantic Packs",
+      "contact": "semantics@example.invalid"
+    },
+    "license": "MIT",
+    "repository": "https://example.invalid/semantic-packs/python-typing-domain",
+    "source_revision": "0000000000000000000000000000000000000000"
+  },
+  "compatibility": {
+    "nose": ">=0.5.0 <0.6.0",
+    "schema": "v0",
+    "notes": "Example only. nose's built-in pilot uses compiled first-party code and reports as nose.python.stdlib.type_domain."
+  },
+  "supported_languages": [
+    {
+      "id": "python",
+      "language_version": ">=3.8",
+      "runtime": "cpython",
+      "runtime_versions": [
+        ">=3.8"
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "ecosystem": "python-stdlib",
+      "name": "typing",
+      "versions": ">=3.8",
+      "stdlib": true
+    },
+    {
+      "ecosystem": "python-stdlib",
+      "name": "collections.abc",
+      "versions": ">=3.8",
+      "stdlib": true
+    },
+    {
+      "ecosystem": "python-stdlib",
+      "name": "asyncio",
+      "versions": ">=3.8",
+      "stdlib": true
+    }
+  ],
+  "declares": {
+    "evidence_producers": [
+      {
+        "id": "python.stdlib.type-domain-alias-domain",
+        "kind": "Domain.TypeAlias",
+        "anchors": [
+          "param"
+        ],
+        "channel": "exact-empirical",
+        "emits": [
+          "Domain.Collection",
+          "Domain.Iterable",
+          "Domain.Iterator",
+          "Domain.Map",
+          "Domain.Option",
+          "Domain.Record",
+          "Domain.Set",
+          "Domain.FutureLike"
+        ],
+        "requires": [
+          {
+            "ref": "Symbol.ImportedBinding",
+            "subject": "annotation.alias",
+            "required": true,
+            "within_scope": "parameter"
+          }
+        ],
+        "stable_hash_inputs": [
+          "api_version",
+          "pack.id",
+          "producer.id",
+          "language.id",
+          "module_name",
+          "exported_name",
+          "local_alias_hash",
+          "param_span",
+          "dependency_ids"
+        ],
+        "conflict_policy": "fail-closed",
+        "notes": "The producer maps exact imported stdlib typing aliases to Domain evidence. Rebound aliases and same-named local classes do not satisfy the requirement."
+      }
+    ],
+    "contracts": [
+      {
+        "id": "python.stdlib.type-domain-alias.contract",
+        "surface": {
+          "kind": "imported-type-domain-alias",
+          "language": "python",
+          "packages": [
+            "typing",
+            "collections.abc",
+            "asyncio"
+          ],
+          "anchor": "param"
+        },
+        "requires": [
+          {
+            "ref": "python.stdlib.type-domain-alias-domain",
+            "subject": "parameter.annotation",
+            "required": true,
+            "same_anchor_as": "param"
+          },
+          {
+            "ref": "Symbol.ImportedBinding",
+            "subject": "annotation.alias",
+            "required": true,
+            "within_scope": "parameter"
+          }
+        ],
+        "semantics": {
+          "operation": "TypeDomain.AliasToDomain",
+          "result_domain": "Domain",
+          "demand": {
+            "arguments": "not-applicable",
+            "callbacks": "none"
+          },
+          "effects": [
+            "no-runtime-effect"
+          ],
+          "exceptions": "none",
+          "mutation": "does-not-mutate-runtime-values",
+          "identity": "no-runtime-identity-claim"
+        },
+        "channel": "exact-empirical",
+        "proof_status": "covered",
+        "conformance_refs": [
+          "python-typing-domain-positive",
+          "python-typing-domain-rebound-hard-negative",
+          "python-typing-domain-wrong-module-hard-negative"
+        ],
+        "known_unsupported": [
+          "This contract does not implement a Python type checker.",
+          "Subscript element types are not interpreted; only the imported alias surface maps to a coarse Domain fact."
+        ],
+        "notes": "A type alias is evidence for a receiver/value domain only when import proof and alias lifetime are both present."
+      }
+    ],
+    "value_laws": []
+  },
+  "conformance": {
+    "positive_fixtures": [
+      {
+        "id": "python-typing-domain-positive",
+        "description": "A dependency-backed imported typing alias can emit parameter Domain evidence.",
+        "path": "fixtures/python/typing_domain_positive.py",
+        "expectation": "domain-evidence-present"
+      }
+    ],
+    "hard_negatives": [
+      {
+        "id": "python-typing-domain-rebound-hard-negative",
+        "description": "A rebound typing alias must not emit Domain evidence for later annotations.",
+        "path": "fixtures/python/typing_domain_rebound.py",
+        "expectation": "domain-evidence-closed"
+      },
+      {
+        "id": "python-typing-domain-wrong-module-hard-negative",
+        "description": "A same-named alias from a non-stdlib module must not satisfy the Python stdlib typing contract.",
+        "path": "fixtures/python/typing_domain_wrong_module.py",
+        "expectation": "domain-evidence-closed"
+      }
+    ],
+    "known_unsupported": [
+      "The example manifest is metadata-only when loaded locally.",
+      "The compiled first-party pilot currently covers selected typing, collections.abc, and asyncio alias rows."
+    ],
+    "command": "nose semantic-pack check python-typing-domain-pack.json --format json"
+  }
+}

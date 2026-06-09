@@ -42,7 +42,10 @@ The harness does not:
 
 First-party default packs are different. nose owns their tests, hard negatives,
 proof obligations, release gates, and documentation because those packs ship with
-the binary and affect exact analysis by default.
+the binary and affect exact analysis by default. The Python stdlib type-domain
+example manifest mirrors the first compiled first-party pilot pack, but local
+copies of that manifest still load only as external metadata unless nose ships
+the pack as compiled first-party code.
 
 ## Command
 
@@ -59,10 +62,10 @@ JSON children only, sorted by filename, no recursion, no registry, and no networ
 Relative fixture paths are resolved from the manifest's directory.
 
 The command exits non-zero when any manifest is invalid, when pack ids collide
-with each other or `nose.first_party`, or when declared conformance fixtures are
-missing a path, missing an expectation, or point at a file that does not exist.
-For `--format json`, the command still writes the report before returning the
-non-zero exit.
+with each other or any compiled first-party pack id, or when declared conformance
+fixtures are missing a path, missing an expectation, or point at a file that does
+not exist. For `--format json`, the command still writes the report before
+returning the non-zero exit.
 
 ## JSON Report
 

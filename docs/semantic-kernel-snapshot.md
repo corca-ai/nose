@@ -84,7 +84,10 @@ still being migrated toward it.
   provenance reporting, `nose scan --format json` reports active packs, and
   `nose semantic-pack check` validates local manifests plus declared fixture
   assets. External packs are still `metadata-only`; first-party producers remain
-  compiled Rust and are expected to map onto the same vocabulary.
+  compiled Rust and are expected to map onto the same vocabulary. The first
+  compiled pilot is `nose.python.stdlib.type_domain`, a default first-party
+  stdlib pack-shaped surface for Python `typing`, `collections.abc`, and
+  `asyncio` type-domain alias evidence.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
   sequence evidence emission, and Raw-node coverage.
@@ -211,8 +214,12 @@ migrated.
   annotation text is ignored before array/varargs recognition, Rust fully
   qualified `std::collections` paths are covered, and C pointer parameters do
   not inherit scalar integer domains. Python imported type aliases from
-  `typing`/`collections.abc` carry `ImportedBinding` symbol-evidence
-  dependencies, and rebound aliases stop emitting parameter-domain evidence.
+  `typing`, `collections.abc`, and `asyncio` carry `ImportedBinding`
+  symbol-evidence dependencies, and rebound aliases stop emitting
+  parameter-domain evidence.
+  Imported Python stdlib alias-derived `Domain` evidence now carries
+  `nose.python.stdlib.type_domain` pack provenance, making this the first
+  compiled first-party pack-shaped pilot surface.
   `nose-semantics` resolves receiver-domain evidence through a shared
   `DomainRequirement` contract. Consumers check exact receiver node evidence
   first, then immutable binding evidence for local or module variables, then

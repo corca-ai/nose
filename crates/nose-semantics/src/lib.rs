@@ -44,7 +44,11 @@ use library_api::{
 pub use module_exports::*;
 pub use nose_il::DomainEvidence;
 pub use packs::*;
-pub use type_domain::{python_stdlib_type_domain, type_domain_from_source_text};
+pub use type_domain::{
+    python_stdlib_type_domain, python_stdlib_type_domain_contract, type_domain_from_source_text,
+    FirstPartyTypeDomainAliasContract, PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS,
+    PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID, PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID,
+};
 
 /// Stable pack id for the first-party language/stdlib contracts compiled into nose.
 pub const FIRST_PARTY_PACK_ID: &str = "nose.first_party";

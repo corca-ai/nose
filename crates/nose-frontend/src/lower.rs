@@ -2,7 +2,9 @@
 //! Language-specific walks build IL through this, so the arena/span/intern
 //! mechanics live in one place.
 
-use crate::type_domain_aliases::TypeDomainAliases;
+use crate::type_domain_aliases::{
+    ResolvedTypeDomain, TypeDomainAliases, TypeDomainEvidenceProvenance,
+};
 use nose_il::{
     stable_symbol_hash, DomainEvidence, EffectEvidenceKind, EvidenceAnchor, EvidenceEmitter,
     EvidenceId, EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
@@ -904,10 +906,39 @@ impl<'a> Lowering<'a> {
         domain: DomainEvidence,
         dependencies: Vec<EvidenceId>,
     ) {
-        self.record_evidence_with_dependencies(
+        self.record_param_domain_with_provenance(
+            span,
+            domain,
+            dependencies,
+            first_party_param_domain_provenance(),
+        );
+    }
+
+    pub(crate) fn record_param_domain_resolution(
+        &mut self,
+        span: Span,
+        domain: ResolvedTypeDomain,
+    ) {
+        self.record_param_domain_with_provenance(
+            span,
+            domain.domain,
+            domain.dependencies,
+            domain.provenance,
+        );
+    }
+
+    pub(crate) fn record_param_domain_with_provenance(
+        &mut self,
+        span: Span,
+        domain: DomainEvidence,
+        dependencies: Vec<EvidenceId>,
+        provenance: TypeDomainEvidenceProvenance,
+    ) {
+        self.record_evidence_with_pack_dependencies(
             EvidenceAnchor::param(span),
             EvidenceKind::Domain(domain),
-            "param_domain",
+            provenance.pack_id,
+            provenance.rule,
             dependencies,
         );
     }
@@ -936,6 +967,23 @@ impl<'a> Lowering<'a> {
         rule: &str,
         dependencies: Vec<EvidenceId>,
     ) -> EvidenceId {
+        self.record_evidence_with_pack_dependencies(
+            anchor,
+            kind,
+            nose_semantics::FIRST_PARTY_PACK_ID,
+            rule,
+            dependencies,
+        )
+    }
+
+    pub(crate) fn record_evidence_with_pack_dependencies(
+        &mut self,
+        anchor: EvidenceAnchor,
+        kind: EvidenceKind,
+        pack_id: &str,
+        rule: &str,
+        dependencies: Vec<EvidenceId>,
+    ) -> EvidenceId {
         let id = EvidenceId(self.evidence.len() as u32);
         self.evidence.push(EvidenceRecord {
             id,
@@ -943,7 +991,7 @@ impl<'a> Lowering<'a> {
             kind,
             provenance: EvidenceProvenance {
                 emitter: EvidenceEmitter::FirstParty,
-                pack_hash: Some(stable_symbol_hash(nose_semantics::FIRST_PARTY_PACK_ID)),
+                pack_hash: Some(stable_symbol_hash(pack_id)),
                 rule_hash: Some(stable_symbol_hash(rule)),
             },
             dependencies,
@@ -952,14 +1000,15 @@ impl<'a> Lowering<'a> {
         id
     }
 
-    pub(crate) fn record_type_domain_alias_with_evidence(
+    pub(crate) fn record_type_domain_alias_with_pack_evidence(
         &mut self,
         local: &str,
         domain: DomainEvidence,
         evidence: Option<EvidenceId>,
+        provenance: TypeDomainEvidenceProvenance,
     ) {
         self.type_domain_aliases
-            .record_normalized(local, domain, evidence);
+            .record_normalized(local, domain, evidence, provenance);
     }
 
     pub(crate) fn record_type_domain_alias_exact_with_evidence(
@@ -968,8 +1017,12 @@ impl<'a> Lowering<'a> {
         domain: DomainEvidence,
         evidence: Option<EvidenceId>,
     ) {
-        self.type_domain_aliases
-            .record_exact(local, domain, evidence);
+        self.type_domain_aliases.record_exact(
+            local,
+            domain,
+            evidence,
+            first_party_param_domain_provenance(),
+        );
     }
 
     pub(crate) fn clear_type_domain_alias(&mut self, local: &str) {
@@ -1002,14 +1055,14 @@ impl<'a> Lowering<'a> {
     pub(crate) fn type_domain_from_text_with_dependencies(
         &self,
         text: &str,
-    ) -> Option<(DomainEvidence, Vec<EvidenceId>)> {
-        type_domain_from_source_text(self.lang, text)
-            .map(|domain| (domain, Vec::new()))
-            .or_else(|| {
-                self.type_domain_aliases
-                    .resolve_text(text)
-                    .map(|resolved| (resolved.domain, resolved.dependencies))
+    ) -> Option<ResolvedTypeDomain> {
+        self.type_domain_aliases.resolve_text(text).or_else(|| {
+            type_domain_from_source_text(self.lang, text).map(|domain| ResolvedTypeDomain {
+                domain,
+                dependencies: Vec::new(),
+                provenance: first_party_param_domain_provenance(),
             })
+        })
     }
 
     /// An empty `Block` (used for absent loop init/update slots, empty bodies).
@@ -1194,6 +1247,13 @@ impl<'a> Lowering<'a> {
         n.named_children(&mut cur)
             .filter(|c| !is_trivia(c.kind()))
             .collect()
+    }
+}
+
+fn first_party_param_domain_provenance() -> TypeDomainEvidenceProvenance {
+    TypeDomainEvidenceProvenance {
+        pack_id: nose_semantics::FIRST_PARTY_PACK_ID,
+        rule: "param_domain",
     }
 }
 
@@ -2914,6 +2974,18 @@ mod tests {
         param_domain_records(evidence, domain).len()
     }
 
+    fn param_domain_record_count_from_pack(
+        evidence: &[EvidenceRecord],
+        domain: DomainEvidence,
+        pack_id: &str,
+    ) -> usize {
+        let pack_hash = stable_symbol_hash(pack_id);
+        param_domain_records(evidence, domain)
+            .into_iter()
+            .filter(|record| record.provenance.pack_hash == Some(pack_hash))
+            .count()
+    }
+
     fn imported_binding_symbol_ids(
         evidence: &[EvidenceRecord],
         module: &str,
@@ -3702,6 +3774,36 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
         let py_domains = param_domain_records(&py_alias.evidence, DomainEvidence::Collection);
         assert_eq!(py_domains.len(), 1);
         assert_eq!(py_domains[0].dependencies, import_ids);
+        assert_eq!(
+            py_domains[0].provenance.pack_hash,
+            Some(stable_symbol_hash(
+                nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
+            )),
+            "imported Python stdlib type aliases should carry the pilot pack provenance"
+        );
+
+        let py_direct_import_alias = crate::lower_source(
+            FileId(0),
+            "typing_direct_import_alias.py",
+            b"from typing import List\ndef f(xs: List[int]):\n    return len(xs)\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        let import_ids =
+            imported_binding_symbol_ids(&py_direct_import_alias.evidence, "typing", "List");
+        assert_eq!(import_ids.len(), 1);
+        let py_domains =
+            param_domain_records(&py_direct_import_alias.evidence, DomainEvidence::Collection);
+        assert_eq!(py_domains.len(), 1);
+        assert_eq!(py_domains[0].dependencies, import_ids);
+        assert_eq!(
+            py_domains[0].provenance.pack_hash,
+            Some(stable_symbol_hash(
+                nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
+            )),
+            "a direct imported alias should not fall through to first-party text heuristics"
+        );
 
         let py_iter_alias = crate::lower_source(
             FileId(0),
@@ -3716,6 +3818,12 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
         let py_domains = param_domain_records(&py_iter_alias.evidence, DomainEvidence::Iterable);
         assert_eq!(py_domains.len(), 1);
         assert_eq!(py_domains[0].dependencies, import_ids);
+        assert_eq!(
+            py_domains[0].provenance.pack_hash,
+            Some(stable_symbol_hash(
+                nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
+            ))
+        );
 
         let py_iter_shadowed = crate::lower_source(
             FileId(0),
@@ -3731,6 +3839,73 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             "a rebound iterable alias must not emit parameter Domain evidence"
         );
 
+        let py_iter_class_shadowed = crate::lower_source(
+            FileId(0),
+            "typing_iter_alias_class_shadowed.py",
+            b"from typing import Iterable as I\nclass I:\n    pass\ndef f(xs: I[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&py_iter_class_shadowed.evidence, DomainEvidence::Iterable),
+            0,
+            "a class definition with the alias name must close later Domain evidence"
+        );
+
+        let py_iter_function_shadowed = crate::lower_source(
+            FileId(0),
+            "typing_iter_alias_function_shadowed.py",
+            b"from typing import Iterable as I\ndef I():\n    return None\ndef f(xs: I[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(
+                &py_iter_function_shadowed.evidence,
+                DomainEvidence::Iterable
+            ),
+            0,
+            "a function definition with the alias name must close later Domain evidence"
+        );
+
+        let py_mapping_alias = crate::lower_source(
+            FileId(0),
+            "collections_abc_mapping_alias.py",
+            b"from collections.abc import Mapping as M\ndef f(xs: M[str, int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count_from_pack(
+                &py_mapping_alias.evidence,
+                DomainEvidence::Map,
+                nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
+            ),
+            1,
+            "collections.abc aliases should resolve through the same pilot pack"
+        );
+
+        let py_future_alias = crate::lower_source(
+            FileId(0),
+            "asyncio_future_alias.py",
+            b"from asyncio import Future as Fut\ndef f(x: Fut[int]):\n    return x\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count_from_pack(
+                &py_future_alias.evidence,
+                DomainEvidence::FutureLike,
+                nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
+            ),
+            1,
+            "asyncio Future aliases should resolve through the same pilot pack"
+        );
+
         let py_shadowed = crate::lower_source(
             FileId(0),
             "typing_alias_shadowed.py",
@@ -3743,6 +3918,20 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             param_domain_record_count(&py_shadowed.evidence, DomainEvidence::Collection),
             0,
             "a rebound typing alias must not emit parameter Domain evidence"
+        );
+
+        let py_wrong_module_alias = crate::lower_source(
+            FileId(0),
+            "typing_alias_wrong_module.py",
+            b"from project.typing import Iterable as I\ndef f(xs: I[int]):\n    return xs\n",
+            Lang::Python,
+            &interner,
+        )
+        .expect("python lowering should succeed");
+        assert_eq!(
+            param_domain_record_count(&py_wrong_module_alias.evidence, DomainEvidence::Iterable),
+            0,
+            "a same-named alias from another module must not satisfy the stdlib pack"
         );
 
         let ts = crate::lower_source(

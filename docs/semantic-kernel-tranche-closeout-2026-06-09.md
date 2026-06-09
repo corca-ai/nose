@@ -72,7 +72,8 @@ broaden producer coverage without reopening the old raw fallbacks.
 Start #166 first. A small first-party pack pilot is the best pressure test for
 the API, loading, conformance, provenance, and evidence vocabulary already
 landed. It should use compiled first-party execution and preserve current exact
-behavior.
+behavior. The first pilot target is Python stdlib type-domain aliases from
+`typing`, `collections.abc`, and `asyncio`.
 
 Run #149 in parallel with #166 when two workers are available. It lowers the
 cost of the next semantic tranche by splitting broad files and ratcheting quality

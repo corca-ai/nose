@@ -32,6 +32,30 @@
         "positive_fixtures": 0,
         "hard_negatives": 0
       }
+    },
+    {
+      "id": "nose.python.stdlib.type_domain",
+      "hash": "783a582a461f58f3",
+      "kind": "StdlibPack",
+      "version": "<version>",
+      "display_name": "nose Python stdlib type-domain pack",
+      "trust": "default-first-party",
+      "enabled_by_default": true,
+      "source": "compiled-first-party",
+      "influence": "evidence-and-contracts",
+      "provider": "Corca, Inc.",
+      "repository": "https://github.com/corca-ai/nose",
+      "license": "MIT",
+      "supported_languages": [
+        "python"
+      ],
+      "counts": {
+        "evidence_producers": 1,
+        "contracts": 1,
+        "value_laws": 0,
+        "positive_fixtures": 36,
+        "hard_negatives": 2
+      }
     }
   ],
   "ranking": {
