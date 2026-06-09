@@ -12,13 +12,15 @@ Schema artifacts:
 - [semantic-pack-v0 schema](schemas/semantic-pack-v0.schema.json)
 - [language-pack example](examples/semantic-packs/v0/language-pack.json)
 - [library-pack example](examples/semantic-packs/v0/library-pack.json)
+- [semantic-pack-conformance](semantic-pack-conformance.md)
 - [semantic-pack-loading](semantic-pack-loading.md)
 
-Status: design v0 plus local metadata loading. nose can load local manifests for
-explicit opt-in provenance reporting, but external packs are still
-`metadata-only`: they do not emit evidence or open exact contracts. This page
-defines the extension surface that first-party compiled packs and future
-external packs must use.
+Status: design v0 plus local metadata loading and a local conformance harness.
+nose can load local manifests for explicit opt-in provenance reporting, and pack
+authors can run `nose semantic-pack check` against manifests and declared fixture
+assets. External packs are still `metadata-only`: they do not emit evidence or
+open exact contracts. This page defines the extension surface that first-party
+compiled packs and future external packs must use.
 
 ## Context
 
@@ -400,7 +402,8 @@ from those ids. The human ids remain the public contract.
 
 ## Structural Validation Versus Trust
 
-nose should validate:
+nose validates the following through manifest loading and
+`nose semantic-pack check`:
 
 - manifest JSON parses and matches the v0 schema;
 - required sections and ids exist;
@@ -410,9 +413,9 @@ nose should validate:
 - exact-capable contracts declare required evidence, demand, effect, channel,
   proof status, positive fixtures, and hard negatives;
 - external packs are opt-in and not enabled by default;
-- declared compatibility ranges are syntactically valid enough to compare;
-- examples and fixtures are present at declared paths when a producer runtime or
-  conformance harness supports them.
+- declared compatibility ranges are syntactically valid enough to compare later;
+- conformance fixtures have expectation labels and point at files that exist
+  relative to the manifest path.
 
 nose does not validate or certify for external packs:
 
@@ -448,7 +451,9 @@ vocabulary that an external pack would use later.
 
 ## Conformance Checklist
 
-A pack provider should publish:
+The operational workflow is in
+[semantic-pack-conformance](semantic-pack-conformance.md). A pack provider should
+publish:
 
 - manifest with stable ids, provenance, license, repository, support contact,
   compatibility, dependencies, trust policy, and default status;
@@ -467,8 +472,9 @@ A pack provider should publish:
 - a reproducible conformance command.
 
 First-party packs must run this checklist in nose CI before becoming default.
-External packs should ship it so users can evaluate the pack, but passing the
-checklist is not nose certification.
+External packs should ship it so users can evaluate the pack. Passing
+`nose semantic-pack check` is not nose certification; it only proves the local
+manifest and declared fixture assets satisfy the v0 structural contract.
 
 ## v0 Acceptance
 
@@ -476,7 +482,7 @@ This issue is complete when:
 
 - the v0 schema and design document are linked from home, snapshot, and roadmap;
 - the schema has at least one language-pack and one library-pack example;
-- examples are checked by a lightweight harness;
+- examples are checked by the local conformance harness and docs example gate;
 - the docs state that external pack correctness is provider/user responsibility;
 - the docs state that first-party built-in semantics use the same extension
   vocabulary even if they remain compiled in initially.

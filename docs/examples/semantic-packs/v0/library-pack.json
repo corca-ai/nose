@@ -198,7 +198,7 @@
       "This example does not prove numeric algebraic product laws.",
       "This example does not certify behavior for monkey-patched module objects."
     ],
-    "command": "nose scan fixtures --semantic-pack library-pack.json --format json",
+    "command": "nose semantic-pack check library-pack.json --format json",
     "proofs": [
       "https://example.invalid/semantic-packs/python-math-prod/conformance"
     ]

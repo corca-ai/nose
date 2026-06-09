@@ -303,6 +303,160 @@ impl SemanticPackSet {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SemanticPackFixtureKind {
+    Positive,
+    HardNegative,
+}
+
+impl SemanticPackFixtureKind {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            SemanticPackFixtureKind::Positive => "positive",
+            SemanticPackFixtureKind::HardNegative => "hard-negative",
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SemanticPackFixtureIssue {
+    MissingPath,
+    MissingFile,
+    MissingExpectation,
+}
+
+impl SemanticPackFixtureIssue {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            SemanticPackFixtureIssue::MissingPath => "missing-path",
+            SemanticPackFixtureIssue::MissingFile => "missing-file",
+            SemanticPackFixtureIssue::MissingExpectation => "missing-expectation",
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SemanticPackFixtureCheck {
+    pub kind: SemanticPackFixtureKind,
+    pub id: String,
+    pub description: String,
+    pub declared_path: Option<String>,
+    pub resolved_path: Option<PathBuf>,
+    pub expectation: Option<String>,
+    pub issues: Vec<SemanticPackFixtureIssue>,
+}
+
+impl SemanticPackFixtureCheck {
+    pub fn passed(&self) -> bool {
+        self.issues.is_empty()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SemanticPackConformanceManifest {
+    pub pack: SemanticPackSummary,
+    pub manifest_path: PathBuf,
+    pub conformance_command: Option<String>,
+    pub proof_links: Vec<String>,
+    pub fixtures: Vec<SemanticPackFixtureCheck>,
+}
+
+impl SemanticPackConformanceManifest {
+    pub fn passed(&self) -> bool {
+        self.fixture_issue_count() == 0
+    }
+
+    pub fn fixture_issue_count(&self) -> usize {
+        self.fixtures
+            .iter()
+            .map(|fixture| fixture.issues.len())
+            .sum()
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SemanticPackConformanceReport {
+    pub manifests: Vec<SemanticPackConformanceManifest>,
+}
+
+impl SemanticPackConformanceReport {
+    pub fn passed(&self) -> bool {
+        self.manifests
+            .iter()
+            .all(SemanticPackConformanceManifest::passed)
+    }
+
+    pub fn manifest_count(&self) -> usize {
+        self.manifests.len()
+    }
+
+    pub fn positive_fixture_count(&self) -> usize {
+        self.manifests
+            .iter()
+            .map(|manifest| manifest.pack.counts.positive_fixtures)
+            .sum()
+    }
+
+    pub fn hard_negative_count(&self) -> usize {
+        self.manifests
+            .iter()
+            .map(|manifest| manifest.pack.counts.hard_negatives)
+            .sum()
+    }
+
+    pub fn fixture_issue_count(&self) -> usize {
+        self.manifests
+            .iter()
+            .map(SemanticPackConformanceManifest::fixture_issue_count)
+            .sum()
+    }
+}
+
+pub fn check_semantic_pack_conformance(
+    paths: &[PathBuf],
+) -> Result<SemanticPackConformanceReport, SemanticPackLoadError> {
+    let manifest_paths = discover_manifest_paths(paths)?;
+    let mut manifests: Vec<SemanticPackConformanceManifest> = Vec::new();
+    for path in manifest_paths {
+        let manifest = read_local_manifest(&path)?;
+        let conformance_command = manifest.conformance.command.clone();
+        let proof_links = manifest.conformance.proofs.clone();
+        let fixtures = collect_fixture_checks(&path, &manifest);
+        let pack =
+            SemanticPackSummary::from_manifest(path.clone(), manifest).map_err(|message| {
+                SemanticPackLoadError::InvalidManifest {
+                    path: path.clone(),
+                    message,
+                }
+            })?;
+        if pack.id == FIRST_PARTY_PACK_ID {
+            return Err(SemanticPackLoadError::DuplicatePackId {
+                id: pack.id,
+                first_path: None,
+                second_path: Some(path),
+            });
+        }
+        if let Some(existing) = manifests
+            .iter()
+            .find(|existing| existing.pack.id == pack.id)
+        {
+            return Err(SemanticPackLoadError::DuplicatePackId {
+                id: pack.id,
+                first_path: Some(existing.manifest_path.clone()),
+                second_path: Some(path),
+            });
+        }
+        manifests.push(SemanticPackConformanceManifest {
+            pack,
+            manifest_path: path,
+            conformance_command,
+            proof_links,
+            fixtures,
+        });
+    }
+    Ok(SemanticPackConformanceReport { manifests })
+}
+
 pub fn discover_manifest_paths(paths: &[PathBuf]) -> Result<Vec<PathBuf>, SemanticPackLoadError> {
     let mut out = Vec::new();
     let mut seen = HashSet::new();
@@ -367,22 +521,88 @@ fn push_unique_manifest(
 }
 
 pub fn load_local_manifest(path: &Path) -> Result<SemanticPackSummary, SemanticPackLoadError> {
-    let text = std::fs::read_to_string(path).map_err(|source| SemanticPackLoadError::Io {
-        path: path.to_path_buf(),
-        source,
-    })?;
-    let manifest = serde_json::from_str::<SemanticPackManifest>(&text).map_err(|source| {
-        SemanticPackLoadError::Json {
-            path: path.to_path_buf(),
-            source,
-        }
-    })?;
+    let manifest = read_local_manifest(path)?;
     SemanticPackSummary::from_manifest(path.to_path_buf(), manifest).map_err(|message| {
         SemanticPackLoadError::InvalidManifest {
             path: path.to_path_buf(),
             message,
         }
     })
+}
+
+fn read_local_manifest(path: &Path) -> Result<SemanticPackManifest, SemanticPackLoadError> {
+    let text = std::fs::read_to_string(path).map_err(|source| SemanticPackLoadError::Io {
+        path: path.to_path_buf(),
+        source,
+    })?;
+    serde_json::from_str::<SemanticPackManifest>(&text).map_err(|source| {
+        SemanticPackLoadError::Json {
+            path: path.to_path_buf(),
+            source,
+        }
+    })
+}
+
+fn collect_fixture_checks(
+    manifest_path: &Path,
+    manifest: &SemanticPackManifest,
+) -> Vec<SemanticPackFixtureCheck> {
+    let mut checks = Vec::new();
+    for fixture in &manifest.conformance.positive_fixtures {
+        checks.push(fixture_check(
+            manifest_path,
+            SemanticPackFixtureKind::Positive,
+            fixture,
+        ));
+    }
+    for fixture in &manifest.conformance.hard_negatives {
+        checks.push(fixture_check(
+            manifest_path,
+            SemanticPackFixtureKind::HardNegative,
+            fixture,
+        ));
+    }
+    checks
+}
+
+fn fixture_check(
+    manifest_path: &Path,
+    kind: SemanticPackFixtureKind,
+    fixture: &ManifestFixture,
+) -> SemanticPackFixtureCheck {
+    let resolved_path = fixture
+        .path
+        .as_deref()
+        .map(|path| resolve_fixture_path(manifest_path, path));
+    let mut issues = Vec::new();
+    if fixture.path.is_none() {
+        issues.push(SemanticPackFixtureIssue::MissingPath);
+    } else if !resolved_path.as_ref().is_some_and(|path| path.is_file()) {
+        issues.push(SemanticPackFixtureIssue::MissingFile);
+    }
+    if fixture.expectation.is_none() {
+        issues.push(SemanticPackFixtureIssue::MissingExpectation);
+    }
+    SemanticPackFixtureCheck {
+        kind,
+        id: fixture.id.clone(),
+        description: fixture.description.clone(),
+        declared_path: fixture.path.clone(),
+        resolved_path,
+        expectation: fixture.expectation.clone(),
+        issues,
+    }
+}
+
+fn resolve_fixture_path(manifest_path: &Path, declared_path: &str) -> PathBuf {
+    let path = Path::new(declared_path);
+    if path.is_absolute() {
+        return path.to_path_buf();
+    }
+    manifest_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(path)
 }
 
 #[derive(Debug)]
@@ -674,7 +894,7 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
         "provenance.source_revision",
         manifest.provenance.source_revision.as_deref(),
     )?;
-    require_non_empty("compatibility.nose", &manifest.compatibility.nose)?;
+    validate_nose_version_requirement("compatibility.nose", &manifest.compatibility.nose)?;
     optional_non_empty(
         "compatibility.notes",
         manifest.compatibility.notes.as_deref(),
@@ -986,6 +1206,39 @@ fn optional_non_empty(label: &str, value: Option<&str>) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_nose_version_requirement(label: &str, value: &str) -> Result<(), String> {
+    require_non_empty(label, value)?;
+    for constraint in value
+        .split(|c: char| c.is_ascii_whitespace() || c == ',')
+        .filter(|constraint| !constraint.is_empty())
+    {
+        let version = constraint
+            .strip_prefix(">=")
+            .or_else(|| constraint.strip_prefix("<="))
+            .or_else(|| constraint.strip_prefix('>'))
+            .or_else(|| constraint.strip_prefix('<'))
+            .or_else(|| constraint.strip_prefix('='))
+            .or_else(|| constraint.strip_prefix('^'))
+            .or_else(|| constraint.strip_prefix('~'))
+            .unwrap_or(constraint);
+        if !is_version_like(version) {
+            return Err(format!(
+                "`{label}` contains unsupported version constraint `{constraint}`"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn is_version_like(value: &str) -> bool {
+    let value = value.strip_prefix('v').unwrap_or(value);
+    value == "*"
+        || value.chars().next().is_some_and(|c| c.is_ascii_digit())
+            && value.chars().all(|c| {
+                c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+' | '*' | 'x' | 'X')
+            })
+}
+
 fn require_stable_id(label: &str, value: &str) -> Result<(), String> {
     require_non_empty(label, value)?;
     let mut chars = value.chars();
@@ -1022,6 +1275,7 @@ mod tests {
         dir
     }
 
+    // nose-ignore: inline semantic-pack manifest fixture; keeping the JSON shape visible matters here.
     fn manifest(id: &str) -> String {
         format!(
             r#"{{
@@ -1070,8 +1324,18 @@ mod tests {
     "value_laws": []
   }},
   "conformance": {{
-    "positive_fixtures": [{{ "id": "positive", "description": "positive" }}],
-    "hard_negatives": [{{ "id": "negative", "description": "negative" }}],
+    "positive_fixtures": [{{
+      "id": "positive",
+      "description": "positive",
+      "path": "fixtures/positive.py",
+      "expectation": "exact-contract-open"
+    }}],
+    "hard_negatives": [{{
+      "id": "negative",
+      "description": "negative",
+      "path": "fixtures/negative.py",
+      "expectation": "exact-contract-closed"
+    }}],
     "known_unsupported": []
   }}
 }}"#
@@ -1100,6 +1364,110 @@ mod tests {
         assert_eq!(external.source, SemanticPackSource::LocalManifest);
         assert_eq!(external.influence, SemanticPackInfluence::MetadataOnly);
         assert_eq!(external.counts.contracts, 1);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn conformance_check_reports_declared_fixture_files() {
+        let dir = unique_dir("conformance_ok");
+        let fixture_dir = dir.join("fixtures");
+        fs::create_dir_all(&fixture_dir).unwrap();
+        fs::write(
+            fixture_dir.join("positive.py"),
+            "import math\nmath.prod([1, 2])\n",
+        )
+        .unwrap();
+        fs::write(
+            fixture_dir.join("negative.py"),
+            "math = object()\nmath.prod([1, 2])\n",
+        )
+        .unwrap();
+        let path = dir.join("pack.json");
+        fs::write(&path, manifest("com.example.pack")).unwrap();
+
+        let report = check_semantic_pack_conformance(&[path]).expect("conformance loads");
+
+        assert!(report.passed());
+        assert_eq!(report.manifest_count(), 1);
+        assert_eq!(report.positive_fixture_count(), 1);
+        assert_eq!(report.hard_negative_count(), 1);
+        assert_eq!(report.fixture_issue_count(), 0);
+        let fixture_ids = report.manifests[0]
+            .fixtures
+            .iter()
+            .map(|fixture| (fixture.kind.as_str(), fixture.id.as_str(), fixture.passed()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            fixture_ids,
+            vec![
+                ("positive", "positive", true),
+                ("hard-negative", "negative", true)
+            ]
+        );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn conformance_check_fails_closed_on_missing_fixture_files() {
+        let dir = unique_dir("conformance_missing");
+        let path = dir.join("pack.json");
+        fs::write(&path, manifest("com.example.pack")).unwrap();
+
+        let report =
+            check_semantic_pack_conformance(&[path]).expect("manifest is structurally valid");
+
+        assert!(!report.passed());
+        assert_eq!(report.fixture_issue_count(), 2);
+        let issues = report.manifests[0]
+            .fixtures
+            .iter()
+            .flat_map(|fixture| fixture.issues.iter().map(|issue| issue.as_str()))
+            .collect::<Vec<_>>();
+        assert_eq!(issues, vec!["missing-file", "missing-file"]);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn conformance_check_requires_fixture_paths_and_expectations() {
+        let dir = unique_dir("conformance_metadata");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack")
+                .replace(
+                    r#",
+      "path": "fixtures/positive.py",
+      "expectation": "exact-contract-open""#,
+                    "",
+                )
+                .replace(
+                    r#",
+      "path": "fixtures/negative.py",
+      "expectation": "exact-contract-closed""#,
+                    "",
+                ),
+        )
+        .unwrap();
+
+        let report =
+            check_semantic_pack_conformance(&[path]).expect("manifest is structurally valid");
+
+        assert!(!report.passed());
+        assert_eq!(report.fixture_issue_count(), 4);
+        let issues = report.manifests[0]
+            .fixtures
+            .iter()
+            .flat_map(|fixture| fixture.issues.iter().map(|issue| issue.as_str()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            issues,
+            vec![
+                "missing-path",
+                "missing-expectation",
+                "missing-path",
+                "missing-expectation"
+            ]
+        );
         let _ = fs::remove_dir_all(dir);
     }
 
@@ -1161,6 +1529,25 @@ mod tests {
         .unwrap();
         let err = load_local_manifest(&path).expect_err("package versions are required");
         assert!(err.to_string().contains("missing field `versions`"));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn compatibility_nose_must_be_version_requirement_like() {
+        let dir = unique_dir("compatibility");
+        let path = dir.join("pack.json");
+        fs::write(
+            &path,
+            manifest("com.example.pack").replace(
+                r#""compatibility": { "nose": ">=0.5.0 <0.6.0" }"#,
+                r#""compatibility": { "nose": "current stable" }"#,
+            ),
+        )
+        .unwrap();
+        let err = load_local_manifest(&path).expect_err("version range should be comparable");
+        assert!(err
+            .to_string()
+            .contains("unsupported version constraint `current`"));
         let _ = fs::remove_dir_all(dir);
     }
 

@@ -2,8 +2,8 @@
 """Validate checked-in semantic-pack v0 schema examples.
 
 This is intentionally a lightweight structural check, not a full JSON Schema
-implementation. It keeps the design examples honest until nose has a real pack
-loader and conformance harness.
+implementation. It keeps the checked-in design examples honest in the docs job;
+the Rust CLI provides the pack-author conformance harness.
 """
 
 from __future__ import annotations
@@ -270,6 +270,12 @@ def validate_pack(path: Path, doc: dict[str, Any]) -> None:
     negatives = require_array(path, conformance, "hard_negatives", min_items=1)
     conformance_ids = require_unique_ids(path, positives + negatives, "conformance fixtures")
     require_array(path, conformance, "known_unsupported")
+    for fixture in positives + negatives:
+        fixture_path = require_string(path, fixture, "path")
+        require_string(path, fixture, "expectation")
+        resolved = path.parent / fixture_path
+        if not resolved.is_file():
+            fail(path, f"conformance fixture `{fixture['id']}` path does not exist: {fixture_path}")
 
     for producer in producers:
         validate_evidence_producer(path, producer, known_refs)

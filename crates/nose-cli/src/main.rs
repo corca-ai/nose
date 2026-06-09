@@ -6,6 +6,7 @@ mod config;
 mod fnv;
 mod ignores;
 mod review;
+mod semantic_pack;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -46,6 +47,12 @@ enum Cmd {
         /// Disable control-flow normalization (ablation).
         #[arg(long)]
         no_cfg_norm: bool,
+    },
+    /// Validate semantic-pack v0 manifests and declared conformance fixtures.
+    #[command(name = "semantic-pack")]
+    SemanticPack {
+        #[command(subcommand)]
+        cmd: SemanticPackCmd,
     },
     /// Research interface for raw unit clone pairs/groups.
     /// Hidden: `scan` is the user-facing command; `detect` is the strict/research
@@ -350,6 +357,19 @@ enum Cmd {
         /// Input battery: `standard` (leap 2) or `wide` (leap 3, larger domain).
         #[arg(long, default_value = "standard")]
         battery: BatteryKind,
+    },
+}
+
+#[derive(Subcommand)]
+enum SemanticPackCmd {
+    /// Check local semantic-pack v0 manifests for structural conformance.
+    Check {
+        /// Semantic-pack manifest file or directory of direct `*.json` manifests.
+        #[arg(required = true, value_name = "FILE_OR_DIR")]
+        paths: Vec<PathBuf>,
+        /// Output format.
+        #[arg(long, default_value = "human")]
+        format: semantic_pack::CheckFormat,
     },
 }
 
@@ -732,6 +752,7 @@ struct CapabilitiesSchemas {
     capabilities: Vec<u32>,
     scan_json: Vec<u32>,
     semantic_packs: Vec<&'static str>,
+    semantic_pack_conformance: Vec<u32>,
 }
 
 #[derive(serde::Serialize)]
@@ -748,6 +769,8 @@ struct CapabilitiesScan {
 struct CapabilitiesSemanticPacks {
     api_versions: Vec<&'static str>,
     loading: Vec<&'static str>,
+    conformance: Vec<&'static str>,
+    conformance_output_formats: Vec<&'static str>,
     trust: Vec<&'static str>,
     external_packs_enabled_by_default: bool,
     external_pack_influence: &'static str,
@@ -784,12 +807,20 @@ impl CapabilitiesReport {
                 doctor_json: false,
             },
             commands: CapabilitiesCommands {
-                stable: vec!["capabilities", "il", "review", "scan", "stats"],
+                stable: vec![
+                    "capabilities",
+                    "il",
+                    "review",
+                    "scan",
+                    "semantic-pack",
+                    "stats",
+                ],
             },
             schemas: CapabilitiesSchemas {
                 capabilities: vec![CAPABILITIES_SCHEMA_VERSION],
                 scan_json: vec![SCAN_JSON_SCHEMA_VERSION],
                 semantic_packs: vec![nose_semantics::SEMANTIC_PACK_API_VERSION],
+                semantic_pack_conformance: vec![semantic_pack::CONFORMANCE_SCHEMA_VERSION],
             },
             scan: CapabilitiesScan {
                 modes: vec!["syntax", "semantic", "near"],
@@ -817,6 +848,8 @@ impl CapabilitiesReport {
                     "local-manifest-file",
                     "local-manifest-directory",
                 ],
+                conformance: vec!["local-manifest-file", "local-manifest-directory"],
+                conformance_output_formats: vec!["human", "json"],
                 trust: vec![
                     "default-first-party",
                     "first-party-optional",
@@ -1322,6 +1355,9 @@ fn run() -> Result<()> {
             no_cfg_norm,
         } => cmd_il(path, format, normalized, no_cfg_norm),
         Cmd::Capabilities => cmd_capabilities(),
+        Cmd::SemanticPack { cmd } => match cmd {
+            SemanticPackCmd::Check { paths, format } => semantic_pack::cmd_check(paths, format),
+        },
         Cmd::Detect {
             paths,
             min_lines,

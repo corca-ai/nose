@@ -7,7 +7,9 @@ record substrate is described in [evidence-records](evidence-records.md). The
 post-PR #147 raw/local pocket audit is recorded in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
 v0 provider-facing extension API is defined in
-[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md).
+[semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md), and the
+local provider/user conformance workflow is in
+[semantic-pack-conformance](semantic-pack-conformance.md).
 
 Snapshot date: 2026-06-09. The current implementation has an internal
 semantic-kernel facade, evidence-gated field state, sequence-surface contracts,
@@ -77,8 +79,9 @@ still being migrated toward it.
   occurrence/admission logic are split into focused modules.
 - The external pack API is documented as a v0 manifest/schema with examples.
   `nose-semantics` can load local manifest files/directories for metadata and
-  provenance reporting, and `nose scan --format json` reports active packs.
-  External packs are still `metadata-only`; first-party producers remain
+  provenance reporting, `nose scan --format json` reports active packs, and
+  `nose semantic-pack check` validates local manifests plus declared fixture
+  assets. External packs are still `metadata-only`; first-party producers remain
   compiled Rust and are expected to map onto the same vocabulary.
 - `nose-frontend` owns tree-sitter parsing, per-language lowering, embedded
   `<script>` extraction, source/domain/import/symbol/type/guard/place/effect/API/
@@ -732,7 +735,7 @@ language.
 - First-party and external responsibility boundaries are documented, represented
   in the internal facade as provenance/trust policy, and visible in scan JSON.
   Loaded external manifests remain metadata-only until a producer runtime and
-  conformance harness exist.
+  executable fixture/oracle workflow exist.
 
 ## Current fail-closed choices
 

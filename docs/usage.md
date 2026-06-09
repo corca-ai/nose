@@ -29,6 +29,7 @@ from-source `./target/release/nose`.
 | Find refactoring candidates in a tree | `nose scan <paths...>` |
 | Catch a missed sibling edit in a diff or PR | `nose review --base <ref>` |
 | Ask what an installed binary supports | `nose capabilities` |
+| Check a local semantic-pack manifest | `nose semantic-pack check <file-or-dir>` |
 | Inspect lowering coverage for a language | `nose stats <paths...>` |
 | Debug why two snippets do or do not converge | `nose il <file> --normalized` |
 
@@ -197,6 +198,10 @@ and may change to improve readability. The stable contract is documented in
   Raw-node ratio), with the top unhandled surface kinds (`--top`, default 30; `--json`
   for machine output). Use it to spot a language/construct that isn't lowering well; see
   [languages](languages.md).
+- `nose semantic-pack check <file-or-dir> [--format human|json]` — validate local
+  semantic-pack v0 manifest structure and declared fixture assets. It is a
+  pack-author/user workflow, not external pack certification; see
+  [semantic-pack-conformance](semantic-pack-conformance.md).
 - `nose il <file> [--normalized] [--no-cfg-norm] [--format sexpr|json]` — dump the IL
   for one file (`--normalized` shows the canonical form after the
   [normalization](normalization.md) passes). A debugging tool for understanding why two

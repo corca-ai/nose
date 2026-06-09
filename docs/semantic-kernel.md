@@ -34,7 +34,8 @@ external producer runtime.
 The external API design starts at
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md): it narrows
 the current internal evidence and contract vocabulary into a manifest shape for
-future language/library packs.
+future language/library packs. The provider/user conformance workflow is in
+[semantic-pack-conformance](semantic-pack-conformance.md).
 
 Evidence records are one kernel input at that boundary. They preserve facts that
 the IL deliberately abstracts away, but they do not approve semantic equivalence
@@ -298,9 +299,10 @@ Every pack should declare:
 - provenance labels that can appear in reports.
 
 Packs that claim exact eligibility should also provide a reproducible conformance
-command. First-party packs must run that command in nose CI. External packs should
-ship it so users can run it, but nose does not promise to execute or approve it
-unless the pack is adopted as first-party.
+command. First-party packs must run that command in nose CI. External packs
+should ship it so users can run `nose semantic-pack check`, but passing the
+structural harness is not nose approval of external semantic correctness unless
+the pack is adopted as first-party.
 
 ## Practical architecture
 

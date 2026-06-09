@@ -647,7 +647,8 @@ and pack ecosystem.
 - The v0 pack extension API defined the first provider-facing manifest shape for
   language/library packs, including evidence producers, contract rows, anchors,
   dependencies, channel eligibility, trust/default status, provider/user
-  responsibility boundaries, examples, and a lightweight checked example gate.
+  responsibility boundaries, examples, local metadata loading, and local
+  conformance checks for manifests plus declared fixture assets.
 
 ## Phase 0: documentation and vocabulary (landed)
 
@@ -821,16 +822,18 @@ Remaining in this phase:
 - The first versioned pack manifest schema is defined in
   [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Local
   metadata loading is implemented for manifest files/directories and documented
-  in [semantic-pack-loading](semantic-pack-loading.md); external packs remain
-  metadata-only.
+  in [semantic-pack-loading](semantic-pack-loading.md); local structural
+  conformance is implemented in
+  [semantic-pack-conformance](semantic-pack-conformance.md); external packs
+  remain metadata-only.
 - Start with data-only external packs for simple APIs once producer execution and
-  conformance checks exist.
+  executable fixture/oracle checks exist.
 - Add restricted recognizer hooks only after the manifest path is stable.
 - Require pack metadata: provider, license, version range, supported analysis
   channels, evidence status, conformance commands, and semantic provenance ids.
-- Document the pack conformance checklist as part of the extension schema; make
-  clear that conformance evidence is provider/user responsibility unless the pack
-  is first-party.
+- Keep the pack conformance checklist explicit: structural harness results,
+  semantic correctness evidence, and enablement risk are provider/user
+  responsibility unless the pack is first-party.
 - User configuration and `--semantic-pack` can enable local manifests explicitly.
 - Scan JSON reports active pack provenance and whether each pack influenced
   evidence/contracts or metadata only. Per-finding contract/law provenance and

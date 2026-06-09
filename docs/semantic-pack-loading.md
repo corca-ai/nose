@@ -1,10 +1,12 @@
 # Semantic pack loading
 
-Back to [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md) and
+Back to [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md),
+[semantic-pack-conformance](semantic-pack-conformance.md), and
 [semantic-kernel](semantic-kernel.md).
 
 Status: nose can load local semantic-pack v0 manifests for provenance and trust
-reporting. External packs are explicit opt-ins and are currently
+reporting, and it can run a separate local conformance check for manifests and
+declared fixture assets. External packs are explicit opt-ins and are currently
 `metadata-only`: they do not emit evidence, open exact contracts, mint
 fingerprints, or approve clone pairs.
 
@@ -30,6 +32,22 @@ are resolved relative to the config file that declared them; paths from
 CLI paths. Directory loading reads direct `*.json` children in sorted order; it
 does not recurse and it does not contact a registry or network service.
 
+## Conformance entry point
+
+Pack authors and users can check the same local manifest paths without loading
+them into a scan:
+
+```sh
+nose semantic-pack check semantic-packs/python-math-prod.json
+nose semantic-pack check semantic-packs --format json
+```
+
+The conformance command validates manifest structure, trust policy, dependency
+references, exact-capable contract obligations, conformance fixture references,
+fixture expectation labels, and fixture file existence. It does not execute
+external producers or certify semantic correctness. See
+[semantic-pack-conformance](semantic-pack-conformance.md).
+
 ## Trust policy
 
 Trust is separate from channel eligibility.
@@ -54,9 +72,9 @@ The loader validates manifest shape and pack provenance only. It does not yet:
 
 - execute external evidence producers;
 - register external contract rows with exact consumers;
-- validate fixture files or run a conformance harness;
-- compare semantic version ranges beyond requiring the declared compatibility
-  field;
+- execute fixture contents or run a behavioral oracle;
+- compare semantic version ranges against the installed nose version beyond
+  requiring a parseable declared compatibility field;
 - install packs from a registry or remote source.
 
 Future loader work should keep this boundary: external pack claims can become

@@ -523,12 +523,113 @@ fn semantic_pack_manifest(id: &str) -> String {
     "value_laws": []
   }},
   "conformance": {{
-    "positive_fixtures": [{{ "id": "positive", "description": "positive" }}],
-    "hard_negatives": [{{ "id": "negative", "description": "negative" }}],
+    "positive_fixtures": [{{
+      "id": "positive",
+      "description": "positive",
+      "path": "fixtures/positive.py",
+      "expectation": "exact-contract-open"
+    }}],
+    "hard_negatives": [{{
+      "id": "negative",
+      "description": "negative",
+      "path": "fixtures/negative.py",
+      "expectation": "exact-contract-closed"
+    }}],
     "known_unsupported": []
   }}
 }}"#
     )
+}
+
+#[test]
+fn semantic_pack_check_json_reports_conformance_success() {
+    let dir = make_project("semantic_pack_check_ok");
+    let fixture_dir = dir.join("fixtures");
+    fs::create_dir_all(&fixture_dir).unwrap();
+    fs::write(
+        fixture_dir.join("positive.py"),
+        "def positive(xs):\n    return sum(xs)\n",
+    )
+    .unwrap();
+    fs::write(
+        fixture_dir.join("negative.py"),
+        "def negative(xs):\n    return list(xs)\n",
+    )
+    .unwrap();
+    let pack = dir.join("pack.json");
+    fs::write(&pack, semantic_pack_manifest("com.example.semantic-pack")).unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "semantic-pack",
+            "check",
+            pack.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("semantic pack check");
+
+    assert!(
+        out.status.success(),
+        "semantic-pack check should pass: stderr={}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&stdout).expect("check should emit JSON");
+    assert_eq!(json["schema_version"], 1);
+    assert_eq!(json["status"], "ok");
+    assert_eq!(json["totals"]["manifests"], 1);
+    assert_eq!(json["totals"]["positive_fixtures"], 1);
+    assert_eq!(json["totals"]["hard_negatives"], 1);
+    assert_eq!(json["totals"]["fixture_issues"], 0);
+    assert_eq!(json["manifests"][0]["id"], "com.example.semantic-pack");
+    assert_eq!(
+        json["manifests"][0]["fixtures"][0]["issues"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn semantic_pack_check_fails_on_missing_fixture_files() {
+    let dir = make_project("semantic_pack_check_missing");
+    let pack = dir.join("pack.json");
+    fs::write(&pack, semantic_pack_manifest("com.example.semantic-pack")).unwrap();
+
+    let out = Command::new(bin())
+        .args([
+            "semantic-pack",
+            "check",
+            pack.to_str().unwrap(),
+            "--format",
+            "json",
+        ])
+        .output()
+        .expect("semantic pack check");
+
+    assert!(
+        !out.status.success(),
+        "semantic-pack check should fail when declared fixtures are missing"
+    );
+    let stdout = String::from_utf8(out.stdout).unwrap();
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    let json: serde_json::Value =
+        serde_json::from_str(&stdout).expect("failed check should still emit JSON");
+    assert_eq!(json["status"], "failed");
+    assert_eq!(json["totals"]["fixture_issues"], 2);
+    assert_eq!(
+        json["manifests"][0]["fixtures"][0]["issues"][0],
+        "missing-file"
+    );
+    assert!(
+        stderr.contains("semantic pack conformance failed"),
+        "stderr should name the conformance failure: {stderr}"
+    );
+    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -1062,7 +1163,14 @@ fn capabilities_command_emits_machine_readable_contract() {
 
     assert_eq!(
         json_array_strings(&json["commands"], "stable"),
-        vec!["capabilities", "il", "review", "scan", "stats"]
+        vec![
+            "capabilities",
+            "il",
+            "review",
+            "scan",
+            "semantic-pack",
+            "stats"
+        ]
     );
     assert_eq!(json["schemas"]["capabilities"][0], 1);
     assert_eq!(json["schemas"]["scan_json"][0], 1);
@@ -1070,6 +1178,7 @@ fn capabilities_command_emits_machine_readable_contract() {
         json["schemas"]["semantic_packs"][0],
         "nose.semantic-pack.v0"
     );
+    assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 1);
     assert_eq!(
         json_array_strings(&json["scan"], "modes"),
         vec!["syntax", "semantic", "near"]
@@ -1096,6 +1205,14 @@ fn capabilities_command_emits_machine_readable_contract() {
     assert_eq!(
         json["semantic_packs"]["external_pack_influence"],
         "metadata-only"
+    );
+    assert_eq!(
+        json_array_strings(&json["semantic_packs"], "conformance"),
+        vec!["local-manifest-file", "local-manifest-directory"]
+    );
+    assert_eq!(
+        json_array_strings(&json["semantic_packs"], "conformance_output_formats"),
+        vec!["human", "json"]
     );
     assert_eq!(
         json["semantic_packs"]["external_packs_enabled_by_default"],

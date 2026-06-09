@@ -122,7 +122,8 @@
       "properties": {
         "nose": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "pattern": "^(\\s*(>=|<=|>|<|=|\\^|~)?v?([0-9][A-Za-z0-9.*xX+.-]*|\\*)\\s*,?)+$"
         },
         "schema": {
           "const": "v0"

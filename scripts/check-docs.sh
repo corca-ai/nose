@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Docs quality gate. The semantic-pack example check keeps checked-in v0
-# manifests structurally honest; awiki checks the docs/ wiki is a single
+# manifests and fixture paths structurally honest; awiki checks the docs/ wiki is a single
 # connected graph with no orphan pages or disconnected islands. Mirrors the
 # `docs` job in .github/workflows/ci.yml.
 #

@@ -42,12 +42,13 @@ nose capabilities
     "doctor_json": false
   },
   "commands": {
-    "stable": ["capabilities", "il", "review", "scan", "stats"]
+    "stable": ["capabilities", "il", "review", "scan", "semantic-pack", "stats"]
   },
   "schemas": {
     "capabilities": [1],
     "scan_json": [1],
-    "semantic_packs": ["nose.semantic-pack.v0"]
+    "semantic_packs": ["nose.semantic-pack.v0"],
+    "semantic_pack_conformance": [1]
   },
   "scan": {
     "modes": ["syntax", "semantic", "near"],
@@ -86,6 +87,11 @@ nose capabilities
       "local-manifest-file",
       "local-manifest-directory"
     ],
+    "conformance": [
+      "local-manifest-file",
+      "local-manifest-directory"
+    ],
+    "conformance_output_formats": ["human", "json"],
     "trust": [
       "default-first-party",
       "first-party-optional",
@@ -130,6 +136,7 @@ release so it can't drift.
 | `schemas.capabilities` | array | Supported capabilities schema versions. |
 | `schemas.scan_json` | array | Supported `nose scan --format json` schema versions. |
 | `schemas.semantic_packs` | array | Supported semantic-pack manifest API versions, currently `nose.semantic-pack.v0`. |
+| `schemas.semantic_pack_conformance` | array | Supported `nose semantic-pack check --format json` schema versions. |
 | `scan.modes` | array | Supported `--mode` values. |
 | `scan.default_modes` | array | Modes used by `nose scan` when `--mode` is omitted. |
 | `scan.output_formats` | array | Supported `nose scan --format` values. |
@@ -138,6 +145,8 @@ release so it can't drift.
 | `scan.capabilities` | object | Stable boolean capability flags for scan workflows. |
 | `semantic_packs.api_versions` | array | Supported semantic-pack manifest API versions. |
 | `semantic_packs.loading` | array | Supported loading sources: compiled first-party and local manifest files/directories. |
+| `semantic_packs.conformance` | array | Supported conformance input sources: local manifest files/directories. |
+| `semantic_packs.conformance_output_formats` | array | Supported `nose semantic-pack check --format` values. |
 | `semantic_packs.trust` | array | Supported trust policy labels. |
 | `semantic_packs.external_packs_enabled_by_default` | boolean | Always `false`; external packs require explicit CLI/config opt-in. |
 | `semantic_packs.external_pack_influence` | string | Current influence of loaded external packs, `metadata-only`. |

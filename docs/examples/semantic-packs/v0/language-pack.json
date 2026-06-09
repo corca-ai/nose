@@ -186,6 +186,6 @@
       "Dynamic eval and with-scope semantics are outside this example.",
       "This example does not model JavaScript object identity or equality conversion rules."
     ],
-    "command": "nose scan fixtures --semantic-pack language-pack.json --format json"
+    "command": "nose semantic-pack check language-pack.json --format json"
   }
 }
