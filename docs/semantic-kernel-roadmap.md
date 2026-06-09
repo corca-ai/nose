@@ -6,7 +6,7 @@ of remaining raw/local semantic pockets is in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md). The
 provider-facing v0 extension API is in
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). The
-closeout for the first #109 foundation tranche is in
+closeout for the #109 semantic-kernel migration is in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
 
 This page tracks decisions, history, and remaining work for the semantic kernel
@@ -671,11 +671,11 @@ and pack ecosystem.
   dependencies, channel eligibility, trust/default status, provider/user
   responsibility boundaries, examples, local metadata loading, and local
   conformance checks for manifests plus declared fixture assets.
-- The first #109 foundation tranche closed issues #150-#157. The closeout
-  records the landed API/loading/conformance/demand/effect/Promise/call-target/
-  domain foundation and opens the next tranche around first-party pack pilots,
-  broader producer coverage, richer demand/effect contracts, and pack-facing
-  value-law provenance.
+- The #109 semantic-kernel migration closed issues #150-#157, #166, #169, #168,
+  and #167. The closeout records the landed API/loading/conformance/demand/
+  effect/Promise/call-target/domain foundation, the first compiled first-party
+  pack pilot, broader imported call-target producer coverage, admitted library
+  HOF demand/effect contracts, and the first compiled LawPack provenance pilot.
 - The first first-party pack pilot moved Python stdlib type-domain aliases from
   a raw helper table into a pack-shaped contract row set with active
   `nose.python.stdlib.type_domain` provenance.
@@ -710,23 +710,20 @@ Landed in PR #100 and PR #101:
   obligations for the migrated facade paths.
 - Parser and lowering dispatch remain unchanged.
 
-Remaining after the foundation tranche:
+Remaining after the #109 closeout:
 
-- Ship a narrow first-party pack pilot (#166) so the v0 API, metadata loading,
-  conformance workflow, provenance, and evidence vocabulary are exercised by an
-  actual default pack-shaped implementation.
-- Continue producer coverage beyond the call-target imported-function/member
-  slice for direct methods, dynamic dispatch, richer domains, guards,
-  aggregates, and module/export dependencies without reopening raw
-  selector/name/type/tag fallbacks.
-- Expand demand/effect contracts (#168) for lazy, iterator, generator, async,
-  channel, repeated, and call-by-need semantics before ecosystem APIs can enter
-  exact matching. The first iterator/HOF slice now distinguishes eager
-  JS-like/Ruby library HOF callback demand from pull-lazy Rust iterator/Java
-  Stream callback demand; broader protocol families and pack-facing schema rows
-  remain open.
+- Broaden first-party compiled packs beyond the Python stdlib type-domain pilot
+  and the value-graph LawPack pilot, keeping external packs metadata-only until
+  an executable producer runtime and trust policy are explicitly designed.
+- Continue producer coverage beyond the imported call-target slice for direct
+  methods, dynamic dispatch, richer domains, guards, aggregates, and
+  module/export dependencies without reopening raw selector/name/type/tag
+  fallbacks.
+- Expand demand/effect contracts beyond the first admitted library HOF timing
+  slice into lazy, iterator, generator, async, channel, repeated, and
+  call-by-need semantics before ecosystem APIs can enter exact matching.
 - Expand the first pack-facing value-law provenance pilot beyond
-  `factor_distribute` and `clamp` (#167) to reduction laws, parity/toggle laws,
+  `factor_distribute` and `clamp` to reduction laws, parity/toggle laws,
   low-level byte-pack laws, structural recursion, ecosystem law packs, and
   external LawPack producer execution.
 - Keep behavior-changing recall reductions documented when missing evidence

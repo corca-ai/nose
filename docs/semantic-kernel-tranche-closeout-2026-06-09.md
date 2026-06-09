@@ -1,4 +1,4 @@
-# Semantic kernel tranche closeout, 2026-06-09
+# Semantic kernel #109 closeout, 2026-06-09
 
 Back to [semantic-kernel](semantic-kernel.md). Current implementation status is
 in [semantic-kernel-snapshot](semantic-kernel-snapshot.md); long-range phases
@@ -8,8 +8,9 @@ closeout updates the post-PR #147 audit recorded in
 
 ## Scope
 
-This page closes the first semantic-kernel foundation tranche under GitHub issue
-#109. It covers the follow-up issues created from the post-PR #147 audit:
+This page closes the semantic-kernel foundation work tracked under GitHub issue
+#109. The first tranche covered the follow-up issues created from the post-PR
+#147 audit:
 
 | issue | PR | outcome |
 |---|---|---|
@@ -22,10 +23,20 @@ This page closes the first semantic-kernel foundation tranche under GitHub issue
 | #156 | #165 | expanded type/domain evidence vocabulary and nominal type-domain proof |
 | #157 | #163 | added semantic pack conformance harness and contribution workflow |
 
+The follow-up tranche then pressure-tested the extension boundary and producer
+model:
+
+| issue | PR | outcome |
+|---|---|---|
+| #166 | #171 | shipped the first compiled first-party pack pilot, `nose.python.stdlib.type_domain` |
+| #169 | #172 | broadened evidence producer coverage for imported call-target facts |
+| #168 | #173 | expanded demand/effect contracts for admitted library HOF timing |
+| #167 | #174 | shipped the first compiled LawPack pilot, `nose.value_graph.laws`, with family-level value-law provenance |
+
 ## Current state
 
-The tranche is complete as a foundation, not as a finished ecosystem. The code
-now has:
+The #109 migration is complete as a foundation, not as a finished ecosystem. The
+code now has:
 
 - a documented v0 pack extension shape for language/library semantics,
   contracts, evidence producers, dependencies, channel eligibility, trust, and
@@ -46,45 +57,29 @@ now has:
 - richer domain evidence for arrays, collections, iterables, iterators, sets,
   maps, records, options, results, promise/future-like values, strings,
   booleans, integer/float/number distinctions, byte arrays, and hashed nominal
-  domains.
+  domains;
+- a compiled first-party stdlib pack pilot for Python type-domain aliases,
+  exposed as `nose.python.stdlib.type_domain`;
+- broader first-party producer coverage for dependency-backed imported
+  call-target evidence;
+- demand/effect contracts that distinguish eager JS-like/Ruby library HOF
+  callbacks from pull-lazy Rust iterator and Java Stream callbacks;
+- a compiled first-party LawPack pilot, `nose.value_graph.laws`, with stable
+  law ids and family-level provenance for numeric common-factor distribution
+  and integer ordered min/max clamp.
 
 The core policy is unchanged: selectors, names, payload tags, raw IL shapes, and
 broad type-text substrings are not proof. Missing, ambiguous, conflicting,
 shadowed, or dependency-broken evidence must keep exact semantic convergence
 closed.
 
-## What remains
+## Closeout Decision
 
-The remaining work is no longer "finish #151-#157." Those issues are closed.
-The next work is to prove that the new extension boundary is practical and then
-broaden producer coverage without reopening the old raw fallbacks.
+#109 can close. All operational child issues created for this foundation and
+follow-up tranche are complete: #150-#157, #166, #169, #168, and #167.
 
-| priority | issue | work | reason |
-|---|---|---|---|
-| P0 | #166 | first-party pack pilot | The extension boundary needs one narrow default pack-shaped implementation before broad first-party conversion or external executable producers. |
-| P1 | #169 | broaden evidence producer coverage | Shared vocabularies exist, but producer coverage for call targets, richer domains, guards, aggregates, and module/export dependencies is still selective. |
-| P1 | #168 | expand demand and effect contracts | Lazy, iterator, generator, async, channel, repeated, and call-by-need semantics need more precise obligations before ecosystem APIs can enter exact matching. |
-| P2 | #167 | pack-facing value laws and provenance | Current `ValueLaw`/rule ids are internal; pack-facing law contracts, proof status, fixture expectations, and per-finding provenance remain open. |
-| quality | #149 | quality-gate ratchets and large-file cleanup | The semantic foundation is now broad enough that the remaining large/high-complexity modules should be split before more kernel behavior accumulates there. |
-
-## Recommended order
-
-Start #166 first. A small first-party pack pilot is the best pressure test for
-the API, loading, conformance, provenance, and evidence vocabulary already
-landed. It should use compiled first-party execution and preserve current exact
-behavior. The first pilot target is Python stdlib type-domain aliases from
-`typing`, `collections.abc`, and `asyncio`.
-
-Run #149 in parallel with #166 when two workers are available. It lowers the
-cost of the next semantic tranche by splitting broad files and ratcheting quality
-gates, and it should not need to touch the same pack-pilot surfaces if scoped
-carefully.
-
-Start #169 after the #166 pilot has clarified the first-party pack shape, or in
-parallel only for a producer family that does not depend on that shape. Start
-#168 when a concrete protocol family is chosen and its demand/effect hard
-negatives are clear. Start #167 after #166 has established how first-party pack
-metadata and conformance results should identify semantic contributions.
-
-Keep #109 open as the parent tracker until at least one first-party pack-shaped
-semantic surface ships and the next producer/runtime tranche is re-evaluated.
+The remaining semantic-kernel direction is no longer blocked on #109. Future
+work should be opened as new, scoped issues when a concrete language surface,
+producer family, LawPack family, or ecosystem-pack runtime slice is selected.
+The active companion issue is #149, which is a quality-gate ratchet and
+large-file cleanup track rather than a semantic-kernel behavior migration.

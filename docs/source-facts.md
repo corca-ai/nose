@@ -51,7 +51,7 @@ preconditions.
 | term | meaning |
 |---|---|
 | Source evidence | `EvidenceKind::Source` records keyed by stable source anchors. |
-| Evidence record | Current internal form of a source or semantic fact, with stable ids, anchors, dependencies, status, and provenance. The external pack manifest is not defined yet. |
+| Evidence record | Current internal form of a source or semantic fact, with stable ids, anchors, dependencies, status, and provenance. The v0 external pack manifest is defined separately and remains metadata-only when loaded locally. |
 | Contract | Kernel rule that maps a proven source/API surface to a semantic operation or law under explicit preconditions. |
 | Pack provenance | The pack id, provider, trust policy, version range, contract id, and evidence status behind an admitted fact or contract. |
 

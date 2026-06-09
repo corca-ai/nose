@@ -5,7 +5,7 @@ Back to [home](home.md). Current implementation status is in
 work are tracked in [semantic-kernel-roadmap](semantic-kernel-roadmap.md). The
 post-PR #147 raw/local pocket audit is recorded in
 [semantic-kernel-audit-2026-06-09](semantic-kernel-audit-2026-06-09.md), and the
-first #109 foundation tranche closeout is recorded in
+#109 closeout is recorded in
 [semantic-kernel-tranche-closeout-2026-06-09](semantic-kernel-tranche-closeout-2026-06-09.md).
 The versioned provider-facing extension surface is defined in
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Source
