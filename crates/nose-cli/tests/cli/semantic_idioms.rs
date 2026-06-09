@@ -652,6 +652,9 @@ fn scan_mode_semantic_proves_rust_integer_methods() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for literal collection membership contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_literal_collection_membership() {
     let dir = std::env::temp_dir().join(format!("nose_literal_membership_{}", std::process::id()));
@@ -2165,6 +2168,9 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for literal map default contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_literal_map_default_lookup() {
     let dir = std::env::temp_dir().join(format!("nose_map_default_{}", std::process::id()));

@@ -101,9 +101,9 @@ cargo build --release
 step "test (release)"
 cargo test --release
 
-step "coverage gate (cargo-llvm-cov, >= 85% lines)"
+step "coverage gate (cargo-llvm-cov, >= 86% lines)"
 need_cmd cargo-llvm-cov "install it with: cargo install cargo-llvm-cov"
-cargo llvm-cov --workspace --summary-only --fail-under-lines 85
+cargo llvm-cov --workspace --summary-only --fail-under-lines 86
 
 step "duplication gate (nose on itself)"
 ./scripts/check-duplication.sh

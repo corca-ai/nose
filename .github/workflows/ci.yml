@@ -47,10 +47,10 @@ jobs:
         with:
           tool: cargo-llvm-cov
       # Line-coverage ratchet. The bar starts lenient (current line coverage is
-      # ~87%); raise --fail-under-lines over time as coverage improves. Keep it
+      # ~86%); raise --fail-under-lines over time as coverage improves. Keep it
       # in sync with scripts/check-ci-local.sh.
-      - name: coverage gate (>= 85% lines)
-        run: cargo llvm-cov --workspace --summary-only --fail-under-lines 85
+      - name: coverage gate (>= 86% lines)
+        run: cargo llvm-cov --workspace --summary-only --fail-under-lines 86
 
   msrv:
     name: minimum supported rust version

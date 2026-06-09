@@ -8,9 +8,14 @@
 # Run locally with: cargo clippy --all-targets --all-features -- -D warnings
 
 # Per-function cognitive complexity (branch/nesting weighted). Clippy's default
-# is 25; nose's current production ceiling is 68, so this lenient baseline sits
-# just above it. Ratchet downward as complex functions are simplified.
-cognitive-complexity-threshold = 80
+# is 25; nose's current production ceiling is 64, so this baseline sits just
+# above it. Ratchet downward as complex functions are simplified.
+cognitive-complexity-threshold = 65
+
+# Per-function length. Clippy's default is 100; nose's current production
+# ceiling is 399, with three intentionally broad fixture-matrix tests allowed
+# above this threshold. Ratchet downward as large functions are split.
+too-many-lines-threshold = 400
 
 # Already enforced by clippy's default `complexity` group; pinned here so the
 # thresholds are visible and ratchetable alongside the others.
