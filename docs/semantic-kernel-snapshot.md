@@ -558,18 +558,21 @@ migrated.
   and manually constructed calls without admitted occurrence evidence stay
   exact-closed.
 - User-defined and imported opaque call identity now consume `CallTarget`
-  evidence. The first-party producer admits only `DirectFunction` records for
-  unique top-level in-file function targets with no current or enclosing lexical
-  shadowing by parameters, assignments, loop patterns, or nested function
-  definitions; recursion normalization and the interpreter oracle, value-graph
-  pure helper inlining, and strict exact direct-function callee gates no longer
-  treat same raw callee spelling as call-target proof. The shared resolver also
-  understands `DirectMethod`, `ImportedFunction`, `ImportedMember`, and
-  `DynamicDispatch` records. Strict exact admits imported function/member
-  identity only through explicit evidence, requires exact receiver identity for
-  direct methods, treats dynamic-dispatch records as non-concrete by themselves,
-  and closes on selector mismatch, dependency-broken records, or conflicting
-  target evidence.
+  evidence. The first-party producer admits `DirectFunction` records for unique
+  top-level in-file function targets with no current or enclosing lexical
+  shadowing, and imported function/member records only from dependency-backed
+  imported binding or imported namespace symbol proof at the call occurrence.
+  Same raw callee spelling, same field selector spelling, rebinding, ambiguous
+  import proof, conflicting symbol evidence, dependency-broken proof, and
+  locally visible same-name function units stay closed. Recursion normalization,
+  the interpreter oracle, value-graph pure helper inlining, and strict exact
+  direct-function callee gates no longer treat same raw callee spelling as
+  call-target proof. The shared resolver also understands `DirectMethod` and
+  `DynamicDispatch` records, but no first-party producer emits them yet. Strict
+  exact admits imported function/member identity only through explicit evidence,
+  requires exact receiver identity for direct methods, treats dynamic-dispatch
+  records as non-concrete by themselves, and closes on selector mismatch,
+  dependency-broken records, or conflicting target evidence.
 - JS-like `typeof` exact-safety now consumes a language- and arity-constrained
   operator contract plus `Source::Operator(Typeof)` evidence at the call span.
   A raw `Call(Var("typeof"), arg)` shape, same-named function from another

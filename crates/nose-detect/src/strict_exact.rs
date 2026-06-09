@@ -1667,6 +1667,7 @@ mod tests {
         EvidenceKind, EvidenceProvenance, EvidenceRecord, EvidenceStatus, FileId, FileMeta,
         IlBuilder, Lang, LibraryApiEvidenceKind, Span, Unit, UnitKind,
     };
+    use nose_normalize::{normalize, NormalizeOptions};
     use nose_semantics::{
         library_api_callee_contract_hash, library_api_contract_id_hash, library_map_get_contract,
         library_method_call_contract, FIRST_PARTY_PACK_ID,
@@ -1674,6 +1675,35 @@ mod tests {
 
     fn sp(line: u32) -> Span {
         Span::new(FileId(0), line, line, line, line)
+    }
+
+    fn normalized_python(src: &str, interner: &Interner) -> Il {
+        let raw =
+            nose_frontend::lower_source(FileId(0), "t.py", src.as_bytes(), Lang::Python, interner)
+                .expect("lower python source");
+        normalize(&raw, interner, &NormalizeOptions::default())
+    }
+
+    fn first_call_with_target(
+        il: &Il,
+        interner: &Interner,
+        target_matches: impl Fn(CallTargetEvidenceKind) -> bool,
+    ) -> NodeId {
+        il.nodes
+            .iter()
+            .enumerate()
+            .find_map(|(idx, node)| {
+                if node.kind != NodeKind::Call {
+                    return None;
+                }
+                let call = NodeId(idx as u32);
+                matches!(
+                    call_target_evidence_status_at_call(il, interner, call),
+                    CallTargetEvidenceStatus::Admitted(target) if target_matches(target)
+                )
+                .then_some(call)
+            })
+            .expect("admitted call-target call")
     }
 
     fn evidence(
@@ -2081,6 +2111,53 @@ mod tests {
             },
             Vec::new(),
         ));
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+    }
+
+    #[test]
+    fn normalized_imported_function_call_target_opens_opaque_exact_identity() {
+        let interner = Interner::new();
+        let il = normalized_python(
+            "from acme.ops import transform as tx\n\ndef f(x):\n    return tx(x)\n",
+            &interner,
+        );
+        let call = first_call_with_target(&il, &interner, |target| {
+            matches!(
+                target,
+                CallTargetEvidenceKind::ImportedFunction {
+                    module_hash,
+                    exported_hash,
+                    ..
+                } if module_hash == stable_symbol_hash("acme.ops")
+                    && exported_hash == stable_symbol_hash("transform")
+            )
+        });
+
+        let facts = StrictFacts::collect(&il, &interner);
+        assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
+    }
+
+    #[test]
+    fn normalized_imported_namespace_member_target_opens_static_member_identity() {
+        let interner = Interner::new();
+        let il = normalized_python(
+            "import acme.ops as ops\n\ndef f(x):\n    return ops.transform(x)\n",
+            &interner,
+        );
+        let call = first_call_with_target(&il, &interner, |target| {
+            matches!(
+                target,
+                CallTargetEvidenceKind::ImportedMember {
+                    module_hash,
+                    exported_hash,
+                    member_hash,
+                } if module_hash == stable_symbol_hash("acme.ops")
+                    && exported_hash == stable_symbol_hash("transform")
+                    && member_hash == stable_symbol_hash("transform")
+            )
+        });
+
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_safe_tree(&il, &interner, &facts, call));
     }

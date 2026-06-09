@@ -106,12 +106,30 @@ vocabulary separates concrete exact identity from broader dispatch facts:
 - `DynamicDispatch` names a protocol/dispatch family and method selector, but it
   does not by itself prove one concrete implementation target.
 
-The first-party producer currently emits `DirectFunction` only for unique
-top-level in-file `Function` units when neither the current lexical scope nor
-any enclosing lexical scope has a parameter, assignment target, loop-pattern
-binding, or nested function definition that shadows the callee name. Duplicate
-function names, lexical shadowing, nested/non-top-level functions, methods
-without explicit target proof, computed callees, selector mismatches,
+The first-party call-target producer currently emits:
+
+- `DirectFunction` for unique top-level in-file `Function` units when neither
+  the current lexical scope nor any enclosing lexical scope has a parameter,
+  assignment target, loop-pattern binding, or nested function definition that
+  shadows the callee name. If the callee already carries symbol-identity
+  evidence or an imported binding proof for the same local name, this direct
+  raw-name path stays closed instead of overriding that proof.
+- `ImportedFunction` for variable callees whose local binding has a unique
+  asserted `Symbol(ImportedBinding)` proof and whose call-site occurrence can be
+  materialized as dependency-backed imported-symbol evidence. Alias rebinding,
+  local shadowing, ambiguous/conflicting symbol evidence, dependency-broken
+  import proof, and locally visible same-name function units keep the call
+  target closed.
+- `ImportedMember` for field callees whose receiver has a unique asserted
+  `Symbol(ImportedNamespace)` or `Symbol(ImportedBinding)` proof. Imported
+  namespace receivers use the module/member coordinate; imported binding
+  receivers use the module/export/member coordinate. Receiver rebinding,
+  ambiguous/conflicting symbol evidence, dependency-broken import proof, and
+  selector mismatches stay closed.
+
+There is not yet a first-party producer for `DirectMethod` or `DynamicDispatch`.
+Duplicate function names, lexical shadowing, nested/non-top-level functions,
+methods without explicit target proof, computed callees, selector mismatches,
 dependency-broken records, and conflicting evidence stay closed.
 
 Current first-party `LibraryApi` callee coordinates are intentionally specific:
