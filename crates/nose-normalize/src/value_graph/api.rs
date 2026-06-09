@@ -17,6 +17,7 @@ pub type Anchors = Vec<Anchor>;
 /// One value-graph build's fingerprints: `(value, literal, return)` hash multisets plus the
 /// heavy sub-DAG [`Anchors`].
 pub type FingerprintBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors);
+pub type FingerprintLawBundle = (Vec<u64>, Vec<u64>, Vec<u64>, Anchors, Vec<ValueLaw>);
 
 /// Public entry: the value-graph fingerprint of the unit rooted at `root`
 /// (sorted multiset of `u64` value hashes). Equivalent computations → equal
@@ -58,11 +59,20 @@ pub fn value_fingerprint_lits_anchors(
     root: NodeId,
     interner: &Interner,
 ) -> FingerprintBundle {
+    let (v, l, r, a, _) = value_fingerprint_lits_anchors_laws(il, root, interner);
+    (v, l, r, a)
+}
+
+/// `value_fingerprint_lits_anchors` plus pack-facing value-law provenance for laws that
+/// actually rewrote or bridged the unit's value graph.
+pub fn value_fingerprint_lits_anchors_laws(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+) -> FingerprintLawBundle {
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
-    let (v, l, r) = b.fingerprint_lits();
-    let a = b.anchors(ANCHOR_MIN_WEIGHT);
-    (v, l, r, a)
+    finish_fingerprint_law_bundle(b)
 }
 
 /// Context-shared variant of [`value_fingerprint_lits_anchors`].
@@ -72,11 +82,29 @@ pub fn value_fingerprint_lits_anchors_with_context(
     interner: &Interner,
     context: &ValueFingerprintContext,
 ) -> FingerprintBundle {
+    let (v, l, r, a, _) =
+        value_fingerprint_lits_anchors_laws_with_context(il, root, interner, context);
+    (v, l, r, a)
+}
+
+/// Context-shared variant of [`value_fingerprint_lits_anchors_laws`].
+pub fn value_fingerprint_lits_anchors_laws_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> FingerprintLawBundle {
     let mut b = Builder::new(il, interner).with_context(context);
     b.build_unit_with_context(root, Some(context));
+    finish_fingerprint_law_bundle(b)
+}
+
+fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
     let (v, l, r) = b.fingerprint_lits();
     let a = b.anchors(ANCHOR_MIN_WEIGHT);
-    (v, l, r, a)
+    b.value_laws.sort_unstable();
+    b.value_laws.dedup();
+    (v, l, r, a, b.value_laws)
 }
 
 pub fn value_fingerprint_lits_with_context(

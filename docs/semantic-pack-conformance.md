@@ -66,6 +66,14 @@ with each other or any compiled first-party pack id, or when declared conformanc
 fixtures are missing a path, missing an expectation, or point at a file that does
 not exist. For `--format json`, the command still writes the report before
 returning the non-zero exit.
+The example [law pack](examples/semantic-packs/v0/law-pack.json) uses this
+workflow to declare value-law positives and hard negatives. Passing the check
+confirms only that the law metadata and fixture assets are structurally present;
+it does not register those external laws with exact consumers.
+Its expectation labels distinguish report-visible positives such as
+`semantic-law-provenance-present` from narrower unit-level fixtures such as
+`internal-law-unit-positive`; the harness preserves those labels but does not
+execute them.
 
 ## JSON Report
 

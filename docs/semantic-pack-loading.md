@@ -56,7 +56,8 @@ Trust is separate from channel eligibility.
   currently influence evidence and contracts. `nose.first_party` is the core
   kernel facade; `nose.python.stdlib.type_domain` is the first narrow stdlib
   pilot pack for Python `typing`, `collections.abc`, and `asyncio`
-  type-domain aliases.
+  type-domain aliases; `nose.value_graph.laws` is the first LawPack pilot for
+  selected proof-backed value-graph law provenance.
 - Local external packs require explicit user opt-in through CLI or config.
 - Local manifests must declare `trust = "external-opt-in"` and
   `enabled_by_default = false`; manifests that claim first-party trust or default

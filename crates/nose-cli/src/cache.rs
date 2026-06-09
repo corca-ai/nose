@@ -16,10 +16,9 @@ use rayon::prelude::*;
 use std::path::Path;
 
 /// Bump when the cached payload's layout, extraction, or feature hashing changes — old
-/// cache entries then live under a different directory and are ignored. (v5: exact
-/// Type-4 features include the newly modeled record, membership, flag-loop, and ordered
-/// string-builder idioms.)
-const SCHEMA: u32 = 6;
+/// cache entries then live under a different directory and are ignored. (v7: cached
+/// units include pack-facing value-law provenance.)
+const SCHEMA: u32 = 7;
 
 pub(crate) struct CachedUnits {
     pub units: Vec<UnitFeat>,

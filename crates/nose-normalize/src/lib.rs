@@ -35,9 +35,10 @@ pub use commutative::{node_tag, node_tag_valued, subtree_hashes};
 pub use interp::{run_unit, Behavior, Value};
 pub use value_graph::{
     value_anchors, value_fingerprint, value_fingerprint_and_contracts, value_fingerprint_contracts,
-    value_fingerprint_lits, value_fingerprint_lits_anchors,
-    value_fingerprint_lits_anchors_with_context, value_fingerprint_lits_with_context, Anchor,
-    Anchors, FingerprintBundle, ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
+    value_fingerprint_lits, value_fingerprint_lits_anchors, value_fingerprint_lits_anchors_laws,
+    value_fingerprint_lits_anchors_laws_with_context, value_fingerprint_lits_anchors_with_context,
+    value_fingerprint_lits_with_context, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,
+    ValueFingerprintContext, ANCHOR_MIN_WEIGHT,
 };
 
 use nose_il::{FileMeta, Il, IlBuilder, Interner, NodeId, NodeKind, Payload, Symbol, Unit};

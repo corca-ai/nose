@@ -254,9 +254,14 @@ modeled builtin result domains, and subexpression result domains, but the law
 itself is admitted only through a `ValueLaw` contract in `nose-semantics`. This
 keeps string and sequence concatenation ordered when evidence proves those
 domains, while numeric and boolean laws still require positive domain proof.
-Today that contract records the law id and domain requirement; pack-facing
-per-use value-law provenance and conformance status remain future work rather
-than an emitted evidence family.
+The first pack-facing law pilot now reports per-family provenance for selected
+compiled first-party value laws through `nose.value_graph.laws`: numeric
+common-factor distribution and integer ordered min/max clamp. That provenance
+records the pack id, stable law id, exact channel, proof status, and formal
+obligation id only when the value graph actually applied the law. It is not a
+new `EvidenceRecord` family, and external LawPack manifests remain
+`metadata-only` until a future producer/runtime path can satisfy the same
+kernel-owned law registry boundary.
 
 Selected `LibraryApi` result-domain evidence follows the same model. A
 first-party factory call result may carry `Domain(Collection)`, `Domain(Set)`,

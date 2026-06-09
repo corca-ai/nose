@@ -127,9 +127,11 @@ that require code. In both cases, packs emit kernel-defined facts and contracts,
 not private value-graph operations.
 
 Current named value-graph rule modules such as `value_graph/rules/clamp.rs` are
-the internal precursor to `LawPack` law ids. External packs may declare evidence
-and API facts that make a law applicable, but they must not bypass the first-party
-law registry or emit private canonical value-graph nodes.
+the internal precursor to `LawPack` law ids. The first compiled first-party pilot,
+`nose.value_graph.laws`, reports per-family provenance for numeric
+factor-distribution and integer ordered-clamp laws. External packs may declare
+evidence and API facts that make a law applicable, but they must not bypass the
+first-party law registry or emit private canonical value-graph nodes.
 
 ## Extension boundary
 

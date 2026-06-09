@@ -654,7 +654,7 @@ fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
         .expect("semantic_packs array");
     assert_eq!(
         packs.len(),
-        3,
+        4,
         "first-party packs + local opt-in pack: {json}"
     );
     assert_eq!(packs[0]["id"], "nose.first_party");
@@ -666,14 +666,111 @@ fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
     assert_eq!(packs[1]["influence"], "evidence-and-contracts");
     assert_eq!(packs[1]["counts"]["evidence_producers"], 1);
     assert_eq!(packs[1]["counts"]["contracts"], 1);
-    assert_eq!(packs[2]["id"], "com.example.semantic-pack");
-    assert_eq!(packs[2]["trust"], "external-opt-in");
-    assert_eq!(packs[2]["source"], "local-manifest");
-    assert_eq!(packs[2]["influence"], "metadata-only");
-    assert_eq!(packs[2]["counts"]["contracts"], 1);
-    assert!(packs[2]["hash"]
+    assert_eq!(packs[2]["id"], "nose.value_graph.laws");
+    assert_eq!(packs[2]["kind"], "LawPack");
+    assert_eq!(packs[2]["source"], "compiled-first-party");
+    assert_eq!(packs[2]["influence"], "evidence-and-contracts");
+    assert_eq!(packs[2]["counts"]["value_laws"], 2);
+    assert_eq!(packs[3]["id"], "com.example.semantic-pack");
+    assert_eq!(packs[3]["trust"], "external-opt-in");
+    assert_eq!(packs[3]["source"], "local-manifest");
+    assert_eq!(packs[3]["influence"], "metadata-only");
+    assert_eq!(packs[3]["counts"]["contracts"], 1);
+    assert!(packs[3]["hash"]
         .as_str()
         .is_some_and(|hash| hash.len() == 16));
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_json_reports_value_law_provenance_for_semantic_family() {
+    let dir = std::env::temp_dir().join(format!("nose_cli_law_provenance_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("left.rs"),
+        "fn f(a: i64, b: i64, c: i64) -> i64 {\n    a * c + b * c\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("right.rs"),
+        "fn g(a: i64, b: i64, c: i64) -> i64 {\n    (a + b) * c\n}\n",
+    )
+    .unwrap();
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--top",
+        "0",
+        "--format",
+        "json",
+    ]));
+    let families = json["families"].as_array().expect("families array");
+    assert_eq!(
+        families.len(),
+        1,
+        "factor-distribution family expected: {json}"
+    );
+    let laws = families[0]["semantic_laws"]
+        .as_array()
+        .expect("semantic_laws array");
+    assert_eq!(laws.len(), 1, "one law provenance row expected: {json}");
+    assert_eq!(laws[0]["pack_id"], "nose.value_graph.laws");
+    assert_eq!(
+        laws[0]["law_id"],
+        "value-graph.factor-distribute.numeric-common-factor"
+    );
+    assert_eq!(
+        laws[0]["proof_obligation_id"],
+        "normalize.value_graph.factor_distribute"
+    );
+    assert_eq!(laws[0]["proof_status"], "proven");
+    assert_eq!(laws[0]["channel"], "exact-proven");
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_json_keeps_python_repetition_out_of_numeric_law_provenance() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_cli_law_hard_negative_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("repetition.py"),
+        "def repeated(a, b):\n    return a * 2 + b * 2\n\n\ndef grouped(a, b):\n    return (a + b) * 2\n",
+    )
+    .unwrap();
+    let json = scan_json(&run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-size",
+        "1",
+        "--min-lines",
+        "1",
+        "--top",
+        "0",
+        "--format",
+        "json",
+    ]));
+    let families = json["families"].as_array().expect("families array");
+    assert!(
+        families
+            .iter()
+            .all(|family| family["semantic_laws"].is_null()),
+        "Python repetition must not report numeric factor-distribution provenance: {json}"
+    );
+    assert!(
+        families.is_empty(),
+        "Python repetition must fail closed for the semantic exact channel: {json}"
+    );
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -693,7 +790,7 @@ fn scan_human_reports_local_semantic_pack_opt_in() {
     ]);
     assert!(
         out.contains(
-            "semantic packs: 2 first-party default · 1 local opt-in: \
+            "semantic packs: 3 first-party default · 1 local opt-in: \
              com.example.semantic-pack@0.1.0 (metadata-only)"
         ),
         "human scan output should disclose local semantic pack opt-ins: {out}"

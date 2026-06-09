@@ -13,6 +13,48 @@ fn value_domain_inference_treats_retained_float_literals_as_numeric() {
 }
 
 #[test]
+fn value_domain_inference_does_not_treat_python_repetition_as_numeric_proof() {
+    assert_eq!(
+        inferred_domains_for_multiplied_literal(Lang::Python),
+        vec![ValueDomain::Unknown],
+        "Python `*` can be string/list repetition, so untyped operands must fail closed"
+    );
+    assert_eq!(
+        inferred_domains_for_multiplied_literal(Lang::Ruby),
+        vec![ValueDomain::Unknown],
+        "Ruby `*` can be repetition, so untyped operands must fail closed"
+    );
+    assert_eq!(
+        inferred_domains_for_multiplied_literal(Lang::Rust),
+        vec![ValueDomain::Number],
+        "Rust `*` remains a strict numeric operator for the first-party language profile"
+    );
+}
+
+fn inferred_domains_for_multiplied_literal(lang: Lang) -> Vec<ValueDomain> {
+    let sp = Span::synthetic(FileId(0));
+    let mut b = IlBuilder::new(FileId(0));
+    let param = b.add(NodeKind::Param, Payload::Cid(0), sp, &[]);
+    let varx = b.add(NodeKind::Var, Payload::Cid(0), sp, &[]);
+    let lit = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+    let mul = b.add(NodeKind::BinOp, Payload::Op(Op::Mul), sp, &[varx, lit]);
+    let ret = b.add(NodeKind::Return, Payload::None, sp, &[mul]);
+    let func = b.add(NodeKind::Func, Payload::None, sp, &[param, ret]);
+    let il = b.finish(
+        func,
+        FileMeta {
+            path: "t".into(),
+            lang,
+        },
+        Vec::new(),
+        Vec::new(),
+    );
+    semantics(lang)
+        .operators()
+        .infer_param_value_domains(&il, func)
+}
+
+#[test]
 fn first_party_profile_wraps_each_language() {
     for &lang in ALL_LANGS {
         let profile = semantics(lang);

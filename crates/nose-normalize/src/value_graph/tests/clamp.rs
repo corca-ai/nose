@@ -154,7 +154,11 @@ fn guarded_function(
     )
 }
 
-fn literal_bound_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (usize, usize) {
+fn literal_bound_function(
+    shape: ClampShape,
+    lo_value: i64,
+    hi_value: i64,
+) -> (usize, usize, Vec<ValueLaw>) {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let px = param(&mut b, 0, 1);
@@ -190,13 +194,20 @@ fn literal_bound_function(shape: ClampShape, lo_value: i64, hi_value: i64) -> (u
     (
         builder.clamp_candidate_count,
         builder.clamp_proof_backed_candidate_count,
+        builder.value_laws,
     )
 }
 
 #[test]
 fn literal_bound_order_is_proof_backed_only_when_ordered() {
-    assert_eq!(literal_bound_function(ClampShape::MinMax, 1, 10), (1, 1));
-    assert_eq!(literal_bound_function(ClampShape::MinMax, 10, 1), (1, 0));
+    assert_eq!(
+        literal_bound_function(ClampShape::MinMax, 1, 10),
+        (1, 1, vec![ValueLaw::IntegerClampOrderedMinMax])
+    );
+    assert_eq!(
+        literal_bound_function(ClampShape::MinMax, 10, 1),
+        (1, 0, Vec::new())
+    );
 }
 
 #[test]

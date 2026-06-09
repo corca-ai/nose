@@ -34,6 +34,7 @@ impl<'a> Builder<'a> {
             loop_recurrence: None,
             next_loop_key_base: 0,
             contracts: Vec::new(),
+            value_laws: Vec::new(),
             clamp_candidate_count: 0,
             clamp_proof_backed_candidate_count: 0,
         }
@@ -59,6 +60,12 @@ impl<'a> Builder<'a> {
 
     pub(super) fn add_values_not_concat(&self, law: ValueLaw, values: &[ValueId]) -> bool {
         self.value_law_satisfied(law, values)
+    }
+
+    pub(super) fn record_value_law(&mut self, law: ValueLaw) {
+        if nose_semantics::pack_facing_value_law(law).is_some() {
+            self.value_laws.push(law);
+        }
     }
 
     /// Bottom-up kernel value domain of a fresh node from its op and operands.

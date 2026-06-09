@@ -193,6 +193,8 @@ pub(super) struct Builder<'a> {
     /// fires where the value graph actually used the contract (it cannot mask a non-contract
     /// false merge). Sorted+deduped on read for determinism.
     pub(super) contracts: Vec<(u32, u32)>,
+    /// Pack-facing value laws that actually rewrote or bridged this unit's value graph.
+    pub(super) value_laws: Vec<ValueLaw>,
     /// Internal test counters for clamp canonicalization. They record clamp-shaped min/max
     /// nodes seen by `mk`, and the subset with a unique integer-domain `lo <= hi` proof.
     pub(super) clamp_candidate_count: usize,

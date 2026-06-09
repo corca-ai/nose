@@ -35,6 +35,7 @@ pub fn file_stream(il: &Il, interner: &Interner) -> Stream {
 
 use nose_il::{Corpus, Il, Interner, NodeKind};
 use nose_normalize::NormalizeOptions;
+use nose_semantics::ValueLaw;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -589,6 +590,8 @@ pub struct AbstractionHole {
 pub struct Group {
     pub score: f64,
     pub members: Vec<Loc>,
+    #[serde(skip)]
+    pub semantic_laws: Vec<ValueLaw>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub abstraction_witness: Option<AbstractionWitness>,
 }
@@ -1010,6 +1013,7 @@ pub fn detect_from_units(
             Group {
                 score: round3(score),
                 members: locs,
+                semantic_laws: semantic_laws_for_members(members, &units),
                 abstraction_witness: if opts.abstraction_witnesses {
                     units::abstraction_family_witness(members.iter().map(|&m| &units[m]))
                 } else {
@@ -1068,6 +1072,16 @@ pub fn detect_from_units(
     };
 
     (report, dump)
+}
+
+fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<ValueLaw> {
+    let mut laws = members
+        .iter()
+        .flat_map(|&member| units[member].semantic_laws.iter().copied())
+        .collect::<Vec<_>>();
+    laws.sort_unstable();
+    laws.dedup();
+    laws
 }
 
 fn exact_value_candidates(units: &[UnitFeat]) -> Vec<(usize, usize)> {

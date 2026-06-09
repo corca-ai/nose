@@ -24,7 +24,7 @@ use nose_semantics::{
     admitted_builtin_semantics_at_call, builder_append_call_args, exact_java_return_this,
     exact_non_overloadable_index_assignment, exact_non_overloadable_index_assignment_parts,
     exact_self_field_write_assignment, opaque_argument_escape_args,
-    receiver_mutation_call_receiver,
+    receiver_mutation_call_receiver, ValueLaw,
 };
 #[cfg(test)]
 use nose_semantics::{library_free_name_collection_factory_contract, LibraryApiCalleeContract};
@@ -79,6 +79,9 @@ pub struct UnitFeat {
     /// the shared computation lives).
     #[serde(default)]
     pub anchors: Vec<nose_normalize::Anchor>,
+    /// Pack-facing value laws that actually rewrote or bridged this unit's value graph.
+    #[serde(default)]
+    pub semantic_laws: Vec<ValueLaw>,
     /// Whether the value fingerprint is safe to use as a strict semantic proof.
     ///
     /// `semantic` mode must not report units whose fingerprint passed through lossy
@@ -496,10 +499,12 @@ pub(crate) fn extract(
         // literal-only multiset for data-table detection. Computed before the size
         // gate so the gate can consult semantic richness (below).
         let value_start = unit_timer.start();
-        let (value, lits, returns, anchors) = if let Some(context) = &value_context {
-            nose_normalize::value_fingerprint_lits_anchors_with_context(il, root, interner, context)
+        let (value, lits, returns, anchors, semantic_laws) = if let Some(context) = &value_context {
+            nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
+                il, root, interner, context,
+            )
         } else {
-            nose_normalize::value_fingerprint_lits_anchors(il, root, interner)
+            nose_normalize::value_fingerprint_lits_anchors_laws(il, root, interner)
         };
         let value_ms = UnitTimer::elapsed(value_start);
 
@@ -636,6 +641,7 @@ pub(crate) fn extract(
             lits,
             returns,
             anchors,
+            semantic_laws,
             exact_safe,
             fragment_kind,
             proof_facts,

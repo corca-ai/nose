@@ -443,7 +443,9 @@ impl<'a> Builder<'a> {
             && self.is_safe_clamp_integer_value(hi)
             && self.has_bound_order_fact(lo, hi)
         {
-            Some(self.mk(ValOp::Clamp, vec![x, lo, hi]))
+            let value = self.mk(ValOp::Clamp, vec![x, lo, hi]);
+            self.record_value_law(ValueLaw::IntegerClampOrderedMinMax);
+            Some(value)
         } else {
             None
         }

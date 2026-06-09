@@ -162,9 +162,12 @@ migrated.
   type helper. Unknown remains optimistic only for the historical non-concat
   `+` policy; explicit string/sequence domain evidence keeps concatenation
   ordered, and numeric/boolean laws require positive domain proof. The current
-  `ValueLawContract` is still an internal law-id/requirement facade: per-use
-  provenance and independent conformance status are not yet tracked as separate
-  value-law evidence records.
+  `ValueLawContract` remains the internal domain gate, and the first compiled
+  first-party `LawPack` pilot now reports per-family provenance for selected
+  proof-backed value-graph laws through `nose.value_graph.laws`. The pilot covers
+  numeric common-factor distribution and integer ordered min/max clamp, including
+  stable law ids, exact-proven channel, proven status, and formal obligation ids.
+  Broader internal laws and external LawPack execution remain closed.
 - Source facts are now first-class internal evidence for source distinctions that
   the shared IL erases. JS/TS frontends emit construct syntax, async `await`,
   generator `yield` boundaries, regex literal, strict/loose equality,
@@ -697,11 +700,10 @@ Semantic knowledge still appears in several forms outside the facade:
   evidence subgraph into the importer, preserves provider source-origin spans,
   rewires dependency ids, and records `ImportedLiteralSnapshot` provenance tied
   to the importer static import proof;
-- broader value-domain evidence and LawPack records beyond the first
-  `ValueDomain` / `ValueLaw` contracts now used by value-graph arithmetic,
-  boolean, factor, large-formula, and structural-recursion gates;
+- broader value-domain evidence and LawPack records beyond the current
+  first-party `nose.value_graph.laws` pilot for factor distribution and clamp;
 - named value-graph rule modules that still consume internal `Builder` facts
-  instead of versioned `LawPack` records;
+  without pack-facing per-family provenance;
 - oracle evaluation rules for admitted eager calls, short-circuit quantifiers,
   append mutation, nullish defaulting, reductions, and HOF callback execution
   now consume internal demand profiles, but broader lazy, async, generator,
