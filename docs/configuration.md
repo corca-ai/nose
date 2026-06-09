@@ -91,7 +91,9 @@ they do not emit evidence or enable exact contracts yet. See
 `exclude` is **additive**: the config's globs and any `--exclude` flags on the
 command line are combined. Globs use gitignore syntax (`tests/**`,
 `**/*.test.ts`, `vendor/**`) and are applied *during the directory walk*, so an
-excluded directory is pruned, not just filtered out afterward.
+excluded directory is pruned, not just filtered out afterward. Invalid exclude
+globs are hard errors; silently scanning a path the user meant to exclude is
+worse than failing early.
 
 `.gitignore` files inside each scanned tree are respected automatically, even when that
 tree is not a git checkout, so vendored dependencies, build output, and the like are

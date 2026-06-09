@@ -82,6 +82,32 @@ fn exclude_supports_globs() {
 }
 
 #[test]
+fn invalid_exclude_glob_fails_clearly() {
+    let dir = make_project("bad_exclude_glob");
+    let out = Command::new(bin())
+        .args([
+            "scan",
+            dir.to_str().unwrap(),
+            "--min-size",
+            "12",
+            "--exclude",
+            "[",
+        ])
+        .output()
+        .expect("run");
+    assert!(
+        !out.status.success(),
+        "invalid exclude glob should fail instead of being ignored"
+    );
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(
+        stderr.contains("invalid exclude glob"),
+        "stderr should explain the bad exclude glob: {stderr}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn min_value_filters_low_value_families() {
     let dir = make_project("minval");
     let p = dir.to_str().unwrap();

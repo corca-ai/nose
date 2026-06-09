@@ -2569,6 +2569,7 @@ pub(crate) fn detect_families(
     min_tokens: usize,
     min_lines: u32,
 ) -> Result<Vec<nose_detect::RefactorFamily>> {
+    validate_exclude_globs(exclude)?;
     let refs = paths_as_refs(paths);
     let channels = ScanChannels::resolve(mode, cfg_mode)?;
     let threshold = channels.threshold();
@@ -2597,6 +2598,20 @@ pub(crate) fn detect_families(
         families.retain(|f| f.abstraction_witness.is_some());
     }
     Ok(families)
+}
+
+fn validate_exclude_globs(exclude: &[String]) -> Result<()> {
+    if exclude.is_empty() {
+        return Ok(());
+    }
+    let mut builder = ignore::overrides::OverrideBuilder::new(".");
+    for glob in exclude {
+        builder
+            .add(&format!("!{glob}"))
+            .with_context(|| format!("invalid exclude glob {glob:?}"))?;
+    }
+    builder.build().context("building exclude glob matcher")?;
+    Ok(())
 }
 
 fn scan_detector(
@@ -2725,6 +2740,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // Excludes are additive: config patterns plus any given on the command line.
     let mut exclude = cfg.exclude;
     exclude.extend(args.exclude.iter().cloned());
+    validate_exclude_globs(&exclude)?;
     let ignore_set = ignores::load_for_scan(ignore_file.as_deref())?;
     if let Some(ignore_set) = &ignore_set {
         ignore_set.warn_expired();
