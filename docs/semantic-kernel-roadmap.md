@@ -577,17 +577,18 @@ and pack ecosystem.
   a spelling hash, so internal-looking payload names such as `record_guard` or
   `own_property_guard` cannot become semantic proof channels.
 - Raw user-call spelling no longer proves direct recursion or in-file call
-  execution. `nose-il` now has `CallTarget::DirectFunction` evidence, the
-  first-party normalize producer emits it only for unique top-level in-file
-  function targets with no current or enclosing lexical shadowing, and
-  recursion, interpreter, value-graph pure-inline, and strict exact
-  direct-function callee consumers require that occurrence proof.
-  The follow-up call-target slice expanded the vocabulary to `DirectMethod`,
-  `ImportedFunction`, `ImportedMember`, and `DynamicDispatch`, added a shared
-  fail-closed resolver, and taught strict exact to admit imported function/member
-  opaque identity only through explicit evidence. Direct methods still require
-  exact receiver identity, and dynamic-dispatch records do not by themselves
-  prove one concrete target.
+  execution. `nose-il` now has `CallTarget` evidence, the first-party normalize
+  producer emits `DirectFunction` only for unique top-level in-file function
+  targets with no current or enclosing lexical shadowing, and recursion,
+  interpreter, value-graph pure-inline, and strict exact direct-function callee
+  consumers require that occurrence proof. The follow-up call-target producer
+  slice emits `ImportedFunction` and `ImportedMember` only from
+  dependency-backed imported binding or imported namespace symbol proof, added a
+  shared fail-closed resolver, and taught strict exact to admit imported
+  function/member opaque identity only through explicit evidence. The vocabulary
+  also includes `DirectMethod` and `DynamicDispatch`, but no first-party producer
+  emits those records yet; direct methods still require exact receiver identity,
+  and dynamic-dispatch records do not by themselves prove one concrete target.
 - C byte-pack proof moved onto evidence-backed alias and cast records. Local
   typedefs and direct quote includes emit `Type(CTypeAlias)` evidence, included
   aliases depend on `Import(CQuoteInclude)`, alias-based `Domain(ByteArray)` and
@@ -712,8 +713,9 @@ Remaining after the foundation tranche:
 - Ship a narrow first-party pack pilot (#166) so the v0 API, metadata loading,
   conformance workflow, provenance, and evidence vocabulary are exercised by an
   actual default pack-shaped implementation.
-- Broaden evidence producer coverage (#169) for call targets, richer domains,
-  guards, aggregates, and module/export dependencies without reopening raw
+- Continue producer coverage beyond the call-target imported-function/member
+  slice for direct methods, dynamic dispatch, richer domains, guards,
+  aggregates, and module/export dependencies without reopening raw
   selector/name/type/tag fallbacks.
 - Expand demand/effect contracts (#168) for lazy, iterator, generator, async,
   channel, repeated, and call-by-need semantics before ecosystem APIs can enter
@@ -808,7 +810,7 @@ Remaining after the foundation tranche:
   with same-span root dependencies, but general qualified-member resolution,
   namespace export identity, provider/export dependency manifests, richer
   scope/rebinding facts, broader producer coverage for module-defined local
-  functions/methods and imported namespace members, and manifest-level
+  methods/dynamic dispatch, richer nested-function scope, and manifest-level
   cross-module dependency evidence are not.
 - Generalize dedicated guard evidence beyond the first JS/TS record-shape and
   own-property contracts, including richer source-clause records, API dependency

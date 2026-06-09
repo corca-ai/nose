@@ -38,8 +38,8 @@ use evidence::{
 };
 pub use library_api::*;
 use library_api::{
-    imported_occurrence_symbol_dependencies_valid, language_core_builtin_at_call,
-    library_api_dependency_id_for_normalized_hof, library_method_selector_name,
+    language_core_builtin_at_call, library_api_dependency_id_for_normalized_hof,
+    library_method_selector_name,
 };
 pub use module_exports::*;
 pub use nose_il::DomainEvidence;

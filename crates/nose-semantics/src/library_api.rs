@@ -2355,7 +2355,10 @@ fn dependency_has_imported_symbol_anchor(
     imported_occurrence_symbol_dependencies_valid(il, interner, symbol_record, expected)
 }
 
-pub(crate) fn imported_occurrence_symbol_dependencies_valid(
+/// Validate that an occurrence-level imported symbol record is backed by a
+/// still-visible import binding and not reopened through a rebound or shadowed
+/// local alias.
+pub fn imported_occurrence_symbol_dependencies_valid(
     il: &Il,
     interner: &Interner,
     symbol_record: &EvidenceRecord,
