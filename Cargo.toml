@@ -66,6 +66,7 @@ uninlined_format_args = "warn"    # prefer `format!("{x}")` to `format!("{}", x)
 # file). These are `warn` here, which CI's `clippy -D warnings` promotes to a
 # hard gate.
 cognitive_complexity = "warn"     # cap per-function branching complexity (tunable)
+too_many_lines = "warn"           # cap per-function length (tunable)
 # Exhaustiveness: a `_ =>` arm that only stands in for a single remaining enum
 # variant silently swallows the next variant added. Spell it out instead.
 # (The blunter `wildcard_enum_match_arm` is intentionally NOT used — the IL-kind

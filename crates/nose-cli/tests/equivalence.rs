@@ -3708,9 +3708,9 @@ export const replaceRootDirInPath = (rootDir: string, filePath: string): string 
 }
 
 // A long, flat sequence of independent convergence assertions — its cognitive
-// complexity (133) is breadth, not deep branching, so it sits above the gate's
-// production-oriented threshold. Splitting it would not aid readability.
-#[allow(clippy::cognitive_complexity)]
+// complexity (133) and line count are breadth, not deep branching, so it sits
+// above the production-oriented gates. Splitting it would not aid readability.
+#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 #[test]
 fn collection_membership_set_construction_converges_with_boundaries() {
     let i = Interner::new();

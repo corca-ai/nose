@@ -33,7 +33,7 @@ full run here is a green CI. The full gates are:
 | **docs** | `RUSTDOCFLAGS=-D warnings cargo doc --no-deps --workspace` | no broken/private intra-doc links |
 | **build** | `cargo build --release` | the workspace compiles in release |
 | **tests** | `cargo test --release` | the full suite, incl. cross-language convergence |
-| **coverage** | `cargo llvm-cov --workspace --summary-only --fail-under-lines 85` | line coverage stays above the ratchet floor (currently ~87%) |
+| **coverage** | `cargo llvm-cov --workspace --summary-only --fail-under-lines 86` | line coverage stays above the ratchet floor (currently ~86%) |
 | **copy-paste** | `./scripts/check-duplication.sh` | nose run on its own source — substantial duplicate families stay within budget |
 | **MSRV** | `cargo +$MSRV check --workspace --all-targets` | the crates still build on the declared minimum Rust (`rust-version` in `Cargo.toml`) |
 | **unused deps** | `cargo machete` | no dependency declared but unused (à la *knip*) |
@@ -49,11 +49,12 @@ and checked by its own CI job. Bumping the MSRV is a conscious change — update
 
 The lint policy is defined once in the root `Cargo.toml` under `[workspace.lints]`
 and inherited by every crate via `[lints] workspace = true`. The tunable
-complexity thresholds (`cognitive-complexity-threshold`, `too-many-arguments`,
-`type-complexity`) live in `clippy.toml`. Both the clippy thresholds and the
-coverage floor start lenient and are **ratchets** — tighten them over time
-(lower the clippy thresholds, raise `--fail-under-lines`) as the code is
-simplified and tests are added; never loosen them to make a red build pass.
+thresholds (`cognitive-complexity-threshold`, `too-many-lines-threshold`,
+`too-many-arguments`, `type-complexity`) live in `clippy.toml`. Both the clippy
+thresholds and the coverage floor start lenient and are **ratchets** — tighten
+them over time (lower the clippy thresholds, raise `--fail-under-lines`) as the
+code is simplified and tests are added; never loosen them to make a red build
+pass.
 
 ### One-time tool install
 
