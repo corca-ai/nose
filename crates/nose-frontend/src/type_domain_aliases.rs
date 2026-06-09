@@ -1,14 +1,23 @@
 use nose_il::{DomainEvidence, EvidenceId};
 
+#[derive(Clone, Copy)]
+pub(crate) struct TypeDomainEvidenceProvenance {
+    pub pack_id: &'static str,
+    pub rule: &'static str,
+}
+
+#[derive(Clone)]
 pub(crate) struct ResolvedTypeDomain {
     pub domain: DomainEvidence,
     pub dependencies: Vec<EvidenceId>,
+    pub provenance: TypeDomainEvidenceProvenance,
 }
 
 pub(crate) struct TypeDomainAlias {
     pub alias: String,
     pub domain: DomainEvidence,
     pub evidence: Option<EvidenceId>,
+    pub provenance: TypeDomainEvidenceProvenance,
 }
 
 #[derive(Default)]
@@ -22,8 +31,9 @@ impl TypeDomainAliases {
         local: &str,
         domain: DomainEvidence,
         evidence: Option<EvidenceId>,
+        provenance: TypeDomainEvidenceProvenance,
     ) {
-        self.record_inner(normalize_type_text(local), domain, evidence);
+        self.record_inner(normalize_type_text(local), domain, evidence, provenance);
     }
 
     pub(crate) fn record_exact(
@@ -31,8 +41,9 @@ impl TypeDomainAliases {
         local: &str,
         domain: DomainEvidence,
         evidence: Option<EvidenceId>,
+        provenance: TypeDomainEvidenceProvenance,
     ) {
-        self.record_inner(local.trim().to_string(), domain, evidence);
+        self.record_inner(local.trim().to_string(), domain, evidence, provenance);
     }
 
     pub(crate) fn clear_normalized(&mut self, local: &str) {
@@ -50,6 +61,7 @@ impl TypeDomainAliases {
                 .then(|| ResolvedTypeDomain {
                     domain: known.domain,
                     dependencies: known.evidence.into_iter().collect(),
+                    provenance: known.provenance,
                 })
         })
     }
@@ -63,6 +75,7 @@ impl TypeDomainAliases {
         alias: String,
         domain: DomainEvidence,
         evidence: Option<EvidenceId>,
+        provenance: TypeDomainEvidenceProvenance,
     ) {
         if alias.is_empty() {
             return;
@@ -70,12 +83,14 @@ impl TypeDomainAliases {
         if let Some(existing) = self.aliases.iter_mut().find(|known| known.alias == alias) {
             existing.domain = domain;
             existing.evidence = evidence;
+            existing.provenance = provenance;
             return;
         }
         self.aliases.push(TypeDomainAlias {
             alias,
             domain,
             evidence,
+            provenance,
         });
     }
 }

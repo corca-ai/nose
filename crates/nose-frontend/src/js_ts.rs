@@ -353,9 +353,8 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some((domain, dependencies)) = lo.type_domain_from_text_with_dependencies(lo.text(p))
-        {
-            lo.record_param_domain_with_dependencies(span, domain, dependencies);
+        if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(p)) {
+            lo.record_param_domain_resolution(span, domain);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }

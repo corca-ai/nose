@@ -237,8 +237,8 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             for n in names {
                 let span = lo.span(n);
                 let sym = lo.sym(lo.text(n));
-                if let Some((domain, dependencies)) = &domain {
-                    lo.record_param_domain_with_dependencies(span, *domain, dependencies.clone());
+                if let Some(domain) = &domain {
+                    lo.record_param_domain_resolution(span, domain.clone());
                 }
                 out.push(lo.add(NodeKind::Param, Payload::Name(sym), span, &[]));
             }

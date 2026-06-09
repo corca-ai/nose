@@ -204,9 +204,10 @@ container/protocol domains (`Array`, `Collection`, `Iterable`, `Iterator`,
 `PromiseLike`, `FutureLike`), scalar domains (`String`, `Boolean`, `Integer`,
 `Float`, `Number`, `ByteArray`), and a hashed `Nominal` domain for
 provider-proven user/library types. The frontend owns evidence emission and
-alias lifecycle: for example, Python `typing`/`collections.abc` aliases record
-dependency-backed parameter `Domain` evidence that depends on the corresponding
-`ImportedBinding` symbol evidence, and a rebound alias closes that path.
+alias lifecycle: for example, Python `typing`, `collections.abc`, and `asyncio`
+aliases record dependency-backed parameter `Domain` evidence that depends on the
+corresponding `ImportedBinding` symbol evidence, and a rebound alias closes that
+path.
 `Type(NominalDomain)` rows can map a scoped nominal type hash to a domain, but
 type names alone are not proof; the dependent `Domain` record still needs a
 valid symbol/import/scope chain. `nose-semantics` resolves `Domain` evidence on

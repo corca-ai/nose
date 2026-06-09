@@ -185,14 +185,12 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             "parameter" => {
                 if let Some(pat) = p.child_by_field_name("pattern") {
                     let semantic_text = p.child_by_field_name("type").map(|ty| lo.text(ty));
-                    if let Some((domain, dependencies)) = lo
-                        .type_domain_from_text_with_dependencies(
-                            semantic_text.unwrap_or_else(|| lo.text(p)),
-                        )
-                    {
+                    if let Some(domain) = lo.type_domain_from_text_with_dependencies(
+                        semantic_text.unwrap_or_else(|| lo.text(p)),
+                    ) {
                         if let Some(sym) = ident_of(lo, pat) {
                             let pspan = lo.span(pat);
-                            lo.record_param_domain_with_dependencies(pspan, domain, dependencies);
+                            lo.record_param_domain_resolution(pspan, domain);
                             out.push(lo.add(NodeKind::Param, Payload::Name(sym), pspan, &[]));
                             continue;
                         }

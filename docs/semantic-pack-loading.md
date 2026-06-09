@@ -52,8 +52,11 @@ external producers or certify semantic correctness. See
 
 Trust is separate from channel eligibility.
 
-- The compiled first-party pack `nose.first_party` is enabled by default and is
-  the only pack that currently influences evidence and contracts.
+- Compiled first-party packs are enabled by default and are the only packs that
+  currently influence evidence and contracts. `nose.first_party` is the core
+  kernel facade; `nose.python.stdlib.type_domain` is the first narrow stdlib
+  pilot pack for Python `typing`, `collections.abc`, and `asyncio`
+  type-domain aliases.
 - Local external packs require explicit user opt-in through CLI or config.
 - Local manifests must declare `trust = "external-opt-in"` and
   `enabled_by_default = false`; manifests that claim first-party trust or default

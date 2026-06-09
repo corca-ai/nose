@@ -42,13 +42,21 @@ fn lower_module(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId> {
     let span = lo.span(node);
     match node.kind() {
-        "function_definition" => Some(lower_func(lo, node, in_class)),
+        "function_definition" => {
+            let out = lower_func(lo, node, in_class);
+            clear_defined_param_alias(lo, node);
+            Some(out)
+        }
         "decorated_definition" => {
             // Ignore decorators; lower the wrapped definition.
             let def = node.child_by_field_name("definition")?;
             lower_stmt(lo, def, in_class)
         }
-        "class_definition" => Some(lower_class(lo, node)),
+        "class_definition" => {
+            let out = lower_class(lo, node);
+            clear_defined_param_alias(lo, node);
+            Some(out)
+        }
         "if_statement" => Some(lower_if(lo, node)),
         "match_statement" => Some(lower_match(lo, node)),
         "for_statement" => Some(lower_for(lo, node)),
@@ -139,9 +147,18 @@ fn lower_static_import(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
                 module.trim(),
                 exported,
             );
-            if let Some(domain) = nose_semantics::python_stdlib_type_domain(module.trim(), exported)
+            if let Some(contract) =
+                nose_semantics::python_stdlib_type_domain_contract(module.trim(), exported)
             {
-                lo.record_type_domain_alias_with_evidence(local, domain, import_evidence);
+                lo.record_type_domain_alias_with_pack_evidence(
+                    local,
+                    contract.domain,
+                    import_evidence,
+                    crate::type_domain_aliases::TypeDomainEvidenceProvenance {
+                        pack_id: contract.pack_id,
+                        rule: contract.producer_id,
+                    },
+                );
             } else {
                 lo.clear_type_domain_alias(local);
             }
@@ -244,9 +261,8 @@ fn lower_params(lo: &mut Lowering, params: TsNode, out: &mut Vec<NodeId>) {
             Some(s) => Payload::Name(lo.sym(s)),
             None => Payload::None,
         };
-        if let Some((domain, dependencies)) = lo.type_domain_from_text_with_dependencies(lo.text(p))
-        {
-            lo.record_param_domain_with_dependencies(span, domain, dependencies);
+        if let Some(domain) = lo.type_domain_from_text_with_dependencies(lo.text(p)) {
+            lo.record_param_domain_resolution(span, domain);
         }
         out.push(lo.add(NodeKind::Param, payload, span, &[]));
     }
@@ -314,6 +330,13 @@ fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn clear_assigned_param_alias(lo: &mut Lowering, node: TsNode) {
     if node.kind() == "identifier" {
         let name = lo.text(node).to_string();
+        lo.clear_type_domain_alias(&name);
+    }
+}
+
+fn clear_defined_param_alias(lo: &mut Lowering, node: TsNode) {
+    if let Some(name) = node.child_by_field_name("name") {
+        let name = lo.text(name).to_string();
         lo.clear_type_domain_alias(&name);
     }
 }

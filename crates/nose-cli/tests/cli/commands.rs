@@ -652,16 +652,26 @@ fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
     let packs = json["semantic_packs"]
         .as_array()
         .expect("semantic_packs array");
-    assert_eq!(packs.len(), 2, "first-party + local opt-in pack: {json}");
+    assert_eq!(
+        packs.len(),
+        3,
+        "first-party packs + local opt-in pack: {json}"
+    );
     assert_eq!(packs[0]["id"], "nose.first_party");
     assert_eq!(packs[0]["source"], "compiled-first-party");
     assert_eq!(packs[0]["influence"], "evidence-and-contracts");
-    assert_eq!(packs[1]["id"], "com.example.semantic-pack");
-    assert_eq!(packs[1]["trust"], "external-opt-in");
-    assert_eq!(packs[1]["source"], "local-manifest");
-    assert_eq!(packs[1]["influence"], "metadata-only");
+    assert_eq!(packs[1]["id"], "nose.python.stdlib.type_domain");
+    assert_eq!(packs[1]["kind"], "StdlibPack");
+    assert_eq!(packs[1]["source"], "compiled-first-party");
+    assert_eq!(packs[1]["influence"], "evidence-and-contracts");
+    assert_eq!(packs[1]["counts"]["evidence_producers"], 1);
     assert_eq!(packs[1]["counts"]["contracts"], 1);
-    assert!(packs[1]["hash"]
+    assert_eq!(packs[2]["id"], "com.example.semantic-pack");
+    assert_eq!(packs[2]["trust"], "external-opt-in");
+    assert_eq!(packs[2]["source"], "local-manifest");
+    assert_eq!(packs[2]["influence"], "metadata-only");
+    assert_eq!(packs[2]["counts"]["contracts"], 1);
+    assert!(packs[2]["hash"]
         .as_str()
         .is_some_and(|hash| hash.len() == 16));
     let _ = fs::remove_dir_all(&dir);
@@ -683,7 +693,7 @@ fn scan_human_reports_local_semantic_pack_opt_in() {
     ]);
     assert!(
         out.contains(
-            "semantic packs: nose.first_party first-party default · 1 local opt-in: \
+            "semantic packs: 2 first-party default · 1 local opt-in: \
              com.example.semantic-pack@0.1.0 (metadata-only)"
         ),
         "human scan output should disclose local semantic pack opt-ins: {out}"

@@ -4,7 +4,10 @@
 //! emit evidence or approve exact results from this module; consumers must still
 //! require occurrence evidence and kernel-owned admission checks.
 
-use crate::{PackTrust, FIRST_PARTY_PACK_ID};
+use crate::{
+    PackTrust, FIRST_PARTY_PACK_ID, PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS,
+    PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID,
+};
 use nose_il::stable_symbol_hash;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -269,6 +272,45 @@ pub fn first_party_semantic_pack() -> SemanticPackSummary {
     }
 }
 
+pub fn python_stdlib_type_domain_pack() -> SemanticPackSummary {
+    SemanticPackSummary {
+        id: PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID.to_string(),
+        hash: semantic_pack_hash(PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID),
+        kind: SemanticPackKind::StdlibPack,
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        display_name: "nose Python stdlib type-domain pack".to_string(),
+        trust: PackTrust::DefaultFirstParty,
+        enabled_by_default: true,
+        source: SemanticPackSource::CompiledFirstParty,
+        influence: SemanticPackInfluence::EvidenceAndContracts,
+        manifest_path: None,
+        provider: "Corca, Inc.".to_string(),
+        repository: "https://github.com/corca-ai/nose".to_string(),
+        license: "MIT".to_string(),
+        supported_languages: vec!["python".to_string()],
+        counts: SemanticPackCounts {
+            evidence_producers: 1,
+            contracts: 1,
+            value_laws: 0,
+            positive_fixtures: PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS.len(),
+            hard_negatives: 2,
+        },
+    }
+}
+
+fn compiled_first_party_packs() -> Vec<SemanticPackSummary> {
+    vec![
+        first_party_semantic_pack(),
+        python_stdlib_type_domain_pack(),
+    ]
+}
+
+fn is_compiled_first_party_pack_id(pack_id: &str) -> bool {
+    compiled_first_party_packs()
+        .iter()
+        .any(|pack| pack.id == pack_id)
+}
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SemanticPackSet {
     packs: Vec<SemanticPackSummary>,
@@ -277,7 +319,7 @@ pub struct SemanticPackSet {
 impl SemanticPackSet {
     pub fn new_local(paths: &[PathBuf]) -> Result<Self, SemanticPackLoadError> {
         let manifest_paths = discover_manifest_paths(paths)?;
-        let mut packs = vec![first_party_semantic_pack()];
+        let mut packs = compiled_first_party_packs();
         for path in manifest_paths {
             let pack = load_local_manifest(&path)?;
             if let Some(existing) = packs.iter().find(|existing| existing.id == pack.id) {
@@ -294,7 +336,7 @@ impl SemanticPackSet {
 
     pub fn first_party_only() -> Self {
         Self {
-            packs: vec![first_party_semantic_pack()],
+            packs: compiled_first_party_packs(),
         }
     }
 
@@ -429,7 +471,7 @@ pub fn check_semantic_pack_conformance(
                     message,
                 }
             })?;
-        if pack.id == FIRST_PARTY_PACK_ID {
+        if is_compiled_first_party_pack_id(&pack.id) {
             return Err(SemanticPackLoadError::DuplicatePackId {
                 id: pack.id,
                 first_path: None,
@@ -1348,6 +1390,23 @@ mod tests {
         assert_eq!(pack.id, FIRST_PARTY_PACK_ID);
         assert_eq!(pack.hash, stable_symbol_hash(FIRST_PARTY_PACK_ID));
         assert_eq!(pack.influence, SemanticPackInfluence::EvidenceAndContracts);
+        let python = python_stdlib_type_domain_pack();
+        assert_eq!(python.id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
+        assert_eq!(
+            python.hash,
+            stable_symbol_hash(PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID)
+        );
+        assert_eq!(python.kind, SemanticPackKind::StdlibPack);
+        assert_eq!(
+            python.influence,
+            SemanticPackInfluence::EvidenceAndContracts
+        );
+        assert_eq!(python.counts.evidence_producers, 1);
+        assert_eq!(python.counts.contracts, 1);
+        assert_eq!(
+            python.counts.positive_fixtures,
+            PYTHON_STDLIB_TYPE_DOMAIN_ALIAS_CONTRACTS.len()
+        );
     }
 
     #[test]
@@ -1356,8 +1415,9 @@ mod tests {
         let path = dir.join("pack.json");
         fs::write(&path, manifest("com.example.pack")).unwrap();
         let set = SemanticPackSet::new_local(&[path]).expect("pack loads");
-        assert_eq!(set.packs().len(), 2);
-        let external = &set.packs()[1];
+        assert_eq!(set.packs().len(), 3);
+        assert_eq!(set.packs()[1].id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
+        let external = &set.packs()[2];
         assert_eq!(external.id, "com.example.pack");
         assert_eq!(external.hash, stable_symbol_hash("com.example.pack"));
         assert_eq!(external.trust, PackTrust::ExternalOptIn);
@@ -1574,6 +1634,26 @@ mod tests {
         fs::write(&one, manifest("com.example.pack")).unwrap();
         fs::write(&two, manifest("com.example.pack")).unwrap();
         let err = SemanticPackSet::new_local(&[one, two]).expect_err("duplicate id");
+        assert!(err.to_string().contains("duplicate semantic pack id"));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn local_manifest_cannot_claim_compiled_first_party_pack_id() {
+        let dir = unique_dir("compiled_first_party_id");
+        let path = dir.join("pack.json");
+        fs::write(&path, manifest(PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID)).unwrap();
+        let err = SemanticPackSet::new_local(&[path]).expect_err("compiled id is reserved");
+        assert!(err.to_string().contains("duplicate semantic pack id"));
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn conformance_check_cannot_claim_compiled_first_party_pack_id() {
+        let dir = unique_dir("compiled_first_party_conformance");
+        let path = dir.join("pack.json");
+        fs::write(&path, manifest(PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID)).unwrap();
+        let err = check_semantic_pack_conformance(&[path]).expect_err("compiled id is reserved");
         assert!(err.to_string().contains("duplicate semantic pack id"));
         let _ = fs::remove_dir_all(dir);
     }

@@ -2676,6 +2676,11 @@ fn warn_no_files(paths: &[PathBuf]) {
 }
 
 fn semantic_pack_summary_line(packs: &nose_semantics::SemanticPackSet) -> Option<String> {
+    let first_party_count = packs
+        .packs()
+        .iter()
+        .filter(|pack| pack.source == nose_semantics::SemanticPackSource::CompiledFirstParty)
+        .count();
     let local = packs
         .packs()
         .iter()
@@ -2684,8 +2689,7 @@ fn semantic_pack_summary_line(packs: &nose_semantics::SemanticPackSet) -> Option
         .collect::<Vec<_>>();
     (!local.is_empty()).then(|| {
         format!(
-            "semantic packs: {} first-party default · {} local opt-in: {}",
-            nose_semantics::FIRST_PARTY_PACK_ID,
+            "semantic packs: {first_party_count} first-party default · {} local opt-in: {}",
             local.len(),
             local.join(", ")
         )

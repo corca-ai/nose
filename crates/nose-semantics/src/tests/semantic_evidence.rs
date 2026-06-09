@@ -227,6 +227,37 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         type_domain_from_source_text(Lang::Go, "type User struct { id int }"),
         Some(DomainEvidence::Record)
     );
+
+    let iterable = python_stdlib_type_domain_contract("typing", "Iterable")
+        .expect("typing.Iterable should be a first-party pack row");
+    assert_eq!(iterable.pack_id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
+    assert_eq!(iterable.producer_id, PYTHON_STDLIB_TYPE_DOMAIN_PRODUCER_ID);
+    assert_eq!(iterable.domain, DomainEvidence::Iterable);
+    assert_eq!(
+        python_stdlib_type_domain("collections.abc", "Mapping"),
+        Some(DomainEvidence::Map)
+    );
+    assert_eq!(
+        python_stdlib_type_domain("collections.abc", "Awaitable"),
+        Some(DomainEvidence::FutureLike)
+    );
+    assert_eq!(
+        python_stdlib_type_domain("asyncio", "Future"),
+        Some(DomainEvidence::FutureLike)
+    );
+    assert_eq!(python_stdlib_type_domain("typing", "Blacklist"), None);
+    assert_eq!(python_stdlib_type_domain("typing", "Future"), None);
+    assert_eq!(python_stdlib_type_domain("collections.abc", "Dict"), None);
+    assert_eq!(
+        python_stdlib_type_domain("collections.abc", "FrozenSet"),
+        None
+    );
+    assert_eq!(python_stdlib_type_domain("collections.abc", "Deque"), None);
+    assert_eq!(python_stdlib_type_domain("collections.abc", "List"), None);
+    assert_eq!(python_stdlib_type_domain("collections.abc", "Tuple"), None);
+    assert_eq!(python_stdlib_type_domain("asyncio", "Awaitable"), None);
+    assert_eq!(python_stdlib_type_domain("asyncio", "Coroutine"), None);
+    assert_eq!(python_stdlib_type_domain("custom.typing", "Iterable"), None);
 }
 
 #[test]
