@@ -35,11 +35,13 @@ precondition.
 - Do not certify external pack claims. nose validates record shape and fails
   closed; providers own their claims, and users own opt-in decisions.
 - Do not model demand as evidence records or cover every place/effect family in
-  this slice. Demand profiles are internal contracts for already-admitted
-  operations; they are not source proof records. The current place/effect records
-  cover the first exact-fragment substrate plus conservative binding-write,
-  receiver-mutation, and opaque-argument-escape risk facts needed to keep
-  binding/import safety fail-closed.
+  this slice. Demand/effect profiles are internal contracts for
+  already-admitted operations; they are not source proof records. The current
+  place/effect records cover the first exact-fragment substrate plus
+  conservative binding-write, receiver-mutation, and opaque-argument-escape risk
+  facts needed to keep binding/import safety fail-closed. The current
+  demand/effect model is described in
+  [demand-effect-semantics](demand-effect-semantics.md).
 
 ## Record Shape
 
@@ -625,8 +627,8 @@ callers:
 Broader field/place/effect facts, promise receiver proof, async/sync and
 Go-channel protocol convergence, unmodeled stdlib/ecosystem APIs, broader
 inferred receiver-expression domain evidence, field/property/setter/proxy place
-facts, full protocol/demand/effect receiver obligations for lazy generators,
-set/dict materialization, channels, and async, full scope-resolution and
-namespace-member evidence, broader guard evidence, general cross-module
-dependency manifests, report-level provenance, and external manifest loading are
-still open work.
+facts, pack-facing demand/effect rows for lazy generators, set/dict
+materialization, channels, async, call-by-need, and callback effects, full
+scope-resolution and namespace-member evidence, broader guard evidence, general
+cross-module dependency manifests, report-level provenance, and external
+manifest loading are still open work.

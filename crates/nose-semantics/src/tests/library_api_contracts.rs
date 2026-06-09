@@ -478,6 +478,7 @@ fn library_non_factory_api_contracts_carry_identity_and_result_obligations() {
             },
             result: PromiseThenContract {
                 receiver: AsyncReceiverContract::ExactPromiseLike,
+                demand: promise_then_demand_effect_profile(),
             },
         })
     );
@@ -641,6 +642,26 @@ fn builtin_contracts_preserve_current_special_demand_split() {
         builtin_demand_profile(Builtin::All),
         BuiltinDemandProfile::ShortCircuitQuantifier { all: true }
     );
+    assert_eq!(
+        builtin_demand_effect_profile(Builtin::All),
+        DemandEffectProfile {
+            operation: DemandOperation::ShortCircuitQuantifier,
+            order: EvaluationOrder::ShortCircuit,
+            child_demand: ChildDemand::ShortCircuitUntilKnown,
+            callback: None,
+            effect_visibility: EffectVisibility::OnlyIfDemanded,
+        }
+    );
+    assert_eq!(
+        builtin_demand_effect_profile(Builtin::Reduce),
+        DemandEffectProfile {
+            operation: DemandOperation::FoldReduction,
+            order: EvaluationOrder::PerElementSourceOrder,
+            child_demand: ChildDemand::PerElementPull,
+            callback: Some(CallbackDemandProfile::left_fold()),
+            effect_visibility: EffectVisibility::OnlyIfDemanded,
+        }
+    );
     assert_eq!(builtin_demand(Builtin::Append), BuiltinDemand::Append);
     assert_eq!(
         builtin_demand_profile(Builtin::Append),
@@ -689,6 +710,95 @@ fn builtin_contracts_preserve_current_special_demand_split() {
         HofDemandProfile::Reduce {
             callback: CallbackDemandProfile::left_fold()
         }
+    );
+    assert_eq!(
+        hof_demand_effect_profile(
+            HoFKind::Map,
+            HofDemandSource::SourceComprehension(SourceComprehensionKind::PythonListComprehension)
+        ),
+        Some(DemandEffectProfile {
+            operation: DemandOperation::PerElementHof,
+            order: EvaluationOrder::PerElementSourceOrder,
+            child_demand: ChildDemand::PerElementPull,
+            callback: Some(CallbackDemandProfile::unary_element(
+                CallbackResultDemand::Value
+            )),
+            effect_visibility: EffectVisibility::OnlyIfDemanded,
+        })
+    );
+    assert_eq!(
+        hof_demand_effect_profile(
+            HoFKind::Map,
+            HofDemandSource::SourceComprehension(
+                SourceComprehensionKind::PythonGeneratorExpression
+            )
+        ),
+        Some(DemandEffectProfile {
+            operation: DemandOperation::PullLazyHof,
+            order: EvaluationOrder::DeferredUntilObserved,
+            child_demand: ChildDemand::PerElementPull,
+            callback: Some(CallbackDemandProfile::unary_element(
+                CallbackResultDemand::Value
+            )),
+            effect_visibility: EffectVisibility::DelayedUntilPull,
+        })
+    );
+    assert_eq!(
+        hof_demand_effect_profile(
+            HoFKind::Map,
+            HofDemandSource::SourceComprehension(SourceComprehensionKind::PythonSetComprehension)
+        ),
+        None
+    );
+    assert_eq!(
+        hof_demand_effect_profile(
+            HoFKind::Map,
+            HofDemandSource::LibraryApi(HofDemandTiming::PullLazy)
+        ),
+        Some(DemandEffectProfile {
+            operation: DemandOperation::PullLazyHof,
+            order: EvaluationOrder::DeferredUntilObserved,
+            child_demand: ChildDemand::PerElementPull,
+            callback: Some(CallbackDemandProfile::unary_element(
+                CallbackResultDemand::Value
+            )),
+            effect_visibility: EffectVisibility::DelayedUntilPull,
+        })
+    );
+    assert!(hof_demand_effect_profile(
+        HoFKind::Map,
+        HofDemandSource::SourceComprehension(SourceComprehensionKind::PythonGeneratorExpression)
+    )
+    .unwrap()
+    .callback_effects_delayed_until_pull());
+    assert!(hof_demand_effect_profile(
+        HoFKind::Map,
+        HofDemandSource::SourceComprehension(SourceComprehensionKind::PythonListComprehension)
+    )
+    .unwrap()
+    .proves_eager_per_element_callback_demand());
+    assert_eq!(
+        promise_then_demand_effect_profile(),
+        DemandEffectProfile {
+            operation: DemandOperation::AsyncContinuation,
+            order: EvaluationOrder::RuntimeScheduled,
+            child_demand: ChildDemand::AsyncContinuation,
+            callback: Some(CallbackDemandProfile::async_continuation()),
+            effect_visibility: EffectVisibility::AsyncBoundary,
+        }
+    );
+    assert!(promise_then_demand_effect_profile().is_async_boundary());
+    assert_eq!(
+        source_protocol_demand_effect_profile(SourceProtocolKind::ChannelSend).effect_visibility,
+        EffectVisibility::ChannelBoundary
+    );
+    assert_eq!(
+        source_protocol_demand_effect_profile(SourceProtocolKind::GoRoutine).operation,
+        DemandOperation::ProtocolBoundary
+    );
+    assert_eq!(
+        source_protocol_demand_effect_profile(SourceProtocolKind::Defer).effect_visibility,
+        EffectVisibility::ProtocolBoundary
     );
 }
 
@@ -945,6 +1055,7 @@ fn promise_then_contract_requires_js_like_surface_and_receiver_proof() {
         promise_then_contract(Lang::TypeScript, "then", 1),
         Some(PromiseThenContract {
             receiver: AsyncReceiverContract::ExactPromiseLike,
+            demand: promise_then_demand_effect_profile(),
         })
     );
     assert_eq!(promise_then_contract(Lang::TypeScript, "then", 2), None);

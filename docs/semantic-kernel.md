@@ -9,7 +9,8 @@ versioned provider-facing extension surface is defined in
 [semantic-pack-extension-api-v0](semantic-pack-extension-api-v0.md). Source
 origin evidence is detailed in [source-facts](source-facts.md); the shared
 internal evidence substrate is described in
-[evidence-records](evidence-records.md).
+[evidence-records](evidence-records.md). The current demand/effect contract
+model is described in [demand-effect-semantics](demand-effect-semantics.md).
 
 ## Context
 
@@ -199,6 +200,14 @@ Examples:
 - call-by-need thunks with memoization;
 - async, promise, future, and observable APIs whose construction and observation
   happen at different times.
+
+The implemented first-party substrate now names these as
+`DemandEffectProfile` contracts for admitted operations. The profiles cover
+current eager, short-circuit, per-element HOF, pull-lazy generator, async
+continuation, generator suspension, channel-boundary, and protocol-boundary
+classes. HOF timing must come from an explicit source or API demand source. The
+profiles describe how an already-proven operation is consumed; they do not prove
+that a selector or raw source protocol anchor has that meaning.
 
 ### Values and domains
 

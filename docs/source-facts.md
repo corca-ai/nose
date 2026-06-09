@@ -122,8 +122,9 @@ fall back to a side-table mirror when source evidence is missing.
   `Raw("yield", value)`. Rust `async {}` and `?` are preserved as
   `Raw("async_block", body)` and `Raw("try", value)`. Exact async/sync,
   generator, and error-propagation convergence stays closed until a future
-  protocol contract proves the receiver, demand, scheduling, exception, and
-  effect obligations for that language/runtime.
+  protocol contract proves the receiver, scheduling, exception, and
+  [demand/effect](demand-effect-semantics.md) obligations for that
+  language/runtime.
 - Python comprehension HOFs consume source surface facts before entering exact
   consumers. Returned generator and set comprehensions stay distinct from
   returned list comprehensions; `len(generator)` and set cardinality stay closed.

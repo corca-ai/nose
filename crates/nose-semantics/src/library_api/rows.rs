@@ -588,6 +588,7 @@ pub fn library_promise_then_contract(
     }
     let result = PromiseThenContract {
         receiver: AsyncReceiverContract::ExactPromiseLike,
+        demand: promise_then_demand_effect_profile(),
     };
     Some(LibraryPromiseThenContract {
         id: LibraryApiContractId::PromiseThen,

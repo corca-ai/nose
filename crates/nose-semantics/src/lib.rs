@@ -2415,6 +2415,7 @@ pub enum AsyncReceiverContract {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PromiseThenContract {
     pub receiver: AsyncReceiverContract,
+    pub demand: DemandEffectProfile,
 }
 
 pub fn promise_then_contract(

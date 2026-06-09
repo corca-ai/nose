@@ -22,8 +22,8 @@ use nose_il::{stable_symbol_hash, Builtin, Il, Interner, LoopKind, NodeId, NodeK
 use nose_semantics::{
     admitted_builtin_semantics_at_call, builtin_demand_profile,
     direct_function_call_target_at_call, exact_java_this_field, exact_java_this_var,
-    exact_self_field_write_assignment, hof_contract, BuiltinDemandProfile, EagerBuiltinContract,
-    HofDemandProfile,
+    exact_self_field_write_assignment, hof_contract, BuiltinDemandProfile, DemandOperation,
+    EagerBuiltinContract, HofDemandProfile,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -614,16 +614,22 @@ impl<'a> Interp<'a> {
         }
         let kids = self.il.children(node).to_vec();
         let mut args = Vec::new();
-        let eager_contract = match builtin_demand_profile(b) {
-            BuiltinDemandProfile::FoldReduction => return self.eval_reduce_call(&kids, env),
-            BuiltinDemandProfile::ShortCircuitQuantifier { all } => {
+        let profile = builtin_demand_profile(b);
+        let demand = profile.demand_effect_profile();
+        let eager_contract = match (demand.operation, profile) {
+            (DemandOperation::FoldReduction, _) => return self.eval_reduce_call(&kids, env),
+            (
+                DemandOperation::ShortCircuitQuantifier,
+                BuiltinDemandProfile::ShortCircuitQuantifier { all },
+            ) => {
                 return self.eval_any_all_call(all, &kids, env);
             }
-            BuiltinDemandProfile::AppendMutation => return self.eval_append(&kids, env),
-            BuiltinDemandProfile::NullishDefault => {
+            (DemandOperation::AppendMutation, _) => return self.eval_append(&kids, env),
+            (DemandOperation::NullishDefault, _) => {
                 return self.eval_value_or_default_call(&kids, env);
             }
-            BuiltinDemandProfile::Eager { contract } => contract,
+            (_, BuiltinDemandProfile::Eager { contract }) => contract,
+            _ => return Err(Unsupported),
         };
         for &k in &kids {
             let arg = self.eval(k, env)?;

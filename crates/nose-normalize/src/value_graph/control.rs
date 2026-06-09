@@ -678,9 +678,16 @@ impl<'a> Builder<'a> {
                     | Payload::HoF(HoFKind::FilterMap)
             )
         {
-            if source_comprehension_at_node(self.il, expr)
-                == Some(SourceComprehensionKind::PythonGeneratorExpression)
-            {
+            let Payload::HoF(kind) = self.il.node(expr).payload else {
+                return false;
+            };
+            let Some(source) = source_comprehension_at_node(self.il, expr) else {
+                return false;
+            };
+            let Some(demand) = source_comprehension_hof_demand_effect_profile(kind, source) else {
+                return false;
+            };
+            if !demand.proves_eager_per_element_callback_demand() {
                 return false;
             }
             let kids = self.il.children(expr).to_vec();

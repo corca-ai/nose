@@ -23,6 +23,9 @@ pub(in super::super) fn apply(
     }
     let admitted = admitted_promise_then_at_call(builder.il, builder.interner, expr)?;
     let contract = admitted.contract.result;
+    if !contract.demand.is_async_boundary() {
+        return None;
+    }
     let cb = kids[1];
     if builder.il.kind(cb) != NodeKind::Lambda {
         return None;

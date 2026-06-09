@@ -280,6 +280,71 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
 }
 
 #[test]
+fn library_hof_static_callback_error_requires_explicit_eager_demand() {
+    let interner = Interner::new();
+    let mut b = IlBuilder::new(FileId(0));
+    let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
+    let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
+    let lambda = div_zero_lambda(&mut b, 2, sp(2));
+    let hof = b.add(
+        NodeKind::HoF,
+        Payload::HoF(HoFKind::Map),
+        sp(3),
+        &[coll, lambda],
+    );
+    let mut il = finish_test_il(b, hof, Lang::Rust);
+    let contract = library_method_call_contract(Lang::Rust, "map", 1).expect("Rust map contract");
+    il.evidence.push(library_api_contract_evidence(
+        0,
+        il.node(hof).span,
+        contract.id,
+        contract.callee,
+        1,
+        Vec::new(),
+    ));
+    assert!(nose_semantics::admitted_hof_api_at_node(
+        &il,
+        hof,
+        HoFKind::Map
+    ));
+
+    let mut builder = Builder::new(&il, &interner);
+    assert!(
+        !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "admitted library HOF payloads must not prove eager callback exception timing"
+    );
+
+    let mut list_il = il.clone();
+    list_il.evidence.clear();
+    list_il.meta.lang = Lang::Python;
+    push_source_comprehension(
+        &mut list_il,
+        0,
+        sp(3),
+        SourceComprehensionKind::PythonListComprehension,
+    );
+    let mut builder = Builder::new(&list_il, &interner);
+    assert!(
+        builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "a source-proven Python list comprehension keeps eager callback exception timing"
+    );
+
+    let mut gen_il = list_il.clone();
+    gen_il.evidence.clear();
+    push_source_comprehension(
+        &mut gen_il,
+        0,
+        sp(3),
+        SourceComprehensionKind::PythonGeneratorExpression,
+    );
+    let mut builder = Builder::new(&gen_il, &interner);
+    assert!(
+        !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
+        "a source-proven Python generator expression remains pull-lazy"
+    );
+}
+
+#[test]
 fn source_comprehension_admits_internal_python_filter_hof_only_in_context() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));

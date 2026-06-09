@@ -143,6 +143,16 @@ fn const_bool_lambda(builder: &mut IlBuilder, param_cid: u32, value: bool, span:
     builder.add(NodeKind::Lambda, Payload::None, span, &[param, block])
 }
 
+fn div_zero_lambda(builder: &mut IlBuilder, param_cid: u32, span: Span) -> NodeId {
+    let param = builder.add(NodeKind::Param, Payload::Cid(param_cid), span, &[]);
+    let lhs = builder.add(NodeKind::Lit, Payload::LitInt(1), span, &[]);
+    let rhs = builder.add(NodeKind::Lit, Payload::LitInt(0), span, &[]);
+    let div = builder.add(NodeKind::BinOp, Payload::Op(Op::Div), span, &[lhs, rhs]);
+    let ret = builder.add(NodeKind::Return, Payload::None, span, &[div]);
+    let block = builder.add(NodeKind::Block, Payload::None, span, &[ret]);
+    builder.add(NodeKind::Lambda, Payload::None, span, &[param, block])
+}
+
 fn push_source_comprehension(il: &mut Il, id: u32, span: Span, kind: SourceComprehensionKind) {
     il.evidence.push(evidence(
         id,

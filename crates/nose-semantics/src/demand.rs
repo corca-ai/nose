@@ -4,7 +4,96 @@
 //! children and callbacks. They do not admit APIs by spelling; language/library
 //! admission remains the job of the occurrence contract tables and evidence checks.
 
-use nose_il::{Builtin, HoFKind};
+use nose_il::{Builtin, HoFKind, SourceComprehensionKind, SourceProtocolKind};
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum DemandOperation {
+    Eager,
+    FoldReduction,
+    ShortCircuitQuantifier,
+    AppendMutation,
+    NullishDefault,
+    PerElementHof,
+    PullLazyHof,
+    CallByNeedThunk,
+    AsyncContinuation,
+    GeneratorSuspension,
+    ChannelOperation,
+    ProtocolBoundary,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EvaluationOrder {
+    SourceOrder,
+    ShortCircuit,
+    PerElementSourceOrder,
+    DeferredUntilObserved,
+    RuntimeScheduled,
+    ProtocolDefined,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ChildDemand {
+    Always,
+    Never,
+    Conditional,
+    ShortCircuitUntilKnown,
+    PerElementPull,
+    MaybeRepeated,
+    CallByNeedMemoized,
+    SuspendedUntilObserved,
+    AsyncContinuation,
+    ChannelBoundary,
+    ProtocolBoundary,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EffectVisibility {
+    Immediate,
+    OnlyIfDemanded,
+    DelayedUntilPull,
+    MemoizedFirstDemand,
+    AsyncBoundary,
+    YieldBoundary,
+    ChannelBoundary,
+    ProtocolBoundary,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct DemandEffectProfile {
+    pub operation: DemandOperation,
+    pub order: EvaluationOrder,
+    pub child_demand: ChildDemand,
+    pub callback: Option<CallbackDemandProfile>,
+    pub effect_visibility: EffectVisibility,
+}
+
+impl DemandEffectProfile {
+    pub const fn eager() -> Self {
+        Self {
+            operation: DemandOperation::Eager,
+            order: EvaluationOrder::SourceOrder,
+            child_demand: ChildDemand::Always,
+            callback: None,
+            effect_visibility: EffectVisibility::Immediate,
+        }
+    }
+
+    pub fn callback_effects_delayed_until_pull(self) -> bool {
+        matches!(self.effect_visibility, EffectVisibility::DelayedUntilPull)
+    }
+
+    pub fn is_async_boundary(self) -> bool {
+        matches!(self.effect_visibility, EffectVisibility::AsyncBoundary)
+    }
+
+    pub fn proves_eager_per_element_callback_demand(self) -> bool {
+        matches!(self.operation, DemandOperation::PerElementHof)
+            && matches!(self.order, EvaluationOrder::PerElementSourceOrder)
+            && self.callback.is_some()
+            && !self.callback_effects_delayed_until_pull()
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BuiltinDemand {
@@ -44,6 +133,40 @@ impl BuiltinDemandProfile {
             | BuiltinDemandProfile::NullishDefault => None,
         }
     }
+
+    pub fn demand_effect_profile(self) -> DemandEffectProfile {
+        match self {
+            BuiltinDemandProfile::Eager { .. } => DemandEffectProfile::eager(),
+            BuiltinDemandProfile::FoldReduction => DemandEffectProfile {
+                operation: DemandOperation::FoldReduction,
+                order: EvaluationOrder::PerElementSourceOrder,
+                child_demand: ChildDemand::PerElementPull,
+                callback: Some(CallbackDemandProfile::left_fold()),
+                effect_visibility: EffectVisibility::OnlyIfDemanded,
+            },
+            BuiltinDemandProfile::ShortCircuitQuantifier { .. } => DemandEffectProfile {
+                operation: DemandOperation::ShortCircuitQuantifier,
+                order: EvaluationOrder::ShortCircuit,
+                child_demand: ChildDemand::ShortCircuitUntilKnown,
+                callback: None,
+                effect_visibility: EffectVisibility::OnlyIfDemanded,
+            },
+            BuiltinDemandProfile::AppendMutation => DemandEffectProfile {
+                operation: DemandOperation::AppendMutation,
+                order: EvaluationOrder::SourceOrder,
+                child_demand: ChildDemand::Always,
+                callback: None,
+                effect_visibility: EffectVisibility::Immediate,
+            },
+            BuiltinDemandProfile::NullishDefault => DemandEffectProfile {
+                operation: DemandOperation::NullishDefault,
+                order: EvaluationOrder::ShortCircuit,
+                child_demand: ChildDemand::Conditional,
+                callback: None,
+                effect_visibility: EffectVisibility::OnlyIfDemanded,
+            },
+        }
+    }
 }
 
 pub fn builtin_demand_profile(builtin: Builtin) -> BuiltinDemandProfile {
@@ -58,6 +181,10 @@ pub fn builtin_demand_profile(builtin: Builtin) -> BuiltinDemandProfile {
                 .expect("every non-special builtin has an eager demand contract"),
         },
     }
+}
+
+pub fn builtin_demand_effect_profile(builtin: Builtin) -> DemandEffectProfile {
+    builtin_demand_profile(builtin).demand_effect_profile()
 }
 
 pub fn builtin_demand(builtin: Builtin) -> BuiltinDemand {
@@ -146,12 +273,14 @@ pub fn reduction_builtin_contract(builtin: Builtin) -> Option<ReductionBuiltinCo
 pub enum CallbackInvocationDemand {
     PerElementPull,
     LeftFoldStep,
+    AsyncContinuation,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CallbackArgumentDemand {
     Element,
     AccumulatorAndElement,
+    SettledValue,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -161,6 +290,7 @@ pub enum CallbackResultDemand {
     OptionalValue,
     Predicate,
     Accumulator,
+    ContinuationValue,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -186,6 +316,14 @@ impl CallbackDemandProfile {
             result: CallbackResultDemand::Accumulator,
         }
     }
+
+    pub const fn async_continuation() -> Self {
+        Self {
+            invocation: CallbackInvocationDemand::AsyncContinuation,
+            arguments: CallbackArgumentDemand::SettledValue,
+            result: CallbackResultDemand::ContinuationValue,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -195,6 +333,71 @@ pub enum HofDemandProfile {
     FilterMap { callback: CallbackDemandProfile },
     Filter { callback: CallbackDemandProfile },
     Reduce { callback: CallbackDemandProfile },
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum HofDemandTiming {
+    EagerPerElement,
+    PullLazy,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum HofDemandSource {
+    SourceComprehension(SourceComprehensionKind),
+    LibraryApi(HofDemandTiming),
+}
+
+impl HofDemandSource {
+    fn timing(self) -> Option<HofDemandTiming> {
+        match self {
+            HofDemandSource::SourceComprehension(
+                SourceComprehensionKind::PythonDictComprehension
+                | SourceComprehensionKind::PythonListComprehension,
+            ) => Some(HofDemandTiming::EagerPerElement),
+            HofDemandSource::SourceComprehension(
+                SourceComprehensionKind::PythonGeneratorExpression,
+            ) => Some(HofDemandTiming::PullLazy),
+            HofDemandSource::SourceComprehension(
+                SourceComprehensionKind::PythonSetComprehension,
+            ) => None,
+            HofDemandSource::LibraryApi(timing) => Some(timing),
+        }
+    }
+}
+
+impl HofDemandProfile {
+    pub const fn callback(self) -> CallbackDemandProfile {
+        match self {
+            HofDemandProfile::Map { callback }
+            | HofDemandProfile::FlatMap { callback }
+            | HofDemandProfile::FilterMap { callback }
+            | HofDemandProfile::Filter { callback }
+            | HofDemandProfile::Reduce { callback } => callback,
+        }
+    }
+
+    pub fn demand_effect_profile(self, timing: HofDemandTiming) -> DemandEffectProfile {
+        let lazy_generator = matches!(timing, HofDemandTiming::PullLazy);
+        DemandEffectProfile {
+            operation: if lazy_generator {
+                DemandOperation::PullLazyHof
+            } else {
+                DemandOperation::PerElementHof
+            },
+            order: if lazy_generator {
+                EvaluationOrder::DeferredUntilObserved
+            } else {
+                EvaluationOrder::PerElementSourceOrder
+            },
+            child_demand: ChildDemand::PerElementPull,
+            callback: Some(self.callback()),
+            effect_visibility: if lazy_generator {
+                EffectVisibility::DelayedUntilPull
+            } else {
+                EffectVisibility::OnlyIfDemanded
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -222,4 +425,81 @@ pub fn hof_contract(kind: HoFKind) -> HofContract {
         },
     };
     HofContract { kind, demand }
+}
+
+pub fn hof_demand_effect_profile(
+    kind: HoFKind,
+    source: HofDemandSource,
+) -> Option<DemandEffectProfile> {
+    source
+        .timing()
+        .map(|timing| hof_contract(kind).demand.demand_effect_profile(timing))
+}
+
+pub fn source_comprehension_hof_demand_effect_profile(
+    kind: HoFKind,
+    source: SourceComprehensionKind,
+) -> Option<DemandEffectProfile> {
+    hof_demand_effect_profile(kind, HofDemandSource::SourceComprehension(source))
+}
+
+pub fn promise_then_demand_effect_profile() -> DemandEffectProfile {
+    DemandEffectProfile {
+        operation: DemandOperation::AsyncContinuation,
+        order: EvaluationOrder::RuntimeScheduled,
+        child_demand: ChildDemand::AsyncContinuation,
+        callback: Some(CallbackDemandProfile::async_continuation()),
+        effect_visibility: EffectVisibility::AsyncBoundary,
+    }
+}
+
+pub fn source_protocol_demand_effect_profile(protocol: SourceProtocolKind) -> DemandEffectProfile {
+    match protocol {
+        SourceProtocolKind::Await => DemandEffectProfile {
+            operation: DemandOperation::AsyncContinuation,
+            order: EvaluationOrder::RuntimeScheduled,
+            child_demand: ChildDemand::AsyncContinuation,
+            callback: None,
+            effect_visibility: EffectVisibility::AsyncBoundary,
+        },
+        SourceProtocolKind::AsyncBlock => DemandEffectProfile {
+            operation: DemandOperation::CallByNeedThunk,
+            order: EvaluationOrder::DeferredUntilObserved,
+            child_demand: ChildDemand::SuspendedUntilObserved,
+            callback: None,
+            effect_visibility: EffectVisibility::AsyncBoundary,
+        },
+        SourceProtocolKind::Yield => DemandEffectProfile {
+            operation: DemandOperation::GeneratorSuspension,
+            order: EvaluationOrder::DeferredUntilObserved,
+            child_demand: ChildDemand::SuspendedUntilObserved,
+            callback: None,
+            effect_visibility: EffectVisibility::YieldBoundary,
+        },
+        SourceProtocolKind::ChannelReceive
+        | SourceProtocolKind::ChannelSelect
+        | SourceProtocolKind::ChannelSelectCase
+        | SourceProtocolKind::ChannelSelectDefault
+        | SourceProtocolKind::ChannelSend => DemandEffectProfile {
+            operation: DemandOperation::ChannelOperation,
+            order: EvaluationOrder::ProtocolDefined,
+            child_demand: ChildDemand::ChannelBoundary,
+            callback: None,
+            effect_visibility: EffectVisibility::ChannelBoundary,
+        },
+        SourceProtocolKind::Defer | SourceProtocolKind::GoRoutine => DemandEffectProfile {
+            operation: DemandOperation::ProtocolBoundary,
+            order: EvaluationOrder::ProtocolDefined,
+            child_demand: ChildDemand::ProtocolBoundary,
+            callback: None,
+            effect_visibility: EffectVisibility::ProtocolBoundary,
+        },
+        SourceProtocolKind::TryPropagation => DemandEffectProfile {
+            operation: DemandOperation::ShortCircuitQuantifier,
+            order: EvaluationOrder::ShortCircuit,
+            child_demand: ChildDemand::Conditional,
+            callback: None,
+            effect_visibility: EffectVisibility::OnlyIfDemanded,
+        },
+    }
 }

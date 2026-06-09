@@ -29,10 +29,16 @@ values, or sequence tags. Python comprehension lowering now records whether a
 HOF came from a list comprehension, set comprehension, dict comprehension, or
 generator expression, and exact/value consumers use that surface evidence before
 applying materialization or demand-sensitive laws. Admitted builtin and HOF
-operations now also have internal demand profiles for the currently supported
-eager, short-circuit, append, nullish-default, reduction, and per-element
-callback evaluation shapes; these profiles describe how an already-admitted
-operation is consumed, not which source API is admitted.
+operations now also have internal `DemandEffectProfile` contracts for the
+currently supported eager, short-circuit, append, nullish-default, reduction,
+per-element callback, pull-lazy generator, async-continuation, generator
+suspension, channel-boundary, and protocol-boundary shapes; these profiles
+describe how an already-admitted operation is consumed, not which source API is
+admitted. HOF callback timing comes from an explicit source or API demand source,
+not from the raw HOF kind alone.
+Promise `.then` carries an async-continuation demand/effect profile in its
+contract row, but the value-graph rule remains closed until Promise-like
+receiver proof exists.
 Library/API identity is consolidated through internal `LibraryApiContract` rows
 for factory, constructor, selected property/non-factory method/view surfaces,
 and selected non-call sentinels, with occurrence evidence covering selected
@@ -57,10 +63,10 @@ still being migrated toward it.
 - `nose-il` defines a compact shared IL, `Lang`, `Builtin`, `HoFKind`, operators,
   literals, source spans, units, and pack-facing internal `EvidenceRecord` facts.
 - `nose-semantics` defines the first-party semantic profile facade: language,
-  source-fact, operator, demand, effect, fragment, module, stdlib, builtin,
+  source-fact, operator, demand/effect, fragment, module, stdlib, builtin,
   method-call, property, async, iterator-adapter, builder-append, and factory
   contracts. The public crate surface remains a flat facade, while internal
-  evidence/source/domain proof helpers, demand profiles, effect/place helpers,
+  evidence/source/domain proof helpers, demand/effect profiles, effect/place helpers,
   library API contract identities, library API row constructors, library API
   evidence-hash registry helpers, negative API guard rows, and library API
   occurrence/admission logic are split into focused modules.
@@ -655,7 +661,7 @@ Semantic knowledge still appears in several forms outside the facade:
 - oracle evaluation rules for admitted eager calls, short-circuit quantifiers,
   append mutation, nullish defaulting, reductions, and HOF callback execution
   now consume internal demand profiles, but broader lazy, async, generator,
-  channel, repeated, and call-by-need demand/effect semantics are still not a
+  protocol, repeated, and call-by-need demand/effect semantics are still not a
   shared external contract language;
 - remaining library/API proof gates that do not yet have occurrence records.
   `LibraryApi` occurrence evidence now covers selected JS-like static/global
@@ -707,8 +713,8 @@ language.
 - Evaluation strategy is only partially shared. Internal demand profiles now
   cover the currently admitted eager, short-circuit, append, nullish-default,
   reduction, and HOF callback shapes, but pull-lazy, call-by-need, async,
-  generator, channel, and richer observable-effect behavior are not represented
-  by a common pack-facing demand/effect abstraction.
+  generator, channel/protocol, and richer observable-effect behavior are not
+  represented by a common pack-facing demand/effect abstraction.
 - External extension points do not exist. New languages and libraries must be
   added inside the main crates.
 - Report output does not yet expose semantic provenance such as pack id, contract
