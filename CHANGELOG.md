@@ -50,6 +50,10 @@ break.
 - A three-reviewer fragment-quality audit artifact for Java/Python hidden/review
   exact-fragment families now records the criteria, votes, and policy decisions
   behind the diagnostic-surface follow-up.
+- A LawPack provenance audit artifact now records the 105-repo and targeted
+  real-corpus pass for `nose.value_graph.laws`: the pack is active in scan JSON,
+  but the current two proof-backed laws produced no real clone families with
+  `semantic_laws` provenance.
 
 ### Changed
 - Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface

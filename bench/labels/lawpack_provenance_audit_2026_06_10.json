@@ -1,0 +1,284 @@
+{
+  "schema_version": "lawpack-provenance-audit.v1",
+  "audit_date": "2026-06-10",
+  "issue": "https://github.com/corca-ai/nose/issues/186",
+  "git_revision": "1b83307085171ca6a6f61efaaa2480fdaead463c",
+  "binary": {
+    "build_command": "cargo build -p nose-cli --release",
+    "scan_command_template": "target/release/nose scan bench/repos/<repo> --mode semantic --format json --top 0"
+  },
+  "pack_under_test": {
+    "id": "nose.value_graph.laws",
+    "kind": "LawPack",
+    "value_law_count": 2,
+    "value_laws": [
+      {
+        "law_id": "value-graph.factor-distribute.numeric-common-factor",
+        "proof_obligation_id": "normalize.value_graph.factor_distribute"
+      },
+      {
+        "law_id": "value-graph.clamp.integer-ordered-minmax",
+        "proof_obligation_id": "normalize.value_graph.clamp"
+      }
+    ]
+  },
+  "full_corpus_scan": {
+    "repos_root": "bench/repos",
+    "output_cache": "/tmp/nose-lawpack-eval-full-1781066700",
+    "successful_repos": 104,
+    "failed_repos": [
+      {
+        "repo": "rxjs",
+        "failure": "scan aborted with stack overflow"
+      }
+    ],
+    "source_files": 59865,
+    "families": 10967,
+    "pack_active_repos": 104,
+    "law_bearing_repos": 0,
+    "law_bearing_families": 0,
+    "languages": [
+      {
+        "language": "java",
+        "files": 18837,
+        "repos": 21
+      },
+      {
+        "language": "javascript",
+        "files": 8386,
+        "repos": 59
+      },
+      {
+        "language": "typescript",
+        "files": 7562,
+        "repos": 21
+      },
+      {
+        "language": "c",
+        "files": 6143,
+        "repos": 28
+      },
+      {
+        "language": "go",
+        "files": 5138,
+        "repos": 18
+      },
+      {
+        "language": "ruby",
+        "files": 4864,
+        "repos": 22
+      },
+      {
+        "language": "python",
+        "files": 4475,
+        "repos": 34
+      },
+      {
+        "language": "rust",
+        "files": 4460,
+        "repos": 16
+      }
+    ],
+    "largest_family_repos": [
+      {
+        "repo": "guava",
+        "files": 3228,
+        "families": 1795,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "libgdx",
+        "files": 2100,
+        "families": 931,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "netty",
+        "files": 3556,
+        "families": 912,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "sympy",
+        "files": 1582,
+        "families": 902,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "sqlalchemy",
+        "files": 667,
+        "families": 736,
+        "law_bearing_families": 0
+      }
+    ]
+  },
+  "targeted_subset_scan": {
+    "selection": "Repos were selected from the frontier numeric-clamp signal plus targeted grep for clamp/min-max and common-factor arithmetic surfaces.",
+    "output_cache": "/tmp/nose-lawpack-eval-1781066520",
+    "repos": [
+      {
+        "repo": "fzf",
+        "selection_reason": "Go custom clamp helper and many call sites",
+        "languages": {
+          "go": 78,
+          "ruby": 10
+        },
+        "files": 88,
+        "families": 4,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "pixijs",
+        "selection_reason": "TypeScript nested Math.min/Math.max clamp idioms",
+        "languages": {
+          "typescript": 1468,
+          "javascript": 15
+        },
+        "files": 1483,
+        "families": 38,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "alacritty",
+        "selection_reason": "Rust min/max clamp-shaped viewport arithmetic",
+        "languages": {
+          "rust": 88
+        },
+        "files": 88,
+        "families": 1,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "meilisearch",
+        "selection_reason": "Rust .clamp plus adjacent min/max bound normalization",
+        "languages": {
+          "rust": 690
+        },
+        "files": 690,
+        "families": 8,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "h2database",
+        "selection_reason": "Java Math.min/Math.max-heavy corpus",
+        "languages": {
+          "java": 1253,
+          "javascript": 39
+        },
+        "files": 1292,
+        "families": 496,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "netty",
+        "selection_reason": "Large Java network corpus with min/max candidates",
+        "languages": {
+          "java": 3515,
+          "c": 37,
+          "javascript": 4
+        },
+        "files": 3556,
+        "families": 912,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "marked",
+        "selection_reason": "Small JavaScript/TypeScript parser with arithmetic guards",
+        "languages": {
+          "javascript": 200,
+          "typescript": 15
+        },
+        "files": 215,
+        "families": 1,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "libgdx",
+        "selection_reason": "Large Java/C game corpus with arithmetic helper duplication",
+        "languages": {
+          "java": 1767,
+          "c": 324,
+          "typescript": 8,
+          "javascript": 1
+        },
+        "files": 2100,
+        "families": 931,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "libsodium",
+        "selection_reason": "C arithmetic-heavy corpus",
+        "languages": {
+          "c": 417,
+          "python": 1
+        },
+        "files": 418,
+        "families": 21,
+        "law_bearing_families": 0
+      },
+      {
+        "repo": "nushell",
+        "selection_reason": "Rust corpus with numeric min/max and clamp-like guards",
+        "languages": {
+          "rust": 1710,
+          "javascript": 1,
+          "python": 1
+        },
+        "files": 1712,
+        "families": 44,
+        "law_bearing_families": 0
+      }
+    ]
+  },
+  "qualitative_examples": [
+    {
+      "id": "fzf-constrain",
+      "repo": "fzf",
+      "location": "bench/repos/fzf/src/util/util.go:63",
+      "surface": "return max(min(val, maximum), minimum)",
+      "law": "value-graph.clamp.integer-ordered-minmax",
+      "assessment": "Real clamp helper, but generic Ordered operands and parameter names do not prove integer domain or minimum <= maximum. The scan also found no equivalent family member that would require pack-facing law provenance."
+    },
+    {
+      "id": "pixijs-color-clamp",
+      "repo": "pixijs",
+      "location": "bench/repos/pixijs/src/color/Color.ts:1095",
+      "surface": "Math.min(Math.max(value, min), max)",
+      "law": "value-graph.clamp.integer-ordered-minmax",
+      "assessment": "Actionable-looking clamp idiom, but TypeScript number is not an integer-only domain and the bound order is not proven. It is a good candidate for future diagnostic miss-mining, not for current exact LawPack provenance."
+    },
+    {
+      "id": "pixijs-render-target-clamps",
+      "repo": "pixijs",
+      "location": "bench/repos/pixijs/src/rendering/renderers/shared/renderTarget/RenderTargetSystem.ts:409",
+      "surface": "Math.min(Math.max(x, 0), pixelWidth - 1)",
+      "law": "value-graph.clamp.integer-ordered-minmax",
+      "assessment": "The expression is likely integer-shaped after bitwise rounding, but the current proof boundary does not connect that evidence to the Math.min/Math.max pair or prove the upper bound order."
+    },
+    {
+      "id": "meilisearch-facet-clamp",
+      "repo": "meilisearch",
+      "location": "bench/repos/meilisearch/crates/milli/src/update/facet/mod.rs:413",
+      "surface": "group_size.clamp(2, 127) and min(max(...)) nearby",
+      "law": "value-graph.clamp.integer-ordered-minmax",
+      "assessment": "Rust .clamp can be exact in isolation, but this scan did not produce a duplicate family that bridged .clamp to an equivalent min/max or ternary member with law provenance."
+    },
+    {
+      "id": "alacritty-scroll-clamp",
+      "repo": "alacritty",
+      "location": "bench/repos/alacritty/alacritty_terminal/src/grid/mod.rs:166",
+      "surface": "min(max((display_offset as i32) + count, 0) as usize, history_size())",
+      "law": "value-graph.clamp.integer-ordered-minmax",
+      "assessment": "Clamp-shaped viewport code, but the mixed casts/newtypes and dynamic bounds keep this outside the current small exact ordered-integer law surface."
+    }
+  ],
+  "conclusion": {
+    "verdict": "negative-real-corpus-yield",
+    "summary": "The first-party LawPack pilot is wired into scan JSON across the successful corpus, but this 105-repo pass found no real clone family with semantic_laws provenance. The result is a useful boundary finding rather than a safety regression: current law provenance fires only when a proven value-graph law participates in a reported family.",
+    "next_work": [
+      "Add a dedicated law-provenance corpus fixture or focused benchmark so the JSON contract stays pinned outside unit tests.",
+      "Build a miss-mining arm that records singleton law-shaped candidates and proof blockers separately from clone families.",
+      "Expand LawPack-facing law ids beyond the two pilot laws once proof obligations and hard negatives exist."
+    ]
+  }
+}
