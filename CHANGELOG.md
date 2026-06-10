@@ -75,6 +75,13 @@ break.
   spot on exactly the convergences the value graph claims.
 
 ### Added
+- Generated-code markers now reach scan JSON: the generated-header index the
+  human report already used is computed for every output format, locations
+  carry `looks_generated`, all-generated families report
+  `recommended_surface: "generated"` (re2c output used to reach agents as
+  `default` — the #216 audit's gap #3), and `surface_counts` gains a
+  `generated` bucket. Partly-generated families stay on their ranked surface
+  with generated members flagged.
 - Scan JSON families now carry `varying_spots` difference evidence: per varying
   spot, both representative copies' absolute line ranges and trimmed text —
   consistent with `params` by construction. With the witness's shape-vs-value

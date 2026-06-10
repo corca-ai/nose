@@ -1026,6 +1026,9 @@ struct ScanJsonSurfaceCounts {
     review: usize,
     hidden: usize,
     debug: usize,
+    /// Families whose every location sits in a generated-header source — the
+    /// ones the human report omits from default output (#224).
+    generated: usize,
     fragments: ScanJsonFragmentSurfaceCounts,
 }
 
@@ -1040,13 +1043,17 @@ struct ScanJsonFragmentSurfaceCounts {
 }
 
 impl ScanJsonSurfaceCounts {
-    fn from_families(families: &[nose_detect::RefactorFamily]) -> Self {
+    fn from_families(
+        families: &[nose_detect::RefactorFamily],
+        generated_sources: &std::collections::HashSet<String>,
+    ) -> Self {
         let mut counts = Self::default();
         for family in families {
-            counts.bump(family.recommended_surface());
+            let surface = effective_surface(family, generated_sources);
+            counts.bump(surface);
             if family.locations.iter().any(|loc| loc.is_fragment) {
                 counts.fragments.total += 1;
-                counts.fragments.bump(family.recommended_surface());
+                counts.fragments.bump(surface);
             }
         }
         counts
@@ -1058,6 +1065,7 @@ impl ScanJsonSurfaceCounts {
             "review" => self.review += 1,
             "hidden" => self.hidden += 1,
             "debug" => self.debug += 1,
+            "generated" => self.generated += 1,
             _ => self.debug += 1,
         }
     }
@@ -1106,6 +1114,7 @@ struct ScanJsonInput<'a> {
     ignore_set: Option<&'a ignores::IgnoreSet>,
     ignored_families: &'a [IgnoredFamily],
     semantic_packs: &'a nose_semantics::SemanticPackSet,
+    generated_sources: &'a std::collections::HashSet<String>,
 }
 
 impl<'a> ScanJsonReport<'a> {
@@ -1162,7 +1171,10 @@ impl<'a> ScanJsonReport<'a> {
                 total_families: input.families.len(),
                 shown_families: input.shown.len(),
                 limit: (input.top != 0).then_some(input.top),
-                surface_counts: ScanJsonSurfaceCounts::from_families(input.families),
+                surface_counts: ScanJsonSurfaceCounts::from_families(
+                    input.families,
+                    input.generated_sources,
+                ),
             },
             baseline: input.baseline.map(|b| &b.summary),
             ignore: input
@@ -1174,7 +1186,7 @@ impl<'a> ScanJsonReport<'a> {
                 .map(|family| ScanJsonFamily {
                     family_id: baseline::family_id(family),
                     family,
-                    recommended_surface: family.recommended_surface(),
+                    recommended_surface: effective_surface(family, input.generated_sources),
                     baseline_status: statuses
                         .and_then(|s| s.get(&baseline::family_key(family)))
                         .map(BaselineStatus::as_str),
@@ -3329,13 +3341,22 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         None
     };
     let (families, ignored_families) = partition_ignored(families, settings.ignore_set.as_ref());
-    let needs_default_surface =
-        !matches!(args.format, ReportFormat::Json) || args.fail_on.is_some();
-    let generated_sources = if needs_default_surface && !families.is_empty() {
+    // Computed for EVERY output format: the JSON path used to skip this index,
+    // so generated-header families reached agents as `recommended_surface:
+    // "default"` while the human report hid them (#224 — the #216 audit's re2c
+    // case). One head-read per discovered file, only when families exist.
+    let mut families = families;
+    let generated_sources = if !families.is_empty() {
         generated_source_index(&refs, &settings.exclude)
     } else {
         std::collections::HashSet::new()
     };
+    for f in &mut families {
+        for l in &mut f.locations {
+            l.looks_generated = generated_sources.contains(&l.file);
+        }
+    }
+    let families = families;
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
     let limit = if settings.top == 0 {
@@ -3367,6 +3388,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             baseline: baseline_comparison.as_ref(),
             ignored_families: &ignored_families,
             omitted_note: omitted_note.as_deref(),
+            generated_sources: &generated_sources,
         },
     )?;
     if args.show.contains(&ShowView::Hotspots)
@@ -3563,6 +3585,7 @@ struct ScanReportView<'a> {
     baseline: Option<&'a BaselineComparison>,
     ignored_families: &'a [IgnoredFamily],
     omitted_note: Option<&'a str>,
+    generated_sources: &'a std::collections::HashSet<String>,
 }
 
 fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
@@ -3579,6 +3602,7 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
                 ignore_set: settings.ignore_set.as_ref(),
                 ignored_families: view.ignored_families,
                 semantic_packs: &settings.semantic_packs,
+                generated_sources: view.generated_sources,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
@@ -3716,6 +3740,21 @@ fn time_lower<T>(f: impl FnOnce() -> T) -> T {
 
 fn total_dup_lines_refs(fs: &[&nose_detect::RefactorFamily]) -> u32 {
     fs.iter().map(|f| f.dup_lines).sum()
+}
+
+/// The surface an integration should treat this family as: the ranked
+/// `recommended_surface`, except that a family whose every location sits in a
+/// generated-header source reports as `generated` — the same families the
+/// human report already omits from default output.
+fn effective_surface(
+    family: &nose_detect::RefactorFamily,
+    generated_sources: &std::collections::HashSet<String>,
+) -> &'static str {
+    if family_all_generated_source(family, generated_sources) {
+        "generated"
+    } else {
+        family.recommended_surface()
+    }
 }
 
 fn is_default_report_family(
