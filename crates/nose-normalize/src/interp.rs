@@ -45,6 +45,92 @@ pub enum Value {
     /// A runtime error (type mismatch, out-of-range, divide-by-zero). This is itself
     /// observable behavior — two equivalent programs err on the same inputs.
     Err,
+    /// A SYMBOLIC value: the result of an operation the interpreter cannot execute —
+    /// an opaque (unproven/unadmitted) call, an unproven field read, or any
+    /// composition over such a value — identified by a stable structural hash of the
+    /// operation and its operand values. This is a *differential convention*, not a
+    /// semantics claim: two runs produce the same `Sym` iff they performed the same
+    /// opaque operation on equal operands, in the same observable order (opaque calls
+    /// are also recorded in the effect trace). Control flow is never guessed:
+    /// branching on a `Sym` (truthiness, loop bounds, iteration) still bails the
+    /// unit. Because symbolic identity is keyed on pre-canonicalization syntax, a
+    /// behavior containing a `Sym` must never feed the hard SOUND gate — the verify
+    /// report routes Sym-bearing disagreements to a separate advisory lane.
+    Sym(u64),
+}
+
+/// Stable hash of a runtime value (deterministic: `FxHasher` carries no random
+/// state), used to compose symbolic identities.
+fn vhash(v: &Value) -> u64 {
+    hashed(v)
+}
+
+/// Stable structural signature of an IL subtree: pre-order over (kind, payload,
+/// child count), with `Name` symbols resolved through the interner so the signature
+/// does not depend on interner-local symbol ids. Used as the identity of an opaque
+/// callee/operation. Cids are alpha-renamed in declaration order, so fingerprint-equal
+/// units assign matching cids and their opaque signatures stay comparable.
+fn subtree_sig(il: &Il, interner: &Interner, root: NodeId) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = rustc_hash::FxHasher::default();
+    let mut stack = vec![root];
+    while let Some(x) = stack.pop() {
+        let n = il.node(x);
+        n.kind.hash(&mut h);
+        match n.payload {
+            Payload::Name(s) => {
+                0xF00Du64.hash(&mut h);
+                interner.resolve(s).hash(&mut h);
+            }
+            p => p.hash(&mut h),
+        }
+        let kids = il.children(x);
+        kids.len().hash(&mut h);
+        stack.extend(kids.iter().rev().copied());
+    }
+    h.finish()
+}
+
+/// Fold a tagged sequence of operand hashes into one symbolic identity.
+fn sym_id(tag: u64, parts: &[u64]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = rustc_hash::FxHasher::default();
+    tag.hash(&mut h);
+    for p in parts {
+        p.hash(&mut h);
+    }
+    h.finish()
+}
+
+/// Stable hash of any hashable tag (operator, builtin, contract).
+fn hashed<T: std::hash::Hash>(t: &T) -> u64 {
+    use std::hash::Hasher;
+    let mut h = rustc_hash::FxHasher::default();
+    t.hash(&mut h);
+    h.finish()
+}
+
+/// Does this behavior carry any symbolic value? Sym-bearing behaviors are
+/// comparable under the differential convention, but a disagreement involving one
+/// must never feed the hard SOUND gate: symbolic identity is keyed on pre-canon
+/// syntax, so a proof-backed canonicalization (e.g. AC ordering) can legitimately
+/// make two equivalent units' symbolic traces differ.
+pub fn behavior_has_sym(b: &Behavior) -> bool {
+    contains_sym(&b.ret)
+        || b.effects.iter().any(contains_sym)
+        || b.fields.iter().any(|(_, v)| contains_sym(v))
+}
+
+/// Does the value contain a `Sym` anywhere (including inside lists)? Concrete
+/// operations must never run over a hidden symbolic operand — `sum([f(x)])`
+/// collapsing to a concrete `Err` would launder unknownness into the hard
+/// soundness lane. Every composition guard uses this DEEP check.
+fn contains_sym(v: &Value) -> bool {
+    match v {
+        Value::Sym(_) => true,
+        Value::List(xs) => xs.iter().any(contains_sym),
+        _ => false,
+    }
 }
 
 /// A receiver identity proven by the IL shape during interpretation.
@@ -283,7 +369,7 @@ impl<'a> Interp<'a> {
                 if matches!(cond, Value::Err) {
                     return Ok(Flow::Err);
                 }
-                if truthy(&cond) {
+                if truthy(&cond).ok_or(Unsupported)? {
                     if let Some(&t) = kids.get(1) {
                         return self.exec(t, env);
                     }
@@ -317,7 +403,7 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err); // type error in the loop test → Err behavior
                     }
-                    if !truthy(&c) {
+                    if !truthy(&c).ok_or(Unsupported)? {
                         break;
                     }
                     match self.exec(kids[1], env)? {
@@ -365,7 +451,7 @@ impl<'a> Interp<'a> {
                     if matches!(c, Value::Err) {
                         return Ok(Flow::Err);
                     }
-                    if !truthy(&c) {
+                    if !truthy(&c).ok_or(Unsupported)? {
                         break;
                     }
                     match self.exec(kids[3], env)? {
@@ -513,18 +599,31 @@ impl<'a> Interp<'a> {
                 let Some(&receiver) = self.il.children(node).first() else {
                     return Err(Unsupported);
                 };
-                if self.field_receiver_errored(receiver, env)? {
+                // Proven self-field reads keep their concrete store semantics; an
+                // UNWRITTEN self-field reads its (symbolic) initial state.
+                if let Some(key) = self.exact_field_key(node) {
+                    if self.field_receiver_errored(receiver, env)? {
+                        return Ok(Value::Err);
+                    }
+                    return match self.fields.get(&key) {
+                        Some(v) => Ok(v.clone()),
+                        None => Ok(Value::Sym(sym_id(0x00F1_E1D0, &[key.field]))),
+                    };
+                }
+                // Any other field read is a symbolic projection keyed by the field
+                // name and the receiver VALUE (pure-read convention, applied to both
+                // sides of a merge alike).
+                let Payload::Name(field) = n.payload else {
+                    return Err(Unsupported);
+                };
+                let rv = self.eval(receiver, env)?;
+                if matches!(rv, Value::Err) {
                     return Ok(Value::Err);
                 }
-                match n.payload {
-                    Payload::Name(_) => {
-                        let Some(key) = self.exact_field_key(node) else {
-                            return Err(Unsupported);
-                        };
-                        self.fields.get(&key).cloned().ok_or(Unsupported)
-                    }
-                    _ => Err(Unsupported),
-                }
+                Ok(Value::Sym(sym_id(
+                    0x00F1_E1D1,
+                    &[hashed(&self.interner.resolve(field)), vhash(&rv)],
+                )))
             }
             NodeKind::If => {
                 // ternary expression
@@ -538,7 +637,7 @@ impl<'a> Interp<'a> {
                 if matches!(c, Value::Err) {
                     return Ok(Value::Err);
                 }
-                if truthy(&c) {
+                if truthy(&c).ok_or(Unsupported)? {
                     self.eval(kids[1], env)
                 } else {
                     self.eval(kids[2], env)
@@ -571,18 +670,22 @@ impl<'a> Interp<'a> {
         // Err'd and a value-or never converged with its ternary — an oracle bug.)
         let a = self.eval(kids[0], env)?;
         if matches!(op, Op::Or) {
-            return Ok(if matches!(a, Value::Err) || truthy(&a) {
-                a
-            } else {
-                self.eval(kids[1], env)?
-            });
+            return Ok(
+                if matches!(a, Value::Err) || truthy(&a).ok_or(Unsupported)? {
+                    a
+                } else {
+                    self.eval(kids[1], env)?
+                },
+            );
         }
         if matches!(op, Op::And) {
-            return Ok(if matches!(a, Value::Err) || !truthy(&a) {
-                a
-            } else {
-                self.eval(kids[1], env)?
-            });
+            return Ok(
+                if matches!(a, Value::Err) || !truthy(&a).ok_or(Unsupported)? {
+                    a
+                } else {
+                    self.eval(kids[1], env)?
+                },
+            );
         }
         if matches!(a, Value::Err) {
             return Ok(Value::Err);
@@ -604,6 +707,12 @@ impl<'a> Interp<'a> {
         if matches!(idx, Value::Err) {
             return Ok(Value::Err);
         }
+        if contains_sym(&base) || contains_sym(&idx) {
+            return Ok(Value::Sym(sym_id(
+                0x1DEF_00D0,
+                &[vhash(&base), vhash(&idx)],
+            )));
+        }
         match (base, idx) {
             (Value::List(xs), Value::Int(i)) => {
                 let i = if i < 0 { i + xs.len() as i64 } else { i };
@@ -618,10 +727,11 @@ impl<'a> Interp<'a> {
             Payload::Builtin(b) => b,
             _ => return self.eval_user_call(node, env), // self-recursion, else opaque
         };
-        if !admitted_builtin_semantics_at_call(self.il, node, b) {
-            return Err(Unsupported);
-        }
         let kids = self.il.children(node).to_vec();
+        if !admitted_builtin_semantics_at_call(self.il, node, b) {
+            // Unproven builtin spelling: an opaque, identified operation — not a bail.
+            return self.opaque_call(sym_id(0xCA11_B170, &[hashed(&b)]), &kids, env);
+        }
         let mut args = Vec::new();
         let profile = builtin_demand_profile(b);
         let demand = profile.demand_effect_profile();
@@ -638,7 +748,8 @@ impl<'a> Interp<'a> {
                 return self.eval_value_or_default_call(&kids, env);
             }
             (_, BuiltinDemandProfile::Eager { contract }) => contract,
-            _ => return Err(Unsupported),
+            // Admitted but unmodeled demand profile: opaque, identified by the builtin.
+            _ => return self.opaque_call(sym_id(0xCA11_B170, &[hashed(&b)]), &kids, env),
         };
         for &k in &kids {
             let arg = self.eval(k, env)?;
@@ -655,6 +766,14 @@ impl<'a> Interp<'a> {
         eager_contract: EagerBuiltinContract,
         args: Vec<Value>,
     ) -> R<Value> {
+        // A symbolic operand anywhere (including inside a list) makes the result
+        // symbolic — the concrete arms below must never see one, or unknownness
+        // would launder into a concrete `Err`.
+        if args.iter().any(contains_sym) {
+            let mut parts = vec![hashed(&format!("{eager_contract:?}"))];
+            parts.extend(args.iter().map(vhash));
+            return Ok(Value::Sym(sym_id(0x00EA_9E12, &parts)));
+        }
         match eager_contract {
             EagerBuiltinContract::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),
@@ -746,6 +865,18 @@ impl<'a> Interp<'a> {
         if matches!(value, Value::Err) {
             return Ok(Value::Err);
         }
+        // Null-ness of a top-level Sym is unknown: compose symbolically (the default
+        // is evaluated eagerly under the same convention on both sides of a merge).
+        if matches!(value, Value::Sym(_)) {
+            let d = match kids.get(1) {
+                Some(&default) => self.eval(default, env)?,
+                None => Value::Null,
+            };
+            if matches!(d, Value::Err) {
+                return Ok(Value::Err);
+            }
+            return Ok(Value::Sym(sym_id(0x9015_4E11, &[vhash(&value), vhash(&d)])));
+        }
         if matches!(value, Value::Null) {
             return match kids.get(1) {
                 Some(&default) => self.eval(default, env),
@@ -760,10 +891,42 @@ impl<'a> Interp<'a> {
     /// caller, then bound to a fresh callee frame; effects, field state, and step budget are
     /// shared so recursion stays ordered and bounded. Every unproven or ambiguous call remains
     /// unsupported rather than guessed.
+    /// An opaque call: the callee's semantics are unknown, but its IDENTITY and its
+    /// argument values are not. Evaluate the arguments left-to-right (an `Err` argument
+    /// propagates, as for every call), produce the symbolic application value, and
+    /// RECORD it in the effect trace — an unknown callee may observably act, and call
+    /// order is behavior. Both sides of a fingerprint merge see the same convention,
+    /// so symbolic traces stay comparable; Sym-bearing disagreements are routed to the
+    /// advisory lane by the verify report, never the hard SOUND gate.
+    fn opaque_call(
+        &mut self,
+        ident: u64,
+        args: &[NodeId],
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let mut parts = vec![ident];
+        for &a in args {
+            let v = self.eval(a, env)?;
+            if matches!(v, Value::Err) {
+                return Ok(Value::Err);
+            }
+            parts.push(vhash(&v));
+        }
+        let sym = Value::Sym(sym_id(0x0CA1_1E55, &parts));
+        self.effects.push(sym.clone());
+        Ok(sym)
+    }
+
     fn eval_user_call(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let kids = self.il.children(node).to_vec();
-        kids.first().ok_or(Unsupported)?;
-        let target = self.proven_call_target(node).ok_or(Unsupported)?;
+        let &callee = kids.first().ok_or(Unsupported)?;
+        let Some(target) = self.proven_call_target(node) else {
+            // Unproven/ambiguous target: an opaque call identified by the callee's
+            // structural signature (pre-canon syntax — fingerprint-equal units have
+            // matching alpha-renamed cids, so signatures stay comparable).
+            let ident = subtree_sig(self.il, self.interner, callee);
+            return self.opaque_call(ident, &kids[1..], env);
+        };
         // Evaluate the arguments in the CURRENT frame (call-by-value), left to right.
         let mut argv = Vec::with_capacity(kids.len().saturating_sub(1));
         for &a in &kids[1..] {
@@ -822,6 +985,18 @@ impl<'a> Interp<'a> {
             Some(&t) => match self.eval(t, env)? {
                 Value::List(xs) => xs,
                 Value::Err => return Ok(Value::Err),
+                v if contains_sym(&v) => {
+                    // append over an unknown collection: compose, do not launder to Err
+                    let mut parts = vec![vhash(&v)];
+                    for &k in kids.iter().skip(1) {
+                        let item = self.eval(k, env)?;
+                        if matches!(item, Value::Err) {
+                            return Ok(Value::Err);
+                        }
+                        parts.push(vhash(&item));
+                    }
+                    return Ok(Value::Sym(sym_id(0x00A9_9E4D, &parts)));
+                }
                 _ => return Ok(Value::Err),
             },
             None => return Ok(Value::Err),
@@ -905,6 +1080,15 @@ impl<'a> Interp<'a> {
     ) -> R<Value> {
         let coll = match self.eval(*kids.first().ok_or(Unsupported)?, env)? {
             Value::List(xs) => xs,
+            v if contains_sym(&v) => {
+                let mut parts = vec![u64::from(all), vhash(&v)];
+                parts.extend(
+                    kids.iter()
+                        .skip(1)
+                        .map(|&k| subtree_sig(self.il, self.interner, k)),
+                );
+                return Ok(Value::Sym(sym_id(0x0A11_A4E0, &parts)));
+            }
             _ => return Ok(Value::Err),
         };
         let pred = kids
@@ -918,7 +1102,7 @@ impl<'a> Interp<'a> {
             if matches!(v, Value::Err) {
                 return Ok(Value::Err);
             }
-            let t = truthy(&v);
+            let t = truthy(&v).ok_or(Unsupported)?;
             // short-circuit: `any` stops at the first truthy, `all` at the first falsy.
             if all != t {
                 return Ok(Value::Bool(t));
@@ -935,6 +1119,17 @@ impl<'a> Interp<'a> {
         let lambda = kids[0];
         let seq = match self.eval(kids[1], env)? {
             Value::List(xs) => xs,
+            v if contains_sym(&v) => {
+                let mut parts = vec![subtree_sig(self.il, self.interner, lambda), vhash(&v)];
+                if let Some(&i) = kids.get(2) {
+                    let init = self.eval(i, env)?;
+                    if matches!(init, Value::Err) {
+                        return Ok(Value::Err);
+                    }
+                    parts.push(vhash(&init));
+                }
+                return Ok(Value::Sym(sym_id(0x04ED_0CE0, &parts)));
+            }
             _ => return Ok(Value::Err),
         };
         let mut it = seq.into_iter();
@@ -968,6 +1163,15 @@ impl<'a> Interp<'a> {
         }
         let coll = match self.eval(kids[0], env)? {
             Value::List(xs) => xs,
+            v if contains_sym(&v) => {
+                let mut parts = vec![hashed(&kind), vhash(&v)];
+                parts.extend(
+                    kids.iter()
+                        .skip(1)
+                        .map(|&k| subtree_sig(self.il, self.interner, k)),
+                );
+                return Ok(Value::Sym(sym_id(0x040F_5E90, &parts)));
+            }
             _ => return Ok(Value::Err),
         };
         let f = kids[1];
@@ -1012,7 +1216,7 @@ impl<'a> Interp<'a> {
                     if matches!(keep, Value::Err) {
                         return Ok(Value::Err);
                     }
-                    if truthy(&keep) {
+                    if truthy(&keep).ok_or(Unsupported)? {
                         out.push(x);
                     }
                 }
@@ -1107,14 +1311,17 @@ fn op_of(p: Payload) -> Op {
     }
 }
 
-fn truthy(v: &Value) -> bool {
-    match v {
+/// Concrete truthiness; `None` for a symbolic value. Control flow is never guessed
+/// from a `Sym` — every branching caller must bail (`Unsupported`) on `None`.
+fn truthy(v: &Value) -> Option<bool> {
+    Some(match v {
         Value::Bool(b) => *b,
         Value::Int(i) => *i != 0,
         Value::List(xs) => !xs.is_empty(),
         Value::Str(v) => !v.is_empty(),
         Value::Null | Value::Err => false,
-    }
+        Value::Sym(_) => return None,
+    })
 }
 
 fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value {
@@ -1222,6 +1429,13 @@ fn range_values(args: &[Value]) -> R<Value> {
 
 fn bin(op: Op, a: &Value, b: &Value) -> Value {
     use Value::{Bool, Int};
+    // Symbolic composition: an operation over an unknown value is itself unknown,
+    // keyed by (operator, operand identities). Never collapses to Bool/Err —
+    // comparisons over `Sym` stay symbolic (`f(x) == f(x)` is NOT provably true for
+    // an impure callee), and branching on the result bails at the truthiness gate.
+    if contains_sym(a) || contains_sym(b) {
+        return Value::Sym(sym_id(0x00B1_0911, &[hashed(&op), vhash(a), vhash(b)]));
+    }
     match (a, b) {
         (Int(x), Int(y)) => match op {
             Op::Add => Int(x.wrapping_add(*y)),
@@ -1306,6 +1520,9 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
 }
 
 fn un(op: Op, a: &Value) -> Value {
+    if contains_sym(a) {
+        return Value::Sym(sym_id(0x0004_0911, &[hashed(&op), vhash(a)]));
+    }
     match (op, a) {
         // `wrapping_neg` (not `-i`) so negating `i64::MIN` wraps to `i64::MIN` instead of
         // panicking on overflow — consistent with the wrapping binary arithmetic above.
@@ -1317,7 +1534,8 @@ fn un(op: Op, a: &Value) -> Value {
         // `Bool(true)` while the direct `a>b` gave `Err`, making the SOUND comparison-
         // negation canon (`!(a<=b) ≡ a>b`, a total order) look like a false merge.
         (Op::Not, Value::Err) => Value::Err,
-        (Op::Not, _) => Value::Bool(!truthy(a)),
+        // Operand is concrete here — the symbolic arm above intercepts `Sym`.
+        (Op::Not, _) => truthy(a).map_or(Value::Err, |b| Value::Bool(!b)),
         _ => Value::Err,
     }
 }
@@ -1628,7 +1846,7 @@ mod tests {
     }
 
     #[test]
-    fn builtin_calls_require_admission_for_oracle_execution() {
+    fn unadmitted_builtin_calls_become_identified_symbolic_effects() {
         let sp = Span::synthetic(FileId(0));
         let mut b = IlBuilder::new(FileId(0));
         let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
@@ -1646,8 +1864,13 @@ mod tests {
             Vec::new(),
         );
 
+        // Without admission the call no longer bails the unit: it interprets to a
+        // SYMBOLIC value, recorded in the effect trace (an unknown callee may act).
         let interner = Interner::new();
-        assert!(run_unit(&il, &interner, func, &[]).is_none());
+        let beh = run_unit(&il, &interner, func, &[]).expect("symbolic run");
+        assert!(matches!(beh.ret, Value::Sym(_)));
+        assert_eq!(beh.effects, vec![beh.ret.clone()]);
+        // The admitted run keeps its CONCRETE semantics — and differs from symbolic.
         assert_eq!(
             run_admitted_unit(il, func, &[]).expect("admitted run").ret,
             Value::Int(1)
@@ -3258,7 +3481,7 @@ mod tests {
     }
 
     #[test]
-    fn raw_same_name_self_call_without_target_evidence_is_unsupported() {
+    fn unproven_call_becomes_symbolic_application_keyed_by_callee() {
         let sp = Span::synthetic(FileId(0));
         let mut b = IlBuilder::new(FileId(0));
         let interner = Interner::new();
@@ -3282,7 +3505,126 @@ mod tests {
             Vec::new(),
         );
 
+        // No call-target evidence: the call is OPAQUE, not a bail — a symbolic
+        // application keyed by the callee's structural signature, effect-recorded.
+        let beh = run_unit(&il, &interner, func, &[]).expect("symbolic run");
+        assert!(matches!(beh.ret, Value::Sym(_)));
+        assert_eq!(beh.effects, vec![beh.ret.clone()]);
+    }
+
+    /// Build `fn() { return <name>(<litint arg>) }` with an unproven callee.
+    fn opaque_call_behavior(name: &str, arg: i64, interner: &Interner) -> Behavior {
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(NodeKind::Var, Payload::Name(interner.intern(name)), sp, &[]);
+        let a = b.add(NodeKind::Lit, Payload::LitInt(arg), sp, &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp, &[callee, a]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, sp, &[ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[body]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        run_unit(&il, interner, func, &[]).expect("symbolic run")
+    }
+
+    #[test]
+    fn symbolic_application_is_differential_same_call_equal_else_distinct() {
+        let interner = Interner::new();
+        // Same callee + same argument: behaviors agree (the convention is comparable).
+        assert_eq!(
+            opaque_call_behavior("f", 3, &interner),
+            opaque_call_behavior("f", 3, &interner)
+        );
+        // Different callee name or different argument: behaviors differ.
+        assert_ne!(
+            opaque_call_behavior("f", 3, &interner),
+            opaque_call_behavior("g", 3, &interner)
+        );
+        assert_ne!(
+            opaque_call_behavior("f", 3, &interner),
+            opaque_call_behavior("f", 4, &interner)
+        );
+    }
+
+    /// Two opaque calls in sequence: swapping their order swaps the effect trace —
+    /// call order stays observable behavior under the symbolic convention.
+    #[test]
+    fn opaque_call_order_is_observable() {
+        let interner = Interner::new();
+        let build = |first: &str, second: &str| {
+            let sp = Span::synthetic(FileId(0));
+            let mut b = IlBuilder::new(FileId(0));
+            let stmt = |name: &str, b: &mut IlBuilder| {
+                let callee = b.add(NodeKind::Var, Payload::Name(interner.intern(name)), sp, &[]);
+                let call = b.add(NodeKind::Call, Payload::None, sp, &[callee]);
+                b.add(NodeKind::ExprStmt, Payload::None, sp, &[call])
+            };
+            let s1 = stmt(first, &mut b);
+            let s2 = stmt(second, &mut b);
+            let body = b.add(NodeKind::Block, Payload::None, sp, &[s1, s2]);
+            let func = b.add(NodeKind::Func, Payload::None, sp, &[body]);
+            let il = b.finish(
+                func,
+                FileMeta {
+                    path: "t".into(),
+                    lang: Lang::Python,
+                },
+                Vec::new(),
+                Vec::new(),
+            );
+            run_unit(&il, &interner, func, &[]).expect("symbolic run")
+        };
+        assert_eq!(build("f", "g"), build("f", "g"));
+        assert_ne!(build("f", "g"), build("g", "f"));
+    }
+
+    /// Branching on a symbolic value still bails the unit — control flow is never guessed.
+    #[test]
+    fn branch_on_symbolic_value_bails() {
+        let interner = Interner::new();
+        let sp = Span::synthetic(FileId(0));
+        let mut b = IlBuilder::new(FileId(0));
+        let callee = b.add(NodeKind::Var, Payload::Name(interner.intern("f")), sp, &[]);
+        let call = b.add(NodeKind::Call, Payload::None, sp, &[callee]);
+        let t = b.add(NodeKind::Lit, Payload::LitInt(1), sp, &[]);
+        let e = b.add(NodeKind::Lit, Payload::LitInt(2), sp, &[]);
+        let ternary = b.add(NodeKind::If, Payload::None, sp, &[call, t, e]);
+        let ret = b.add(NodeKind::Return, Payload::None, sp, &[ternary]);
+        let body = b.add(NodeKind::Block, Payload::None, sp, &[ret]);
+        let func = b.add(NodeKind::Func, Payload::None, sp, &[body]);
+        let il = b.finish(
+            func,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
         assert!(run_unit(&il, &interner, func, &[]).is_none());
+    }
+
+    /// A symbolic operand inside a concrete operation must stay symbolic — collapsing
+    /// `len([f(x)])`-shaped compositions to a concrete `Err` would launder unknownness
+    /// into the hard soundness lane.
+    #[test]
+    fn symbolic_operand_never_launders_to_concrete_err() {
+        let s = Value::Sym(7);
+        assert!(matches!(bin(Op::Add, &Value::Int(1), &s), Value::Sym(_)));
+        assert!(matches!(bin(Op::Eq, &s, &s), Value::Sym(_)));
+        assert!(matches!(un(Op::Not, &s), Value::Sym(_)));
+        assert!(matches!(
+            un(Op::Neg, &Value::List(vec![s.clone()])),
+            Value::Sym(_)
+        ));
+        assert!(contains_sym(&Value::List(vec![Value::Int(1), s])));
     }
 
     /// `g(x) = x*x` and `f(x) = g(x) + 1` in one file — running `f(3)` must interpret the

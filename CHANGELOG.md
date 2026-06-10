@@ -88,6 +88,22 @@ break.
   audited as overwhelmingly generated/scaffolding with a handful of
   worthy-shaped misses — and the audit exposed the #202 channel-merge family
   drop (experiments §BK).
+- An oracle exclusion census (`nose verify --exclusion-census`, merged by
+  `bench/labels/merge_exclusion_census.py`) now baselines real-corpus oracle
+  coverage: 4.5% of function units are interpretable and 90.8% of
+  fingerprint-equal pair mass carries no behavioral check, with opaque calls and
+  field reads as the dominant, structure-keyed coverage targets. The companion
+  `--leads` merge records 179 behavior-equal fingerprint-split groups (5 with
+  vj ≥ 0.7) as convergence leads (experiments §BL).
+- The interpreter oracle now models opaque calls and unproven field reads as
+  identified SYMBOLIC values (recorded in the ordered effect trace) instead of
+  bailing the whole unit: real-corpus oracle coverage rose from 4.5% to 29.4%
+  of function units, and oracle-verified fingerprint-merge pairs from 9.2% to
+  31.3%. Symbolic-trace disagreements go to a separate advisory lane — the hard
+  SOUND gate and canon-preservation stay concrete-only, and the completeness /
+  under-merge direction keeps its concrete meaning (experiments §BL.1). The
+  corpus pass also exposed a pre-existing degenerate-fingerprint false-merge
+  class, filed as #210.
 
 ### Changed
 - Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface

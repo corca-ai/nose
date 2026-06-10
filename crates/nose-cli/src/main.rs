@@ -7,6 +7,7 @@ mod fnv;
 mod ignores;
 mod review;
 mod semantic_pack;
+mod verify_census;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -340,6 +341,12 @@ enum Cmd {
         /// (vj ≥ 0.7 are the strongest: structurally near AND behavior-equal).
         #[arg(long)]
         leads: Option<PathBuf>,
+        /// Write a JSON census of the units the oracle could NOT interpret — exclusion
+        /// reasons, the construct tags they carry, and how much fingerprint-merge mass
+        /// is unverified per construct. The instrument for ranking oracle-coverage work
+        /// by unverified-merge mass instead of by guess.
+        #[arg(long)]
+        exclusion_census: Option<PathBuf>,
     },
     /// EXPERIMENT (leaps 2+3): measure a behavioral-equivalence ACCEPTANCE gate — group
     /// interpretable units by their behavior on an input battery (two units are
@@ -1500,7 +1507,15 @@ fn run() -> Result<()> {
             json,
             max_violations,
             leads,
-        } => cmd_verify(paths, no_cfg_norm, json, max_violations, leads),
+            exclusion_census,
+        } => cmd_verify(
+            paths,
+            no_cfg_norm,
+            json,
+            max_violations,
+            leads,
+            exclusion_census,
+        ),
         Cmd::BehavioralGate {
             paths,
             manifest,
@@ -2119,6 +2134,7 @@ fn cmd_verify(
     json: bool,
     max_violations: Option<usize>,
     leads: Option<PathBuf>,
+    exclusion_census: Option<PathBuf>,
 ) -> Result<()> {
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
@@ -2131,7 +2147,11 @@ fn cmd_verify(
     // battery is identical for every unit (a function uses only its first `arity`
     // inputs), so behavior vectors are always length-comparable.
     let battery = verify_battery(&verify_probes(&corpus));
-    let oracle = collect_verify_recs(&corpus, &opts, &battery);
+    let oracle = collect_verify_recs(&corpus, &opts, &battery, exclusion_census.is_some());
+    if let Some(path) = &exclusion_census {
+        verify_census::write_report(path, &oracle.census)?;
+        println!("exclusion census written to {}", path.display());
+    }
 
     if json {
         return print_verify_json(&oracle.recs);
@@ -2199,18 +2219,23 @@ struct VerifyOracle {
     total: usize,
     canon_checked: usize,
     canon_violations: Vec<String>,
+    /// Per-unit census records (outcome + construct tags), populated only when
+    /// the `--exclusion-census` instrument is requested.
+    census: Vec<verify_census::CensusUnit>,
 }
 
 fn collect_verify_recs(
     corpus: &Corpus,
     opts: &nose_normalize::NormalizeOptions,
     battery: &[Vec<nose_normalize::Value>],
+    census: bool,
 ) -> VerifyOracle {
     let mut oracle = VerifyOracle {
         recs: Vec::new(),
         total: 0,
         canon_checked: 0,
         canon_violations: Vec::new(),
+        census: Vec::new(),
     };
     let oracle_opts = nose_normalize::NormalizeOptions {
         oracle: true,
@@ -2222,9 +2247,41 @@ fn collect_verify_recs(
         // behavior-changing canon can't mask itself), matched to each fully-normalized
         // unit by source span.
         let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        collect_file_verify_recs(il, &n, &core, &corpus.interner, battery, &mut oracle);
+        collect_file_verify_recs(
+            il,
+            &n,
+            &core,
+            &corpus.interner,
+            battery,
+            &mut oracle,
+            census,
+        );
     }
     oracle
+}
+
+/// Record one unit's oracle outcome in the exclusion census (no-op unless the
+/// `--exclusion-census` instrument is on). `tag_il`/`tag_root` name the subtree
+/// the oracle would have interpreted (the core IL when span-matched, else the
+/// fully-normalized unit).
+fn push_verify_census(
+    oracle: &mut VerifyOracle,
+    enabled: bool,
+    loc: String,
+    tag_il: &nose_il::Il,
+    tag_root: nose_il::NodeId,
+    fp: &[u64],
+    reason: &'static str,
+) {
+    if !enabled {
+        return;
+    }
+    oracle.census.push(verify_census::CensusUnit {
+        loc,
+        reason,
+        fp: fp.to_vec(),
+        tags: verify_census::census_tags(tag_il, tag_root),
+    });
 }
 
 fn collect_file_verify_recs(
@@ -2234,6 +2291,7 @@ fn collect_file_verify_recs(
     interner: &Interner,
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
+    census: bool,
 ) {
     let core_func = func_span_index(core);
     for u in &n.units {
@@ -2242,9 +2300,11 @@ fn collect_file_verify_recs(
             continue;
         }
         oracle.total += 1;
+        let loc = format!("{}:{}", il.meta.path, n.node(root).span.start_line);
         // The same function in the core IL (by span) — interpret THAT, not `n`.
         let span0 = n.node(root).span;
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
+            push_verify_census(oracle, census, loc, n, root, &[], "no-core-span");
             continue;
         };
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
@@ -2260,22 +2320,32 @@ fn collect_file_verify_recs(
         // firing, so a non-contract false merge is still exposed by the free battery.
         let (fp, contracts) = nose_normalize::value_fingerprint_and_contracts(n, root, interner);
         if fp.is_empty() {
+            push_verify_census(oracle, census, loc, n, root, &[], "empty-fp");
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
         let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
+            push_verify_census(oracle, census, loc, core, core_root, &fp, "battery-bail");
             continue;
         };
+        push_verify_census(oracle, census, loc, core, core_root, &fp, "interpretable");
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
         // behavior. (Only when the full IL is itself fully interpretable on the battery.)
+        // Canon preservation is judged on CONCRETE behaviors only: symbolic identity
+        // is keyed on syntax, and canonicalization legitimately rewrites syntax, so a
+        // Sym-bearing mismatch here is expected, not a behavior change.
         if let Some(full_beh) = run_battery(n, interner, root, battery, &contracts) {
-            oracle.canon_checked += 1;
-            if full_beh != beh && oracle.canon_violations.len() < 20 {
-                let s = n.node(root).span;
-                oracle
-                    .canon_violations
-                    .push(format!("{}:{}", il.meta.path, s.start_line));
+            let concrete = !beh.iter().any(nose_normalize::behavior_has_sym)
+                && !full_beh.iter().any(nose_normalize::behavior_has_sym);
+            if concrete {
+                oracle.canon_checked += 1;
+                if full_beh != beh && oracle.canon_violations.len() < 20 {
+                    let s = n.node(root).span;
+                    oracle
+                        .canon_violations
+                        .push(format!("{}:{}", il.meta.path, s.start_line));
+                }
             }
         }
         let span = n.node(root).span;
@@ -2330,8 +2400,13 @@ fn print_verify_json(recs: &[VerifyRec]) -> Result<()> {
 }
 
 /// Soundness: fingerprint-equal ⟹ behavior-equal. Prints the section and returns the
-/// false-merge count (the input to the `--max-violations` gate).
+/// HARD false-merge count (the input to the `--max-violations` gate). A disagreement
+/// where either behavior carries a symbolic value is reported separately as an
+/// ADVISORY lead: symbolic identity is keyed on pre-canon syntax, so a proof-backed
+/// canonicalization (AC ordering, distribution) can legitimately make two equivalent
+/// units' symbolic traces differ — those need a human look, not a red gate.
 fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
+    let has_sym = |r: &VerifyRec| r.beh.iter().any(nose_normalize::behavior_has_sym);
     let mut by_fp: std::collections::HashMap<&[u64], Vec<&VerifyRec>> =
         std::collections::HashMap::new();
     for r in recs {
@@ -2339,6 +2414,7 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
     }
     let mut fp_groups = 0usize;
     let mut violations: Vec<(String, String, usize)> = Vec::new();
+    let mut advisory: Vec<(String, String, usize)> = Vec::new();
     for members in by_fp.values() {
         if members.len() < 2 {
             continue;
@@ -2348,7 +2424,12 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         for r in &members[1..] {
             if r.beh != first.beh {
                 let diff = r.beh.iter().zip(&first.beh).filter(|(a, b)| a != b).count();
-                violations.push((first.loc.clone(), r.loc.clone(), diff));
+                let rec = (first.loc.clone(), r.loc.clone(), diff);
+                if has_sym(first) || has_sym(r) {
+                    advisory.push(rec);
+                } else {
+                    violations.push(rec);
+                }
             }
         }
     }
@@ -2361,6 +2442,16 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         println!("  [!] {n_violations} VIOLATION(S) (false merges):");
         for (a, b, d) in violations.iter().take(20) {
             println!("    {a}  ≡?  {b}   ({d} differing inputs)");
+        }
+    }
+    if !advisory.is_empty() {
+        advisory.sort();
+        println!(
+            "  advisory (symbolic-trace disagreements — review, not gated): {}",
+            advisory.len()
+        );
+        for (a, b, d) in advisory.iter().take(10) {
+            println!("    {a}  ≢?  {b}   ({d} differing inputs)");
         }
     }
     n_violations
@@ -2377,7 +2468,12 @@ fn report_verify_completeness(recs: &[VerifyRec], leads: Option<&std::path::Path
     let mut by_beh: std::collections::HashMap<&[nose_normalize::Behavior], Vec<&VerifyRec>> =
         std::collections::HashMap::new();
     for r in recs {
-        if !is_trivial_behavior(&r.beh) {
+        // Concrete behaviors only: symbolic equality says "same opaque operations on
+        // equal operands", which is too weak a witness for a MISSED-clone claim (two
+        // wrappers calling same-NAMED but different functions would coincide). The
+        // under-merge direction keeps its §BC meaning; symbolic coverage serves the
+        // soundness direction.
+        if !is_trivial_behavior(&r.beh) && !r.beh.iter().any(nose_normalize::behavior_has_sym) {
             by_beh.entry(&r.beh).or_default().push(r);
         }
     }

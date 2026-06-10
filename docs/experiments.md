@@ -960,3 +960,84 @@ left" verdict. Below vj 0.8 (true different-algorithm Type-4) this arm is blind 
 construction; that frontier remains unmeasured and would need a behavior- or
 embedding-based candidate source — recorded as the arm's known limit, not claimed
 covered.
+
+## BL. Oracle exclusion census — the real-corpus completeness baseline, by construct
+
+§BC measured the oracle's *behavioral recall* on a synthetic corpus (64.9%); what the
+soundness campaign actually needed was the **real-corpus inventory**: how much of the
+fingerprint-merge surface carries no behavioral verification at all, and *which IL
+constructs* keep units out of the interpreter. `nose verify --exclusion-census`
+(`crates/nose-cli/src/verify_census.rs`) records every counted function unit's oracle
+outcome, fingerprint, and raw construct tags — for excluded AND interpretable
+populations, deriving the discriminating constructs at analysis time instead of
+hard-coding an "unsupported" list that would rot when lowerings change (the §BF
+durability lesson). Run per repo (merge pairs counted within a repo, matching how scans
+run) and merged by `bench/labels/merge_exclusion_census.py`; artifact
+`bench/labels/oracle_exclusion_census_2026_06_10.json` (104 repos; `raylib` excluded —
+verify does not finish on it in useful time, #208).
+
+**Baseline.** 591,469 function units; **26,382 interpretable (4.5%)** — 526,660
+battery-bail, 38,427 empty-fingerprint. Of 3,444,062 within-repo fingerprint-equal
+pairs, **316,677 (9.2%) are oracle-verified; 3,127,385 (90.8%) carry no behavioral
+check**. (Upper bound on the product surface: the census sees verify-side units, not
+the detector's `exact_safe` gate, so some unverified mass can never reach the exact
+channel anyway — stated limitation, not a correction we can compute here.)
+
+**Discriminating constructs** (excl-share ≥ 98%, ≥ 1k excluded units, by unverified
+mass): `call:other` — calls that are neither admitted builtins nor named/cid calls —
+dominates at **481k excluded units / 1.71M unverified pairs**, followed by
+`kind:Field` reads (420k / 1.30M), statement shapes riding on them (`ExprStmt`, `If`,
+`UnOp`, `Throw`, `Lambda`, `Try`), and `lit:unretained:Other` — only 8.7k units but
+**925k unverified pairs** (the generated-twin clusters; those units are lossy-lowered
+and `exact_safe = false` product-side, so they are *low* campaign value despite the
+mass).
+
+**Campaign order this fixes:** (1) uninterpreted-function handling for opaque calls
+and field reads — evaluate them as symbolic applications/projections recorded in the
+ordered effect trace, rather than bailing the whole unit; structure-keyed, so it
+survives lowering drift (§BF). (2) Statement coverage that rides on it (Throw/Try).
+(3) Deprioritize unretained-literal units: their merges are already outside the exact
+channel.
+
+Side product (modality A for the detection campaign): the per-repo `--leads` pass
+merged into `bench/labels/oracle_under_merge_leads_2026_06_10.json` — **179
+behavior-equal fingerprint-split groups, 5 structurally near (vj ≥ 0.7)**, e.g.
+nginx's `http` vs `stream` geo modules and sympy's `matrices/common` vs `matrixbase`
+duplicates — oracle-proven missed clones, the strongest convergence leads available.
+
+### BL.1 — uninterpreted symbolic values: the census-ordered extension, measured
+
+The campaign's first move (the census's #1 and #2 targets at once): opaque calls and
+unproven field reads now interpret as **identified symbolic values** instead of bailing
+the unit. An opaque call evaluates its arguments, yields `Sym(callee-signature ⊕
+argument values)`, and records itself in the ordered effect trace; field reads become
+symbolic projections; every composition (bin/un/index/eager builtins/HoF/reduce/append/
+nullish) keeps symbolic operands symbolic via a deep `contains_sym` guard — never
+laundering unknownness into a concrete `Err` — and control flow over a `Sym` still
+bails. The convention is differential: same opaque operations on equal operands in the
+same order ⟹ equal traces. Because symbolic identity keys on pre-canon syntax, a
+Sym-bearing disagreement goes to a new **advisory lane**, never the hard SOUND gate;
+canon preservation and the completeness/leads direction stay concrete-only (a symbolic
+behavior-equality is too weak a missed-clone witness).
+
+Same sharded corpus pass (104 repos, raylib #208 excluded), before → after
+(`oracle_exclusion_census_2026_06_10.json` → `…_post_symbolic_2026_06_10.json`):
+
+| | baseline | symbolic | Δ |
+|---|---:|---:|---|
+| interpretable units | 26,382 (4.5%) | **173,874 (29.4%)** | ×6.6 |
+| oracle-verified merge pairs | 316,677 (9.2%) | **1,077,871 (31.3%)** | ×3.4 |
+| unverified merge mass | 90.8% | **68.7%** | −22.1pp |
+
+The advisory lane surfaced **1,276** symbolic-trace disagreements to review (expected:
+AC-canonicalized operand order legitimately differs pre-canon). The hard lane is *not*
+clean — and that is a pre-existing finding, not a symbolic artifact: 17 repos flag
+fingerprint-equal pairs with concretely different behavior (e.g. `black`'s
+try/import-wrapper colliding with `return self` on a degenerate 2-node fingerprint),
+reproducing identically on the pre-symbolic binary and on `origin/main` back to at
+least 517ad5c. Filed as #210 (the exact channel is protected by `exact_safe`; the
+`near` value-accept path is exposed). The remaining census leaders after this round:
+`lit:unretained:Other` stays product-irrelevant (lossy-lowered), and the residual
+battery-bail mass concentrates in branch-on-symbolic units (`kind:If` excl-share 92%) —
+i.e. the next coverage unit is symbolic-condition path exploration, a much harder,
+deliberately-not-taken step (control flow is never guessed).

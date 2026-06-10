@@ -1,0 +1,1321 @@
+{
+ "excluded_repos": [
+  "raylib (#208)"
+ ],
+ "leads": [
+  {
+   "a": "bench/repos/sympy/sympy/matrices/common.py:2372",
+   "b": "bench/repos/sympy/sympy/matrices/matrixbase.py:2646",
+   "repo": "sympy",
+   "structurally_near": true,
+   "vj": 0.8409090909090909
+  },
+  {
+   "a": "bench/repos/nginx/src/http/modules/ngx_http_geo_module.c:1670",
+   "b": "bench/repos/nginx/src/stream/ngx_stream_geo_module.c:1598",
+   "repo": "nginx",
+   "structurally_near": true,
+   "vj": 0.7674418604651163
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Go/antlr/v4/utils.go:332",
+   "b": "bench/repos/antlr4/runtime/Go/antlr/v4/utils.go:358",
+   "repo": "antlr4",
+   "structurally_near": true,
+   "vj": 0.7567567567567568
+  },
+  {
+   "a": "bench/repos/sympy/sympy/discrete/convolutions.py:382",
+   "b": "bench/repos/sympy/sympy/discrete/convolutions.py:452",
+   "repo": "sympy",
+   "structurally_near": true,
+   "vj": 0.7432432432432432
+  },
+  {
+   "a": "bench/repos/boltons/boltons/ecoutils.py:417",
+   "b": "bench/repos/boltons/boltons/strutils.py:795",
+   "repo": "boltons",
+   "structurally_near": true,
+   "vj": 0.7027027027027027
+  },
+  {
+   "a": "bench/repos/libsodium/src/libsodium/crypto_stream/chacha20/dolbeau/chacha20_dolbeau-avx2.c:123",
+   "b": "bench/repos/libsodium/src/libsodium/crypto_stream/salsa20/xmm6int/salsa20_xmm6int-avx2.c:99",
+   "repo": "libsodium",
+   "structurally_near": false,
+   "vj": 0.6923076923076923
+  },
+  {
+   "a": "bench/repos/sqlite/ext/misc/btreeinfo.c:272",
+   "b": "bench/repos/sqlite/ext/misc/tmstmpvfs.c:471",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.6521739130434783
+  },
+  {
+   "a": "bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js:19",
+   "b": "bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js:7",
+   "repo": "prettier",
+   "structurally_near": false,
+   "vj": 0.6363636363636364
+  },
+  {
+   "a": "bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java:1357",
+   "b": "bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java:1377",
+   "repo": "guava",
+   "structurally_near": false,
+   "vj": 0.5909090909090909
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/leafindrec.go:12",
+   "b": "bench/repos/delve/_fixtures/testtracefns.go:26",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.5555555555555556
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/leafindrec.go:5",
+   "b": "bench/repos/delve/_fixtures/testtracefns.go:19",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.5555555555555556
+  },
+  {
+   "a": "bench/repos/sqlite/ext/fts3/fts3_porter.c:150",
+   "b": "bench/repos/sqlite/ext/fts3/fts3_porter.c:159",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.5510204081632653
+  },
+  {
+   "a": "bench/repos/etcd/tests/robustness/validate/patch_history.go:384",
+   "b": "bench/repos/etcd/tests/robustness/validate/patch_history.go:414",
+   "repo": "etcd",
+   "structurally_near": false,
+   "vj": 0.5384615384615384
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:244",
+   "b": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:510",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.5384615384615384
+  },
+  {
+   "a": "bench/repos/click/tests/test_options.py:796",
+   "b": "bench/repos/click/tests/test_options.py:814",
+   "repo": "click",
+   "structurally_near": false,
+   "vj": 0.5294117647058824
+  },
+  {
+   "a": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Conversion.java:426",
+   "b": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Conversion.java:456",
+   "repo": "commons-lang",
+   "structurally_near": false,
+   "vj": 0.5294117647058824
+  },
+  {
+   "a": "bench/repos/hugo/common/htime/time.go:81",
+   "b": "bench/repos/hugo/resources/page/site.go:165",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.5
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:144",
+   "b": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:160",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.5
+  },
+  {
+   "a": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ObjectUtil.java:38",
+   "b": "bench/repos/netty/handler/src/main/java/io/netty/handler/ssl/ReferenceCountedOpenSslContext.java:1256",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.5
+  },
+  {
+   "a": "bench/repos/sqlite/src/util.c:2235",
+   "b": "bench/repos/sqlite/src/util.c:2251",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.5
+  },
+  {
+   "a": "bench/repos/prometheus/documentation/examples/remote_storage/remote_storage_adapter/graphite/client.go:40",
+   "b": "bench/repos/prometheus/storage/remote/codec.go:643",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.47368421052631576
+  },
+  {
+   "a": "bench/repos/vim/src/cindent.c:327",
+   "b": "bench/repos/vim/src/cindent.c:336",
+   "repo": "vim",
+   "structurally_near": false,
+   "vj": 0.4666666666666667
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-seed/src/index.ts:1113",
+   "b": "bench/repos/drizzle-orm/drizzle-seed/src/index.ts:1434",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.4492753623188406
+  },
+  {
+   "a": "bench/repos/jest/packages/jest-matcher-utils/src/index.ts:257",
+   "b": "bench/repos/jest/packages/jest-snapshot/src/printSnapshot.ts:148",
+   "repo": "jest",
+   "structurally_near": false,
+   "vj": 0.42857142857142855
+  },
+  {
+   "a": "bench/repos/sympy/sympy/utilities/iterables.py:1204",
+   "b": "bench/repos/sympy/sympy/utilities/iterables.py:1223",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.42857142857142855
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/BulletSoftBody/btSoftBodyInternals.h:216",
+   "b": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:516",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.42105263157894735
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Go/antlr/v4/transition.go:382",
+   "b": "bench/repos/antlr4/runtime/Go/antlr/v4/transition.go:403",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.4166666666666667
+  },
+  {
+   "a": "bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py:2371",
+   "b": "bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py:2376",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.4090909090909091
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py:393",
+   "b": "bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py:405",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.4
+  },
+  {
+   "a": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java:43",
+   "b": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java:65",
+   "repo": "commons-lang",
+   "structurally_near": false,
+   "vj": 0.4
+  },
+  {
+   "a": "bench/repos/prettier/tests/format/flow/flow-repo/annot/annot.js:1",
+   "b": "bench/repos/prettier/tests/format/flow/flow-repo/modules/lib.js:7",
+   "repo": "prettier",
+   "structurally_near": false,
+   "vj": 0.4
+  },
+  {
+   "a": "bench/repos/git/git-compat-util.h:669",
+   "b": "bench/repos/git/git-compat-util.h:678",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.38461538461538464
+  },
+  {
+   "a": "bench/repos/sqlite/ext/fts3/fts3_expr.c:116",
+   "b": "bench/repos/sqlite/ext/fts5/fts5_expr.c:197",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.38461538461538464
+  },
+  {
+   "a": "bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java:53",
+   "b": "bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java:70",
+   "repo": "jsoup",
+   "structurally_near": false,
+   "vj": 0.3684210526315789
+  },
+  {
+   "a": "bench/repos/hugo/helpers/general.go:175",
+   "b": "bench/repos/hugo/publisher/htmlElementsCollector.go:527",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.36363636363636365
+  },
+  {
+   "a": "bench/repos/nushell/crates/nu-parser/src/lex.rs:56",
+   "b": "bench/repos/nushell/crates/nu-parser/src/lex.rs:83",
+   "repo": "nushell",
+   "structurally_near": false,
+   "vj": 0.34615384615384615
+  },
+  {
+   "a": "bench/repos/curl/docs/examples/externalsocket.c:76",
+   "b": "bench/repos/curl/lib/capsule.c:45",
+   "repo": "curl",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/fncall.go:179",
+   "b": "bench/repos/delve/_fixtures/fncall.go:195",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts:251",
+   "b": "bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts:262",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/etcd/client/v3/mirror/syncer.go:39",
+   "b": "bench/repos/etcd/server/embed/serve.go:422",
+   "repo": "etcd",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/jest/e2e/coverage-report/cached-duplicates/a/identical.js:8",
+   "b": "bench/repos/jest/packages/jest-transform/src/ScriptTransformer.ts:138",
+   "repo": "jest",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h:86",
+   "b": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h:91",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mssql/base.py:2132",
+   "b": "bench/repos/sqlalchemy/test/orm/test_validators.py:97",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/matrices/ddm.py:1139",
+   "b": "bench/repos/sympy/sympy/polys/matrices/ddm.py:1147",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/hugo/identity/identity.go:472",
+   "b": "bench/repos/hugo/resources/resource_transformers/templates/execute_as_template.go:36",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.3157894736842105
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/rings.py:1235",
+   "b": "bench/repos/sympy/sympy/polys/rings.py:2604",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.3125
+  },
+  {
+   "a": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java:50",
+   "b": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java:442",
+   "repo": "gson",
+   "structurally_near": false,
+   "vj": 0.30434782608695654
+  },
+  {
+   "a": "bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts:243",
+   "b": "bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts:288",
+   "repo": "rxjs",
+   "structurally_near": false,
+   "vj": 0.30434782608695654
+  },
+  {
+   "a": "bench/repos/rxjs/packages/rxjs/spec/operators/every-spec.ts:20",
+   "b": "bench/repos/rxjs/packages/rxjs/spec/operators/find-spec.ts:26",
+   "repo": "rxjs",
+   "structurally_near": false,
+   "vj": 0.3
+  },
+  {
+   "a": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:28",
+   "b": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:53",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.2962962962962963
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-kit/src/simulator.ts:47",
+   "b": "bench/repos/drizzle-orm/drizzle-kit/src/simulator.ts:57",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.29411764705882354
+  },
+  {
+   "a": "bench/repos/ripgrep/crates/globset/src/glob.rs:1066",
+   "b": "bench/repos/ripgrep/crates/globset/src/glob.rs:1071",
+   "repo": "ripgrep",
+   "structurally_near": false,
+   "vj": 0.2916666666666667
+  },
+  {
+   "a": "bench/repos/netty/codec-classes-quic/src/main/java/io/netty/handler/codec/quic/QuicheQuicSslEngine.java:305",
+   "b": "bench/repos/netty/common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java:147",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.2857142857142857
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Go/antlr/v4/diagnostic_error_listener.go:100",
+   "b": "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/DiagnosticErrorListener.java:141",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.27586206896551724
+  },
+  {
+   "a": "bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1To24Parser.ts:21",
+   "b": "bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1to12Parser.ts:21",
+   "repo": "date-fns",
+   "structurally_near": false,
+   "vj": 0.2727272727272727
+  },
+  {
+   "a": "bench/repos/minio/cmd/endpoint.go:934",
+   "b": "bench/repos/minio/cmd/local-locker.go:56",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.2727272727272727
+  },
+  {
+   "a": "bench/repos/fzf/src/algo/indexbyte2_other.go:26",
+   "b": "bench/repos/fzf/src/algo/indexbyte2_test.go:187",
+   "repo": "fzf",
+   "structurally_near": false,
+   "vj": 0.2692307692307692
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/galoistools.py:1329",
+   "b": "bench/repos/sympy/sympy/series/formal.py:169",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.26
+  },
+  {
+   "a": "bench/repos/hugo/modules/npm/package_builder.go:388",
+   "b": "bench/repos/hugo/resources/resource_factories/create/remote.go:412",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.25
+  },
+  {
+   "a": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/fxp.h:82",
+   "b": "bench/repos/redis/deps/jemalloc/test/unit/fxp.c:5",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.25
+  },
+  {
+   "a": "bench/repos/sqlalchemy/test/sql/test_types.py:719",
+   "b": "bench/repos/sqlalchemy/test/sql/test_types.py:724",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.25
+  },
+  {
+   "a": "bench/repos/sympy/sympy/assumptions/assume.py:351",
+   "b": "bench/repos/sympy/sympy/tensor/array/expressions/from_array_to_matrix.py:583",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.25
+  },
+  {
+   "a": "bench/repos/click/src/click/_compat.py:499",
+   "b": "bench/repos/click/src/click/testing.py:503",
+   "repo": "click",
+   "structurally_near": false,
+   "vj": 0.23529411764705882
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Go/antlr/v4/dfa_state.go:17",
+   "b": "bench/repos/antlr4/runtime/Go/antlr/v4/dfa_state.go:85",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.23076923076923078
+  },
+  {
+   "a": "bench/repos/etcd/pkg/ioutil/readcloser.go:36",
+   "b": "bench/repos/etcd/server/etcdserver/api/snap/snapshotter.go:59",
+   "repo": "etcd",
+   "structurally_near": false,
+   "vj": 0.23076923076923078
+  },
+  {
+   "a": "bench/repos/minio/cmd/streaming-signature-v4.go:612",
+   "b": "bench/repos/minio/cmd/utils.go:730",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.21428571428571427
+  },
+  {
+   "a": "bench/repos/sqlite/autosetup/jimsh0.c:7584",
+   "b": "bench/repos/sqlite/autosetup/jimsh0.c:7608",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.21311475409836064
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-orm/src/alias.ts:15",
+   "b": "bench/repos/drizzle-orm/drizzle-orm/src/alias.ts:82",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.20833333333333334
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/leaf4.go:16",
+   "b": "bench/repos/delve/_fixtures/leafregex.go:16",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/etcd/pkg/pbutil/pbutil.go:67",
+   "b": "bench/repos/etcd/pkg/pbutil/pbutil.go:74",
+   "repo": "etcd",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/h2database/h2/src/main/org/h2/command/Prepared.java:331",
+   "b": "bench/repos/h2database/h2/src/main/org/h2/table/InformationSchemaTableLegacy.java:719",
+   "repo": "h2database",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/hugo/common/hugio/readers.go:76",
+   "b": "bench/repos/hugo/hugolib/doctree/nodeshiftree_test.go:289",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/LinearMath/btScalar.h:552",
+   "b": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:648",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/marshmallow/src/marshmallow/constants.py:12",
+   "b": "bench/repos/marshmallow/tests/test_fields.py:717",
+   "repo": "marshmallow",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/nats-server/server/accounts.go:2401",
+   "b": "bench/repos/nats-server/server/mqtt.go:5801",
+   "repo": "nats-server",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/prometheus/config/config.go:159",
+   "b": "bench/repos/prometheus/web/api/v1/translate_ast.go:181",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/array.py:214",
+   "b": "bench/repos/sqlalchemy/lib/sqlalchemy/sql/selectable.py:1841",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/asyncpg.py:1069",
+   "b": "bench/repos/sqlalchemy/test/orm/test_unitofworkv2.py:3595",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/sql/traversals.py:394",
+   "b": "bench/repos/sqlalchemy/test/orm/test_query.py:647",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sympy/sympy/holonomic/holonomic.py:299",
+   "b": "bench/repos/sympy/sympy/matrices/common.py:3032",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sympy/sympy/holonomic/holonomic.py:302",
+   "b": "bench/repos/sympy/sympy/matrices/common.py:3028",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.2
+  },
+  {
+   "a": "bench/repos/sqlite/src/util.c:2087",
+   "b": "bench/repos/sqlite/tool/logest.c:42",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.1951219512195122
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mysql/reflection.py:689",
+   "b": "bench/repos/sqlalchemy/test/orm/inheritance/test_single.py:307",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.19047619047619047
+  },
+  {
+   "a": "bench/repos/sqlite/ext/fts3/fts3.c:3218",
+   "b": "bench/repos/sqlite/tool/sqlite3_rsync.c:923",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.18421052631578946
+  },
+  {
+   "a": "bench/repos/git/archive-zip.c:171",
+   "b": "bench/repos/git/ewah/ewah_bitmap.c:24",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.18181818181818182
+  },
+  {
+   "a": "bench/repos/netty/buffer/src/test/java/io/netty/buffer/AbstractByteBufAllocatorTest.java:239",
+   "b": "bench/repos/netty/codec-classes-quic/src/main/java/io/netty/handler/codec/quic/BoringSSLCertificateCallback.java:151",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.18181818181818182
+  },
+  {
+   "a": "bench/repos/prometheus/model/labels/regexp_test.go:1341",
+   "b": "bench/repos/prometheus/model/labels/regexp_test.go:151",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.18181818181818182
+  },
+  {
+   "a": "bench/repos/sympy/sympy/core/logic.py:150",
+   "b": "bench/repos/sympy/sympy/polys/matrices/sdm.py:1361",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.18181818181818182
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/galoistools.py:261",
+   "b": "bench/repos/sympy/sympy/polys/galoistools.py:347",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.18181818181818182
+  },
+  {
+   "a": "bench/repos/minio/internal/dsync/drwmutex.go:550",
+   "b": "bench/repos/minio/internal/dsync/drwmutex.go:576",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.17857142857142858
+  },
+  {
+   "a": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java:36",
+   "b": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java:61",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.17647058823529413
+  },
+  {
+   "a": "bench/repos/hugo/markup/goldmark/hugocontext/hugocontext.go:190",
+   "b": "bench/repos/hugo/tpl/internal/go_templates/texttemplate/exec.go:624",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.175
+  },
+  {
+   "a": "bench/repos/redis/src/util.c:1254",
+   "b": "bench/repos/redis/src/util.c:342",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.17142857142857143
+  },
+  {
+   "a": "bench/repos/h2database/h2/src/main/org/h2/mvstore/type/ByteArrayDataType.java:24",
+   "b": "bench/repos/h2database/h2/src/test/org/h2/test/jdbc/TestCallableStatement.java:484",
+   "repo": "h2database",
+   "structurally_near": false,
+   "vj": 0.16666666666666666
+  },
+  {
+   "a": "bench/repos/jackson-core/src/main/java/tools/jackson/core/JacksonException.java:248",
+   "b": "bench/repos/jackson-core/src/main/java/tools/jackson/core/JsonParser.java:1528",
+   "repo": "jackson-core",
+   "structurally_near": false,
+   "vj": 0.16666666666666666
+  },
+  {
+   "a": "bench/repos/redis/src/util.c:208",
+   "b": "bench/repos/redis/src/util.c:238",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.16666666666666666
+  },
+  {
+   "a": "bench/repos/sqlite/test/dbfuzz2.c:248",
+   "b": "bench/repos/sqlite/tool/sqlite3_rsync.c:1972",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.16666666666666666
+  },
+  {
+   "a": "bench/repos/netty/codec-http2/src/main/java/io/netty/handler/codec/http2/HttpConversionUtil.java:672",
+   "b": "bench/repos/netty/microbench/src/main/java/io/netty/microbench/headers/HeadersBenchmark.java:54",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.16
+  },
+  {
+   "a": "bench/repos/sympy/sympy/core/logic.py:173",
+   "b": "bench/repos/sympy/sympy/core/logic.py:201",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.15625
+  },
+  {
+   "a": "bench/repos/scrapy/scrapy/contracts/__init__.py:88",
+   "b": "bench/repos/scrapy/scrapy/spidermiddlewares/start.py:26",
+   "repo": "scrapy",
+   "structurally_near": false,
+   "vj": 0.15384615384615385
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/densebasic.py:1381",
+   "b": "bench/repos/sympy/sympy/polys/galoistools.py:530",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.15306122448979592
+  },
+  {
+   "a": "bench/repos/tmux/tty-keys.c:1681",
+   "b": "bench/repos/tmux/tty-keys.c:1756",
+   "repo": "tmux",
+   "structurally_near": false,
+   "vj": 0.1504237288135593
+  },
+  {
+   "a": "bench/repos/git/apply.c:593",
+   "b": "bench/repos/git/xdiff/xutils.c:159",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.14814814814814814
+  },
+  {
+   "a": "bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java:157",
+   "b": "bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java:89",
+   "repo": "guava",
+   "structurally_near": false,
+   "vj": 0.14814814814814814
+  },
+  {
+   "a": "bench/repos/click/src/click/types.py:219",
+   "b": "bench/repos/click/tests/test_termui.py:1227",
+   "repo": "click",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/esbuild/internal/css_parser/css_color_spaces.go:326",
+   "b": "bench/repos/esbuild/internal/css_parser/css_color_spaces.go:366",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/git/diff.c:2839",
+   "b": "bench/repos/git/list-objects-filter-options.c:127",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java:186",
+   "b": "bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java:190",
+   "repo": "h2database",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/particle/ParticleSystem.java:1742",
+   "b": "bench/repos/libgdx/extensions/gdx-bullet/jni/vs/Glut/EmptyGL/GL/egl_cpx.h:5",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java:46",
+   "b": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java:50",
+   "repo": "mockito",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/netty/codec-http/src/main/java/io/netty/handler/codec/http/HttpUtil.java:58",
+   "b": "bench/repos/netty/codec-http2/src/test/java/io/netty/handler/codec/http2/HttpConversionUtilFuzzTest.java:113",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/sqlite/ext/fts5/fts5_config.c:34",
+   "b": "bench/repos/sqlite/ext/wasm/api/sqlite3-api-worker1.c-pp.js:480",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/sympy/sympy/combinatorics/fp_groups.py:612",
+   "b": "bench/repos/sympy/sympy/holonomic/holonomic.py:305",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/vim/src/filepath.c:3053",
+   "b": "bench/repos/vim/src/filepath.c:3076",
+   "repo": "vim",
+   "structurally_near": false,
+   "vj": 0.14285714285714285
+  },
+  {
+   "a": "bench/repos/sqlite/ext/fts5/fts5_tokenize.c:1066",
+   "b": "bench/repos/sqlite/ext/fts5/fts5_tokenize.c:751",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.13551401869158877
+  },
+  {
+   "a": "bench/repos/libgdx/gdx/jni/gdx2d/gdx2d.c:387",
+   "b": "bench/repos/libgdx/gdx/jni/gdx2d/gdx2d.c:402",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.13333333333333333
+  },
+  {
+   "a": "bench/repos/zod/packages/zod/src/v4/locales/be.ts:5",
+   "b": "bench/repos/zod/packages/zod/src/v4/locales/hy.ts:5",
+   "repo": "zod",
+   "structurally_near": false,
+   "vj": 0.13333333333333333
+  },
+  {
+   "a": "bench/repos/flask/src/flask/json/tag.py:297",
+   "b": "bench/repos/flask/tests/test_json.py:235",
+   "repo": "flask",
+   "structurally_near": false,
+   "vj": 0.13157894736842105
+  },
+  {
+   "a": "bench/repos/delve/pkg/internal/gosym/additions.go:218",
+   "b": "bench/repos/delve/pkg/proc/native/proc_linux.go:222",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.13043478260869565
+  },
+  {
+   "a": "bench/repos/hugo/commands/commandeer.go:705",
+   "b": "bench/repos/hugo/tpl/internal/go_templates/htmltemplate/css.go:128",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.1267605633802817
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/increment.go:6",
+   "b": "bench/repos/delve/_fixtures/stepintobug.go:12",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/graphhopper/core/src/main/java/com/graphhopper/storage/BaseGraph.java:448",
+   "b": "bench/repos/graphhopper/web-bundle/src/main/java/no/ecc/vectortile/VectorTileEncoder.java:417",
+   "repo": "graphhopper",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/h2database/h2/src/main/org/h2/jdbc/JdbcConnection.java:1164",
+   "b": "bench/repos/h2database/h2/src/main/org/h2/mvstore/MVMap.java:1848",
+   "repo": "h2database",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/httpie/httpie/internal/daemon_runner.py:37",
+   "b": "bench/repos/httpie/tests/test_update_warnings.py:29",
+   "repo": "httpie",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/junit5/documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:103",
+   "b": "bench/repos/junit5/junit-platform-commons/src/main/java/org/junit/platform/commons/util/ReflectionUtils.java:1931",
+   "repo": "junit5",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/rxjs/packages/rxjs/spec/observables/zip-spec.ts:327",
+   "b": "bench/repos/rxjs/packages/rxjs/spec/operators/scan-spec.ts:26",
+   "repo": "rxjs",
+   "structurally_near": false,
+   "vj": 0.125
+  },
+  {
+   "a": "bench/repos/sympy/sympy/plotting/pygletplot/plot_rotation.py:16",
+   "b": "bench/repos/sympy/sympy/plotting/pygletplot/util.py:179",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.12
+  },
+  {
+   "a": "bench/repos/redis/deps/lua/src/lstrlib.c:444",
+   "b": "bench/repos/redis/src/crcspeed.c:389",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.11764705882352941
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Go/antlr/v4/atn_deserializer.go:30",
+   "b": "bench/repos/antlr4/runtime/Go/antlr/v4/common_token_factory.go:28",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.1111111111111111
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Python3/src/antlr4/error/Errors.py:156",
+   "b": "bench/repos/antlr4/runtime/Python3/src/antlr4/tree/Tree.py:58",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.1111111111111111
+  },
+  {
+   "a": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/java/lang/StrictMath.java:30",
+   "b": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:131",
+   "repo": "libgdx",
+   "structurally_near": false,
+   "vj": 0.1111111111111111
+  },
+  {
+   "a": "bench/repos/rubocop/lib/rubocop/cop/lint/redundant_cop_enable_directive.rb:116",
+   "b": "bench/repos/rubocop/lib/rubocop/cop/style/format_string.rb:99",
+   "repo": "rubocop",
+   "structurally_near": false,
+   "vj": 0.1111111111111111
+  },
+  {
+   "a": "bench/repos/click/src/click/globals.py:54",
+   "b": "bench/repos/click/src/click/types.py:1177",
+   "repo": "click",
+   "structurally_near": false,
+   "vj": 0.109375
+  },
+  {
+   "a": "bench/repos/cmark/src/scanners.c:8680",
+   "b": "bench/repos/cmark/src/scanners.c:8807",
+   "repo": "cmark",
+   "structurally_near": false,
+   "vj": 0.10849909584086799
+  },
+  {
+   "a": "bench/repos/jest/packages/jest-resolve/src/resolver.ts:494",
+   "b": "bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts:173",
+   "repo": "jest",
+   "structurally_near": false,
+   "vj": 0.10714285714285714
+  },
+  {
+   "a": "bench/repos/sympy/sympy/plotting/pygletplot/color_scheme.py:143",
+   "b": "bench/repos/sympy/sympy/tensor/array/expressions/array_expressions.py:854",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.10204081632653061
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-kit/src/cli/views.ts:83",
+   "b": "bench/repos/drizzle-orm/drizzle-orm/src/mysql2/session.ts:352",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.1
+  },
+  {
+   "a": "bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts:164",
+   "b": "bench/repos/jest/packages/jest-runtime/src/internals/Resolution.ts:12",
+   "repo": "jest",
+   "structurally_near": false,
+   "vj": 0.1
+  },
+  {
+   "a": "bench/repos/git/diffcore-pickaxe.c:26",
+   "b": "bench/repos/git/strbuf.c:438",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.09722222222222222
+  },
+  {
+   "a": "bench/repos/redis/src/geohash.c:217",
+   "b": "bench/repos/redis/src/geohash.c:224",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.09523809523809523
+  },
+  {
+   "a": "bench/repos/minio/cmd/auth-handler_test.go:36",
+   "b": "bench/repos/minio/cmd/erasure-metadata-utils.go:162",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.09090909090909091
+  },
+  {
+   "a": "bench/repos/minio/cmd/utils.go:234",
+   "b": "bench/repos/minio/internal/s3select/parquet/reader.go:83",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.09090909090909091
+  },
+  {
+   "a": "bench/repos/esbuild/internal/resolver/resolver.go:1848",
+   "b": "bench/repos/esbuild/pkg/api/api_impl.go:504",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.0898876404494382
+  },
+  {
+   "a": "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/FailedPredicateException.java:67",
+   "b": "bench/repos/antlr4/runtime/JavaScript/src/antlr4/error/FailedPredicateException.js:37",
+   "repo": "antlr4",
+   "structurally_near": false,
+   "vj": 0.08695652173913043
+  },
+  {
+   "a": "bench/repos/marshmallow/src/marshmallow/fields.py:416",
+   "b": "bench/repos/marshmallow/tests/test_decorators.py:978",
+   "repo": "marshmallow",
+   "structurally_near": false,
+   "vj": 0.08695652173913043
+  },
+  {
+   "a": "bench/repos/black/src/black/nodes.py:969",
+   "b": "bench/repos/black/src/black/nodes.py:982",
+   "repo": "black",
+   "structurally_near": false,
+   "vj": 0.08571428571428572
+  },
+  {
+   "a": "bench/repos/esbuild/internal/js_parser/js_parser.go:848",
+   "b": "bench/repos/esbuild/internal/resolver/tsconfig_json.go:417",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.08571428571428572
+  },
+  {
+   "a": "bench/repos/vim/src/regexp.c:460",
+   "b": "bench/repos/vim/src/userfunc.c:6064",
+   "repo": "vim",
+   "structurally_near": false,
+   "vj": 0.08571428571428572
+  },
+  {
+   "a": "bench/repos/git/diff-lib.c:704",
+   "b": "bench/repos/git/t/t7615/ours.c:10",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.08333333333333333
+  },
+  {
+   "a": "bench/repos/marked/docs/demo/demo.js:124",
+   "b": "bench/repos/marked/src/Hooks.ts:31",
+   "repo": "marked",
+   "structurally_near": false,
+   "vj": 0.08333333333333333
+  },
+  {
+   "a": "bench/repos/netty/codec-http3/src/main/java/io/netty/handler/codec/http3/Http3CodecUtils.java:114",
+   "b": "bench/repos/netty/codec-mqtt/src/main/java/io/netty/handler/codec/mqtt/MqttEncoder.java:753",
+   "repo": "netty",
+   "structurally_near": false,
+   "vj": 0.08196721311475409
+  },
+  {
+   "a": "bench/repos/sympy/sympy/parsing/mathematica.py:1008",
+   "b": "bench/repos/sympy/sympy/polys/agca/modules.py:198",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.08108108108108109
+  },
+  {
+   "a": "bench/repos/delve/_fixtures/testinline.go:24",
+   "b": "bench/repos/delve/pkg/terminal/command.go:1449",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
+   "a": "bench/repos/execa/lib/io/max-buffer.js:89",
+   "b": "bench/repos/execa/lib/transform/normalize.js:111",
+   "repo": "execa",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
+   "a": "bench/repos/hugo/common/hashing/hashing.go:181",
+   "b": "bench/repos/hugo/common/herrors/error_locator.go:93",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
+   "a": "bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/functions/Functions.java:668",
+   "b": "bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/util/ExceptionHelper.java:177",
+   "repo": "rxjava",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
+   "a": "bench/repos/sympy/sympy/physics/quantum/spin.py:2137",
+   "b": "bench/repos/sympy/sympy/plotting/textplot.py:41",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
+   "a": "bench/repos/delve/pkg/dwarf/line/line_parser.go:278",
+   "b": "bench/repos/delve/pkg/locspec/locations.go:338",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.07407407407407407
+  },
+  {
+   "a": "bench/repos/prettier/src/language-js/print/mapped-type.js:63",
+   "b": "bench/repos/prettier/tests/format/js/non-strict/argument-name-clash.js:1",
+   "repo": "prettier",
+   "structurally_near": false,
+   "vj": 0.07142857142857142
+  },
+  {
+   "a": "bench/repos/prettier/tests/format/flow/flow-repo/throw/test.js:9",
+   "b": "bench/repos/prettier/tests/format/flow/flow-repo/unary/unary.js:3",
+   "repo": "prettier",
+   "structurally_near": false,
+   "vj": 0.06666666666666667
+  },
+  {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/connectors/asyncio.py:305",
+   "b": "bench/repos/sqlalchemy/lib/sqlalchemy/util/langhelpers.py:1845",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.0625
+  },
+  {
+   "a": "bench/repos/esbuild/internal/css_lexer/css_lexer.go:554",
+   "b": "bench/repos/esbuild/pkg/api/api_impl.go:500",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.06060606060606061
+  },
+  {
+   "a": "bench/repos/sympy/sympy/logic/boolalg.py:2280",
+   "b": "bench/repos/sympy/sympy/polys/densebasic.py:1031",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.05732484076433121
+  },
+  {
+   "a": "bench/repos/packaging/src/packaging/_ranges.py:261",
+   "b": "bench/repos/packaging/src/packaging/direct_url.py:83",
+   "repo": "packaging",
+   "structurally_near": false,
+   "vj": 0.05555555555555555
+  },
+  {
+   "a": "bench/repos/esbuild/internal/css_parser/css_parser.go:816",
+   "b": "bench/repos/esbuild/internal/css_parser/css_parser.go:928",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.05454545454545454
+  },
+  {
+   "a": "bench/repos/gin/path.go:155",
+   "b": "bench/repos/gin/utils.go:91",
+   "repo": "gin",
+   "structurally_near": false,
+   "vj": 0.05194805194805195
+  },
+  {
+   "a": "bench/repos/delve/pkg/internal/gosym/additions.go:204",
+   "b": "bench/repos/delve/pkg/logflags/logflags.go:340",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.05084745762711865
+  },
+  {
+   "a": "bench/repos/gin/internal/bytesconv/bytesconv_test.go:25",
+   "b": "bench/repos/gin/utils.go:100",
+   "repo": "gin",
+   "structurally_near": false,
+   "vj": 0.05
+  },
+  {
+   "a": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/ModuleHandler.java:175",
+   "b": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/util/Checks.java:14",
+   "repo": "mockito",
+   "structurally_near": false,
+   "vj": 0.05
+  },
+  {
+   "a": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/tsd.h:281",
+   "b": "bench/repos/redis/src/util.c:1333",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.05
+  },
+  {
+   "a": "bench/repos/sympy/sympy/parsing/mathematica.py:1178",
+   "b": "bench/repos/sympy/sympy/physics/quantum/qasm.py:46",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.05
+  },
+  {
+   "a": "bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go:1555",
+   "b": "bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go:759",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.04892966360856269
+  },
+  {
+   "a": "bench/repos/minio/cmd/api-headers.go:262",
+   "b": "bench/repos/minio/cmd/generic-handlers.go:90",
+   "repo": "minio",
+   "structurally_near": false,
+   "vj": 0.04878048780487805
+  },
+  {
+   "a": "bench/repos/delve/pkg/dwarf/godwarf/sections.go:105",
+   "b": "bench/repos/delve/pkg/locspec/locations.go:231",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.04819277108433735
+  },
+  {
+   "a": "bench/repos/drizzle-orm/drizzle-kit/src/cli/connections.ts:287",
+   "b": "bench/repos/drizzle-orm/drizzle-kit/src/introspect-sqlite.ts:51",
+   "repo": "drizzle-orm",
+   "structurally_near": false,
+   "vj": 0.043478260869565216
+  },
+  {
+   "a": "bench/repos/fastlane/fastlane/lib/fastlane/command_line_handler.rb:39",
+   "b": "bench/repos/fastlane/fastlane/lib/fastlane/swift_fastlane_api_generator.rb:145",
+   "repo": "fastlane",
+   "structurally_near": false,
+   "vj": 0.043478260869565216
+  },
+  {
+   "a": "bench/repos/vim/src/os_win32.c:796",
+   "b": "bench/repos/vim/src/usercmd.c:1213",
+   "repo": "vim",
+   "structurally_near": false,
+   "vj": 0.0425531914893617
+  },
+  {
+   "a": "bench/repos/sympy/sympy/parsing/sympy_parser.py:30",
+   "b": "bench/repos/sympy/sympy/utilities/iterables.py:2025",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.041666666666666664
+  },
+  {
+   "a": "bench/repos/jest/packages/jest-diff/src/diffLines.ts:18",
+   "b": "bench/repos/jest/packages/jest-snapshot/src/utils.ts:86",
+   "repo": "jest",
+   "structurally_near": false,
+   "vj": 0.037037037037037035
+  },
+  {
+   "a": "bench/repos/prometheus/tsdb/chunks/head_chunks.go:414",
+   "b": "bench/repos/prometheus/util/documentcli/documentcli.go:208",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.028846153846153848
+  },
+  {
+   "a": "bench/repos/vim/src/ex_docmd.c:3579",
+   "b": "bench/repos/vim/src/regexp.c:188",
+   "repo": "vim",
+   "structurally_near": false,
+   "vj": 0.02857142857142857
+  },
+  {
+   "a": "bench/repos/sympy/sympy/physics/quantum/operator.py:314",
+   "b": "bench/repos/sympy/sympy/plotting/pygletplot/plot_axes.py:59",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.027777777777777776
+  },
+  {
+   "a": "bench/repos/delve/pkg/dwarf/godwarf/type.go:65",
+   "b": "bench/repos/delve/pkg/terminal/command.go:2292",
+   "repo": "delve",
+   "structurally_near": false,
+   "vj": 0.02702702702702703
+  },
+  {
+   "a": "bench/repos/cmark/src/scanners.c:5270",
+   "b": "bench/repos/cmark/src/scanners.c:8412",
+   "repo": "cmark",
+   "structurally_near": false,
+   "vj": 0.026168224299065422
+  },
+  {
+   "a": "bench/repos/hugo/config/allconfig/load.go:294",
+   "b": "bench/repos/hugo/config/allconfig/load.go:303",
+   "repo": "hugo",
+   "structurally_near": false,
+   "vj": 0.020833333333333332
+  },
+  {
+   "a": "bench/repos/scrapy/extras/qps-bench-server.py:21",
+   "b": "bench/repos/scrapy/scrapy/downloadermiddlewares/httpcompression.py:185",
+   "repo": "scrapy",
+   "structurally_near": false,
+   "vj": 0.02
+  },
+  {
+   "a": "bench/repos/git/diff.c:3522",
+   "b": "bench/repos/git/object-file.c:1906",
+   "repo": "git",
+   "structurally_near": false,
+   "vj": 0.017543859649122806
+  }
+ ],
+ "nose_version": "nose 0.5.0",
+ "schema_version": "0.1.0",
+ "structurally_near_vj_ge_0.7": 5,
+ "under_merged_groups": 187,
+ "what": "verify --leads merged per-repo: CONCRETE behavior-equal, fingerprint-split (modality A under-merge leads; symbolic behaviors excluded by design)"
+}
