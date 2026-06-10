@@ -586,7 +586,20 @@ fn lower_begin(lo: &mut Lowering, node: TsNode) -> NodeId {
     let mut handlers = Vec::new();
     for c in Lowering::named_children(node) {
         match c.kind() {
-            "rescue" | "ensure" | "else" => handlers.push(lower_clause_body(lo, c)),
+            "rescue" | "ensure" => handlers.push(lower_clause_body(lo, c)),
+            // `else` runs exactly when the body completes without raising — the
+            // success path's tail, not a handler. Handler position let the
+            // no-throw fingerprint convention erase it entirely (#210).
+            "else" => {
+                for s in Lowering::named_children(c) {
+                    if matches!(s.kind(), "exceptions" | "exception_variable" | "then") {
+                        continue;
+                    }
+                    if let Some(id) = lower_stmt(lo, s) {
+                        body.push(id);
+                    }
+                }
+            }
             _ => {
                 if let Some(s) = lower_stmt(lo, c) {
                     body.push(s);

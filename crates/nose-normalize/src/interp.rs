@@ -1347,7 +1347,13 @@ fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value
 fn min_max_value(args: &[Value], f: impl Fn(i64, i64) -> i64) -> Value {
     match args {
         [Value::Int(a), Value::Int(b)] => Value::Int(f(*a, *b)),
-        _ => fold_opt(args.first(), f),
+        // The 2-arg form is the SCALAR selection; on non-Int operands it is a
+        // type error. Falling through to the collection fold here ignored the
+        // second argument (`max([1,2,3,4], 7)` returned 4), which made the
+        // builtin chain disagree with the if-chain it soundly merges with (#210).
+        [_, _] => Value::Err,
+        [coll] => fold_opt(Some(coll), f),
+        _ => Value::Err,
     }
 }
 

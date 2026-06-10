@@ -2664,6 +2664,7 @@ pub(crate) fn compound_assignment(
     lo: &mut Lowering,
     node: TsNode,
     op_of: impl FnOnce(&str) -> Option<Op>,
+    mut lower_target: impl FnMut(&mut Lowering, TsNode) -> NodeId,
     mut lower_operand: impl FnMut(&mut Lowering, TsNode) -> NodeId,
 ) -> NodeId {
     let span = lo.span(node);
@@ -2672,7 +2673,7 @@ pub(crate) fn compound_assignment(
     let op_text = node.child_by_field_name("operator").map(|o| lo.text(o));
     let op = op_text.and_then(|t| op_of(t.trim_end_matches('=')));
     let lhs1 = left
-        .map(|l| lower_operand(lo, l))
+        .map(|l| lower_target(lo, l))
         .unwrap_or_else(|| lo.empty_block(span));
     let lhs2 = left
         .map(|l| lower_operand(lo, l))
@@ -2699,12 +2700,13 @@ pub(crate) fn compound_assignment(
 pub(crate) fn assignment(
     lo: &mut Lowering,
     node: TsNode,
+    mut lower_target: impl FnMut(&mut Lowering, TsNode) -> NodeId,
     mut lower_expr: impl FnMut(&mut Lowering, TsNode) -> NodeId,
 ) -> NodeId {
     let span = lo.span(node);
     let lhs = node
         .child_by_field_name("left")
-        .map(|l| lower_expr(lo, l))
+        .map(|l| lower_target(lo, l))
         .unwrap_or_else(|| lo.empty_block(span));
     let rhs = node
         .child_by_field_name("right")

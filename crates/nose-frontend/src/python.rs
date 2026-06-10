@@ -301,7 +301,7 @@ fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     if let Some(l) = node.child_by_field_name("left") {
         clear_assigned_param_alias(lo, l);
     }
-    crate::lower::compound_assignment(lo, node, py_bin_op, lower_expr)
+    crate::lower::compound_assignment(lo, node, py_bin_op, lower_expr, lower_expr)
 }
 
 fn clear_assigned_param_alias(lo: &mut Lowering, node: TsNode) {
@@ -508,16 +508,40 @@ fn combine_match_conditions(
 
 fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let body = node
-        .child_by_field_name("body")
-        .map(|b| lower_block(lo, b, false))
-        .unwrap_or_else(|| lo.empty_block(span));
+    // Body statements, with the `else` clause's statements appended: Python's
+    // `else` runs exactly when the body completes without raising, so under the
+    // IL's `(body, handler[, finally])` try model the else IS the tail of the
+    // success path. (Accepted nuance: an exception raised inside `else` is
+    // modeled as catchable, where real Python would not catch it — far closer
+    // than dropping the clause, which erased the success path from the value
+    // fingerprint and merged try/import/else wrappers with their bare except
+    // arm, #210.)
+    let mut body_stmts = Vec::new();
+    if let Some(b) = node.child_by_field_name("body") {
+        for s in Lowering::named_children(b) {
+            if let Some(id) = lower_stmt(lo, s, false) {
+                body_stmts.push(id);
+            }
+        }
+    }
 
     // Concatenate all except-clause bodies into one handler block.
     let mut handler_stmts = Vec::new();
     let mut finally_block = None;
     for child in Lowering::named_children(node) {
         match child.kind() {
+            "else_clause" => {
+                if let Some(b) = Lowering::named_children(child)
+                    .into_iter()
+                    .find(|n| n.kind() == "block")
+                {
+                    for s in Lowering::named_children(b) {
+                        if let Some(id) = lower_stmt(lo, s, false) {
+                            body_stmts.push(id);
+                        }
+                    }
+                }
+            }
             "except_clause" | "except_group_clause" => {
                 if let Some(b) = child.child_by_field_name("body").or_else(|| {
                     // body is usually the last block child
@@ -545,6 +569,7 @@ fn lower_try(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
 
+    let body = lo.add(NodeKind::Block, Payload::None, span, &body_stmts);
     let mut kids = vec![body];
     let handler = lo.add(NodeKind::Block, Payload::None, span, &handler_stmts);
     kids.push(handler);

@@ -105,7 +105,7 @@ fn lower_stmt(lo: &mut Lowering, node: TsNode, in_class: bool) -> Option<NodeId>
         "expression_statement" => {
             let child = node.named_child(0)?;
             Some(match child.kind() {
-                "assignment_expression" => crate::lower::assignment(lo, child, lower_expr),
+                "assignment_expression" => crate::lower::assignment(lo, child, lower_expr, lower_expr),
                 "augmented_assignment_expression" => lower_aug_assignment(lo, child),
                 "update_expression" => lower_update(lo, child),
                 _ => {
@@ -520,7 +520,7 @@ fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
         let value = lo.add(NodeKind::If, Payload::None, span, &[cond, rhs, lhs3]);
         return lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, value]);
     }
-    crate::lower::compound_assignment(lo, node, js_bin_op, lower_expr)
+    crate::lower::compound_assignment(lo, node, js_bin_op, lower_expr, lower_expr)
 }
 
 /// `x++` / `++x` / `x--`  →  `x = x +/- 1`.
@@ -611,7 +611,7 @@ fn lower_for_c(lo: &mut Lowering, node: TsNode) -> NodeId {
 fn lower_for_clause_stmt(lo: &mut Lowering, node: TsNode) -> NodeId {
     match node.kind() {
         "lexical_declaration" | "variable_declaration" => lower_var_decl(lo, node),
-        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
+        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr, lower_expr),
         "augmented_assignment_expression" => lower_aug_assignment(lo, node),
         "update_expression" => lower_update(lo, node),
         "expression_statement" => {
@@ -869,7 +869,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         "unary_expression" => lower_unary(lo, node),
         "update_expression" => lower_update(lo, node),
-        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
+        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr, lower_expr),
         "augmented_assignment_expression" => lower_aug_assignment(lo, node),
         "member_expression" => lower_member_expr(lo, node),
         "subscript_expression" => {

@@ -496,7 +496,9 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "block" => lower_block(lo, node),
         "binary_expression" => lower_binary(lo, node),
         "unary_expression" => lower_unary(lo, node),
-        "assignment_expression" => crate::lower::assignment(lo, node, lower_expr),
+        "assignment_expression" => {
+            crate::lower::assignment(lo, node, lower_store_target, lower_expr)
+        }
         "compound_assignment_expr" => lower_compound_assign(lo, node),
         "try_expression" => {
             let value = node
@@ -659,8 +661,33 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
 }
 
+/// Lower an ASSIGNMENT TARGET, keeping a dereference a computed PLACE: `*p = v`
+/// stores through `p` — so the target lowers to `Index(p, 0)` and the store stays
+/// an ordered effect in the value graph. Everywhere else `*p` keeps peeling to its
+/// operand (the read convention that lets `*x > 0` converge with `x > 0`); only
+/// the STORE position must keep the place, or a unit that writes through a pointer
+/// fingerprints identically to a bare stub (#210).
+fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    match node.kind() {
+        "parenthesized_expression" => match node.named_child(0) {
+            Some(inner) => lower_store_target(lo, inner),
+            None => lo.empty_block(span),
+        },
+        "unary_expression" if lo.text(node).starts_with('*') => {
+            let p = node
+                .named_child(node.named_child_count().saturating_sub(1))
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span));
+            let zero = lo.int_lit("0", span);
+            lo.add(NodeKind::Index, Payload::None, span, &[p, zero])
+        }
+        _ => lower_expr(lo, node),
+    }
+}
+
 fn lower_compound_assign(lo: &mut Lowering, node: TsNode) -> NodeId {
-    crate::lower::compound_assignment(lo, node, rust_bin_op, lower_expr)
+    crate::lower::compound_assignment(lo, node, rust_bin_op, lower_store_target, lower_expr)
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
