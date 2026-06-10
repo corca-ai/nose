@@ -65,6 +65,12 @@ pure inlining could recover it. The measured verdict and method are recorded in
 and default-surface family-count deltas. The decision record is in
 [`docs/experiments.md`](../../docs/experiments.md) §BM.
 
+`ruby_test_dsl_recovery_2026_06_10.json` is the #214 recovery artifact for Ruby
+test-DSL block extraction. It compares the recall-ceiling probe before/after
+allowlisted Ruby test blocks became `Block` units, records the remaining Ruby
+misses, and captures the Ruby unit-count extraction delta. The decision record is
+in [`docs/experiments.md`](../../docs/experiments.md) §BN.
+
 `merge_exclusion_census.py` + `oracle_exclusion_census_2026_06_10.json` +
 `oracle_under_merge_leads_2026_06_10.json` are the oracle-completeness campaign's
 baseline: per-construct inventory of units the interpreter oracle cannot check (and the

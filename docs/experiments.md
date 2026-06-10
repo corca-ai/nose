@@ -1182,3 +1182,77 @@ can filter/rerank; perfect worthiness separation in the scanner is lower leverag
 that consumer. With no held-out precision hit and a measured +8.2pp held-out
 worthy-recall gain, keeping `near` opt-in would leave proven useful candidates behind
 the flag that the primary consumer is least likely to remember.
+
+## BN. Ruby test-DSL blocks — turn invisible test bodies into block units
+
+Issue #214 investigated the Ruby no-overlapping-unit misses left by §BJ. The
+common failure mode was not semantic matching; it was unit extraction. Minitest and
+RSpec-style tests are method calls whose block bodies are function-shaped review
+units, but the Ruby frontend only kept the call/lambda structure as nested values,
+so the scanner had no unit rooted at the test body.
+
+Representative evidence before the change:
+
+| repo | location | observed pattern |
+|---|---|---|
+| `asciidoctor` | `test/tables_test.rb:1560` and `:1601` | two `test '...' do` bodies with duplicated setup/assertion shape |
+| `fastlane` | `spaceship/spec/client_spec.rb:147` and `:218` | repeated `describe 'retry' do` blocks with nested examples |
+| `rubocop` | `spec/rubocop/cop/style/infinite_loop_spec.rb:6` and `:23` | parameterized `it "registers..." do` examples inside `%w(...).each` |
+
+The implementation is intentionally conservative: when a Ruby call's method name is
+in a test-DSL allowlist (`test`, `it`, `specify`, `example`, `describe`, `context`,
+`feature`, `scenario`, shared-example/context hooks, and setup/teardown hooks), the
+frontend emits the existing lambda body as a `Block` unit named from the method and
+first literal label argument, for example `it:adds values`. Generic iterator blocks
+such as `.each do` remain values only.
+
+### BN.1 — recall-ceiling probe
+
+Artifact: `bench/labels/ruby_test_dsl_recovery_2026_06_10.json`. The after probe
+uses the same v5 labels as §BJ and fixes `recall_ceiling_probe.py --repos-root`
+handling so worktree-local probes still classify members against the shared corpus
+root.
+
+| metric | before | after | delta |
+|---|---:|---:|---:|
+| Ruby `no-overlapping-unit` misses | 21 | 2 | -19 |
+| Ruby arm1 missed worthy labels | 55 | 41 | -14 |
+| Ruby arm1 recall, dev | 343/380 (90.3%) | 352/380 (92.6%) | +2.4pp |
+| Ruby arm1 recall, held-out | 232/250 (92.8%) | 237/250 (94.8%) | +2.0pp |
+| Overall arm1 recall, dev | 94.3% | 94.9% | +0.6pp |
+| Overall arm1 recall, held-out | 96.4% | 96.7% | +0.3pp |
+
+The remaining two Ruby `no-overlapping-unit` misses are not test-DSL cases: one is
+an extensionless Jekyll benchmark script, and one is a Sidekiq bin-script pair.
+They need a different unit-coverage decision.
+
+### BN.2 — default product metric
+
+The default scan surface is unchanged by this fix, because the new units recover
+candidate bodies for maximal/near recall without adding new default-surface families
+in the measured corpus. Full `eval_by_language.py --rank extractability --top 0`
+after the change matched the §BM default baseline:
+
+| split | overall P@10 | Ruby P@10 | Ruby worthy recall |
+|---|---:|---:|---:|
+| dev | 63% [58-68] n=353 | 84% [70-95] n=37 | 294/380 |
+| held-out | 56% [50-61] n=308 | 84% [68-96] n=25 | 180/250 |
+
+### BN.3 — Ruby extraction cost
+
+Measured across the 15 Ruby corpus repos with `NOSE_TIME_UNIT_SUMMARY=1`:
+
+| Ruby corpus scan metric | before | after | delta |
+|---|---:|---:|---:|
+| units seen | 7479 | 12283 | +4804 |
+| units kept | 3377 | 5705 | +2328 |
+| blocks kept | 1179 | 3338 | +2159 |
+| unit extraction time | 712.9ms | 959.4ms | +246.5ms |
+| candidate families | 2985 | 2985 | 0 |
+| default-surface families | 2865 | 2865 | 0 |
+
+Wall-clock scan timing in the ad hoc run was cache-order noisy, but showed no obvious
+regression. The stable cost signal is extraction work: about 247ms extra over the
+Ruby corpus, with no candidate-family or default-surface expansion. Verdict: keep
+the allowlisted Ruby test-DSL block units. They remove the dominant Ruby unit-blind
+spot from the recall-ceiling probe without harming the default product metric.

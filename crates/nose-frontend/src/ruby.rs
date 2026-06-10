@@ -464,6 +464,14 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
 }
 
 fn lower_block_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
+    lower_block_lambda_with_unit(lo, node, None)
+}
+
+fn lower_block_lambda_with_unit(
+    lo: &mut Lowering,
+    node: TsNode,
+    block_unit_name: Option<Symbol>,
+) -> NodeId {
     let span = lo.span(node);
     let mut kids = Vec::new();
     if let Some(params) = node.child_by_field_name("parameters") {
@@ -478,8 +486,66 @@ fn lower_block_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
             ));
         }
     }
-    kids.push(block_body(lo, node));
+    let body = block_body(lo, node);
+    if let Some(name) = block_unit_name {
+        lo.push_unit(body, UnitKind::Block, Some(name));
+    }
+    kids.push(body);
     lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn is_test_dsl_method(method: &str) -> bool {
+    matches!(
+        method,
+        "test"
+            | "it"
+            | "specify"
+            | "example"
+            | "describe"
+            | "context"
+            | "feature"
+            | "scenario"
+            | "shared_examples"
+            | "shared_examples_for"
+            | "shared_context"
+            | "before"
+            | "after"
+            | "around"
+            | "setup"
+            | "teardown"
+    )
+}
+
+fn test_dsl_block_unit_name(lo: &Lowering, call: TsNode, method: &str) -> Symbol {
+    let label = call
+        .child_by_field_name("arguments")
+        .and_then(|args| {
+            Lowering::named_children(args)
+                .into_iter()
+                .find_map(|arg| test_dsl_literal_label(lo, arg))
+        })
+        .unwrap_or_else(|| lo.span(call).start_line.to_string());
+    lo.sym(&format!("{method}:{label}"))
+}
+
+fn test_dsl_literal_label(lo: &Lowering, node: TsNode) -> Option<String> {
+    match node.kind() {
+        "string" | "bare_string" | "symbol" | "simple_symbol" | "hash_key_symbol" => {
+            Some(trim_ruby_label_literal(lo.text(node)).to_string())
+        }
+        _ => None,
+    }
+}
+
+fn trim_ruby_label_literal(text: &str) -> &str {
+    let trimmed = text.trim();
+    let quoted = (trimmed.starts_with('"') && trimmed.ends_with('"'))
+        || (trimmed.starts_with('\'') && trimmed.ends_with('\''));
+    if quoted && trimmed.len() >= 2 {
+        &trimmed[1..trimmed.len() - 1]
+    } else {
+        trimmed.trim_start_matches(':').trim_end_matches(':')
+    }
 }
 
 fn lower_hash(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -580,9 +646,10 @@ fn raw_kids(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let method = node
+    let method_name = node
         .child_by_field_name("method")
-        .map(|m| lo.sym(lo.text(m)));
+        .map(|m| lo.text(m).to_string());
+    let method = method_name.as_deref().map(|m| lo.sym(m));
     let recv = node.child_by_field_name("receiver");
     let block = Lowering::named_children(node)
         .into_iter()
@@ -612,7 +679,13 @@ fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
     }
     if let Some(b) = block {
-        kids.push(lower_expr(lo, b));
+        let block_expr = if method_name.as_deref().is_some_and(is_test_dsl_method) {
+            let name = test_dsl_block_unit_name(lo, node, method_name.as_deref().unwrap());
+            lower_block_lambda_with_unit(lo, b, Some(name))
+        } else {
+            lower_block_lambda(lo, b)
+        };
+        kids.push(block_expr);
     }
     lo.add(NodeKind::Call, Payload::None, span, &kids)
 }
@@ -626,6 +699,22 @@ mod tests {
         lower(FileId(0), "t.rb", src.as_bytes(), &interner)
             .expect("lower")
             .nodes
+    }
+
+    fn unit_names(src: &str) -> Vec<(UnitKind, String)> {
+        let interner = Interner::new();
+        let il = lower(FileId(0), "t.rb", src.as_bytes(), &interner).expect("lower");
+        il.units
+            .iter()
+            .map(|unit| {
+                (
+                    unit.kind,
+                    unit.name
+                        .map(|name| interner.resolve(name).to_string())
+                        .unwrap_or_else(|| "-".to_string()),
+                )
+            })
+            .collect()
     }
 
     fn unary_ops(src: &str) -> Vec<Op> {
@@ -719,5 +808,44 @@ mod tests {
         let mut ints = expr_stmt_ints("case\nwhen x > 0\n  1\nelse\n  2\nend\n");
         ints.sort_unstable();
         assert_eq!(ints, vec![1, 2]);
+    }
+
+    #[test]
+    fn test_dsl_block_calls_are_units() {
+        let units = unit_names(
+            r#"
+test 'renders table' do
+  assert_equal 1, result
+end
+
+RSpec.describe 'Widget' do
+  it 'renders value' do
+    expect(result).to eq(1)
+  end
+end
+
+items.each do |item|
+  puts item
+end
+"#,
+        );
+        assert!(
+            units.contains(&(UnitKind::Block, "test:renders table".to_string())),
+            "Minitest-style test blocks should be block units: {units:?}"
+        );
+        assert!(
+            units.contains(&(UnitKind::Block, "describe:Widget".to_string())),
+            "RSpec describe blocks should be block units: {units:?}"
+        );
+        assert!(
+            units.contains(&(UnitKind::Block, "it:renders value".to_string())),
+            "RSpec it blocks should be block units: {units:?}"
+        );
+        assert!(
+            !units
+                .iter()
+                .any(|(kind, name)| *kind == UnitKind::Block && name.starts_with("each:")),
+            "generic Ruby block calls must not become DSL units: {units:?}"
+        );
     }
 }

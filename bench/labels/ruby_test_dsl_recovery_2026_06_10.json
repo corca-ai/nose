@@ -1,0 +1,1327 @@
+{
+  "generated_by": "manual #214 measurement using recall_ceiling_probe.py and NOSE_TIME_UNIT_SUMMARY",
+  "remaining_ruby_missed_after": [
+    {
+      "channel": "structural",
+      "class": "inline-ceiling",
+      "family_id": "65e68827e870dbe0",
+      "inline_aug_mass": 21,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 170,
+          "file": "bench/repos/fastlane/spaceship/spec/client_spec.rb",
+          "start_line": 148
+        },
+        {
+          "end_line": 241,
+          "file": "bench/repos/fastlane/spaceship/spec/client_spec.rb",
+          "start_line": 219
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "fastlane",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        21,
+        15
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "1d13d09079bfb05e",
+      "intersection_mass": 15,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 270,
+          "file": "bench/repos/jekyll/lib/jekyll/document.rb",
+          "start_line": 259
+        },
+        {
+          "end_line": 161,
+          "file": "bench/repos/jekyll/lib/jekyll/page.rb",
+          "start_line": 153
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "jekyll",
+      "split": "dev",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        27,
+        25
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "no-overlapping-unit",
+      "family_id": "25f8eeacf08b1049",
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 49,
+          "file": "bench/repos/jekyll/benchmark/file-dir-ensure-trailing-slash",
+          "start_line": 41
+        },
+        {
+          "end_line": 40,
+          "file": "bench/repos/jekyll/benchmark/file-dir-ensure-trailing-slash",
+          "start_line": 32
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "jekyll",
+      "split": "dev"
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "2791928407ad302c",
+      "inline_aug_mass": 14,
+      "intersection_mass": 6,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 134,
+          "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+          "start_line": 124
+        },
+        {
+          "end_line": 146,
+          "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+          "start_line": 136
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "jekyll",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        13,
+        14
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "same-unit-window",
+      "enclosing_unit_lines": [
+        220,
+        236
+      ],
+      "family_id": "2881fc0a22a0b8a4",
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 226,
+          "file": "bench/repos/liquid/test/integration/drop_test.rb",
+          "start_line": 221
+        },
+        {
+          "end_line": 235,
+          "file": "bench/repos/liquid/test/integration/drop_test.rb",
+          "start_line": 230
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "liquid",
+      "split": "heldout"
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "3c25695d8bcdaf05",
+      "inline_aug_mass": 17,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 31,
+          "file": "bench/repos/liquid/lib/liquid/resource_limits.rb",
+          "start_line": 26
+        },
+        {
+          "end_line": 38,
+          "file": "bench/repos/liquid/lib/liquid/resource_limits.rb",
+          "start_line": 33
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "liquid",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        17,
+        17
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "40e388519c203f5d",
+      "inline_aug_mass": 9,
+      "intersection_mass": 2,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 369,
+          "file": "bench/repos/liquid/test/integration/tags/table_row_test.rb",
+          "start_line": 355
+        },
+        {
+          "end_line": 384,
+          "file": "bench/repos/liquid/test/integration/tags/table_row_test.rb",
+          "start_line": 371
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "liquid",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        9,
+        9
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "4de78e5921928497",
+      "intersection_mass": 17,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 113,
+          "file": "bench/repos/liquid/lib/liquid/utils.rb",
+          "start_line": 97
+        },
+        {
+          "end_line": 131,
+          "file": "bench/repos/liquid/lib/liquid/utils.rb",
+          "start_line": 117
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "liquid",
+      "split": "heldout",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        46,
+        35
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "d64d80cdbea35c4d",
+      "intersection_mass": 12,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 203,
+          "file": "bench/repos/liquid/test/integration/context_test.rb",
+          "start_line": 197
+        },
+        {
+          "end_line": 211,
+          "file": "bench/repos/liquid/test/integration/context_test.rb",
+          "start_line": 205
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "liquid",
+      "split": "heldout",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        15,
+        17
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "ec0ea765982b749e",
+      "inline_aug_mass": 4,
+      "intersection_mass": 1,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 39,
+          "file": "bench/repos/liquid/test/integration/tag/disableable_test.rb",
+          "start_line": 32
+        },
+        {
+          "end_line": 48,
+          "file": "bench/repos/liquid/test/integration/tag/disableable_test.rb",
+          "start_line": 41
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "liquid",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        4,
+        4
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "7a29d98ac73e8688",
+      "intersection_mass": 14,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 380,
+          "file": "bench/repos/pry/lib/pry/wrapped_module.rb",
+          "start_line": 371
+        },
+        {
+          "end_line": 213,
+          "file": "bench/repos/pry/lib/pry/method/weird_method_locator.rb",
+          "start_line": 206
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "pry",
+      "split": "heldout",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        19,
+        16
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "0162d07859325407",
+      "inline_aug_mass": 3,
+      "intersection_mass": 2,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 112,
+          "file": "bench/repos/puma/lib/puma/error_logger.rb",
+          "start_line": 100
+        },
+        {
+          "end_line": 86,
+          "file": "bench/repos/puma/lib/puma/log_writer.rb",
+          "start_line": 74
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "puma",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        17,
+        15
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "12acda2dd82390db",
+      "intersection_mass": 17,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 338,
+          "file": "bench/repos/puma/test/test_rack_handler.rb",
+          "start_line": 326
+        },
+        {
+          "end_line": 324,
+          "file": "bench/repos/puma/test/test_rack_handler.rb",
+          "start_line": 313
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "puma",
+      "split": "heldout",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        25,
+        22
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "16cbddbb2c42524c",
+      "inline_aug_mass": 17,
+      "intersection_mass": 3,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 271,
+          "file": "bench/repos/puma/lib/puma/thread_pool.rb",
+          "start_line": 260
+        },
+        {
+          "end_line": 286,
+          "file": "bench/repos/puma/lib/puma/thread_pool.rb",
+          "start_line": 275
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "puma",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        17,
+        17
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "4354e14716bd8dfb",
+      "inline_aug_mass": 7,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 16,
+          "file": "bench/repos/puma/test/test_fiber_local_application.rb",
+          "start_line": 11
+        },
+        {
+          "end_line": 15,
+          "file": "bench/repos/puma/test/test_fiber_storage_application.rb",
+          "start_line": 11
+        }
+      ],
+      "reason": "extract-base",
+      "repo": "puma",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        20,
+        18
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "93129e37c4504428",
+      "intersection_mass": 8,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 214,
+          "file": "bench/repos/puma/ext/puma_http11/puma_http11.c",
+          "start_line": 206
+        },
+        {
+          "end_line": 224,
+          "file": "bench/repos/puma/ext/puma_http11/puma_http11.c",
+          "start_line": 216
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "puma",
+      "split": "heldout",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        14,
+        14
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "b7b0b53fbcbab71c",
+      "intersection_mass": 8,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 799,
+          "file": "bench/repos/rack/lib/rack/lint.rb",
+          "start_line": 789
+        },
+        {
+          "end_line": 814,
+          "file": "bench/repos/rack/lib/rack/lint.rb",
+          "start_line": 804
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rack",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        17,
+        14
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "inline-ceiling",
+      "family_id": "32a7d7612a8cb12a",
+      "inline_aug_mass": 21,
+      "intersection_mass": 5,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 110,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/server_spec.rb",
+          "start_line": 103
+        },
+        {
+          "end_line": 74,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/server_spec.rb",
+          "start_line": 67
+        }
+      ],
+      "reason": "extract-data-table",
+      "repo": "rspec-core",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        21,
+        12
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "subdag-ceiling",
+      "family_id": "7b5147536093e82e",
+      "intersection_mass": 10,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 242,
+          "file": "bench/repos/rspec-core/spec/support/formatter_support.rb",
+          "start_line": 230
+        },
+        {
+          "end_line": 142,
+          "file": "bench/repos/rspec-core/spec/support/formatter_support.rb",
+          "start_line": 129
+        }
+      ],
+      "reason": "extract-data-table",
+      "repo": "rspec-core",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        52,
+        13
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "inline-ceiling",
+      "family_id": "a1957f9937b645c3",
+      "inline_aug_mass": 37,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 215,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+          "start_line": 207
+        },
+        {
+          "end_line": 36,
+          "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+          "start_line": 29
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rspec-core",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        37,
+        13
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "107837ec875c769b",
+      "inline_aug_mass": 5,
+      "intersection_mass": 5,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 71,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/lint/struct_new_override.rb",
+          "start_line": 54
+        },
+        {
+          "end_line": 59,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/lint/data_define_override.rb",
+          "start_line": 46
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        16,
+        16
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "inline-ceiling",
+      "family_id": "1eead1acc41e3d0d",
+      "inline_aug_mass": 34,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 264,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "start_line": 252
+        },
+        {
+          "end_line": 249,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "start_line": 34
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        34
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "inline-ceiling",
+      "family_id": "267fc66c0a4ce915",
+      "inline_aug_mass": 38,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 243,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/space_inside_parens_spec.rb",
+          "start_line": 156
+        },
+        {
+          "end_line": 153,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/space_inside_parens_spec.rb",
+          "start_line": 67
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        38
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "3e9f769a0860304c",
+      "intersection_mass": 9,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 139,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/lint/unreachable_loop.rb",
+          "start_line": 129
+        },
+        {
+          "end_line": 124,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/style/static_class.rb",
+          "start_line": 114
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        20,
+        19
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "40711dc868c3de45",
+      "intersection_mass": 13,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 21,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/infinite_loop_spec.rb",
+          "start_line": 6
+        },
+        {
+          "end_line": 38,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/infinite_loop_spec.rb",
+          "start_line": 23
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        13,
+        13
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "40c914779a563002",
+      "inline_aug_mass": 5,
+      "intersection_mass": 1,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 44,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/style/redundant_sort_by.rb",
+          "start_line": 36
+        },
+        {
+          "end_line": 54,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/style/redundant_sort_by.rb",
+          "start_line": 46
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        5,
+        5
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "unrecovered",
+      "family_id": "42b457f15c15680c",
+      "inline_aug_mass": 11,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 251,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/partition_instead_of_double_select_spec.rb",
+          "start_line": 243
+        },
+        {
+          "end_line": 179,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/partition_instead_of_double_select_spec.rb",
+          "start_line": 99
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        11
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "unrecovered",
+      "family_id": "6af0178a5e70efbc",
+      "inline_aug_mass": 16,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 216,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/if_with_semicolon_spec.rb",
+          "start_line": 208
+        },
+        {
+          "end_line": 182,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/if_with_semicolon_spec.rb",
+          "start_line": 95
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        16
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "inline-ceiling",
+      "family_id": "7bd6307d63463a53",
+      "inline_aug_mass": 34,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 273,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "start_line": 267
+        },
+        {
+          "end_line": 243,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+          "start_line": 34
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        34
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "8afc3058b26eb9b9",
+      "inline_aug_mass": 4,
+      "intersection_mass": 4,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 58,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/lint/ambiguous_operator.rb",
+          "start_line": 43
+        },
+        {
+          "end_line": 43,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/lint/ambiguous_regexp_literal.rb",
+          "start_line": 29
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        7,
+        7
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "subdag-ceiling",
+      "family_id": "8b9fd00e9f4e985b",
+      "intersection_mass": 12,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 274,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/heredoc_argument_closing_parenthesis_spec.rb",
+          "start_line": 256
+        },
+        {
+          "end_line": 199,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/heredoc_argument_closing_parenthesis_spec.rb",
+          "start_line": 181
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": true,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        12,
+        12
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "unrecovered",
+      "family_id": "ace293d11479450b",
+      "inline_aug_mass": 11,
+      "intersection_mass": 0,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 242,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/location_exists_spec.rb",
+          "start_line": 237
+        },
+        {
+          "end_line": 229,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/location_exists_spec.rb",
+          "start_line": 123
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        5
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "b956b31a66387140",
+      "intersection_mass": 8,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 78,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/duplicated_group.rb",
+          "start_line": 68
+        },
+        {
+          "end_line": 53,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/duplicated_gem.rb",
+          "start_line": 45
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        14,
+        14
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "c409de6f23092443",
+      "intersection_mass": 10,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 139,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/mixin/range_help.rb",
+          "start_line": 134
+        },
+        {
+          "end_line": 83,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/mixin/surrounding_space.rb",
+          "start_line": 78
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        12,
+        12
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "unrecovered",
+      "family_id": "c6c89e4eb592a4cf",
+      "inline_aug_mass": 11,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 119,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/example_description_spec.rb",
+          "start_line": 112
+        },
+        {
+          "end_line": 104,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/example_description_spec.rb",
+          "start_line": 7
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        11
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "unrecovered",
+      "family_id": "c8a5713da90ca9c8",
+      "inline_aug_mass": 9,
+      "intersection_mass": 5,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 66,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/gem_filename.rb",
+          "start_line": 57
+        },
+        {
+          "end_line": 77,
+          "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/gem_filename.rb",
+          "start_line": 68
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        9,
+        9
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "unrecovered",
+      "family_id": "fc6e340b14f9df88",
+      "inline_aug_mass": 11,
+      "intersection_mass": 7,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 36,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/empty_lines_around_attribute_accessor_spec.rb",
+          "start_line": 20
+        },
+        {
+          "end_line": 20,
+          "file": "bench/repos/rubocop/spec/rubocop/cop/layout/empty_lines_around_attribute_accessor_spec.rb",
+          "start_line": 4
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "rubocop",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": false,
+      "unit_value_sizes": [
+        11,
+        11
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "no-overlapping-unit",
+      "family_id": "fe3c6be4a61ad4de",
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 117,
+          "file": "bench/repos/sidekiq/bin/multi_queue_bench",
+          "start_line": 76
+        },
+        {
+          "end_line": 139,
+          "file": "bench/repos/sidekiq/bin/sidekiqload",
+          "start_line": 98
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "sidekiq",
+      "split": "heldout"
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "c8eba586fdfacedc",
+      "intersection_mass": 8,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 255,
+          "file": "bench/repos/sinatra/test/indifferent_hash_test.rb",
+          "start_line": 244
+        },
+        {
+          "end_line": 273,
+          "file": "bench/repos/sinatra/test/indifferent_hash_test.rb",
+          "start_line": 262
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "sinatra",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        24,
+        24
+      ]
+    },
+    {
+      "channel": "structural",
+      "class": "subdag-ceiling",
+      "family_id": "e4ad961494fe684e",
+      "intersection_mass": 8,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 39,
+          "file": "bench/repos/sinatra/test/contest.rb",
+          "start_line": 34
+        },
+        {
+          "end_line": 46,
+          "file": "bench/repos/sinatra/test/contest.rb",
+          "start_line": 41
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "sinatra",
+      "split": "dev",
+      "subdag_ge_12": false,
+      "subdag_ge_20": false,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        17,
+        17
+      ]
+    },
+    {
+      "channel": "contiguous",
+      "class": "subdag-ceiling",
+      "family_id": "07e233ddffad07f0",
+      "intersection_mass": 27,
+      "language": "Ruby",
+      "members": [
+        {
+          "end_line": 44,
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "start_line": 39
+        },
+        {
+          "end_line": 24,
+          "file": "bench/repos/thor/spec/line_editor_spec.rb",
+          "start_line": 19
+        }
+      ],
+      "reason": "parameterize",
+      "repo": "thor",
+      "split": "dev",
+      "subdag_ge_12": true,
+      "subdag_ge_20": true,
+      "subdag_ge_8": true,
+      "unit_value_sizes": [
+        40,
+        40
+      ]
+    }
+  ],
+  "ruby_probe": {
+    "after": {
+      "missed_classes": {
+        "inline-ceiling": 6,
+        "no-overlapping-unit": 2,
+        "same-unit-window": 1,
+        "subdag-ceiling": 16,
+        "unrecovered": 16
+      },
+      "missed_count": 41,
+      "no_overlapping_unit_by_repo": {
+        "jekyll": 1,
+        "sidekiq": 1
+      },
+      "summary": {
+        "Ruby/dev": {
+          "hit_arm0": 294,
+          "hit_arm1": 352,
+          "inline-ceiling": 6,
+          "no-overlapping-unit": 1,
+          "subdag-ceiling": 11,
+          "unrecovered": 10,
+          "worthy": 380
+        },
+        "Ruby/heldout": {
+          "hit_arm0": 180,
+          "hit_arm1": 237,
+          "no-overlapping-unit": 1,
+          "same-unit-window": 1,
+          "subdag-ceiling": 5,
+          "unrecovered": 6,
+          "worthy": 250
+        }
+      }
+    },
+    "before": {
+      "missed_classes": {
+        "no-overlapping-unit": 21,
+        "same-unit-window": 5,
+        "subdag-ceiling": 18,
+        "unrecovered": 11
+      },
+      "missed_count": 55,
+      "no_overlapping_unit_by_repo": {
+        "asciidoctor": 1,
+        "fastlane": 1,
+        "jekyll": 1,
+        "rubocop": 16,
+        "sidekiq": 1,
+        "thor": 1
+      },
+      "summary": {
+        "Ruby/dev": {
+          "hit_arm0": 294,
+          "hit_arm1": 343,
+          "no-overlapping-unit": 19,
+          "same-unit-window": 4,
+          "subdag-ceiling": 9,
+          "unrecovered": 5,
+          "worthy": 380
+        },
+        "Ruby/heldout": {
+          "hit_arm0": 180,
+          "hit_arm1": 232,
+          "no-overlapping-unit": 2,
+          "same-unit-window": 1,
+          "subdag-ceiling": 9,
+          "unrecovered": 6,
+          "worthy": 250
+        }
+      }
+    }
+  },
+  "ruby_unit_delta": {
+    "after": {
+      "block_kept": 3338,
+      "block_seen": 9617,
+      "block_unit_ms_sum": 608.9,
+      "default_surface": 2865,
+      "families": 2985,
+      "scan_sec_sum": 1.593,
+      "unit_kept": 5705,
+      "unit_ms_sum": 959.4,
+      "unit_seen": 12283
+    },
+    "before": {
+      "block_kept": 1179,
+      "block_seen": 5038,
+      "block_unit_ms_sum": 366.8,
+      "default_surface": 2865,
+      "families": 2985,
+      "scan_sec_sum": 2.096,
+      "unit_kept": 3377,
+      "unit_ms_sum": 712.9,
+      "unit_seen": 7479
+    },
+    "delta": {
+      "block_kept": 2159,
+      "block_seen": 4579,
+      "block_unit_ms_sum": 242.1,
+      "default_surface": 0,
+      "families": 0,
+      "scan_sec_sum": -0.503,
+      "unit_kept": 2328,
+      "unit_ms_sum": 246.5,
+      "unit_seen": 4804
+    },
+    "repos": [
+      "asciidoctor",
+      "devise",
+      "faraday",
+      "fastlane",
+      "jekyll",
+      "kramdown",
+      "liquid",
+      "pry",
+      "puma",
+      "rack",
+      "rspec-core",
+      "rubocop",
+      "sidekiq",
+      "sinatra",
+      "thor"
+    ]
+  },
+  "schema_version": 1,
+  "source_artifacts": {
+    "after_probe_command": "python3 bench/labels/recall_ceiling_probe.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --json-out <tmp-after-probe.json>",
+    "before_probe": "bench/labels/recall_ceiling_probe_2026_06_10.json",
+    "unit_delta_command": "NOSE_TIME_UNIT_SUMMARY=1 <before-or-after-nose> scan --format json --top 0 <ruby-repo>"
+  }
+}

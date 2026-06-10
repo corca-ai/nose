@@ -2055,6 +2055,26 @@ fn ruby_guard_modifier_converges_with_block_if() {
 }
 
 #[test]
+fn ruby_test_dsl_block_units_converge_and_keep_literal_boundaries() {
+    let i = Interner::new();
+    let a = "it 'adds values' do\n  total = price + tax\n  assert_equal total, actual\nend\n";
+    let b = "test 'adds values copy' do\n  sum = price + tax\n  assert_equal sum, actual\nend\n";
+    assert_eq!(
+        value_fp_named(&i, a, Lang::Ruby, "it:adds values"),
+        value_fp_named(&i, b, Lang::Ruby, "test:adds values copy"),
+        "equivalent Ruby test DSL block bodies should converge as block units"
+    );
+
+    let expected_one = "it 'expects one' do\n  assert_equal 1, actual\nend\n";
+    let expected_two = "it 'expects two' do\n  assert_equal 2, actual\nend\n";
+    assert_ne!(
+        value_fp_named(&i, expected_one, Lang::Ruby, "it:expects one"),
+        value_fp_named(&i, expected_two, Lang::Ruby, "it:expects two"),
+        "different assertion literals must keep Ruby test DSL block units split"
+    );
+}
+
+#[test]
 fn rust_macro_args_captured_and_alpha() {
     // Macro arguments (atoms inside the token tree) are captured as call args and
     // alpha-renamed, so two structurally-identical macro uses converge.
