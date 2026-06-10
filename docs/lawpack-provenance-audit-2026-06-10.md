@@ -40,6 +40,11 @@ families:
 | repos with `semantic_laws` families | 0 |
 | `semantic_laws` families | 0 |
 
+Follow-up: #198 fixed the `rxjs` scanner crash by preventing sub-unit value
+fingerprints from inlining their own enclosing recursive helper. This document
+keeps the original 104/105 audit result because it describes the checked-in
+artifact above.
+
 Language coverage in the successful scans:
 
 | language | files | repos |

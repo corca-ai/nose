@@ -83,8 +83,10 @@ compiled first-party `nose.value_graph.laws` pack across the 105-repo
 `bench/repos` corpus, plus a targeted 10-repo subset selected for clamp/min-max
 and arithmetic-law surfaces. The pack was active in all 104 successful full-corpus
 scans, covering 59,865 source files and 10,967 reported families, but no family
-contained `semantic_laws` provenance. `rxjs` failed with a stack overflow and is
-recorded separately.
+contained `semantic_laws` provenance. The checked-in audit recorded `rxjs`
+separately because it hit a scanner stack overflow at the time; follow-up #198
+fixed that crash, and the current semantic JSON corpus loop completes 105/105
+repos.
 
 The qualitative read is a negative field result, not a pack-loading failure:
 real code contains many clamp-shaped idioms (`fzf` generic `Constrain`,

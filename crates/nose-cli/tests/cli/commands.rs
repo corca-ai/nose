@@ -1608,6 +1608,34 @@ fn deeply_nested_file_does_not_overflow() {
 }
 
 #[test]
+fn recursive_hof_callback_fragment_does_not_overflow() {
+    // Regression for the rxjs scanner abort: when extracting sub-function units inside a
+    // recursive helper, the value graph must not register the enclosing function as a pure inline
+    // target and inline the helper through its own reduce callback forever.
+    let dir = std::env::temp_dir().join(format!("nose_recursive_hof_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("recursive.ts"),
+        "export function recInLambda(xs: any[]): number {\n  return xs.reduce((acc, x) => recInLambda(x), 0);\n}\n",
+    )
+    .unwrap();
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    assert_eq!(json["scope"]["files"], 1);
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn proposal_shows_shared_skeleton_and_parameters() {
     // Two near-identical functions differing in one line → an extraction proposal:
     // the shared skeleton plus a ⟨param⟩ for the varying spot.

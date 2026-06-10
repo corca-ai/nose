@@ -871,8 +871,9 @@ one same-file sibling unit's multiset added to either side lifts the mass over 2
 shape), **no-overlapping-unit** if a member has no unit at all, else **unrecovered**.
 Multiset intersection ignores connectivity and single-file `features` lacks whole-repo
 import resolution, so the sub-DAG/inline classes **over-approximate** — a ceiling, not a
-forecast. Caveats: `rxjs` excluded (scanner stack overflow, #198); corpus was dir-pruned
-but not file-pruned (`prune_corpus.py` missing, #200).
+forecast. Caveats: the original run excluded `rxjs` for a scanner stack overflow later
+fixed by #198; corpus was dir-pruned but not file-pruned (`prune_corpus.py` missing,
+#200).
 
 **Result** (4,921 worthy labels; dev / heldout):
 
@@ -926,7 +927,7 @@ discipline): every record carries `evidence_tier: detector-suggested`, annotated
 textually-dissimilar tail (the jscpd-shaped blind spot) is sliceable. The complementary
 modality A — behavior-equal fingerprint-split pairs — is the existing
 `nose verify --leads`. Artifact: `bench/type4/miss_mining_2026_06_10.json`
-(104 repos; `rxjs` excluded, #198).
+(104 repos; original run excluded `rxjs` for the stack overflow later fixed by #198).
 
 **Result: 593 candidates corpus-wide, and the audit says the residual is structured,
 small, and mostly *not* detector-recall.**

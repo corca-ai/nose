@@ -14,14 +14,17 @@ use nose_semantics::direct_function_call_target_at_call;
 
 impl<'a> Builder<'a> {
     /// Build the interprocedural inline registry: pure, file-local functions/methods that can be
-    /// inlined to their body's value. Excludes the unit currently being built (`root`) so a
-    /// function is never inlined into itself.
+    /// inlined to their body's value. Excludes the unit currently being built, and any enclosing
+    /// function/method for sub-unit roots, so a function is never inlined into itself through one
+    /// of its blocks or exact fragments.
     pub(super) fn build_inline_registry(&mut self, root: NodeId) {
         if !self.inline_fns.is_empty() {
             return;
         }
         for unit in self.il.units.clone() {
-            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) || unit.root == root {
+            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method)
+                || self.subtree_contains(unit.root, root)
+            {
                 continue;
             }
             if !self.function_binding_safe(unit.root, unit.root) {
@@ -46,6 +49,20 @@ impl<'a> Builder<'a> {
             self.inline_fns
                 .insert(unit.root, InlineFunction { params, body });
         }
+    }
+
+    fn subtree_contains(&self, root: NodeId, needle: NodeId) -> bool {
+        let mut stack = vec![root];
+        let mut seen = FxHashSet::default();
+        while let Some(node) = stack.pop() {
+            if node == needle {
+                return true;
+            }
+            if seen.insert(node) {
+                stack.extend(self.il.children(node).iter().copied());
+            }
+        }
+        false
     }
 
     /// Inline a call to a PURE registered function: bind its parameters to the caller-evaluated

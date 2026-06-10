@@ -7,6 +7,12 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Semantic scans no longer stack-overflow when a recursive helper is referenced
+  from inside one of its own callback bodies while extracting a block or exact
+  fragment. The value graph now excludes the enclosing function/method from the
+  per-unit inline registry, preserving bounded inlining for sub-unit
+  fingerprints. This fixes the `rxjs` corpus crash and keeps the 105-repo bench
+  corpus green in semantic JSON mode.
 - **Soundness:** a seeded selection loop (`best = 0; … if v > best: best = v`) no
   longer merges with the true builtin selection (`max(…)`) — the seed clamps the
   result (empty or all-negative input returns the seed), so it is

@@ -173,8 +173,8 @@ pub(super) struct Builder<'a> {
     pub(super) global_env: FxHashMap<Symbol, ValueId>,
     /// Interprocedural inline registry, keyed by target unit root. Calls may consume an entry only
     /// through `CallTarget::DirectFunction` evidence at the exact call occurrence; the callee
-    /// spelling is never a proof channel. Pure bodies have no user calls, so an inlined body never
-    /// triggers further inlining -- single-level, no cycles, no depth bound.
+    /// spelling is never a proof channel. Enclosing functions are excluded for sub-unit
+    /// fingerprints, so a recursive helper cannot inline itself through a block or fragment root.
     pub(super) inline_fns: FxHashMap<NodeId, InlineFunction>,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
