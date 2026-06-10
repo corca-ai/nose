@@ -88,6 +88,13 @@ break.
   audited as overwhelmingly generated/scaffolding with a handful of
   worthy-shaped misses — and the audit exposed the #202 channel-merge family
   drop (experiments §BK).
+- An oracle exclusion census (`nose verify --exclusion-census`, merged by
+  `bench/labels/merge_exclusion_census.py`) now baselines real-corpus oracle
+  coverage: 4.5% of function units are interpretable and 90.8% of
+  fingerprint-equal pair mass carries no behavioral check, with opaque calls and
+  field reads as the dominant, structure-keyed coverage targets. The companion
+  `--leads` merge records 179 behavior-equal fingerprint-split groups (5 with
+  vj ≥ 0.7) as convergence leads (experiments §BL).
 
 ### Changed
 - Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface

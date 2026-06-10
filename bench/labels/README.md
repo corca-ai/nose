@@ -58,6 +58,13 @@ over-approximated classification of whether generalized sub-DAG matching or one-
 pure inlining could recover it. The measured verdict and method are recorded in
 [`docs/experiments.md`](../../docs/experiments.md) §BJ.
 
+`merge_exclusion_census.py` + `oracle_exclusion_census_2026_06_10.json` +
+`oracle_under_merge_leads_2026_06_10.json` are the oracle-completeness campaign's
+baseline: per-construct inventory of units the interpreter oracle cannot check (and the
+fingerprint-merge mass left unverified), plus the merged behavior-equal/fingerprint-split
+under-merge leads. Method and numbers in
+[`docs/experiments.md`](../../docs/experiments.md) §BL.
+
 ## Scoring against it
 
 `eval_by_language.py` — per-language precision@10 + worthy-recall, dev/heldout split, with

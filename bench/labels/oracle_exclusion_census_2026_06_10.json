@@ -1,0 +1,594 @@
+{
+ "excluded_by_reason": {
+  "battery-bail": 526660,
+  "empty-fp": 38427
+ },
+ "excluded_repos": [
+  "raylib (verify does not finish, #208)"
+ ],
+ "interpretable_units": 26382,
+ "merge_pairs": {
+  "total": 3444062,
+  "unverified": 3127385,
+  "verified": 316677
+ },
+ "nose_version": "nose 0.5.0",
+ "schema_version": "0.1.0",
+ "sharding": "per-repo (merge pairs counted within repo, matching per-repo scans)",
+ "shards": 104,
+ "tags": [
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113"
+   ],
+   "excluded_units": 565087,
+   "interpretable_units": 26382,
+   "tag": "kind:Block",
+   "unverified_pairs": 3127385
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113"
+   ],
+   "excluded_units": 565087,
+   "interpretable_units": 26382,
+   "tag": "kind:Func",
+   "unverified_pairs": 3127385
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 384274,
+   "interpretable_units": 19776,
+   "tag": "kind:Param",
+   "unverified_pairs": 2778008
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113"
+   ],
+   "excluded_units": 523232,
+   "interpretable_units": 13943,
+   "tag": "kind:Var",
+   "unverified_pairs": 1829694
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 481024,
+   "interpretable_units": 3341,
+   "tag": "call:other",
+   "unverified_pairs": 1709625
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:179",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:223"
+   ],
+   "excluded_units": 320849,
+   "interpretable_units": 2353,
+   "tag": "kind:ExprStmt",
+   "unverified_pairs": 1603950
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113"
+   ],
+   "excluded_units": 419649,
+   "interpretable_units": 8058,
+   "tag": "kind:Field",
+   "unverified_pairs": 1302733
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 303488,
+   "interpretable_units": 19358,
+   "tag": "kind:Return",
+   "unverified_pairs": 1098101
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:173"
+   ],
+   "excluded_units": 296266,
+   "interpretable_units": 9195,
+   "tag": "kind:Assign",
+   "unverified_pairs": 969090
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 172356,
+   "interpretable_units": 3506,
+   "tag": "kind:If",
+   "unverified_pairs": 968553
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/bindings.rs:945",
+    "alacritty:bench/repos/alacritty/alacritty/src/display/color.rs:221",
+    "alacritty:bench/repos/alacritty/alacritty_config/src/lib.rs:84"
+   ],
+   "excluded_units": 8709,
+   "interpretable_units": 37,
+   "tag": "lit:unretained:Other",
+   "unverified_pairs": 925358
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/bindings.rs:1210",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/bindings.rs:1223",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33"
+   ],
+   "excluded_units": 126531,
+   "interpretable_units": 4021,
+   "tag": "lit:unretained:Null",
+   "unverified_pairs": 787997
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 219545,
+   "interpretable_units": 5631,
+   "tag": "kind:BinOp",
+   "unverified_pairs": 782508
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/bindings.rs:54",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/bindings.rs:65",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/mod.rs:211"
+   ],
+   "excluded_units": 73051,
+   "interpretable_units": 1467,
+   "tag": "kind:UnOp",
+   "unverified_pairs": 517597
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/migrate/mod.rs:172",
+    "alacritty:bench/repos/alacritty/alacritty_terminal/src/event_loop.rs:476",
+    "alacritty:bench/repos/alacritty/alacritty_terminal/src/term/mod.rs:2989"
+   ],
+   "excluded_units": 22602,
+   "interpretable_units": 455,
+   "tag": "kind:Throw",
+   "unverified_pairs": 478624
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113"
+   ],
+   "excluded_units": 106092,
+   "interpretable_units": 3253,
+   "tag": "kind:Seq",
+   "unverified_pairs": 415050
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:32",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:148",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:93"
+   ],
+   "excluded_units": 53225,
+   "interpretable_units": 454,
+   "tag": "kind:Lambda",
+   "unverified_pairs": 263856
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:363",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:381",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:539"
+   ],
+   "excluded_units": 68476,
+   "interpretable_units": 1564,
+   "tag": "kind:Loop",
+   "unverified_pairs": 147440
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:381",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:179",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33"
+   ],
+   "excluded_units": 68501,
+   "interpretable_units": 2222,
+   "tag": "kind:Index",
+   "unverified_pairs": 128705
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:179",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "alacritty:bench/repos/alacritty/alacritty/src/migrate/mod.rs:172"
+   ],
+   "excluded_units": 17429,
+   "interpretable_units": 559,
+   "tag": "builtin:Len",
+   "unverified_pairs": 117756
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/color.rs:141",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/color.rs:156",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/color.rs:179"
+   ],
+   "excluded_units": 14584,
+   "interpretable_units": 287,
+   "tag": "lit:unretained:Int",
+   "unverified_pairs": 73756
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/mod.rs:195",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "alacritty:bench/repos/alacritty/alacritty/src/display/mod.rs:1382"
+   ],
+   "excluded_units": 5239,
+   "interpretable_units": 119,
+   "tag": "builtin:Append",
+   "unverified_pairs": 68002
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/atn_config_set.go:259",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/interval_set.go:61",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/interval_set.go:91"
+   ],
+   "excluded_units": 4175,
+   "interpretable_units": 97,
+   "tag": "builtin:Enumerate",
+   "unverified_pairs": 62262
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:490",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/cursor.rs:29",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/font.rs:136"
+   ],
+   "excluded_units": 8948,
+   "interpretable_units": 60,
+   "tag": "lit:other",
+   "unverified_pairs": 27872
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/antlr4-maven-plugin/src/main/java/org/antlr/mojo/antlr4/Antlr4Mojo.java:222",
+    "antlr4:bench/repos/antlr4/antlr4-maven-plugin/src/main/java/org/antlr/mojo/antlr4/GrammarDependencies.java:281",
+    "antlr4:bench/repos/antlr4/antlr4-maven-plugin/src/main/java/org/antlr/mojo/antlr4/GrammarDependencies.java:72"
+   ],
+   "excluded_units": 17953,
+   "interpretable_units": 94,
+   "tag": "kind:Try",
+   "unverified_pairs": 24414
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/CodePointBuffer.java:353",
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/CodePointBuffer.java:365",
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/CodePointBuffer.java:377"
+   ],
+   "excluded_units": 1087,
+   "interpretable_units": 64,
+   "tag": "builtin:Max",
+   "unverified_pairs": 18680
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/ANTLRInputStream.java:192",
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/CodePointCharStream.java:152",
+    "antlr4:bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/CodePointCharStream.java:204"
+   ],
+   "excluded_units": 1049,
+   "interpretable_units": 84,
+   "tag": "builtin:Min",
+   "unverified_pairs": 16921
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/build.rs:8",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:113",
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:134"
+   ],
+   "excluded_units": 40353,
+   "interpretable_units": 243,
+   "tag": "kind:Raw",
+   "unverified_pairs": 11236
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/cli.rs:363",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/mod.rs:238",
+    "alacritty:bench/repos/alacritty/alacritty/src/config/mod.rs:280"
+   ],
+   "excluded_units": 8370,
+   "interpretable_units": 152,
+   "tag": "kind:Continue",
+   "unverified_pairs": 3169
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/parser_atn_simulator.go:996",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/tokenstream_rewriter.go:296"
+   ],
+   "excluded_units": 2038,
+   "interpretable_units": 133,
+   "tag": "builtin:Contains",
+   "unverified_pairs": 1864
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/scripts/deploy_to_website.py:21",
+    "antlr4:bench/repos/antlr4/scripts/deploy_to_website.py:41",
+    "antlr4:bench/repos/antlr4/scripts/deploy_to_website.py:55"
+   ],
+   "excluded_units": 8522,
+   "interpretable_units": 237,
+   "tag": "lit:unretained:Str",
+   "unverified_pairs": 1512
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "alacritty:bench/repos/alacritty/alacritty/src/display/content.rs:532",
+    "alacritty:bench/repos/alacritty/alacritty/src/display/damage.rs:257"
+   ],
+   "excluded_units": 13771,
+   "interpretable_units": 340,
+   "tag": "kind:Break",
+   "unverified_pairs": 664
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/InputStream.py:22",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/IntervalSet.py:89"
+   ],
+   "excluded_units": 7825,
+   "interpretable_units": 221,
+   "tag": "kind:HoF",
+   "unverified_pairs": 236
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/BufferedTokenStream.py:120",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/BufferedTokenStream.py:276",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/CommonTokenStream.py:78"
+   ],
+   "excluded_units": 2877,
+   "interpretable_units": 132,
+   "tag": "builtin:Range",
+   "unverified_pairs": 111
+  },
+  {
+   "example_excluded": [
+    "axios:bench/repos/axios/tests/browser/headers.browser.test.js:76",
+    "bat:bench/repos/bat/tests/benchmarks/highlighting-speed-src/jquery.js:3915",
+    "bat:bench/repos/bat/tests/benchmarks/highlighting-speed-src/jquery.js:4488"
+   ],
+   "excluded_units": 231,
+   "interpretable_units": 15,
+   "tag": "builtin:Keys",
+   "unverified_pairs": 105
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/atn/LexerActionExecutor.py:25",
+    "antlr4:bench/repos/antlr4/runtime/Python3/tests/xpathtest.py:30",
+    "arrow:bench/repos/arrow/arrow/arrow.py:1850"
+   ],
+   "excluded_units": 1390,
+   "interpretable_units": 53,
+   "tag": "builtin:Join",
+   "unverified_pairs": 65
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/IntervalSet.py:89",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/TokenStreamRewriter.py:140",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py:212"
+   ],
+   "excluded_units": 619,
+   "interpretable_units": 25,
+   "tag": "builtin:Any",
+   "unverified_pairs": 56
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/trace_listener.go:22",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/trace_listener.go:26",
+    "antlr4:bench/repos/antlr4/runtime/Go/antlr/v4/trace_listener.go:30"
+   ],
+   "excluded_units": 1020,
+   "interpretable_units": 209,
+   "tag": "builtin:Print",
+   "unverified_pairs": 49
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/config/monitor.rs:33",
+    "alacritty:bench/repos/alacritty/alacritty/src/renderer/mod.rs:243",
+    "antlr4:bench/repos/antlr4/tool/src/org/antlr/v4/semantics/RuleCollector.java:110"
+   ],
+   "excluded_units": 256,
+   "interpretable_units": 11,
+   "tag": "builtin:IsEmpty",
+   "unverified_pairs": 33
+  },
+  {
+   "example_excluded": [
+    "arrow:bench/repos/arrow/arrow/arrow.py:1133",
+    "arrow:bench/repos/arrow/arrow/arrow.py:1304",
+    "arrow:bench/repos/arrow/arrow/arrow.py:1344"
+   ],
+   "excluded_units": 946,
+   "interpretable_units": 60,
+   "tag": "builtin:Abs",
+   "unverified_pairs": 29
+  },
+  {
+   "example_excluded": [
+    "curl:bench/repos/curl/lib/curlx/inet_ntop.c:88",
+    "curl:bench/repos/curl/lib/socks_sspi.c:104",
+    "curl:bench/repos/curl/lib/socks_sspi.c:262"
+   ],
+   "excluded_units": 97,
+   "interpretable_units": 24,
+   "tag": "builtin:UnsignedCast32",
+   "unverified_pairs": 17
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/TokenStreamRewriter.py:108",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/TokenStreamRewriter.py:140",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/atn/SemanticContext.py:206"
+   ],
+   "excluded_units": 757,
+   "interpretable_units": 24,
+   "tag": "builtin:All",
+   "unverified_pairs": 15
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/PredictionContext.py:73",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/Recognizer.py:52",
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/Recognizer.py:68"
+   ],
+   "excluded_units": 762,
+   "interpretable_units": 39,
+   "tag": "builtin:Zip",
+   "unverified_pairs": 10
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/display/color.rs:286",
+    "antlr4:bench/repos/antlr4/tool/src/org/antlr/v4/codegen/Target.java:412",
+    "antlr4:bench/repos/antlr4/tool/src/org/antlr/v4/codegen/target/GoTarget.java:70"
+   ],
+   "excluded_units": 135,
+   "interpretable_units": 41,
+   "tag": "builtin:StartsWith",
+   "unverified_pairs": 5
+  },
+  {
+   "example_excluded": [
+    "bat:bench/repos/bat/tests/benchmarks/highlighting-speed-src/numpy_test_multiarray.py:39",
+    "drizzle-orm:bench/repos/drizzle-orm/drizzle-kit/src/serializer/pgSerializer.ts:101",
+    "drizzle-orm:bench/repos/drizzle-orm/drizzle-kit/src/utils.ts:132"
+   ],
+   "excluded_units": 60,
+   "interpretable_units": 7,
+   "tag": "builtin:Reduce",
+   "unverified_pairs": 3
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/runtime/Python3/src/antlr4/IntervalSet.py:95",
+    "antlr4:bench/repos/antlr4/scripts/deploy_to_website.py:21",
+    "antlr4:bench/repos/antlr4/scripts/update_antlr_version.py:43"
+   ],
+   "excluded_units": 362,
+   "interpretable_units": 14,
+   "tag": "builtin:Sum",
+   "unverified_pairs": 2
+  },
+  {
+   "example_excluded": [
+    "antlr4:bench/repos/antlr4/antlr4-maven-plugin/src/main/java/org/antlr/mojo/antlr4/Antlr4Mojo.java:521",
+    "antlr4:bench/repos/antlr4/tool-testsuite/test/org/antlr/v4/test/tool/TestPerformance.java:1695",
+    "antlr4:bench/repos/antlr4/tool/src/org/antlr/v4/codegen/target/GoTarget.java:70"
+   ],
+   "excluded_units": 65,
+   "interpretable_units": 12,
+   "tag": "builtin:EndsWith",
+   "unverified_pairs": 2
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/input/keyboard.rs:378",
+    "alacritty:bench/repos/alacritty/alacritty/src/string.rs:41",
+    "clap:bench/repos/clap/clap_builder/src/output/help_template.rs:608"
+   ],
+   "excluded_units": 34,
+   "interpretable_units": 2,
+   "tag": "builtin:IsNotNull",
+   "unverified_pairs": 1
+  },
+  {
+   "example_excluded": [
+    "bat:bench/repos/bat/src/pretty_printer.rs:125",
+    "hyperfine:bench/repos/hyperfine/src/benchmark/executor.rs:133",
+    "hyperfine:bench/repos/hyperfine/src/benchmark/executor.rs:186"
+   ],
+   "excluded_units": 33,
+   "interpretable_units": 0,
+   "tag": "builtin:ValueOrDefault",
+   "unverified_pairs": 1
+  },
+  {
+   "example_excluded": [
+    "black:bench/repos/black/src/black/__init__.py:1167",
+    "flask:bench/repos/flask/src/flask/testing.py:193",
+    "graphhopper:bench/repos/graphhopper/core/src/main/java/com/graphhopper/GraphHopper.java:605"
+   ],
+   "excluded_units": 47,
+   "interpretable_units": 11,
+   "tag": "builtin:GetOrDefault",
+   "unverified_pairs": 0
+  },
+  {
+   "example_excluded": [
+    "alacritty:bench/repos/alacritty/alacritty/src/string.rs:41",
+    "alacritty:bench/repos/alacritty/alacritty_terminal/src/term/cell.rs:180",
+    "alacritty:bench/repos/alacritty/alacritty_terminal/src/term/cell.rs:202"
+   ],
+   "excluded_units": 23,
+   "interpretable_units": 0,
+   "tag": "builtin:IsNull",
+   "unverified_pairs": 0
+  },
+  {
+   "example_excluded": [
+    "clap:bench/repos/clap/tests/derive/flags.rs:216",
+    "meilisearch:bench/repos/meilisearch/crates/meilisearch/src/lib.rs:798",
+    "meilisearch:bench/repos/meilisearch/crates/meilisearch/tests/dashboard/mod.rs:5"
+   ],
+   "excluded_units": 5,
+   "interpretable_units": 0,
+   "tag": "kind:Module",
+   "unverified_pairs": 0
+  }
+ ],
+ "units_total": 591469
+}
