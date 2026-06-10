@@ -185,3 +185,17 @@ The same `commons-lang` semantic scan runs `normalize+extract` in **<1 s** with
 identical family ids; the single pathological `ArrayUtilsTest.java` scan dropped
 from **≈119 s** to **≈0.8 s**. This keeps the semantic-kernel fail-closed proof
 policy intact while removing the quadratic proof-validation shape.
+
+## Fourth pass follow-up — strict-nullish regression pins
+
+The same corpus comparison also exposed two precision wins from the semantic
+kernel hardening: a nullish default family in a formatter-style JavaScript helper
+no longer merged with `x === null ? d : x`, and an object-guard family no longer
+accepted a loose `candidate != null` guard as equivalent to a strict
+`candidate !== null` guard.
+
+Those are now covered by compact CLI fixtures instead of depending on checked-out
+third-party repositories. The fixtures run `nose scan --mode semantic` over small
+JavaScript projects and assert that the exact semantic channel keeps
+loose-nullish and strict-null families separate while preserving the positive
+families on each side.

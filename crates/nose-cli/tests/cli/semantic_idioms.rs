@@ -3438,6 +3438,139 @@ fn scan_mode_semantic_distinguishes_nullish_from_truthy_defaults() {
 }
 
 #[test]
+fn scan_mode_semantic_pins_strict_nullish_default_boundaries() {
+    let dir = std::env::temp_dir().join(format!("nose_strict_nullish_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("nullish_coalesce.js"),
+        "function coalesce(value, fallback) {\n  return value ?? fallback;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("nullish_loose_ternary.js"),
+        "function loose(value, fallback) {\n  return value == null ? fallback : value;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("strict_null_ternary.js"),
+        "function strict(value, fallback) {\n  return value === null ? fallback : value;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("strict_null_copy.js"),
+        "function strictCopy(input, fallback) {\n  return input === null ? fallback : input;\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    let semantic_families = scan_families(&semantic_json);
+    assert_eq!(
+        semantic_families.len(),
+        2,
+        "semantic mode should keep loose-nullish and strict-null defaults in separate families: {semantic}"
+    );
+
+    let nullish_family = family_with_all(
+        &semantic_json,
+        &["nullish_coalesce.js", "nullish_loose_ternary.js"],
+    )
+    .unwrap_or_else(|| panic!("semantic mode should keep the loose-nullish family: {semantic}"));
+    for unexpected in ["strict_null_ternary.js", "strict_null_copy.js"] {
+        assert!(
+            !family_has_location_suffix(nullish_family, unexpected),
+            "strict-null defaults must not merge into the nullish family: {semantic}"
+        );
+    }
+
+    let strict_family = family_with_all(
+        &semantic_json,
+        &["strict_null_ternary.js", "strict_null_copy.js"],
+    )
+    .unwrap_or_else(|| {
+        panic!("semantic mode should still converge equivalent strict-null defaults: {semantic}")
+    });
+    for unexpected in ["nullish_coalesce.js", "nullish_loose_ternary.js"] {
+        assert!(
+            !family_has_location_suffix(strict_family, unexpected),
+            "loose-nullish defaults must not merge into the strict-null family: {semantic}"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn scan_mode_semantic_pins_js_object_guard_nullish_boundary() {
+    let dir =
+        std::env::temp_dir().join(format!("nose_object_guard_nullish_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("strict_object_a.js"),
+        "function strictA(value) {\n  return typeof value === \"object\" && value !== null;\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("strict_object_b.js"),
+        "function strictB(input) {\n  return input !== null && typeof input === \"object\";\n}\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("loose_object_negative.js"),
+        "function loose(candidate) {\n  return candidate != null && typeof candidate === \"object\";\n}\n",
+    )
+    .unwrap();
+
+    let semantic = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let semantic_json = scan_json(&semantic);
+    let strict_family = family_with_all(
+        &semantic_json,
+        &["strict_object_a.js", "strict_object_b.js"],
+    )
+    .unwrap_or_else(|| {
+        panic!("semantic mode should keep the strict object guard family: {semantic}")
+    });
+    assert!(
+        !family_has_location_suffix(strict_family, "loose_object_negative.js"),
+        "loose `!= null` object guards must not merge into the strict non-null object guard family: {semantic}"
+    );
+    assert!(
+        !semantic_json.to_string().contains("loose_object_negative.js"),
+        "the compact loose-nullish object guard is a hard negative for this semantic family: {semantic}"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn scan_mode_semantic_proves_js_record_shape_guards() {
     let dir = std::env::temp_dir().join(format!("nose_record_guard_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);
@@ -3537,6 +3670,18 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     }
 
     let _ = fs::remove_dir_all(&dir);
+}
+
+fn family_has_location_suffix(family: &serde_json::Value, suffix: &str) -> bool {
+    family["locations"]
+        .as_array()
+        .expect("family should contain locations")
+        .iter()
+        .any(|loc| {
+            loc["file"]
+                .as_str()
+                .is_some_and(|file| file.ends_with(suffix))
+        })
 }
 
 #[test]

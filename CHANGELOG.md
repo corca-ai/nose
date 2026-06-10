@@ -39,6 +39,10 @@ break.
 ### Added
 - Ruby `**` now lowers to the shared exponentiation operator and converges with
   Python/JS `**`.
+- Compact CLI regression fixtures now pin the real-corpus strict-nullish hard
+  negatives: `x ?? d` / `x == null ? d : x` stay separate from `x === null ? d :
+  x`, and loose `!= null` object guards stay out of the strict non-null object
+  guard family.
 
 ### Performance
 - Minified-bundle-sized files no longer hit a quadratic cliff: `nearest_scope`
