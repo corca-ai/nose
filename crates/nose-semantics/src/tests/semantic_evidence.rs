@@ -1415,7 +1415,7 @@ fn binding_symbol_evidence_does_not_prove_rebound_alias_uses() {
 }
 
 #[test]
-fn ambiguous_global_symbol_evidence_blocks_name_fallback() {
+fn global_symbol_requires_asserted_evidence() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let math = b.add(
@@ -1427,7 +1427,10 @@ fn ambiguous_global_symbol_evidence_blocks_name_fallback() {
     let root = b.add(NodeKind::Module, Payload::None, sp(23), &[math]);
     let mut il = finish_il(b, root, Lang::JavaScript);
 
-    assert!(unshadowed_global_symbol(&il, &interner, math, "Math"));
+    assert!(
+        !asserted_unshadowed_global_symbol(&il, math, "Math"),
+        "a bare spelling without Symbol evidence must not open the exact path"
+    );
 
     il.evidence.push(evidence(
         0,
@@ -1437,5 +1440,22 @@ fn ambiguous_global_symbol_evidence_blocks_name_fallback() {
         }),
         EvidenceStatus::Ambiguous,
     ));
-    assert!(!unshadowed_global_symbol(&il, &interner, math, "Math"));
+    assert!(
+        !asserted_unshadowed_global_symbol(&il, math, "Math"),
+        "ambiguous Symbol evidence keeps the exact path closed"
+    );
+
+    il.evidence.clear();
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(sp(23), NodeKind::Var),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("Math"),
+        }),
+        EvidenceStatus::Asserted,
+    ));
+    assert!(
+        asserted_unshadowed_global_symbol(&il, math, "Math"),
+        "asserted Symbol evidence proves the unshadowed global"
+    );
 }

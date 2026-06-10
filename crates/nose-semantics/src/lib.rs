@@ -224,21 +224,13 @@ pub fn seq_surface_contract_for_node(
     }
 }
 
-/// Backward-compatible name for the evidence-only `Seq` surface resolver.
-pub fn seq_surface_contract_evidence_for_node(
-    il: &Il,
-    interner: &Interner,
-    node: NodeId,
-) -> Option<SeqSurfaceContract> {
-    seq_surface_contract_for_node(il, interner, node)
-}
-
 fn sequence_surface_evidence_at_sequence_span(
     il: &Il,
     span: Span,
 ) -> EvidenceResolution<SequenceSurfaceKind> {
     unique_evidence_at(
         il,
+        span,
         |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
         |evidence| match evidence {
             EvidenceKind::SequenceSurface(kind) => Some(kind),
@@ -561,6 +553,7 @@ pub struct ImportFact {
 fn import_fact_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolution<ImportFact> {
     unique_evidence_at(
         il,
+        span,
         |anchor| matches!(anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span),
         |evidence| match evidence {
             EvidenceKind::Import(ImportEvidenceKind::Binding {
@@ -659,6 +652,7 @@ fn symbol_evidence_at_node_anchor(
 ) -> EvidenceResolution<SymbolEvidenceKind> {
     unique_asserted_evidence_at(
         il,
+        span,
         |anchor| {
             matches!(
                 anchor,
@@ -682,6 +676,7 @@ fn symbol_evidence_for_binding(
 ) -> EvidenceResolution<SymbolEvidenceKind> {
     unique_evidence_at(
         il,
+        span,
         |anchor| {
             matches!(
                 anchor,
@@ -760,30 +755,10 @@ fn binding_identity_matches(
     }
 }
 
-/// Prove that `node` denotes a language-defined unshadowed global with the exact
-/// requested name. The raw spelling is not enough: when symbol evidence exists it
-/// is authoritative, and ambiguous/conflicting evidence keeps the exact path
-/// closed instead of falling back to spelling checks.
-pub fn unshadowed_global_symbol(il: &Il, interner: &Interner, node: NodeId, name: &str) -> bool {
-    if il.kind(node) != NodeKind::Var {
-        return false;
-    }
-    let expected = SymbolEvidenceKind::UnshadowedGlobal {
-        name_hash: stable_symbol_hash(name),
-    };
-    match symbol_identity_at_node_matches(il, node, expected) {
-        EvidenceResolution::Found(matches) => return matches,
-        EvidenceResolution::Ambiguous => return false,
-        EvidenceResolution::Missing => {}
-    }
-    node_name(il, interner, node) == Some(name) && !file_defines_name(il, interner, name)
-}
-
-/// Evidence-only proof that `node` denotes a language-defined unshadowed global.
-///
-/// This is the consumer-side API for exact value semantics. Producer-side scans may
-/// still use `unshadowed_global_symbol` as a compatibility bridge while migrating
-/// old frontend paths onto explicit `Symbol` evidence.
+/// Evidence-only proof that `node` denotes a language-defined unshadowed global
+/// with the exact requested name. The raw spelling is never enough: only explicit
+/// `Symbol` evidence opens the exact path, and ambiguous or conflicting evidence
+/// keeps it closed.
 pub fn asserted_unshadowed_global_symbol(il: &Il, node: NodeId, name: &str) -> bool {
     if il.kind(node) != NodeKind::Var {
         return false;
@@ -1069,29 +1044,6 @@ fn unit_defines_hash_visible_at(
                 .name
                 .is_some_and(|symbol| stable_symbol_hash(interner.resolve(symbol)) == name_hash)
     })
-}
-
-fn file_defines_name(il: &Il, interner: &Interner, name: &str) -> bool {
-    let name_hash = stable_symbol_hash(name);
-    il.units.iter().any(|unit| {
-        unit.name.is_some_and(|symbol| {
-            symbol_defines_name(il.meta.lang, interner.resolve(symbol), name, name_hash)
-        })
-    }) || il
-        .nodes
-        .iter()
-        .enumerate()
-        .any(|(idx, node)| match node.kind {
-            NodeKind::Module | NodeKind::Block | NodeKind::Param => {
-                node_defines_name(il, interner, NodeId(idx as u32), name, name_hash)
-            }
-            NodeKind::Assign => il
-                .children(NodeId(idx as u32))
-                .first()
-                .copied()
-                .is_some_and(|lhs| node_defines_name(il, interner, lhs, name, name_hash)),
-            _ => false,
-        })
 }
 
 pub fn file_defines_name_visible_at(

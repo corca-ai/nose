@@ -353,6 +353,7 @@ fn exact_effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<E
     let kind = il.kind(node);
     unique_asserted_evidence_at(
         il,
+        span,
         |anchor| {
             matches!(
                 anchor,
@@ -376,10 +377,9 @@ fn exact_effect_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<E
 pub(crate) fn asserted_effect_at_node(il: &Il, node: NodeId, wanted: EffectEvidenceKind) -> bool {
     let span = il.node(node).span;
     let kind = il.kind(node);
-    il.evidence.iter().any(|record| {
-        record.status == EvidenceStatus::Asserted
-            && il.evidence_dependencies_asserted(record)
-            && record.kind == EvidenceKind::Effect(wanted)
+    il.evidence_anchored_at(span).any(|record| {
+        record.kind == EvidenceKind::Effect(wanted)
+            && record.status == EvidenceStatus::Asserted
             && matches!(
                 record.anchor,
                 EvidenceAnchor::Node {
@@ -387,18 +387,18 @@ pub(crate) fn asserted_effect_at_node(il: &Il, node: NodeId, wanted: EffectEvide
                     kind: anchor_kind,
                 } if anchor_span == span && anchor_kind == kind
             )
+            && il.evidence_dependencies_asserted(record)
     })
 }
 
 fn asserted_library_api_suppresses_opaque_escape_at_node(il: &Il, node: NodeId) -> bool {
     let span = il.node(node).span;
     let kind = il.kind(node);
-    il.evidence.iter().any(|record| {
+    il.evidence_anchored_at(span).any(|record| {
         let EvidenceKind::LibraryApi(api) = record.kind else {
             return false;
         };
         record.status == EvidenceStatus::Asserted
-            && il.evidence_dependencies_asserted(record)
             && library_api_suppresses_opaque_argument_escape(api)
             && matches!(
                 record.anchor,
@@ -407,6 +407,7 @@ fn asserted_library_api_suppresses_opaque_escape_at_node(il: &Il, node: NodeId) 
                     kind: anchor_kind,
                 } if anchor_span == span && anchor_kind == kind
             )
+            && il.evidence_dependencies_asserted(record)
     })
 }
 
@@ -424,6 +425,7 @@ fn place_evidence_for_node(il: &Il, node: NodeId) -> EvidenceResolution<PlaceEvi
     let kind = il.kind(node);
     unique_asserted_evidence_at(
         il,
+        span,
         |anchor| {
             matches!(
                 anchor,

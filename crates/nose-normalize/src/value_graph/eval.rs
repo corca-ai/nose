@@ -3,6 +3,97 @@ use super::*;
 const LARGE_AC_EXPR_OPERANDS: usize = 64;
 
 impl<'a> Builder<'a> {
+    /// JS strict (in)equality. The value model conflates `null`/`undefined` into
+    /// ONE constant, so the model's Eq-against-null means the LOOSE check
+    /// (`x == null`, true for both) — which is also what `x ?? d` desugars to. A
+    /// strict `x === null` (false for undefined) cannot be expressed in that
+    /// model: keep it a distinct shape keyed by the spelled operand, so strict
+    /// checks converge only with the same strict spelling and never feed the
+    /// nullish-default fold (`null_condition` → `ValueOrDefault`).
+    fn eval_strict_equality_comparison(
+        &mut self,
+        expr: NodeId,
+        op: u32,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> Option<ValueId> {
+        if (op != Op::Eq as u32 && op != Op::Ne as u32) || kids.len() != 2 {
+            return None;
+        }
+        let strict = matches!(
+            source_operator_at_node(self.il, expr),
+            Some(
+                nose_il::SourceOperatorKind::StrictEquality
+                    | nose_il::SourceOperatorKind::StrictInequality
+            )
+        );
+        if !strict {
+            return None;
+        }
+        let a = self.eval(kids[0], env);
+        let b = self.eval(kids[1], env);
+        let null_kid = if self.is_null_value(a) {
+            Some((kids[0], b))
+        } else if self.is_null_value(b) {
+            Some((kids[1], a))
+        } else {
+            None
+        };
+        if let Some((null_kid, value_side)) = null_kid {
+            // Exception: `=== undefined` against a value that provably cannot be
+            // null IS the faithful absence check — a typed `Map.get` result is
+            // `V | undefined`. Keep the model's Eq shape there so the map-default
+            // fold still proves `m.get(k) ?? d` ≡ the `=== undefined` guarded form.
+            let undefined_spelling = matches!(
+                (self.il.kind(null_kid), self.il.node(null_kid).payload),
+                (NodeKind::Var, Payload::Name(_))
+            );
+            let undefined_only_absence = self.proven_map_get_value(value_side).is_some();
+            if !(undefined_spelling && undefined_only_absence) {
+                let salt = combine(JS_STRICT_NULL_CMP_TAG, self.valued_subtree_hash(null_kid));
+                let eq = self.mk(ValOp::Opaque(salt), vec![value_side]);
+                return Some(if op == Op::Ne as u32 {
+                    self.mk(ValOp::Un(Op::Not as u32), vec![eq])
+                } else {
+                    eq
+                });
+            }
+        }
+        // Strict comparison the model expresses faithfully: the model's Eq IS
+        // strict. Operands are already evaluated — don't evaluate them twice.
+        Some(self.mk(ValOp::Bin(op), vec![a, b]))
+    }
+
+    /// `a in b` — directional membership. JS `in` tests prototype-chain keys (its
+    /// own shape); a language with no modeled membership operator stays opaque;
+    /// otherwise membership over a proven map key-view or collection.
+    fn eval_membership_binop(
+        &mut self,
+        expr: NodeId,
+        kids: &[NodeId],
+        env: &FxHashMap<u32, ValueId>,
+    ) -> ValueId {
+        let element = self.eval(kids[0], env);
+        if self.is_js_like_lang() {
+            let collection = self.eval(kids[1], env);
+            return self.mk(ValOp::Call(JS_PROTOTYPE_IN_CODE), vec![element, collection]);
+        }
+        if semantics(self.il.meta.lang)
+            .operators()
+            .membership_operator(Op::In)
+            .is_none()
+        {
+            let collection = self.eval(kids[1], env);
+            let salt = self.source_salted_hash(expr, 0x494E_4F50);
+            return self.mk(ValOp::Opaque(salt), vec![element, collection]);
+        }
+        if let Some(map) = self.proven_map_key_view_expr(kids[1], env) {
+            return self.mk(ValOp::Bin(Op::In as u32), vec![element, map]);
+        }
+        let collection = self.eval_membership_collection(kids[1], env);
+        self.mk(ValOp::Bin(Op::In as u32), vec![element, collection])
+    }
+
     pub(super) fn eval(&mut self, expr: NodeId, env: &FxHashMap<u32, ValueId>) -> ValueId {
         // Track the enclosing source expression so EVERY node created while evaluating it (the top
         // node AND the intermediate nodes a reduce/map unfolds via `mk`) is stamped with its span
@@ -66,26 +157,7 @@ impl<'a> Builder<'a> {
                 let op = op_code(node.payload);
                 let kids = self.il.children(expr).to_vec();
                 if op == Op::In as u32 && kids.len() == 2 {
-                    let element = self.eval(kids[0], env);
-                    if self.is_js_like_lang() {
-                        let collection = self.eval(kids[1], env);
-                        return self
-                            .mk(ValOp::Call(JS_PROTOTYPE_IN_CODE), vec![element, collection]);
-                    }
-                    if semantics(self.il.meta.lang)
-                        .operators()
-                        .membership_operator(Op::In)
-                        .is_none()
-                    {
-                        let collection = self.eval(kids[1], env);
-                        let salt = self.source_salted_hash(expr, 0x494E_4F50);
-                        return self.mk(ValOp::Opaque(salt), vec![element, collection]);
-                    }
-                    if let Some(map) = self.proven_map_key_view_expr(kids[1], env) {
-                        return self.mk(ValOp::Bin(op), vec![element, map]);
-                    }
-                    let collection = self.eval_membership_collection(kids[1], env);
-                    return self.mk(ValOp::Bin(op), vec![element, collection]);
+                    return self.eval_membership_binop(expr, &kids, env);
                 }
                 if let Some(v) = self.eval_rust_option_some_pattern_comparison(op, &kids, env) {
                     return v;
@@ -102,6 +174,9 @@ impl<'a> Builder<'a> {
                     {
                         return v;
                     }
+                }
+                if let Some(v) = self.eval_strict_equality_comparison(expr, op, &kids, env) {
+                    return v;
                 }
                 if op == Op::Add as u32 || op == Op::Sub as u32 {
                     let mut operands = Vec::new();

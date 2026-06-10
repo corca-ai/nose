@@ -110,6 +110,11 @@ core canonicalizations, but not a per-scan or whole-pipeline proof. See
   carry no per-pair behavioral proof.
 - Type-4 coverage is a **growing set of modeled equivalences**, not a guarantee about any
   given pair of semantically-equal fragments.
+- **The value model is coarser than full JS semantics for loose equality on non-null
+  operands**: `a == b` and `a === b` over arbitrary values share a fingerprint (the model's
+  equality is strict/structural; coercion is not modeled). Null-ish checks are handled
+  precisely — `x === null` never merges with `x == null` / `x ?? d`, and `null` and
+  `undefined` spellings stay distinct in strict checks.
 - Sub-function semantic coverage is intentionally bounded: nose extracts control-flow
   blocks and exact-safe single-statement fragments (return/throw expressions and simple
   conditional return/throw/effect guards, including bare returns, explicit empty no-op

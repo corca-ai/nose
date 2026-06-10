@@ -186,6 +186,7 @@ pub(super) fn op_from_code(opc: u32) -> Option<Op> {
         Op::Sub,
         Op::Mul,
         Op::Div,
+        Op::FloorDiv,
         Op::Mod,
         Op::Pow,
         Op::Eq,
@@ -265,6 +266,10 @@ pub(super) const ABS_CODE: u32 = 0xAB5;
 pub(super) const MIN_CODE: u32 = 0x319;
 pub(super) const MAX_CODE: u32 = 0x32A;
 pub(super) const JS_PROTOTYPE_IN_CODE: u32 = 0x4A53_494E;
+/// Salt for a strict (`===`/`!==`) comparison against a null-ish operand — a shape
+/// the null/undefined-conflating value model cannot express as `Bin(Eq)` without
+/// merging it with the loose check (see `eval`'s strict-null handling).
+pub(super) const JS_STRICT_NULL_CMP_TAG: u64 = 0x4A53_534E_4351;
 pub(super) const C_U16_BE_BYTE_PACK_CODE: u32 = 0x4331_3642;
 pub(super) const C_U32_BE_BYTE_PACK_CODE: u32 = 0x4333_3242;
 pub(super) const EFFECT_ORDINAL_SINK_TAG: u64 = 0xEFFE_C701;

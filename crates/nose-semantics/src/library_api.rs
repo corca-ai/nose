@@ -209,7 +209,6 @@ pub fn library_api_receiver_dependencies_for_call(
 
 #[derive(Default)]
 pub struct LibraryApiDependencyCache {
-    nearest_scope_by_node: FxHashMap<NodeId, Option<NodeId>>,
     binding_lhs_by_reference: FxHashMap<NodeId, EvidenceResolution<NodeId>>,
     receiver_param_span_by_reference: FxHashMap<NodeId, Option<Span>>,
     name_assigned_in_scope: FxHashMap<(NodeId, Symbol), bool>,
@@ -1360,14 +1359,10 @@ fn unique_binding_lhs_for_var_reference_with_cache(
 fn nearest_scope_cached(
     il: &Il,
     node: NodeId,
-    cache: &mut LibraryApiDependencyCache,
+    _cache: &mut LibraryApiDependencyCache,
 ) -> Option<NodeId> {
-    if let Some(cached) = cache.nearest_scope_by_node.get(&node).copied() {
-        return cached;
-    }
-    let scope = nearest_scope(il, node);
-    cache.nearest_scope_by_node.insert(node, scope);
-    scope
+    // `Il::nearest_scope` is already a whole-arena lazy index; no per-call cache needed.
+    nearest_scope(il, node)
 }
 
 fn receiver_param_span_cached(
@@ -2050,6 +2045,7 @@ fn dependency_has_source_call(
     matches!(
         unique_evidence_at(
             il,
+            anchor.span(),
             |candidate| candidate == anchor,
             |evidence| match evidence {
                 EvidenceKind::Source(SourceFactKind::Call(call)) => Some(call),
@@ -2079,6 +2075,7 @@ fn dependency_has_source_fact_anchor(
     matches!(
         unique_evidence_at(
             il,
+            anchor.span(),
             |candidate| candidate == anchor,
             |evidence| match evidence {
                 EvidenceKind::Source(fact) => Some(fact),

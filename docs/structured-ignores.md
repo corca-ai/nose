@@ -88,7 +88,7 @@ Each entry must have:
 | `languages` | one selector required | Language names such as `python`, `typescript`, or `rust`. Best as a broad guard combined with another selector. |
 | `note` | no | Human review context. Explain where the real refactoring point is. |
 | `owner` | no | Team or person responsible for revisiting the decision. |
-| `expires_at` | no | `YYYY-MM-DD`. The entry applies through that date; after it, nose reports it as expired and does not apply it. |
+| `expires_at` | no | `YYYY-MM-DD`. The entry applies through that date; after it, nose reports it as expired and does not apply it. The date is evaluated against the current **UTC** day (deterministic across machines), so near a boundary an entry may expire up to one local day earlier or later than local midnight. |
 
 When an entry has multiple selectors, all of them must match. For example, an
 entry with both `paths` and `languages` suppresses only families that touch one

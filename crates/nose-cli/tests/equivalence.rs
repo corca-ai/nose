@@ -2405,6 +2405,11 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def g(xs, ys):\n    best = 0\n    for x in xs:\n        for y in ys:\n            v = x + y\n            if v > best:\n                best = v\n    return best\n",
         Lang::Python,
     );
+    let max_loop_same_seed = value_fp(
+        &i,
+        "def h(left, right):\n    top = 0\n    for a in left:\n        for b in right:\n            cand = a + b\n            if cand > top:\n                top = cand\n    return top\n",
+        Lang::Python,
+    );
     let any_gen = value_fp(
         &i,
         "def f(xs, ys):\n    return any(x + y > 0 for x in xs for y in ys)\n",
@@ -2517,9 +2522,16 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         sum_gen, nested_list,
         "aggregating nested list rows is not aggregating the flattened stream"
     );
-    assert_eq!(
+    // `max(gen)` errs on empty input and tracks all-negative maxima; a `best = 0`
+    // seeded loop clamps at 0 in both cases. The seed is behavior-defining, so the
+    // two must NOT merge — while equal-seeded loops still converge with each other.
+    assert_ne!(
         max_gen, max_loop,
-        "max over a flat-map generator should match the nested selection loop"
+        "a zero-seeded selection loop clamps at its seed; true max(...) does not"
+    );
+    assert_eq!(
+        max_loop, max_loop_same_seed,
+        "equally-seeded nested selection loops should still converge"
     );
     assert_eq!(
         any_gen, any_loop,
@@ -6216,5 +6228,203 @@ fn c_hex_literal_with_e_lowers_to_int_not_float() {
     assert!(
         !s.to_lowercase().contains("float"),
         "0xE5 (hex int) must not lower to a float literal: {s}"
+    );
+}
+
+#[test]
+fn python_true_division_stays_distinct_from_floor_division() {
+    // `5 / 2 == 2.5` but `5 // 2 == 2` — collapsing both onto one Div op merged
+    // behaviorally-different functions into one semantic family (a false merge).
+    let i = Interner::new();
+    let true_div = "def f(xs, d):\n    out = []\n    for x in xs:\n        out.append(x / d)\n    return out\n";
+    let floor_div = "def g(xs, d):\n    out = []\n    for x in xs:\n        out.append(x // d)\n    return out\n";
+    assert_ne!(
+        value_fp(&i, true_div, Lang::Python),
+        value_fp(&i, floor_div, Lang::Python),
+        "true division and floor division must not share a fingerprint"
+    );
+    // Floor division still converges with itself across renames.
+    let floor_div2 = "def h(items, n):\n    res = []\n    for v in items:\n        res.append(v // n)\n    return res\n";
+    assert_eq!(
+        value_fp(&i, floor_div, Lang::Python),
+        value_fp(&i, floor_div2, Lang::Python),
+        "alpha-renamed floor divisions must still converge"
+    );
+}
+
+#[test]
+fn python_floor_division_interprets_with_floor_semantics() {
+    // The oracle's FloorDiv rounds toward −∞ like Python `//` — NOT toward zero
+    // like `Op::Div` — so a bad canonicalization between the two cannot hide.
+    let i = Interner::new();
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "t",
+        b"def f(a, b):\n    return a // b\n",
+        Lang::Python,
+        &i,
+    )
+    .unwrap();
+    let n = normalize(&il, &i, &NormalizeOptions::default());
+    let f = first_func(&n);
+    use nose_normalize::{run_unit, Value};
+    let run = |a: i64, b: i64| {
+        run_unit(&n, &i, f, &[Value::Int(a), Value::Int(b)])
+            .unwrap()
+            .ret
+    };
+    assert_eq!(run(5, 2), Value::Int(2));
+    assert_eq!(run(-5, 2), Value::Int(-3), "-5 // 2 floors to -3");
+    assert_eq!(run(5, -2), Value::Int(-3), "5 // -2 floors to -3");
+    assert_eq!(run(-5, -2), Value::Int(2));
+    assert_eq!(run(7, 0), Value::Err, "division by zero errs");
+}
+
+#[test]
+fn python_matmul_stays_distinct_from_elementwise_mul() {
+    // `a @ b` (matrix product) is not `a * b` (elementwise); mapping `@` onto Mul
+    // merged the two. `@` keeps a raw shape keyed by its own spelling.
+    let i = Interner::new();
+    let mul = "def f(a, b):\n    c = a * b\n    d = a * c\n    return c, d\n";
+    let matmul = "def g(a, b):\n    c = a @ b\n    d = a @ c\n    return c, d\n";
+    assert_ne!(
+        value_fp(&i, mul, Lang::Python),
+        value_fp(&i, matmul, Lang::Python),
+        "matmul must not share a fingerprint with elementwise mul"
+    );
+}
+
+#[test]
+fn js_unsigned_shift_stays_distinct_from_signed_shift() {
+    // `-5 >> 1 == -3` (sign-extends) but `-5 >>> 1 == 2147483645` (zero-fills);
+    // collapsing `>>>` onto Shr merged the two shifts.
+    let i = Interner::new();
+    let signed = "function f(xs, n) {\n  const out = [];\n  for (const x of xs) out.push(x >> n);\n  return out;\n}";
+    let unsigned = "function g(xs, n) {\n  const out = [];\n  for (const x of xs) out.push(x >>> n);\n  return out;\n}";
+    assert_ne!(
+        value_fp(&i, signed, Lang::JavaScript),
+        value_fp(&i, unsigned, Lang::JavaScript),
+        "signed and unsigned right shift must not share a fingerprint"
+    );
+    let unsigned2 = "function h(ys, k) {\n  const res = [];\n  for (const y of ys) res.push(y >>> k);\n  return res;\n}";
+    assert_eq!(
+        value_fp(&i, unsigned, Lang::JavaScript),
+        value_fp(&i, unsigned2, Lang::JavaScript),
+        "alpha-renamed unsigned shifts must still converge"
+    );
+}
+
+#[test]
+fn js_nullish_assignment_desugars_to_nullish_coalescing() {
+    // `x ??= y` is `x = x ?? y` — and is NOT `x += y` (the old unmapped-operator
+    // fallback silently defaulted compound assignments to Add).
+    let i = Interner::new();
+    let compound = "function f(x, y) {\n  x ??= y;\n  return x;\n}";
+    let spelled = "function g(x, y) {\n  x = x ?? y;\n  return x;\n}";
+    let add = "function h(x, y) {\n  x += y;\n  return x;\n}";
+    assert_eq!(
+        value_fp(&i, compound, Lang::JavaScript),
+        value_fp(&i, spelled, Lang::JavaScript),
+        "`x ??= y` should converge with `x = x ?? y`"
+    );
+    assert_ne!(
+        value_fp(&i, compound, Lang::JavaScript),
+        value_fp(&i, add, Lang::JavaScript),
+        "`x ??= y` must not merge with `x += y`"
+    );
+}
+
+#[test]
+fn js_strict_null_ternary_stays_distinct_from_nullish_coalescing() {
+    // `x ?? d` and `x == null ? d : x` both default null AND undefined — they are
+    // the same computation. `x === null ? d : x` passes undefined through, so it
+    // must NOT join that family (it differs on every undefined input).
+    let i = Interner::new();
+    let nullish = "function f(x, d) {\n  return x ?? d;\n}";
+    let loose = "function g(x, d) {\n  return x == null ? d : x;\n}";
+    let strict = "function h(x, d) {\n  return x === null ? d : x;\n}";
+    assert_eq!(
+        value_fp(&i, nullish, Lang::JavaScript),
+        value_fp(&i, loose, Lang::JavaScript),
+        "`??` should converge with the loose-equality ternary"
+    );
+    assert_ne!(
+        value_fp(&i, nullish, Lang::JavaScript),
+        value_fp(&i, strict, Lang::JavaScript),
+        "`??` must not merge with the strict-null ternary"
+    );
+    // Strict checks still converge with the same strict spelling…
+    let strict2 = "function k(v, fb) {\n  return v === null ? fb : v;\n}";
+    assert_eq!(
+        value_fp(&i, strict, Lang::JavaScript),
+        value_fp(&i, strict2, Lang::JavaScript),
+        "alpha-renamed strict-null ternaries must still converge"
+    );
+    // …but `=== null` and `=== undefined` are different checks.
+    let strict_undef = "function m(x, d) {\n  return x === undefined ? d : x;\n}";
+    assert_ne!(
+        value_fp(&i, strict, Lang::JavaScript),
+        value_fp(&i, strict_undef, Lang::JavaScript),
+        "`=== null` and `=== undefined` must not share a fingerprint"
+    );
+}
+
+#[test]
+fn java_unsigned_shift_assignment_keeps_its_operator() {
+    // Java `x >>>= y` used to fall through the unmapped-compound path and lower
+    // as a plain `x = y` — merging it with reassignment.
+    let i = Interner::new();
+    let ushift = "class C { static int f(int x, int y) { x >>>= y; return x; } }";
+    let assign = "class D { static int g(int x, int y) { x = y; return x; } }";
+    let add = "class E { static int h(int x, int y) { x += y; return x; } }";
+    assert_ne!(
+        value_fp(&i, ushift, Lang::Java),
+        value_fp(&i, assign, Lang::Java),
+        "`x >>>= y` must not merge with `x = y`"
+    );
+    assert_ne!(
+        value_fp(&i, ushift, Lang::Java),
+        value_fp(&i, add, Lang::Java),
+        "`x >>>= y` must not merge with `x += y`"
+    );
+}
+
+#[test]
+fn ruby_exponent_converges_with_python_pow() {
+    // Ruby `**` was unmapped (raw); it is the same exponentiation Python spells `**`.
+    let i = Interner::new();
+    let rb = "def area(base, exp)\n  base ** exp\nend\n";
+    let py = "def area(base, exp):\n    return base ** exp\n";
+    assert_eq!(
+        value_fp(&i, rb, Lang::Ruby),
+        value_fp(&i, py, Lang::Python),
+        "Ruby `**` should converge with Python `**`"
+    );
+}
+
+#[test]
+fn two_argument_min_max_interpret_as_two_way_selection() {
+    // `min(a, b)` (the 2-way selection `[a, b].min()` also canonicalizes to) used to
+    // evaluate to Err in the oracle — leaving exactly the convergences the value
+    // graph claims for it unverifiable.
+    let i = Interner::new();
+    let il = nose_frontend::lower_source(
+        FileId(0),
+        "t",
+        b"def f(a, b):\n    return min(a, b), max(a, b)\n",
+        Lang::Python,
+        &i,
+    )
+    .unwrap();
+    let n = normalize(&il, &i, &NormalizeOptions::default());
+    let f = first_func(&n);
+    use nose_normalize::{run_unit, Value};
+    let out = run_unit(&n, &i, f, &[Value::Int(3), Value::Int(1)])
+        .expect("two-scalar min/max is interpretable")
+        .ret;
+    assert_eq!(
+        out,
+        Value::List(vec![Value::Int(1), Value::Int(3)]),
+        "min(3, 1) is 1 and max(3, 1) is 3"
     );
 }

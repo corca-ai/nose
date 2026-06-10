@@ -487,26 +487,40 @@ fn static_string_key(lo: &Lowering, node: TsNode) -> Option<String> {
     Some(inner.to_string())
 }
 
+/// `a OP= b`  →  `a = a OP b`. `??=` gets the same `If(Eq(a, null), b, a)` shape
+/// as `??` so the compound and spelled-out forms converge; the rest go through
+/// the shared compound-assignment lowering.
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let left = node.child_by_field_name("left");
-    let right = node.child_by_field_name("right");
-    let op = node
+    if node
         .child_by_field_name("operator")
-        .map(|o| lo.text(o))
-        .and_then(|t| js_bin_op(t.trim_end_matches('=')))
-        .unwrap_or(Op::Add);
-    let lhs1 = left
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let lhs2 = left
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let rhs = right
-        .map(|r| lower_expr(lo, r))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let binop = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[lhs2, rhs]);
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, binop])
+        .is_some_and(|o| lo.text(o) == "??=")
+    {
+        let span = lo.span(node);
+        let left = node.child_by_field_name("left");
+        let lhs1 = left
+            .map(|l| lower_expr(lo, l))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let lhs2 = left
+            .map(|l| lower_expr(lo, l))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let rhs = node
+            .child_by_field_name("right")
+            .map(|r| lower_expr(lo, r))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let null_lit = lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]);
+        let cond = lo.add(
+            NodeKind::BinOp,
+            Payload::Op(Op::Eq),
+            span,
+            &[lhs2, null_lit],
+        );
+        let lhs3 = left
+            .map(|l| lower_expr(lo, l))
+            .unwrap_or_else(|| lo.empty_block(span));
+        let value = lo.add(NodeKind::If, Payload::None, span, &[cond, rhs, lhs3]);
+        return lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, value]);
+    }
+    crate::lower::compound_assignment(lo, node, js_bin_op, lower_expr)
 }
 
 /// `x++` / `++x` / `x--`  →  `x = x +/- 1`.
@@ -1919,13 +1933,14 @@ fn is_ts_type(k: &str) -> bool {
 }
 
 fn js_bin_op(text: &str) -> Option<Op> {
-    // shared C-family set, plus JS's strict-equality, exponent, unsigned
-    // shift, and the type-test operators (the last two collapse lossily).
+    // shared C-family set, plus JS's strict-equality, exponent, and type-test
+    // operators. `>>>` (zero-fill shift) is deliberately UNMAPPED: collapsing it
+    // onto `Shr` merged `-5 >> 1` (sign-extending, `-3`) with `-5 >>> 1`
+    // (zero-filling, `2147483645`) — a false merge. The raw fallback keys it by
+    // its own operator spelling instead.
     crate::lower::common_bin_op(text).or(match text {
-        "**" => Some(Op::Pow),
         "===" => Some(Op::Eq),
         "!==" => Some(Op::Ne),
-        ">>>" => Some(Op::Shr),
         // `x in obj` is a directional membership/key test — its own non-commutative op.
         // `instanceof` is a type-identity check; equality-shaped is an acceptable approx.
         "in" => Some(Op::In),

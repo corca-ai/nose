@@ -134,3 +134,38 @@ This shipped as a ranking-time policy layer (experiments §U):
 
 The remaining refactor-worthiness discount targets generated-looking and computation-poor
 type-definition families, not test scope. See [usage](usage.md) for the scope tags.
+
+## Third pass — performance pathology and an oracle-exposed false merge
+
+A third read-only pass (ten unrelated local projects: Go CLIs, TypeScript
+games/tools, Python services, mixed monorepos) confirmed the interactive-speed
+claim for normal repositories — every project scanned in ≤ 0.13 s end-to-end,
+lowering coverage stayed under 0.1 % Raw, and the semantic channel's findings
+were true positives on inspection (e.g. two identically-shaped `` `${x},${z}` ``
+key-builder methods in different modules of a TypeScript game; a duplicated
+HSL→RGB conversion helper surfaced by the near channel).
+
+Two substantive findings came out of this pass:
+
+1. **Minified bundle artifacts were a performance cliff.** One monorepo carried
+   committed build output (a multi-megabyte minified `*.js` bundle). A single
+   246 KB minified file took **227 s** in normalize+extract: `nearest_scope`
+   and the evidence-record lookups were linear scans *per query*, which goes
+   quadratic when one file has hundreds of thousands of IL nodes and evidence
+   records. Both are now lazy per-file indexes (a whole-arena
+   nearest-enclosing-scope table and an exact-anchor-span evidence index), and
+   the same file scans in **≈ 2 s** — with small-repo scans getting ~3× faster
+   normalize+extract as a side effect. The fix was profiler-driven
+   (`sample` on the live process; `NOSE_TIME=1` stage timing).
+2. **The oracle blind spot it closed found a real false merge.** Making
+   2-argument `min`/`max` interpretable let `nose verify` check the
+   selection-reduction convergences for the first time — and it immediately
+   flagged `max(x + y for x in xs for y in ys)` ≡ a `best = 0`-seeded nested
+   loop as a false merge (the seed clamps: empty or all-negative input returns
+   0, true `max(...)` errs or goes negative). Selection reductions now carry
+   their seed in the fingerprint; seedless builtin forms stay 1-arg, so
+   equally-seeded loops still converge with each other and the mislabeled
+   benchmark case was flipped to a hard negative.
+
+The practical advice stands: scan source roots, not build output — but a
+committed bundle must degrade gracefully, and now it does.

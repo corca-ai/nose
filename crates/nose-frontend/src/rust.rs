@@ -673,27 +673,8 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
 }
 
-/// `x op= y` → `x = x op y`.
 fn lower_compound_assign(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let left = node.child_by_field_name("left");
-    let right = node.child_by_field_name("right");
-    let op = node
-        .child_by_field_name("operator")
-        .map(|o| lo.text(o).trim_end_matches('='))
-        .and_then(rust_bin_op)
-        .unwrap_or(Op::Add);
-    let lhs1 = left
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let lhs2 = left
-        .map(|l| lower_expr(lo, l))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let rhs = right
-        .map(|r| lower_expr(lo, r))
-        .unwrap_or_else(|| lo.empty_block(span));
-    let binop = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[lhs2, rhs]);
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, binop])
+    crate::lower::compound_assignment(lo, node, rust_bin_op, lower_expr)
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
