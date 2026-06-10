@@ -661,29 +661,18 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
 }
 
-/// Lower an ASSIGNMENT TARGET, keeping a dereference a computed PLACE: `*p = v`
-/// stores through `p` — so the target lowers to `Index(p, 0)` and the store stays
-/// an ordered effect in the value graph. Everywhere else `*p` keeps peeling to its
-/// operand (the read convention that lets `*x > 0` converge with `x > 0`); only
-/// the STORE position must keep the place, or a unit that writes through a pointer
-/// fingerprints identically to a bare stub (#210).
+/// See [`crate::lower::deref_store_target`]: `*x = v` must keep the store place.
 fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    match node.kind() {
-        "parenthesized_expression" => match node.named_child(0) {
-            Some(inner) => lower_store_target(lo, inner),
-            None => lo.empty_block(span),
+    crate::lower::deref_store_target(
+        lo,
+        node,
+        |lo, n| {
+            (n.kind() == "unary_expression" && lo.text(n).starts_with('*'))
+                .then(|| n.named_child(n.named_child_count().saturating_sub(1)))
+                .flatten()
         },
-        "unary_expression" if lo.text(node).starts_with('*') => {
-            let p = node
-                .named_child(node.named_child_count().saturating_sub(1))
-                .map(|c| lower_expr(lo, c))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let zero = lo.int_lit("0", span);
-            lo.add(NodeKind::Index, Payload::None, span, &[p, zero])
-        }
-        _ => lower_expr(lo, node),
-    }
+        lower_expr,
+    )
 }
 
 fn lower_compound_assign(lo: &mut Lowering, node: TsNode) -> NodeId {

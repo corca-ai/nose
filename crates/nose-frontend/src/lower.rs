@@ -2697,6 +2697,37 @@ pub(crate) fn compound_assignment(
 /// Lower a `left`/`right` assignment-expression node into an `Assign`.
 /// JS/TS and Rust grammars use the same field names for simple assignment; compound
 /// assignment remains frontend-specific because operator spelling and rewrites differ.
+/// Lower an ASSIGNMENT TARGET, keeping a pointer/reference dereference a computed
+/// PLACE: `*p = v` stores through `p` — exactly `p[0] = v` — so the target lowers
+/// to `Index(p, 0)` and the store stays an ordered effect in the value graph.
+/// Dereference READS keep peeling to the operand (each frontend's read convention
+/// lets `*x > 0` converge with `x > 0`); only the STORE position must keep the
+/// place, or a unit that writes through a pointer fingerprints identically to a
+/// bare stub (#210). `deref_operand` is the frontend's "is this node a deref, and
+/// of what" test; parentheses peel recursively.
+pub(crate) fn deref_store_target<'a>(
+    lo: &mut Lowering,
+    node: TsNode<'a>,
+    deref_operand: impl Fn(&Lowering, TsNode<'a>) -> Option<TsNode<'a>> + Copy,
+    mut lower_expr: impl FnMut(&mut Lowering, TsNode<'a>) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    if node.kind() == "parenthesized_expression" {
+        return match node.named_child(0) {
+            Some(inner) => deref_store_target(lo, inner, deref_operand, lower_expr),
+            None => lo.empty_block(span),
+        };
+    }
+    match deref_operand(lo, node) {
+        Some(operand) => {
+            let p = lower_expr(lo, operand);
+            let zero = lo.int_lit("0", span);
+            lo.add(NodeKind::Index, Payload::None, span, &[p, zero])
+        }
+        None => lower_expr(lo, node),
+    }
+}
+
 pub(crate) fn assignment(
     lo: &mut Lowering,
     node: TsNode,

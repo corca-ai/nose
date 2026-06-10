@@ -733,29 +733,21 @@ fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
 }
 
-/// Lower an ASSIGNMENT TARGET, keeping a pointer dereference a computed PLACE:
-/// `*p = v` is exactly `p[0] = v`, so the target lowers to `Index(p, 0)` and the
-/// store stays an ordered effect in the value graph. Reads keep peeling (`old =
-/// *value` ≈ `old = value`); only the STORE position must keep the place, or a
-/// `(*nr)++` wrapper fingerprints identically to a bare stub (#210).
+/// See [`crate::lower::deref_store_target`]: `(*nr)++` must keep the store place.
 fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    match node.kind() {
-        "parenthesized_expression" => match node.named_child(0) {
-            Some(inner) => lower_store_target(lo, inner),
-            None => lo.empty_block(span),
+    crate::lower::deref_store_target(
+        lo,
+        node,
+        |_, n| {
+            (n.kind() == "pointer_expression" && crate::lower::has_direct_token(n, "*"))
+                .then(|| {
+                    n.child_by_field_name("argument")
+                        .or_else(|| n.named_child(n.named_child_count().saturating_sub(1)))
+                })
+                .flatten()
         },
-        "pointer_expression" if crate::lower::has_direct_token(node, "*") => {
-            let p = node
-                .child_by_field_name("argument")
-                .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
-                .map(|c| lower_expr(lo, c))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let zero = lo.int_lit("0", span);
-            lo.add(NodeKind::Index, Payload::None, span, &[p, zero])
-        }
-        _ => lower_expr(lo, node),
-    }
+        lower_expr,
+    )
 }
 
 fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {

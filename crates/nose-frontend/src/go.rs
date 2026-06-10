@@ -474,32 +474,20 @@ fn expr_list_items(node: TsNode) -> Vec<TsNode> {
     }
 }
 
-/// Lower an ASSIGNMENT TARGET, keeping a dereference a computed PLACE: `*p = v`
-/// stores through `p`, so the target lowers to `Index(p, 0)` and the store stays
-/// an ordered effect. Reads keep peeling; only the STORE position must keep the
-/// place, or a pointer-receiver write (`*ls = …`) fingerprints identically to a
-/// bare stub (#210).
+/// See [`crate::lower::deref_store_target`]: `*ls = …` must keep the store place.
 fn lower_store_target(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    match node.kind() {
-        "parenthesized_expression" => match node.named_child(0) {
-            Some(inner) => lower_store_target(lo, inner),
-            None => lo.empty_block(span),
+    crate::lower::deref_store_target(
+        lo,
+        node,
+        |lo, n| {
+            (n.kind() == "unary_expression"
+                && n.child_by_field_name("operator")
+                    .is_some_and(|o| lo.text(o) == "*"))
+            .then(|| n.child_by_field_name("operand"))
+            .flatten()
         },
-        "unary_expression"
-            if node
-                .child_by_field_name("operator")
-                .is_some_and(|o| lo.text(o) == "*") =>
-        {
-            let p = node
-                .child_by_field_name("operand")
-                .map(|c| lower_expr(lo, c))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let zero = lo.int_lit("0", span);
-            lo.add(NodeKind::Index, Payload::None, span, &[p, zero])
-        }
-        _ => lower_expr(lo, node),
-    }
+        lower_expr,
+    )
 }
 
 fn lower_inc_dec(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -36,7 +36,11 @@ MIN_VALUE=40   # ignore small/incidental similarity; gate only on substantial fa
 # `strict_exact_safe_call` ↔ `strict_exact_in_membership_safe` similarity (a ~4-line incidental
 # overlap between a recognizer dispatch and a membership checker, not extractable duplication) past
 # the value ≥ 40 line — not new avoidable duplication. See docs/dogfooding.md.
-BUDGET=23      # accepted substantial families today (see docs/dogfooding.md)
+# Re-baselined 23 -> 24 in the #210 campaign: stronger fingerprint fidelity (deref
+# stores, loop-effect keying) made one PRE-EXISTING cross-crate near-family visible —
+# the assignment-name counting loops in value_graph/context.rs::seed_module_value_bindings
+# and module_imports.rs::collect_statement_exports (small, cross-crate; reviewed, kept).
+BUDGET=24      # accepted substantial families today (see docs/dogfooding.md)
 BIN="${NOSE_BIN:-./target/release/nose}"
 GATE_ARGS=(scan crates --exclude tests --mode near --min-value "$MIN_VALUE")
 
