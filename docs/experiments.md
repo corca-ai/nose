@@ -872,8 +872,8 @@ shape), **no-overlapping-unit** if a member has no unit at all, else **unrecover
 Multiset intersection ignores connectivity and single-file `features` lacks whole-repo
 import resolution, so the sub-DAG/inline classes **over-approximate** — a ceiling, not a
 forecast. Caveats: the original run excluded `rxjs` for a scanner stack overflow later
-fixed by #198; corpus was dir-pruned but not file-pruned (`prune_corpus.py` missing,
-#200).
+fixed by #198; corpus was dir-pruned but not file-pruned because `prune_corpus.py` was
+missing at the time. Follow-up #200 restored the script and checked-in prune manifest.
 
 **Result** (4,921 worthy labels; dev / heldout):
 

@@ -37,6 +37,11 @@ re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not 
 
 ## Adjacent audit artifacts
 
+`prune_manifest.json` is the reproducibility artifact for `bench/setup_repos.sh`'s
+file-level corpus prune. It lists generated/vendored source files removed after clone,
+label-referenced files that were protected from removal, and the post-prune corpus
+digest used to verify a reconstructed checkout.
+
 `fragment_quality_audit_2026_06_10.json` is not part of the v5 product metric. It is a
 small, three-reviewer audit of Java/Python hidden/review exact-fragment families used to
 validate surface policy after the semantic corpus pass. See

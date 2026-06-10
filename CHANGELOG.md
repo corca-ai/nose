@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Fresh benchmark-corpus reconstruction works again: `bench/setup_repos.sh`
+  now has its missing file-level prune helper checked in, guards that the helper
+  exists before cloning, and writes a deterministic
+  `bench/labels/prune_manifest.json` audit artifact with a post-prune corpus
+  digest.
 - Semantic scans no longer stack-overflow when a recursive helper is referenced
   from inside one of its own callback bodies while extracting a block or exact
   fragment. The value graph now excludes the enclosing function/method from the

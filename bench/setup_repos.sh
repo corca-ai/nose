@@ -7,6 +7,10 @@
 # bench/repos is gitignored (111M). Run this once on a fresh checkout.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [ ! -f bench/prune_corpus.py ]; then
+  echo "missing bench/prune_corpus.py; cannot prune the benchmark corpus reproducibly" >&2
+  exit 1
+fi
 mkdir -p bench/repos
 
 python3 - <<'PY' | while IFS=$'\t' read -r id url commit; do

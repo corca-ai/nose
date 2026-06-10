@@ -75,6 +75,10 @@ run_msrv_check() {
 
 need_cmd cargo
 
+step "corpus prune self-test"
+need_cmd python3
+python3 bench/prune_corpus.py --self-test
+
 step "rustfmt (formatting)"
 cargo fmt --all --check
 

@@ -14,6 +14,10 @@ comparable over time. There are two layers, both over the same corpus split.
   source) — not code a developer refactors, and they skew clone measurements toward
   boilerplate. Test fixtures (e.g. `prettier/tests/format`) are intentionally kept (test
   data is a separate category from generated/vendor).
+- `labels/prune_manifest.json` records the file-level prune audit: removed generated
+  sources, protected label files that were deliberately kept, and the post-prune corpus
+  digest. Regenerate it with `python3 bench/prune_corpus.py --apply`; verify an already
+  pruned checkout with `python3 bench/prune_corpus.py --check-manifest`.
 
 ## Primary metric — the refactoring-family labelset (current)
 
