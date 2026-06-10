@@ -217,9 +217,16 @@ pub(crate) fn assert_scan_json_v1_contract(json: &serde_json::Value) {
     }
 
     let ranking = json["ranking"].as_object().expect("ranking object");
-    for key in ["sort", "total_families", "shown_families", "limit"] {
+    for key in [
+        "sort",
+        "total_families",
+        "shown_families",
+        "limit",
+        "surface_counts",
+    ] {
         assert!(ranking.contains_key(key), "ranking.{key} missing: {json}");
     }
+    assert_scan_json_surface_counts_contract(json, ranking);
 
     let family = scan_families(json)
         .first()
@@ -264,5 +271,29 @@ pub(crate) fn assert_scan_json_v1_contract(json: &serde_json::Value) {
         "is_fragment",
     ] {
         assert!(loc.contains_key(key), "location.{key} missing: {json}");
+    }
+}
+
+fn assert_scan_json_surface_counts_contract(
+    json: &serde_json::Value,
+    ranking: &serde_json::Map<String, serde_json::Value>,
+) {
+    let surface_counts = ranking["surface_counts"]
+        .as_object()
+        .expect("ranking.surface_counts object");
+    for key in ["default", "review", "hidden", "debug", "fragments"] {
+        assert!(
+            surface_counts.contains_key(key),
+            "ranking.surface_counts.{key} missing: {json}"
+        );
+    }
+    let fragment_counts = surface_counts["fragments"]
+        .as_object()
+        .expect("ranking.surface_counts.fragments object");
+    for key in ["total", "default", "review", "hidden", "debug"] {
+        assert!(
+            fragment_counts.contains_key(key),
+            "ranking.surface_counts.fragments.{key} missing: {json}"
+        );
     }
 }

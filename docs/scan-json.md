@@ -72,7 +72,20 @@ The top-level value is always an object:
     "sort": "extractability",
     "total_families": 12,
     "shown_families": 10,
-    "limit": 10
+    "limit": 10,
+    "surface_counts": {
+      "default": 4,
+      "review": 1,
+      "hidden": 7,
+      "debug": 0,
+      "fragments": {
+        "total": 8,
+        "default": 1,
+        "review": 1,
+        "hidden": 6,
+        "debug": 0
+      }
+    }
   },
   "ignore": {
     "path": "nose.ignore.json",
@@ -102,9 +115,17 @@ omitted from the default human, Markdown, SARIF, and `--fail-on` surfaces: hidde
 proof-only fragments, review-surface fragments, and families wholly inside files with
 generated-code headers. It is not raw detector output: families wholly in
 vendored/generated-looking paths may already have been pruned before serialization.
-Consumers that want the same first-screen surface as humans should filter for
-`recommended_surface == "default"` and drop generated-header files according to their own
-source metadata.
+
+**Consumer rule:** integrations that want the same first-screen human action surface should
+filter `families[]` to `recommended_surface == "default"` and drop generated-header files
+according to their own source metadata. Treat `review` and `hidden` as diagnostic surfaces:
+useful for audits, review-hazard tooling, and regression checks, but not default
+refactoring recommendations.
+
+`ranking.surface_counts` gives the active post-filter family counts by
+`recommended_surface` before `--top` truncation. The nested `fragments` object repeats the
+same breakdown for families with at least one exact fragment location. That makes a
+`--top 0` diagnostic run easy to summarize without scanning every location first.
 
 ## Top-level fields
 
@@ -119,6 +140,7 @@ source metadata.
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
+| `ranking.surface_counts` | object | Active family counts by `recommended_surface` before `--top`: `default`, `review`, `hidden`, `debug`, plus `fragments.total/default/review/hidden/debug` for families with exact fragment locations. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
 | `ignore` | object, optional | Structured ignore summary when an ignore file was read. |
 | `families` | array | Active ranked clone families in JSON order, including diagnostic review/hidden families. Empty means no family survived the filters, baseline, and structured ignores. |
@@ -217,7 +239,7 @@ schema version 1:
 | `mean_sem` | number | Mean value-graph size across members. |
 | `scope` | string | `prod`, `test`, or `mixed` test/production classification. |
 | `discount` | number | Refactor-worthiness discount for generated or type-heavy families. |
-| `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling. This is ranking/presentation policy, not detector exactness. |
+| `recommended_surface` | string | Product placement hint. Current detector output uses `default`, `review`, or `hidden`; `debug` is reserved for diagnostics/regression tooling. Human-action integrations should keep `default` and treat the others as diagnostic/review surfaces. This is ranking/presentation policy, not detector exactness. |
 | `baseline_status` | string, optional | `new` or `changed` when this family is shown because of `--baseline`. |
 | `abstraction_witness` | object, optional | Experimental weak-claim witness emitted only for `--mode abstraction` families that share a normalized template with one supported literal leaf hole. |
 | `semantic_laws` | array, optional | Deduped pack-facing law provenance for value-graph laws that actually rewrote or bridged this family. Current first-party rows include `pack_id`, `pack_hash`, `law_id`, `channel`, `proof_status`, and `proof_obligation_id`. External local LawPack manifests are `metadata-only` today and do not appear here unless future producer execution admits them through the kernel. |

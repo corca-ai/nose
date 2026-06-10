@@ -84,7 +84,20 @@
     "sort": "extractability",
     "total_families": 1,
     "shown_families": 1,
-    "limit": 30
+    "limit": 30,
+    "surface_counts": {
+      "default": 1,
+      "review": 0,
+      "hidden": 0,
+      "debug": 0,
+      "fragments": {
+        "total": 0,
+        "default": 0,
+        "review": 0,
+        "hidden": 0,
+        "debug": 0
+      }
+    }
   },
   "families": [
     {

@@ -43,6 +43,10 @@ break.
   negatives: `x ?? d` / `x == null ? d : x` stay separate from `x === null ? d :
   x`, and loose `!= null` object guards stay out of the strict non-null object
   guard family.
+- Scan JSON `ranking` now includes `surface_counts`, a pre-`--top` breakdown of
+  `default`, `review`, `hidden`, and `debug` families plus the same breakdown for
+  exact-fragment families. This makes the human-action surface explicit for
+  integrations that should filter `recommended_surface == "default"`.
 
 ### Performance
 - Minified-bundle-sized files no longer hit a quadratic cliff: `nearest_scope`

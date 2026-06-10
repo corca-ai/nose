@@ -1007,6 +1007,63 @@ struct ScanJsonRanking {
     total_families: usize,
     shown_families: usize,
     limit: Option<usize>,
+    surface_counts: ScanJsonSurfaceCounts,
+}
+
+#[derive(Default, serde::Serialize)]
+struct ScanJsonSurfaceCounts {
+    #[serde(rename = "default")]
+    default_count: usize,
+    review: usize,
+    hidden: usize,
+    debug: usize,
+    fragments: ScanJsonFragmentSurfaceCounts,
+}
+
+#[derive(Default, serde::Serialize)]
+struct ScanJsonFragmentSurfaceCounts {
+    total: usize,
+    #[serde(rename = "default")]
+    default_count: usize,
+    review: usize,
+    hidden: usize,
+    debug: usize,
+}
+
+impl ScanJsonSurfaceCounts {
+    fn from_families(families: &[nose_detect::RefactorFamily]) -> Self {
+        let mut counts = Self::default();
+        for family in families {
+            counts.bump(family.recommended_surface());
+            if family.locations.iter().any(|loc| loc.is_fragment) {
+                counts.fragments.total += 1;
+                counts.fragments.bump(family.recommended_surface());
+            }
+        }
+        counts
+    }
+
+    fn bump(&mut self, surface: &str) {
+        match surface {
+            "default" => self.default_count += 1,
+            "review" => self.review += 1,
+            "hidden" => self.hidden += 1,
+            "debug" => self.debug += 1,
+            _ => self.debug += 1,
+        }
+    }
+}
+
+impl ScanJsonFragmentSurfaceCounts {
+    fn bump(&mut self, surface: &str) {
+        match surface {
+            "default" => self.default_count += 1,
+            "review" => self.review += 1,
+            "hidden" => self.hidden += 1,
+            "debug" => self.debug += 1,
+            _ => self.debug += 1,
+        }
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -1096,6 +1153,7 @@ impl<'a> ScanJsonReport<'a> {
                 total_families: input.families.len(),
                 shown_families: input.shown.len(),
                 limit: (input.top != 0).then_some(input.top),
+                surface_counts: ScanJsonSurfaceCounts::from_families(input.families),
             },
             baseline: input.baseline.map(|b| &b.summary),
             ignore: input

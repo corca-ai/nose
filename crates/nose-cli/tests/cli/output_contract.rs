@@ -27,6 +27,10 @@ fn scan_json_report_has_versioned_contract() {
     assert_eq!(json["ranking"]["sort"], "extractability");
     assert_eq!(json["ranking"]["shown_families"], 1);
     assert_eq!(json["ranking"]["limit"], 1);
+    assert_eq!(json["ranking"]["surface_counts"]["default"], 1);
+    assert_eq!(json["ranking"]["surface_counts"]["review"], 0);
+    assert_eq!(json["ranking"]["surface_counts"]["hidden"], 0);
+    assert_eq!(json["ranking"]["surface_counts"]["fragments"]["total"], 0);
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -47,6 +51,10 @@ fn scan_json_exposes_exact_fragment_metadata() {
         "1",
     ]);
     let json = scan_json(&out);
+    assert_eq!(json["ranking"]["surface_counts"]["default"], 0);
+    assert_eq!(json["ranking"]["surface_counts"]["hidden"], 1);
+    assert_eq!(json["ranking"]["surface_counts"]["fragments"]["total"], 1);
+    assert_eq!(json["ranking"]["surface_counts"]["fragments"]["hidden"], 1);
     let family = scan_families(&json)
         .iter()
         .find(|family| family["recommended_surface"] == "hidden")
