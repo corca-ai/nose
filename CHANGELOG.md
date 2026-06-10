@@ -7,6 +7,22 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Soundness:** five fingerprint erasure classes no longer collapse working code
+  onto stubs (#210, experiments §BP): Python `try/except/else` kept its `else`
+  clause (black's try/import wrapper ≡ `return self`); Ruby `begin/rescue/else`
+  moved `else` out of handler position; C/Go/Rust dereference STORES stay
+  computed places (`(*nr)++` merged with bare `return 0` stubs — 38 pairs in git
+  alone); Go type-switch arms survive lowering (a recursive traversal merged
+  with a constant stub at exact-safe); try handlers are erased only for provably
+  non-throwing bodies; element-free loop effects are keyed by the iteration
+  source (for-in keys vs for-of values); and the oracle respects declared
+  parameter type domains plus 2-arg scalar min/max arity. `nose verify` now
+  reports zero hard violations on all 105 corpus repos.
+- The verify oracle's hard SOUND gate is scoped to the product's exact claim
+  (`exact_claim_eligible` in nose-detect: strict-exact-safe + the
+  degenerate-fingerprint size floor); lossy-fingerprint collisions are a
+  diagnostics lane and declaration-divergent or symbolic disagreements are
+  advisory leads, so the gate measures exactly what the exact channel asserts.
 - Combining `--mode syntax,semantic` no longer drops an exact semantic family when
   the syntax channel also creates a same-file window that collapses to one reported
   site. Such single-site windows are not clone families and no longer participate

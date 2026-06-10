@@ -1325,3 +1325,54 @@ the Rust corpus. Verdict: keep `macro_rules!` arm units, but do not generalize t
 macro invocation bodies in this issue. The remaining Rust no-overlap records should
 be handled as separate coverage questions because their blast radius is broader than
 arm definitions.
+
+## BP. The degenerate-fingerprint campaign — five erasure classes, a claim-scoped gate
+
+The #193 oracle pass left 17 corpus repos flagging fingerprint-equal pairs with
+concretely different behavior (#210). Chasing every pair to root cause found **five
+distinct erasure classes** — each one a construct silently contributing *nothing* to the
+value multiset, so "code that does X" fingerprinted like "code that doesn't":
+
+1. **Python `try/except/else` dropped the `else` clause at lowering** (and Ruby routed
+   `else` into handler position, where the no-throw convention erases it): black's
+   try/import/else wrapper ≡ `return self`. Else statements now fold into the try body —
+   they run exactly when the body completes without raising.
+2. **C/Go/Rust lowered dereference STORE targets transparently** (`(*nr)++` became the
+   dead local rebind `nr = nr + 1`): git's `inc_nr` callback merged with every
+   `return 0` stub — 38 pairs in git alone, plus nginx/curl/minio/redis. A store
+   target's deref now lowers as the computed place `Index(p, 0)`; deref *reads* keep
+   peeling so `*x > 0` still converges with `x > 0`.
+3. **The oracle's 2-arg scalar min/max fell into the 1-arg collection fold** on a List
+   operand (`max([1,2,3,4], 7)` returned 4): the proof-backed 3-way selection canon
+   (if-chain ≡ `Math.max` chain) was flagged as a false merge on commons-lang — an
+   instrument bug, the merge was sound.
+4. **Go type-switch cases (`type_case` nodes) lowered to an empty block**: hugo's
+   recursive type-switch traversal fingerprinted identically to a constant stub — at
+   exact-safe, length 10, a *reportable* exact-channel merge. Arms now survive under a
+   raw test keyed by the case's type spelling.
+5. **Three fidelity refinements**: try-handler erasure narrowed to provably
+   non-throwing bodies (the pinned `return 1` convention survives; `try {return x+1}
+   except {return x}` keeps its handler under an exception guard); element-free effects
+   under a loop keyed by the loop's canonical element source (for-in over keys vs
+   for-of over values no longer collide — prettier); and the oracle binds battery rows
+   under each parameter's DECLARED type domain, the §BE convention extended to types
+   (a typed `int` never receives a List, so rxjava's order-swapped typed field writes
+   stop flagging on impossible type-states).
+
+**The gate is now scoped to the claim.** Hard violations require the *product's* exact
+surface on both sides (`exact_claim_eligible`: strict-exact-safe + the
+`EXACT_VALUE_MIN` degenerate-size floor — the same two gates the exact channel and the
+near value-accept already apply); collisions between lossy fingerprints are a
+diagnostics lane, and symbolic-trace or declaration-divergent disagreements (units
+whose declared domains differ are not battery-comparable row-for-row) are advisory
+leads. **Result: `nose verify` reports SOUND — zero hard violations — on all 105
+corpus repos**, including raylib for the first time (§BM-era work bounded its oracle
+cost). Known residuals stay visible, not buried: same-spelling opaque calls inside
+lossy fingerprints (the delve fixture class) sit in the diagnostics lane, and labeled
+`break` erasure (`break outer` lowers like plain `break`) is noted as a follow-up.
+
+**Recall/precision cost: zero.** An apples-to-apples v5 eval against the pre-campaign
+binary on the same corpus shows identical P@10 (53% [48–58] dev / 55% [50–60] heldout,
+both arms, per-language rows unchanged) with heldout worthy-recall *up* four labels
+(Go +3, Python +1) — the erasure fixes split only behaviorally-different pairs, and
+representing deref effects let a few previously stub-collapsed units group correctly.
