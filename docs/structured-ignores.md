@@ -97,10 +97,20 @@ family, the first active entry supplies the metadata.
 
 ## Family IDs
 
-`family_id` is the same stable key used by baselines. It is derived from the
-family members' displayed file paths and symbol names, not line numbers. That
-makes it stable across ordinary line movement, but intentionally changes when a
-copy is added, removed, renamed, or moved to another displayed path.
+`family_id` is the same key used by baselines. It is derived from the sorted
+reported location identities: displayed file path, language, start/end line span,
+unit kind, symbol name, and fragment proof metadata. That makes IDs unique for
+distinct reported families in one scan, including hidden exact fragments that
+share the same file and enclosing symbol but live on nearby lines. It also means
+IDs intentionally change when a copy is added, removed, renamed, moved, or when
+the reported span changes.
+
+Baseline comparison records member identities and can classify overlapping
+re-keyed families as `changed`. Structured ignores that select by `family_id` are
+more exact: refresh them after large code motion or after upgrading from older
+nose versions whose IDs omitted span and fragment metadata. Use `paths` and
+`languages` selectors when the review decision should survive routine movement
+inside a file.
 
 Human output includes the ID on each family:
 

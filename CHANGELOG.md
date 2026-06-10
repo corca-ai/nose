@@ -7,6 +7,12 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Scan JSON `family_id` values are now unique for distinct reported families that
+  share the same files and symbol names but point at different spans, especially
+  hidden exact-fragment families. The ID now includes each member's displayed
+  path, language, span, unit kind, symbol name, and fragment proof metadata; old
+  baselines can still classify re-keyed overlapping families as `changed`, but
+  structured ignores by `family_id` may need a one-time refresh.
 - Fresh benchmark-corpus reconstruction works again: `bench/setup_repos.sh`
   now has its missing file-level prune helper checked in, guards that the helper
   exists before cloning, and writes a deterministic

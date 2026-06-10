@@ -85,9 +85,9 @@ main worktree or any other path you pass to `--repos-root`. Per repo we record a
 - `recommended_surface_counts` — family product placement counts for `default`,
   `review`, `hidden`, and reserved `debug`
 - `family_shape_counts` — whole-only, all-fragment, and mixed family counts
-- per family — **keyed by the normalized location set, not `family_id`** (the product
-  `family_id` is not unique; distinct families can share one id, so keying on it would
-  silently drop a family): `family_id` (kept as an attribute and a drift signal),
+- per family — **keyed by the normalized location set, not `family_id`** (so deliberate
+  `family_id` scheme migrations and accidental ID regressions stay reviewable):
+  `family_id` (kept as an attribute and a drift signal),
   `members`, `location_count`, `mean_lines`, `recommended_surface`, family shape,
   fragment count, per-kind counts, family-local fragment kind/reason-code counts,
   family-local kind/reason-by-surface counts, fragment-only span buckets,

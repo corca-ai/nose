@@ -358,6 +358,10 @@ fn baseline_hides_accepted_families() {
         baseline_text.contains("\"members\""),
         "baseline should record member identities for changed/resolved comparison: {baseline_text}"
     );
+    assert!(
+        baseline_text.contains("\"start_line\"") && baseline_text.contains("\"kind\""),
+        "baseline member identities should include location fields for unique family ids: {baseline_text}"
+    );
 
     // …then a re-run shows no *new* families.
     let after = run(&["scan", p, "--min-size", "12", "--baseline", bls]);

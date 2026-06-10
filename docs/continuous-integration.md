@@ -119,13 +119,14 @@ accepted by the baseline (the default whenever `--baseline` is present). Use
 non-zero for new or changed clone families. Plain `--fail-on any` still means "fail if
 anything is reported after the active filters."
 
-Commit `.nose-baseline.json`. Families are keyed by their members' (file, name),
-so the baseline is stable across line moves. New baselines also record the member
-list next to the reviewable note, which lets later scans classify exact matches as
-`unchanged`, overlapping but re-keyed families as `changed`, missing accepted
-families as `resolved`, and unmatched current families as `new`. Regenerate the
-baseline deliberately (re-run `--write-baseline`) when you've paid down duplication
-and want the lower bar locked in — it's a ratchet.
+Commit `.nose-baseline.json`. Families are keyed by their sorted reported member
+locations: displayed path, language, span, unit kind, symbol name, and fragment
+metadata. New baselines also record those member identities next to the reviewable
+note, which lets later scans classify exact matches as `unchanged`, overlapping
+but re-keyed families as `changed`, missing accepted families as `resolved`, and
+unmatched current families as `new`. Regenerate the baseline deliberately (re-run
+`--write-baseline`) when you've paid down duplication and want the lower bar
+locked in — it's a ratchet.
 
 When `--baseline` is present, the file must exist and parse as a valid baseline.
 Missing or malformed baselines are hard errors; otherwise a CI ratchet could

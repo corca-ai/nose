@@ -62,7 +62,7 @@
         "noise": 3
       }
     },
-    "decision": "Keep exact fragments as diagnostic JSON substrate and out of default action output. Demote tiny test-only scaffold fragments from review to hidden. Track repeated family_id collisions and one-line direct-return over-breadth as follow-up issues rather than broad-pruning semantic fragments."
+    "decision": "Keep exact fragments as diagnostic JSON substrate and out of default action output. Demote tiny test-only scaffold fragments from review to hidden. Track repeated family_id collisions (#199, resolved by span-aware IDs) and one-line direct-return over-breadth as follow-up issues rather than broad-pruning semantic fragments."
   },
   "items": [
     {

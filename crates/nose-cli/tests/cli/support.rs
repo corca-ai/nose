@@ -231,6 +231,7 @@ pub(crate) fn assert_scan_json_v1_contract(json: &serde_json::Value) {
     let family = scan_families(json)
         .first()
         .expect("fixture should include a family");
+    assert_scan_json_family_ids_unique(json);
     let family = family.as_object().expect("family object");
     for key in [
         "family_id",
@@ -271,6 +272,19 @@ pub(crate) fn assert_scan_json_v1_contract(json: &serde_json::Value) {
         "is_fragment",
     ] {
         assert!(loc.contains_key(key), "location.{key} missing: {json}");
+    }
+}
+
+fn assert_scan_json_family_ids_unique(json: &serde_json::Value) {
+    let mut family_ids = std::collections::BTreeSet::new();
+    for family in scan_families(json) {
+        let id = family["family_id"]
+            .as_str()
+            .unwrap_or_else(|| panic!("family.family_id should be a string: {json}"));
+        assert!(
+            family_ids.insert(id),
+            "family_id values must be unique within families[]: {json}"
+        );
     }
 }
 

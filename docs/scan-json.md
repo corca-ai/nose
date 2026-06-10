@@ -223,7 +223,7 @@ schema version 1:
 
 | field | type | meaning |
 |---|---|---|
-| `family_id` | string | Stable family key used by baselines and structured ignores. |
+| `family_id` | string | Stable family key used by baselines and structured ignores. Unique for distinct reported families in one scan; derived from each member's displayed path, language, source span, unit kind, symbol name, and fragment proof metadata. The ID is stable across run order and thread count, but changes when the reported locations or spans change. |
 | `value` | number | Raw refactoring value: duplicated volume scaled by similarity and spread. |
 | `members` | integer | Number of duplicated sites. |
 | `files` | integer | Distinct files spanned by the family. |
