@@ -136,6 +136,22 @@ pub fn value_fingerprint_and_contracts(
 ) -> (Vec<u64>, Vec<(u32, u32)>) {
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
+    finish_fingerprint_contracts(b)
+}
+
+/// Context-shared variant of [`value_fingerprint_and_contracts`].
+pub fn value_fingerprint_and_contracts_with_context(
+    il: &Il,
+    root: NodeId,
+    interner: &Interner,
+    context: &ValueFingerprintContext,
+) -> (Vec<u64>, Vec<(u32, u32)>) {
+    let mut b = Builder::new(il, interner).with_context(context);
+    b.build_unit_with_context(root, Some(context));
+    finish_fingerprint_contracts(b)
+}
+
+fn finish_fingerprint_contracts(mut b: Builder<'_>) -> (Vec<u64>, Vec<(u32, u32)>) {
     let fp = b.fingerprint_lits().0;
     b.contracts.sort_unstable();
     b.contracts.dedup();

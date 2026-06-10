@@ -43,7 +43,8 @@ mod state;
 mod stdlib;
 
 pub use api::{
-    value_anchors, value_fingerprint, value_fingerprint_and_contracts, value_fingerprint_contracts,
+    value_anchors, value_fingerprint, value_fingerprint_and_contracts,
+    value_fingerprint_and_contracts_with_context, value_fingerprint_contracts,
     value_fingerprint_lits, value_fingerprint_lits_anchors, value_fingerprint_lits_anchors_laws,
     value_fingerprint_lits_anchors_laws_with_context, value_fingerprint_lits_anchors_with_context,
     value_fingerprint_lits_with_context, Anchor, Anchors, FingerprintBundle, FingerprintLawBundle,

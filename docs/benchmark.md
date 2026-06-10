@@ -51,7 +51,9 @@ an input battery and flags any fingerprint-equal pair whose behavior differs. It
 the *pre-canonicalization* IL (so a behavior-changing canon can't mask itself), and a
 **canon-preservation** check requires each unit's core-IL behavior to equal its full-IL
 behavior. The core canonicalizations are additionally machine-checked in Lean (`formal/`).
-Both currently report **zero** violations.
+Both currently report **zero** violations on the characterized gates. `verify` is bounded:
+units whose estimated work (`IL nodes × battery rows`) exceeds the oracle budget fail closed as
+`battery-bail` and appear in the exclusion census instead of monopolizing the run.
 
 ```sh
 nose verify bench/repos   # SOUND / canon PRESERVED, + a completeness ratio

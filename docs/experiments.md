@@ -1041,3 +1041,28 @@ least 517ad5c. Filed as #210 (the exact channel is protected by `exact_safe`; th
 battery-bail mass concentrates in branch-on-symbolic units (`kind:If` excl-share 92%) —
 i.e. the next coverage unit is symbolic-condition path exploration, a much harder,
 deliberately-not-taken step (control flow is never guessed).
+
+### BL.2 — raylib verify budget: bound the oracle, don't hang it
+
+Issue #208 exposed a verify-only performance path: `nose verify bench/repos/raylib` exceeded a
+120s local timeout even though normal scanning completed. Sampling showed two costs compounding:
+the oracle rebuilt file-level value-graph context for every unit, then ran the full input battery
+against large C functions.
+
+The fix mirrors detector extraction by sharing one `ValueFingerprintContext` per file and adds a
+unit work cap before value fingerprinting or interpretation. A unit whose
+`IL node count × battery rows > 384000` is excluded as `battery-bail`; this is a fail-closed
+coverage loss, not a guessed equivalence.
+
+Measured on 2026-06-10 against local raylib:
+
+| command | before | after |
+|---|---:|---:|
+| `nose verify bench/repos/raylib` | >120s timeout | 62.8s |
+
+The after run on top of the symbolic-oracle baseline reported 8182 total units, 1735
+interpretable units, and 18 oversized `battery-bail` exclusions. It also surfaced two
+pre-existing value-fingerprint false-merge leads and one
+canon-preservation lead in raylib; #208 intentionally does not mask them with exclusions because
+the product semantic scan did not report those targeted pairs, and the point of `verify` is to
+make such soundness leads visible once the oracle is tractable.

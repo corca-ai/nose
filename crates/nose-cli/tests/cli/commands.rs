@@ -108,6 +108,48 @@ fn invalid_exclude_glob_fails_clearly() {
 }
 
 #[test]
+fn verify_json_reports_battery_bail_exclusions() {
+    let dir = std::env::temp_dir().join(format!("nose_verify_bail_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let mut src = String::from("int huge(int x) {\n  int s = 0;\n");
+    for i in 0..700 {
+        src.push_str(&format!("  s = s + x + {i};\n"));
+    }
+    src.push_str("  return s;\n}\n\nint tiny(int x) {\n  return x + 1;\n}\n");
+    fs::write(dir.join("huge.c"), src).unwrap();
+
+    let out = run(&["verify", dir.to_str().unwrap(), "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&out).expect("verify JSON");
+    assert_eq!(
+        json["exclusions"]["battery-bail"], 1,
+        "oversized unit should fail closed into battery-bail: {out}"
+    );
+    assert!(
+        json["excluded_units"]
+            .as_array()
+            .expect("excluded_units")
+            .iter()
+            .any(|unit| unit["reason"] == "battery-bail"
+                && unit["file"]
+                    .as_str()
+                    .is_some_and(|file| file.ends_with("huge.c"))),
+        "battery-bail unit should be named in excluded_units: {out}"
+    );
+    assert!(
+        json["units"]
+            .as_array()
+            .expect("units")
+            .iter()
+            .any(|unit| unit["file"]
+                .as_str()
+                .is_some_and(|file| file.ends_with("huge.c"))),
+        "small sibling function in the same file should still be verified: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn min_value_filters_low_value_families() {
     let dir = make_project("minval");
     let p = dir.to_str().unwrap();

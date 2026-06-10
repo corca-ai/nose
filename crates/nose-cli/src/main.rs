@@ -12,6 +12,7 @@ mod verify_census;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use nose_il::{Corpus, FileId, Interner, Lang};
+use rayon::prelude::*;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -324,8 +325,9 @@ enum Cmd {
         #[arg(long)]
         no_cfg_norm: bool,
         /// Emit interpretable units as JSON `{units:[{file,start_line,end_line,
-        /// behavior,trivial}]}` (the oracle's behavioral ground truth) instead of the
-        /// soundness/completeness report. Used by the value-add evaluator.
+        /// behavior,trivial}], exclusions:{...}}` (the oracle's behavioral ground truth
+        /// plus fail-closed exclusion counts) instead of the soundness/completeness report.
+        /// Used by the value-add evaluator.
         #[arg(long)]
         json: bool,
         /// CI soundness gate: exit non-zero if the false-merge count EXCEEDS this budget.
@@ -1659,6 +1661,14 @@ fn run_review_cmd(cmd: Cmd) -> Result<()> {
 /// number of rows (the behavior-vector length must be arity-independent — two
 /// fingerprint-equal units can differ in arity, e.g. constant functions).
 const VERIFY_WIDTH: usize = 4;
+/// Verify is a bounded oracle, not a stress test for every generated/parser-vendored
+/// mega-function. Cap per-unit battery work before building the value fingerprint or
+/// interpreting rows; units above the cap are reported as `battery-bail` and excluded.
+const VERIFY_BATTERY_NODE_ROW_BUDGET: usize = 384_000; // 2k IL nodes * 192 standard rows.
+
+fn verify_battery_over_budget(tokens: usize, battery_rows: usize) -> bool {
+    tokens.saturating_mul(battery_rows) > VERIFY_BATTERY_NODE_ROW_BUDGET
+}
 
 fn verify_battery(probes: &[nose_normalize::Value]) -> Vec<Vec<nose_normalize::Value>> {
     use nose_normalize::Value;
@@ -2154,7 +2164,7 @@ fn cmd_verify(
     }
 
     if json {
-        return print_verify_json(&oracle.recs);
+        return print_verify_json(&oracle);
     }
 
     println!("=== value-graph oracle (soundness + completeness) ===");
@@ -2164,6 +2174,7 @@ fn cmd_verify(
         oracle.recs.len(),
         oracle.total - oracle.recs.len()
     );
+    print_verify_exclusions(&oracle.exclusions);
 
     // --- Canon preservation: full-normalize behavior must equal pre-canon core behavior. ---
     println!("\nCANON PRESERVATION — normalization preserves behavior:");
@@ -2210,6 +2221,78 @@ struct VerifyRec {
     loc: String,
 }
 
+#[derive(Clone, Copy)]
+enum VerifyExclusionReason {
+    CoreMissing,
+    BatteryBail,
+    EmptyFingerprint,
+    Uninterpretable,
+}
+
+impl VerifyExclusionReason {
+    fn label(self) -> &'static str {
+        match self {
+            VerifyExclusionReason::CoreMissing => "core-missing",
+            VerifyExclusionReason::BatteryBail => "battery-bail",
+            VerifyExclusionReason::EmptyFingerprint => "empty-fingerprint",
+            VerifyExclusionReason::Uninterpretable => "uninterpretable",
+        }
+    }
+}
+
+struct VerifyExcludedUnit {
+    reason: VerifyExclusionReason,
+    file: String,
+    start: u32,
+    end: u32,
+    tokens: usize,
+}
+
+#[derive(Default)]
+struct VerifyExclusions {
+    core_missing: usize,
+    battery_bail: usize,
+    empty_fingerprint: usize,
+    uninterpretable: usize,
+    units: Vec<VerifyExcludedUnit>,
+}
+
+impl VerifyExclusions {
+    fn record(
+        &mut self,
+        reason: VerifyExclusionReason,
+        file: &str,
+        span: nose_il::Span,
+        tokens: usize,
+    ) {
+        match reason {
+            VerifyExclusionReason::CoreMissing => self.core_missing += 1,
+            VerifyExclusionReason::BatteryBail => self.battery_bail += 1,
+            VerifyExclusionReason::EmptyFingerprint => self.empty_fingerprint += 1,
+            VerifyExclusionReason::Uninterpretable => self.uninterpretable += 1,
+        }
+        self.units.push(VerifyExcludedUnit {
+            reason,
+            file: file.to_string(),
+            start: span.start_line,
+            end: span.end_line,
+            tokens,
+        });
+    }
+
+    fn append(&mut self, other: VerifyExclusions) {
+        self.core_missing += other.core_missing;
+        self.battery_bail += other.battery_bail;
+        self.empty_fingerprint += other.empty_fingerprint;
+        self.uninterpretable += other.uninterpretable;
+        self.units.extend(other.units);
+    }
+
+    fn total(&self) -> usize {
+        self.core_missing + self.battery_bail + self.empty_fingerprint + self.uninterpretable
+    }
+}
+
 /// The oracle's interpretation pass: every interpretable unit's record, plus the
 /// CANON PRESERVATION tallies — a stricter, pair-free soundness check: does the full
 /// normalization pipeline preserve each unit's behavior vs the pre-canon core IL? A
@@ -2222,6 +2305,7 @@ struct VerifyOracle {
     /// Per-unit census records (outcome + construct tags), populated only when
     /// the `--exclusion-census` instrument is requested.
     census: Vec<verify_census::CensusUnit>,
+    exclusions: VerifyExclusions,
 }
 
 fn collect_verify_recs(
@@ -2230,32 +2314,67 @@ fn collect_verify_recs(
     battery: &[Vec<nose_normalize::Value>],
     census: bool,
 ) -> VerifyOracle {
+    let oracle_opts = nose_normalize::NormalizeOptions {
+        oracle: true,
+        ..*opts
+    };
+    let per_file: Vec<_> = corpus
+        .files
+        .par_iter()
+        .map(|il| {
+            let n = nose_normalize::normalize(il, &corpus.interner, opts);
+            // The behavioral ground truth comes from the pre-canonicalization core IL (so a
+            // behavior-changing canon can't mask itself), matched to each fully-normalized
+            // unit by source span.
+            let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
+            let mut oracle = VerifyOracle {
+                recs: Vec::new(),
+                total: 0,
+                canon_checked: 0,
+                canon_violations: Vec::new(),
+                census: Vec::new(),
+                exclusions: VerifyExclusions::default(),
+            };
+            let func_count = n
+                .units
+                .iter()
+                .filter(|u| n.kind(u.root) == nose_il::NodeKind::Func)
+                .count();
+            let value_context = (func_count > 1)
+                .then(|| nose_normalize::ValueFingerprintContext::new(&n, &corpus.interner));
+            collect_file_verify_recs(
+                &n,
+                &core,
+                value_context.as_ref(),
+                &corpus.interner,
+                battery,
+                &mut oracle,
+                census,
+            );
+            oracle
+        })
+        .collect();
+
     let mut oracle = VerifyOracle {
         recs: Vec::new(),
         total: 0,
         canon_checked: 0,
         canon_violations: Vec::new(),
         census: Vec::new(),
+        exclusions: VerifyExclusions::default(),
     };
-    let oracle_opts = nose_normalize::NormalizeOptions {
-        oracle: true,
-        ..*opts
-    };
-    for il in &corpus.files {
-        let n = nose_normalize::normalize(il, &corpus.interner, opts);
-        // The behavioral ground truth comes from the pre-canonicalization core IL (so a
-        // behavior-changing canon can't mask itself), matched to each fully-normalized
-        // unit by source span.
-        let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        collect_file_verify_recs(
-            il,
-            &n,
-            &core,
-            &corpus.interner,
-            battery,
-            &mut oracle,
-            census,
-        );
+    for mut file_oracle in per_file {
+        oracle.total += file_oracle.total;
+        oracle.canon_checked += file_oracle.canon_checked;
+        oracle.recs.append(&mut file_oracle.recs);
+        oracle.census.append(&mut file_oracle.census);
+        oracle
+            .canon_violations
+            .append(&mut file_oracle.canon_violations);
+        if oracle.canon_violations.len() > 20 {
+            oracle.canon_violations.truncate(20);
+        }
+        oracle.exclusions.append(file_oracle.exclusions);
     }
     oracle
 }
@@ -2285,14 +2404,15 @@ fn push_verify_census(
 }
 
 fn collect_file_verify_recs(
-    il: &nose_il::Il,
     n: &nose_il::Il,
     core: &nose_il::Il,
+    value_context: Option<&nose_normalize::ValueFingerprintContext>,
     interner: &Interner,
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
     census: bool,
 ) {
+    let file_path = &n.meta.path;
     let core_func = func_span_index(core);
     for u in &n.units {
         let root = u.root;
@@ -2300,13 +2420,24 @@ fn collect_file_verify_recs(
             continue;
         }
         oracle.total += 1;
-        let loc = format!("{}:{}", il.meta.path, n.node(root).span.start_line);
+        let loc = format!("{}:{}", file_path, n.node(root).span.start_line);
         // The same function in the core IL (by span) — interpret THAT, not `n`.
         let span0 = n.node(root).span;
+        let tokens = subtree_node_count(n, root);
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
             push_verify_census(oracle, census, loc, n, root, &[], "no-core-span");
+            oracle
+                .exclusions
+                .record(VerifyExclusionReason::CoreMissing, file_path, span0, tokens);
             continue;
         };
+        if verify_battery_over_budget(tokens, battery.len()) {
+            oracle
+                .exclusions
+                .record(VerifyExclusionReason::BatteryBail, file_path, span0, tokens);
+            push_verify_census(oracle, census, loc, core, core_root, &[], "battery-bail");
+            continue;
+        }
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
         // graph is EMPTY (`fn resumed() {}`, or a body the graph captures nothing of)
         // has no value fingerprint to merge on — the detector keys candidates on
@@ -2318,14 +2449,31 @@ fn collect_file_verify_recs(
         // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
         // convention the value graph used to merge it; gated on the contract actually
         // firing, so a non-contract false merge is still exposed by the free battery.
-        let (fp, contracts) = nose_normalize::value_fingerprint_and_contracts(n, root, interner);
+        let (fp, contracts) = match value_context {
+            Some(context) => nose_normalize::value_fingerprint_and_contracts_with_context(
+                n, root, interner, context,
+            ),
+            None => nose_normalize::value_fingerprint_and_contracts(n, root, interner),
+        };
         if fp.is_empty() {
             push_verify_census(oracle, census, loc, n, root, &[], "empty-fp");
+            oracle.exclusions.record(
+                VerifyExclusionReason::EmptyFingerprint,
+                file_path,
+                span0,
+                tokens,
+            );
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
         let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
             push_verify_census(oracle, census, loc, core, core_root, &fp, "battery-bail");
+            oracle.exclusions.record(
+                VerifyExclusionReason::Uninterpretable,
+                file_path,
+                span0,
+                tokens,
+            );
             continue;
         };
         push_verify_census(oracle, census, loc, core, core_root, &fp, "interpretable");
@@ -2344,7 +2492,7 @@ fn collect_file_verify_recs(
                     let s = n.node(root).span;
                     oracle
                         .canon_violations
-                        .push(format!("{}:{}", il.meta.path, s.start_line));
+                        .push(format!("{}:{}", file_path, s.start_line));
                 }
             }
         }
@@ -2352,11 +2500,11 @@ fn collect_file_verify_recs(
         oracle.recs.push(VerifyRec {
             fp,
             beh,
-            file: il.meta.path.clone(),
+            file: file_path.to_string(),
             start: span.start_line,
             end: span.end_line,
-            tokens: subtree_node_count(n, root),
-            loc: format!("{}:{}", il.meta.path, span.start_line),
+            tokens,
+            loc: format!("{}:{}", file_path, span.start_line),
         });
     }
 }
@@ -2378,8 +2526,9 @@ fn subtree_node_count(il: &nose_il::Il, root: nose_il::NodeId) -> usize {
 /// battery) and whether that behavior is trivial (constant / all-Err — coincidental,
 /// not evidence of a real clone). The evaluator groups by behavior to form gold clone
 /// pairs, then scores jscpd and nose against them on equal footing.
-fn print_verify_json(recs: &[VerifyRec]) -> Result<()> {
-    let recs_json: Vec<_> = recs
+fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
+    let recs_json: Vec<_> = oracle
+        .recs
         .iter()
         .map(|r| {
             serde_json::json!({
@@ -2392,11 +2541,48 @@ fn print_verify_json(recs: &[VerifyRec]) -> Result<()> {
             })
         })
         .collect();
+    let excluded_json: Vec<_> = oracle
+        .exclusions
+        .units
+        .iter()
+        .map(|u| {
+            serde_json::json!({
+                "file": u.file,
+                "start_line": u.start,
+                "end_line": u.end,
+                "tokens": u.tokens,
+                "reason": u.reason.label(),
+            })
+        })
+        .collect();
     println!(
         "{}",
-        serde_json::to_string(&serde_json::json!({ "units": recs_json }))?
+        serde_json::to_string(&serde_json::json!({
+            "units": recs_json,
+            "exclusions": {
+                "core-missing": oracle.exclusions.core_missing,
+                "battery-bail": oracle.exclusions.battery_bail,
+                "empty-fingerprint": oracle.exclusions.empty_fingerprint,
+                "uninterpretable": oracle.exclusions.uninterpretable,
+            },
+            "excluded_units": excluded_json,
+        }))?
     );
     Ok(())
+}
+
+fn print_verify_exclusions(exclusions: &VerifyExclusions) {
+    if exclusions.total() == 0 {
+        return;
+    }
+    println!("\nEXCLUSIONS — fail-closed units by reason:");
+    println!("  core-missing: {}", exclusions.core_missing);
+    println!(
+        "  battery-bail: {} (>{} node-rows)",
+        exclusions.battery_bail, VERIFY_BATTERY_NODE_ROW_BUDGET
+    );
+    println!("  empty-fingerprint: {}", exclusions.empty_fingerprint);
+    println!("  uninterpretable: {}", exclusions.uninterpretable);
 }
 
 /// Soundness: fingerprint-equal ⟹ behavior-equal. Prints the section and returns the
@@ -4427,6 +4613,22 @@ mod tests {
             abstraction_witness: None,
             semantic_laws: Vec::new(),
         }
+    }
+
+    #[test]
+    fn verify_battery_budget_is_node_row_bounded() {
+        assert!(
+            !verify_battery_over_budget(2_000, 192),
+            "the documented 2k x 192-row boundary stays inside the verify budget"
+        );
+        assert!(
+            verify_battery_over_budget(2_001, 192),
+            "one node beyond the boundary fails closed as battery-bail"
+        );
+        assert!(
+            !verify_battery_over_budget(6_000, 1),
+            "large units are allowed when the battery is tiny"
+        );
     }
 
     #[test]
