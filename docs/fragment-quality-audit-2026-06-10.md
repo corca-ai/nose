@@ -56,7 +56,7 @@ synchronization signal review output should preserve:
 | `python-03` | `useful_diagnostic` | 8-line Poetry authenticator repository config ties two credential-path tests that should stay aligned. |
 | `java-02` | `acceptable_low_value` | test fixture constructor self-field assignments are correct but boilerplate. |
 | `python-01`, `python-02`, `python-04` | `acceptable_low_value` | 3-line test setup/assertion `expr-effect` fragments are real but too small for review output. |
-| `java-05`, `python-10` | `noise` | both expose stable `family_id` collisions with different nearby hidden families. |
+| `java-05`, `python-10` | `noise` | both exposed pre-#199 `family_id` collisions with different nearby hidden families. |
 | `java-03` | `noise` | one-line direct-return fragments are too generic and can group awkwardly with enclosing methods. |
 
 ## Policy
@@ -75,11 +75,10 @@ The audit supports the current separation between exactness and product placemen
   fixture constructors diagnostic-only while leaving larger test setup blocks available for
   review.
 
-Two follow-ups remain outside this narrow policy change:
+One follow-up remains outside this narrow policy change. The stable family identity
+follow-up was closed by #199: scan JSON IDs now include span and fragment metadata
+so distinct hidden fragment families do not share one `family_id`.
 
-- **Stable family identity:** repeated `family_id` values appeared for distinct hidden
-  families (`272926fba0300285` in `commons-lang`, `a80e66532f54ba2d` in `packaging`).
-  That is a JSON integration risk even when the families are hidden.
 - **One-line direct returns:** `exact-direct-return` one-liners are correct too often to
   drop blindly, but the sample shows they need a stricter low-context pruning pass or a
   stronger enclosing/effect boundary before they become useful diagnostics.

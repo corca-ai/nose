@@ -252,6 +252,7 @@ action output. The `review` surface had no consensus noise and kept the two usef
 signals in the sample: a long RxJava2/RxJava3 adapter constructor parity fragment and a
 larger Poetry authenticator test setup fragment. The policy change from the audit is
 narrow: tiny test-only exact fragments with enclosing-unit context now stay hidden
-instead of review-visible. Broader pruning is deferred; the real follow-ups are stable
-`family_id` collisions in hidden JSON output and overly generic one-line direct-return
+instead of review-visible. Broader pruning is deferred; #199 closed the stable
+`family_id` collision follow-up by including location spans and fragment metadata in
+scan JSON IDs. The remaining follow-up is overly generic one-line direct-return
 fragments.

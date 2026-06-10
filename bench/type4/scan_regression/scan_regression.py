@@ -30,9 +30,9 @@ Why this exists, and the rules it follows (from the issue #37 decision):
 
 5. Output drift is compared on the `--top 0` full JSON, canonicalized: family order
    and ranking tie-breaks are ignored. Families are keyed by their normalized
-   (repo-relative) location set, because the product `family_id` is NOT unique (distinct
-   families can share one id); family_id is compared as an attribute and is itself a
-   drift signal. We also compare unit kind, mean_lines / span size, location count,
+   (repo-relative) location set so the harness remains robust to deliberate
+   `family_id` scheme migrations; family_id is compared as an attribute and is itself
+   a drift signal. We also compare unit kind, mean_lines / span size, location count,
    product JSON byte size, fragment product-surface placement, all-fragment vs mixed
    family shape, fragment span buckets, enclosing-unit recovery, and family-local
    `fragment_kind` / `reason_code` summaries. `fragment_kind` / `reason_code` are
@@ -518,12 +518,10 @@ def canonicalize(scan_json: dict, repo: Path) -> dict:
     fragment_line_span_buckets: dict[str, int] = {}
     fragment_token_span_buckets: dict[str, int] = {}
     enclosing_unit_recovery_counts: dict[str, int] = {"recovered": 0, "missing": 0}
-    # NOTE: the product `family_id` is NOT unique — distinct families can share one id
-    # (observed in chi: two Block families both keyed `c55b843732270ba0`). Keying by
-    # family_id would silently drop a family, so families are keyed by their normalized
-    # location set (the true identity per the #37 decision), with family_id kept as an
-    # attribute (and itself a drift signal). The location-set key also keeps the diff
-    # robust to family_id scheme changes.
+    # Families are keyed by their normalized location set (the true identity per the
+    # #37 decision), with family_id kept as an attribute and drift signal. That keeps
+    # the diff robust to deliberate family_id scheme migrations and prevents any
+    # accidental ID regression from hiding a reported family.
     families: dict[str, dict] = {}
 
     for fam in families_in:
@@ -767,8 +765,9 @@ def compare_repo(repo_id: str, base: dict, cur: dict) -> dict:
     bo, co = base["output"], cur["output"]
     triggers: list[str] = []
 
-    # Family set drift (rule 5). Families are keyed by their normalized location set,
-    # not the non-unique family_id; we report each by family_id + a location for humans.
+    # Family set drift (rule 5). Families are keyed by their normalized location set
+    # rather than family_id so ID migrations remain reviewable instead of reshaping the
+    # dictionary; we report each by family_id + a location for humans.
     bfam, cfam = bo["families"], co["families"]
     base_keys, cur_keys = set(bfam), set(cfam)
 

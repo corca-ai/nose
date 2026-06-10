@@ -1253,15 +1253,14 @@ impl BaselineComparison {
             if baseline.keys.contains(&key) {
                 continue;
             }
-            let current_members: std::collections::HashSet<_> =
-                baseline::member_keys(family).into_iter().collect();
+            let current_members = baseline::member_keys(family);
             if baseline
                 .entries
                 .iter()
                 .filter(|entry| !current_keys.contains(&entry.key))
                 .any(|entry| {
                     !entry.members.is_empty()
-                        && entry.members.iter().any(|m| current_members.contains(m))
+                        && baseline::member_sets_overlap(&entry.members, &current_members)
                 })
             {
                 changed_current.insert(key);
@@ -1271,7 +1270,7 @@ impl BaselineComparison {
                     .filter(|entry| !current_keys.contains(&entry.key))
                 {
                     if !entry.members.is_empty()
-                        && entry.members.iter().any(|m| current_members.contains(m))
+                        && baseline::member_sets_overlap(&entry.members, &current_members)
                     {
                         changed_baseline.insert(entry.key);
                     }
