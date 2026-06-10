@@ -25,6 +25,7 @@ so a change has to generalize, not just fit the dev repos; tune only on dev.
 
 ```sh
 bench/setup_repos.sh                      # clone the pinned corpus into bench/repos
+python3 bench/prune_corpus.py --check-manifest  # verify the recorded prune digest
 python3 bench/labels/eval_by_language.py  # P@10 + worthy-recall, per language, dev/held-out, 95% CIs
 ```
 

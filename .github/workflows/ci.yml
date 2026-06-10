@@ -18,6 +18,8 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: corpus prune self-test
+        run: python3 bench/prune_corpus.py --self-test
       - name: format
         run: cargo fmt --all --check
       - name: clippy
