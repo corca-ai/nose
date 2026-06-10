@@ -2618,9 +2618,8 @@ pub(crate) fn binary(
     let r = node
         .child_by_field_name("right")
         .map(|x| lower_operand(lo, x));
-    let op = node
-        .child_by_field_name("operator")
-        .and_then(|o| op_of(lo.text(o)));
+    let op_text = node.child_by_field_name("operator").map(|o| lo.text(o));
+    let op = op_text.and_then(op_of);
     match (l, r, op) {
         (Some(l), Some(r), Some(op)) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l, r]),
         _ => {
@@ -2628,9 +2627,54 @@ pub(crate) fn binary(
                 .into_iter()
                 .map(|c| lower_operand(lo, c))
                 .collect();
-            lo.raw(node.kind(), span, &kids)
+            // Key the raw node by the operator spelling, not just the CST kind:
+            // two different unmapped operators over the same operands must not
+            // share a fingerprint (`a >>> b` is not `a @ b`).
+            match op_text {
+                Some(text) => lo.raw(&format!("{} {text}", node.kind()), span, &kids),
+                None => lo.raw(node.kind(), span, &kids),
+            }
         }
     }
+}
+
+/// `a OP= b`  →  `a = a OP b` for grammars with `left`/`operator`/`right` fields
+/// (Python/JS/Rust). The lhs is lowered twice (two faithful subtrees). The
+/// operator is looked up by its compound spelling minus the trailing `=`; an
+/// unmapped operator keeps its own raw shape keyed by the spelling — defaulting
+/// it to `Add` (or dropping it) would merge `a @= b` / `a >>>= b` with
+/// `a += b` / `a = b`.
+pub(crate) fn compound_assignment(
+    lo: &mut Lowering,
+    node: TsNode,
+    op_of: impl FnOnce(&str) -> Option<Op>,
+    mut lower_operand: impl FnMut(&mut Lowering, TsNode) -> NodeId,
+) -> NodeId {
+    let span = lo.span(node);
+    let left = node.child_by_field_name("left");
+    let right = node.child_by_field_name("right");
+    let op_text = node.child_by_field_name("operator").map(|o| lo.text(o));
+    let op = op_text.and_then(|t| op_of(t.trim_end_matches('=')));
+    let lhs1 = left
+        .map(|l| lower_operand(lo, l))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let lhs2 = left
+        .map(|l| lower_operand(lo, l))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let rhs = right
+        .map(|r| lower_operand(lo, r))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let value = match op {
+        Some(op) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[lhs2, rhs]),
+        None => {
+            let kind = match op_text {
+                Some(text) => format!("{} {text}", node.kind()),
+                None => node.kind().to_string(),
+            };
+            lo.raw(&kind, span, &[lhs2, rhs])
+        }
+    };
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, value])
 }
 
 /// Lower a `left`/`right` assignment-expression node into an `Assign`.
@@ -2745,6 +2789,9 @@ pub(crate) fn common_bin_op(text: &str) -> Option<Op> {
         "*" => Op::Mul,
         "/" => Op::Div,
         "%" => Op::Mod,
+        // Exponentiation in the languages that spell it `**` (Python/JS/Ruby);
+        // the C-family grammars never produce it as a binary operator.
+        "**" => Op::Pow,
         "==" => Op::Eq,
         "!=" => Op::Ne,
         "<" => Op::Lt,

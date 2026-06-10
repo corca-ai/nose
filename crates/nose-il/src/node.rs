@@ -323,14 +323,21 @@ impl EvidenceAnchor {
         EvidenceAnchor::Sequence { span }
     }
 
-    pub fn matches_span(self, span: Span) -> bool {
+    /// The anchor's subject span. Every anchor kind addresses exactly one span,
+    /// and all matching is exact span equality — which is what makes anchors
+    /// indexable by span (see `Il::evidence_anchored_at`).
+    pub fn span(self) -> Span {
         match self {
-            EvidenceAnchor::SourceSpan(subject)
-            | EvidenceAnchor::Node { span: subject, .. }
-            | EvidenceAnchor::Param { span: subject }
-            | EvidenceAnchor::Binding { span: subject, .. }
-            | EvidenceAnchor::Sequence { span: subject } => subject == span,
+            EvidenceAnchor::SourceSpan(span)
+            | EvidenceAnchor::Node { span, .. }
+            | EvidenceAnchor::Param { span }
+            | EvidenceAnchor::Binding { span, .. }
+            | EvidenceAnchor::Sequence { span } => span,
         }
+    }
+
+    pub fn matches_span(self, span: Span) -> bool {
+        self.span() == span
     }
 }
 
@@ -338,7 +345,6 @@ impl EvidenceAnchor {
 pub enum EvidenceEmitter {
     FirstParty,
     External,
-    Legacy,
 }
 
 /// Provenance attached to semantic evidence. Hashes are stable symbol hashes so
@@ -685,6 +691,11 @@ pub enum Op {
     // unary arithmetic
     Neg,
     Pos,
+    /// Floor division (quotient rounded toward −∞): Python `//`. DISTINCT from
+    /// [`Op::Div`], whose integer model truncates toward zero — the two differ on
+    /// any negative operand (`-5 // 2 == -3` vs `-5 / 2 == -2`), so conflating
+    /// them is a false merge.
+    FloorDiv,
 }
 
 impl Op {

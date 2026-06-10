@@ -1,5 +1,5 @@
 //! Pairwise similarity: a cheap multiset Jaccard over shape features (the bulk
-//! signal) plus an LCS-based alignment over the linearized node-tag sequences
+//! signal) plus a RANSAC-style alignment over the linearized node-tag sequences
 //! (the discriminative signal that token-set methods lack — it rewards units
 //! whose structure lines up *in order*, not just in aggregate).
 
@@ -36,10 +36,14 @@ pub(crate) fn multiset_jaccard(a: &[u64], b: &[u64]) -> f64 {
     inter as f64 / union as f64
 }
 
+/// Cap on linearization length for alignment scoring, bounding the per-pair cost
+/// on pathological units.
+const ALIGN_CAP: usize = 600;
+
 /// RANSAC-style geometric verification (computer vision): treat token matches as
 /// point correspondences, find the dominant position-offset (a 1-D "translation"
 /// consensus), and score by the fraction of `a` positions consistent with it.
-/// Tolerant to a block being shifted, unlike LCS.
+/// Tolerant to a block being shifted, unlike an LCS alignment.
 pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
     use rustc_hash::FxHashMap;
     use std::cell::RefCell;
@@ -50,8 +54,8 @@ pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
         static POS: RefCell<FxHashMap<u64, Vec<i32>>> = RefCell::new(FxHashMap::default());
         static VOTES: RefCell<FxHashMap<i32, u32>> = RefCell::new(FxHashMap::default());
     }
-    let a = &a[..a.len().min(LCS_CAP)];
-    let b = &b[..b.len().min(LCS_CAP)];
+    let a = &a[..a.len().min(ALIGN_CAP)];
+    let b = &b[..b.len().min(ALIGN_CAP)];
     let maxlen = a.len().max(b.len());
     if maxlen == 0 {
         return 1.0;
@@ -98,36 +102,6 @@ pub(crate) fn ransac_ratio(a: &[u64], b: &[u64]) -> f64 {
     })
 }
 
-/// Cap on sequence length for LCS, to bound the O(n·m) DP on pathological units.
-const LCS_CAP: usize = 600;
-
-/// Longest-common-subsequence length / max(len), over linearized node tags.
-/// Superseded by [`ransac_ratio`] in the default scorer (measured: RANSAC
-/// generalizes better + is more precise), but kept as a tested alternative.
-#[allow(dead_code)]
-pub(crate) fn lcs_ratio(a: &[u64], b: &[u64]) -> f64 {
-    let a = &a[..a.len().min(LCS_CAP)];
-    let b = &b[..b.len().min(LCS_CAP)];
-    let maxlen = a.len().max(b.len());
-    if maxlen == 0 {
-        return 1.0;
-    }
-    // Rolling 1-D DP.
-    let mut prev = vec![0u32; b.len() + 1];
-    let mut cur = vec![0u32; b.len() + 1];
-    for &x in a {
-        for j in 0..b.len() {
-            cur[j + 1] = if x == b[j] {
-                prev[j] + 1
-            } else {
-                prev[j + 1].max(cur[j])
-            };
-        }
-        std::mem::swap(&mut prev, &mut cur);
-    }
-    prev[b.len()] as f64 / maxlen as f64
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,20 +129,5 @@ mod tests {
         let big: Vec<u64> = (0..500u64).flat_map(|x| [x, x ^ 0x5a5a]).collect();
         let _ = ransac_ratio(&big, &big);
         assert_eq!(ransac_ratio(&a, &b), 0.2);
-    }
-
-    /// Exercises `lcs_ratio` (the kept-but-unused alternative scorer) so it stays
-    /// compiling and correct rather than silently bit-rotting.
-    #[test]
-    fn lcs_ratio_scores_longest_common_subsequence() {
-        // Identical, disjoint, and both-empty boundary cases.
-        assert_eq!(lcs_ratio(&[1, 2, 3, 4], &[1, 2, 3, 4]), 1.0);
-        assert_eq!(lcs_ratio(&[1, 2, 3, 4], &[9, 8, 7]), 0.0);
-        assert_eq!(lcs_ratio(&[], &[]), 1.0);
-        // LCS of [1,2,3,4] and [1,3,4] is [1,3,4] (len 3); maxlen 4 → 0.75. It's a
-        // subsequence, not a set intersection.
-        assert_eq!(lcs_ratio(&[1, 2, 3, 4], &[1, 3, 4]), 0.75);
-        // Order matters: [1,2,3] vs [3,2,1] share length-1 as a subsequence, not 3.
-        assert_eq!(lcs_ratio(&[1, 2, 3], &[3, 2, 1]), 1.0 / 3.0);
     }
 }

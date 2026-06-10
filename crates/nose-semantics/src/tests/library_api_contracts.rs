@@ -644,18 +644,13 @@ fn builtin_contracts_preserve_current_special_demand_split() {
     for &builtin in ALL_BUILTINS {
         assert_eq!(builtin_tag(builtin), builtin as u32 + 1);
     }
-    assert_eq!(builtin_demand(Builtin::Reduce), BuiltinDemand::Reduce);
     assert_eq!(
         builtin_demand_profile(Builtin::Reduce),
         BuiltinDemandProfile::FoldReduction
     );
     assert_eq!(
-        builtin_demand(Builtin::Any),
-        BuiltinDemand::AnyAll { all: false }
-    );
-    assert_eq!(
-        builtin_demand(Builtin::All),
-        BuiltinDemand::AnyAll { all: true }
+        builtin_demand_profile(Builtin::Any),
+        BuiltinDemandProfile::ShortCircuitQuantifier { all: false }
     );
     assert_eq!(
         builtin_demand_profile(Builtin::All),
@@ -681,20 +676,14 @@ fn builtin_contracts_preserve_current_special_demand_split() {
             effect_visibility: EffectVisibility::OnlyIfDemanded,
         }
     );
-    assert_eq!(builtin_demand(Builtin::Append), BuiltinDemand::Append);
     assert_eq!(
         builtin_demand_profile(Builtin::Append),
         BuiltinDemandProfile::AppendMutation
     );
     assert_eq!(
-        builtin_demand(Builtin::ValueOrDefault),
-        BuiltinDemand::ValueOrDefault
-    );
-    assert_eq!(
         builtin_demand_profile(Builtin::ValueOrDefault),
         BuiltinDemandProfile::NullishDefault
     );
-    assert_eq!(builtin_demand(Builtin::Len), BuiltinDemand::Eager);
     assert_eq!(
         builtin_demand_profile(Builtin::Len),
         BuiltinDemandProfile::Eager {

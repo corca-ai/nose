@@ -221,14 +221,16 @@ impl<'a> Builder<'a> {
                 } else {
                     contrib
                 };
-                let init = kids
-                    .get(2)
-                    .map(|&i| self.eval(i, env))
-                    .unwrap_or_else(|| self.int_const(0));
-                let args = if is_selection_code(op) {
-                    vec![contrib]
-                } else {
-                    vec![init, contrib]
+                // `reduce(λ, init)` carries its seed — for a selection (min/max)
+                // the seed clamps the result, so dropping it merged
+                // `reduce(max-λ, 0)` with true `max(…)`. A seedless `reduce(λ)`
+                // folds from the first element: for a selection that IS the true
+                // min/max — the same 1-arg shape the builtin builds.
+                let init = kids.get(2).map(|&i| self.eval(i, env));
+                let args = match (init, is_selection_code(op)) {
+                    (Some(init), _) => vec![init, contrib],
+                    (None, true) => vec![contrib],
+                    (None, false) => vec![self.int_const(0), contrib],
                 };
                 Some(self.mk(ValOp::Reduce(op), args))
             }
@@ -248,8 +250,9 @@ impl<'a> Builder<'a> {
                 }
                 let av = self.eval(*kids.first()?, env);
                 // `max(f(x) for x in xs)` → the mapped per-element value; `max(xs)` →
-                // the raw element. No init (selection reductions carry none), so it
-                // matches a `best = max(best, f(x))` loop regardless of its seed.
+                // the raw element. Seedless (1-arg) by construction: a SEEDED loop
+                // (`best = 0; …`) clamps at its seed, so it keys differently and
+                // must not merge with the true builtin selection.
                 let (op, args) = {
                     let n = &self.nodes[av as usize];
                     (n.op.clone(), n.args.clone())

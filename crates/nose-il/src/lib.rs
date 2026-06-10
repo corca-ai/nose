@@ -54,7 +54,7 @@ pub enum UnitKind {
 /// One lowered source file. `nodes` is the arena; child links live out-of-line in
 /// `edges` so each [`Node`] stays small. `file == ` this file's index in the
 /// owning [`Corpus`].
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Il {
     pub nodes: Vec<Node>,
     pub edges: Vec<NodeId>,
@@ -77,6 +77,94 @@ pub struct Il {
     /// consumers must not use side-table mirrors as alternate proof channels.
     #[serde(default)]
     pub evidence: Vec<EvidenceRecord>,
+    /// Lazy whole-arena nearest-enclosing-scope index (see [`Il::nearest_scope`]).
+    /// Never serialized; recomputed on first use. Sound to cache because nodes are
+    /// immutable once an `Il` is built — passes rebuild the arena instead.
+    #[serde(skip)]
+    scope_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    /// Lazy evidence lookup index (see [`Il::evidence_anchored_at`]). Appends to
+    /// `evidence` are picked up incrementally (the index tracks how many records
+    /// it has seen); code that mutates existing records IN PLACE must call
+    /// [`Il::invalidate_evidence_index`]. Never serialized.
+    #[serde(skip)]
+    evidence_index: std::sync::RwLock<Option<EvidenceIndex>>,
+}
+
+/// See [`Il::evidence_anchored_at`]: exact-anchor-span buckets and id→index
+/// resolution, replacing the per-query linear `evidence` scans that were
+/// quadratic on minified-bundle-sized files. Only the IMMUTABLE parts of a
+/// record (anchor, id) are indexed; `status`/`dependencies` are always read
+/// live, so in-place mutation of those fields needs no invalidation.
+#[derive(Debug, Default)]
+struct EvidenceIndex {
+    indexed_len: usize,
+    by_anchor_span: std::collections::HashMap<(u32, u32, u32), Vec<u32>>,
+    by_id: std::collections::HashMap<u32, u32>,
+}
+
+impl EvidenceIndex {
+    fn extend_from(&mut self, evidence: &[EvidenceRecord]) {
+        for (idx, record) in evidence.iter().enumerate().skip(self.indexed_len) {
+            let span = record.anchor.span();
+            self.by_anchor_span
+                .entry((span.file.0, span.start_byte, span.end_byte))
+                .or_default()
+                .push(idx as u32);
+            // Mirror `evidence_record_by_id`: the record at position `id` wins;
+            // otherwise the first record with that id.
+            let id = record.id.0;
+            if id as usize == idx {
+                self.by_id.insert(id, idx as u32);
+            } else {
+                self.by_id.entry(id).or_insert(idx as u32);
+            }
+        }
+        self.indexed_len = evidence.len();
+    }
+
+    /// The same walk as the pre-index `evidence_dependencies_asserted`: every
+    /// transitively-reachable dependency must resolve and be `Asserted`; a cycle
+    /// is benign (revisits are skipped). Statuses and dependency lists are read
+    /// live from `evidence` — only id resolution uses the index.
+    fn deps_walk(&self, evidence: &[EvidenceRecord], dependencies: &[EvidenceId]) -> bool {
+        let mut stack = dependencies.to_vec();
+        let mut seen = Vec::new();
+        while let Some(id) = stack.pop() {
+            if seen.contains(&id) {
+                continue;
+            }
+            seen.push(id);
+            let Some(&dep_idx) = self.by_id.get(&id.0) else {
+                return false;
+            };
+            let dep = &evidence[dep_idx as usize];
+            if dep.status != EvidenceStatus::Asserted {
+                return false;
+            }
+            stack.extend_from_slice(&dep.dependencies);
+        }
+        true
+    }
+}
+
+impl Clone for Il {
+    fn clone(&self) -> Self {
+        Il {
+            nodes: self.nodes.clone(),
+            edges: self.edges.clone(),
+            root: self.root,
+            file: self.file,
+            meta: self.meta.clone(),
+            units: self.units.clone(),
+            cid_names: self.cid_names.clone(),
+            suppressed: self.suppressed.clone(),
+            evidence: self.evidence.clone(),
+            // Caches are cheap to recompute and a clone is usually about to be
+            // mutated — start fresh.
+            scope_index: std::sync::OnceLock::new(),
+            evidence_index: std::sync::RwLock::new(None),
+        }
+    }
 }
 
 impl Il {
@@ -131,6 +219,85 @@ impl Il {
         (self.kind(lhs) == NodeKind::Var).then_some((lhs, rhs))
     }
 
+    /// The nearest enclosing `Func`/`Lambda` scope of `node` by source span: the
+    /// smallest-width scope whose span contains the node's span, ties broken by
+    /// the lowest scope id. Computed for the whole arena on first use and cached —
+    /// the per-query linear scan this replaces was O(nodes) *per call*, which went
+    /// quadratic (4-minute single files) on minified-bundle-sized inputs.
+    pub fn nearest_scope(&self, node: NodeId) -> Option<NodeId> {
+        let index = self.scope_index.get_or_init(|| self.build_scope_index());
+        index.get(node.0 as usize).copied().flatten()
+    }
+
+    /// One-pass exact computation of [`Il::nearest_scope`] for every node.
+    ///
+    /// Scopes are visited in (width asc, id asc) order — the same preference order
+    /// a per-node argmin would use — and each scope claims every still-unclaimed
+    /// node whose span it contains, so the first claim is the best one. A
+    /// path-compressed "next unclaimed position" skip list over the start-sorted
+    /// node order makes each node's claim O(α); per scope, only nodes that start
+    /// inside but end outside its span (its ancestors — O(depth) of them) are
+    /// re-examined later.
+    fn build_scope_index(&self) -> Vec<Option<NodeId>> {
+        let n = self.nodes.len();
+        let mut scopes: Vec<(u32, u32)> = self
+            .nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, node)| matches!(node.kind, NodeKind::Func | NodeKind::Lambda))
+            .map(|(idx, node)| {
+                let width = node.span.end_byte.saturating_sub(node.span.start_byte);
+                (width, idx as u32)
+            })
+            .collect();
+        scopes.sort_unstable();
+
+        let mut order: Vec<u32> = (0..n as u32).collect();
+        order.sort_unstable_by_key(|&idx| (self.nodes[idx as usize].span.start_byte, idx));
+        let starts: Vec<u32> = order
+            .iter()
+            .map(|&idx| self.nodes[idx as usize].span.start_byte)
+            .collect();
+
+        let mut by_node: Vec<Option<NodeId>> = vec![None; n];
+        // next[pos] = the next possibly-unclaimed position at or after pos.
+        let mut next: Vec<u32> = (0..=n as u32).collect();
+        fn next_unclaimed(next: &mut [u32], from: u32) -> u32 {
+            let mut root = from;
+            while next[root as usize] != root {
+                root = next[root as usize];
+            }
+            let mut cur = from;
+            while next[cur as usize] != root {
+                let hop = next[cur as usize];
+                next[cur as usize] = root;
+                cur = hop;
+            }
+            root
+        }
+
+        for (_, scope_idx) in scopes {
+            let scope_span = self.nodes[scope_idx as usize].span;
+            let lo = starts.partition_point(|&start| start < scope_span.start_byte) as u32;
+            let mut pos = next_unclaimed(&mut next, lo);
+            while (pos as usize) < n {
+                let target = order[pos as usize];
+                let target_span = self.nodes[target as usize].span;
+                if target_span.start_byte > scope_span.end_byte {
+                    break;
+                }
+                if target_span.file == scope_span.file
+                    && target_span.end_byte <= scope_span.end_byte
+                {
+                    by_node[target as usize] = Some(NodeId(scope_idx));
+                    next[pos as usize] = pos + 1;
+                }
+                pos = next_unclaimed(&mut next, pos + 1);
+            }
+        }
+        by_node
+    }
+
     pub fn find_or_push_first_party_evidence(
         &mut self,
         anchor: EvidenceAnchor,
@@ -177,23 +344,59 @@ impl Il {
             .or_else(|| self.evidence.iter().find(|record| record.id == id))
     }
 
+    /// Whether every dependency of `record` (transitively) resolves and is
+    /// `Asserted`. Id resolution goes through the lazy evidence index — the
+    /// previous per-call resolution was a top hot spot on evidence-dense
+    /// minified inputs.
     pub fn evidence_dependencies_asserted(&self, record: &EvidenceRecord) -> bool {
-        let mut stack = record.dependencies.clone();
-        let mut seen = Vec::new();
-        while let Some(id) = stack.pop() {
-            if seen.contains(&id) {
-                continue;
-            }
-            seen.push(id);
-            let Some(dep) = self.evidence_record_by_id(id) else {
-                return false;
-            };
-            if dep.status != EvidenceStatus::Asserted {
-                return false;
-            }
-            stack.extend_from_slice(&dep.dependencies);
+        if record.dependencies.is_empty() {
+            return true;
         }
-        true
+        self.with_evidence_index(|index| index.deps_walk(&self.evidence, &record.dependencies))
+    }
+
+    /// Evidence records whose anchor sits exactly at `span` (all anchor kinds
+    /// match by exact span equality). Backed by the lazy evidence index, so a
+    /// caller no longer pays a full `evidence` scan per query.
+    pub fn evidence_anchored_at(&self, span: Span) -> impl Iterator<Item = &EvidenceRecord> {
+        let indices = self.with_evidence_index(|index| {
+            index
+                .by_anchor_span
+                .get(&(span.file.0, span.start_byte, span.end_byte))
+                .cloned()
+                .unwrap_or_default()
+        });
+        indices
+            .into_iter()
+            .map(move |idx| &self.evidence[idx as usize])
+    }
+
+    /// Drop the lazy evidence index. Appends are picked up automatically,
+    /// removals trigger a rebuild, and `status`/`dependencies` are read live —
+    /// call this only after rewriting a record's `anchor` or `id` in place.
+    pub fn invalidate_evidence_index(&mut self) {
+        *self.evidence_index.write().unwrap() = None;
+    }
+
+    fn with_evidence_index<T>(&self, read: impl FnOnce(&EvidenceIndex) -> T) -> T {
+        {
+            let guard = self.evidence_index.read().unwrap();
+            if let Some(index) = guard.as_ref() {
+                if index.indexed_len == self.evidence.len() {
+                    return read(index);
+                }
+            }
+        }
+        let mut guard = self.evidence_index.write().unwrap();
+        let index = guard.get_or_insert_with(EvidenceIndex::default);
+        if index.indexed_len > self.evidence.len() {
+            // Records were removed (e.g. a `retain`); indices are stale — rebuild.
+            *index = EvidenceIndex::default();
+        }
+        if index.indexed_len != self.evidence.len() {
+            index.extend_from(&self.evidence);
+        }
+        read(index)
     }
 
     /// Render a subtree as an s-expression (used by `nose il --format sexpr`).
@@ -340,6 +543,8 @@ impl IlBuilder {
             cid_names,
             suppressed: Vec::new(),
             evidence: Vec::new(),
+            scope_index: std::sync::OnceLock::new(),
+            evidence_index: std::sync::RwLock::new(None),
         }
     }
 }

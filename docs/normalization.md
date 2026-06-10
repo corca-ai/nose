@@ -343,6 +343,14 @@ seed). Fixed in the same change: the recurrence now carries its seed as an opera
 seed reaches the fingerprint. It reproduced with hand-written loops alone — the recursion
 rewrite merely made it reachable from recursive functions too.)
 
+The same lesson later repeated for **selection reductions**: min/max loop accumulators
+originally dropped their seed on the theory that a selection has no identity element to
+normalize away — but that is exactly why the seed is behavior-defining (`best = 0` clamps
+at 0 on empty or all-negative input; true `max(…)` does not). `nose verify` flagged the
+merge the moment 2-argument `min`/`max` became interpretable. Selection reductions now
+carry their seed; the seedless builtin forms (`max(xs)`, first-element-seeded `reduce`)
+stay 1-arg so they only converge with each other.
+
 ---
 
 ### Why semantic normalization is still worth trying

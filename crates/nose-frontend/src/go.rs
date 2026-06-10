@@ -378,9 +378,12 @@ fn lower_assign_like(lo: &mut Lowering, node: TsNode) -> NodeId {
             // `a &^= b` → `a = a & ^b`, same bit-clear desugar as the binary form.
             if op_text.trim_end_matches('=') == "&^" {
                 go_bitclear(lo, lspan, lhs2, r)
-            } else {
-                let op = js_like_compound_op(op_text).unwrap_or(Op::Add);
+            } else if let Some(op) = js_like_compound_op(op_text) {
                 lo.add(NodeKind::BinOp, Payload::Op(op), lspan, &[lhs2, r])
+            } else {
+                // Unmapped compound operator: keep its own raw shape rather than
+                // defaulting to `Add` (which would merge it with `a += b`).
+                lo.raw(&format!("compound_assignment {op_text}"), lspan, &[lhs2, r])
             }
         } else {
             rights

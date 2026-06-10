@@ -807,6 +807,8 @@ struct ManifestPack {
     description: Option<String>,
     trust: PackTrust,
     enabled_by_default: bool,
+    // Documented v0 schema field the engine does not consume; listed (typed) so
+    // `deny_unknown_fields` still accepts and validates conforming manifests.
     #[serde(default, rename = "status")]
     _status: Option<SemanticPackStatus>,
 }

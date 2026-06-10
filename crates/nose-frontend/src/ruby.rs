@@ -297,14 +297,17 @@ fn lower_assign(lo: &mut Lowering, node: TsNode) -> NodeId {
             .child_by_field_name("operator")
             .map(|o| lo.text(o))
             .unwrap_or("+=");
-        if let Some(op) = common_bin_op(opt.trim_end_matches('=')) {
-            let l2 = node
-                .child_by_field_name("left")
-                .map(|x| lower_expr(lo, x))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let bin = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l2, r]);
-            return lo.add(NodeKind::Assign, Payload::None, span, &[l, bin]);
-        }
+        let l2 = node
+            .child_by_field_name("left")
+            .map(|x| lower_expr(lo, x))
+            .unwrap_or_else(|| lo.empty_block(span));
+        // An unmapped compound operator keeps its own raw shape — dropping the
+        // operator would merge it with `x = y`.
+        let value = match common_bin_op(opt.trim_end_matches('=')) {
+            Some(op) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l2, r]),
+            None => lo.raw(&format!("compound_assignment {opt}"), span, &[l2, r]),
+        };
+        return lo.add(NodeKind::Assign, Payload::None, span, &[l, value]);
     }
     lo.add(NodeKind::Assign, Payload::None, span, &[l, r])
 }

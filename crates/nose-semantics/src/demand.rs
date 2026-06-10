@@ -96,15 +96,6 @@ impl DemandEffectProfile {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum BuiltinDemand {
-    Eager,
-    Reduce,
-    AnyAll { all: bool },
-    Append,
-    ValueOrDefault,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum BuiltinDemandProfile {
     Eager { contract: EagerBuiltinContract },
     FoldReduction,
@@ -114,16 +105,6 @@ pub enum BuiltinDemandProfile {
 }
 
 impl BuiltinDemandProfile {
-    pub fn legacy_demand(self) -> BuiltinDemand {
-        match self {
-            BuiltinDemandProfile::Eager { .. } => BuiltinDemand::Eager,
-            BuiltinDemandProfile::FoldReduction => BuiltinDemand::Reduce,
-            BuiltinDemandProfile::ShortCircuitQuantifier { all } => BuiltinDemand::AnyAll { all },
-            BuiltinDemandProfile::AppendMutation => BuiltinDemand::Append,
-            BuiltinDemandProfile::NullishDefault => BuiltinDemand::ValueOrDefault,
-        }
-    }
-
     pub fn eager_contract(self) -> Option<EagerBuiltinContract> {
         match self {
             BuiltinDemandProfile::Eager { contract } => Some(contract),
@@ -185,10 +166,6 @@ pub fn builtin_demand_profile(builtin: Builtin) -> BuiltinDemandProfile {
 
 pub fn builtin_demand_effect_profile(builtin: Builtin) -> DemandEffectProfile {
     builtin_demand_profile(builtin).demand_effect_profile()
-}
-
-pub fn builtin_demand(builtin: Builtin) -> BuiltinDemand {
-    builtin_demand_profile(builtin).legacy_demand()
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

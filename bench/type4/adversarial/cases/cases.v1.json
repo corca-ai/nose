@@ -112,14 +112,14 @@
     },
     {
       "id": "max_flat_map_nested_loop",
-      "kind": "positive",
+      "kind": "hard-negative",
       "semantic_family": "hof.flat_map",
-      "claim": "A max selection over a flat-map stream equals the corresponding nested selection loop.",
+      "claim": "A zero-seeded nested selection loop clamps at its seed (returns 0 on empty or all-negative input); true max over the flat-map stream does not.",
       "fixtures": [
         "bench/type4/adversarial/cases/flat_map_aggregate/max_flat.py",
         "bench/type4/adversarial/cases/flat_map_aggregate/max_loop.py"
       ],
-      "evidence": "Focused equivalence test converges max(x + y for x in xs for y in ys) with the nested best-update loop."
+      "evidence": "nose verify flagged the previous positive labeling as a false merge (10 differing inputs) once 2-argument min/max became interpretable; selection reductions now key their seed, and the focused equivalence test asserts the fingerprints differ while equal-seeded loops still converge."
     },
     {
       "id": "any_flat_map_nested_loop",

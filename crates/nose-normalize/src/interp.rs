@@ -677,8 +677,8 @@ impl<'a> Interp<'a> {
                 _ => Ok(Value::Err),
             },
             EagerBuiltinContract::Sum => Ok(fold_ints(args.first(), 0, |a, x| a + x)),
-            EagerBuiltinContract::Min => Ok(fold_opt(args.first(), |a, x| a.min(x))),
-            EagerBuiltinContract::Max => Ok(fold_opt(args.first(), |a, x| a.max(x))),
+            EagerBuiltinContract::Min => Ok(min_max_value(&args, |a, x| a.min(x))),
+            EagerBuiltinContract::Max => Ok(min_max_value(&args, |a, x| a.max(x))),
             EagerBuiltinContract::Range => range_values(&args),
             EagerBuiltinContract::Zip => match (args.first(), args.get(1)) {
                 (Some(Value::List(a)), Some(Value::List(b))) => Ok(Value::List(
@@ -1116,6 +1116,17 @@ fn fold_ints(v: Option<&Value>, init: i64, f: impl Fn(i64, i64) -> i64) -> Value
     }
 }
 
+/// `min`/`max` over either canonical form: a single collection (`min(xs)`) or two
+/// scalars (`min(a, b)` — the 2-way selection that `[a, b].min()` and the
+/// `a if a < b else b` ternary also canonicalize to). Without the scalar form the
+/// oracle was blind to exactly the convergences the value graph claims for it.
+fn min_max_value(args: &[Value], f: impl Fn(i64, i64) -> i64) -> Value {
+    match args {
+        [Value::Int(a), Value::Int(b)] => Value::Int(f(*a, *b)),
+        _ => fold_opt(args.first(), f),
+    }
+}
+
 fn fold_opt(v: Option<&Value>, f: impl Fn(i64, i64) -> i64) -> Value {
     match v {
         Some(Value::List(xs)) => {
@@ -1211,6 +1222,22 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
                     Value::Err
                 } else {
                     Int(x.wrapping_rem(*y))
+                }
+            }
+            // Floor division rounds the quotient toward −∞ (Python `//`): the
+            // truncating quotient is decremented when the remainder is nonzero
+            // and the operands disagree in sign (`-5 // 2 == -3`, `5 // -2 == -3`).
+            Op::FloorDiv => {
+                if *y == 0 {
+                    Value::Err
+                } else {
+                    let q = x.wrapping_div(*y);
+                    let r = x.wrapping_rem(*y);
+                    Int(if r != 0 && (r < 0) != (*y < 0) {
+                        q - 1
+                    } else {
+                        q
+                    })
                 }
             }
             // An exponent that isn't a non-negative `u32` has no usable value here: a

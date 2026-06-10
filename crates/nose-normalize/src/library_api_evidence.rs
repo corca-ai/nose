@@ -226,29 +226,7 @@ fn local_collection_seed_dependency_id(
 }
 
 fn nearest_scope(il: &Il, node: NodeId) -> Option<NodeId> {
-    let target = il.node(node).span;
-    let mut best: Option<(u32, NodeId)> = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda)
-            || !span_contains(candidate.span, target)
-        {
-            continue;
-        }
-        let width = candidate
-            .span
-            .end_byte
-            .saturating_sub(candidate.span.start_byte);
-        if best.is_none_or(|(best_width, _)| width < best_width) {
-            best = Some((width, NodeId(idx as u32)));
-        }
-    }
-    best.map(|(_, scope)| scope)
-}
-
-fn span_contains(outer: nose_il::Span, inner: nose_il::Span) -> bool {
-    outer.file == inner.file
-        && outer.start_byte <= inner.start_byte
-        && outer.end_byte >= inner.end_byte
+    il.nearest_scope(node)
 }
 
 fn collection_seed_dependency_id(il: &Il, node: NodeId) -> Option<EvidenceId> {

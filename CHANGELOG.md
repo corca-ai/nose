@@ -6,6 +6,54 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Soundness:** a seeded selection loop (`best = 0; … if v > best: best = v`) no
+  longer merges with the true builtin selection (`max(…)`) — the seed clamps the
+  result (empty or all-negative input returns the seed), so it is
+  behavior-defining. Selection reductions now carry their seed in the value
+  fingerprint; equally-seeded loops still converge with each other. Found by
+  `nose verify` the moment 2-argument `min`/`max` became interpretable; the
+  mislabeled adversarial benchmark case was flipped to a hard negative.
+- **Soundness:** Python `//` no longer shares a fingerprint with `/`. Floor division
+  is its own IL operator (`FloorDiv`, quotient toward −∞) with matching interpreter
+  semantics, so `5 / 2` (2.5) can never merge with `5 // 2` (2).
+- **Soundness:** JS/TS `>>>` (zero-fill shift) no longer collapses onto `>>`
+  (sign-extending shift); Python `@` (matmul) no longer collapses onto `*`. Both
+  keep a raw shape keyed by their own operator spelling.
+- **Soundness:** a strict null check (`x === null` / `x !== null`) no longer merges
+  with the nullish family (`x ?? d`, `x == null ? d : x`) — strict and loose checks
+  differ on every `undefined` input. `=== undefined` against a proven typed
+  `Map.get` result still converges with `??` (there the strict check is the
+  faithful absence test). `x ?? d` still converges with `x == null ? d : x`.
+- **Soundness:** compound assignments with an operator the IL does not model no
+  longer silently degrade: JS `x ??= y` now desugars to `x = x ?? y` (it lowered
+  as `x += y`); Java `x >>>= y` lowered as `x = y`; unmapped operators across
+  Python/JS/Go/Rust/Java/C/Ruby now keep a raw shape keyed by the operator
+  spelling instead of defaulting to `Add` or plain assignment.
+- Two different unmapped binary operators over the same operands no longer share a
+  raw fingerprint — the raw fallback now keys by the operator spelling.
+- The interpreter oracle evaluates 2-argument `min`/`max` (the 2-way selection
+  `[a, b].min()` canonicalizes to) instead of erring — closing an oracle blind
+  spot on exactly the convergences the value graph claims.
+
+### Added
+- Ruby `**` now lowers to the shared exponentiation operator and converges with
+  Python/JS `**`.
+
+### Performance
+- Minified-bundle-sized files no longer hit a quadratic cliff: `nearest_scope`
+  and evidence-record lookups were per-query linear scans over all IL
+  nodes/records and are now lazy per-file indexes. A 246 KB minified JS file
+  went from 227 s to ≈ 2 s in normalize+extract (~118×), and ordinary repos get
+  ~3× faster normalize+extract. Profiler-driven (`sample` + `NOSE_TIME=1`).
+
+### Removed
+- Pre-release compat shims: `seq_surface_contract_evidence_for_node`,
+  `unshadowed_global_symbol` (spelling fallback), `builtin_demand` and the legacy
+  `BuiltinDemand` enum (superseded by `builtin_demand_profile`), the superseded
+  `lcs_ratio` scorer, the unused `minhash::estimate`, and the never-constructed
+  `EvidenceEmitter::Legacy` variant.
+
 ## [0.5.0] - 2026-06-05
 
 ### Added

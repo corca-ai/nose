@@ -32,13 +32,3 @@ pub(crate) fn sign(distinct: &[u64], seeds: &[u64]) -> Vec<u64> {
     }
     sig
 }
-
-/// Estimated Jaccard similarity from two signatures (fraction of equal slots).
-#[allow(dead_code)]
-pub(crate) fn estimate(a: &[u64], b: &[u64]) -> f64 {
-    if a.is_empty() {
-        return 0.0;
-    }
-    let eq = a.iter().zip(b).filter(|(x, y)| x == y).count();
-    eq as f64 / a.len() as f64
-}

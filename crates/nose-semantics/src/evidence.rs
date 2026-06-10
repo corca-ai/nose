@@ -26,13 +26,17 @@ pub(crate) enum EvidenceResolution<T> {
     Ambiguous,
 }
 
+/// Resolve the unique evidence value projected by `project` among the records
+/// anchored exactly at `span` (anchors only ever match by exact span equality,
+/// so the span-bucketed index replaces a full `evidence` scan per query).
 pub(crate) fn unique_evidence_at<T: Copy + Eq>(
     il: &Il,
+    span: Span,
     anchor_matches: impl Fn(EvidenceAnchor) -> bool,
     project: impl Fn(EvidenceKind) -> Option<T>,
 ) -> EvidenceResolution<T> {
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if !anchor_matches(record.anchor) {
             continue;
         }
@@ -53,11 +57,12 @@ pub(crate) fn unique_evidence_at<T: Copy + Eq>(
 
 pub(crate) fn unique_asserted_evidence_at<T: Copy + Eq>(
     il: &Il,
+    span: Span,
     anchor_matches: impl Fn(EvidenceAnchor) -> bool,
     project: impl Fn(EvidenceKind) -> Option<T>,
 ) -> EvidenceResolution<T> {
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if !anchor_matches(record.anchor) {
             continue;
         }
@@ -81,7 +86,7 @@ fn evidence_at_span<T: Copy + Eq>(
     span: Span,
     project: impl Fn(EvidenceKind) -> Option<T>,
 ) -> EvidenceResolution<T> {
-    unique_asserted_evidence_at(il, |anchor| anchor.matches_span(span), project)
+    unique_asserted_evidence_at(il, span, |anchor| anchor.matches_span(span), project)
 }
 
 pub fn source_fact_at_node(il: &Il, node: NodeId, kind: SourceFactKind) -> bool {
@@ -195,6 +200,7 @@ pub fn direct_function_call_target_at_call(il: &Il, call: NodeId, target_root: N
     let target_span = il.node(target_root).span;
     match unique_asserted_evidence_at(
         il,
+        call_span,
         |anchor| matches!(anchor, EvidenceAnchor::Node { span, kind } if span == call_span && kind == NodeKind::Call),
         |evidence| match evidence {
             EvidenceKind::CallTarget(target) => Some(target),
@@ -244,6 +250,7 @@ pub fn call_target_evidence_status_at_call(
     let call_span = il.node(call).span;
     let target = match unique_asserted_evidence_at(
         il,
+        call_span,
         |anchor| matches!(anchor, EvidenceAnchor::Node { span, kind } if span == call_span && kind == NodeKind::Call),
         |evidence| match evidence {
             EvidenceKind::CallTarget(target) => Some(target),
@@ -647,6 +654,7 @@ pub(crate) fn strict_numeric_operand_operator(op: Op) -> bool {
         Op::Sub
             | Op::Mul
             | Op::Div
+            | Op::FloorDiv
             | Op::Mod
             | Op::Pow
             | Op::BitAnd
@@ -660,6 +668,7 @@ pub(crate) fn strict_numeric_operand_operator(op: Op) -> bool {
 pub fn domain_evidence_at_span(il: &Il, span: Span) -> Option<DomainEvidence> {
     match unique_asserted_evidence_at(
         il,
+        span,
         |anchor| anchor.matches_span(span),
         |evidence| match evidence {
             EvidenceKind::Domain(domain) => Some(domain),
@@ -749,6 +758,7 @@ pub fn nominal_type_domain_at_node(
 ) -> Option<DomainEvidence> {
     match unique_asserted_evidence_at(
         il,
+        il.node(node).span,
         |anchor| anchor == EvidenceAnchor::node(il.node(node).span, il.kind(node)),
         |evidence| match evidence {
             EvidenceKind::Type(TypeEvidenceKind::NominalDomain {
@@ -769,6 +779,7 @@ fn domain_evidence_at_exact_anchor(
 ) -> EvidenceResolution<DomainEvidence> {
     unique_asserted_evidence_at(
         il,
+        expected.span(),
         |anchor| anchor == expected,
         |evidence| match evidence {
             EvidenceKind::Domain(domain) => Some(domain),
@@ -946,6 +957,7 @@ fn domain_evidence_at_binding_lhs(
     };
     unique_asserted_evidence_at(
         il,
+        span,
         |anchor| {
             matches!(
                 anchor,
@@ -1112,22 +1124,5 @@ fn cid_is_assigned_in_scope(il: &Il, cid: u32, scope: NodeId) -> bool {
 }
 
 pub(crate) fn nearest_scope(il: &Il, node: NodeId) -> Option<NodeId> {
-    let target = il.node(node).span;
-    let mut best: Option<(u32, NodeId)> = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if !matches!(candidate.kind, NodeKind::Func | NodeKind::Lambda) {
-            continue;
-        }
-        if !span_contains(candidate.span, target) {
-            continue;
-        }
-        let width = candidate
-            .span
-            .end_byte
-            .saturating_sub(candidate.span.start_byte);
-        if best.is_none_or(|(best_width, _)| width < best_width) {
-            best = Some((width, NodeId(idx as u32)));
-        }
-    }
-    best.map(|(_, scope)| scope)
+    il.nearest_scope(node)
 }

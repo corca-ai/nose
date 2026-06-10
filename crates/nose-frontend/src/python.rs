@@ -297,34 +297,11 @@ fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
     lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
-/// `a OP= b`  →  `a = a OP b`. The lhs is lowered twice (two faithful subtrees).
 fn lower_aug_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
-    let span = lo.span(node);
-    let left = node.child_by_field_name("left");
-    if let Some(l) = left {
+    if let Some(l) = node.child_by_field_name("left") {
         clear_assigned_param_alias(lo, l);
     }
-    let right = node.child_by_field_name("right");
-    let op = node
-        .child_by_field_name("operator")
-        .map(|o| lo.text(o))
-        .and_then(py_aug_op)
-        .unwrap_or(Op::Add);
-
-    let lhs1 = match left {
-        Some(l) => lower_expr(lo, l),
-        None => lo.empty_block(span),
-    };
-    let lhs2 = match left {
-        Some(l) => lower_expr(lo, l),
-        None => lo.empty_block(span),
-    };
-    let rhs = match right {
-        Some(r) => lower_expr(lo, r),
-        None => lo.empty_block(span),
-    };
-    let binop = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[lhs2, rhs]);
-    lo.add(NodeKind::Assign, Payload::None, span, &[lhs1, binop])
+    crate::lower::compound_assignment(lo, node, py_bin_op, lower_expr)
 }
 
 fn clear_assigned_param_alias(lo: &mut Lowering, node: TsNode) {
@@ -1181,8 +1158,14 @@ fn py_bin_op(text: &str) -> Option<Op> {
     Some(match text {
         "+" => Op::Add,
         "-" => Op::Sub,
-        "*" | "@" => Op::Mul,
-        "/" | "//" => Op::Div,
+        // `@` (matmul) is deliberately UNMAPPED: it is not elementwise `*`, so
+        // mapping it to `Mul` merged `a @ b` with `a * b` — a false merge. The
+        // raw fallback keys it by its own operator spelling instead.
+        "*" => Op::Mul,
+        // True division and floor division are distinct operations (`5 / 2 == 2.5`
+        // vs `5 // 2 == 2`); each gets its own op so they never share a fingerprint.
+        "/" => Op::Div,
+        "//" => Op::FloorDiv,
         "%" => Op::Mod,
         "**" => Op::Pow,
         "&" => Op::BitAnd,
@@ -1192,10 +1175,6 @@ fn py_bin_op(text: &str) -> Option<Op> {
         ">>" => Op::Shr,
         _ => return None,
     })
-}
-
-fn py_aug_op(text: &str) -> Option<Op> {
-    py_bin_op(text.trim_end_matches('='))
 }
 
 /// Map a comparison operator string to `(op, negated, source fact)`. `not in` / `is not`

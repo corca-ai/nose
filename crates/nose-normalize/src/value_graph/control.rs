@@ -767,7 +767,7 @@ impl<'a> Builder<'a> {
         }
         let rhs = self.eval(kids[1], env);
         match op {
-            Op::Div | Op::Mod => self.int_const_eq(rhs, 0),
+            Op::Div | Op::FloorDiv | Op::Mod => self.int_const_eq(rhs, 0),
             Op::Pow => self
                 .static_int_expr(kids[1])
                 .is_some_and(|exp| !(0..=u32::MAX as i64).contains(&exp)),
@@ -1512,13 +1512,13 @@ impl<'a> Builder<'a> {
                 self.as_loop_reduction_step(newv, loopv, &loop_context, &mut reduction_cache),
             ) {
                 (Some(init), Some((op, contrib))) => {
-                    // Selection reductions (min/max) carry no init; folds carry one.
-                    let args = if is_selection_code(op) {
-                        vec![contrib]
-                    } else {
-                        vec![init, contrib]
-                    };
-                    let red = self.mk(ValOp::Reduce(op), args);
+                    // Every loop reduction carries its seed. For folds the seed is
+                    // the init operand; for selections (min/max) the seed CLAMPS the
+                    // result — `best = 0; …max…` returns 0 on all-negative input,
+                    // which true `max(…)` does not — so it is behavior-defining and
+                    // must reach the fingerprint. The builtins build a seedless
+                    // 1-arg `Reduce`, so they can never merge with a seeded loop.
+                    let red = self.mk(ValOp::Reduce(op), vec![init, contrib]);
                     env.insert(cid, red);
                 }
                 (init, _) => {

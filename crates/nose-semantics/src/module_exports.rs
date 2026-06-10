@@ -3,7 +3,7 @@
 use crate::{
     admitted_free_name_map_factory_at_call, admitted_java_map_entry_at_call,
     admitted_java_map_factory_at_call, import_fact_evidence_rhs, semantics,
-    seq_surface_contract_evidence_for_node, ImportedMapFactoryContract, JavaMapFactoryKind,
+    seq_surface_contract_for_node, ImportedMapFactoryContract, JavaMapFactoryKind,
     LibraryMapFactoryResult,
 };
 use nose_il::{Il, Interner, NodeId, NodeKind};
@@ -13,7 +13,7 @@ use nose_il::{Il, Interner, NodeId, NodeKind};
 pub fn imported_literal_export_safe(il: &Il, interner: &Interner, node: NodeId) -> bool {
     match il.kind(node) {
         NodeKind::Seq => {
-            seq_surface_contract_evidence_for_node(il, interner, node)
+            seq_surface_contract_for_node(il, interner, node)
                 .is_some_and(|contract| contract.imported_literal)
                 && il
                     .children(node)
@@ -32,7 +32,7 @@ fn literal_export_value_safe(il: &Il, interner: &Interner, node: NodeId) -> bool
             if import_fact_evidence_rhs(il, node).is_some() {
                 return false;
             }
-            if !seq_surface_contract_evidence_for_node(il, interner, node)
+            if !seq_surface_contract_for_node(il, interner, node)
                 .is_some_and(|contract| contract.exact_tree_safe)
             {
                 return false;
