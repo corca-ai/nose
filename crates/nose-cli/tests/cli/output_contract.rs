@@ -184,3 +184,51 @@ fn scan_json_families_carry_equivalence_witness() {
         "witness carries the shared multiset size: {out}"
     );
 }
+
+/// #223: families expose WHAT differs — each varying spot with per-side line
+/// ranges and text, consistent with `params` (same representative pair) — so a
+/// data-table family is classifiable from JSON alone.
+#[test]
+fn scan_json_families_carry_varying_spot_diff_evidence() {
+    let dir = std::env::temp_dir().join(format!("nose_spots_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("a.py"),
+        "def msg_ko(name, n):\n    head = \"KO-HEAD \" + name\n    body = \"KO-BODY \" + str(n)\n    return head + body\n\n\ndef msg_en(name, n):\n    head = \"EN-HEAD \" + name\n    body = \"EN-BODY \" + str(n)\n    return head + body\n",
+    )
+    .unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "near",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let fams = scan_families(&json);
+    assert_eq!(fams.len(), 1, "literal-varied twin pair expected: {out}");
+    let spots = fams[0]["varying_spots"]
+        .as_array()
+        .unwrap_or_else(|| panic!("varying_spots expected: {out}"));
+    assert!(!spots.is_empty(), "at least one spot: {out}");
+    let text = spots
+        .iter()
+        .map(|s| format!("{} {}", s["a_text"], s["b_text"]))
+        .collect::<String>();
+    assert!(
+        text.contains("KO-HEAD") && text.contains("EN-HEAD"),
+        "spot text shows the differing literals: {out}"
+    );
+    assert_eq!(
+        fams[0]["params"].as_u64().unwrap_or(0),
+        spots.len() as u64,
+        "spots and params come from the same representative pair: {out}"
+    );
+}

@@ -23,7 +23,7 @@ pub use fragment::{
     fragment_behavior, free_input_cids, synthesize_wrapper, Effect, EffectSite, Exit,
     FragmentContract, FragmentKind, Place, ProofFacts,
 };
-pub use report::{rank_families, RefactorFamily};
+pub use report::{rank_families, RefactorFamily, VaryingSpot};
 pub use units::UnitFeat;
 
 /// Build one file's syntax-channel token stream from its (raw) IL. Exposed so the

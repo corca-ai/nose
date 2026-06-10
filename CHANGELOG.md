@@ -75,6 +75,11 @@ break.
   spot on exactly the convergences the value graph claims.
 
 ### Added
+- Scan JSON families now carry `varying_spots` difference evidence: per varying
+  spot, both representative copies' absolute line ranges and trimmed text —
+  consistent with `params` by construction. With the witness's shape-vs-value
+  Jaccard split, a data-table family (the #216 audit's arrow case) is
+  classifiable from JSON alone.
 - Scan JSON families now carry an agent-facing equivalence `witness` naming WHY
   the members merged: `exact-value-graph` (with the shared multiset size),
   `shared-sub-dag`, `copy-paste-run`, or `structural-similarity` (with mean

@@ -303,6 +303,7 @@ mod tests {
             discount: 1.0,
             abstraction_witness: None,
             witness: None,
+            varying_spots: Vec::new(),
             semantic_laws: Vec::new(),
         }
     }

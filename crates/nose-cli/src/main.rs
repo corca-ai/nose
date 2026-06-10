@@ -3488,6 +3488,13 @@ fn weight_shared_lines(
     let mut lines = FileLineCache::default();
     let idf = corpus_line_idf(refs, exclude, &mut lines);
     for f in families.iter_mut().filter(|f| needs_shared(f)) {
+        // Difference evidence comes from the same first readable representative
+        // pair the `params` count uses (locations[0] vs the first member that
+        // reads), so the two fields stay mutually consistent.
+        f.varying_spots = f.locations[1..]
+            .iter()
+            .find_map(|b| varying_spots_of(&f.locations[0], b, &mut lines))
+            .unwrap_or_default();
         if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
             let substantive: f64 = shared
                 .iter()
@@ -4175,6 +4182,96 @@ fn shared_lines_of(
     Some((shared, params))
 }
 
+/// The varying spots between two location line-blocks (#223): each maximal
+/// differing run in the line diff becomes one spot carrying both sides' ABSOLUTE
+/// source-line ranges and trimmed, length-capped text — so an agent can see WHAT
+/// an extracted helper would parameterize (e.g. "every spot is a data literal")
+/// without opening files. Same diff the `params` count walks.
+fn varying_spots_of(
+    a: &nose_detect::Loc,
+    b: &nose_detect::Loc,
+    cache: &mut FileLineCache,
+) -> Option<Vec<nose_detect::VaryingSpot>> {
+    const SPOT_CAP: usize = 16;
+    const TEXT_CAP: usize = 160;
+    let la = cache.slice(&a.file, a.start_line, a.end_line)?;
+    let lb = cache.slice(&b.file, b.start_line, b.end_line)?;
+    let ar: Vec<&str> = la.iter().map(String::as_str).collect();
+    let br: Vec<&str> = lb.iter().map(String::as_str).collect();
+    let cap_text = |t: &str| {
+        let t = t.trim();
+        if t.len() > TEXT_CAP {
+            let mut end = TEXT_CAP;
+            while !t.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}…", &t[..end])
+        } else {
+            t.to_string()
+        }
+    };
+    let mut spots: Vec<nose_detect::VaryingSpot> = Vec::new();
+    let (mut ai, mut bi) = (0u32, 0u32);
+    let mut open = false;
+    for (tag, line) in line_diff(&ar, &br) {
+        match tag {
+            ' ' => {
+                open = false;
+                ai += 1;
+                bi += 1;
+            }
+            _ => {
+                if !open {
+                    open = true;
+                    if spots.len() >= SPOT_CAP {
+                        return Some(spots);
+                    }
+                    spots.push(nose_detect::VaryingSpot {
+                        param: spots.len() as u32 + 1,
+                        a_lines: None,
+                        b_lines: None,
+                        a_text: String::new(),
+                        b_text: String::new(),
+                    });
+                }
+                let spot = spots.last_mut().expect("opened above");
+                if tag == '-' {
+                    let abs = a.start_line + ai;
+                    spot.a_lines = Some(match spot.a_lines {
+                        None => (abs, abs),
+                        Some((s, _)) => (s, abs),
+                    });
+                    if !spot.a_text.is_empty() {
+                        spot.a_text.push(' ');
+                    }
+                    if spot.a_text.len() <= TEXT_CAP {
+                        spot.a_text.push_str(&cap_text(&line));
+                    }
+                    ai += 1;
+                } else {
+                    let abs = b.start_line + bi;
+                    spot.b_lines = Some(match spot.b_lines {
+                        None => (abs, abs),
+                        Some((s, _)) => (s, abs),
+                    });
+                    if !spot.b_text.is_empty() {
+                        spot.b_text.push(' ');
+                    }
+                    if spot.b_text.len() <= TEXT_CAP {
+                        spot.b_text.push_str(&cap_text(&line));
+                    }
+                    bi += 1;
+                }
+            }
+        }
+    }
+    for s in &mut spots {
+        s.a_text = cap_text(&s.a_text);
+        s.b_text = cap_text(&s.b_text);
+    }
+    Some(spots)
+}
+
 /// A line with no extractable content on its own: blank, pure delimiters (`}`, `});`,
 /// `)`), or a bare control keyword. Sharing one of these between two blocks says
 /// nothing about whether they're the same code.
@@ -4675,6 +4772,7 @@ mod tests {
             discount: 1.0,
             abstraction_witness: None,
             witness: None,
+            varying_spots: Vec::new(),
             semantic_laws: Vec::new(),
         }
     }

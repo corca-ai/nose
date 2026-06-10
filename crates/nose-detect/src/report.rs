@@ -75,6 +75,35 @@ pub struct RefactorFamily {
     /// copy-paste run, or structural similarity with its value/shape components.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub witness: Option<crate::EquivalenceWitness>,
+    /// WHAT differs between the two representative copies (#223): each varying
+    /// spot the extracted helper would parameterize, with absolute line ranges
+    /// and truncated text per side. Same provenance as `params` (the first
+    /// readable representative pair); empty until the presentation layer reads
+    /// source, and for cross-language families.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub varying_spots: Vec<VaryingSpot>,
+}
+
+/// One varying spot between a family's two representative copies — the hole an
+/// extracted helper would parameterize. Sides may be one-sided (a pure
+/// insertion/deletion run has lines in only one copy).
+#[derive(Clone, serde::Serialize)]
+pub struct VaryingSpot {
+    /// 1-based parameter index, matching the family's `params` count.
+    pub param: u32,
+    /// Absolute `[start, end]` source lines of this spot in the FIRST
+    /// representative copy (the family's `locations[0]`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub a_lines: Option<(u32, u32)>,
+    /// Absolute `[start, end]` source lines in the second representative copy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub b_lines: Option<(u32, u32)>,
+    /// Trimmed, length-capped text of the spot in the first copy.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub a_text: String,
+    /// Trimmed, length-capped text of the spot in the second copy.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub b_text: String,
 }
 
 impl RefactorFamily {
@@ -504,6 +533,7 @@ fn family_of(group: &Group) -> RefactorFamily {
         discount,
         abstraction_witness: group.abstraction_witness.clone(),
         witness: group.witness.clone(),
+        varying_spots: Vec::new(),
         semantic_laws: group
             .semantic_laws
             .iter()
@@ -712,6 +742,7 @@ mod tests {
             discount: 1.0,
             abstraction_witness: None,
             witness: None,
+            varying_spots: Vec::new(),
             semantic_laws: Vec::new(),
         }
     }
