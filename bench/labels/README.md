@@ -42,6 +42,11 @@ small, three-reviewer audit of Java/Python hidden/review exact-fragment families
 validate surface policy after the semantic corpus pass. See
 [`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
 
+`lawpack_provenance_audit_2026_06_10.json` is also adjacent evidence, not part of
+the v5 metric. It records the full-corpus and targeted real-repo pass for the
+first-party `nose.value_graph.laws` LawPack pilot. See
+[`docs/lawpack-provenance-audit-2026-06-10.md`](../../docs/lawpack-provenance-audit-2026-06-10.md).
+
 ## Scoring against it
 
 `eval_by_language.py` — per-language precision@10 + worthy-recall, dev/heldout split, with
