@@ -9,7 +9,10 @@ use nose_il::{
     EvidenceProvenance, EvidenceRecord, EvidenceStatus, Il, Interner, LoopKind, NodeId, NodeKind,
     Payload, Symbol, SymbolEvidenceKind, UnitKind,
 };
-use nose_semantics::{imported_occurrence_symbol_dependencies_valid, FIRST_PARTY_PACK_ID};
+use nose_semantics::{
+    imported_occurrence_symbol_dependencies_valid_with_cache, ImportedOccurrenceValidationCache,
+    FIRST_PARTY_PACK_ID,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 const DIRECT_FUNCTION_RULE: &str = "normalize.call_target.direct_function";
@@ -80,8 +83,9 @@ pub(crate) fn run(il: &mut Il, interner: &Interner) {
             Vec::new(),
         );
     }
+    let mut imported_occurrence_cache = ImportedOccurrenceValidationCache::default();
     for call in calls {
-        record_imported_call_target(il, interner, call);
+        record_imported_call_target(il, interner, call, &mut imported_occurrence_cache);
     }
 }
 
@@ -290,7 +294,12 @@ fn collect_call_nodes(il: &Il, node: NodeId, out: &mut Vec<NodeId>) {
     }
 }
 
-fn record_imported_call_target(il: &mut Il, interner: &Interner, call: NodeId) {
+fn record_imported_call_target(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+    cache: &mut ImportedOccurrenceValidationCache,
+) {
     if il.kind(call) != NodeKind::Call || !matches!(il.node(call).payload, Payload::None) {
         return;
     }
@@ -299,7 +308,7 @@ fn record_imported_call_target(il: &mut Il, interner: &Interner, call: NodeId) {
     };
     match il.kind(callee) {
         NodeKind::Var => {
-            if let Some(target) = imported_function_target(il, interner, callee) {
+            if let Some(target) = imported_function_target(il, interner, callee, cache) {
                 il.find_or_push_first_party_evidence(
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
                     EvidenceKind::CallTarget(CallTargetEvidenceKind::ImportedFunction {
@@ -314,7 +323,7 @@ fn record_imported_call_target(il: &mut Il, interner: &Interner, call: NodeId) {
             }
         }
         NodeKind::Field => {
-            if let Some(target) = imported_member_target(il, interner, callee) {
+            if let Some(target) = imported_member_target(il, interner, callee, cache) {
                 il.find_or_push_first_party_evidence(
                     EvidenceAnchor::node(il.node(call).span, NodeKind::Call),
                     EvidenceKind::CallTarget(CallTargetEvidenceKind::ImportedMember {
@@ -336,6 +345,7 @@ fn imported_function_target(
     il: &mut Il,
     interner: &Interner,
     callee: NodeId,
+    cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<ImportedFunctionTarget> {
     let local_hash = node_name_hash(il, interner, callee)?;
     let (symbol, binding_dependency) =
@@ -347,8 +357,14 @@ fn imported_function_target(
     else {
         return None;
     };
-    let dependency =
-        upsert_valid_imported_symbol_occurrence(il, interner, callee, symbol, binding_dependency)?;
+    let dependency = upsert_valid_imported_symbol_occurrence(
+        il,
+        interner,
+        callee,
+        symbol,
+        binding_dependency,
+        cache,
+    )?;
     Some(ImportedFunctionTarget {
         module_hash,
         exported_hash,
@@ -361,6 +377,7 @@ fn imported_member_target(
     il: &mut Il,
     interner: &Interner,
     callee: NodeId,
+    cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<ImportedMemberTarget> {
     let Payload::Name(member) = il.node(callee).payload else {
         return None;
@@ -378,6 +395,7 @@ fn imported_member_target(
         receiver,
         symbol,
         binding_dependency,
+        cache,
     )?;
     match symbol {
         SymbolEvidenceKind::ImportedBinding {
@@ -457,8 +475,9 @@ fn upsert_valid_imported_symbol_occurrence(
     node: NodeId,
     symbol: SymbolEvidenceKind,
     binding_dependency: EvidenceId,
+    cache: &mut ImportedOccurrenceValidationCache,
 ) -> Option<EvidenceId> {
-    if !imported_symbol_occurrence_can_be_upserted(il, interner, node, symbol) {
+    if !imported_symbol_occurrence_can_be_upserted(il, interner, node, symbol, cache) {
         return None;
     }
     let rule = match symbol {
@@ -481,7 +500,9 @@ fn upsert_valid_imported_symbol_occurrence(
         dependencies: dependencies.clone(),
         status: EvidenceStatus::Asserted,
     };
-    if !imported_occurrence_symbol_dependencies_valid(il, interner, &candidate, symbol) {
+    if !imported_occurrence_symbol_dependencies_valid_with_cache(
+        il, interner, &candidate, symbol, cache,
+    ) {
         return None;
     }
     let id =
@@ -494,6 +515,7 @@ fn imported_symbol_occurrence_can_be_upserted(
     interner: &Interner,
     node: NodeId,
     expected: SymbolEvidenceKind,
+    cache: &mut ImportedOccurrenceValidationCache,
 ) -> bool {
     let anchor = EvidenceAnchor::node(il.node(node).span, NodeKind::Var);
     for record in &il.evidence {
@@ -506,7 +528,9 @@ fn imported_symbol_occurrence_can_be_upserted(
         if record.status != EvidenceStatus::Asserted
             || actual != expected
             || !il.evidence_dependencies_asserted(record)
-            || !imported_occurrence_symbol_dependencies_valid(il, interner, record, expected)
+            || !imported_occurrence_symbol_dependencies_valid_with_cache(
+                il, interner, record, expected, cache,
+            )
         {
             return false;
         }
@@ -1030,6 +1054,53 @@ mod tests {
             Vec::new(),
             Vec::new(),
         );
+        il.evidence.push(binding_symbol(
+            0,
+            sp(1),
+            "p",
+            SymbolEvidenceKind::ImportedBinding {
+                module_hash: stable_symbol_hash("math"),
+                exported_hash: stable_symbol_hash("prod"),
+            },
+            EvidenceStatus::Asserted,
+        ));
+
+        run(&mut il, &interner);
+
+        assert_eq!(call_target_evidence_at_call(&il, &interner, call), None);
+        assert!(!il.evidence.iter().any(|record| {
+            record.anchor == EvidenceAnchor::node(wide_sp(30, 31), NodeKind::Var)
+                && matches!(record.kind, EvidenceKind::Symbol(_))
+        }));
+    }
+
+    #[test]
+    fn does_not_emit_imported_function_target_when_parameter_shadows_alias() {
+        let interner = Interner::new();
+        let p = interner.intern("p");
+        let mut b = IlBuilder::new(FileId(0));
+        let param = b.add(NodeKind::Param, Payload::Cid(0), wide_sp(10, 11), &[]);
+        let callee = b.add(NodeKind::Var, Payload::Cid(0), wide_sp(30, 31), &[]);
+        let call = b.add(NodeKind::Call, Payload::None, wide_sp(31, 32), &[callee]);
+        let ret = b.add(NodeKind::Return, Payload::None, wide_sp(31, 33), &[call]);
+        let body = b.add(NodeKind::Block, Payload::None, wide_sp(20, 40), &[ret]);
+        let func = b.add(
+            NodeKind::Func,
+            Payload::None,
+            wide_sp(8, 50),
+            &[param, body],
+        );
+        let module = b.add(NodeKind::Module, Payload::None, wide_sp(0, 60), &[func]);
+        let mut il = b.finish(
+            module,
+            FileMeta {
+                path: "t".into(),
+                lang: Lang::Python,
+            },
+            Vec::new(),
+            Vec::new(),
+        );
+        il.cid_names = vec![p];
         il.evidence.push(binding_symbol(
             0,
             sp(1),

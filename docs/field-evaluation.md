@@ -169,3 +169,19 @@ Two substantive findings came out of this pass:
 
 The practical advice stands: scan source roots, not build output — but a
 committed bundle must degrade gracefully, and now it does.
+
+## Fourth pass follow-up — imported call-target proof cache
+
+The 105-repo bench corpus pass exposed a second real-world performance cliff:
+`commons-lang` scanned 620 files, but one large Java test file
+(`ArrayUtilsTest.java`) made `normalize+extract` take **≈119 s** while
+parse/lower and detector clustering stayed below 0.1 s and 0.02 s respectively.
+Sampler output showed almost all CPU under imported call-target occurrence
+validation, repeatedly proving that the same imported binding was still visible
+and not locally shadowed.
+
+Imported occurrence validation now reuses a per-file function/local-shadow cache.
+The same `commons-lang` semantic scan runs `normalize+extract` in **<1 s** with
+identical family ids; the single pathological `ArrayUtilsTest.java` scan dropped
+from **≈119 s** to **≈0.8 s**. This keeps the semantic-kernel fail-closed proof
+policy intact while removing the quadratic proof-validation shape.
