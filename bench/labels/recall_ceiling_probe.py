@@ -120,6 +120,17 @@ def features_units(files):
     return json.loads(r.stdout)["units"]
 
 
+def member_path(repo_dir: Path, member_file: str) -> Path:
+    marker = f"bench/repos/{repo_dir.name}/"
+    if member_file.startswith(marker):
+        return repo_dir / member_file[len(marker):]
+    if member_file.startswith("bench/repos/"):
+        parts = Path(member_file).parts
+        if len(parts) >= 4:
+            return repo_dir / Path(*parts[3:])
+    return ROOT / member_file
+
+
 def corpus_digest(corpus) -> str:
     h = hashlib.sha256()
     for r in sorted(corpus, key=lambda r: r["id"]):
@@ -131,7 +142,7 @@ def classify_missed(label, repo_dir):
     """Estimate recoverability for one arm1-missed worthy label. Returns a record."""
     members = label["members"][:2]
     files = sorted({m["file"] for m in members})
-    paths = [str(ROOT / f) for f in files]
+    paths = [str(member_path(repo_dir, f)) for f in files]
     if not all(Path(p).is_file() for p in paths):
         return {"class": "member-file-missing"}
     units = features_units(paths)
