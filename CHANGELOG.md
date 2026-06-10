@@ -46,6 +46,11 @@ break.
   nodes/records and are now lazy per-file indexes. A 246 KB minified JS file
   went from 227 s to ≈ 2 s in normalize+extract (~118×), and ordinary repos get
   ~3× faster normalize+extract. Profiler-driven (`sample` + `NOSE_TIME=1`).
+- Large Java test files with many imported API occurrences no longer spend
+  minutes revalidating the same import-shadow proof. Imported occurrence
+  validation now reuses a per-file function/local-shadow cache; the
+  `commons-lang` semantic scan outlier went from ≈119 s to <1 s in
+  normalize+extract, with identical family ids.
 
 ### Removed
 - Pre-release compat shims: `seq_surface_contract_evidence_for_node`,

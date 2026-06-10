@@ -214,6 +214,20 @@ pub struct LibraryApiDependencyCache {
     name_assigned_in_scope: FxHashMap<(NodeId, Symbol), bool>,
 }
 
+#[derive(Default)]
+pub struct ImportedOccurrenceValidationCache {
+    function_spans: Option<Vec<Span>>,
+    function_span_by_span: FxHashMap<Span, Option<Span>>,
+    var_cid_by_span: FxHashMap<Span, Option<u32>>,
+    local_shadows_by_function: Option<FxHashMap<Span, LocalShadowIndex>>,
+}
+
+#[derive(Default)]
+struct LocalShadowIndex {
+    by_cid: FxHashMap<u32, Vec<Span>>,
+    raw_assign_by_hash: FxHashMap<u64, Vec<Span>>,
+}
+
 pub fn library_api_receiver_dependencies_for_call_with_cache(
     il: &Il,
     interner: &Interner,
@@ -2627,6 +2641,23 @@ pub fn imported_occurrence_symbol_dependencies_valid(
     symbol_record: &EvidenceRecord,
     expected: SymbolEvidenceKind,
 ) -> bool {
+    let mut cache = ImportedOccurrenceValidationCache::default();
+    imported_occurrence_symbol_dependencies_valid_with_cache(
+        il,
+        interner,
+        symbol_record,
+        expected,
+        &mut cache,
+    )
+}
+
+pub fn imported_occurrence_symbol_dependencies_valid_with_cache(
+    il: &Il,
+    interner: &Interner,
+    symbol_record: &EvidenceRecord,
+    expected: SymbolEvidenceKind,
+    cache: &mut ImportedOccurrenceValidationCache,
+) -> bool {
     let EvidenceAnchor::Node {
         span: occurrence_span,
         kind: NodeKind::Var,
@@ -2662,8 +2693,14 @@ pub fn imported_occurrence_symbol_dependencies_valid(
     if !binding_has_no_visible_conflicting_assignment(il, interner, local_hash, binding_span) {
         return false;
     }
-    if !binding_has_no_visible_local_shadow(il, interner, local_hash, binding_span, occurrence_span)
-    {
+    if !binding_has_no_visible_local_shadow_with_cache(
+        il,
+        interner,
+        local_hash,
+        binding_span,
+        occurrence_span,
+        cache,
+    ) {
         return false;
     }
     binding_symbol_evidence_consistent_for_local(il, local_hash, expected)
@@ -2681,48 +2718,121 @@ fn binding_has_no_visible_conflicting_assignment(
         .all(|stmt| il.node(stmt).span == binding_span)
 }
 
-fn binding_has_no_visible_local_shadow(
+fn binding_has_no_visible_local_shadow_with_cache(
     il: &Il,
     interner: &Interner,
     local_hash: u64,
     binding_span: Span,
     occurrence_span: Span,
+    cache: &mut ImportedOccurrenceValidationCache,
 ) -> bool {
-    let Some(function_span) = innermost_enclosing_function_span(il, occurrence_span) else {
+    let Some(function_span) =
+        innermost_enclosing_function_span_with_cache(il, occurrence_span, cache)
+    else {
         return true;
     };
-    let occurrence_cid = var_cid_at_span(il, occurrence_span);
-    !il.nodes.iter().enumerate().any(|(idx, node)| {
-        let node_id = NodeId(idx as u32);
-        if !span_contains(function_span, node.span)
-            || node.span == binding_span
-            || node.span.start_byte > occurrence_span.start_byte
-            || innermost_enclosing_function_span(il, node.span) != Some(function_span)
-        {
-            return false;
-        }
-        match node.kind {
-            NodeKind::Param => node_cid(il, node_id)
-                .zip(occurrence_cid)
-                .is_some_and(|(param_cid, occurrence_cid)| param_cid == occurrence_cid),
-            NodeKind::Assign => {
-                assignment_lhs_cid(il, node_id)
-                    .zip(occurrence_cid)
-                    .is_some_and(|(lhs_cid, occurrence_cid)| lhs_cid == occurrence_cid)
-                    || assignment_lhs_raw_name_hash(il, interner, node_id) == Some(local_hash)
-            }
-            _ => false,
-        }
-    })
+    let occurrence_cid = var_cid_at_span_with_cache(il, occurrence_span, cache);
+    let indexes = local_shadow_indexes(il, interner, cache);
+    let Some(index) = indexes.get(&function_span) else {
+        return true;
+    };
+    let visible_before_occurrence =
+        |span: &Span| *span != binding_span && span.start_byte <= occurrence_span.start_byte;
+    if occurrence_cid.is_some_and(|cid| {
+        index
+            .by_cid
+            .get(&cid)
+            .is_some_and(|spans| spans.iter().any(visible_before_occurrence))
+    }) {
+        return false;
+    }
+    !index
+        .raw_assign_by_hash
+        .get(&local_hash)
+        .is_some_and(|spans| spans.iter().any(visible_before_occurrence))
 }
 
-fn innermost_enclosing_function_span(il: &Il, span: Span) -> Option<Span> {
-    il.nodes
+fn innermost_enclosing_function_span_with_cache(
+    il: &Il,
+    span: Span,
+    cache: &mut ImportedOccurrenceValidationCache,
+) -> Option<Span> {
+    if let Some(cached) = cache.function_span_by_span.get(&span) {
+        return *cached;
+    }
+    let function_spans = cache.function_spans.get_or_insert_with(|| {
+        il.nodes
+            .iter()
+            .filter_map(|node| (node.kind == NodeKind::Func).then_some(node.span))
+            .collect()
+    });
+    let result = function_spans
         .iter()
-        .filter_map(|node| {
-            (node.kind == NodeKind::Func && span_contains(node.span, span)).then_some(node.span)
-        })
-        .min_by_key(|span| span.end_byte.saturating_sub(span.start_byte))
+        .copied()
+        .filter(|function_span| span_contains(*function_span, span))
+        .min_by_key(|span| span.end_byte.saturating_sub(span.start_byte));
+    cache.function_span_by_span.insert(span, result);
+    result
+}
+
+fn var_cid_at_span_with_cache(
+    il: &Il,
+    span: Span,
+    cache: &mut ImportedOccurrenceValidationCache,
+) -> Option<u32> {
+    if let Some(cached) = cache.var_cid_by_span.get(&span) {
+        return *cached;
+    }
+    let result = var_cid_at_span(il, span);
+    cache.var_cid_by_span.insert(span, result);
+    result
+}
+
+fn local_shadow_indexes<'a>(
+    il: &Il,
+    interner: &Interner,
+    cache: &'a mut ImportedOccurrenceValidationCache,
+) -> &'a FxHashMap<Span, LocalShadowIndex> {
+    if cache.local_shadows_by_function.is_none() {
+        let mut indexes: FxHashMap<Span, LocalShadowIndex> = FxHashMap::default();
+        for (idx, node) in il.nodes.iter().enumerate() {
+            if !matches!(node.kind, NodeKind::Param | NodeKind::Assign) {
+                continue;
+            }
+            let node_id = NodeId(idx as u32);
+            let Some(function_span) =
+                innermost_enclosing_function_span_with_cache(il, node.span, cache)
+            else {
+                continue;
+            };
+            let index = indexes.entry(function_span).or_default();
+            match node.kind {
+                NodeKind::Param => {
+                    if let Some(cid) = node_cid(il, node_id) {
+                        index.by_cid.entry(cid).or_default().push(node.span);
+                    }
+                }
+                NodeKind::Assign => {
+                    if let Some(cid) = assignment_lhs_cid(il, node_id) {
+                        index.by_cid.entry(cid).or_default().push(node.span);
+                    }
+                    if let Some(hash) = assignment_lhs_raw_name_hash(il, interner, node_id) {
+                        index
+                            .raw_assign_by_hash
+                            .entry(hash)
+                            .or_default()
+                            .push(node.span);
+                    }
+                }
+                _ => {}
+            }
+        }
+        cache.local_shadows_by_function = Some(indexes);
+    }
+    cache
+        .local_shadows_by_function
+        .as_ref()
+        .expect("local shadow indexes initialized")
 }
 
 fn var_cid_at_span(il: &Il, span: Span) -> Option<u32> {
