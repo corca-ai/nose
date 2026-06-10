@@ -1256,3 +1256,72 @@ regression. The stable cost signal is extraction work: about 247ms extra over th
 Ruby corpus, with no candidate-family or default-surface expansion. Verdict: keep
 the allowlisted Ruby test-DSL block units. They remove the dominant Ruby unit-blind
 spot from the recall-ceiling probe without harming the default product metric.
+
+## BO. Rust `macro_rules!` arms — expose token-tree bodies without semantic overclaiming
+
+Issue #215 tested the second named unit-extraction gap from §BJ: Rust macro bodies,
+especially `clap`'s `clap_builder/src/macros.rs`, where duplicated `macro_rules!`
+arms were invisible because macro definitions only contributed a shadowing marker.
+
+The feasibility answer is mixed but useful. `tree-sitter-rust` exposes each
+`macro_rules!` arm as a `macro_rule` with `left` and `right` fields, but the RHS is
+a `token_tree`, not a parsed Rust statement/expression tree. The implementation
+therefore extracts each RHS as a named `Block` unit (`macro_name:armN`) containing
+one `Raw("macro_rule_body")` boundary plus identifier/literal atoms. That keeps the
+unit matchable by syntax/near, while `exact_safe=false` prevents the semantic exact
+channel from claiming runtime equivalence for token soup.
+
+### BO.1 — recall-ceiling probe
+
+Artifact: `bench/labels/rust_macro_rules_recovery_2026_06_10.json`.
+
+| metric | before | after | delta |
+|---|---:|---:|---:|
+| Rust `no-overlapping-unit` misses | 14 | 9 | -5 |
+| Rust arm1 missed worthy labels | 57 | 52 | -5 |
+| Rust arm1 recall, dev | 364/411 (88.6%) | 369/411 (89.8%) | +1.2pp |
+| Rust arm1 recall, held-out | 245/255 (96.1%) | 245/255 (96.1%) | +0.0pp |
+| Overall arm1 recall, dev | 94.9% | 95.1% | +0.2pp |
+| Overall arm1 recall, held-out | 96.7% | 96.7% | +0.0pp |
+
+The recovered labels are the `macro_rules!` arm-definition shape, led by the
+`clap` `arg_impl!` arms. The remaining Rust `no-overlapping-unit` records are
+not all the same shape: large single-arm macro definitions (`nushell`), macro
+invocation bodies (`regex` `ffi_fn!`, `ripgrep` `rgtest!`, Tokio test macros),
+top-level constant/import spans, and ordinary unit-size/window gaps remain.
+Those need separate, more conservative decisions.
+
+### BO.2 — default product metric
+
+Full default `eval_by_language.py --rank extractability --top 0` after the change
+did not move the product P@10 gate:
+
+| split | overall P@10 | Rust P@10 | Rust worthy recall |
+|---|---:|---:|---:|
+| dev | 63% [58-68] n=353 | 77% [65-88] n=57 | 318/411 |
+| held-out | 56% [50-61] n=308 | 62% [50-74] n=58 | 227/255 |
+
+Default worthy recall is essentially unchanged because these units are exact-unsafe
+token-tree units. They mainly help the maximal/near recall probe and make macro-arm
+duplication visible for review.
+
+### BO.3 — Rust extraction surface
+
+Measured across the 15 Rust corpus repos:
+
+| Rust corpus scan metric | before | after | delta |
+|---|---:|---:|---:|
+| units kept | 93948 | 94507 | +559 |
+| macro-arm units kept | 0 | 356 | +356 |
+| candidate families | 4819 | 4826 | +7 |
+| default-surface families | 4782 | 4789 | +7 |
+| scan wall time sum | 5.808s | 5.860s | +0.052s |
+| features wall time sum | 17.482s | 17.759s | +0.277s |
+
+The new macro-arm units have exactly one raw boundary each. Their measured raw ratio
+is not "mostly Raw": median 0.0667, mean 0.0634, max 0.125, with median token count
+15 and range 8-145. The cost is small but nonzero: +7 default-surface families over
+the Rust corpus. Verdict: keep `macro_rules!` arm units, but do not generalize to all
+macro invocation bodies in this issue. The remaining Rust no-overlap records should
+be handled as separate coverage questions because their blast radius is broader than
+arm definitions.

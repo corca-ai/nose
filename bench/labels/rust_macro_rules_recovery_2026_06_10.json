@@ -1,0 +1,335 @@
+{
+  "default_eval_after_extractability": {
+    "dev": {
+      "overall_p10": "63% [58-68] n=353",
+      "rust_p10": "77% [65-88] n=57",
+      "rust_recall": "318/411"
+    },
+    "heldout": {
+      "overall_p10": "56% [50-61] n=308",
+      "rust_p10": "62% [50-74] n=58",
+      "rust_recall": "227/255"
+    }
+  },
+  "generated_by": "manual #215 measurement using recall_ceiling_probe.py, eval_by_language.py, and before/after nose binaries",
+  "remaining_rust_no_overlapping_after": [
+    {
+      "channel": "contiguous",
+      "family_id": "46fd2ef00c8d9e98",
+      "members": [
+        {
+          "end_line": 321,
+          "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+          "start_line": 307
+        },
+        {
+          "end_line": 257,
+          "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+          "start_line": 243
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "nushell",
+      "split": "dev"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "5e0a811d5b711a35",
+      "members": [
+        {
+          "end_line": 151,
+          "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+          "start_line": 138
+        },
+        {
+          "end_line": 101,
+          "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+          "start_line": 88
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "nushell",
+      "split": "dev"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "b950a3c8f074b925",
+      "members": [
+        {
+          "end_line": 13,
+          "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/selector/selector_signed_integer.rs",
+          "start_line": 1
+        },
+        {
+          "end_line": 13,
+          "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/selector/selector_unsigned_integer.rs",
+          "start_line": 1
+        }
+      ],
+      "reason": "extract-base",
+      "repo": "nushell",
+      "split": "dev"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "1f02b28389d3dd36",
+      "members": [
+        {
+          "end_line": 514,
+          "file": "bench/repos/regex/regex-capi/src/rure.rs",
+          "start_line": 500
+        },
+        {
+          "end_line": 128,
+          "file": "bench/repos/regex/regex-capi/src/rure.rs",
+          "start_line": 114
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "regex",
+      "split": "heldout"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "fc8646004b5ef173",
+      "members": [
+        {
+          "end_line": 390,
+          "file": "bench/repos/regex/regex-capi/src/rure.rs",
+          "start_line": 378
+        },
+        {
+          "end_line": 348,
+          "file": "bench/repos/regex/regex-capi/src/rure.rs",
+          "start_line": 336
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "regex",
+      "split": "heldout"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "70daf912736d8c82",
+      "members": [
+        {
+          "end_line": 8,
+          "file": "bench/repos/ripgrep/tests/hay.rs",
+          "start_line": 1
+        },
+        {
+          "end_line": 209,
+          "file": "bench/repos/ripgrep/crates/searcher/src/lines.rs",
+          "start_line": 203
+        }
+      ],
+      "reason": "extract-data-table",
+      "repo": "ripgrep",
+      "split": "dev"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "8172f2a4057bdd27",
+      "members": [
+        {
+          "end_line": 241,
+          "file": "bench/repos/ripgrep/tests/json.rs",
+          "start_line": 207
+        },
+        {
+          "end_line": 190,
+          "file": "bench/repos/ripgrep/tests/json.rs",
+          "start_line": 157
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "ripgrep",
+      "split": "dev"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "6189ced49439fb29",
+      "members": [
+        {
+          "end_line": 265,
+          "file": "bench/repos/tokio/tokio/src/io/poll_evented.rs",
+          "start_line": 238
+        },
+        {
+          "end_line": 211,
+          "file": "bench/repos/tokio/tokio/src/io/poll_evented.rs",
+          "start_line": 180
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "tokio",
+      "split": "heldout"
+    },
+    {
+      "channel": "contiguous",
+      "family_id": "af17a49f38c801e2",
+      "members": [
+        {
+          "end_line": 467,
+          "file": "bench/repos/tokio/tokio/tests/rt_handle_block_on.rs",
+          "start_line": 457
+        },
+        {
+          "end_line": 401,
+          "file": "bench/repos/tokio/tokio/tests/rt_handle_block_on.rs",
+          "start_line": 370
+        }
+      ],
+      "reason": "extract-helper",
+      "repo": "tokio",
+      "split": "heldout"
+    }
+  ],
+  "rust_probe": {
+    "after": {
+      "missed_classes": {
+        "inline-ceiling": 5,
+        "no-overlapping-unit": 9,
+        "same-unit-window": 3,
+        "subdag-ceiling": 22,
+        "unrecovered": 13
+      },
+      "missed_count": 52,
+      "no_overlapping_unit_count": 9,
+      "summary": {
+        "Rust/dev": {
+          "hit_arm0": 318,
+          "hit_arm1": 369,
+          "inline-ceiling": 4,
+          "no-overlapping-unit": 5,
+          "same-unit-window": 2,
+          "subdag-ceiling": 19,
+          "unrecovered": 12,
+          "worthy": 411
+        },
+        "Rust/heldout": {
+          "hit_arm0": 227,
+          "hit_arm1": 245,
+          "inline-ceiling": 1,
+          "no-overlapping-unit": 4,
+          "same-unit-window": 1,
+          "subdag-ceiling": 3,
+          "unrecovered": 1,
+          "worthy": 255
+        }
+      }
+    },
+    "before": {
+      "missed_classes": {
+        "inline-ceiling": 4,
+        "no-overlapping-unit": 14,
+        "same-unit-window": 3,
+        "subdag-ceiling": 23,
+        "unrecovered": 13
+      },
+      "missed_count": 57,
+      "no_overlapping_unit_count": 14,
+      "summary": {
+        "Rust/dev": {
+          "hit_arm0": 318,
+          "hit_arm1": 364,
+          "inline-ceiling": 3,
+          "no-overlapping-unit": 10,
+          "same-unit-window": 2,
+          "subdag-ceiling": 20,
+          "unrecovered": 12,
+          "worthy": 411
+        },
+        "Rust/heldout": {
+          "hit_arm0": 226,
+          "hit_arm1": 245,
+          "inline-ceiling": 1,
+          "no-overlapping-unit": 4,
+          "same-unit-window": 1,
+          "subdag-ceiling": 3,
+          "unrecovered": 1,
+          "worthy": 255
+        }
+      }
+    }
+  },
+  "rust_surface_delta": {
+    "after": {
+      "default_surface": 4789,
+      "families": 4826,
+      "macro_arm_units": 356,
+      "units": 94507
+    },
+    "after_macro_raw_ratio": {
+      "count": 356,
+      "max": 0.125,
+      "mean": 0.0634,
+      "median": 0.0667,
+      "token_count_max": 145,
+      "token_count_median": 15.0,
+      "token_count_min": 8
+    },
+    "before": {
+      "default_surface": 4782,
+      "families": 4819,
+      "macro_arm_units": 0,
+      "units": 93948
+    },
+    "delta": {
+      "default_surface": 7,
+      "families": 7,
+      "macro_arm_units": 356,
+      "units": 559
+    },
+    "macro_arm_units_by_repo_after": {
+      "alacritty": 10,
+      "bat": 2,
+      "clap": 31,
+      "fd": 6,
+      "image": 13,
+      "meilisearch": 50,
+      "nushell": 30,
+      "regex": 14,
+      "ripgrep": 19,
+      "rustls": 8,
+      "serde_json": 27,
+      "sled": 3,
+      "tokei": 10,
+      "tokio": 133
+    },
+    "repos": [
+      "alacritty",
+      "bat",
+      "clap",
+      "fd",
+      "hyperfine",
+      "image",
+      "meilisearch",
+      "nushell",
+      "regex",
+      "ripgrep",
+      "rustls",
+      "serde_json",
+      "sled",
+      "tokei",
+      "tokio"
+    ],
+    "timing": {
+      "after": {
+        "feature_sec_sum": 17.759,
+        "scan_sec_sum": 5.86
+      },
+      "before": {
+        "feature_sec_sum": 17.482,
+        "scan_sec_sum": 5.808
+      }
+    }
+  },
+  "schema_version": 1,
+  "source_commands": {
+    "after_probe": "python3 bench/labels/recall_ceiling_probe.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --json-out <tmp-after-probe.json>",
+    "default_eval_after": "python3 bench/labels/eval_by_language.py --repos-root /Users/ak/prjs/cc/nose/bench/repos --rank extractability --top 0 --bootstrap 2000 --cache-dir <tmp-cache>",
+    "rust_delta": "<before-or-after-nose> scan/features over the 15 Rust corpus repos from bench/goldens/corpus.json"
+  },
+  "spike_conclusion": "tree-sitter-rust exposes macro_rules! arms as macro_rule nodes with token_tree RHS, not full Rust statement AST. The implementation extracts each RHS as a named Block unit with one Raw macro_rule_body boundary plus identifier/literal atoms, so it is matchable by syntax/near but not exact_safe semantic proof."
+}

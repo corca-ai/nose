@@ -215,8 +215,10 @@ Cheap experiments that turn direction into data:
   consumer 1.)* **Ran 2026-06-10 — answer: small.** [experiments §BJ](experiments.md):
   worthy-recall at the maximal current surface is 94.3% dev / 96.4% heldout; the
   generalized sub-DAG ceiling is 2.0% (0.6% at the shipped anchor weight), inlining 0.3%,
-  and the remaining misses are unit-extraction gaps (Ruby DSL blocks, Rust macro bodies),
-  statement-window fragments, and zero-shared-mass judgment cases.
+  and the remaining misses are unit-extraction gaps, statement-window fragments, and
+  zero-shared-mass judgment cases. Follow-up experiments closed most Ruby test-DSL block
+  misses and part of the Rust `macro_rules!` arm gap; see [experiments §BN](experiments.md)
+  and [§BO](experiments.md).
 - **Byte-determinism stress** — diff `nose scan --format json` across thread counts on a large
   repo. Any difference is a hard-invariant violation. *(Protects both consumers.)*
 

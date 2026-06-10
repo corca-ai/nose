@@ -71,6 +71,12 @@ allowlisted Ruby test blocks became `Block` units, records the remaining Ruby
 misses, and captures the Ruby unit-count extraction delta. The decision record is
 in [`docs/experiments.md`](../../docs/experiments.md) §BN.
 
+`rust_macro_rules_recovery_2026_06_10.json` is the #215 recovery artifact for
+Rust `macro_rules!` arm extraction. It records the feasibility spike conclusion,
+the Rust recall-ceiling probe before/after, remaining Rust no-overlapping-unit
+records, default P@10, and Rust corpus surface/raw-ratio deltas. The decision
+record is in [`docs/experiments.md`](../../docs/experiments.md) §BO.
+
 `merge_exclusion_census.py` + `oracle_exclusion_census_2026_06_10.json` +
 `oracle_under_merge_leads_2026_06_10.json` are the oracle-completeness campaign's
 baseline: per-construct inventory of units the interpreter oracle cannot check (and the

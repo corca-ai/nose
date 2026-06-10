@@ -24,6 +24,18 @@ fn first_func(il: &nose_il::Il) -> NodeId {
         .expect("expected a function unit")
 }
 
+fn count_nodes(il: &nose_il::Il, root: NodeId, kind: Option<nose_il::NodeKind>) -> usize {
+    let own = match kind {
+        Some(kind) => usize::from(il.node(root).kind == kind),
+        None => 1,
+    };
+    own + il
+        .children(root)
+        .iter()
+        .map(|child| count_nodes(il, *child, kind))
+        .sum::<usize>()
+}
+
 #[test]
 fn foreach_accumulator_is_interpretable_iterating_a_nonlist_is_err_not_unsupported() {
     // The headline foreach-accumulator: iterating a LIST computes; iterating a non-iterable
@@ -2071,6 +2083,92 @@ fn ruby_test_dsl_block_units_converge_and_keep_literal_boundaries() {
         value_fp_named(&i, expected_one, Lang::Ruby, "it:expects one"),
         value_fp_named(&i, expected_two, Lang::Ruby, "it:expects two"),
         "different assertion literals must keep Ruby test DSL block units split"
+    );
+}
+
+#[test]
+fn rust_macro_rules_arm_units_survive_feature_extraction() {
+    let i = Interner::new();
+    let src = r#"
+macro_rules! sample {
+    ($arg:expr) => {{
+        let value = $arg;
+        if value > 0 {
+            panic!("bad");
+        }
+        value
+    }};
+    ($other:expr) => {{
+        let value = $other;
+        if value > 1 {
+            panic!("worse");
+        }
+        value
+    }};
+}
+"#;
+    let il = nose_frontend::lower_source(FileId(0), "sample.rs", src.as_bytes(), Lang::Rust, &i)
+        .expect("lower");
+    let lowered_names: Vec<_> = il
+        .units
+        .iter()
+        .map(|unit| {
+            let span = il.node(unit.root).span;
+            (
+                unit.kind,
+                unit.name.map(|name| i.resolve(name).to_string()),
+                span.start_line,
+                span.end_line,
+                count_nodes(&il, unit.root, None),
+                count_nodes(&il, unit.root, Some(nose_il::NodeKind::Raw)),
+            )
+        })
+        .collect();
+    let normalized = normalize(&il, &i, &NormalizeOptions::default());
+    let normalized_names: Vec<_> = normalized
+        .units
+        .iter()
+        .map(|unit| {
+            let span = normalized.node(unit.root).span;
+            (
+                unit.kind,
+                unit.name.map(|name| i.resolve(name).to_string()),
+                span.start_line,
+                span.end_line,
+                count_nodes(&normalized, unit.root, None),
+                count_nodes(&normalized, unit.root, Some(nose_il::NodeKind::Raw)),
+            )
+        })
+        .collect();
+    let opts = DetectOptions {
+        min_lines: 1,
+        min_tokens: 1,
+        ..Default::default()
+    };
+    let units = nose_detect::units_of_file(&il, &i, &opts);
+    let names: Vec<_> = units
+        .iter()
+        .filter_map(|unit| unit.name.as_deref())
+        .collect();
+    assert!(
+        names.contains(&"sample:arm0") && names.contains(&"sample:arm1"),
+        "macro_rules! arm units should survive feature extraction: lowered={lowered_names:?} normalized={normalized_names:?} kept={names:?}"
+    );
+    let arm_summaries: Vec<_> = units
+        .iter()
+        .filter(|unit| {
+            unit.name
+                .as_deref()
+                .is_some_and(|name| name.starts_with("sample:arm"))
+        })
+        .map(|unit| (unit.name.as_deref(), unit.token_count, unit.exact_safe))
+        .collect();
+    assert!(
+        units
+            .iter()
+            .filter(|unit| unit.name.as_deref().is_some_and(|name| name.starts_with("sample:arm")))
+            .all(|unit| !unit.exact_safe && unit.token_count > 1),
+        "macro_rules! arm units should be matchable but not exact-safe semantic proofs: {arm_summaries:?}"
     );
 }
 

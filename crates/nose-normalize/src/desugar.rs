@@ -85,6 +85,7 @@ impl Rebuilder<'_> {
         let kind = self.old.kind(old_id);
         match kind {
             // Flatten statement-position blocks; drop empties.
+            NodeKind::Block if self.unit_root_set.contains(&old_id.0) => out.push(self.go(old_id)),
             NodeKind::Block => {
                 let child_count = self.old.children(old_id).len();
                 for idx in 0..child_count {

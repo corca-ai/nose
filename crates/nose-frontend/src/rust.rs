@@ -733,13 +733,43 @@ fn lower_macro(lo: &mut Lowering, node: TsNode) -> NodeId {
 
 fn lower_macro_definition_shadow(lo: &mut Lowering, node: TsNode) -> NodeId {
     let span = lo.span(node);
-    let name = rust_macro_definition_name(lo, node).map(|name| lo.sym(name));
+    let macro_name = rust_macro_definition_name(lo, node).map(str::to_string);
+    let name = macro_name.as_deref().map(|name| lo.sym(name));
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .filter(|child| child.kind() == "macro_rule")
+        .enumerate()
+        .map(|(idx, rule)| {
+            lower_macro_rule_body_unit(lo, rule, macro_name.as_deref().unwrap_or("macro"), idx)
+        })
+        .collect();
     lo.add(
         NodeKind::Block,
         name.map(Payload::Name).unwrap_or(Payload::None),
         span,
-        &[],
+        &kids,
     )
+}
+
+fn lower_macro_rule_body_unit(
+    lo: &mut Lowering,
+    rule: TsNode,
+    macro_name: &str,
+    arm_index: usize,
+) -> NodeId {
+    let right = rule.child_by_field_name("right").unwrap_or(rule);
+    let span = lo.span(right);
+    let mut atoms = Vec::new();
+    collect_macro_atoms(lo, right, &mut atoms);
+    // A macro_rules! RHS is still token-tree syntax, not normal Rust statements.
+    // Keep a Raw boundary so strict semantic reporting cannot treat the atom
+    // sequence as an exact runtime proof, while still giving syntax/near channels
+    // a matchable unit instead of an invisible macro arm.
+    let body = lo.raw("macro_rule_body", span, &atoms);
+    let block = lo.add(NodeKind::Block, Payload::None, span, &[body]);
+    let unit_name = lo.sym(&format!("{macro_name}:arm{arm_index}"));
+    lo.push_unit(block, UnitKind::Block, Some(unit_name));
+    block
 }
 
 fn rust_macro_definition_name<'a>(lo: &Lowering<'a>, node: TsNode<'a>) -> Option<&'a str> {
@@ -761,7 +791,7 @@ fn rust_macro_definition_name<'a>(lo: &Lowering<'a>, node: TsNode<'a>) -> Option
 /// never leaves `Raw` token_tree nodes that would corrupt the value graph.
 fn collect_macro_atoms(lo: &mut Lowering, tt: TsNode, kids: &mut Vec<NodeId>) {
     for t in Lowering::named_children(tt) {
-        if t.kind() == "token_tree" {
+        if is_macro_token_container(t.kind()) {
             collect_macro_atoms(lo, t, kids);
         } else if is_macro_atom(t.kind()) {
             kids.push(lower_expr(lo, t));
@@ -770,20 +800,29 @@ fn collect_macro_atoms(lo: &mut Lowering, tt: TsNode, kids: &mut Vec<NodeId>) {
     }
 }
 
-fn is_macro_atom(k: &str) -> bool {
+fn is_macro_token_container(k: &str) -> bool {
     matches!(
         k,
-        "identifier"
-            | "scoped_identifier"
-            | "field_identifier"
-            | "self"
-            | "integer_literal"
-            | "float_literal"
-            | "string_literal"
-            | "raw_string_literal"
-            | "char_literal"
-            | "boolean_literal"
+        "token_tree" | "token_repetition" | "token_tree_pattern" | "token_repetition_pattern"
     )
+}
+
+fn is_macro_atom(k: &str) -> bool {
+    const ATOMS: &[&str] = &[
+        "identifier",
+        "scoped_identifier",
+        "field_identifier",
+        "self",
+        "crate",
+        "super",
+        "integer_literal",
+        "float_literal",
+        "string_literal",
+        "raw_string_literal",
+        "char_literal",
+        "boolean_literal",
+    ];
+    ATOMS.contains(&k)
 }
 
 fn lower_field(lo: &mut Lowering, node: TsNode) -> NodeId {
@@ -1273,6 +1312,21 @@ mod tests {
             .collect()
     }
 
+    fn unit_names(src: &str) -> Vec<(UnitKind, String)> {
+        let (interner, il) = lower_rust(src);
+        il.units
+            .iter()
+            .map(|unit| {
+                (
+                    unit.kind,
+                    unit.name
+                        .map(|name| interner.resolve(name).to_string())
+                        .unwrap_or_else(|| "-".to_string()),
+                )
+            })
+            .collect()
+    }
+
     fn binop_ops(il: &Il) -> Vec<Op> {
         il.nodes
             .iter()
@@ -1361,6 +1415,44 @@ mod tests {
             "if let Some(_) = value { true } else { false }",
             "Some"
         ));
+    }
+
+    #[test]
+    fn macro_rules_arm_bodies_become_block_units_without_raw_token_trees() {
+        let src = r#"
+macro_rules! sample {
+    ($arg:expr) => {{
+        let value = $arg;
+        if value > 0 {
+            panic!("bad");
+        }
+        value
+    }};
+    ($other:expr) => {{
+        let value = $other;
+        if value > 1 {
+            panic!("worse");
+        }
+        value
+    }};
+}
+"#;
+        let units = unit_names(src);
+        assert!(
+            units.contains(&(UnitKind::Block, "sample:arm0".to_string())),
+            "first macro_rules! arm should be a block unit: {units:?}"
+        );
+        assert!(
+            units.contains(&(UnitKind::Block, "sample:arm1".to_string())),
+            "second macro_rules! arm should be a block unit: {units:?}"
+        );
+
+        let (interner, il) = lower_rust(src);
+        let raw = raw_names(&il, &interner);
+        assert!(
+            !raw.iter().any(|name| name == "token_tree"),
+            "macro_rules! arm extraction should not emit Raw token_tree nodes: {raw:?}"
+        );
     }
 
     #[test]
