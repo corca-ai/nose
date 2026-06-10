@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Rust units inside an inline `#[cfg(test)] mod tests` now classify as test
+  scope (the path+name heuristic tagged them `prod`, distorting triage — the
+  #216 audit's alacritty family). Locations carry `in_test_module` in scan
+  JSON; a copy-paste run crossing test functions counts as test scaffolding
+  when every overlapping unit sits in the test module.
 - **Soundness:** five fingerprint erasure classes no longer collapse working code
   onto stubs (#210, experiments §BP): Python `try/except/else` kept its `else`
   clause (black's try/import wrapper ≡ `return self`); Ruby `begin/rescue/else`

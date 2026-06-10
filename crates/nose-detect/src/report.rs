@@ -380,7 +380,7 @@ fn is_test_loc(l: &Loc) -> bool {
         .name
         .as_deref()
         .is_some_and(|n| n.starts_with("Test") || n.starts_with("test_"));
-    path_test || name_test
+    path_test || name_test || l.in_test_module
 }
 
 fn file_stem(path: &str) -> &str {
