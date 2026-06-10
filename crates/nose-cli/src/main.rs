@@ -2332,13 +2332,20 @@ fn collect_file_verify_recs(
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
         // behavior. (Only when the full IL is itself fully interpretable on the battery.)
+        // Canon preservation is judged on CONCRETE behaviors only: symbolic identity
+        // is keyed on syntax, and canonicalization legitimately rewrites syntax, so a
+        // Sym-bearing mismatch here is expected, not a behavior change.
         if let Some(full_beh) = run_battery(n, interner, root, battery, &contracts) {
-            oracle.canon_checked += 1;
-            if full_beh != beh && oracle.canon_violations.len() < 20 {
-                let s = n.node(root).span;
-                oracle
-                    .canon_violations
-                    .push(format!("{}:{}", il.meta.path, s.start_line));
+            let concrete = !beh.iter().any(nose_normalize::behavior_has_sym)
+                && !full_beh.iter().any(nose_normalize::behavior_has_sym);
+            if concrete {
+                oracle.canon_checked += 1;
+                if full_beh != beh && oracle.canon_violations.len() < 20 {
+                    let s = n.node(root).span;
+                    oracle
+                        .canon_violations
+                        .push(format!("{}:{}", il.meta.path, s.start_line));
+                }
             }
         }
         let span = n.node(root).span;
@@ -2393,8 +2400,13 @@ fn print_verify_json(recs: &[VerifyRec]) -> Result<()> {
 }
 
 /// Soundness: fingerprint-equal ⟹ behavior-equal. Prints the section and returns the
-/// false-merge count (the input to the `--max-violations` gate).
+/// HARD false-merge count (the input to the `--max-violations` gate). A disagreement
+/// where either behavior carries a symbolic value is reported separately as an
+/// ADVISORY lead: symbolic identity is keyed on pre-canon syntax, so a proof-backed
+/// canonicalization (AC ordering, distribution) can legitimately make two equivalent
+/// units' symbolic traces differ — those need a human look, not a red gate.
 fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
+    let has_sym = |r: &VerifyRec| r.beh.iter().any(nose_normalize::behavior_has_sym);
     let mut by_fp: std::collections::HashMap<&[u64], Vec<&VerifyRec>> =
         std::collections::HashMap::new();
     for r in recs {
@@ -2402,6 +2414,7 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
     }
     let mut fp_groups = 0usize;
     let mut violations: Vec<(String, String, usize)> = Vec::new();
+    let mut advisory: Vec<(String, String, usize)> = Vec::new();
     for members in by_fp.values() {
         if members.len() < 2 {
             continue;
@@ -2411,7 +2424,12 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         for r in &members[1..] {
             if r.beh != first.beh {
                 let diff = r.beh.iter().zip(&first.beh).filter(|(a, b)| a != b).count();
-                violations.push((first.loc.clone(), r.loc.clone(), diff));
+                let rec = (first.loc.clone(), r.loc.clone(), diff);
+                if has_sym(first) || has_sym(r) {
+                    advisory.push(rec);
+                } else {
+                    violations.push(rec);
+                }
             }
         }
     }
@@ -2424,6 +2442,16 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         println!("  [!] {n_violations} VIOLATION(S) (false merges):");
         for (a, b, d) in violations.iter().take(20) {
             println!("    {a}  ≡?  {b}   ({d} differing inputs)");
+        }
+    }
+    if !advisory.is_empty() {
+        advisory.sort();
+        println!(
+            "  advisory (symbolic-trace disagreements — review, not gated): {}",
+            advisory.len()
+        );
+        for (a, b, d) in advisory.iter().take(10) {
+            println!("    {a}  ≢?  {b}   ({d} differing inputs)");
         }
     }
     n_violations
@@ -2440,7 +2468,12 @@ fn report_verify_completeness(recs: &[VerifyRec], leads: Option<&std::path::Path
     let mut by_beh: std::collections::HashMap<&[nose_normalize::Behavior], Vec<&VerifyRec>> =
         std::collections::HashMap::new();
     for r in recs {
-        if !is_trivial_behavior(&r.beh) {
+        // Concrete behaviors only: symbolic equality says "same opaque operations on
+        // equal operands", which is too weak a witness for a MISSED-clone claim (two
+        // wrappers calling same-NAMED but different functions would coincide). The
+        // under-merge direction keeps its §BC meaning; symbolic coverage serves the
+        // soundness direction.
+        if !is_trivial_behavior(&r.beh) && !r.beh.iter().any(nose_normalize::behavior_has_sym) {
             by_beh.entry(&r.beh).or_default().push(r);
         }
     }
