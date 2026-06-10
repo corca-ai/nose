@@ -1,0 +1,967 @@
+{
+ "default_families": [
+  {
+   "family_id": "aec6b6bccd835309",
+   "locations": [
+    {
+     "end_line": 5884,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 5858
+    },
+    {
+     "end_line": 6306,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6280
+    },
+    {
+     "end_line": 6437,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6411
+    },
+    {
+     "end_line": 6699,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6673
+    },
+    {
+     "end_line": 6841,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6815
+    },
+    {
+     "end_line": 6992,
+     "file": "bench/repos/cmark/src/scanners.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6966
+    }
+   ],
+   "repo": "cmark",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 27,
+    "members": 6,
+    "params": 2,
+    "shared_lines": 12,
+    "value": 135.0
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "8643e16619c16459",
+   "locations": [
+    {
+     "end_line": 50,
+     "file": "bench/repos/curl/tests/data/data1481.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 49,
+     "file": "bench/repos/curl/tests/data/data1402.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 49,
+     "file": "bench/repos/curl/tests/data/data1465.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 47,
+     "file": "bench/repos/curl/tests/data/data1400.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 47,
+     "file": "bench/repos/curl/tests/data/data1403.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 47,
+     "file": "bench/repos/curl/tests/data/data1407.c",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    }
+   ],
+   "repo": "curl",
+   "scope": "test",
+   "stats": {
+    "files": 7,
+    "languages": 1,
+    "mean_lines": 48,
+    "members": 7,
+    "params": 2,
+    "shared_lines": 37,
+    "value": 806.4
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "5b04668e76b7ce86",
+   "locations": [
+    {
+     "end_line": 85,
+     "file": "bench/repos/badger/txn_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 73
+    },
+    {
+     "end_line": 679,
+     "file": "bench/repos/badger/txn_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 667
+    },
+    {
+     "end_line": 345,
+     "file": "bench/repos/badger/db_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 334
+    },
+    {
+     "end_line": 768,
+     "file": "bench/repos/badger/db_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 757
+    },
+    {
+     "end_line": 842,
+     "file": "bench/repos/badger/db_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 831
+    }
+   ],
+   "repo": "badger",
+   "scope": "test",
+   "stats": {
+    "files": 2,
+    "languages": 1,
+    "mean_lines": 12,
+    "members": 5,
+    "params": 0,
+    "shared_lines": 8,
+    "value": 62.400000000000006
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "877d94feab916510",
+   "locations": [
+    {
+     "end_line": 45,
+     "file": "bench/repos/chi/middleware/get_head_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 37
+    },
+    {
+     "end_line": 263,
+     "file": "bench/repos/chi/mux_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 255
+    },
+    {
+     "end_line": 377,
+     "file": "bench/repos/chi/mux_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 369
+    },
+    {
+     "end_line": 627,
+     "file": "bench/repos/chi/mux_test.go",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 619
+    }
+   ],
+   "repo": "chi",
+   "scope": "test",
+   "stats": {
+    "files": 2,
+    "languages": 1,
+    "mean_lines": 9,
+    "members": 4,
+    "params": 1,
+    "shared_lines": 5,
+    "value": 48.6
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "8c41987f7625f9f9",
+   "locations": [
+    {
+     "end_line": 425,
+     "file": "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/atn/PredictionContext.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 412
+    },
+    {
+     "end_line": 197,
+     "file": "bench/repos/antlr4/runtime/JavaScript/src/antlr4/context/PredictionContextUtils.js",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 185
+    }
+   ],
+   "repo": "antlr4",
+   "scope": "prod",
+   "stats": {
+    "files": 2,
+    "languages": 2,
+    "mean_lines": 13,
+    "members": 2,
+    "params": 0,
+    "shared_lines": 0,
+    "value": 29.9
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "8a6c71ba3af44bd9",
+   "locations": [
+    {
+     "end_line": 998,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 969
+    },
+    {
+     "end_line": 969,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 941
+    },
+    {
+     "end_line": 1026,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 998
+    },
+    {
+     "end_line": 1054,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1026
+    },
+    {
+     "end_line": 1082,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1054
+    },
+    {
+     "end_line": 1110,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/SystemUtilsTest.java",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1082
+    }
+   ],
+   "repo": "commons-lang",
+   "scope": "test",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 29,
+    "members": 20,
+    "params": 3,
+    "shared_lines": 23,
+    "value": 278.5609869884557
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "85f29b28b2c0cc36",
+   "locations": [
+    {
+     "end_line": 1141,
+     "file": "bench/repos/arrow/arrow/locales.py",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1095
+    },
+    {
+     "end_line": 1073,
+     "file": "bench/repos/arrow/arrow/locales.py",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1036
+    }
+   ],
+   "repo": "arrow",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 42,
+    "members": 2,
+    "params": 1,
+    "shared_lines": 33,
+    "value": 42.0
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "75ed8ec6ff05cd11",
+   "locations": [
+    {
+     "end_line": 13,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 12
+    },
+    {
+     "end_line": 16,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 15
+    },
+    {
+     "end_line": 18,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 17
+    },
+    {
+     "end_line": 39,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 38
+    },
+    {
+     "end_line": 42,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 41
+    },
+    {
+     "end_line": 44,
+     "file": "bench/repos/black/tests/data/cases/line_ranges_fmt_off.py",
+     "is_fragment": false,
+     "kind": "Function",
+     "name": "myfunc",
+     "start_line": 43
+    }
+   ],
+   "repo": "black",
+   "scope": "test",
+   "stats": {
+    "files": 2,
+    "languages": 1,
+    "mean_lines": 2,
+    "members": 12,
+    "params": 0,
+    "shared_lines": 2,
+    "value": 21.413776741499454
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "7f0c5d9e4ffd2550",
+   "locations": [
+    {
+     "end_line": 2867,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 2860
+    },
+    {
+     "end_line": 2883,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 2876
+    },
+    {
+     "end_line": 2899,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 2892
+    },
+    {
+     "end_line": 2915,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 2908
+    },
+    {
+     "end_line": 2969,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 2962
+    }
+   ],
+   "repo": "asciidoctor",
+   "scope": "test",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 8,
+    "members": 5,
+    "params": 1,
+    "shared_lines": 7,
+    "value": 32.0
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "b5e6e6cef026e916",
+   "locations": [
+    {
+     "end_line": 42,
+     "file": "bench/repos/devise/test/rails_app/app/mongoid/user_on_engine.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    },
+    {
+     "end_line": 42,
+     "file": "bench/repos/devise/test/rails_app/app/mongoid/user_on_main_app.rb",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 1
+    }
+   ],
+   "repo": "devise",
+   "scope": "test",
+   "stats": {
+    "files": 2,
+    "languages": 1,
+    "mean_lines": 42,
+    "members": 2,
+    "params": 1,
+    "shared_lines": 31,
+    "value": 54.6
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "f2a04af9e7b9133c",
+   "locations": [
+    {
+     "end_line": 709,
+     "file": "bench/repos/alacritty/alacritty_terminal/src/vi_mode.rs",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 686
+    },
+    {
+     "end_line": 785,
+     "file": "bench/repos/alacritty/alacritty_terminal/src/vi_mode.rs",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 762
+    }
+   ],
+   "repo": "alacritty",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 24,
+    "members": 2,
+    "params": 3,
+    "shared_lines": 17,
+    "value": 24.0
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "ee7b973de97fb387",
+   "locations": [
+    {
+     "end_line": 6955,
+     "file": "bench/repos/bat/tests/benchmarks/highlighting-speed-src/numpy_test_multiarray.py",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 6930
+    },
+    {
+     "end_line": 7100,
+     "file": "bench/repos/bat/tests/benchmarks/highlighting-speed-src/numpy_test_multiarray.py",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 7075
+    }
+   ],
+   "repo": "bat",
+   "scope": "test",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 26,
+    "members": 2,
+    "params": 1,
+    "shared_lines": 25,
+    "value": 26.0
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "850f9b68c8bb7407",
+   "locations": [
+    {
+     "end_line": 40,
+     "file": "bench/repos/axios/tests/smoke/cjs/tests/instance.smoke.test.cjs",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 7
+    },
+    {
+     "end_line": 40,
+     "file": "bench/repos/axios/tests/smoke/cjs/tests/interceptors.smoke.test.cjs",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 7
+    },
+    {
+     "end_line": 40,
+     "file": "bench/repos/axios/tests/smoke/esm/tests/instance.smoke.test.js",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 7
+    },
+    {
+     "end_line": 40,
+     "file": "bench/repos/axios/tests/smoke/esm/tests/interceptors.smoke.test.js",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 7
+    }
+   ],
+   "repo": "axios",
+   "scope": "test",
+   "stats": {
+    "files": 4,
+    "languages": 1,
+    "mean_lines": 34,
+    "members": 4,
+    "params": 2,
+    "shared_lines": 24,
+    "value": 244.79999999999998
+   },
+   "surface": "default"
+  },
+  {
+   "family_id": "0aa13edce1c7d843",
+   "locations": [
+    {
+     "end_line": 139,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/eo/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 93
+    },
+    {
+     "end_line": 137,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/ar-EG/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 93
+    },
+    {
+     "end_line": 139,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/es/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 95
+    },
+    {
+     "end_line": 121,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/ja-Hira/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 77
+    },
+    {
+     "end_line": 120,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/ja/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 76
+    },
+    {
+     "end_line": 136,
+     "file": "bench/repos/date-fns/pkgs/core/src/locale/km/_lib/match/index.ts",
+     "is_fragment": false,
+     "kind": "Block",
+     "start_line": 92
+    }
+   ],
+   "repo": "date-fns",
+   "scope": "prod",
+   "stats": {
+    "files": 63,
+    "languages": 1,
+    "mean_lines": 43,
+    "members": 63,
+    "params": 2,
+    "shared_lines": 26,
+    "value": 3246.7821974703297
+   },
+   "surface": "default"
+  }
+ ],
+ "fragments_verdict": {
+  "note": "All four sampled review fragments carry fragment_kind + reason_code \u2014 the WHY is present, unlike default families. What an agent still lacks to ACT: the enclosing unit (absent for these Blocks), the fragment's extraction contract (parameters/live-outs the proof established), and any difference evidence across members."
+ },
+ "gap_ranking": [
+  {
+   "fix": "emit channel + proof provenance (semantic) / score components (near) per family",
+   "gap": "no equivalence witness on default families",
+   "rank": 1,
+   "unblocked": [
+    "antlr4 cross-language family"
+   ]
+  },
+  {
+   "fix": "per-member varying-spot spans, e.g. from the abstraction witness layer or --show diff content",
+   "gap": "no difference evidence (params counts holes, not where/what)",
+   "rank": 2,
+   "unblocked": [
+    "arrow locale tables",
+    "commons-lang assertion ladders"
+   ]
+  },
+  {
+   "fix": "cheap file-head scan -> per-location looks_generated flag; consider ranking demotion",
+   "gap": "generated-content markers not surfaced or honored",
+   "rank": 3,
+   "unblocked": [
+    "cmark re2c scanners (topped the default surface)",
+    "curl generated samples"
+   ]
+  },
+  {
+   "fix": "extend fragments' enclosing_unit to all Block locations",
+   "gap": "Block locations carry no enclosing unit name",
+   "rank": 4,
+   "unblocked": [
+    "naming/discussing every block family"
+   ]
+  },
+  {
+   "fix": "is_test_loc: detect #[cfg(test)] / mod tests unit paths",
+   "gap": "Rust inline `mod tests` misclassified as prod scope",
+   "rank": 5,
+   "unblocked": [
+    "alacritty scope tag"
+   ]
+  }
+ ],
+ "protocol": "14 top default-surface families (2 repos x 7 languages, deterministic) + 4 review-surface exact fragments; JSON-only decision recorded first, then graded against source.",
+ "review_fragments": [
+  {
+   "family_id": "60da19bfa8b8405f",
+   "locations": [
+    {
+     "end_line": 536,
+     "file": "bench/repos/curl/src/tool_formparse.c",
+     "fragment_kind": "conditional-guard",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-conditional-guard",
+     "start_line": 533
+    },
+    {
+     "end_line": 560,
+     "file": "bench/repos/curl/src/tool_formparse.c",
+     "fragment_kind": "conditional-guard",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-conditional-guard",
+     "start_line": 557
+    },
+    {
+     "end_line": 626,
+     "file": "bench/repos/curl/src/tool_formparse.c",
+     "fragment_kind": "conditional-guard",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-conditional-guard",
+     "start_line": 623
+    }
+   ],
+   "repo": "curl",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 4,
+    "members": 3,
+    "params": 0,
+    "shared_lines": 4,
+    "value": 8.0
+   },
+   "surface": "review"
+  },
+  {
+   "family_id": "8a9bec500f16e0fb",
+   "locations": [
+    {
+     "end_line": 40,
+     "file": "bench/repos/antlr4/tool/src/org/antlr/v4/semantics/RuleCollector.java",
+     "fragment_kind": "self-field-body",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-self-field-body",
+     "start_line": 37
+    },
+    {
+     "end_line": 57,
+     "file": "bench/repos/antlr4/tool/src/org/antlr/v4/semantics/SymbolCollector.java",
+     "fragment_kind": "self-field-body",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-self-field-body",
+     "start_line": 54
+    }
+   ],
+   "repo": "antlr4",
+   "scope": "prod",
+   "stats": {
+    "files": 2,
+    "languages": 1,
+    "mean_lines": 4,
+    "members": 2,
+    "params": 1,
+    "shared_lines": 3,
+    "value": 5.2
+   },
+   "surface": "review"
+  },
+  {
+   "family_id": "5906a867fbcbacc3",
+   "locations": [
+    {
+     "end_line": 603,
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Conversion.java",
+     "fragment_kind": "conditional-guard",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-conditional-guard",
+     "start_line": 562
+    },
+    {
+     "end_line": 715,
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Conversion.java",
+     "fragment_kind": "conditional-guard",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-conditional-guard",
+     "start_line": 674
+    }
+   ],
+   "repo": "commons-lang",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 42,
+    "members": 2,
+    "params": 12,
+    "shared_lines": 30,
+    "value": 42.0
+   },
+   "surface": "review"
+  },
+  {
+   "family_id": "4c1c5f476829f0fb",
+   "locations": [
+    {
+     "end_line": 1520,
+     "file": "bench/repos/black/src/black/trans.py",
+     "fragment_kind": "expr-effect",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-expr-effect",
+     "start_line": 1517
+    },
+    {
+     "end_line": 2233,
+     "file": "bench/repos/black/src/black/trans.py",
+     "fragment_kind": "expr-effect",
+     "is_fragment": true,
+     "kind": "Block",
+     "reason_code": "exact-expr-effect",
+     "start_line": 2230
+    }
+   ],
+   "repo": "black",
+   "scope": "prod",
+   "stats": {
+    "files": 1,
+    "languages": 1,
+    "mean_lines": 4,
+    "members": 2,
+    "params": 0,
+    "shared_lines": 4,
+    "value": 4.0
+   },
+   "surface": "review"
+  }
+ ],
+ "schema_version": "0.1.0",
+ "score": {
+  "decidable_correctly_from_json": 14,
+  "total": 18,
+  "wrong_or_undecidable": 4
+ },
+ "verdicts": {
+  "5b04668e76b7ce86": {
+   "correct": true,
+   "json_only_call": "worthy lean (5 identical 12-line test blocks, params=0 \u2192 trivial extraction)",
+   "missing": [
+    "difference evidence to confirm params=0 means byte-identical"
+   ],
+   "truth": "correct \u2014 repeated txn/db test setup blocks"
+  },
+  "75ed8ec6ff05cd11": {
+   "correct": true,
+   "json_only_call": "not worthy (tests/data/cases path = formatter fixture data)",
+   "missing": [],
+   "truth": "correct"
+  },
+  "7f0c5d9e4ffd2550": {
+   "correct": true,
+   "json_only_call": "not worthy lean (test scaffolding)",
+   "missing": [],
+   "truth": "correct \u2014 repeated reader-test blocks"
+  },
+  "85f29b28b2c0cc36": {
+   "correct": false,
+   "json_only_call": "worthy lean (2 blocks, 33 shared lines, 1 param)",
+   "missing": [
+    "difference evidence",
+    "data-table/literal-dominance signal per family"
+   ],
+   "truth": "NOT worthy \u2014 locale data tables (identical CJK month arrays); extract-data-table at best"
+  },
+  "8643e16619c16459": {
+   "correct": true,
+   "json_only_call": "not worthy (tests/data/*.c whole-file blocks read as data/scaffolding)",
+   "missing": [
+    "generated-content signal (call was a path guess, the marker is in content)"
+   ],
+   "truth": "correct \u2014 'Sample code generated by the curl command line tool'"
+  },
+  "877d94feab916510": {
+   "correct": true,
+   "json_only_call": "worthy lean (4 short request/assert test blocks, 1 param)",
+   "missing": [],
+   "truth": "correct \u2014 repeated HTTP-test scaffolding"
+  },
+  "8a6c71ba3af44bd9": {
+   "correct": true,
+   "json_only_call": "not worthy lean (20 adjacent-window members in one test file \u2192 version-assertion table)",
+   "missing": [
+    "difference evidence (decision rested on span-adjacency heuristics)"
+   ],
+   "truth": "correct \u2014 IS_JAVA_X assertion ladders, deliberate exhaustive table"
+  },
+  "8c41987f7625f9f9": {
+   "correct": false,
+   "json_only_call": "UNDECIDABLE \u2014 languages=2, shared_lines=0, mean_score=1.0: cannot tell an exact semantic proof from noise without a channel/witness field",
+   "missing": [
+    "equivalence witness / channel",
+    "difference evidence"
+   ],
+   "truth": "real cross-language Type-4 (Java/JS array-merge loops in parallel runtime ports) \u2014 parallel-by-design"
+  },
+  "_axios": {
+   "correct": true,
+   "json_only_call": "not worthy (cjs/js smoke-test twins = module-format parallel-by-design)",
+   "missing": [],
+   "truth": "correct"
+  },
+  "_bat": {
+   "correct": true,
+   "json_only_call": "not worthy (numpy test file inside bat = syntax-highlighting sample asset)",
+   "missing": [
+    "vendored/sample-asset signal"
+   ],
+   "truth": "correct"
+  },
+  "_datefns": {
+   "correct": true,
+   "json_only_call": "not worthy (locale match tables across pkgs/core/src/locale/*)",
+   "missing": [],
+   "truth": "correct"
+  },
+  "_devise": {
+   "correct": true,
+   "json_only_call": "not worthy (engine/app twin model names = deliberate parallel fixtures)",
+   "missing": [],
+   "truth": "correct \u2014 twin classes already include a shared concern"
+  },
+  "aec6b6bccd835309": {
+   "correct": false,
+   "json_only_call": "worthy (6x27-line prod blocks, 2-param helper)",
+   "missing": [
+    "generated-content signal",
+    "equivalence witness",
+    "enclosing unit names"
+   ],
+   "truth": "NOT worthy \u2014 scanners.c line 1: 'Generated by re2c'"
+  },
+  "f2a04af9e7b9133c": {
+   "correct": false,
+   "json_only_call": "worthy lean (24-line prod blocks, 17 shared, 3 params)",
+   "missing": [
+    "correct scope for Rust inline test modules",
+    "enclosing unit names"
+   ],
+   "truth": "MISLED BY SCOPE \u2014 these are #[test] fns in an inline `mod tests`; scope says prod (is_test_loc misses Rust inline test modules). Test scaffolding, borderline parameterize"
+  }
+ },
+ "what": "scan-JSON agent-usability audit (#216): can consumer 1 decide and act from the JSON alone?"
+}

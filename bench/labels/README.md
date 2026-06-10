@@ -58,6 +58,11 @@ over-approximated classification of whether generalized sub-DAG matching or one-
 pure inlining could recover it. The measured verdict and method are recorded in
 [`docs/experiments.md`](../../docs/experiments.md) §BJ.
 
+`scanjson_agent_audit_2026_06_10.json` records the #216 agent-usability audit of the
+scan-JSON contract: 18 sampled families, JSON-only decisions graded against source,
+and the ranked evidence-gap list. See
+[`docs/scanjson-agent-audit-2026-06-10.md`](../../docs/scanjson-agent-audit-2026-06-10.md).
+
 `near_default_surface_experiment.py` +
 `near_default_surface_2026_06_10.json` price the product decision of adding the
 `near` channel to the default scan surface. The script compares default,

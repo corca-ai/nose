@@ -75,6 +75,11 @@ break.
   spot on exactly the convergences the value graph claims.
 
 ### Added
+- A scan-JSON agent-usability audit artifact records whether an LLM agent can
+  decide and act from the JSON alone: 14/18 sampled families were decidable, and
+  the four failures fix the evidence roadmap — no equivalence witness on default
+  families, no difference evidence, generated-content markers unsurfaced, and
+  missing enclosing unit names (docs/scanjson-agent-audit-2026-06-10.md).
 - Ruby `**` now lowers to the shared exponentiation operator and converges with
   Python/JS `**`.
 - Compact CLI regression fixtures now pin the real-corpus strict-nullish hard
