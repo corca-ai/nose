@@ -708,7 +708,10 @@ impl<'a> Interp<'a> {
             return Ok(Value::Err);
         }
         if contains_sym(&base) || contains_sym(&idx) {
-            return Ok(Value::Sym(sym_id(0x1DEF_00D0, &[vhash(&base), vhash(&idx)])));
+            return Ok(Value::Sym(sym_id(
+                0x1DEF_00D0,
+                &[vhash(&base), vhash(&idx)],
+            )));
         }
         match (base, idx) {
             (Value::List(xs), Value::Int(i)) => {
