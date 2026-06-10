@@ -79,6 +79,11 @@ pub struct UnitFeat {
     /// the shared computation lives).
     #[serde(default)]
     pub anchors: Vec<nose_normalize::Anchor>,
+    /// The unit sits inside an inline test module (`mod tests` / `mod test`) —
+    /// Rust keeps tests inside production files, so a path heuristic alone tags
+    /// their scaffolding `prod` (#226).
+    #[serde(default)]
+    pub in_test_module: bool,
     /// Pack-facing value laws that actually rewrote or bridged this unit's value graph.
     #[serde(default)]
     pub semantic_laws: Vec<ValueLaw>,
@@ -474,14 +479,39 @@ pub(crate) fn extract(
         value_context: value_context.as_ref(),
     };
     let mut unit_timer = UnitTimer::new();
+    let test_module_spans = inline_test_module_spans(il, interner);
     let mut out = Vec::new();
     for unit_root in roots {
-        if let Some(unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
+        if let Some(mut unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
+            unit.in_test_module = test_module_spans
+                .iter()
+                .any(|&(s, e)| s <= unit.start_line && unit.end_line <= e);
             out.push(unit);
         }
     }
     unit_timer.report_summary(&il.meta.path);
     out
+}
+
+/// Source-line spans of inline test modules (`mod tests` / `mod test`) — the Rust
+/// convention for in-file test scaffolding. Module nodes keep their names through
+/// lowering, so a span check is enough; other languages simply have no named
+/// `tests` module inside a file.
+fn inline_test_module_spans(il: &Il, interner: &Interner) -> Vec<(u32, u32)> {
+    let mut spans = Vec::new();
+    for node in &il.nodes {
+        if node.kind != NodeKind::Module {
+            continue;
+        }
+        let Payload::Name(name) = node.payload else {
+            continue;
+        };
+        let name = interner.resolve(name);
+        if name.eq_ignore_ascii_case("tests") || name.eq_ignore_ascii_case("test") {
+            spans.push((node.span.start_line, node.span.end_line));
+        }
+    }
+    spans
 }
 
 /// Gate one unit root: collect its pre-order, apply the container/size/dense gates
@@ -661,6 +691,7 @@ fn extract_unit(
         other => ProofFacts::context_gated(other),
     });
     Some(UnitFeat {
+        in_test_module: false,
         path: ctx.il.meta.path.clone(),
         lang: ctx.il.meta.lang,
         kind,

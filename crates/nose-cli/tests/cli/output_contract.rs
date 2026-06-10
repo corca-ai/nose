@@ -375,3 +375,50 @@ fn scan_json_block_locations_carry_enclosing_unit() {
     }
     assert!(named >= 2, "expected named block locations: {out}");
 }
+
+/// #226: Rust keeps tests inside production files — units under an inline
+/// `mod tests` must classify as test scope (the path heuristic alone tagged
+/// them `prod`), and their locations carry `in_test_module`.
+#[test]
+fn rust_inline_test_module_families_classify_as_test_scope() {
+    let dir = std::env::temp_dir().join(format!("nose_modtests_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    let body = "        let mut grid = vec![0i64; 16];\n        grid[0] = 1;\n        grid[1] = 2;\n        grid[2] = 3;\n        assert_eq!(grid[0] + grid[1] + grid[2], 6);\n";
+    fs::write(
+        dir.join("engine.rs"),
+        format!(
+            "pub fn run(x: i64) -> i64 {{\n    x + 1\n}}\n\n#[cfg(test)]\nmod tests {{\n    #[test]\n    fn first() {{\n{body}    }}\n\n    #[test]\n    fn second() {{\n{body}    }}\n}}\n"
+        ),
+    )
+    .unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let fams = scan_families(&json);
+    assert!(
+        !fams.is_empty(),
+        "twin test bodies should form a family: {out}"
+    );
+    for f in fams {
+        assert_eq!(
+            f["scope"], "test",
+            "inline mod-tests units must classify as test scope: {out}"
+        );
+        for l in f["locations"].as_array().unwrap() {
+            assert_eq!(
+                l["in_test_module"], true,
+                "locations carry the in_test_module flag: {out}"
+            );
+        }
+    }
+}
