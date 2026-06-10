@@ -264,7 +264,7 @@ Each `locations[]` item has:
 | `is_fragment` | boolean | `true` when this location is an exact sub-function fragment; `false` for whole units and syntax-channel copy-paste spans. |
 | `fragment_kind` | string, optional | Exact fragment proof shape, present only when `is_fragment` is `true`; examples include `direct-return`, `conditional-guard`, and `self-field-body`. |
 | `reason_code` | string, optional | Stable exact-fragment proof reason derived from `fragment_kind`, present only when `is_fragment` is `true`; examples include `exact-direct-return` and `exact-conditional-guard`. |
-| `enclosing_unit` | object, optional | Exact enclosing function/method/class recovered from the same extracted unit set when available. |
+| `enclosing_unit` | object, optional | Enclosing function/method/class recovered from the extracted unit set when available — for exact fragments AND plain `Block` locations (structural and copy-paste alike), so a block family names its host. Absent when a copy-paste run crosses unit boundaries, and in syntax-only scans (no unit set is extracted). |
 
 ### Fragment metadata
 
