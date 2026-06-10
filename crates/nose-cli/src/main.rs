@@ -7,6 +7,7 @@ mod fnv;
 mod ignores;
 mod review;
 mod semantic_pack;
+mod verify_census;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
@@ -340,6 +341,12 @@ enum Cmd {
         /// (vj ≥ 0.7 are the strongest: structurally near AND behavior-equal).
         #[arg(long)]
         leads: Option<PathBuf>,
+        /// Write a JSON census of the units the oracle could NOT interpret — exclusion
+        /// reasons, the construct tags they carry, and how much fingerprint-merge mass
+        /// is unverified per construct. The instrument for ranking oracle-coverage work
+        /// by unverified-merge mass instead of by guess.
+        #[arg(long)]
+        exclusion_census: Option<PathBuf>,
     },
     /// EXPERIMENT (leaps 2+3): measure a behavioral-equivalence ACCEPTANCE gate — group
     /// interpretable units by their behavior on an input battery (two units are
@@ -1500,7 +1507,15 @@ fn run() -> Result<()> {
             json,
             max_violations,
             leads,
-        } => cmd_verify(paths, no_cfg_norm, json, max_violations, leads),
+            exclusion_census,
+        } => cmd_verify(
+            paths,
+            no_cfg_norm,
+            json,
+            max_violations,
+            leads,
+            exclusion_census,
+        ),
         Cmd::BehavioralGate {
             paths,
             manifest,
@@ -2119,6 +2134,7 @@ fn cmd_verify(
     json: bool,
     max_violations: Option<usize>,
     leads: Option<PathBuf>,
+    exclusion_census: Option<PathBuf>,
 ) -> Result<()> {
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
@@ -2131,7 +2147,11 @@ fn cmd_verify(
     // battery is identical for every unit (a function uses only its first `arity`
     // inputs), so behavior vectors are always length-comparable.
     let battery = verify_battery(&verify_probes(&corpus));
-    let oracle = collect_verify_recs(&corpus, &opts, &battery);
+    let oracle = collect_verify_recs(&corpus, &opts, &battery, exclusion_census.is_some());
+    if let Some(path) = &exclusion_census {
+        verify_census::write_report(path, &oracle.census)?;
+        println!("exclusion census written to {}", path.display());
+    }
 
     if json {
         return print_verify_json(&oracle.recs);
@@ -2199,18 +2219,23 @@ struct VerifyOracle {
     total: usize,
     canon_checked: usize,
     canon_violations: Vec<String>,
+    /// Per-unit census records (outcome + construct tags), populated only when
+    /// the `--exclusion-census` instrument is requested.
+    census: Vec<verify_census::CensusUnit>,
 }
 
 fn collect_verify_recs(
     corpus: &Corpus,
     opts: &nose_normalize::NormalizeOptions,
     battery: &[Vec<nose_normalize::Value>],
+    census: bool,
 ) -> VerifyOracle {
     let mut oracle = VerifyOracle {
         recs: Vec::new(),
         total: 0,
         canon_checked: 0,
         canon_violations: Vec::new(),
+        census: Vec::new(),
     };
     let oracle_opts = nose_normalize::NormalizeOptions {
         oracle: true,
@@ -2222,9 +2247,41 @@ fn collect_verify_recs(
         // behavior-changing canon can't mask itself), matched to each fully-normalized
         // unit by source span.
         let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        collect_file_verify_recs(il, &n, &core, &corpus.interner, battery, &mut oracle);
+        collect_file_verify_recs(
+            il,
+            &n,
+            &core,
+            &corpus.interner,
+            battery,
+            &mut oracle,
+            census,
+        );
     }
     oracle
+}
+
+/// Record one unit's oracle outcome in the exclusion census (no-op unless the
+/// `--exclusion-census` instrument is on). `tag_il`/`tag_root` name the subtree
+/// the oracle would have interpreted (the core IL when span-matched, else the
+/// fully-normalized unit).
+fn push_verify_census(
+    oracle: &mut VerifyOracle,
+    enabled: bool,
+    loc: String,
+    tag_il: &nose_il::Il,
+    tag_root: nose_il::NodeId,
+    fp: &[u64],
+    reason: &'static str,
+) {
+    if !enabled {
+        return;
+    }
+    oracle.census.push(verify_census::CensusUnit {
+        loc,
+        reason,
+        fp: fp.to_vec(),
+        tags: verify_census::census_tags(tag_il, tag_root),
+    });
 }
 
 fn collect_file_verify_recs(
@@ -2234,6 +2291,7 @@ fn collect_file_verify_recs(
     interner: &Interner,
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
+    census: bool,
 ) {
     let core_func = func_span_index(core);
     for u in &n.units {
@@ -2242,9 +2300,11 @@ fn collect_file_verify_recs(
             continue;
         }
         oracle.total += 1;
+        let loc = format!("{}:{}", il.meta.path, n.node(root).span.start_line);
         // The same function in the core IL (by span) — interpret THAT, not `n`.
         let span0 = n.node(root).span;
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
+            push_verify_census(oracle, census, loc, n, root, &[], "no-core-span");
             continue;
         };
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
@@ -2260,12 +2320,15 @@ fn collect_file_verify_recs(
         // firing, so a non-contract false merge is still exposed by the free battery.
         let (fp, contracts) = nose_normalize::value_fingerprint_and_contracts(n, root, interner);
         if fp.is_empty() {
+            push_verify_census(oracle, census, loc, n, root, &[], "empty-fp");
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
         let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
+            push_verify_census(oracle, census, loc, core, core_root, &fp, "battery-bail");
             continue;
         };
+        push_verify_census(oracle, census, loc, core, core_root, &fp, "interpretable");
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
         // behavior. (Only when the full IL is itself fully interpretable on the battery.)
