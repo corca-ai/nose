@@ -188,4 +188,34 @@ much faster. Point it at a directory your CI caches between runs.
 nose scan src --cache-dir .nose-cache --fail-on any
 ```
 
+## Nightly pinned-corpus verify
+
+This repository also has a scheduled `.github/workflows/corpus-verify.yml` gate
+for the soundness moat. Every night, and on manual `workflow_dispatch`, it
+reconstructs the pinned benchmark corpus with `bench/setup_repos.sh`, verifies the
+prune manifest, builds `target/release/nose`, and runs every corpus repository
+through:
+
+```sh
+target/release/nose verify bench/repos/<repo> --max-violations 0
+```
+
+The runner is `scripts/corpus-verify-nightly.sh`. It shards by repository, keeps a
+per-repo log under `target/corpus-verify-logs/`, writes a Markdown summary to the
+GitHub step summary, and exits non-zero if any repo reports a hard false merge or
+a canon-preservation change. Symbolic-trace disagreements stay in the advisory
+lane: the summary counts them, but they do not fail the job.
+
+On failure, the workflow uploads `target/corpus-verify-logs` as the
+`corpus-verify-logs` artifact so triage starts from the failing repo output. The
+workflow caches `bench/repos` with a key derived from the pinned corpus manifest
+and prune scripts; a cold run still works because `bench/setup_repos.sh`
+reconstructs any missing or drifted checkout.
+
+For a local spot check:
+
+```sh
+./scripts/corpus-verify-nightly.sh --repo arrow --repo click --jobs 2
+```
+
 See [CONTRIBUTING](../CONTRIBUTING.md) for the full gate list.

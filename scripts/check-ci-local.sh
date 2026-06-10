@@ -79,6 +79,9 @@ step "corpus prune self-test"
 need_cmd python3
 python3 bench/prune_corpus.py --self-test
 
+step "corpus verify runner self-test"
+./scripts/corpus-verify-nightly.sh --self-test
+
 step "rustfmt (formatting)"
 cargo fmt --all --check
 
