@@ -81,6 +81,20 @@
    "vj": 0.5555555555555556
   },
   {
+   "a": "bench/repos/sqlite/ext/fts3/fts3_porter.c:150",
+   "b": "bench/repos/sqlite/ext/fts3/fts3_porter.c:159",
+   "repo": "sqlite",
+   "structurally_near": false,
+   "vj": 0.5510204081632653
+  },
+  {
+   "a": "bench/repos/etcd/tests/robustness/validate/patch_history.go:384",
+   "b": "bench/repos/etcd/tests/robustness/validate/patch_history.go:414",
+   "repo": "etcd",
+   "structurally_near": false,
+   "vj": 0.5384615384615384
+  },
+  {
    "a": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:244",
    "b": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:510",
    "repo": "libgdx",
@@ -284,6 +298,20 @@
    "vj": 0.3333333333333333
   },
   {
+   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mssql/base.py:2132",
+   "b": "bench/repos/sqlalchemy/test/orm/test_validators.py:97",
+   "repo": "sqlalchemy",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
+   "a": "bench/repos/sympy/sympy/polys/matrices/ddm.py:1139",
+   "b": "bench/repos/sympy/sympy/polys/matrices/ddm.py:1147",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.3333333333333333
+  },
+  {
    "a": "bench/repos/hugo/identity/identity.go:472",
    "b": "bench/repos/hugo/resources/resource_transformers/templates/execute_as_template.go:36",
    "repo": "hugo",
@@ -317,6 +345,13 @@
    "repo": "rxjs",
    "structurally_near": false,
    "vj": 0.3
+  },
+  {
+   "a": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:28",
+   "b": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:53",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.2962962962962963
   },
   {
    "a": "bench/repos/drizzle-orm/drizzle-kit/src/simulator.ts:47",
@@ -357,13 +392,6 @@
    "a": "bench/repos/minio/cmd/endpoint.go:934",
    "b": "bench/repos/minio/cmd/local-locker.go:56",
    "repo": "minio",
-   "structurally_near": false,
-   "vj": 0.2727272727272727
-  },
-  {
-   "a": "bench/repos/sqlite/src/main.c:4931",
-   "b": "bench/repos/sqlite/src/main.c:4935",
-   "repo": "sqlite",
    "structurally_near": false,
    "vj": 0.2727272727272727
   },
@@ -429,13 +457,6 @@
    "repo": "etcd",
    "structurally_near": false,
    "vj": 0.23076923076923078
-  },
-  {
-   "a": "bench/repos/sympy/sympy/core/function.py:1746",
-   "b": "bench/repos/sympy/sympy/simplify/hyperexpand.py:2254",
-   "repo": "sympy",
-   "structurally_near": false,
-   "vj": 0.21739130434782608
   },
   {
    "a": "bench/repos/minio/cmd/streaming-signature-v4.go:612",
@@ -511,13 +532,6 @@
    "a": "bench/repos/prometheus/config/config.go:159",
    "b": "bench/repos/prometheus/web/api/v1/translate_ast.go:181",
    "repo": "prometheus",
-   "structurally_near": false,
-   "vj": 0.2
-  },
-  {
-   "a": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mssql/base.py:2132",
-   "b": "bench/repos/sqlalchemy/lib/sqlalchemy/orm/interfaces.py:1300",
-   "repo": "sqlalchemy",
    "structurally_near": false,
    "vj": 0.2
   },
@@ -634,6 +648,13 @@
    "vj": 0.175
   },
   {
+   "a": "bench/repos/redis/src/util.c:1254",
+   "b": "bench/repos/redis/src/util.c:342",
+   "repo": "redis",
+   "structurally_near": false,
+   "vj": 0.17142857142857143
+  },
+  {
    "a": "bench/repos/h2database/h2/src/main/org/h2/mvstore/type/ByteArrayDataType.java:24",
    "b": "bench/repos/h2database/h2/src/test/org/h2/test/jdbc/TestCallableStatement.java:484",
    "repo": "h2database",
@@ -688,6 +709,13 @@
    "repo": "sympy",
    "structurally_near": false,
    "vj": 0.15306122448979592
+  },
+  {
+   "a": "bench/repos/tmux/tty-keys.c:1681",
+   "b": "bench/repos/tmux/tty-keys.c:1756",
+   "repo": "tmux",
+   "structurally_near": false,
+   "vj": 0.1504237288135593
   },
   {
    "a": "bench/repos/git/apply.c:593",
@@ -1068,6 +1096,13 @@
    "vj": 0.07692307692307693
   },
   {
+   "a": "bench/repos/sympy/sympy/physics/quantum/spin.py:2137",
+   "b": "bench/repos/sympy/sympy/plotting/textplot.py:41",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.07692307692307693
+  },
+  {
    "a": "bench/repos/delve/pkg/dwarf/line/line_parser.go:278",
    "b": "bench/repos/delve/pkg/locspec/locations.go:338",
    "repo": "delve",
@@ -1115,6 +1150,13 @@
    "repo": "packaging",
    "structurally_near": false,
    "vj": 0.05555555555555555
+  },
+  {
+   "a": "bench/repos/esbuild/internal/css_parser/css_parser.go:816",
+   "b": "bench/repos/esbuild/internal/css_parser/css_parser.go:928",
+   "repo": "esbuild",
+   "structurally_near": false,
+   "vj": 0.05454545454545454
   },
   {
    "a": "bench/repos/gin/path.go:155",
@@ -1201,11 +1243,25 @@
    "vj": 0.0425531914893617
   },
   {
+   "a": "bench/repos/sympy/sympy/parsing/sympy_parser.py:30",
+   "b": "bench/repos/sympy/sympy/utilities/iterables.py:2025",
+   "repo": "sympy",
+   "structurally_near": false,
+   "vj": 0.041666666666666664
+  },
+  {
    "a": "bench/repos/jest/packages/jest-diff/src/diffLines.ts:18",
    "b": "bench/repos/jest/packages/jest-snapshot/src/utils.ts:86",
    "repo": "jest",
    "structurally_near": false,
    "vj": 0.037037037037037035
+  },
+  {
+   "a": "bench/repos/prometheus/tsdb/chunks/head_chunks.go:414",
+   "b": "bench/repos/prometheus/util/documentcli/documentcli.go:208",
+   "repo": "prometheus",
+   "structurally_near": false,
+   "vj": 0.028846153846153848
   },
   {
    "a": "bench/repos/vim/src/ex_docmd.c:3579",
@@ -1260,6 +1316,6 @@
  "nose_version": "nose 0.5.0",
  "schema_version": "0.1.0",
  "structurally_near_vj_ge_0.7": 5,
- "under_merged_groups": 179,
- "what": "verify --leads merged per-repo: behavior-equal on the battery but fingerprint-split (modality A under-merge leads)"
+ "under_merged_groups": 187,
+ "what": "verify --leads merged per-repo: CONCRETE behavior-equal, fingerprint-split (modality A under-merge leads; symbolic behaviors excluded by design)"
 }

@@ -1004,3 +1004,40 @@ merged into `bench/labels/oracle_under_merge_leads_2026_06_10.json` — **179
 behavior-equal fingerprint-split groups, 5 structurally near (vj ≥ 0.7)**, e.g.
 nginx's `http` vs `stream` geo modules and sympy's `matrices/common` vs `matrixbase`
 duplicates — oracle-proven missed clones, the strongest convergence leads available.
+
+### BL.1 — uninterpreted symbolic values: the census-ordered extension, measured
+
+The campaign's first move (the census's #1 and #2 targets at once): opaque calls and
+unproven field reads now interpret as **identified symbolic values** instead of bailing
+the unit. An opaque call evaluates its arguments, yields `Sym(callee-signature ⊕
+argument values)`, and records itself in the ordered effect trace; field reads become
+symbolic projections; every composition (bin/un/index/eager builtins/HoF/reduce/append/
+nullish) keeps symbolic operands symbolic via a deep `contains_sym` guard — never
+laundering unknownness into a concrete `Err` — and control flow over a `Sym` still
+bails. The convention is differential: same opaque operations on equal operands in the
+same order ⟹ equal traces. Because symbolic identity keys on pre-canon syntax, a
+Sym-bearing disagreement goes to a new **advisory lane**, never the hard SOUND gate;
+canon preservation and the completeness/leads direction stay concrete-only (a symbolic
+behavior-equality is too weak a missed-clone witness).
+
+Same sharded corpus pass (104 repos, raylib #208 excluded), before → after
+(`oracle_exclusion_census_2026_06_10.json` → `…_post_symbolic_2026_06_10.json`):
+
+| | baseline | symbolic | Δ |
+|---|---:|---:|---|
+| interpretable units | 26,382 (4.5%) | **173,874 (29.4%)** | ×6.6 |
+| oracle-verified merge pairs | 316,677 (9.2%) | **1,077,871 (31.3%)** | ×3.4 |
+| unverified merge mass | 90.8% | **68.7%** | −22.1pp |
+
+The advisory lane surfaced **1,276** symbolic-trace disagreements to review (expected:
+AC-canonicalized operand order legitimately differs pre-canon). The hard lane is *not*
+clean — and that is a pre-existing finding, not a symbolic artifact: 17 repos flag
+fingerprint-equal pairs with concretely different behavior (e.g. `black`'s
+try/import-wrapper colliding with `return self` on a degenerate 2-node fingerprint),
+reproducing identically on the pre-symbolic binary and on `origin/main` back to at
+least 517ad5c. Filed as #210 (the exact channel is protected by `exact_safe`; the
+`near` value-accept path is exposed). The remaining census leaders after this round:
+`lit:unretained:Other` stays product-irrelevant (lossy-lowered), and the residual
+battery-bail mass concentrates in branch-on-symbolic units (`kind:If` excl-share 92%) —
+i.e. the next coverage unit is symbolic-condition path exploration, a much harder,
+deliberately-not-taken step (control flow is never guessed).
