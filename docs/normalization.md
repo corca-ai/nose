@@ -9,9 +9,11 @@ experiments that validated these passes are in [experiments](experiments.md).
 > Stage 2 statement-order subsumed). Track 2 — algebraic canonicalization
 > (`algebra.rs`: assoc/comm flatten, comparison-direction, De Morgan;
 > value-independent). Track 3 — CFG normalization (`cfg_norm.rs` `structure()`:
-> conjoined-guard merge, continue-guard unwrap). Pipeline: desugar → alpha →
-> oracle cutoff → recursion→iteration → dataflow → [dce] → cfg_norm::structure →
-> algebra → cfg_norm::run; value graph on top.
+> conjoined-guard merge, continue-guard unwrap). Pipeline: desugar →
+> {effect, binding, library-api, call-target} evidence → alpha → oracle cutoff →
+> recursion→iteration → dataflow → [dce] → cfg_norm::structure → algebra →
+> cfg_norm::run → {effect, library-api} evidence (re-run on the canonical shapes);
+> value graph on top.
 > (`dce.rs` dead-code/dead-assignment elimination is an optional pass, off by default.)
 > Later additions on the value graph: semantic-kernel **value-domain and value-law
 > contracts** (`ValueDomain` / `ValueLaw`) that gate domain-dependent canons, using
@@ -173,10 +175,13 @@ Guiding constraints for every pass:
   numbers, tolerating structural difference — lives in the **candidate axis** and its
   scoring, never in the behavioral base. Never nondeterministic, either way.
 - **Termination**: bounded rewriting (no infinite saturation).
-- **Composition order**: desugar → alpha → oracle cutoff → **recursion→iteration** →
+- **Composition order**: desugar → evidence producers (effect, binding,
+  library-api, call-target) → alpha → oracle cutoff → **recursion→iteration** →
   **dataflow** → [dce] → **cfg_norm::structure** → **algebra** → **cfg_norm::run** →
-  (later) value-graph (matching the status block above; CFG normalization straddles
-  algebra — `structure()` runs before it, `run()` after). Each documented below.
+  effect/library-api evidence re-run → (later) value-graph (matching the status
+  block above; CFG normalization straddles algebra — `structure()` runs before it,
+  `run()` after; the evidence re-run re-anchors effect and library-API facts on
+  the canonicalized shapes). Each documented below.
 
 ---
 

@@ -425,16 +425,7 @@ fn unique_binding_symbol_for_var(
 ) -> Option<(SymbolEvidenceKind, EvidenceId)> {
     let local_hash = node_name_hash(il, interner, node)?;
     let mut found = None;
-    for record in &il.evidence {
-        if !matches!(
-            record.anchor,
-            EvidenceAnchor::Binding {
-                local_hash: anchor_hash,
-                ..
-            } if anchor_hash == local_hash
-        ) {
-            continue;
-        }
+    for record in il.evidence_binding_anchored(local_hash) {
         let EvidenceKind::Symbol(symbol) = record.kind else {
             continue;
         };
@@ -518,7 +509,7 @@ fn imported_symbol_occurrence_can_be_upserted(
     cache: &mut ImportedOccurrenceValidationCache,
 ) -> bool {
     let anchor = EvidenceAnchor::node(il.node(node).span, NodeKind::Var);
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor {
             continue;
         }
@@ -541,8 +532,7 @@ fn imported_symbol_occurrence_can_be_upserted(
 fn var_has_symbol_identity_evidence(il: &Il, interner: &Interner, node: NodeId) -> bool {
     let anchor = EvidenceAnchor::node(il.node(node).span, NodeKind::Var);
     if il
-        .evidence
-        .iter()
+        .evidence_anchored_at(anchor.span())
         .any(|record| record.anchor == anchor && matches!(record.kind, EvidenceKind::Symbol(_)))
     {
         return true;
@@ -550,15 +540,8 @@ fn var_has_symbol_identity_evidence(il: &Il, interner: &Interner, node: NodeId) 
     let Some(local_hash) = node_name_hash(il, interner, node) else {
         return false;
     };
-    il.evidence.iter().any(|record| {
-        matches!(
-            record.anchor,
-            EvidenceAnchor::Binding {
-                local_hash: anchor_hash,
-                ..
-            } if anchor_hash == local_hash
-        ) && matches!(record.kind, EvidenceKind::Symbol(_))
-    })
+    il.evidence_binding_anchored(local_hash)
+        .any(|record| matches!(record.kind, EvidenceKind::Symbol(_)))
 }
 
 fn node_name_hash(il: &Il, interner: &Interner, node: NodeId) -> Option<u64> {

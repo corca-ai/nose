@@ -1,5 +1,6 @@
 //! Private value-graph model types and builder state.
 
+use super::inline::InlineCandidate;
 use super::*;
 
 pub(super) type ValueId = u32;
@@ -171,11 +172,20 @@ pub(super) struct Builder<'a> {
     /// targets are alpha-renamed to `Cid`; this map reconnects safe top-level literal
     /// data (`const table = {...}`) to free uses inside the function.
     pub(super) global_env: FxHashMap<Symbol, ValueId>,
-    /// Interprocedural inline registry, keyed by target unit root. Calls may consume an entry only
-    /// through `CallTarget::DirectFunction` evidence at the exact call occurrence; the callee
-    /// spelling is never a proof channel. Enclosing functions are excluded for sub-unit
-    /// fingerprints, so a recursive helper cannot inline itself through a block or fragment root.
-    pub(super) inline_fns: FxHashMap<NodeId, InlineFunction>,
+    /// The unit's interprocedural inline registry: pure, file-local
+    /// functions/methods (shared per file via [`ValueFingerprintContext`], or
+    /// owned on the context-free path). Calls may consume an entry only through
+    /// `CallTarget::DirectFunction` evidence at the exact call occurrence; the
+    /// callee spelling is never a proof channel.
+    pub(super) inline_candidates: Option<Cow<'a, [InlineCandidate]>>,
+    /// The unit root currently being fingerprinted — inline targets whose
+    /// subtree contains it are excluded (a function must not inline into
+    /// itself through one of its sub-unit roots).
+    pub(super) inline_exclude_root: Option<NodeId>,
+    /// Snapshot of `global_env`'s keys taken when the candidates were adopted
+    /// (post-seed, pre-process), so inline admission cannot drift with module
+    /// statements processed later in the same unit.
+    pub(super) inline_env_keys: FxHashSet<Symbol>,
     /// Nodes under function/lambda scopes use local cid numbering. Their `Cid(0)` is not
     /// the module `cid_names[0]`, so module-symbol resolution fails closed there.
     pub(super) local_scope_nodes: Cow<'a, [bool]>,

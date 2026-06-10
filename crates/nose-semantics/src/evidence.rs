@@ -193,11 +193,22 @@ pub fn source_pattern_at_node(il: &Il, node: NodeId) -> Option<SourcePatternKind
 }
 
 pub fn direct_function_call_target_at_call(il: &Il, call: NodeId, target_root: NodeId) -> bool {
-    if il.kind(call) != NodeKind::Call || il.kind(target_root) != NodeKind::Func {
+    if il.kind(target_root) != NodeKind::Func {
         return false;
     }
+    direct_function_call_target_span_at_call(il, call)
+        .is_some_and(|proven_span| proven_span == il.node(target_root).span)
+}
+
+/// The proven `DirectFunction` target span at `call`, when the call carries
+/// exactly one asserted `CallTarget` record and it is `DirectFunction`. The
+/// span-returning form lets a consumer with many possible targets resolve the
+/// evidence once and look the target up, instead of re-resolving per target.
+pub fn direct_function_call_target_span_at_call(il: &Il, call: NodeId) -> Option<Span> {
+    if il.kind(call) != NodeKind::Call {
+        return None;
+    }
     let call_span = il.node(call).span;
-    let target_span = il.node(target_root).span;
     match unique_asserted_evidence_at(
         il,
         call_span,
@@ -210,14 +221,14 @@ pub fn direct_function_call_target_at_call(il: &Il, call: NodeId, target_root: N
         EvidenceResolution::Found(CallTargetEvidenceKind::DirectFunction {
             target_span: proven_span,
             ..
-        }) => proven_span == target_span,
+        }) => Some(proven_span),
         EvidenceResolution::Found(
             CallTargetEvidenceKind::DirectMethod { .. }
             | CallTargetEvidenceKind::ImportedFunction { .. }
             | CallTargetEvidenceKind::ImportedMember { .. }
             | CallTargetEvidenceKind::DynamicDispatch { .. },
-        ) => false,
-        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => false,
+        ) => None,
+        EvidenceResolution::Ambiguous | EvidenceResolution::Missing => None,
     }
 }
 
@@ -981,15 +992,15 @@ pub(crate) fn unique_binding_lhs_for_var_reference(
     let scope = nearest_scope(il, node);
     let reference_is_free_name = matches!(il.node(node).payload, Payload::Name(_));
     let mut found = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if candidate.kind != NodeKind::Assign {
-            continue;
-        }
-        let assign = NodeId(idx as u32);
-        let assignment_scope = nearest_scope(il, assign);
-        if assignment_scope != scope && !(reference_is_free_name && assignment_scope.is_none()) {
-            continue;
-        }
+    // Only assignments in the reference's own scope can match — plus, for a
+    // free (pre-alpha) name, module-level assignments. The scope-bucketed
+    // index replaces the whole-arena scan this did per reference.
+    let module_level: &[NodeId] = if reference_is_free_name && scope.is_some() {
+        il.assigns_in_scope(None)
+    } else {
+        &[]
+    };
+    for &assign in il.assigns_in_scope(scope).iter().chain(module_level) {
         if !assignment_is_visible_at_reference(il, assign, node) {
             continue;
         }
@@ -1088,14 +1099,7 @@ pub(crate) fn span_contains(outer: Span, inner: Span) -> bool {
 }
 
 fn name_is_assigned_in_scope(il: &Il, name: Symbol, scope: NodeId) -> bool {
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign {
-            return false;
-        }
-        let id = NodeId(idx as u32);
-        if nearest_scope(il, id) != Some(scope) {
-            return false;
-        }
+    il.assigns_in_scope(Some(scope)).iter().any(|&id| {
         let Some(&lhs) = il.children(id).first() else {
             return false;
         };
@@ -1107,14 +1111,7 @@ fn name_is_assigned_in_scope(il: &Il, name: Symbol, scope: NodeId) -> bool {
 /// `cid` the target of a reassignment inside `scope`? Used to keep a reassigned
 /// parameter from proving its declared domain on the normalized (Cid) IL.
 fn cid_is_assigned_in_scope(il: &Il, cid: u32, scope: NodeId) -> bool {
-    il.nodes.iter().enumerate().any(|(idx, node)| {
-        if node.kind != NodeKind::Assign {
-            return false;
-        }
-        let id = NodeId(idx as u32);
-        if nearest_scope(il, id) != Some(scope) {
-            return false;
-        }
+    il.assigns_in_scope(Some(scope)).iter().any(|&id| {
         let Some(&lhs) = il.children(id).first() else {
             return false;
         };

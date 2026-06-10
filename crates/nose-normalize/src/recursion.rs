@@ -329,11 +329,13 @@ impl Rebuilder<'_> {
         )
     }
 
-    /// `not(c₀ or c₁ or …)` — the loop continues while no base case has been reached.
+    /// `not(c₀ or c₁ or …)` — the loop continues while no base case has been
+    /// reached. The recognizer guarantees at least one guard arm, so `conds` is
+    /// never empty.
     fn not_any(&mut self, conds: Vec<NodeId>) -> NodeId {
         let span = self.old.node(conds[0]).span;
         let mut it = conds.into_iter();
-        let mut acc = self.go_val(it.next().unwrap());
+        let mut acc = self.go_val(it.next().expect("recursion guard arms are non-empty"));
         for c in it {
             let cc = self.go_val(c);
             acc = self

@@ -1376,3 +1376,60 @@ binary on the same corpus shows identical P@10 (53% [48–58] dev / 55% [50–60
 both arms, per-language rows unchanged) with heldout worthy-recall *up* four labels
 (Go +3, Python +1) — the erasure fixes split only behaviorally-different pairs, and
 representing deref effects let a few previously stub-collapsed units group correctly.
+
+## BQ. The evidence-index campaign — the quadratic scans behind `normalize+extract`
+
+`NOSE_TIME=1` stage timing on the corpus showed `normalize+extract` at 95–97% of
+scan cost (sympy: 20.5s of a 21s scan; redis: 6.9s of 7.4s), and the per-pass
+`NOSE_TIME_NORMALIZE` aggregation put 92% of the normalize half in the four
+evidence passes — call-target 35.6s, binding 14.3s, effect 21.7s, api 1.8s CPU
+on sympy. The shape was always the same: **a per-node/per-call query running a
+full linear scan of `il.evidence` (or `il.nodes`)** — O(n²) on evidence-dense
+files. The span-keyed evidence index existed (`Il::evidence_anchored_at`), but
+most consumers predated it.
+
+What landed, all output-preserving (byte-identical scan JSON on
+redis/git/tokio/guava/sympy/netty and the full test suite before/after):
+
+1. **Every anchored evidence query goes through the index.**
+   `find_or_push_first_party_evidence` (the emit-path dedup scan — quadratic on
+   its own output), both evidence `upsert`s, the call-target/binding/library-api
+   pass helpers, and ~15 anchored scans in `nose-semantics` now query the
+   span bucket. `EvidenceIndex` gained a `by_binding_hash` bucket for the
+   `Binding`-anchor-by-hash consumers and a `(id, span)` staleness sentinel so a
+   `clear()`/`retain()`+re-push rebuilds instead of silently corrupting
+   (a latent hazard a unit test exposed the moment more paths used the index).
+2. **Two more lazy arena indexes on `Il`,** under the same nodes-are-immutable
+   discipline as `scope_index`: `nodes_spanning` (span → nodes; kills the
+   whole-arena `node_at_span*` scans in library-api span queries) and
+   `assigns_in_scope` (nearest-scope → assigns; kills the whole-arena scan in
+   `unique_binding_lhs_for_var_reference`, which ran per Var reference).
+3. **`binding_evidence` inverted its mutation walk.** Per-binding
+   `visit_scope_nodes` (O(assignments × scope size)) became one
+   `ScopeMutationFacts` walk per scope harvesting names per site, with the
+   shadow rule applied via per-nested-scope bound-name sets — same verdicts,
+   one pass (sympy: 14.3s → 0.8s).
+4. **The pure-inline registry is file-level, not per-unit.** `units::extract`
+   rebuilt it per unit — every unit re-walked every function body
+   (O(units × file), ~17s CPU on sympy, the dominant *block*-unit cost).
+   `ValueFingerprintContext` now collects `InlineCandidate`s once per file with
+   the safety check's global-name requirements *recorded* instead of resolved;
+   per-unit admission (self-exclusion + required-globals ⊆ the unit's seeded
+   `global_env`, snapshotted at adopt time) moved to the call site, and call
+   resolution inverted from per-registry-entry evidence checks to one
+   `direct_function_call_target_span_at_call` + span lookup. The context-free
+   path shares the same mechanism (the old `inline_fns` map is gone).
+
+**Result** (release, 10-core M-series, default `syntax,semantic` scan): sympy
+20.0 → 4.7s wall (81.3 → 23.5s CPU), redis 3.9 → 1.0s, git 2.7 → 1.1s, netty
+3.5 → 1.8s, guava 3.6 → 2.2s, tokio 0.5 → 0.3s — **2–4× end-to-end** with
+byte-identical output. The dogfood gate caught one real near-duplicate the
+refactor itself introduced (`path_cond`/`guarded` converged once both used the
+same indexed loop) — deduped by making `guarded` call `path_cond`, count back
+at 24.
+
+The remaining cost after this campaign is the genuine per-unit value-graph
+build (blocks dominate by count), no longer accidental quadratics. The design
+lesson matches §T: hot-path evidence/node lookups must be index-backed by
+default — a raw `il.evidence`/`il.nodes` iteration in a per-node helper is a
+red flag in review.

@@ -107,6 +107,26 @@ pub(crate) fn run(args: &[&str]) -> String {
     String::from_utf8(out.stdout).unwrap()
 }
 
+/// `nose scan <dir> --mode <mode> --format json --top 0` with the tiny-fixture
+/// floors (`--min-lines 1 --min-size 1`) — the standard invocation for the
+/// one-function fixtures the semantic CLI tests are built from.
+pub(crate) fn scan_min_json(dir: &Path, mode: &str) -> String {
+    run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        mode,
+        "--min-lines",
+        "1",
+        "--min-size",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ])
+}
+
 pub(crate) fn add_distinct_clone_family(dir: &Path) {
     let d = dir.join("new");
     fs::create_dir_all(&d).unwrap();
@@ -158,6 +178,55 @@ pub(crate) fn family_with_all<'a>(
                     .is_some_and(|file| file.ends_with(suffix))
             })
         })
+    })
+}
+
+/// Find a family that pairs `left` and `right` as locations at exactly
+/// `start_line..end_line`, where every location is a `Block` and none sits in
+/// `negative` — the standard positive check for branch-boundary fragment tests.
+pub(crate) fn block_branch_pair_family<'a>(
+    families: &'a [serde_json::Value],
+    left: &str,
+    right: &str,
+    negative: &str,
+    start_line: u64,
+    end_line: u64,
+) -> Option<&'a serde_json::Value> {
+    families.iter().find(|family| {
+        let locations = family["locations"].as_array().expect("locations");
+        let branch_files: Vec<&str> = locations
+            .iter()
+            .filter(|loc| loc["start_line"] == start_line && loc["end_line"] == end_line)
+            .filter_map(|loc| loc["file"].as_str())
+            .collect();
+        branch_files.iter().any(|file| file.ends_with(left))
+            && branch_files.iter().any(|file| file.ends_with(right))
+            && locations.iter().all(|loc| loc["kind"] == "Block")
+            && locations
+                .iter()
+                .filter_map(|loc| loc["file"].as_str())
+                .all(|file| !file.ends_with(negative))
+    })
+}
+
+/// Whether any family pairs `left` at `(start, end)` with `right` at its
+/// `(start, end)` — the standard negative check for branch-boundary tests
+/// (asserting two spans were NOT merged into one family).
+pub(crate) fn families_pair_locations(
+    families: &[serde_json::Value],
+    left: (&str, u64, u64),
+    right: (&str, u64, u64),
+) -> bool {
+    fn has_location(locations: &[serde_json::Value], (file, start, end): (&str, u64, u64)) -> bool {
+        locations.iter().any(|loc| {
+            loc["file"].as_str().is_some_and(|f| f.ends_with(file))
+                && loc["start_line"] == start
+                && loc["end_line"] == end
+        })
+    }
+    families.iter().any(|family| {
+        let locations = family["locations"].as_array().expect("locations");
+        has_location(locations, left) && has_location(locations, right)
     })
 }
 

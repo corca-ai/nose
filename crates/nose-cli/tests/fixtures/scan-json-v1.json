@@ -90,6 +90,7 @@
       "review": 0,
       "hidden": 0,
       "debug": 0,
+      "generated": 0,
       "fragments": {
         "total": 0,
         "default": 0,

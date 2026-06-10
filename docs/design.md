@@ -155,8 +155,9 @@ engine over a single formal IL semantics was evaluated in depth. The current evi
 - behavioral equivalence is **not a congruence** under the IL's ordered effects (the oracle
   compares an ordered effect trace), so a congruence-closure merge is unsound except on a pure
   sub-IL — at which point it largely reinvents the existing normal form;
-- performance: the canonicalizer is single-pass today and is not even the dominant scan cost
-  (the frontend is); saturation is super-linear and determinism-hostile.
+- performance: the canonicalizer is single-pass today and is not the dominant scan cost
+  (per-unit value-graph extraction is, now that the evidence passes are index-backed —
+  [experiments §BQ](experiments.md)); saturation is super-linear and determinism-hostile.
 
 It is recorded here as an **open question, not a closed door.** Conditions that would justify
 revisiting:

@@ -29,7 +29,9 @@ impl<'a> Builder<'a> {
             building: FxHashMap::default(),
             building_kind: FxHashMap::default(),
             global_env: FxHashMap::default(),
-            inline_fns: FxHashMap::default(),
+            inline_candidates: None,
+            inline_exclude_root: None,
+            inline_env_keys: FxHashSet::default(),
             local_scope_nodes: Cow::Owned(local_scope_nodes(il)),
             loop_recurrence: None,
             next_loop_key_base: 0,
@@ -131,34 +133,29 @@ impl<'a> Builder<'a> {
                 .copied()
                 .unwrap_or(0);
         }
-        if self.subtree_hash.is_none() {
-            self.subtree_hash = Some(crate::subtree_hashes(self.il, self.interner));
-        }
         self.subtree_hash
-            .as_ref()
-            .unwrap()
+            .get_or_insert_with(|| crate::subtree_hashes(self.il, self.interner))
             .get(expr.0 as usize)
             .copied()
             .unwrap_or(0)
     }
 
     pub(super) fn valued_subtree_hash(&mut self, expr: NodeId) -> u64 {
-        if self.valued_subtree_hash.is_none() {
-            let mut hashes = vec![0u64; self.il.nodes.len()];
-            for i in 0..self.il.nodes.len() {
-                let id = NodeId(i as u32);
-                let node = self.il.node(id);
-                let mut h = crate::node_tag_valued(node.kind, node.payload, self.interner);
-                for &child in self.il.children(id) {
-                    h = combine(h, hashes[child.0 as usize]);
-                }
-                hashes[i] = h;
-            }
-            self.valued_subtree_hash = Some(hashes);
-        }
+        let (il, interner) = (self.il, self.interner);
         self.valued_subtree_hash
-            .as_ref()
-            .unwrap()
+            .get_or_insert_with(|| {
+                let mut hashes = vec![0u64; il.nodes.len()];
+                for i in 0..il.nodes.len() {
+                    let id = NodeId(i as u32);
+                    let node = il.node(id);
+                    let mut h = crate::node_tag_valued(node.kind, node.payload, interner);
+                    for &child in il.children(id) {
+                        h = combine(h, hashes[child.0 as usize]);
+                    }
+                    hashes[i] = h;
+                }
+                hashes
+            })
             .get(expr.0 as usize)
             .copied()
             .unwrap_or(0)

@@ -10,31 +10,54 @@
 
 use super::*;
 use nose_il::UnitKind;
-use nose_semantics::direct_function_call_target_at_call;
+use nose_semantics::direct_function_call_target_span_at_call;
+
+/// A file-level inline candidate, computed ONCE per file by
+/// [`ValueFingerprintContext`] instead of per unit (the per-unit registry build
+/// re-walked every unit body for every unit — quadratic in file size). The two
+/// conditions the per-unit build folded in are deferred to the call site:
+/// the consuming unit's exclusion (no function inlines into itself through one
+/// of its sub-units) and the global-binding requirement (`required_globals`
+/// must all be seeded in the consuming builder's `global_env` — per-unit
+/// module-binding seeding varies with what the unit references).
+#[derive(Clone)]
+pub(super) struct InlineCandidate {
+    pub(super) root: NodeId,
+    pub(super) function: InlineFunction,
+    /// Free (module-symbol) names the body's safety verdict depends on, sorted.
+    pub(super) required_globals: Vec<Symbol>,
+}
 
 impl<'a> Builder<'a> {
-    /// Build the interprocedural inline registry: pure, file-local functions/methods that can be
-    /// inlined to their body's value. Excludes the unit currently being built, and any enclosing
-    /// function/method for sub-unit roots, so a function is never inlined into itself through one
-    /// of its blocks or exact fragments.
-    pub(super) fn build_inline_registry(&mut self, root: NodeId) {
-        if !self.inline_fns.is_empty() {
-            return;
-        }
-        for unit in self.il.units.clone() {
-            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method)
-                || self.subtree_contains(unit.root, root)
-            {
+    /// Make `candidates` the unit's inline registry and snapshot the
+    /// currently-seeded global bindings. The snapshot pins the registry to the
+    /// post-seed, pre-process state the per-unit build used to see: module
+    /// container units may add `global_env` entries while their statements are
+    /// processed, and a mid-processing inline admission would otherwise depend
+    /// on statement order.
+    pub(super) fn adopt_inline_candidates(
+        &mut self,
+        root: NodeId,
+        candidates: Cow<'a, [InlineCandidate]>,
+    ) {
+        self.inline_candidates = Some(candidates);
+        self.inline_exclude_root = Some(root);
+        self.inline_env_keys = self.global_env.keys().copied().collect();
+    }
+
+    /// File-level inline candidates for [`ValueFingerprintContext`]: every pure
+    /// function/method body, with its safety's global-name requirements
+    /// recorded instead of resolved (resolution happens per consuming unit).
+    pub(super) fn collect_inline_candidates(&self) -> Vec<InlineCandidate> {
+        let mut out = Vec::new();
+        for unit in &self.il.units {
+            if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) {
                 continue;
             }
-            if !self.function_binding_safe(unit.root, unit.root) {
+            let mut required_globals = Vec::new();
+            if !self.function_binding_safe_collect(unit.root, unit.root, &mut required_globals) {
                 continue;
             }
-            // SOUNDNESS: only inline an EFFECT-FREE body: a `return <expr>` or a straight-line
-            // block of LOCAL bindings ending in a `return`. `function_binding_safe` alone is too
-            // weak because it admits field/index WRITES, an effect the value-only inline would
-            // silently drop. The interpreter oracle also checks cross-function calls end-to-end,
-            // but the syntactic gate stays conservative by construction.
             let Some(body) = self.inline_pure_body(unit.root) else {
                 continue;
             };
@@ -46,8 +69,61 @@ impl<'a> Builder<'a> {
                     _ => None,
                 })
                 .collect();
-            self.inline_fns
-                .insert(unit.root, InlineFunction { params, body });
+            required_globals.sort_unstable();
+            required_globals.dedup();
+            out.push(InlineCandidate {
+                root: unit.root,
+                function: InlineFunction { params, body },
+                required_globals,
+            });
+        }
+        out
+    }
+
+    /// [`Builder::function_binding_safe`] with the `global_env` membership test
+    /// replaced by collection: free names are recorded in `required` and assumed
+    /// available; the caller re-checks them against the consuming unit's
+    /// `global_env`, which yields exactly the per-unit verdict the eager check
+    /// produced (the check is monotone in `global_env`).
+    fn function_binding_safe_collect(
+        &self,
+        root: NodeId,
+        node: NodeId,
+        required: &mut Vec<Symbol>,
+    ) -> bool {
+        match self.il.kind(node) {
+            NodeKind::Raw
+            | NodeKind::HoF
+            | NodeKind::Lambda
+            | NodeKind::Loop
+            | NodeKind::Try
+            | NodeKind::Throw => false,
+            NodeKind::Func if node != root => false,
+            NodeKind::Call => match self.il.node(node).payload {
+                Payload::Builtin(builtin) => self.admitted_builtin_call(node, builtin),
+                _ => false,
+            },
+            NodeKind::Var => match self.il.node(node).payload {
+                Payload::Cid(_) => true,
+                Payload::Name(s) => {
+                    required.push(s);
+                    true
+                }
+                _ => false,
+            },
+            NodeKind::Lit => matches!(
+                self.il.node(node).payload,
+                Payload::LitInt(_)
+                    | Payload::LitBool(_)
+                    | Payload::LitStr(_)
+                    | Payload::LitFloat(_)
+                    | Payload::Lit(nose_il::LitClass::Null)
+            ),
+            _ => self
+                .il
+                .children(node)
+                .iter()
+                .all(|&c| self.function_binding_safe_collect(root, c, required)),
         }
     }
 
@@ -92,15 +168,34 @@ impl<'a> Builder<'a> {
     }
 
     fn inline_target_for_call(&self, call: NodeId) -> Option<InlineFunction> {
+        let candidates = self.inline_candidates.as_deref()?;
+        // Resolve the call's DirectFunction evidence once, then apply the
+        // per-unit conditions deferred from candidate collection (see
+        // `InlineCandidate`): the consuming-unit exclusion and the seeded
+        // global-binding requirement (against the adopt-time snapshot).
+        let proven_span = direct_function_call_target_span_at_call(self.il, call)?;
+        let exclude_root = self.inline_exclude_root;
         let mut found = None;
-        for (&root, function) in &self.inline_fns {
-            if !direct_function_call_target_at_call(self.il, call, root) {
+        for candidate in candidates {
+            if self.il.kind(candidate.root) != NodeKind::Func
+                || self.il.node(candidate.root).span != proven_span
+            {
+                continue;
+            }
+            if exclude_root.is_some_and(|root| self.subtree_contains(candidate.root, root)) {
+                continue;
+            }
+            if !candidate
+                .required_globals
+                .iter()
+                .all(|name| self.inline_env_keys.contains(name))
+            {
                 continue;
             }
             if found.is_some() {
                 return None;
             }
-            found = Some(function.clone());
+            found = Some(candidate.function.clone());
         }
         found
     }
@@ -132,37 +227,14 @@ impl<'a> Builder<'a> {
         }
     }
 
+    /// The eager form of [`Builder::function_binding_safe_collect`]: same body
+    /// verdict, with the free-name requirements resolved against the current
+    /// `global_env` immediately.
     pub(super) fn function_binding_safe(&self, root: NodeId, node: NodeId) -> bool {
-        match self.il.kind(node) {
-            NodeKind::Raw
-            | NodeKind::HoF
-            | NodeKind::Lambda
-            | NodeKind::Loop
-            | NodeKind::Try
-            | NodeKind::Throw => false,
-            NodeKind::Func if node != root => false,
-            NodeKind::Call => match self.il.node(node).payload {
-                Payload::Builtin(builtin) => self.admitted_builtin_call(node, builtin),
-                _ => false,
-            },
-            NodeKind::Var => match self.il.node(node).payload {
-                Payload::Cid(_) => true,
-                Payload::Name(s) => self.global_env.contains_key(&s),
-                _ => false,
-            },
-            NodeKind::Lit => matches!(
-                self.il.node(node).payload,
-                Payload::LitInt(_)
-                    | Payload::LitBool(_)
-                    | Payload::LitStr(_)
-                    | Payload::LitFloat(_)
-                    | Payload::Lit(nose_il::LitClass::Null)
-            ),
-            _ => self
-                .il
-                .children(node)
+        let mut required = Vec::new();
+        self.function_binding_safe_collect(root, node, &mut required)
+            && required
                 .iter()
-                .all(|&c| self.function_binding_safe(root, c)),
-        }
+                .all(|name| self.global_env.contains_key(name))
     }
 }

@@ -112,6 +112,7 @@ fn record_assignments_in_scope(
         )
     });
 
+    let mutation_facts = ScopeMutationFacts::collect(il, interner, scope);
     for assignment in ordered {
         if assignment.control_gated {
             continue;
@@ -125,7 +126,7 @@ fn record_assignments_in_scope(
         if node_contains_name(il, assignment.rhs, assignment.name) {
             continue;
         }
-        if binding_mutated_in_scope(il, interner, scope, assignments, assignment) {
+        if mutation_facts.binding_mutated(assignment) {
             continue;
         }
 
@@ -181,7 +182,7 @@ fn rhs_domain_evidence(
 fn domain_evidence_record_for_node(il: &Il, node: NodeId) -> Option<(DomainEvidence, EvidenceId)> {
     let expected = EvidenceAnchor::node(il.node(node).span, il.kind(node));
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(expected.span()) {
         if record.anchor != expected {
             continue;
         }
@@ -209,7 +210,7 @@ fn sequence_domain_evidence_record_for_node(
     }
     let span = il.node(node).span;
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if !matches!(record.anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span)
         {
             continue;
@@ -239,101 +240,175 @@ fn record_is_live(il: &Il, record: &EvidenceRecord) -> bool {
     record.status == EvidenceStatus::Asserted && il.evidence_dependencies_asserted(record)
 }
 
-fn binding_mutated_in_scope(
-    il: &Il,
-    interner: &Interner,
-    scope: NodeId,
-    assignments: &[BindingAssignment],
-    binding: BindingAssignment,
-) -> bool {
-    for assignment in assignments {
-        if assignment.assign != binding.assign
-            && binding_write_target(il, assignment.assign)
-                .is_some_and(|target| node_contains_name(il, target, binding.name))
-        {
-            return true;
-        }
+/// Per-scope mutation facts, collected in ONE walk and queried per binding.
+///
+/// Replaces the per-binding `visit_scope_nodes` walk (which was
+/// O(assignments × scope size) — quadratic on module scopes full of
+/// assignments, e.g. data-table files). Semantics are identical to the old
+/// walk: a site only counts against a name when no nested `Func`/`Lambda`
+/// between the scope root and the site *binds* that name (shadowing), and a
+/// write-target site never counts against the binding assignment itself. The
+/// old code's separate first pass over the scope's own assignment list was
+/// subsumed by the walk (same `binding_write_target`/`node_contains_name`
+/// check on the same nodes), so it has no counterpart here.
+struct ScopeMutationFacts {
+    /// Names mutated independent of any assignment: a mutating method call's
+    /// `Var` receiver, or any `Var` inside an opaque-escape argument.
+    mutated: FxHashSet<Symbol>,
+    /// Names contained in an `Assign` write target → the assign sites that
+    /// contain them (so the binding's own assignment can be excluded).
+    write_sites: FxHashMap<Symbol, Vec<NodeId>>,
+}
+
+impl ScopeMutationFacts {
+    fn collect(il: &Il, interner: &Interner, scope: NodeId) -> Self {
+        let mut facts = ScopeMutationFacts {
+            mutated: FxHashSet::default(),
+            write_sites: FxHashMap::default(),
+        };
+        // Bound-name sets of the nested scopes currently on the walk path; a
+        // harvested name shadowed by any of them does not reach the facts.
+        let mut shadow_stack: Vec<FxHashSet<Symbol>> = Vec::new();
+        facts.go(il, interner, scope, scope, &mut shadow_stack);
+        facts
     }
 
-    let mut mutated = false;
-    visit_scope_nodes(il, scope, binding.name, |node| {
-        if mutated {
-            return;
-        }
+    fn go(
+        &mut self,
+        il: &Il,
+        interner: &Interner,
+        scope: NodeId,
+        node: NodeId,
+        shadow_stack: &mut Vec<FxHashSet<Symbol>>,
+    ) {
         match il.kind(node) {
             NodeKind::Call => {
                 if let Some(receiver) = receiver_mutation_call_receiver(il, interner, node) {
-                    mutated = node_refers_to_name(il, receiver, binding.name);
+                    if let Some(name) = var_name(il, receiver) {
+                        self.record_mutated(name, shadow_stack);
+                    }
                 }
-                if !mutated {
-                    if let Some(args) = opaque_argument_escape_args(il, node) {
-                        mutated = args
-                            .iter()
-                            .any(|&arg| node_contains_name(il, arg, binding.name));
+                if let Some(args) = opaque_argument_escape_args(il, node) {
+                    for &arg in args {
+                        self.record_subtree_vars(il, arg, shadow_stack, None);
                     }
                 }
             }
-            NodeKind::Assign if node != binding.assign => {
+            NodeKind::Assign => {
                 if let Some(lhs) = binding_write_target(il, node) {
-                    mutated = node_contains_name(il, lhs, binding.name);
+                    self.record_subtree_vars(il, lhs, shadow_stack, Some(node));
                 }
             }
             _ => {}
         }
-    });
-    mutated
-}
-
-fn visit_scope_nodes(il: &Il, scope: NodeId, binding_name: Symbol, mut visit: impl FnMut(NodeId)) {
-    fn go(
-        il: &Il,
-        scope: NodeId,
-        binding_name: Symbol,
-        node: NodeId,
-        visit: &mut impl FnMut(NodeId),
-    ) {
-        visit(node);
-        if node != scope
-            && matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda)
-            && scope_binds_name(il, node, binding_name)
-        {
-            return;
-        }
-        for &child in il.children(node) {
-            go(il, scope, binding_name, child, visit);
+        if node != scope && matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
+            shadow_stack.push(scope_bound_names(il, node));
+            for &child in il.children(node) {
+                self.go(il, interner, scope, child, shadow_stack);
+            }
+            shadow_stack.pop();
+        } else {
+            for &child in il.children(node) {
+                self.go(il, interner, scope, child, shadow_stack);
+            }
         }
     }
-    go(il, scope, binding_name, scope, &mut visit);
+
+    fn record_mutated(&mut self, name: Symbol, shadow_stack: &[FxHashSet<Symbol>]) {
+        if !shadow_stack.iter().any(|bound| bound.contains(&name)) {
+            self.mutated.insert(name);
+        }
+    }
+
+    /// Harvest every `Var` name in `node`'s subtree — the inverted form of
+    /// `node_contains_name`. With `write_site`, names go to `write_sites`
+    /// (assignment-excludable); without, straight to `mutated`.
+    fn record_subtree_vars(
+        &mut self,
+        il: &Il,
+        node: NodeId,
+        shadow_stack: &[FxHashSet<Symbol>],
+        write_site: Option<NodeId>,
+    ) {
+        if let Some(name) = var_name(il, node) {
+            if !shadow_stack.iter().any(|bound| bound.contains(&name)) {
+                match write_site {
+                    Some(site) => self.write_sites.entry(name).or_default().push(site),
+                    None => {
+                        self.mutated.insert(name);
+                    }
+                }
+            }
+        }
+        for &child in il.children(node) {
+            self.record_subtree_vars(il, child, shadow_stack, write_site);
+        }
+    }
+
+    fn binding_mutated(&self, binding: BindingAssignment) -> bool {
+        self.mutated.contains(&binding.name)
+            || self
+                .write_sites
+                .get(&binding.name)
+                .is_some_and(|sites| sites.iter().any(|&site| site != binding.assign))
+    }
 }
 
-fn scope_binds_name(il: &Il, scope: NodeId, name: Symbol) -> bool {
-    fn go(il: &Il, scope: NodeId, node: NodeId, name: Symbol) -> bool {
+fn var_name(il: &Il, node: NodeId) -> Option<Symbol> {
+    (il.kind(node) == NodeKind::Var)
+        .then(|| binding_node_name(il, node))
+        .flatten()
+}
+
+/// Every name `scope` binds at its own level: params, assignment targets, and
+/// loop patterns, not descending into deeper nested scopes — the same walk the
+/// old per-name `scope_binds_name` did, collected once.
+fn scope_bound_names(il: &Il, scope: NodeId) -> FxHashSet<Symbol> {
+    fn go(il: &Il, scope: NodeId, node: NodeId, out: &mut FxHashSet<Symbol>) {
         if node != scope && matches!(il.kind(node), NodeKind::Func | NodeKind::Lambda) {
-            return false;
+            return;
         }
         match il.kind(node) {
-            NodeKind::Param if binding_node_name(il, node) == Some(name) => return true,
+            NodeKind::Param => {
+                if let Some(name) = binding_node_name(il, node) {
+                    out.insert(name);
+                }
+            }
             NodeKind::Assign => {
                 if let Some(&lhs) = il.children(node).first() {
-                    if target_binds_name(il, lhs, name) {
-                        return true;
-                    }
+                    collect_target_names(il, lhs, out);
                 }
             }
             NodeKind::Loop => {
                 if let Some(&pattern) = il.children(node).first() {
-                    if target_binds_name(il, pattern, name) {
-                        return true;
-                    }
+                    collect_target_names(il, pattern, out);
                 }
             }
             _ => {}
         }
-        il.children(node)
-            .iter()
-            .any(|&child| go(il, scope, child, name))
+        for &child in il.children(node) {
+            go(il, scope, child, out);
+        }
     }
-    go(il, scope, scope, name)
+    let mut out = FxHashSet::default();
+    go(il, scope, scope, &mut out);
+    out
+}
+
+fn collect_target_names(il: &Il, node: NodeId, out: &mut FxHashSet<Symbol>) {
+    match il.kind(node) {
+        NodeKind::Var => {
+            if let Some(name) = binding_node_name(il, node) {
+                out.insert(name);
+            }
+        }
+        NodeKind::Seq => {
+            for &child in il.children(node) {
+                collect_target_names(il, child, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn node_refers_to_name(il: &Il, node: NodeId, name: Symbol) -> bool {
@@ -346,17 +421,6 @@ fn node_contains_name(il: &Il, node: NodeId, name: Symbol) -> bool {
             .children(node)
             .iter()
             .any(|&child| node_contains_name(il, child, name))
-}
-
-fn target_binds_name(il: &Il, node: NodeId, name: Symbol) -> bool {
-    match il.kind(node) {
-        NodeKind::Var => binding_node_name(il, node) == Some(name),
-        NodeKind::Seq => il
-            .children(node)
-            .iter()
-            .any(|&child| target_binds_name(il, child, name)),
-        _ => false,
-    }
 }
 
 fn find_or_push_evidence(

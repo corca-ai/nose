@@ -115,20 +115,7 @@ fn scan_mode_semantic_reports_c_u16_byte_pack_only_when_byte_buffer_proven() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let family_files = |family: &serde_json::Value| -> Vec<String> {
@@ -208,20 +195,7 @@ fn scan_mode_semantic_reports_c_u32_byte_pack_only_when_unsigned_cast_proven() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let family_files = |family: &serde_json::Value| -> Vec<String> {
