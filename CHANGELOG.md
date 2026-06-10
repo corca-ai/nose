@@ -60,6 +60,12 @@ break.
   anchor weight), answering the recall-mechanism gate no-go and routing the
   residual to unit-extraction coverage and the fragment statement-window axis
   (experiments §BJ).
+- An independent miss-mining arm (`bench/type4/miss_mining.py` plus its dated
+  artifact) now measures in-the-wild unreported same-computation pairs beyond
+  the nose ∪ jscpd label pool: 593 detector-suggested candidates corpus-wide,
+  audited as overwhelmingly generated/scaffolding with a handful of
+  worthy-shaped misses — and the audit exposed the #202 channel-merge family
+  drop (experiments §BK).
 
 ### Changed
 - Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface

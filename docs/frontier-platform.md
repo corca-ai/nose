@@ -90,6 +90,19 @@ established by literal bounds or an exiting inverse guard. The surface bridge al
 two-comparison ternary clamps and proven numeric Rust `.clamp` forms while keeping unproven
 bounds, custom method names, and float domains outside the shared Clamp value.
 
+## The miss-mining arm (`miss_mining.py`)
+
+`bench/type4/miss_mining.py` is a corpus-wide **queue-signal** source on the same
+two-layer discipline: it LSH-bands the detection minhash over every meaningful-size
+unit per repo and emits unit pairs with high exact value-Jaccard that **no family on
+the maximal current scan surface co-reports** — same-computation evidence the product
+stays silent on, annotated with `fp_equal`, `exact_safe`, and a source
+`text_similarity` ratio (the low-text tail is what a token-based pool can never
+contribute). Every record carries `evidence_tier: detector-suggested` and nothing is
+auto-elevated; a confirmed miss graduates by hand into `real_frontier.v1.json` via the
+audit template below. Method, the dated artifact, and the first audit's findings are
+recorded in [experiments §BK](experiments.md).
+
 ## Target packets (`frontier_target_packets.v1.json`)
 
 An *implementation-ready* candidate becomes a **target packet** in a separate artifact —

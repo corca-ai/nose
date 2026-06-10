@@ -912,3 +912,48 @@ lower anchor weight floor, but those small shared chunks are weak refactor targe
 the band is an over-approximation — worth at most a knob experiment
 (`NOSE_ANCHOR_*`), not a mechanism. The honest headline for further worthy-recall is
 **unit extraction coverage and the fragment axis, not more matching**.
+
+## BK. The independent miss-mining arm — measuring in-the-wild misses (modality B)
+
+The §BJ probe answered the *mechanism* question; this answers the *measurement* one
+(#194): the v5 pool is nose ∪ jscpd, so semantic clones missed by **both** can't appear
+in any recall denominator. `bench/type4/miss_mining.py` is the independent arm: per
+pinned repo, LSH-band the detection minhash over all ≥ 5-line/≥ 40-token units, confirm
+candidate pairs by exact value-multiset Jaccard (≥ 0.80), and keep pairs **no family on
+the maximal current surface co-reports**. Output is a queue signal only (#36 two-layer
+discipline): every record carries `evidence_tier: detector-suggested`, annotated with
+`fp_equal`, `exact_safe`, and a source `text_similarity` ratio so the
+textually-dissimilar tail (the jscpd-shaped blind spot) is sliceable. The complementary
+modality A — behavior-equal fingerprint-split pairs — is the existing
+`nose verify --leads`. Artifact: `bench/type4/miss_mining_2026_06_10.json`
+(104 repos; `rxjs` excluded, #198).
+
+**Result: 593 candidates corpus-wide, and the audit says the residual is structured,
+small, and mostly *not* detector-recall.**
+
+| class | n | read |
+|---|---:|---|
+| fp-equal, same-file, not exact-safe | 375 | parameterized-test / scaffolding bodies, annotation-varying twins |
+| fp-equal, cross-file | 78 | dominated by generated code (`etcd` protobuf `*.pb.go`) — correctly excluded from ranking by the generated-file policy |
+| fp-equal, same-file, exact-safe | 44 | small proven twins, mostly test scaffolds |
+| vj ∈ [0.8, 1.0), mixed | 96 | the only class with worthy-shaped finds |
+
+Spot-audit of the non-fp-equal cross-file slice found one clearly worthy-shaped miss —
+`libgdx` `Widget.pack()` ≡ `WidgetGroup.pack()` (identical method duplicated across
+sibling classes; impure, vj 0.80 < the 0.90 value-accept, shapes split, so no channel
+fires) — among stub/parallel-by-design neighbours (curl no-op callbacks, sympy protocol
+type-defs). The deeper catch was mechanical: chasing *why* fp-equal `exact_safe` pairs
+(`junit5` annotation-varying `fail(...)` methods) never surface exposed that **adding
+the syntax channel can drop an exact semantic family the semantic channel reports
+alone** — a channel-merge reporting bug, filed with a single-file reproducer as #202.
+That is the arm working as designed: candidates are cheap, and each audited one either
+dies as scaffolding/generated (raising confidence in the policy layers) or names a
+precise defect.
+
+Honest bottom line for the in-the-wild recall question: at vj ≥ 0.8 the unreported mass
+is ~600 pairs across 59k files, overwhelmingly generated/scaffolding; the worthy-shaped
+tail is a handful per corpus — consistent with §BJ's "no headline recall mechanism
+left" verdict. Below vj 0.8 (true different-algorithm Type-4) this arm is blind by
+construction; that frontier remains unmeasured and would need a behavior- or
+embedding-based candidate source — recorded as the arm's known limit, not claimed
+covered.
