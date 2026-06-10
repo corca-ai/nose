@@ -1,0 +1,6572 @@
+{
+ "corpus_commit_digest": "27572e8d375650ea537c548fdcaec1184b0e9ebb645361b8f40f002ce2be5cba",
+ "inline_floor": 20,
+ "missed_worthy": [
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "9c6effe5d34be3b4",
+   "inline_aug_mass": 20,
+   "intersection_mass": 1,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 149,
+     "file": "bench/repos/alacritty/alacritty/src/daemon.rs",
+     "start_line": 141
+    },
+    {
+     "end_line": 126,
+     "file": "bench/repos/alacritty/alacritty/src/daemon.rs",
+     "start_line": 117
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "alacritty",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    20,
+    4
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "f4fee9de42105372",
+   "intersection_mass": 9,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 536,
+     "file": "bench/repos/alacritty/alacritty/src/display/window.rs",
+     "start_line": 528
+    },
+    {
+     "end_line": 483,
+     "file": "bench/repos/alacritty/alacritty/src/display/window.rs",
+     "start_line": 475
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "alacritty",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    24,
+    20
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "a1ecbd9860ff7d79",
+   "intersection_mass": 26,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 845,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "start_line": 838
+    },
+    {
+     "end_line": 859,
+     "file": "bench/repos/asciidoctor/test/reader_test.rb",
+     "start_line": 852
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "asciidoctor",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    26,
+    26
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "c13bf4167c4301d4",
+   "intersection_mass": 39,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 230,
+     "file": "bench/repos/asciidoctor/test/options_test.rb",
+     "start_line": 221
+    },
+    {
+     "end_line": 245,
+     "file": "bench/repos/asciidoctor/test/options_test.rb",
+     "start_line": 236
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "asciidoctor",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    43,
+    43
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "no-overlapping-unit",
+   "family_id": "e3a775da989d15a2",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 1578,
+     "file": "bench/repos/asciidoctor/test/tables_test.rb",
+     "start_line": 1561
+    },
+    {
+     "end_line": 1619,
+     "file": "bench/repos/asciidoctor/test/tables_test.rb",
+     "start_line": 1602
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "asciidoctor",
+   "split": "heldout"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "e4b2c19f4886a989",
+   "inline_aug_mass": 15,
+   "intersection_mass": 5,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 406,
+     "file": "bench/repos/axios/sandbox/client.html",
+     "start_line": 399
+    },
+    {
+     "end_line": 415,
+     "file": "bench/repos/axios/sandbox/client.html",
+     "start_line": 408
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "axios",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    15,
+    15
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "dfca6105f9a77eea",
+   "intersection_mass": 15,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 267,
+     "file": "bench/repos/badger/stream.go",
+     "start_line": 258
+    },
+    {
+     "end_line": 283,
+     "file": "bench/repos/badger/stream.go",
+     "start_line": 274
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "badger",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    23,
+    23
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "05ca8156de2d3b25",
+   "inline_aug_mass": 13,
+   "intersection_mass": 3,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 103,
+     "file": "bench/repos/bat/src/assets/lazy_theme_set.rs",
+     "start_line": 76
+    },
+    {
+     "end_line": 73,
+     "file": "bench/repos/bat/src/assets/lazy_theme_set.rs",
+     "start_line": 57
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "bat",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    12,
+    13
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "6a12988f697482b6",
+   "intersection_mass": 14,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 820,
+     "file": "bench/repos/bat/src/assets.rs",
+     "start_line": 814
+    },
+    {
+     "end_line": 793,
+     "file": "bench/repos/bat/src/assets.rs",
+     "start_line": 787
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "bat",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    49,
+    41
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    690,
+    707
+   ],
+   "family_id": "7836101146be0e22",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 707,
+     "file": "bench/repos/bat/src/assets.rs",
+     "start_line": 701
+    },
+    {
+     "end_line": 699,
+     "file": "bench/repos/bat/src/assets.rs",
+     "start_line": 691
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "bat",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "97d26fed3329da47",
+   "intersection_mass": 47,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 651,
+     "file": "bench/repos/black/src/black/linegen.py",
+     "start_line": 600
+    },
+    {
+     "end_line": 598,
+     "file": "bench/repos/black/src/black/linegen.py",
+     "start_line": 579
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "black",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    47,
+    47
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "ac3b57b1714437a6",
+   "intersection_mass": 13,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 112,
+     "file": "bench/repos/boltons/tests/test_strutils.py",
+     "start_line": 102
+    },
+    {
+     "end_line": 124,
+     "file": "bench/repos/boltons/tests/test_strutils.py",
+     "start_line": 114
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "boltons",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    22,
+    22
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    10,
+    185
+   ],
+   "family_id": "154bd73cf15a6de5",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 170,
+     "file": "bench/repos/chi/middleware/route_headers_test.go",
+     "start_line": 161
+    },
+    {
+     "end_line": 98,
+     "file": "bench/repos/chi/middleware/route_headers_test.go",
+     "start_line": 91
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "chi",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    276,
+    320
+   ],
+   "family_id": "8aa3c17d2ce27099",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 299,
+     "file": "bench/repos/chi/middleware/client_ip_test.go",
+     "start_line": 292
+    },
+    {
+     "end_line": 284,
+     "file": "bench/repos/chi/middleware/client_ip_test.go",
+     "start_line": 277
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "chi",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "6b68c292849e7834",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 337,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 310
+    },
+    {
+     "end_line": 310,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 283
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "clap",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    49,
+    86
+   ],
+   "family_id": "74091cb7bc4194da",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 75,
+     "file": "bench/repos/clap/tests/derive/non_literal_attributes.rs",
+     "start_line": 66
+    },
+    {
+     "end_line": 66,
+     "file": "bench/repos/clap/tests/derive/non_literal_attributes.rs",
+     "start_line": 57
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "clap",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "9ec7a7d818b0bc59",
+   "intersection_mass": 22,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 422,
+     "file": "bench/repos/clap/tests/derive/value_enum.rs",
+     "start_line": 394
+    },
+    {
+     "end_line": 453,
+     "file": "bench/repos/clap/tests/derive/value_enum.rs",
+     "start_line": 425
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "clap",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    22,
+    22
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "af025f81117451d0",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 245,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 223
+    },
+    {
+     "end_line": 222,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 200
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "clap",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "bac5f5bd312b3752",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 366,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 348
+    },
+    {
+     "end_line": 337,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 292
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "clap",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "cdf47ac137c39750",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 283,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 265
+    },
+    {
+     "end_line": 264,
+     "file": "bench/repos/clap/clap_builder/src/macros.rs",
+     "start_line": 246
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "clap",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "0014def1a6dccc6c",
+   "intersection_mass": 21,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 1635,
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+     "start_line": 1621
+    },
+    {
+     "end_line": 1667,
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+     "start_line": 1653
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "commons-lang",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    21,
+    21
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    143,
+    224
+   ],
+   "family_id": "1ae611d010ed2053",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 211,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/tuple/PairTest.java",
+     "start_line": 180
+    },
+    {
+     "end_line": 180,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/tuple/PairTest.java",
+     "start_line": 148
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "commons-lang",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "2eceec2b9e4c1883",
+   "intersection_mass": 14,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 325,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/RandomStringUtilsTest.java",
+     "start_line": 308
+    },
+    {
+     "end_line": 303,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/RandomStringUtilsTest.java",
+     "start_line": 280
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "commons-lang",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    50,
+    50
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "7deea4aa415c6197",
+   "intersection_mass": 9,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 294,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/math/NumberUtilsTest.java",
+     "start_line": 211
+    },
+    {
+     "end_line": 379,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/math/NumberUtilsTest.java",
+     "start_line": 296
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "commons-lang",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    259,
+    259
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    42,
+    522
+   ],
+   "family_id": "81a43aee2b3a31d7",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 265,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/AnnotationUtilsTest.java",
+     "start_line": 191
+    },
+    {
+     "end_line": 189,
+     "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/AnnotationUtilsTest.java",
+     "start_line": 115
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "commons-lang",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "4240a5f55e0db83b",
+   "inline_aug_mass": 12,
+   "intersection_mass": 2,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 186,
+     "file": "bench/repos/curl/lib/curlx/warnless.c",
+     "start_line": 172
+    },
+    {
+     "end_line": 67,
+     "file": "bench/repos/curl/lib/curlx/warnless.c",
+     "start_line": 54
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "curl",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    12,
+    8
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "b4ce193dda870c7b",
+   "inline_aug_mass": 7,
+   "intersection_mass": 7,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 45,
+     "file": "bench/repos/curl/tests/libtest/lib1525.c",
+     "start_line": 36
+    },
+    {
+     "end_line": 44,
+     "file": "bench/repos/curl/tests/libtest/lib1526.c",
+     "start_line": 35
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "curl",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    20,
+    20
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "c06c2711b53dbd66",
+   "inline_aug_mass": 18,
+   "intersection_mass": 7,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 108,
+     "file": "bench/repos/curl/lib/curl_share.c",
+     "start_line": 95
+    },
+    {
+     "end_line": 173,
+     "file": "bench/repos/curl/lib/curl_share.c",
+     "start_line": 160
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "curl",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    15,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "2144f9d9bafc4adb",
+   "intersection_mass": 11,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 50,
+     "file": "bench/repos/date-fns/pkgs/core/src/isSameDay/index.ts",
+     "start_line": 39
+    },
+    {
+     "end_line": 45,
+     "file": "bench/repos/date-fns/pkgs/core/src/isSameHour/index.ts",
+     "start_line": 34
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "date-fns",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    18,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "486dcd2da0d41a72",
+   "intersection_mass": 11,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 48,
+     "file": "bench/repos/date-fns/pkgs/core/src/setISOWeek/index.ts",
+     "start_line": 36
+    },
+    {
+     "end_line": 71,
+     "file": "bench/repos/date-fns/pkgs/core/src/setWeek/index.ts",
+     "start_line": 59
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "date-fns",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    20,
+    21
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "959b04a23952dc9f",
+   "intersection_mass": 14,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 66,
+     "file": "bench/repos/date-fns/pkgs/core/src/differenceInCalendarDays/index.ts",
+     "start_line": 43
+    },
+    {
+     "end_line": 59,
+     "file": "bench/repos/date-fns/pkgs/core/src/differenceInCalendarISOWeeks/index.ts",
+     "start_line": 36
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "date-fns",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    32,
+    32
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "bdfb1a28bbbcdc44",
+   "intersection_mass": 8,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 737,
+     "file": "bench/repos/date-fns/pkgs/core/src/_lib/format/formatters/index.ts",
+     "start_line": 727
+    },
+    {
+     "end_line": 754,
+     "file": "bench/repos/date-fns/pkgs/core/src/_lib/format/formatters/index.ts",
+     "start_line": 744
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "date-fns",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    15,
+    15
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "de84b1952aa09a8e",
+   "intersection_mass": 30,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 344,
+     "file": "bench/repos/delve/pkg/dwarf/op/op.go",
+     "start_line": 332
+    },
+    {
+     "end_line": 316,
+     "file": "bench/repos/delve/pkg/dwarf/op/op.go",
+     "start_line": 304
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "delve",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    65,
+    54
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    149,
+    254
+   ],
+   "family_id": "50a15cf3d55dfa5f",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 247,
+     "file": "bench/repos/esbuild/internal/graph/graph.go",
+     "start_line": 233
+    },
+    {
+     "end_line": 172,
+     "file": "bench/repos/esbuild/internal/graph/graph.go",
+     "start_line": 158
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "esbuild",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    153,
+    361
+   ],
+   "family_id": "bee5f08457e1cb94",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 355,
+     "file": "bench/repos/esbuild/internal/css_parser/css_nesting.go",
+     "start_line": 337
+    },
+    {
+     "end_line": 307,
+     "file": "bench/repos/esbuild/internal/css_parser/css_nesting.go",
+     "start_line": 291
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "esbuild",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    153,
+    361
+   ],
+   "family_id": "cf8d3ecefc003da3",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 337,
+     "file": "bench/repos/esbuild/internal/css_parser/css_nesting.go",
+     "start_line": 314
+    },
+    {
+     "end_line": 314,
+     "file": "bench/repos/esbuild/internal/css_parser/css_nesting.go",
+     "start_line": 291
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "esbuild",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "d4dac66b7fa26875",
+   "intersection_mass": 27,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 374,
+     "file": "bench/repos/esbuild/internal/css_parser/css_decls_color.go",
+     "start_line": 369
+    },
+    {
+     "end_line": 347,
+     "file": "bench/repos/esbuild/internal/css_parser/css_decls_color.go",
+     "start_line": 342
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "esbuild",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    51,
+    34
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "58cca0f6dde97656",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 98,
+     "file": "bench/repos/fastlane/spaceship/lib/spaceship/tunes/app_details.rb",
+     "start_line": 94
+    },
+    {
+     "end_line": 104,
+     "file": "bench/repos/fastlane/spaceship/lib/spaceship/tunes/app_details.rb",
+     "start_line": 100
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "fastlane",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    8,
+    8
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "no-overlapping-unit",
+   "family_id": "65e68827e870dbe0",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 170,
+     "file": "bench/repos/fastlane/spaceship/spec/client_spec.rb",
+     "start_line": 148
+    },
+    {
+     "end_line": 241,
+     "file": "bench/repos/fastlane/spaceship/spec/client_spec.rb",
+     "start_line": 219
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "fastlane",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "5f935c3d9e9dd8fd",
+   "inline_aug_mass": 6,
+   "intersection_mass": 1,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 58,
+     "file": "bench/repos/fd/src/exec/mod.rs",
+     "start_line": 51
+    },
+    {
+     "end_line": 43,
+     "file": "bench/repos/fd/src/exec/mod.rs",
+     "start_line": 36
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "fd",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    6,
+    6
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "a46e9200da364aff",
+   "inline_aug_mass": 19,
+   "intersection_mass": 1,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 457,
+     "file": "bench/repos/fd/src/exec/mod.rs",
+     "start_line": 448
+    },
+    {
+     "end_line": 441,
+     "file": "bench/repos/fd/src/exec/mod.rs",
+     "start_line": 433
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "fd",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    19,
+    12
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "2e8c305415b72ea1",
+   "intersection_mass": 13,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 183,
+     "file": "bench/repos/fzf/src/result.go",
+     "start_line": 179
+    },
+    {
+     "end_line": 189,
+     "file": "bench/repos/fzf/src/result.go",
+     "start_line": 185
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "fzf",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    16,
+    16
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "65f119e68db659dd",
+   "inline_aug_mass": 4,
+   "intersection_mass": 4,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 35,
+     "file": "bench/repos/gin/binding/toml.go",
+     "start_line": 29
+    },
+    {
+     "end_line": 34,
+     "file": "bench/repos/gin/binding/xml.go",
+     "start_line": 28
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gin",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    11,
+    11
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "6bc4c8ba1738db57",
+   "inline_aug_mass": 2,
+   "intersection_mass": 0,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 68,
+     "file": "bench/repos/gin/auth.go",
+     "start_line": 48
+    },
+    {
+     "end_line": 116,
+     "file": "bench/repos/gin/auth.go",
+     "start_line": 98
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gin",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    2
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "e4a3c917303e7886",
+   "intersection_mass": 11,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 119,
+     "file": "bench/repos/gin/routes_test.go",
+     "start_line": 109
+    },
+    {
+     "end_line": 131,
+     "file": "bench/repos/gin/routes_test.go",
+     "start_line": 121
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gin",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    30
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "88a5c2a919c76383",
+   "inline_aug_mass": 5,
+   "intersection_mass": 1,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 99,
+     "file": "bench/repos/git/t/unit-tests/u-prio-queue.c",
+     "start_line": 94
+    },
+    {
+     "end_line": 80,
+     "file": "bench/repos/git/t/unit-tests/u-prio-queue.c",
+     "start_line": 76
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "git",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    5,
+    5
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "d9d84da753e732ca",
+   "intersection_mass": 39,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 136,
+     "file": "bench/repos/git/t/unit-tests/u-reftable-merged.c",
+     "start_line": 124
+    },
+    {
+     "end_line": 73,
+     "file": "bench/repos/git/t/unit-tests/u-reftable-merged.c",
+     "start_line": 63
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "git",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    137,
+    76
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "06b22e78705e5939",
+   "intersection_mass": 11,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 142,
+     "file": "bench/repos/gorm/logger/logger.go",
+     "start_line": 138
+    },
+    {
+     "end_line": 149,
+     "file": "bench/repos/gorm/logger/logger.go",
+     "start_line": 145
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    18,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "07b0262946c3716d",
+   "inline_aug_mass": 9,
+   "intersection_mass": 7,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 29,
+     "file": "bench/repos/gorm/clause/select.go",
+     "start_line": 14
+    },
+    {
+     "end_line": 25,
+     "file": "bench/repos/gorm/clause/returning.go",
+     "start_line": 13
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    32,
+    16
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "768d763acc7c5c60",
+   "intersection_mass": 11,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 44,
+     "file": "bench/repos/gorm/logger/slog.go",
+     "start_line": 40
+    },
+    {
+     "end_line": 50,
+     "file": "bench/repos/gorm/logger/slog.go",
+     "start_line": 46
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "8478e206de15b28a",
+   "inline_aug_mass": 6,
+   "intersection_mass": 6,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 39,
+     "file": "bench/repos/gorm/clause/insert.go",
+     "start_line": 29
+    },
+    {
+     "end_line": 38,
+     "file": "bench/repos/gorm/clause/update.go",
+     "start_line": 28
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    20,
+    20
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "85171013eba5ae62",
+   "intersection_mass": 16,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 22,
+     "file": "bench/repos/gorm/clause/from_test.go",
+     "start_line": 10
+    },
+    {
+     "end_line": 22,
+     "file": "bench/repos/gorm/clause/select_test.go",
+     "start_line": 10
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    88,
+    83
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "9696bb6606c9a9ab",
+   "intersection_mass": 9,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 129,
+     "file": "bench/repos/gorm/clause/where.go",
+     "start_line": 121
+    },
+    {
+     "end_line": 150,
+     "file": "bench/repos/gorm/clause/where.go",
+     "start_line": 142
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    24,
+    24
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    13,
+    101
+   ],
+   "family_id": "96d46442b02433a5",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 82,
+     "file": "bench/repos/gorm/clause/joins_test.go",
+     "start_line": 73
+    },
+    {
+     "end_line": 27,
+     "file": "bench/repos/gorm/clause/joins_test.go",
+     "start_line": 20
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    495,
+    630
+   ],
+   "family_id": "9aec931ab49f2c6e",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 603,
+     "file": "bench/repos/gorm/tests/preload_test.go",
+     "start_line": 587
+    },
+    {
+     "end_line": 556,
+     "file": "bench/repos/gorm/tests/preload_test.go",
+     "start_line": 540
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "a12cc73e717d5c78",
+   "inline_aug_mass": 6,
+   "intersection_mass": 6,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 357,
+     "file": "bench/repos/gorm/migrator/migrator.go",
+     "start_line": 348
+    },
+    {
+     "end_line": 368,
+     "file": "bench/repos/gorm/migrator/migrator.go",
+     "start_line": 359
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    6,
+    6
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    13,
+    101
+   ],
+   "family_id": "b2cd9c61ce98289a",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 39,
+     "file": "bench/repos/gorm/clause/joins_test.go",
+     "start_line": 33
+    },
+    {
+     "end_line": 28,
+     "file": "bench/repos/gorm/clause/joins_test.go",
+     "start_line": 22
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    10,
+    75
+   ],
+   "family_id": "b47a856846cdf8fc",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 43,
+     "file": "bench/repos/gorm/clause/from_test.go",
+     "start_line": 35
+    },
+    {
+     "end_line": 26,
+     "file": "bench/repos/gorm/clause/from_test.go",
+     "start_line": 18
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "gorm",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "bac234f75f542b73",
+   "intersection_mass": 18,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 918,
+     "file": "bench/repos/gorm/schema/field.go",
+     "start_line": 899
+    },
+    {
+     "end_line": 939,
+     "file": "bench/repos/gorm/schema/field.go",
+     "start_line": 925
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    33,
+    18
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "e25ffe916fd2f720",
+   "inline_aug_mass": 8,
+   "intersection_mass": 3,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 619,
+     "file": "bench/repos/gorm/generics.go",
+     "start_line": 603
+    },
+    {
+     "end_line": 243,
+     "file": "bench/repos/gorm/statement.go",
+     "start_line": 227
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    71,
+    86
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "ef61dc5d7d527469",
+   "inline_aug_mass": 24,
+   "intersection_mass": 6,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 263,
+     "file": "bench/repos/gorm/clause/expression.go",
+     "start_line": 237
+    },
+    {
+     "end_line": 294,
+     "file": "bench/repos/gorm/clause/expression.go",
+     "start_line": 272
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    24,
+    24
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "fdc399645a7b3dfd",
+   "intersection_mass": 20,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 174,
+     "file": "bench/repos/gorm/logger/logger.go",
+     "start_line": 170
+    },
+    {
+     "end_line": 182,
+     "file": "bench/repos/gorm/logger/logger.go",
+     "start_line": 178
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gorm",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    28,
+    28
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "2acc71582f85cc79",
+   "intersection_mass": 23,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 101,
+     "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+     "start_line": 83
+    },
+    {
+     "end_line": 62,
+     "file": "bench/repos/graphhopper/core/src/test/java/com/graphhopper/util/BreadthFirstSearchTest.java",
+     "start_line": 44
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "graphhopper",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    41,
+    61
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "390c50ea6bdcbe10",
+   "intersection_mass": 30,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 254,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/internal/bind/JsonTreeWriterTest.java",
+     "start_line": 238
+    },
+    {
+     "end_line": 235,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/internal/bind/JsonTreeWriterTest.java",
+     "start_line": 224
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    30
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "3f4ccba9d70e07f7",
+   "intersection_mass": 8,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 181,
+     "file": "bench/repos/gson/test-graal-native-image/src/test/java/com/google/gson/native_test/Java17RecordReflectionTest.java",
+     "start_line": 157
+    },
+    {
+     "end_line": 253,
+     "file": "bench/repos/gson/test-graal-native-image/src/test/java/com/google/gson/native_test/ReflectionTest.java",
+     "start_line": 229
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    26,
+    26
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "4014d594ab6a8e54",
+   "intersection_mass": 22,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 75,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+     "start_line": 63
+    },
+    {
+     "end_line": 99,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/Primitives.java",
+     "start_line": 87
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    45,
+    104
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "579c5efb7564b4c6",
+   "intersection_mass": 13,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 622,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/JsonAdapterAnnotationOnClassesTest.java",
+     "start_line": 606
+    },
+    {
+     "end_line": 577,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/JsonAdapterAnnotationOnClassesTest.java",
+     "start_line": 562
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    33,
+    28
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "68efa18d00d17764",
+   "inline_aug_mass": 19,
+   "intersection_mass": 4,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 42,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/FieldNamingTest.java",
+     "start_line": 34
+    },
+    {
+     "end_line": 52,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/FieldNamingTest.java",
+     "start_line": 44
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    19,
+    19
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "eab1115974df3594",
+   "inline_aug_mass": 7,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 599,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+     "start_line": 589
+    },
+    {
+     "end_line": 615,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonReader.java",
+     "start_line": 605
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    7,
+    7
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "f46d73b4e0ed55a9",
+   "intersection_mass": 17,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 586,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+     "start_line": 577
+    },
+    {
+     "end_line": 606,
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/stream/JsonWriter.java",
+     "start_line": 597
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    36,
+    36
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "f7385770c6e8a429",
+   "inline_aug_mass": 2,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 365,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/JsonAdapterAnnotationOnFieldsTest.java",
+     "start_line": 352
+    },
+    {
+     "end_line": 160,
+     "file": "bench/repos/gson/gson/src/test/java/com/google/gson/functional/JsonAdapterAnnotationOnFieldsTest.java",
+     "start_line": 147
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "gson",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    2
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    76,
+    141
+   ],
+   "family_id": "84d6db7977f33a1a",
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 115,
+     "file": "bench/repos/httpie/httpie/core.py",
+     "start_line": 104
+    },
+    {
+     "end_line": 97,
+     "file": "bench/repos/httpie/httpie/core.py",
+     "start_line": 86
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "httpie",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    231,
+    426
+   ],
+   "family_id": "c598e7f29dfd5401",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 359,
+     "file": "bench/repos/hugo/internal/warpc/avif.go",
+     "start_line": 341
+    },
+    {
+     "end_line": 341,
+     "file": "bench/repos/hugo/internal/warpc/avif.go",
+     "start_line": 323
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "hugo",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    64,
+    123
+   ],
+   "family_id": "8d17730736a3b397",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 105,
+     "file": "bench/repos/hyperfine/src/export/csv.rs",
+     "start_line": 99
+    },
+    {
+     "end_line": 85,
+     "file": "bench/repos/hyperfine/src/export/csv.rs",
+     "start_line": 79
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "hyperfine",
+   "split": "heldout"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "09688c2c17ddd091",
+   "inline_aug_mass": 4,
+   "intersection_mass": 0,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 385,
+     "file": "bench/repos/image/src/codecs/jpeg/encoder.rs",
+     "start_line": 361
+    },
+    {
+     "end_line": 358,
+     "file": "bench/repos/image/src/codecs/jpeg/encoder.rs",
+     "start_line": 335
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    4,
+    4
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "15d2cb45931ebaeb",
+   "inline_aug_mass": 13,
+   "intersection_mass": 6,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 591,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 586
+    },
+    {
+     "end_line": 599,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 594
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    13,
+    13
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "37f494cca9a333c3",
+   "intersection_mass": 10,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 165,
+     "file": "bench/repos/image/src/imageops/colorops.rs",
+     "start_line": 156
+    },
+    {
+     "end_line": 99,
+     "file": "bench/repos/image/src/imageops/colorops.rs",
+     "start_line": 90
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    16,
+    15
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "3bb7b58ae7adf7d9",
+   "inline_aug_mass": 5,
+   "intersection_mass": 2,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 411,
+     "file": "bench/repos/image/src/traits.rs",
+     "start_line": 406
+    },
+    {
+     "end_line": 402,
+     "file": "bench/repos/image/src/traits.rs",
+     "start_line": 397
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    5,
+    5
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "4a8e4387c0a05967",
+   "inline_aug_mass": 6,
+   "intersection_mass": 3,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 46,
+     "file": "bench/repos/image/src/math/utils.rs",
+     "start_line": 39
+    },
+    {
+     "end_line": 28,
+     "file": "bench/repos/image/src/math/utils.rs",
+     "start_line": 21
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    6,
+    6
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "8699c1a47b0f6726",
+   "intersection_mass": 8,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 798,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 790
+    },
+    {
+     "end_line": 810,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 802
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    39,
+    39
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "98f7b2d07afc459a",
+   "inline_aug_mass": 14,
+   "intersection_mass": 5,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 240,
+     "file": "bench/repos/image/src/codecs/pnm/header.rs",
+     "start_line": 235
+    },
+    {
+     "end_line": 249,
+     "file": "bench/repos/image/src/codecs/pnm/header.rs",
+     "start_line": 244
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    14,
+    14
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "d90e13f97d5b332c",
+   "inline_aug_mass": 8,
+   "intersection_mass": 4,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 459,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 454
+    },
+    {
+     "end_line": 471,
+     "file": "bench/repos/image/src/images/dynimage.rs",
+     "start_line": 466
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "image",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    8,
+    8
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "b422f94f09cdb8af",
+   "intersection_mass": 10,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 83,
+     "file": "bench/repos/jackson-core/src/test/java/tools/jackson/core/unittest/write/ArrayGenerationTest.java",
+     "start_line": 66
+    },
+    {
+     "end_line": 102,
+     "file": "bench/repos/jackson-core/src/test/java/tools/jackson/core/unittest/write/ArrayGenerationTest.java",
+     "start_line": 85
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jackson-core",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    35,
+    35
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    18,
+    373
+   ],
+   "family_id": "3bf2ce4ebf643e85",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 366,
+     "file": "bench/repos/jedis/src/main/java/redis/clients/jedis/resps/HotkeysInfo.java",
+     "start_line": 312
+    },
+    {
+     "end_line": 308,
+     "file": "bench/repos/jedis/src/main/java/redis/clients/jedis/resps/HotkeysInfo.java",
+     "start_line": 256
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jedis",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    20,
+    185
+   ],
+   "family_id": "571c8822cc8713ae",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 184,
+     "file": "bench/repos/jedis/src/main/java/redis/clients/jedis/search/hybrid/HybridResult.java",
+     "start_line": 159
+    },
+    {
+     "end_line": 150,
+     "file": "bench/repos/jedis/src/main/java/redis/clients/jedis/search/hybrid/HybridResult.java",
+     "start_line": 125
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jedis",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "b349246419347b4e",
+   "inline_aug_mass": 2,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 291,
+     "file": "bench/repos/jedis/src/test/java/redis/clients/jedis/util/CommandArgumentsMatchers.java",
+     "start_line": 274
+    },
+    {
+     "end_line": 237,
+     "file": "bench/repos/jedis/src/test/java/redis/clients/jedis/util/CommandArgumentsMatchers.java",
+     "start_line": 216
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jedis",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    2
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "1d13d09079bfb05e",
+   "intersection_mass": 15,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 270,
+     "file": "bench/repos/jekyll/lib/jekyll/document.rb",
+     "start_line": 259
+    },
+    {
+     "end_line": 161,
+     "file": "bench/repos/jekyll/lib/jekyll/page.rb",
+     "start_line": 153
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jekyll",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    27,
+    25
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "25f8eeacf08b1049",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 49,
+     "file": "bench/repos/jekyll/benchmark/file-dir-ensure-trailing-slash",
+     "start_line": 41
+    },
+    {
+     "end_line": 40,
+     "file": "bench/repos/jekyll/benchmark/file-dir-ensure-trailing-slash",
+     "start_line": 32
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "jekyll",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "2791928407ad302c",
+   "inline_aug_mass": 14,
+   "intersection_mass": 6,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 134,
+     "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+     "start_line": 124
+    },
+    {
+     "end_line": 146,
+     "file": "bench/repos/jekyll/rubocop/jekyll/assert_equal_literal_actual.rb",
+     "start_line": 136
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "jekyll",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    13,
+    14
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "4c55eff3b52a86ff",
+   "inline_aug_mass": 25,
+   "intersection_mass": 6,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 410,
+     "file": "bench/repos/jest/packages/jest-resolve/src/resolver.ts",
+     "start_line": 390
+    },
+    {
+     "end_line": 388,
+     "file": "bench/repos/jest/packages/jest-resolve/src/resolver.ts",
+     "start_line": 373
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jest",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    19,
+    25
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "c0adad57af0c4d06",
+   "inline_aug_mass": 18,
+   "intersection_mass": 5,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 151,
+     "file": "bench/repos/jq/src/compile.c",
+     "start_line": 146
+    },
+    {
+     "end_line": 158,
+     "file": "bench/repos/jq/src/compile.c",
+     "start_line": 153
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "jq",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    18,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "07409b462c710a0a",
+   "inline_aug_mass": 21,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 111,
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/nodes/Attributes.java",
+     "start_line": 104
+    },
+    {
+     "end_line": 414,
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/nodes/Attributes.java",
+     "start_line": 407
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jsoup",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    5,
+    21
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "08ee491c1f4a7330",
+   "intersection_mass": 17,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 1518,
+     "file": "bench/repos/jsoup/src/test/java/org/jsoup/nodes/ElementTest.java",
+     "start_line": 1502
+    },
+    {
+     "end_line": 1536,
+     "file": "bench/repos/jsoup/src/test/java/org/jsoup/nodes/ElementTest.java",
+     "start_line": 1520
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jsoup",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    44,
+    44
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "345ea47c67ac01ec",
+   "intersection_mass": 12,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 38,
+     "file": "bench/repos/jsoup/src/test/java/org/jsoup/select/SelectorTest.java",
+     "start_line": 32
+    },
+    {
+     "end_line": 46,
+     "file": "bench/repos/jsoup/src/test/java/org/jsoup/select/SelectorTest.java",
+     "start_line": 40
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "jsoup",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    25,
+    25
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "9b909cd145cab0a1",
+   "intersection_mass": 23,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 467,
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/parser/CharacterReader.java",
+     "start_line": 458
+    },
+    {
+     "end_line": 448,
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/parser/CharacterReader.java",
+     "start_line": 438
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "jsoup",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    29,
+    26
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "69cf536b3ec81f25",
+   "intersection_mass": 29,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 115,
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/graphics/glutils/ETC1TextureData.java",
+     "start_line": 90
+    },
+    {
+     "end_line": 103,
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/graphics/glutils/GLOnlyTextureData.java",
+     "start_line": 78
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "libgdx",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    118,
+    50
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "8a6145e03a2ef0cb",
+   "intersection_mass": 39,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 136,
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/graphics/glutils/FloatTextureData.java",
+     "start_line": 102
+    },
+    {
+     "end_line": 113,
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/graphics/glutils/GLOnlyTextureData.java",
+     "start_line": 79
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "libgdx",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    144,
+    50
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "274a5f3b06e8f568",
+   "intersection_mass": 10,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 1216,
+     "file": "bench/repos/libuv/src/unix/udp.c",
+     "start_line": 1194
+    },
+    {
+     "end_line": 1241,
+     "file": "bench/repos/libuv/src/unix/udp.c",
+     "start_line": 1219
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "libuv",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    18,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "d43581c5e3bc852f",
+   "intersection_mass": 16,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 242,
+     "file": "bench/repos/libuv/test/runner.c",
+     "start_line": 219
+    },
+    {
+     "end_line": 216,
+     "file": "bench/repos/libuv/test/runner.c",
+     "start_line": 194
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "libuv",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    38,
+    35
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "ec23cb5ea6d0737e",
+   "intersection_mass": 9,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 1990,
+     "file": "bench/repos/libuv/src/unix/fs.c",
+     "start_line": 1978
+    },
+    {
+     "end_line": 1975,
+     "file": "bench/repos/libuv/src/unix/fs.c",
+     "start_line": 1964
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "libuv",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    26,
+    22
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    220,
+    236
+   ],
+   "family_id": "2881fc0a22a0b8a4",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 226,
+     "file": "bench/repos/liquid/test/integration/drop_test.rb",
+     "start_line": 221
+    },
+    {
+     "end_line": 235,
+     "file": "bench/repos/liquid/test/integration/drop_test.rb",
+     "start_line": 230
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "liquid",
+   "split": "heldout"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "3c25695d8bcdaf05",
+   "inline_aug_mass": 17,
+   "intersection_mass": 7,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 31,
+     "file": "bench/repos/liquid/lib/liquid/resource_limits.rb",
+     "start_line": 26
+    },
+    {
+     "end_line": 38,
+     "file": "bench/repos/liquid/lib/liquid/resource_limits.rb",
+     "start_line": 33
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "liquid",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "40e388519c203f5d",
+   "inline_aug_mass": 9,
+   "intersection_mass": 2,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 369,
+     "file": "bench/repos/liquid/test/integration/tags/table_row_test.rb",
+     "start_line": 355
+    },
+    {
+     "end_line": 384,
+     "file": "bench/repos/liquid/test/integration/tags/table_row_test.rb",
+     "start_line": 371
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "liquid",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    9,
+    9
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "4de78e5921928497",
+   "intersection_mass": 17,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 113,
+     "file": "bench/repos/liquid/lib/liquid/utils.rb",
+     "start_line": 97
+    },
+    {
+     "end_line": 131,
+     "file": "bench/repos/liquid/lib/liquid/utils.rb",
+     "start_line": 117
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "liquid",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    46,
+    35
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "d64d80cdbea35c4d",
+   "intersection_mass": 12,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 203,
+     "file": "bench/repos/liquid/test/integration/context_test.rb",
+     "start_line": 197
+    },
+    {
+     "end_line": 211,
+     "file": "bench/repos/liquid/test/integration/context_test.rb",
+     "start_line": 205
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "liquid",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    15,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "ec0ea765982b749e",
+   "inline_aug_mass": 4,
+   "intersection_mass": 1,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 39,
+     "file": "bench/repos/liquid/test/integration/tag/disableable_test.rb",
+     "start_line": 32
+    },
+    {
+     "end_line": 48,
+     "file": "bench/repos/liquid/test/integration/tag/disableable_test.rb",
+     "start_line": 41
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "liquid",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    4,
+    4
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "6b8e0cef12881b68",
+   "intersection_mass": 10,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 436,
+     "file": "bench/repos/lua/lvm.c",
+     "start_line": 426
+    },
+    {
+     "end_line": 453,
+     "file": "bench/repos/lua/lvm.c",
+     "start_line": 443
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "lua",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    20,
+    20
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "bc0ae7caf5d8bfbb",
+   "intersection_mass": 9,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 553,
+     "file": "bench/repos/lua/lvm.c",
+     "start_line": 549
+    },
+    {
+     "end_line": 575,
+     "file": "bench/repos/lua/lvm.c",
+     "start_line": 571
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "lua",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "581d4caf7dc8178d",
+   "intersection_mass": 13,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 238,
+     "file": "bench/repos/marshmallow/tests/test_schema.py",
+     "start_line": 231
+    },
+    {
+     "end_line": 250,
+     "file": "bench/repos/marshmallow/tests/test_schema.py",
+     "start_line": 243
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "marshmallow",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    20,
+    21
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "d3f1f8804b32ca0a",
+   "inline_aug_mass": 48,
+   "intersection_mass": 6,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 985,
+     "file": "bench/repos/marshmallow/tests/test_validate.py",
+     "start_line": 967
+    },
+    {
+     "end_line": 1031,
+     "file": "bench/repos/marshmallow/tests/test_validate.py",
+     "start_line": 1013
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "marshmallow",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    48,
+    48
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "d5c9512eec776de0",
+   "inline_aug_mass": 54,
+   "intersection_mass": 6,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 862,
+     "file": "bench/repos/marshmallow/tests/test_validate.py",
+     "start_line": 844
+    },
+    {
+     "end_line": 894,
+     "file": "bench/repos/marshmallow/tests/test_validate.py",
+     "start_line": 881
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "marshmallow",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    54,
+    52
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "f29abce337796805",
+   "inline_aug_mass": 7,
+   "intersection_mass": 4,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 217,
+     "file": "bench/repos/marshmallow/src/marshmallow/decorators.py",
+     "start_line": 196
+    },
+    {
+     "end_line": 171,
+     "file": "bench/repos/marshmallow/src/marshmallow/decorators.py",
+     "start_line": 152
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "marshmallow",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    7,
+    7
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "36c5d902a5772df3",
+   "intersection_mass": 36,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 196,
+     "file": "bench/repos/minio/cmd/erasure-metadata-utils.go",
+     "start_line": 171
+    },
+    {
+     "end_line": 70,
+     "file": "bench/repos/minio/docs/debugging/hash-set/main.go",
+     "start_line": 47
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "minio",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    36,
+    36
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "43ad0a38b290c564",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 148,
+     "file": "bench/repos/minio/internal/logger/help.go",
+     "start_line": 108
+    },
+    {
+     "end_line": 69,
+     "file": "bench/repos/minio/internal/logger/help.go",
+     "start_line": 29
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "minio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "6df98f4de0a00d6b",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 221,
+     "file": "bench/repos/minio/internal/logger/config.go",
+     "start_line": 192
+    },
+    {
+     "end_line": 174,
+     "file": "bench/repos/minio/internal/logger/config.go",
+     "start_line": 145
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "minio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "76a7d6e4cc5527df",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 178,
+     "file": "bench/repos/minio/internal/logger/help.go",
+     "start_line": 154
+    },
+    {
+     "end_line": 105,
+     "file": "bench/repos/minio/internal/logger/help.go",
+     "start_line": 81
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "minio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "e02ba445f3a8f384",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 196,
+     "file": "bench/repos/minio/internal/logger/config.go",
+     "start_line": 174
+    },
+    {
+     "end_line": 145,
+     "file": "bench/repos/minio/internal/logger/config.go",
+     "start_line": 123
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "minio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "e48d842d53a01d1e",
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 63,
+     "file": "bench/repos/minio/internal/config/lambda/help.go",
+     "start_line": 40
+    },
+    {
+     "end_line": 82,
+     "file": "bench/repos/minio/internal/config/notify/help.go",
+     "start_line": 58
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "minio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "1fa8be0a8e1c9121",
+   "intersection_mass": 16,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 206,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockito/internal/creation/bytebuddy/ClinitSuppressionTransformerTest.java",
+     "start_line": 190
+    },
+    {
+     "end_line": 187,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockito/internal/creation/bytebuddy/ClinitSuppressionTransformerTest.java",
+     "start_line": 171
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    27,
+    27
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "290e05f149bee68c",
+   "inline_aug_mass": 71,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 226,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 217
+    },
+    {
+     "end_line": 175,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 119
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    71
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "46e9a5d46cce9beb",
+   "inline_aug_mass": 71,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 252,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 243
+    },
+    {
+     "end_line": 199,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 141
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    71
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "5b64ce572e3c94e1",
+   "inline_aug_mass": 0,
+   "intersection_mass": 0,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 765,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/MockMethodAdvice.java",
+     "start_line": 751
+    },
+    {
+     "end_line": 127,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/MockMethodAdvice.java",
+     "start_line": 112
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    0,
+    0
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    435,
+    659
+   ],
+   "family_id": "706f73f0e5fd1978",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 529,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/MockMethodAdvice.java",
+     "start_line": 512
+    },
+    {
+     "end_line": 477,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/MockMethodAdvice.java",
+     "start_line": 460
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "79be91c925ed1869",
+   "intersection_mass": 16,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 82,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockito/internal/stubbing/InvocationContainerImplStubbingTest.java",
+     "start_line": 64
+    },
+    {
+     "end_line": 102,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockito/internal/stubbing/InvocationContainerImplStubbingTest.java",
+     "start_line": 84
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    33,
+    33
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "baf4c3da359dfc3d",
+   "inline_aug_mass": 71,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 314,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 304
+    },
+    {
+     "end_line": 253,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 141
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    71
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "c9067549b686b89e",
+   "intersection_mass": 33,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 126,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/verification/NoMoreInteractionsVerificationTest.java",
+     "start_line": 108
+    },
+    {
+     "end_line": 146,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/verification/NoMoreInteractionsVerificationTest.java",
+     "start_line": 128
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    33,
+    33
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "d82f6e75097748da",
+   "intersection_mass": 20,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 60,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/debugging/StubbingLookupListenerCallbackTest.java",
+     "start_line": 32
+    },
+    {
+     "end_line": 89,
+     "file": "bench/repos/mockito/mockito-core/src/test/java/org/mockitousage/debugging/StubbingLookupListenerCallbackTest.java",
+     "start_line": 62
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    23
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "db2a627e3c414165",
+   "inline_aug_mass": 71,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 284,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 274
+    },
+    {
+     "end_line": 227,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/stubbing/answers/AnswerFunctionalInterfaces.java",
+     "start_line": 119
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    71
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "e1ce9eafd54a610f",
+   "inline_aug_mass": 6,
+   "intersection_mass": 6,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 28,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/matchers/Contains.java",
+     "start_line": 11
+    },
+    {
+     "end_line": 28,
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/matchers/EndsWith.java",
+     "start_line": 11
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "mockito",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    19,
+    15
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    136,
+    281
+   ],
+   "family_id": "43870dd59c2be294",
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 242,
+     "file": "bench/repos/netty/common/src/test/java/io/netty/util/concurrent/NonStickyEventExecutorGroupTest.java",
+     "start_line": 207
+    },
+    {
+     "end_line": 200,
+     "file": "bench/repos/netty/common/src/test/java/io/netty/util/concurrent/NonStickyEventExecutorGroupTest.java",
+     "start_line": 166
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "netty",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "46fd2ef00c8d9e98",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 321,
+     "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+     "start_line": 307
+    },
+    {
+     "end_line": 257,
+     "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+     "start_line": 243
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "nushell",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "5e0a811d5b711a35",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 151,
+     "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+     "start_line": 138
+    },
+    {
+     "end_line": 101,
+     "file": "bench/repos/nushell/crates/nu-plugin-core/src/serializers/tests.rs",
+     "start_line": 88
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "nushell",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "88118551cbcdb7f3",
+   "intersection_mass": 10,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 221,
+     "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/data/shift.rs",
+     "start_line": 209
+    },
+    {
+     "end_line": 354,
+     "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/data/unique.rs",
+     "start_line": 259
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "nushell",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    32,
+    36
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "b950a3c8f074b925",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 13,
+     "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/selector/selector_signed_integer.rs",
+     "start_line": 1
+    },
+    {
+     "end_line": 13,
+     "file": "bench/repos/nushell/crates/nu_plugin_polars/src/dataframe/command/selector/selector_unsigned_integer.rs",
+     "start_line": 1
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "nushell",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "aea1981ddc32dcf4",
+   "inline_aug_mass": 13,
+   "intersection_mass": 3,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 75,
+     "file": "bench/repos/packaging/tests/test_utils.py",
+     "start_line": 60
+    },
+    {
+     "end_line": 38,
+     "file": "bench/repos/packaging/tests/test_utils.py",
+     "start_line": 23
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "packaging",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    13,
+    8
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "dff2a8be57aadc2d",
+   "inline_aug_mass": 6,
+   "intersection_mass": 5,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 584,
+     "file": "bench/repos/packaging/tests/test_markers.py",
+     "start_line": 579
+    },
+    {
+     "end_line": 729,
+     "file": "bench/repos/packaging/tests/test_requirements.py",
+     "start_line": 724
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "packaging",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    15,
+    15
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "08556e25e7ab80e4",
+   "intersection_mass": 23,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 116,
+     "file": "bench/repos/poetry/tests/installation/test_chef.py",
+     "start_line": 105
+    },
+    {
+     "end_line": 74,
+     "file": "bench/repos/poetry/tests/installation/test_chef.py",
+     "start_line": 63
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "poetry",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    40,
+    33
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "e672109edfa67a72",
+   "intersection_mass": 13,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 72,
+     "file": "bench/repos/poetry/tests/utils/test_cache.py",
+     "start_line": 61
+    },
+    {
+     "end_line": 86,
+     "file": "bench/repos/poetry/tests/utils/test_cache.py",
+     "start_line": 75
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "poetry",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    25,
+    26
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "7a29d98ac73e8688",
+   "intersection_mass": 14,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 380,
+     "file": "bench/repos/pry/lib/pry/wrapped_module.rb",
+     "start_line": 371
+    },
+    {
+     "end_line": 213,
+     "file": "bench/repos/pry/lib/pry/method/weird_method_locator.rb",
+     "start_line": 206
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "pry",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    19,
+    16
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "0162d07859325407",
+   "inline_aug_mass": 3,
+   "intersection_mass": 2,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 112,
+     "file": "bench/repos/puma/lib/puma/error_logger.rb",
+     "start_line": 100
+    },
+    {
+     "end_line": 86,
+     "file": "bench/repos/puma/lib/puma/log_writer.rb",
+     "start_line": 74
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    17,
+    15
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "12acda2dd82390db",
+   "intersection_mass": 17,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 338,
+     "file": "bench/repos/puma/test/test_rack_handler.rb",
+     "start_line": 326
+    },
+    {
+     "end_line": 324,
+     "file": "bench/repos/puma/test/test_rack_handler.rb",
+     "start_line": 313
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    25,
+    22
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "14e76400aa4761cb",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 187,
+     "file": "bench/repos/puma/lib/puma/server.rb",
+     "start_line": 181
+    },
+    {
+     "end_line": 195,
+     "file": "bench/repos/puma/lib/puma/server.rb",
+     "start_line": 189
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    12,
+    12
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "16cbddbb2c42524c",
+   "inline_aug_mass": 17,
+   "intersection_mass": 3,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 271,
+     "file": "bench/repos/puma/lib/puma/thread_pool.rb",
+     "start_line": 260
+    },
+    {
+     "end_line": 286,
+     "file": "bench/repos/puma/lib/puma/thread_pool.rb",
+     "start_line": 275
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "4354e14716bd8dfb",
+   "inline_aug_mass": 7,
+   "intersection_mass": 7,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 16,
+     "file": "bench/repos/puma/test/test_fiber_local_application.rb",
+     "start_line": 11
+    },
+    {
+     "end_line": 15,
+     "file": "bench/repos/puma/test/test_fiber_storage_application.rb",
+     "start_line": 11
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    20,
+    18
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "60bdcbb03fd14546",
+   "intersection_mass": 34,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 538,
+     "file": "bench/repos/puma/test/test_integration_cluster.rb",
+     "start_line": 525
+    },
+    {
+     "end_line": 553,
+     "file": "bench/repos/puma/test/test_integration_cluster.rb",
+     "start_line": 540
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    34,
+    34
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "93129e37c4504428",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 214,
+     "file": "bench/repos/puma/ext/puma_http11/puma_http11.c",
+     "start_line": 206
+    },
+    {
+     "end_line": 224,
+     "file": "bench/repos/puma/ext/puma_http11/puma_http11.c",
+     "start_line": 216
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "puma",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    14,
+    14
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "b7b0b53fbcbab71c",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 799,
+     "file": "bench/repos/rack/lib/rack/lint.rb",
+     "start_line": 789
+    },
+    {
+     "end_line": 814,
+     "file": "bench/repos/rack/lib/rack/lint.rb",
+     "start_line": 804
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rack",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    17,
+    14
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "1f02b28389d3dd36",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 514,
+     "file": "bench/repos/regex/regex-capi/src/rure.rs",
+     "start_line": 500
+    },
+    {
+     "end_line": 128,
+     "file": "bench/repos/regex/regex-capi/src/rure.rs",
+     "start_line": 114
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "regex",
+   "split": "heldout"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "4de609e3891fcfc5",
+   "intersection_mass": 11,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 1369,
+     "file": "bench/repos/regex/regex-lite/src/hir/parse.rs",
+     "start_line": 1346
+    },
+    {
+     "end_line": 1344,
+     "file": "bench/repos/regex/regex-syntax/src/hir/translate.rs",
+     "start_line": 1322
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "regex",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    117,
+    16
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "fc8646004b5ef173",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 390,
+     "file": "bench/repos/regex/regex-capi/src/rure.rs",
+     "start_line": 378
+    },
+    {
+     "end_line": 348,
+     "file": "bench/repos/regex/regex-capi/src/rure.rs",
+     "start_line": 336
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "regex",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "68bb7155ddaec5fc",
+   "inline_aug_mass": 2,
+   "intersection_mass": 2,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 38,
+     "file": "bench/repos/retrofit/retrofit-adapters/rxjava2/src/test/java/retrofit2/adapter/rxjava2/RxJavaPluginsResetRule.java",
+     "start_line": 18
+    },
+    {
+     "end_line": 38,
+     "file": "bench/repos/retrofit/retrofit-adapters/rxjava3/src/test/java/retrofit2/adapter/rxjava3/RxJavaPluginsResetRule.java",
+     "start_line": 18
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "retrofit",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    2
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "a4f7b2b24dac8ef2",
+   "inline_aug_mass": 37,
+   "intersection_mass": 7,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 94,
+     "file": "bench/repos/retrofit/retrofit-mock/src/test/java/retrofit2/mock/CallsTest.java",
+     "start_line": 79
+    },
+    {
+     "end_line": 57,
+     "file": "bench/repos/retrofit/retrofit-mock/src/test/java/retrofit2/mock/CallsTest.java",
+     "start_line": 43
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "retrofit",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    37,
+    17
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "ea9ce2ec096e44a2",
+   "intersection_mass": 9,
+   "language": "Java",
+   "members": [
+    {
+     "end_line": 262,
+     "file": "bench/repos/retrofit/retrofit-mock/src/test/java/retrofit2/mock/CallsTest.java",
+     "start_line": 248
+    },
+    {
+     "end_line": 243,
+     "file": "bench/repos/retrofit/retrofit-mock/src/test/java/retrofit2/mock/CallsTest.java",
+     "start_line": 229
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "retrofit",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    23,
+    19
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "1cca23a830177a3b",
+   "intersection_mass": 15,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 249,
+     "file": "bench/repos/rich/tests/test_win32_console.py",
+     "start_line": 233
+    },
+    {
+     "end_line": 208,
+     "file": "bench/repos/rich/tests/test_win32_console.py",
+     "start_line": 194
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rich",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    23,
+    23
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "71efa9ae895b2852",
+   "intersection_mass": 13,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 11,
+     "file": "bench/repos/rich/tests/test_tools.py",
+     "start_line": 5
+    },
+    {
+     "end_line": 20,
+     "file": "bench/repos/rich/tests/test_tools.py",
+     "start_line": 14
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rich",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    31,
+    31
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "7c86044c5fba8f8e",
+   "intersection_mass": 27,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 495,
+     "file": "bench/repos/rich/rich/color.py",
+     "start_line": 491
+    },
+    {
+     "end_line": 501,
+     "file": "bench/repos/rich/rich/color.py",
+     "start_line": 497
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rich",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    35,
+    35
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "17b81b759c25a493",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 38,
+     "file": "bench/repos/ripgrep/tests/macros.rs",
+     "start_line": 18
+    },
+    {
+     "end_line": 24,
+     "file": "bench/repos/ripgrep/crates/printer/src/macros.rs",
+     "start_line": 4
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "1b6dd934f70b9533",
+   "intersection_mass": 9,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 293,
+     "file": "bench/repos/ripgrep/crates/ignore/src/walk.rs",
+     "start_line": 286
+    },
+    {
+     "end_line": 303,
+     "file": "bench/repos/ripgrep/crates/ignore/src/walk.rs",
+     "start_line": 296
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    16,
+    13
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "395768df3c164d72",
+   "inline_aug_mass": 2,
+   "intersection_mass": 0,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 822,
+     "file": "bench/repos/ripgrep/crates/globset/src/lib.rs",
+     "start_line": 799
+    },
+    {
+     "end_line": 854,
+     "file": "bench/repos/ripgrep/crates/globset/src/lib.rs",
+     "start_line": 831
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    2,
+    2
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "inline-ceiling",
+   "family_id": "4b007c95b7bc5666",
+   "inline_aug_mass": 198,
+   "intersection_mass": 6,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 318,
+     "file": "bench/repos/ripgrep/crates/ignore/tests/gitignore_matched_path_or_any_parents_tests.rs",
+     "start_line": 193
+    },
+    {
+     "end_line": 190,
+     "file": "bench/repos/ripgrep/crates/ignore/tests/gitignore_matched_path_or_any_parents_tests.rs",
+     "start_line": 89
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    198,
+    198
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "519afdcaed73af0d",
+   "intersection_mass": 31,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 608,
+     "file": "bench/repos/ripgrep/crates/searcher/src/testutil.rs",
+     "start_line": 599
+    },
+    {
+     "end_line": 570,
+     "file": "bench/repos/ripgrep/crates/searcher/src/testutil.rs",
+     "start_line": 561
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    78,
+    92
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "5d090792bfccdf4b",
+   "intersection_mass": 23,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 371,
+     "file": "bench/repos/ripgrep/crates/core/search.rs",
+     "start_line": 366
+    },
+    {
+     "end_line": 347,
+     "file": "bench/repos/ripgrep/crates/core/search.rs",
+     "start_line": 342
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    29
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "645645048b72111d",
+   "inline_aug_mass": 6,
+   "intersection_mass": 4,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 116,
+     "file": "bench/repos/ripgrep/crates/core/flags/doc/version.rs",
+     "start_line": 83
+    },
+    {
+     "end_line": 158,
+     "file": "bench/repos/ripgrep/crates/core/flags/doc/version.rs",
+     "start_line": 129
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    6,
+    6
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "70daf912736d8c82",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 8,
+     "file": "bench/repos/ripgrep/tests/hay.rs",
+     "start_line": 1
+    },
+    {
+     "end_line": 209,
+     "file": "bench/repos/ripgrep/crates/searcher/src/lines.rs",
+     "start_line": 203
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "ripgrep",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "8172f2a4057bdd27",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 241,
+     "file": "bench/repos/ripgrep/tests/json.rs",
+     "start_line": 207
+    },
+    {
+     "end_line": 190,
+     "file": "bench/repos/ripgrep/tests/json.rs",
+     "start_line": 157
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "82baabefb13ac0e4",
+   "inline_aug_mass": 209,
+   "intersection_mass": 7,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 381,
+     "file": "bench/repos/ripgrep/crates/ignore/src/gitignore.rs",
+     "start_line": 373
+    },
+    {
+     "end_line": 130,
+     "file": "bench/repos/ripgrep/crates/ignore/src/gitignore.rs",
+     "start_line": 111
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    19,
+    209
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "9194611e3dd97015",
+   "intersection_mass": 8,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 363,
+     "file": "bench/repos/ripgrep/crates/printer/src/color.rs",
+     "start_line": 354
+    },
+    {
+     "end_line": 377,
+     "file": "bench/repos/ripgrep/crates/printer/src/color.rs",
+     "start_line": 369
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    61,
+    50
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "9b317c5d5b4ad4f5",
+   "intersection_mass": 17,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 390,
+     "file": "bench/repos/ripgrep/crates/ignore/src/types.rs",
+     "start_line": 381
+    },
+    {
+     "end_line": 404,
+     "file": "bench/repos/ripgrep/crates/ignore/src/types.rs",
+     "start_line": 395
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    26,
+    26
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "9e4630087c22a3b0",
+   "intersection_mass": 8,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 396,
+     "file": "bench/repos/ripgrep/crates/printer/src/color.rs",
+     "start_line": 380
+    },
+    {
+     "end_line": 364,
+     "file": "bench/repos/ripgrep/crates/printer/src/color.rs",
+     "start_line": 351
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    101,
+    61
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "cbf9a0dd1dc3a1af",
+   "intersection_mass": 28,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 222,
+     "file": "bench/repos/ripgrep/crates/ignore/src/lib.rs",
+     "start_line": 206
+    },
+    {
+     "end_line": 247,
+     "file": "bench/repos/ripgrep/crates/ignore/src/lib.rs",
+     "start_line": 231
+    }
+   ],
+   "reason": "extract-base",
+   "repo": "ripgrep",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    85,
+    87
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    6,
+    223
+   ],
+   "family_id": "1e2418210729ed7c",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 131,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 122
+    },
+    {
+     "end_line": 111,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 102
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rspec-core",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    5,
+    154
+   ],
+   "family_id": "32a7d7612a8cb12a",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 110,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/server_spec.rb",
+     "start_line": 103
+    },
+    {
+     "end_line": 74,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/server_spec.rb",
+     "start_line": 67
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "rspec-core",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    6,
+    223
+   ],
+   "family_id": "43e9ca75b445ca3a",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 210,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 203
+    },
+    {
+     "end_line": 108,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 102
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rspec-core",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "7b5147536093e82e",
+   "intersection_mass": 10,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 242,
+     "file": "bench/repos/rspec-core/spec/support/formatter_support.rb",
+     "start_line": 230
+    },
+    {
+     "end_line": 142,
+     "file": "bench/repos/rspec-core/spec/support/formatter_support.rb",
+     "start_line": 129
+    }
+   ],
+   "reason": "extract-data-table",
+   "repo": "rspec-core",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    52,
+    13
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    6,
+    223
+   ],
+   "family_id": "a1957f9937b645c3",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 215,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 207
+    },
+    {
+     "end_line": 36,
+     "file": "bench/repos/rspec-core/spec/rspec/core/bisect/coordinator_spec.rb",
+     "start_line": 29
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rspec-core",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "107837ec875c769b",
+   "inline_aug_mass": 5,
+   "intersection_mass": 5,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 71,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/struct_new_override.rb",
+     "start_line": 54
+    },
+    {
+     "end_line": 59,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/data_define_override.rb",
+     "start_line": 46
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    16,
+    16
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "1eead1acc41e3d0d",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 264,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+     "start_line": 252
+    },
+    {
+     "end_line": 249,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+     "start_line": 34
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "267fc66c0a4ce915",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 243,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/space_inside_parens_spec.rb",
+     "start_line": 156
+    },
+    {
+     "end_line": 153,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/space_inside_parens_spec.rb",
+     "start_line": 67
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "3972d13e7d367a84",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 532,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/map_into_array_spec.rb",
+     "start_line": 520
+    },
+    {
+     "end_line": 463,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/map_into_array_spec.rb",
+     "start_line": 4
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "3e9f769a0860304c",
+   "intersection_mass": 9,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 139,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/unreachable_loop.rb",
+     "start_line": 129
+    },
+    {
+     "end_line": 124,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/style/static_class.rb",
+     "start_line": 114
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    20,
+    19
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "no-overlapping-unit",
+   "family_id": "40711dc868c3de45",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 21,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/infinite_loop_spec.rb",
+     "start_line": 6
+    },
+    {
+     "end_line": 38,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/infinite_loop_spec.rb",
+     "start_line": 23
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "40c914779a563002",
+   "inline_aug_mass": 5,
+   "intersection_mass": 1,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 44,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/style/redundant_sort_by.rb",
+     "start_line": 36
+    },
+    {
+     "end_line": 54,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/style/redundant_sort_by.rb",
+     "start_line": 46
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    5,
+    5
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "42b457f15c15680c",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 251,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/partition_instead_of_double_select_spec.rb",
+     "start_line": 243
+    },
+    {
+     "end_line": 179,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/partition_instead_of_double_select_spec.rb",
+     "start_line": 99
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "6af0178a5e70efbc",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 216,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/if_with_semicolon_spec.rb",
+     "start_line": 208
+    },
+    {
+     "end_line": 182,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/if_with_semicolon_spec.rb",
+     "start_line": 95
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "76b5d958771bb099",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 499,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/metrics/class_length_spec.rb",
+     "start_line": 488
+    },
+    {
+     "end_line": 420,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/metrics/class_length_spec.rb",
+     "start_line": 331
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "7bd6307d63463a53",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 273,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+     "start_line": 267
+    },
+    {
+     "end_line": 243,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/multiple_comparison_spec.rb",
+     "start_line": 34
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "83aba780bb969346",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 403,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/hash_except_spec.rb",
+     "start_line": 330
+    },
+    {
+     "end_line": 216,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/hash_except_spec.rb",
+     "start_line": 143
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "8afc3058b26eb9b9",
+   "inline_aug_mass": 4,
+   "intersection_mass": 4,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 58,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/ambiguous_operator.rb",
+     "start_line": 43
+    },
+    {
+     "end_line": 43,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/ambiguous_regexp_literal.rb",
+     "start_line": 29
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    7,
+    7
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "8b9fd00e9f4e985b",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 274,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/heredoc_argument_closing_parenthesis_spec.rb",
+     "start_line": 256
+    },
+    {
+     "end_line": 199,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/heredoc_argument_closing_parenthesis_spec.rb",
+     "start_line": 181
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "9d3b89937197194e",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 259,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/string_concatenation_spec.rb",
+     "start_line": 252
+    },
+    {
+     "end_line": 249,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/string_concatenation_spec.rb",
+     "start_line": 114
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "ace293d11479450b",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 242,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/location_exists_spec.rb",
+     "start_line": 237
+    },
+    {
+     "end_line": 229,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/location_exists_spec.rb",
+     "start_line": 123
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "adaf94b28357c197",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 187,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/class_equality_comparison_spec.rb",
+     "start_line": 178
+    },
+    {
+     "end_line": 152,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/class_equality_comparison_spec.rb",
+     "start_line": 54
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "b956b31a66387140",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 78,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/duplicated_group.rb",
+     "start_line": 68
+    },
+    {
+     "end_line": 53,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/duplicated_gem.rb",
+     "start_line": 45
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    14,
+    14
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "c409de6f23092443",
+   "intersection_mass": 10,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 139,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/mixin/range_help.rb",
+     "start_line": 134
+    },
+    {
+     "end_line": 83,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/mixin/surrounding_space.rb",
+     "start_line": 78
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    12,
+    12
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "c6c89e4eb592a4cf",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 119,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/example_description_spec.rb",
+     "start_line": 112
+    },
+    {
+     "end_line": 104,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/internal_affairs/example_description_spec.rb",
+     "start_line": 7
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "c8a5713da90ca9c8",
+   "inline_aug_mass": 9,
+   "intersection_mass": 5,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 66,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/gem_filename.rb",
+     "start_line": 57
+    },
+    {
+     "end_line": 77,
+     "file": "bench/repos/rubocop/lib/rubocop/cop/bundler/gem_filename.rb",
+     "start_line": 68
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    9,
+    9
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "ee57cdaba2e53d9a",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 415,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/hash_slice_spec.rb",
+     "start_line": 342
+    },
+    {
+     "end_line": 216,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/style/hash_slice_spec.rb",
+     "start_line": 143
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "fc6e340b14f9df88",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 36,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/empty_lines_around_attribute_accessor_spec.rb",
+     "start_line": 20
+    },
+    {
+     "end_line": 20,
+     "file": "bench/repos/rubocop/spec/rubocop/cop/layout/empty_lines_around_attribute_accessor_spec.rb",
+     "start_line": 4
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rubocop",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "286cfa8283af3008",
+   "intersection_mass": 31,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 102,
+     "file": "bench/repos/rustls/rustls-test/tests/api/crypto.rs",
+     "start_line": 93
+    },
+    {
+     "end_line": 54,
+     "file": "bench/repos/rustls/rustls-test/tests/api/crypto.rs",
+     "start_line": 46
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rustls",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    110,
+    60
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "cb3ba04584140a2f",
+   "intersection_mass": 15,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 105,
+     "file": "bench/repos/rustls/examples/src/bin/simple_0rtt_client.rs",
+     "start_line": 93
+    },
+    {
+     "end_line": 481,
+     "file": "bench/repos/rustls/examples/src/bin/tlsclient-mio.rs",
+     "start_line": 470
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "rustls",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    31
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    461,
+    500
+   ],
+   "family_id": "0e26e02c6073d74e",
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 502,
+     "file": "bench/repos/scrapy/tests/test_linkextractors.py",
+     "start_line": 486
+    },
+    {
+     "end_line": 486,
+     "file": "bench/repos/scrapy/tests/test_linkextractors.py",
+     "start_line": 470
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "scrapy",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "533cc1e54f54c889",
+   "inline_aug_mass": 16,
+   "intersection_mass": 3,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 548,
+     "file": "bench/repos/scrapy/tests/test_pipelines.py",
+     "start_line": 531
+    },
+    {
+     "end_line": 445,
+     "file": "bench/repos/scrapy/tests/test_pipelines.py",
+     "start_line": 428
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "scrapy",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    9,
+    16
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "be72d6b46ad8eaf1",
+   "intersection_mass": 22,
+   "language": "Python",
+   "members": [
+    {
+     "end_line": 295,
+     "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+     "start_line": 279
+    },
+    {
+     "end_line": 221,
+     "file": "bench/repos/scrapy/scrapy/http/response/text.py",
+     "start_line": 206
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "scrapy",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    63,
+    38
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "2515a9bc2af59ece",
+   "intersection_mass": 37,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 2017,
+     "file": "bench/repos/serde_json/src/de.rs",
+     "start_line": 2000
+    },
+    {
+     "end_line": 1961,
+     "file": "bench/repos/serde_json/src/de.rs",
+     "start_line": 1949
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    60,
+    51
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "2f42630683e613dd",
+   "inline_aug_mass": 17,
+   "intersection_mass": 6,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 2291,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 2287
+    },
+    {
+     "end_line": 2297,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 2293
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    17,
+    15
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "3f1d50e522be29ae",
+   "intersection_mass": 12,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 2037,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 2011
+    },
+    {
+     "end_line": 2066,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 2040
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    30
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "8dc63e0bf59dff86",
+   "intersection_mass": 11,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 1945,
+     "file": "bench/repos/serde_json/src/de.rs",
+     "start_line": 1940
+    },
+    {
+     "end_line": 1996,
+     "file": "bench/repos/serde_json/src/de.rs",
+     "start_line": 1991
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    16,
+    16
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "946bfa61cb71d562",
+   "intersection_mass": 30,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 547,
+     "file": "bench/repos/serde_json/tests/lexical/float.rs",
+     "start_line": 533
+    },
+    {
+     "end_line": 494,
+     "file": "bench/repos/serde_json/tests/lexical/float.rs",
+     "start_line": 480
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    48,
+    40
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "c38a8703c271821c",
+   "intersection_mass": 11,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 395,
+     "file": "bench/repos/serde_json/src/number.rs",
+     "start_line": 386
+    },
+    {
+     "end_line": 309,
+     "file": "bench/repos/serde_json/src/raw.rs",
+     "start_line": 302
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    14,
+    14
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "d4ed845b75ad1b1c",
+   "intersection_mass": 12,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 848,
+     "file": "bench/repos/serde_json/src/read.rs",
+     "start_line": 840
+    },
+    {
+     "end_line": 858,
+     "file": "bench/repos/serde_json/src/read.rs",
+     "start_line": 850
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    26,
+    26
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "e05e8bc1734e5ef0",
+   "intersection_mass": 10,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 100,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 86
+    },
+    {
+     "end_line": 116,
+     "file": "bench/repos/serde_json/tests/test.rs",
+     "start_line": 102
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "serde_json",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    21,
+    21
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "fe3c6be4a61ad4de",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 117,
+     "file": "bench/repos/sidekiq/bin/multi_queue_bench",
+     "start_line": 76
+    },
+    {
+     "end_line": 139,
+     "file": "bench/repos/sidekiq/bin/sidekiqload",
+     "start_line": 98
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "sidekiq",
+   "split": "heldout"
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "c8eba586fdfacedc",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 255,
+     "file": "bench/repos/sinatra/test/indifferent_hash_test.rb",
+     "start_line": 244
+    },
+    {
+     "end_line": 273,
+     "file": "bench/repos/sinatra/test/indifferent_hash_test.rb",
+     "start_line": 262
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "sinatra",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    24,
+    24
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "e4ad961494fe684e",
+   "intersection_mass": 8,
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 39,
+     "file": "bench/repos/sinatra/test/contest.rb",
+     "start_line": 34
+    },
+    {
+     "end_line": 46,
+     "file": "bench/repos/sinatra/test/contest.rb",
+     "start_line": 41
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "sinatra",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "a5e482f708ba7014",
+   "inline_aug_mass": 23,
+   "intersection_mass": 4,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 90,
+     "file": "bench/repos/sled/examples/bench_large.rs",
+     "start_line": 82
+    },
+    {
+     "end_line": 80,
+     "file": "bench/repos/sled/examples/bench_large.rs",
+     "start_line": 72
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "sled",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    20,
+    23
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "07e233ddffad07f0",
+   "language": "Ruby",
+   "members": [
+    {
+     "end_line": 44,
+     "file": "bench/repos/thor/spec/line_editor_spec.rb",
+     "start_line": 39
+    },
+    {
+     "end_line": 24,
+     "file": "bench/repos/thor/spec/line_editor_spec.rb",
+     "start_line": 19
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "thor",
+   "split": "dev"
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "4d161d7f40bac6f1",
+   "inline_aug_mass": 10,
+   "intersection_mass": 5,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 264,
+     "file": "bench/repos/tmux/notify.c",
+     "start_line": 257
+    },
+    {
+     "end_line": 303,
+     "file": "bench/repos/tmux/notify.c",
+     "start_line": 296
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "tmux",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    10,
+    10
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    321,
+    367
+   ],
+   "family_id": "6c7a09c2a9c5c2b2",
+   "language": "C",
+   "members": [
+    {
+     "end_line": 351,
+     "file": "bench/repos/tmux/layout-custom.c",
+     "start_line": 341
+    },
+    {
+     "end_line": 346,
+     "file": "bench/repos/tmux/layout-custom.c",
+     "start_line": 336
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "tmux",
+   "split": "dev"
+  },
+  {
+   "channel": "contiguous",
+   "class": "unrecovered",
+   "family_id": "1e05e06201182605",
+   "inline_aug_mass": 0,
+   "intersection_mass": 0,
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 86,
+     "file": "bench/repos/tokio/tokio/tests/async_send_sync.rs",
+     "start_line": 46
+    },
+    {
+     "end_line": 46,
+     "file": "bench/repos/tokio/tokio-stream/tests/async_send_sync.rs",
+     "start_line": 6
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "tokio",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    0,
+    0
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "6189ced49439fb29",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 265,
+     "file": "bench/repos/tokio/tokio/src/io/poll_evented.rs",
+     "start_line": 238
+    },
+    {
+     "end_line": 211,
+     "file": "bench/repos/tokio/tokio/src/io/poll_evented.rs",
+     "start_line": 180
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "tokio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "af17a49f38c801e2",
+   "language": "Rust",
+   "members": [
+    {
+     "end_line": 467,
+     "file": "bench/repos/tokio/tokio/tests/rt_handle_block_on.rs",
+     "start_line": 457
+    },
+    {
+     "end_line": 401,
+     "file": "bench/repos/tokio/tokio/tests/rt_handle_block_on.rs",
+     "start_line": 370
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "tokio",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "392570d60aac814e",
+   "intersection_mass": 27,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 33,
+     "file": "bench/repos/trpc/examples/.test/diagnostics-big-router/src/utils/trpc.ts",
+     "start_line": 5
+    },
+    {
+     "end_line": 32,
+     "file": "bench/repos/trpc/examples/.test/ssg-infinite-serialization/src/utils/trpc.ts",
+     "start_line": 4
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "trpc",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    27,
+    27
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "5c1809963c693d04",
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 32,
+     "file": "bench/repos/trpc/packages/react-query/tsdown.config.ts",
+     "start_line": 7
+    },
+    {
+     "end_line": 27,
+     "file": "bench/repos/trpc/packages/server/tsdown.config.ts",
+     "start_line": 18
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "trpc",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "no-overlapping-unit",
+   "family_id": "8eefa5a90b80ca48",
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 40,
+     "file": "bench/repos/trpc/examples/next-big-router/scripts/codegen-base.ts",
+     "start_line": 4
+    },
+    {
+     "end_line": 41,
+     "file": "bench/repos/trpc/examples/.test/diagnostics-big-router/scripts/codegen-base.ts",
+     "start_line": 5
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "trpc",
+   "split": "heldout"
+  },
+  {
+   "channel": "contiguous",
+   "class": "subdag-ceiling",
+   "family_id": "b6d295fc4fe003ac",
+   "intersection_mass": 23,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 42,
+     "file": "bench/repos/trpc/examples/next-big-router/scripts/codegen.ts",
+     "start_line": 1
+    },
+    {
+     "end_line": 42,
+     "file": "bench/repos/trpc/examples/.test/diagnostics-big-router/scripts/codegen.ts",
+     "start_line": 1
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "trpc",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    23,
+    23
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "8d16dc452f3936a2",
+   "inline_aug_mass": 6,
+   "intersection_mass": 2,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 90,
+     "file": "bench/repos/urfave-cli/flag_bool_with_inverse.go",
+     "start_line": 86
+    },
+    {
+     "end_line": 173,
+     "file": "bench/repos/urfave-cli/flag_impl.go",
+     "start_line": 169
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "urfave-cli",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    6,
+    6
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "ea93d66380eba837",
+   "inline_aug_mass": 17,
+   "intersection_mass": 5,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 884,
+     "file": "bench/repos/urfave-cli/flag_test.go",
+     "start_line": 879
+    },
+    {
+     "end_line": 936,
+     "file": "bench/repos/urfave-cli/flag_test.go",
+     "start_line": 931
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "urfave-cli",
+   "split": "heldout",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    17,
+    17
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "a3155684430a48be",
+   "intersection_mass": 20,
+   "language": "C",
+   "members": [
+    {
+     "end_line": 2007,
+     "file": "bench/repos/vim/src/if_py_both.h",
+     "start_line": 1971
+    },
+    {
+     "end_line": 3580,
+     "file": "bench/repos/vim/src/if_py_both.h",
+     "start_line": 3545
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "vim",
+   "split": "heldout",
+   "subdag_ge_12": true,
+   "subdag_ge_20": true,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    49,
+    49
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "unrecovered",
+   "family_id": "23de1a83b5d5ff94",
+   "inline_aug_mass": 5,
+   "intersection_mass": 5,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 91,
+     "file": "bench/repos/zap/benchmarks/zap_test.go",
+     "start_line": 85
+    },
+    {
+     "end_line": 476,
+     "file": "bench/repos/zap/sugar.go",
+     "start_line": 470
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "zap",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    11,
+    11
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "3df80d48334cad8f",
+   "intersection_mass": 9,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 585,
+     "file": "bench/repos/zap/zapcore/encoder_test.go",
+     "start_line": 564
+    },
+    {
+     "end_line": 722,
+     "file": "bench/repos/zap/zapcore/encoder_test.go",
+     "start_line": 702
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "zap",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    28,
+    25
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "inline-ceiling",
+   "family_id": "c3ae8f9eecbafd9e",
+   "inline_aug_mass": 60,
+   "intersection_mass": 5,
+   "language": "Go",
+   "members": [
+    {
+     "end_line": 222,
+     "file": "bench/repos/zap/writer_test.go",
+     "start_line": 210
+    },
+    {
+     "end_line": 132,
+     "file": "bench/repos/zap/writer_test.go",
+     "start_line": 120
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "zap",
+   "split": "dev",
+   "subdag_ge_12": false,
+   "subdag_ge_20": false,
+   "subdag_ge_8": false,
+   "unit_value_sizes": [
+    60,
+    35
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "1ad07dedfa877a0e",
+   "intersection_mass": 15,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 2787,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 2772
+    },
+    {
+     "end_line": 2804,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 2789
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "zod",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    24,
+    24
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "aa98d1623d4fda52",
+   "intersection_mass": 13,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 4496,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 4490
+    },
+    {
+     "end_line": 4536,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 4530
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "zod",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    22,
+    22
+   ]
+  },
+  {
+   "channel": "structural",
+   "class": "subdag-ceiling",
+   "family_id": "e6c204c8d398e185",
+   "intersection_mass": 12,
+   "language": "TypeScript",
+   "members": [
+    {
+     "end_line": 696,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 687
+    },
+    {
+     "end_line": 729,
+     "file": "bench/repos/zod/packages/zod/src/v3/types.ts",
+     "start_line": 720
+    }
+   ],
+   "reason": "parameterize",
+   "repo": "zod",
+   "split": "dev",
+   "subdag_ge_12": true,
+   "subdag_ge_20": false,
+   "subdag_ge_8": true,
+   "unit_value_sizes": [
+    30,
+    30
+   ]
+  },
+  {
+   "channel": "contiguous",
+   "class": "same-unit-window",
+   "enclosing_unit_lines": [
+    15,
+    66
+   ],
+   "family_id": "3ad45bf126ac090a",
+   "language": "C",
+   "members": [
+    {
+     "end_line": 65,
+     "file": "bench/repos/zstd/build/meson/tests/valgrindTest.py",
+     "start_line": 56
+    },
+    {
+     "end_line": 44,
+     "file": "bench/repos/zstd/build/meson/tests/valgrindTest.py",
+     "start_line": 35
+    }
+   ],
+   "reason": "extract-helper",
+   "repo": "zstd",
+   "split": "heldout"
+  }
+ ],
+ "nose_version": "nose 0.5.0",
+ "scan_failures": [
+  "rxjs"
+ ],
+ "schema_version": "0.1.0",
+ "subdag_floors": [
+  8,
+  12,
+  20
+ ],
+ "summary": {
+  "C/dev": {
+   "hit_arm0": 413,
+   "hit_arm1": 440,
+   "same-unit-window": 1,
+   "subdag-ceiling": 3,
+   "unrecovered": 6,
+   "worthy": 450
+  },
+  "C/heldout": {
+   "hit_arm0": 211,
+   "hit_arm1": 226,
+   "same-unit-window": 1,
+   "subdag-ceiling": 4,
+   "worthy": 231
+  },
+  "Go/dev": {
+   "hit_arm0": 430,
+   "hit_arm1": 453,
+   "inline-ceiling": 2,
+   "same-unit-window": 7,
+   "subdag-ceiling": 8,
+   "unrecovered": 5,
+   "worthy": 475
+  },
+  "Go/heldout": {
+   "hit_arm0": 375,
+   "hit_arm1": 409,
+   "no-overlapping-unit": 5,
+   "same-unit-window": 3,
+   "subdag-ceiling": 5,
+   "unrecovered": 4,
+   "worthy": 426
+  },
+  "Java/dev": {
+   "hit_arm0": 483,
+   "hit_arm1": 506,
+   "inline-ceiling": 5,
+   "same-unit-window": 4,
+   "subdag-ceiling": 14,
+   "unrecovered": 6,
+   "worthy": 535
+  },
+  "Java/heldout": {
+   "hit_arm0": 428,
+   "hit_arm1": 447,
+   "inline-ceiling": 1,
+   "same-unit-window": 2,
+   "subdag-ceiling": 6,
+   "unrecovered": 1,
+   "worthy": 457
+  },
+  "Python/dev": {
+   "hit_arm0": 251,
+   "hit_arm1": 288,
+   "same-unit-window": 1,
+   "subdag-ceiling": 7,
+   "unrecovered": 3,
+   "worthy": 299
+  },
+  "Python/heldout": {
+   "hit_arm0": 205,
+   "hit_arm1": 219,
+   "inline-ceiling": 2,
+   "same-unit-window": 1,
+   "subdag-ceiling": 2,
+   "unrecovered": 1,
+   "worthy": 225
+  },
+  "Ruby/dev": {
+   "hit_arm0": 294,
+   "hit_arm1": 343,
+   "no-overlapping-unit": 19,
+   "same-unit-window": 4,
+   "subdag-ceiling": 9,
+   "unrecovered": 5,
+   "worthy": 380
+  },
+  "Ruby/heldout": {
+   "hit_arm0": 180,
+   "hit_arm1": 232,
+   "no-overlapping-unit": 2,
+   "same-unit-window": 1,
+   "subdag-ceiling": 9,
+   "unrecovered": 6,
+   "worthy": 250
+  },
+  "Rust/dev": {
+   "hit_arm0": 318,
+   "hit_arm1": 364,
+   "inline-ceiling": 3,
+   "no-overlapping-unit": 10,
+   "same-unit-window": 2,
+   "subdag-ceiling": 20,
+   "unrecovered": 12,
+   "worthy": 411
+  },
+  "Rust/heldout": {
+   "hit_arm0": 226,
+   "hit_arm1": 245,
+   "inline-ceiling": 1,
+   "no-overlapping-unit": 4,
+   "same-unit-window": 1,
+   "subdag-ceiling": 3,
+   "unrecovered": 1,
+   "worthy": 255
+  },
+  "TypeScript/dev": {
+   "hit_arm0": 268,
+   "hit_arm1": 294,
+   "inline-ceiling": 1,
+   "subdag-ceiling": 3,
+   "unrecovered": 1,
+   "worthy": 299
+  },
+  "TypeScript/heldout": {
+   "hit_arm0": 209,
+   "hit_arm1": 220,
+   "no-overlapping-unit": 2,
+   "subdag-ceiling": 6,
+   "worthy": 228
+  }
+ }
+}

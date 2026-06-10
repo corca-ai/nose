@@ -122,6 +122,10 @@ Both ride the same sound core. They differ only in operating point and output co
   pure interprocedural inlining and anchored sub-DAG matching) — valuable for consumer 1,
   since the agent filters. **Hard constraint: it must never break zero-false-merge**, and
   recall-extension is gated on measuring that real missed-worthy pairs exist to recover.
+  *Measured 2026-06-10 ([experiments §BJ](experiments.md)): the residual beyond the
+  shipped v1 mechanisms is small (sub-DAG ceiling 2.0% optimistic / 0.6% at the shipped
+  anchor weight; inlining 0.3%) — further effort routes to unit-extraction coverage and
+  the fragment axis, not more matching.*
 - **Extractability ranking** — a "good enough" deterministic triage signal; no need to chase
   more.
 
@@ -208,7 +212,11 @@ Cheap experiments that turn direction into data:
 - **Recall-ceiling probe** — on the gold set, how many *missed worthy* pairs would
   largest-common-pure-sub-DAG matching (and helper inlining) recover? If small, recall
   extension survives only as sound-rule work, not as a headline. *(Gates recall-extension for
-  consumer 1.)*
+  consumer 1.)* **Ran 2026-06-10 — answer: small.** [experiments §BJ](experiments.md):
+  worthy-recall at the maximal current surface is 94.3% dev / 96.4% heldout; the
+  generalized sub-DAG ceiling is 2.0% (0.6% at the shipped anchor weight), inlining 0.3%,
+  and the remaining misses are unit-extraction gaps (Ruby DSL blocks, Rust macro bodies),
+  statement-window fragments, and zero-shared-mass judgment cases.
 - **Byte-determinism stress** — diff `nose scan --format json` across thread counts on a large
   repo. Any difference is a hard-invariant violation. *(Protects both consumers.)*
 

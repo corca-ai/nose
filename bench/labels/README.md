@@ -47,6 +47,12 @@ the v5 metric. It records the full-corpus and targeted real-repo pass for the
 first-party `nose.value_graph.laws` LawPack pilot. See
 [`docs/lawpack-provenance-audit-2026-06-10.md`](../../docs/lawpack-provenance-audit-2026-06-10.md).
 
+`recall_ceiling_probe.py` + `recall_ceiling_probe_2026_06_10.json` are the design §5
+recall-ceiling probe: for every worthy label the maximal current scan surface misses, an
+over-approximated classification of whether generalized sub-DAG matching or one-step
+pure inlining could recover it. The measured verdict and method are recorded in
+[`docs/experiments.md`](../../docs/experiments.md) §BJ.
+
 ## Scoring against it
 
 `eval_by_language.py` — per-language precision@10 + worthy-recall, dev/heldout split, with

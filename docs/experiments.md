@@ -848,3 +848,67 @@ the baseline run:
 Canonical JSON output was unchanged for Python, JavaScript, TypeScript, Go, Java, C, Ruby,
 and embedded. Rust matched after removing line-number fields; the only diff came from this
 branch adding lines to a Rust source file included in the profiling input.
+
+## BJ. The design.md §5 recall-ceiling probe — sub-DAG / inlining headroom, measured
+
+[design](design.md) §5 named one decisive measurement that had never been run: *on the
+gold set, how many missed worthy pairs would largest-common-pure-sub-DAG matching (and
+helper inlining) recover?* §3 gates any further recall-mechanism bet on it. Context that
+makes the question sharper: PR #82 already shipped a bounded v1 of **both** mechanisms
+(shared heavy anchors at weight ≥ 20 / df ≤ 6 in `near` candidate mode; single-`return`
+file-local pure inlining in the value graph), so the probe measures the **residual**
+beyond everything reachable today.
+
+**Method** (`bench/labels/recall_ceiling_probe.py`, artifact
+`bench/labels/recall_ceiling_probe_2026_06_10.json`): for every worthy v5 label, two
+scans — arm0 = the default surface (`syntax,semantic`), arm1 = the maximal current
+surface (`syntax,semantic,near --min-value 0`). Labels arm1 misses are classified from
+`nose features` dumps of the member files: **subdag-ceiling** if the two members'
+tightest covering units share value-fingerprint multiset-intersection mass ≥ 8
+(reported also at 12/20; 20 = the shipped `ANCHOR_MIN_WEIGHT`), **inline-ceiling** if
+one same-file sibling unit's multiset added to either side lifts the mass over 20,
+**same-unit-window** if both members map into one enclosing unit (the statement-window
+shape), **no-overlapping-unit** if a member has no unit at all, else **unrecovered**.
+Multiset intersection ignores connectivity and single-file `features` lacks whole-repo
+import resolution, so the sub-DAG/inline classes **over-approximate** — a ceiling, not a
+forecast. Caveats: `rxjs` excluded (scanner stack overflow, #198); corpus was dir-pruned
+but not file-pruned (`prune_corpus.py` missing, #200).
+
+**Result** (4,921 worthy labels; dev / heldout):
+
+| | dev | heldout |
+|---|---:|---:|
+| worthy-recall, arm0 (default) | 86.2% | 88.5% |
+| worthy-recall, arm1 (maximal current) | 94.3% | 96.4% |
+| arm1-missed | 161 | 74 |
+| — subdag-ceiling (mass ≥ 8) | 64 | 35 |
+| — inline-ceiling | 11 | 4 |
+| — same-unit-window | 19 | 9 |
+| — no-overlapping-unit | 29* | 13* |
+| — unrecovered (shared mass ≈ 0) | 38 | 13 |
+
+*combined with the residual `other` classes in the per-language table the script prints.
+
+Of the 99 subdag-ceiling labels, only **31** reach the shipped anchor weight (mass ≥ 20;
+median mass 14) — i.e. at the weight the product already considers extractable, the
+unit-pair sub-DAG residual is **0.6%** absolute worthy-recall; even the optimistic
+mass ≥ 8 ceiling is **2.0%**, and the one-step inlining ceiling is **0.3%**.
+
+**Verdict — the §3 gate answers "no-go" for a headline mechanism bet.** The shipped #82
+mechanisms plus the `near` channel already recover the bulk (630 default-surface misses
+→ 235 maximal-surface misses); what remains is not a unit-pair matching gap:
+
+- the **no-overlapping-unit** cluster is a *unit-extraction* gap with two concrete,
+  nameable shapes — Ruby test-DSL blocks (`asciidoctor`, 21 labels) and Rust
+  `macro_rules!` bodies (`clap` `macros.rs`, 14 labels) — frontier-evidence material
+  (#36 discipline), not matcher work;
+- **same-unit-window** (28) is the statement-window fragment axis the coverage taxonomy
+  already tracks;
+- **unrecovered** (51) shares ~zero value mass — parameterize/extract-helper judgments
+  whose similarity is not in the computation at all (the §AV judgment-deep shape).
+
+The one cheap knob left on the table: the 8–20 mass band (68 labels) would respond to a
+lower anchor weight floor, but those small shared chunks are weak refactor targets and
+the band is an over-approximation — worth at most a knob experiment
+(`NOSE_ANCHOR_*`), not a mechanism. The honest headline for further worthy-recall is
+**unit extraction coverage and the fragment axis, not more matching**.

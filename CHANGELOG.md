@@ -54,6 +54,12 @@ break.
   real-corpus pass for `nose.value_graph.laws`: the pack is active in scan JSON,
   but the current two proof-backed laws produced no real clone families with
   `semantic_laws` provenance.
+- The design §5 recall-ceiling probe (`bench/labels/recall_ceiling_probe.py` plus
+  its dated artifact) now measures the residual sub-DAG / pure-inlining recall
+  headroom on the v5 gold set: a 2.0% optimistic ceiling (0.6% at the shipped
+  anchor weight), answering the recall-mechanism gate no-go and routing the
+  residual to unit-extraction coverage and the fragment statement-window axis
+  (experiments §BJ).
 
 ### Changed
 - Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface
