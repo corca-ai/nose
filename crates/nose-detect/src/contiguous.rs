@@ -236,6 +236,12 @@ pub(crate) fn detect(streams: &[Stream], min_tokens: usize, min_lines: u32) -> V
             members: members.iter().map(|&m| locs[m].clone()).collect(),
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: Some(crate::EquivalenceWitness {
+                kind: "copy-paste-run",
+                value_nodes: None,
+                mean_value_jaccard: None,
+                mean_shape_jaccard: None,
+            }),
         });
     }
     groups

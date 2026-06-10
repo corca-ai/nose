@@ -138,3 +138,49 @@ fn fail_on_any_ignores_hidden_exact_fragments() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+/// #222: every reported family carries an equivalence witness naming WHY its
+/// members merged — an exact value-graph proof is distinguishable from surface
+/// similarity without opening any source file.
+#[test]
+fn scan_json_families_carry_equivalence_witness() {
+    let dir = std::env::temp_dir().join(format!("nose_witness_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    // Exact pair: identical pure functions (strict-exact-safe, above the size floor).
+    fs::write(
+        dir.join("a.py"),
+        "def total(xs, lo):\n    out = 0\n    for x in xs:\n        if x > lo:\n            out += x\n    return out\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("b.py"),
+        "def total_again(values, floor):\n    out = 0\n    for v in values:\n        if v > floor:\n            out += v\n    return out\n",
+    )
+    .unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--mode",
+        "semantic",
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let fams = scan_families(&json);
+    assert_eq!(fams.len(), 1, "exact twin pair expected: {out}");
+    let witness = &fams[0]["witness"];
+    assert_eq!(
+        witness["kind"], "exact-value-graph",
+        "exact merge must carry the exact witness: {out}"
+    );
+    assert!(
+        witness["value_nodes"].as_u64().unwrap_or(0) >= 4,
+        "witness carries the shared multiset size: {out}"
+    );
+}

@@ -70,6 +70,11 @@ pub struct RefactorFamily {
     /// Pack-facing semantic laws that influenced this family-level value fingerprint.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub semantic_laws: Vec<ValueLawProvenance>,
+    /// WHY the members merged — the agent-facing equivalence witness (#222): an
+    /// exact value-graph proof, a shared heavy sub-DAG, a token-identical
+    /// copy-paste run, or structural similarity with its value/shape components.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub witness: Option<crate::EquivalenceWitness>,
 }
 
 impl RefactorFamily {
@@ -498,6 +503,7 @@ fn family_of(group: &Group) -> RefactorFamily {
         scope,
         discount,
         abstraction_witness: group.abstraction_witness.clone(),
+        witness: group.witness.clone(),
         semantic_laws: group
             .semantic_laws
             .iter()
@@ -705,6 +711,7 @@ mod tests {
             scope: "prod",
             discount: 1.0,
             abstraction_witness: None,
+            witness: None,
             semantic_laws: Vec::new(),
         }
     }
@@ -926,6 +933,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -944,12 +952,14 @@ mod tests {
             members: vec![loc("a.rs", 10, 40, "rust"), loc("b.rs", 10, 40, "rust")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let inner = Group {
             score: 1.0,
             members: vec![loc("a.rs", 15, 25, "rust"), loc("b.rs", 15, 25, "rust")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let fams = rank_families(&report(vec![inner, outer]));
         assert_eq!(fams.len(), 1, "the contained family should be dropped");
@@ -969,6 +979,7 @@ mod tests {
             members: vec![loc("Param.java", 1589, 1611, "java")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let semantic_methods = Group {
             score: 1.0,
@@ -980,6 +991,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
 
         let fams = rank_families(&report(vec![syntax_window, semantic_methods]));
@@ -1006,6 +1018,7 @@ mod tests {
             members: vec![loc(f1, 1, 20, "rust"), loc(f2, 1, 20, "rust")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let keys = |groups| {
             rank_families(&report(groups))
@@ -1042,6 +1055,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -1063,6 +1077,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(
@@ -1083,6 +1098,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let f = &rank_families(&report(vec![g]))[0];
         assert_eq!(f.members, 3);
@@ -1101,12 +1117,14 @@ mod tests {
                 .collect(),
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let small = Group {
             score: 1.0,
             members: vec![loc("p/a.rs", 1, 6, "rust"), loc("p/b.rs", 1, 6, "rust")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let fams = rank_families(&report(vec![small, big]));
         assert!(
@@ -1123,6 +1141,7 @@ mod tests {
             members: vec![loc("a.py", 1, 10, "python"), loc("b.py", 1, 10, "python")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let cross = Group {
             score: 0.9,
@@ -1132,6 +1151,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let fm = family_of(&mono);
         let fc = family_of(&cross);
@@ -1154,6 +1174,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let test = Group {
             score: 1.0,
@@ -1163,6 +1184,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let fp = family_of(&prod);
         let ft = family_of(&test);
@@ -1188,6 +1210,7 @@ mod tests {
             members: vec![loc("src/a.rs", 1, 30, "rust"), test_named],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let pure = Group {
             score: 1.0,
@@ -1197,6 +1220,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let fmixed = family_of(&mixed);
         let fpure = family_of(&pure);
@@ -1217,6 +1241,7 @@ mod tests {
             ],
             semantic_laws: vec![nose_semantics::ValueLaw::NumericFactorDistribution],
             abstraction_witness: None,
+            witness: None,
         };
         let family = family_of(&proven);
         assert_eq!(family.semantic_laws.len(), 1);
@@ -1241,6 +1266,7 @@ mod tests {
             ],
             semantic_laws: vec![nose_semantics::ValueLaw::AddCommutativity],
             abstraction_witness: None,
+            witness: None,
         };
         assert!(
             family_of(&internal_only).semantic_laws.is_empty(),
@@ -1407,6 +1433,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         // A behavior-rich class of the same size is a genuine candidate.
         let rich = Group {
@@ -1417,6 +1444,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let ftd = family_of(&typedef);
         let frich = family_of(&rich);
@@ -1433,6 +1461,7 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         assert!(
             family_of(&func).value > ftd.value,
@@ -1451,12 +1480,14 @@ mod tests {
             ],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         let owned = Group {
             score: 1.0,
             members: vec![loc("src/x.go", 1, 30, "go"), loc("src/y.go", 1, 30, "go")],
             semantic_laws: Vec::new(),
             abstraction_witness: None,
+            witness: None,
         };
         assert!(
             family_of(&owned).value > family_of(&vendored).value,

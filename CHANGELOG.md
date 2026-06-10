@@ -75,6 +75,11 @@ break.
   spot on exactly the convergences the value graph claims.
 
 ### Added
+- Scan JSON families now carry an agent-facing equivalence `witness` naming WHY
+  the members merged: `exact-value-graph` (with the shared multiset size),
+  `shared-sub-dag`, `copy-paste-run`, or `structural-similarity` (with mean
+  value vs shape Jaccard). The #216 audit's top gap — `shared_lines: 0` with
+  `mean_score: 1.0` was uninterpretable on a real cross-language Type-4 family.
 - A scan-JSON agent-usability audit artifact records whether an LLM agent can
   decide and act from the JSON alone: 14/18 sampled families were decidable, and
   the four failures fix the evidence roadmap — no equivalence witness on default

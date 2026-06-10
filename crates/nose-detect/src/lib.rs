@@ -604,6 +604,71 @@ pub struct Group {
     pub semantic_laws: Vec<ValueLaw>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub abstraction_witness: Option<AbstractionWitness>,
+    /// WHY the members merged — the agent-facing equivalence witness (#222).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub witness: Option<EquivalenceWitness>,
+}
+
+/// The evidence behind a group: which kind of convergence merged its members,
+/// derived from the same predicates the channels gate on. An agent reading scan
+/// JSON could not previously tell an exact value-graph proof from shape likeness
+/// (`shared_lines: 0` with `mean_score: 1.0` was uninterpretable — the #216
+/// audit's top gap); this names it without re-plumbing the scorer.
+#[derive(Clone, Serialize)]
+pub struct EquivalenceWitness {
+    /// `exact-value-graph` (every member strict-exact-safe with one identical
+    /// value multiset), `shared-sub-dag` (a common heavy anchor — see each
+    /// location's `shared_subdag` span), `copy-paste-run` (token-identical
+    /// contiguous run), or `structural-similarity` (the fuzzy near channel).
+    pub kind: &'static str,
+    /// For `exact-value-graph`: the size of the shared value multiset.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_nodes: Option<usize>,
+    /// For `structural-similarity`: mean value-graph Jaccard vs the first member
+    /// — high here with low shape similarity means behaviorally-driven
+    /// convergence, not surface likeness.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mean_value_jaccard: Option<f64>,
+    /// For `structural-similarity`: mean shape Jaccard vs the first member.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mean_shape_jaccard: Option<f64>,
+}
+
+/// Derive a group's witness from its members' own features (star against the
+/// first member — deterministic and O(n); a witness, not a score).
+fn group_witness(members: &[usize], units: &[UnitFeat]) -> EquivalenceWitness {
+    let first = &units[members[0]];
+    if members.iter().all(|&m| {
+        let u = &units[m];
+        exact_claim_eligible(u) && u.value == first.value
+    }) {
+        return EquivalenceWitness {
+            kind: "exact-value-graph",
+            value_nodes: Some(first.value.len()),
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+        };
+    }
+    if members.len() >= 2 && shared_subdag_hash(members, units).is_some() {
+        return EquivalenceWitness {
+            kind: "shared-sub-dag",
+            value_nodes: None,
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+        };
+    }
+    let (mut vj, mut sj) = (0.0, 0.0);
+    for &m in &members[1..] {
+        vj += align::multiset_jaccard(&first.value, &units[m].value);
+        sj += align::multiset_jaccard(&first.shapes, &units[m].shapes);
+    }
+    let n = (members.len().saturating_sub(1)).max(1) as f64;
+    EquivalenceWitness {
+        kind: "structural-similarity",
+        value_nodes: None,
+        mean_value_jaccard: Some(round3(vj / n)),
+        mean_shape_jaccard: Some(round3(sj / n)),
+    }
 }
 
 #[derive(Serialize)]
@@ -1099,6 +1164,7 @@ fn build_groups(
                 } else {
                     None
                 },
+                witness: Some(group_witness(members, units)),
             }
         })
         .collect()

@@ -4674,6 +4674,7 @@ mod tests {
             scope: "prod",
             discount: 1.0,
             abstraction_witness: None,
+            witness: None,
             semantic_laws: Vec::new(),
         }
     }
