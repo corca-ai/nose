@@ -82,6 +82,11 @@ break.
   `default` — the #216 audit's gap #3), and `surface_counts` gains a
   `generated` bucket. Partly-generated families stay on their ranked surface
   with generated members flagged.
+- Block locations now carry `enclosing_unit` (the host function/method) in
+  scan JSON — structural blocks via the fragment recovery path, copy-paste-run
+  blocks via a new span lookup over the unit set, and same-span method/body
+  pairs resolve to the method. Every sampled #216 audit block had `name: null`
+  with nothing to anchor a discussion to.
 - Scan JSON families now carry `varying_spots` difference evidence: per varying
   spot, both representative copies' absolute line ranges and trimmed text —
   consistent with `params` by construction. With the witness's shape-vs-value

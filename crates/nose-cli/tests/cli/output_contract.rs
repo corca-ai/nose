@@ -324,3 +324,54 @@ fn scan_surfaces_generated_families_off_default_and_flags_partial_ones() {
         "surface_counts accounts the generated family: {out}"
     );
 }
+
+/// #225: plain Block locations carry their enclosing function/method, so an
+/// agent can NAME the region a block family lives in without opening files.
+#[test]
+fn scan_json_block_locations_carry_enclosing_unit() {
+    let dir = std::env::temp_dir().join(format!("nose_encl_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    // Two DIFFERENT functions sharing one identical inner block: the whole
+    // functions must not merge (different surrounding statements), so the
+    // family's reported members are the Block units — which must name their
+    // host functions.
+    let block = "    for x in items:\n        if x > 100:\n            out.append(x * 2 + 7)\n        elif x > 50:\n            out.append(x * 3 + 11)\n        elif x > 10:\n            out.append(x * 5 + 13)\n        else:\n            out.append(x - 17)\n";
+    fs::write(
+        dir.join("a.py"),
+        format!("def host_one(items, label):\n    out = []\n    print(\"first\" + label)\n{block}    return out\n"),
+    )
+    .unwrap();
+    fs::write(
+        dir.join("b.py"),
+        format!("def host_two(items, n):\n    out = []\n    total = n * 3\n{block}    return (out, total)\n"),
+    )
+    .unwrap();
+
+    let out = run(&[
+        "scan",
+        dir.to_str().unwrap(),
+        "--min-lines",
+        "1",
+        "--format",
+        "json",
+        "--top",
+        "0",
+    ]);
+    let json = scan_json(&out);
+    let fams = scan_families(&json);
+    let mut named = 0;
+    for f in fams {
+        for l in f["locations"].as_array().unwrap() {
+            if l["kind"] == "Block" {
+                let host = l["enclosing_unit"]["name"].as_str().unwrap_or("");
+                assert!(
+                    host.starts_with("host_"),
+                    "block location must name its enclosing function: {out}"
+                );
+                named += 1;
+            }
+        }
+    }
+    assert!(named >= 2, "expected named block locations: {out}");
+}
