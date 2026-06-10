@@ -1066,3 +1066,119 @@ pre-existing value-fingerprint false-merge leads and one
 canon-preservation lead in raylib; #208 intentionally does not mask them with exclusions because
 the product semantic scan did not report those targeted pairs, and the point of `verify` is to
 make such soundness leads visible once the oracle is tractable.
+
+## BM. Near on the default scan surface — price the locked +8pp recall
+
+§BJ measured the biggest proven recall gap in today's product: the shipped but opt-in
+`near` channel lifts worthy-recall by about eight points. This experiment prices the
+product decision rather than assuming the answer: keep the current CLI default
+(`syntax,semantic`), add unthresholded `near`, or adopt a thresholded middle.
+
+**Method.** `bench/labels/near_default_surface_experiment.py` scans all 105 v5 repos
+with four arms: default, `syntax,semantic,near`, `syntax,semantic,near:0.8`, and
+`syntax,semantic,near:0.85`. P@10 uses the native `nose scan --format json` order
+(`extractability`); worthy-recall is over worthy v5 labels; noise is the
+`ranking.surface_counts.default` delta plus family `scope` splits from full `--top 0`
+JSON. Artifact: `bench/labels/near_default_surface_2026_06_10.json`. Held-out was
+not tuned; the threshold arms are reported as candidate policies, not selected by
+fitting held-out.
+
+### BM.1 — dev split
+
+| arm | language | worthy labels | P@10 | worthy recall |
+|---|---:|---:|---:|---:|
+| default | OVERALL | 2849/5445 | 62.9% [58.1-67.7] n=353 | 86.2% [84.9-87.5] n=2849 |
+| default | C | 450/1004 | 55.4% [43.1-67.7] n=65 | 91.8% [89.1-94.2] n=450 |
+| default | Go | 475/799 | 65.4% [51.9-76.9] n=52 | 90.5% [87.6-93.0] n=475 |
+| default | Java | 535/1169 | 34.4% [23.4-45.3] n=64 | 90.3% [87.8-92.7] n=535 |
+| default | Python | 299/596 | 82.9% [70.7-92.7] n=41 | 84.0% [79.6-88.0] n=299 |
+| default | Ruby | 380/478 | 83.8% [73.0-94.6] n=37 | 77.4% [73.2-81.6] n=380 |
+| default | Rust | 411/689 | 77.2% [64.9-87.7] n=57 | 77.4% [73.5-81.5] n=411 |
+| default | TypeScript | 299/710 | 56.8% [40.5-73.0] n=37 | 89.6% [86.0-93.0] n=299 |
+| near | OVERALL | 2849/5445 | 62.3% [57.3-67.6] n=358 | 94.6% [93.8-95.5] n=2849 |
+| near | C | 450/1004 | 51.4% [40.0-62.9] n=70 | 97.8% [96.2-99.1] n=450 |
+| near | Go | 475/799 | 73.5% [61.2-85.7] n=49 | 95.6% [93.7-97.5] n=475 |
+| near | Java | 535/1169 | 40.0% [28.6-51.4] n=70 | 95.1% [93.3-96.8] n=535 |
+| near | Python | 299/596 | 83.7% [72.1-93.0] n=43 | 97.0% [95.0-98.7] n=299 |
+| near | Ruby | 380/478 | 72.2% [58.3-86.1] n=36 | 90.5% [87.4-93.4] n=380 |
+| near | Rust | 411/689 | 65.4% [51.9-76.9] n=52 | 88.8% [85.9-91.7] n=411 |
+| near | TypeScript | 299/710 | 71.0% [57.9-84.2] n=38 | 98.3% [96.7-99.7] n=299 |
+| near:0.80 | OVERALL | 2849/5445 | 61.4% [56.4-66.7] n=360 | 91.4% [90.4-92.4] n=2849 |
+| near:0.80 | C | 450/1004 | 51.5% [39.7-63.2] n=68 | 94.4% [92.4-96.4] n=450 |
+| near:0.80 | Go | 475/799 | 72.0% [60.0-84.0] n=50 | 92.8% [90.3-95.0] n=475 |
+| near:0.80 | Java | 535/1169 | 41.4% [30.0-52.9] n=70 | 94.0% [92.0-96.1] n=535 |
+| near:0.80 | Python | 299/596 | 84.1% [72.7-93.2] n=44 | 91.0% [87.6-94.0] n=299 |
+| near:0.80 | Ruby | 380/478 | 66.7% [51.3-82.0] n=39 | 86.8% [83.7-90.0] n=380 |
+| near:0.80 | Rust | 411/689 | 62.8% [49.0-76.5] n=51 | 85.4% [82.0-88.8] n=411 |
+| near:0.80 | TypeScript | 299/710 | 68.4% [52.6-81.6] n=38 | 94.3% [91.6-97.0] n=299 |
+| near:0.85 | OVERALL | 2849/5445 | 61.1% [56.1-66.1] n=360 | 89.7% [88.5-90.8] n=2849 |
+| near:0.85 | C | 450/1004 | 52.9% [41.4-64.3] n=70 | 93.3% [90.9-95.6] n=450 |
+| near:0.85 | Go | 475/799 | 68.6% [54.9-80.4] n=51 | 92.2% [89.7-94.5] n=475 |
+| near:0.85 | Java | 535/1169 | 38.2% [26.5-50.0] n=68 | 92.7% [90.5-95.0] n=535 |
+| near:0.85 | Python | 299/596 | 83.7% [72.1-93.0] n=43 | 88.6% [85.0-92.0] n=299 |
+| near:0.85 | Ruby | 380/478 | 66.7% [51.3-79.5] n=39 | 82.9% [79.2-86.8] n=380 |
+| near:0.85 | Rust | 411/689 | 64.0% [50.0-78.0] n=50 | 83.2% [79.3-86.9] n=411 |
+| near:0.85 | TypeScript | 299/710 | 71.8% [56.4-84.6] n=39 | 93.3% [90.3-96.0] n=299 |
+
+### BM.2 — held-out split
+
+| arm | language | worthy labels | P@10 | worthy recall |
+|---|---:|---:|---:|---:|
+| default | OVERALL | 2091/4016 | 55.5% [50.0-60.7] n=308 | 88.5% [87.1-89.9] n=2091 |
+| default | C | 231/534 | 33.3% [19.4-50.0] n=36 | 91.3% [87.9-94.8] n=231 |
+| default | Go | 426/715 | 80.0% [69.1-90.9] n=55 | 88.0% [84.7-91.1] n=426 |
+| default | Java | 457/737 | 42.9% [25.7-60.0] n=35 | 93.7% [91.5-95.8] n=457 |
+| default | Python | 225/500 | 40.4% [28.9-53.9] n=52 | 92.0% [88.4-95.1] n=225 |
+| default | Ruby | 250/310 | 84.0% [68.0-96.0] n=25 | 72.0% [66.4-77.2] n=250 |
+| default | Rust | 255/572 | 62.1% [48.3-74.1] n=58 | 89.0% [85.1-92.5] n=255 |
+| default | TypeScript | 247/648 | 46.8% [31.9-61.7] n=47 | 90.3% [86.6-93.5] n=247 |
+| near | OVERALL | 2091/4016 | 58.6% [53.1-63.9] n=324 | 96.7% [95.9-97.5] n=2091 |
+| near | C | 231/534 | 42.2% [26.7-55.6] n=45 | 97.8% [95.7-99.6] n=231 |
+| near | Go | 426/715 | 83.6% [74.5-92.7] n=55 | 96.2% [94.4-97.9] n=426 |
+| near | Java | 457/737 | 54.5% [40.9-68.2] n=44 | 97.8% [96.3-99.1] n=457 |
+| near | Python | 225/500 | 52.2% [37.0-65.2] n=46 | 97.3% [95.1-99.1] n=225 |
+| near | Ruby | 250/310 | 78.6% [64.3-92.9] n=28 | 94.4% [91.2-97.2] n=250 |
+| near | Rust | 255/572 | 58.9% [46.4-71.4] n=56 | 96.1% [93.7-98.4] n=255 |
+| near | TypeScript | 247/648 | 44.0% [30.0-58.0] n=50 | 96.8% [94.3-98.8] n=247 |
+| near:0.80 | OVERALL | 2091/4016 | 56.1% [50.6-61.5] n=330 | 93.6% [92.4-94.6] n=2091 |
+| near:0.80 | C | 231/534 | 39.0% [24.4-53.7] n=41 | 93.5% [90.0-96.5] n=231 |
+| near:0.80 | Go | 426/715 | 81.0% [70.7-91.4] n=58 | 93.7% [91.3-95.8] n=426 |
+| near:0.80 | Java | 457/737 | 50.0% [35.0-65.0] n=40 | 96.5% [94.8-98.0] n=457 |
+| near:0.80 | Python | 225/500 | 46.1% [32.7-59.6] n=52 | 94.2% [91.1-97.3] n=225 |
+| near:0.80 | Ruby | 250/310 | 74.2% [58.1-87.1] n=31 | 86.4% [82.0-90.4] n=250 |
+| near:0.80 | Rust | 255/572 | 60.3% [48.3-72.4] n=58 | 93.7% [90.6-96.5] n=255 |
+| near:0.80 | TypeScript | 247/648 | 40.0% [28.0-54.0] n=50 | 94.7% [91.5-97.2] n=247 |
+| near:0.85 | OVERALL | 2091/4016 | 54.1% [48.6-59.9] n=327 | 92.2% [91.1-93.4] n=2091 |
+| near:0.85 | C | 231/534 | 33.3% [20.5-48.7] n=39 | 93.1% [89.6-96.1] n=231 |
+| near:0.85 | Go | 426/715 | 69.6% [57.1-82.1] n=56 | 92.0% [89.4-94.6] n=426 |
+| near:0.85 | Java | 457/737 | 54.8% [40.5-69.0] n=42 | 95.6% [93.9-97.6] n=457 |
+| near:0.85 | Python | 225/500 | 47.1% [33.3-60.8] n=51 | 93.8% [90.2-96.4] n=225 |
+| near:0.85 | Ruby | 250/310 | 73.3% [56.7-86.7] n=30 | 81.2% [76.0-86.0] n=250 |
+| near:0.85 | Rust | 255/572 | 60.3% [46.5-72.4] n=58 | 93.3% [90.2-96.5] n=255 |
+| near:0.85 | TypeScript | 247/648 | 41.2% [27.4-54.9] n=51 | 94.3% [91.1-97.2] n=247 |
+
+### BM.3 — reviewer-burden proxy
+
+| arm | default-surface families | delta | prod delta | test delta | mixed delta | review delta | hidden delta |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| default | 66919 | +0 | +0 | +0 | +0 | +0 | +0 |
+| near | 81725 | +14806 | +10768 | +3295 | +743 | -121 | -206 |
+| near:0.80 | 81523 | +14604 | +9485 | +4564 | +555 | -125 | -294 |
+| near:0.85 | 79356 | +12437 | +8485 | +3437 | +515 | -158 | -463 |
+
+**Verdict: flip the default channel mix to include unthresholded `near`, but do it as a
+separate product change with release/docs migration notes.** The held-out gate does
+not show a material P@10 drop; it improves from 55.5% to 58.6% while worthy-recall
+jumps from 88.5% to 96.7%. The thresholded middle is not a good trade: `near:0.80`
+keeps almost all the default-surface burden (+14.6k vs +14.8k) while giving back
+three points of held-out recall, and `near:0.85` saves only another ~2.2k default
+families while giving back more than half the recall gain.
+
+The cost is real: unthresholded `near` adds 14,806 default-surface families across the
+corpus (+22.1%), mostly production-scope (+10,768) with a large test-scope tail
+(+3,295). That argues for making the flip explicit rather than silent. But
+[design](design.md) §2's primary consumer is an LLM agent that wants high recall and
+can filter/rerank; perfect worthiness separation in the scanner is lower leverage for
+that consumer. With no held-out precision hit and a measured +8.2pp held-out
+worthy-recall gain, keeping `near` opt-in would leave proven useful candidates behind
+the flag that the primary consumer is least likely to remember.

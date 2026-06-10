@@ -1,0 +1,1561 @@
+{
+  "arms": [
+    {
+      "mode": "(CLI default syntax,semantic)",
+      "name": "default"
+    },
+    {
+      "mode": "syntax,semantic,near",
+      "name": "near"
+    },
+    {
+      "mode": "syntax,semantic,near:0.8",
+      "name": "near:0.80"
+    },
+    {
+      "mode": "syntax,semantic,near:0.85",
+      "name": "near:0.85"
+    }
+  ],
+  "generated_by": "bench/labels/near_default_surface_experiment.py",
+  "labelset": "refactoring_families.v5.json",
+  "metrics": {
+    "default": {
+      "dev": {
+        "C": {
+          "labels": 1004,
+          "p_at_10": {
+            "ci95": [
+              43.08,
+              67.69
+            ],
+            "hits": 36,
+            "n": 65,
+            "pct": 55.38
+          },
+          "worthy_labels": 450,
+          "worthy_recall": {
+            "ci95": [
+              89.11,
+              94.22
+            ],
+            "hits": 413,
+            "n": 450,
+            "pct": 91.78
+          }
+        },
+        "Go": {
+          "labels": 799,
+          "p_at_10": {
+            "ci95": [
+              51.92,
+              76.92
+            ],
+            "hits": 34,
+            "n": 52,
+            "pct": 65.38
+          },
+          "worthy_labels": 475,
+          "worthy_recall": {
+            "ci95": [
+              87.58,
+              93.05
+            ],
+            "hits": 430,
+            "n": 475,
+            "pct": 90.53
+          }
+        },
+        "Java": {
+          "labels": 1169,
+          "p_at_10": {
+            "ci95": [
+              23.44,
+              45.31
+            ],
+            "hits": 22,
+            "n": 64,
+            "pct": 34.38
+          },
+          "worthy_labels": 535,
+          "worthy_recall": {
+            "ci95": [
+              87.85,
+              92.71
+            ],
+            "hits": 483,
+            "n": 535,
+            "pct": 90.28
+          }
+        },
+        "OVERALL": {
+          "labels": 5445,
+          "p_at_10": {
+            "ci95": [
+              58.07,
+              67.71
+            ],
+            "hits": 222,
+            "n": 353,
+            "pct": 62.89
+          },
+          "worthy_labels": 2849,
+          "worthy_recall": {
+            "ci95": [
+              84.94,
+              87.5
+            ],
+            "hits": 2457,
+            "n": 2849,
+            "pct": 86.24
+          }
+        },
+        "Python": {
+          "labels": 596,
+          "p_at_10": {
+            "ci95": [
+              70.73,
+              92.68
+            ],
+            "hits": 34,
+            "n": 41,
+            "pct": 82.93
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              79.6,
+              87.96
+            ],
+            "hits": 251,
+            "n": 299,
+            "pct": 83.95
+          }
+        },
+        "Ruby": {
+          "labels": 478,
+          "p_at_10": {
+            "ci95": [
+              72.97,
+              94.59
+            ],
+            "hits": 31,
+            "n": 37,
+            "pct": 83.78
+          },
+          "worthy_labels": 380,
+          "worthy_recall": {
+            "ci95": [
+              73.16,
+              81.58
+            ],
+            "hits": 294,
+            "n": 380,
+            "pct": 77.37
+          }
+        },
+        "Rust": {
+          "labels": 689,
+          "p_at_10": {
+            "ci95": [
+              64.91,
+              87.72
+            ],
+            "hits": 44,
+            "n": 57,
+            "pct": 77.19
+          },
+          "worthy_labels": 411,
+          "worthy_recall": {
+            "ci95": [
+              73.48,
+              81.51
+            ],
+            "hits": 318,
+            "n": 411,
+            "pct": 77.37
+          }
+        },
+        "TypeScript": {
+          "labels": 710,
+          "p_at_10": {
+            "ci95": [
+              40.54,
+              72.97
+            ],
+            "hits": 21,
+            "n": 37,
+            "pct": 56.76
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              85.95,
+              92.98
+            ],
+            "hits": 268,
+            "n": 299,
+            "pct": 89.63
+          }
+        }
+      },
+      "heldout": {
+        "C": {
+          "labels": 534,
+          "p_at_10": {
+            "ci95": [
+              19.44,
+              50.0
+            ],
+            "hits": 12,
+            "n": 36,
+            "pct": 33.33
+          },
+          "worthy_labels": 231,
+          "worthy_recall": {
+            "ci95": [
+              87.88,
+              94.81
+            ],
+            "hits": 211,
+            "n": 231,
+            "pct": 91.34
+          }
+        },
+        "Go": {
+          "labels": 715,
+          "p_at_10": {
+            "ci95": [
+              69.09,
+              90.91
+            ],
+            "hits": 44,
+            "n": 55,
+            "pct": 80.0
+          },
+          "worthy_labels": 426,
+          "worthy_recall": {
+            "ci95": [
+              84.74,
+              91.08
+            ],
+            "hits": 375,
+            "n": 426,
+            "pct": 88.03
+          }
+        },
+        "Java": {
+          "labels": 737,
+          "p_at_10": {
+            "ci95": [
+              25.71,
+              60.0
+            ],
+            "hits": 15,
+            "n": 35,
+            "pct": 42.86
+          },
+          "worthy_labels": 457,
+          "worthy_recall": {
+            "ci95": [
+              91.47,
+              95.84
+            ],
+            "hits": 428,
+            "n": 457,
+            "pct": 93.65
+          }
+        },
+        "OVERALL": {
+          "labels": 4016,
+          "p_at_10": {
+            "ci95": [
+              50.0,
+              60.71
+            ],
+            "hits": 171,
+            "n": 308,
+            "pct": 55.52
+          },
+          "worthy_labels": 2091,
+          "worthy_recall": {
+            "ci95": [
+              87.14,
+              89.86
+            ],
+            "hits": 1851,
+            "n": 2091,
+            "pct": 88.52
+          }
+        },
+        "Python": {
+          "labels": 500,
+          "p_at_10": {
+            "ci95": [
+              28.85,
+              53.85
+            ],
+            "hits": 21,
+            "n": 52,
+            "pct": 40.38
+          },
+          "worthy_labels": 225,
+          "worthy_recall": {
+            "ci95": [
+              88.44,
+              95.11
+            ],
+            "hits": 207,
+            "n": 225,
+            "pct": 92.0
+          }
+        },
+        "Ruby": {
+          "labels": 310,
+          "p_at_10": {
+            "ci95": [
+              68.0,
+              96.0
+            ],
+            "hits": 21,
+            "n": 25,
+            "pct": 84.0
+          },
+          "worthy_labels": 250,
+          "worthy_recall": {
+            "ci95": [
+              66.4,
+              77.2
+            ],
+            "hits": 180,
+            "n": 250,
+            "pct": 72.0
+          }
+        },
+        "Rust": {
+          "labels": 572,
+          "p_at_10": {
+            "ci95": [
+              48.28,
+              74.14
+            ],
+            "hits": 36,
+            "n": 58,
+            "pct": 62.07
+          },
+          "worthy_labels": 255,
+          "worthy_recall": {
+            "ci95": [
+              85.1,
+              92.55
+            ],
+            "hits": 227,
+            "n": 255,
+            "pct": 89.02
+          }
+        },
+        "TypeScript": {
+          "labels": 648,
+          "p_at_10": {
+            "ci95": [
+              31.91,
+              61.7
+            ],
+            "hits": 22,
+            "n": 47,
+            "pct": 46.81
+          },
+          "worthy_labels": 247,
+          "worthy_recall": {
+            "ci95": [
+              86.64,
+              93.52
+            ],
+            "hits": 223,
+            "n": 247,
+            "pct": 90.28
+          }
+        }
+      }
+    },
+    "near": {
+      "dev": {
+        "C": {
+          "labels": 1004,
+          "p_at_10": {
+            "ci95": [
+              40.0,
+              62.86
+            ],
+            "hits": 36,
+            "n": 70,
+            "pct": 51.43
+          },
+          "worthy_labels": 450,
+          "worthy_recall": {
+            "ci95": [
+              96.22,
+              99.11
+            ],
+            "hits": 440,
+            "n": 450,
+            "pct": 97.78
+          }
+        },
+        "Go": {
+          "labels": 799,
+          "p_at_10": {
+            "ci95": [
+              61.22,
+              85.71
+            ],
+            "hits": 36,
+            "n": 49,
+            "pct": 73.47
+          },
+          "worthy_labels": 475,
+          "worthy_recall": {
+            "ci95": [
+              93.68,
+              97.47
+            ],
+            "hits": 454,
+            "n": 475,
+            "pct": 95.58
+          }
+        },
+        "Java": {
+          "labels": 1169,
+          "p_at_10": {
+            "ci95": [
+              28.57,
+              51.43
+            ],
+            "hits": 28,
+            "n": 70,
+            "pct": 40.0
+          },
+          "worthy_labels": 535,
+          "worthy_recall": {
+            "ci95": [
+              93.27,
+              96.82
+            ],
+            "hits": 509,
+            "n": 535,
+            "pct": 95.14
+          }
+        },
+        "OVERALL": {
+          "labels": 5445,
+          "p_at_10": {
+            "ci95": [
+              57.26,
+              67.6
+            ],
+            "hits": 223,
+            "n": 358,
+            "pct": 62.29
+          },
+          "worthy_labels": 2849,
+          "worthy_recall": {
+            "ci95": [
+              93.79,
+              95.47
+            ],
+            "hits": 2696,
+            "n": 2849,
+            "pct": 94.63
+          }
+        },
+        "Python": {
+          "labels": 596,
+          "p_at_10": {
+            "ci95": [
+              72.09,
+              93.02
+            ],
+            "hits": 36,
+            "n": 43,
+            "pct": 83.72
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              94.98,
+              98.66
+            ],
+            "hits": 290,
+            "n": 299,
+            "pct": 96.99
+          }
+        },
+        "Ruby": {
+          "labels": 478,
+          "p_at_10": {
+            "ci95": [
+              58.33,
+              86.11
+            ],
+            "hits": 26,
+            "n": 36,
+            "pct": 72.22
+          },
+          "worthy_labels": 380,
+          "worthy_recall": {
+            "ci95": [
+              87.37,
+              93.42
+            ],
+            "hits": 344,
+            "n": 380,
+            "pct": 90.53
+          }
+        },
+        "Rust": {
+          "labels": 689,
+          "p_at_10": {
+            "ci95": [
+              51.92,
+              76.92
+            ],
+            "hits": 34,
+            "n": 52,
+            "pct": 65.38
+          },
+          "worthy_labels": 411,
+          "worthy_recall": {
+            "ci95": [
+              85.89,
+              91.73
+            ],
+            "hits": 365,
+            "n": 411,
+            "pct": 88.81
+          }
+        },
+        "TypeScript": {
+          "labels": 710,
+          "p_at_10": {
+            "ci95": [
+              57.89,
+              84.21
+            ],
+            "hits": 27,
+            "n": 38,
+            "pct": 71.05
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              96.66,
+              99.67
+            ],
+            "hits": 294,
+            "n": 299,
+            "pct": 98.33
+          }
+        }
+      },
+      "heldout": {
+        "C": {
+          "labels": 534,
+          "p_at_10": {
+            "ci95": [
+              26.67,
+              55.56
+            ],
+            "hits": 19,
+            "n": 45,
+            "pct": 42.22
+          },
+          "worthy_labels": 231,
+          "worthy_recall": {
+            "ci95": [
+              95.67,
+              99.57
+            ],
+            "hits": 226,
+            "n": 231,
+            "pct": 97.84
+          }
+        },
+        "Go": {
+          "labels": 715,
+          "p_at_10": {
+            "ci95": [
+              74.55,
+              92.73
+            ],
+            "hits": 46,
+            "n": 55,
+            "pct": 83.64
+          },
+          "worthy_labels": 426,
+          "worthy_recall": {
+            "ci95": [
+              94.37,
+              97.89
+            ],
+            "hits": 410,
+            "n": 426,
+            "pct": 96.24
+          }
+        },
+        "Java": {
+          "labels": 737,
+          "p_at_10": {
+            "ci95": [
+              40.91,
+              68.18
+            ],
+            "hits": 24,
+            "n": 44,
+            "pct": 54.55
+          },
+          "worthy_labels": 457,
+          "worthy_recall": {
+            "ci95": [
+              96.28,
+              99.12
+            ],
+            "hits": 447,
+            "n": 457,
+            "pct": 97.81
+          }
+        },
+        "OVERALL": {
+          "labels": 4016,
+          "p_at_10": {
+            "ci95": [
+              53.09,
+              63.89
+            ],
+            "hits": 190,
+            "n": 324,
+            "pct": 58.64
+          },
+          "worthy_labels": 2091,
+          "worthy_recall": {
+            "ci95": [
+              95.89,
+              97.47
+            ],
+            "hits": 2022,
+            "n": 2091,
+            "pct": 96.7
+          }
+        },
+        "Python": {
+          "labels": 500,
+          "p_at_10": {
+            "ci95": [
+              36.96,
+              65.22
+            ],
+            "hits": 24,
+            "n": 46,
+            "pct": 52.17
+          },
+          "worthy_labels": 225,
+          "worthy_recall": {
+            "ci95": [
+              95.11,
+              99.11
+            ],
+            "hits": 219,
+            "n": 225,
+            "pct": 97.33
+          }
+        },
+        "Ruby": {
+          "labels": 310,
+          "p_at_10": {
+            "ci95": [
+              64.29,
+              92.86
+            ],
+            "hits": 22,
+            "n": 28,
+            "pct": 78.57
+          },
+          "worthy_labels": 250,
+          "worthy_recall": {
+            "ci95": [
+              91.2,
+              97.2
+            ],
+            "hits": 236,
+            "n": 250,
+            "pct": 94.4
+          }
+        },
+        "Rust": {
+          "labels": 572,
+          "p_at_10": {
+            "ci95": [
+              46.43,
+              71.43
+            ],
+            "hits": 33,
+            "n": 56,
+            "pct": 58.93
+          },
+          "worthy_labels": 255,
+          "worthy_recall": {
+            "ci95": [
+              93.73,
+              98.43
+            ],
+            "hits": 245,
+            "n": 255,
+            "pct": 96.08
+          }
+        },
+        "TypeScript": {
+          "labels": 648,
+          "p_at_10": {
+            "ci95": [
+              30.0,
+              58.0
+            ],
+            "hits": 22,
+            "n": 50,
+            "pct": 44.0
+          },
+          "worthy_labels": 247,
+          "worthy_recall": {
+            "ci95": [
+              94.33,
+              98.79
+            ],
+            "hits": 239,
+            "n": 247,
+            "pct": 96.76
+          }
+        }
+      }
+    },
+    "near:0.80": {
+      "dev": {
+        "C": {
+          "labels": 1004,
+          "p_at_10": {
+            "ci95": [
+              39.71,
+              63.24
+            ],
+            "hits": 35,
+            "n": 68,
+            "pct": 51.47
+          },
+          "worthy_labels": 450,
+          "worthy_recall": {
+            "ci95": [
+              92.44,
+              96.44
+            ],
+            "hits": 425,
+            "n": 450,
+            "pct": 94.44
+          }
+        },
+        "Go": {
+          "labels": 799,
+          "p_at_10": {
+            "ci95": [
+              60.0,
+              84.0
+            ],
+            "hits": 36,
+            "n": 50,
+            "pct": 72.0
+          },
+          "worthy_labels": 475,
+          "worthy_recall": {
+            "ci95": [
+              90.32,
+              94.95
+            ],
+            "hits": 441,
+            "n": 475,
+            "pct": 92.84
+          }
+        },
+        "Java": {
+          "labels": 1169,
+          "p_at_10": {
+            "ci95": [
+              30.0,
+              52.86
+            ],
+            "hits": 29,
+            "n": 70,
+            "pct": 41.43
+          },
+          "worthy_labels": 535,
+          "worthy_recall": {
+            "ci95": [
+              91.96,
+              96.07
+            ],
+            "hits": 503,
+            "n": 535,
+            "pct": 94.02
+          }
+        },
+        "OVERALL": {
+          "labels": 5445,
+          "p_at_10": {
+            "ci95": [
+              56.39,
+              66.67
+            ],
+            "hits": 221,
+            "n": 360,
+            "pct": 61.39
+          },
+          "worthy_labels": 2849,
+          "worthy_recall": {
+            "ci95": [
+              90.38,
+              92.42
+            ],
+            "hits": 2604,
+            "n": 2849,
+            "pct": 91.4
+          }
+        },
+        "Python": {
+          "labels": 596,
+          "p_at_10": {
+            "ci95": [
+              72.73,
+              93.18
+            ],
+            "hits": 37,
+            "n": 44,
+            "pct": 84.09
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              87.63,
+              93.98
+            ],
+            "hits": 272,
+            "n": 299,
+            "pct": 90.97
+          }
+        },
+        "Ruby": {
+          "labels": 478,
+          "p_at_10": {
+            "ci95": [
+              51.28,
+              82.05
+            ],
+            "hits": 26,
+            "n": 39,
+            "pct": 66.67
+          },
+          "worthy_labels": 380,
+          "worthy_recall": {
+            "ci95": [
+              83.68,
+              90.0
+            ],
+            "hits": 330,
+            "n": 380,
+            "pct": 86.84
+          }
+        },
+        "Rust": {
+          "labels": 689,
+          "p_at_10": {
+            "ci95": [
+              49.02,
+              76.47
+            ],
+            "hits": 32,
+            "n": 51,
+            "pct": 62.75
+          },
+          "worthy_labels": 411,
+          "worthy_recall": {
+            "ci95": [
+              82.0,
+              88.81
+            ],
+            "hits": 351,
+            "n": 411,
+            "pct": 85.4
+          }
+        },
+        "TypeScript": {
+          "labels": 710,
+          "p_at_10": {
+            "ci95": [
+              52.63,
+              81.58
+            ],
+            "hits": 26,
+            "n": 38,
+            "pct": 68.42
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              91.64,
+              96.99
+            ],
+            "hits": 282,
+            "n": 299,
+            "pct": 94.31
+          }
+        }
+      },
+      "heldout": {
+        "C": {
+          "labels": 534,
+          "p_at_10": {
+            "ci95": [
+              24.39,
+              53.66
+            ],
+            "hits": 16,
+            "n": 41,
+            "pct": 39.02
+          },
+          "worthy_labels": 231,
+          "worthy_recall": {
+            "ci95": [
+              90.04,
+              96.54
+            ],
+            "hits": 216,
+            "n": 231,
+            "pct": 93.51
+          }
+        },
+        "Go": {
+          "labels": 715,
+          "p_at_10": {
+            "ci95": [
+              70.69,
+              91.38
+            ],
+            "hits": 47,
+            "n": 58,
+            "pct": 81.03
+          },
+          "worthy_labels": 426,
+          "worthy_recall": {
+            "ci95": [
+              91.31,
+              95.77
+            ],
+            "hits": 399,
+            "n": 426,
+            "pct": 93.66
+          }
+        },
+        "Java": {
+          "labels": 737,
+          "p_at_10": {
+            "ci95": [
+              35.0,
+              65.0
+            ],
+            "hits": 20,
+            "n": 40,
+            "pct": 50.0
+          },
+          "worthy_labels": 457,
+          "worthy_recall": {
+            "ci95": [
+              94.75,
+              98.03
+            ],
+            "hits": 441,
+            "n": 457,
+            "pct": 96.5
+          }
+        },
+        "OVERALL": {
+          "labels": 4016,
+          "p_at_10": {
+            "ci95": [
+              50.61,
+              61.52
+            ],
+            "hits": 185,
+            "n": 330,
+            "pct": 56.06
+          },
+          "worthy_labels": 2091,
+          "worthy_recall": {
+            "ci95": [
+              92.44,
+              94.64
+            ],
+            "hits": 1957,
+            "n": 2091,
+            "pct": 93.59
+          }
+        },
+        "Python": {
+          "labels": 500,
+          "p_at_10": {
+            "ci95": [
+              32.69,
+              59.62
+            ],
+            "hits": 24,
+            "n": 52,
+            "pct": 46.15
+          },
+          "worthy_labels": 225,
+          "worthy_recall": {
+            "ci95": [
+              91.11,
+              97.33
+            ],
+            "hits": 212,
+            "n": 225,
+            "pct": 94.22
+          }
+        },
+        "Ruby": {
+          "labels": 310,
+          "p_at_10": {
+            "ci95": [
+              58.06,
+              87.1
+            ],
+            "hits": 23,
+            "n": 31,
+            "pct": 74.19
+          },
+          "worthy_labels": 250,
+          "worthy_recall": {
+            "ci95": [
+              82.0,
+              90.4
+            ],
+            "hits": 216,
+            "n": 250,
+            "pct": 86.4
+          }
+        },
+        "Rust": {
+          "labels": 572,
+          "p_at_10": {
+            "ci95": [
+              48.28,
+              72.41
+            ],
+            "hits": 35,
+            "n": 58,
+            "pct": 60.34
+          },
+          "worthy_labels": 255,
+          "worthy_recall": {
+            "ci95": [
+              90.59,
+              96.47
+            ],
+            "hits": 239,
+            "n": 255,
+            "pct": 93.73
+          }
+        },
+        "TypeScript": {
+          "labels": 648,
+          "p_at_10": {
+            "ci95": [
+              28.0,
+              54.0
+            ],
+            "hits": 20,
+            "n": 50,
+            "pct": 40.0
+          },
+          "worthy_labels": 247,
+          "worthy_recall": {
+            "ci95": [
+              91.5,
+              97.17
+            ],
+            "hits": 234,
+            "n": 247,
+            "pct": 94.74
+          }
+        }
+      }
+    },
+    "near:0.85": {
+      "dev": {
+        "C": {
+          "labels": 1004,
+          "p_at_10": {
+            "ci95": [
+              41.43,
+              64.29
+            ],
+            "hits": 37,
+            "n": 70,
+            "pct": 52.86
+          },
+          "worthy_labels": 450,
+          "worthy_recall": {
+            "ci95": [
+              90.89,
+              95.56
+            ],
+            "hits": 420,
+            "n": 450,
+            "pct": 93.33
+          }
+        },
+        "Go": {
+          "labels": 799,
+          "p_at_10": {
+            "ci95": [
+              54.9,
+              80.39
+            ],
+            "hits": 35,
+            "n": 51,
+            "pct": 68.63
+          },
+          "worthy_labels": 475,
+          "worthy_recall": {
+            "ci95": [
+              89.68,
+              94.53
+            ],
+            "hits": 438,
+            "n": 475,
+            "pct": 92.21
+          }
+        },
+        "Java": {
+          "labels": 1169,
+          "p_at_10": {
+            "ci95": [
+              26.47,
+              50.0
+            ],
+            "hits": 26,
+            "n": 68,
+            "pct": 38.24
+          },
+          "worthy_labels": 535,
+          "worthy_recall": {
+            "ci95": [
+              90.47,
+              94.95
+            ],
+            "hits": 496,
+            "n": 535,
+            "pct": 92.71
+          }
+        },
+        "OVERALL": {
+          "labels": 5445,
+          "p_at_10": {
+            "ci95": [
+              56.11,
+              66.11
+            ],
+            "hits": 220,
+            "n": 360,
+            "pct": 61.11
+          },
+          "worthy_labels": 2849,
+          "worthy_recall": {
+            "ci95": [
+              88.45,
+              90.8
+            ],
+            "hits": 2555,
+            "n": 2849,
+            "pct": 89.68
+          }
+        },
+        "Python": {
+          "labels": 596,
+          "p_at_10": {
+            "ci95": [
+              72.09,
+              93.02
+            ],
+            "hits": 36,
+            "n": 43,
+            "pct": 83.72
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              84.95,
+              91.97
+            ],
+            "hits": 265,
+            "n": 299,
+            "pct": 88.63
+          }
+        },
+        "Ruby": {
+          "labels": 478,
+          "p_at_10": {
+            "ci95": [
+              51.28,
+              79.49
+            ],
+            "hits": 26,
+            "n": 39,
+            "pct": 66.67
+          },
+          "worthy_labels": 380,
+          "worthy_recall": {
+            "ci95": [
+              79.21,
+              86.84
+            ],
+            "hits": 315,
+            "n": 380,
+            "pct": 82.89
+          }
+        },
+        "Rust": {
+          "labels": 689,
+          "p_at_10": {
+            "ci95": [
+              50.0,
+              78.0
+            ],
+            "hits": 32,
+            "n": 50,
+            "pct": 64.0
+          },
+          "worthy_labels": 411,
+          "worthy_recall": {
+            "ci95": [
+              79.32,
+              86.86
+            ],
+            "hits": 342,
+            "n": 411,
+            "pct": 83.21
+          }
+        },
+        "TypeScript": {
+          "labels": 710,
+          "p_at_10": {
+            "ci95": [
+              56.41,
+              84.62
+            ],
+            "hits": 28,
+            "n": 39,
+            "pct": 71.79
+          },
+          "worthy_labels": 299,
+          "worthy_recall": {
+            "ci95": [
+              90.3,
+              95.99
+            ],
+            "hits": 279,
+            "n": 299,
+            "pct": 93.31
+          }
+        }
+      },
+      "heldout": {
+        "C": {
+          "labels": 534,
+          "p_at_10": {
+            "ci95": [
+              20.51,
+              48.72
+            ],
+            "hits": 13,
+            "n": 39,
+            "pct": 33.33
+          },
+          "worthy_labels": 231,
+          "worthy_recall": {
+            "ci95": [
+              89.61,
+              96.1
+            ],
+            "hits": 215,
+            "n": 231,
+            "pct": 93.07
+          }
+        },
+        "Go": {
+          "labels": 715,
+          "p_at_10": {
+            "ci95": [
+              57.14,
+              82.14
+            ],
+            "hits": 39,
+            "n": 56,
+            "pct": 69.64
+          },
+          "worthy_labels": 426,
+          "worthy_recall": {
+            "ci95": [
+              89.44,
+              94.6
+            ],
+            "hits": 392,
+            "n": 426,
+            "pct": 92.02
+          }
+        },
+        "Java": {
+          "labels": 737,
+          "p_at_10": {
+            "ci95": [
+              40.48,
+              69.05
+            ],
+            "hits": 23,
+            "n": 42,
+            "pct": 54.76
+          },
+          "worthy_labels": 457,
+          "worthy_recall": {
+            "ci95": [
+              93.87,
+              97.59
+            ],
+            "hits": 437,
+            "n": 457,
+            "pct": 95.62
+          }
+        },
+        "OVERALL": {
+          "labels": 4016,
+          "p_at_10": {
+            "ci95": [
+              48.62,
+              59.94
+            ],
+            "hits": 177,
+            "n": 327,
+            "pct": 54.13
+          },
+          "worthy_labels": 2091,
+          "worthy_recall": {
+            "ci95": [
+              91.1,
+              93.4
+            ],
+            "hits": 1929,
+            "n": 2091,
+            "pct": 92.25
+          }
+        },
+        "Python": {
+          "labels": 500,
+          "p_at_10": {
+            "ci95": [
+              33.33,
+              60.78
+            ],
+            "hits": 24,
+            "n": 51,
+            "pct": 47.06
+          },
+          "worthy_labels": 225,
+          "worthy_recall": {
+            "ci95": [
+              90.22,
+              96.44
+            ],
+            "hits": 211,
+            "n": 225,
+            "pct": 93.78
+          }
+        },
+        "Ruby": {
+          "labels": 310,
+          "p_at_10": {
+            "ci95": [
+              56.67,
+              86.67
+            ],
+            "hits": 22,
+            "n": 30,
+            "pct": 73.33
+          },
+          "worthy_labels": 250,
+          "worthy_recall": {
+            "ci95": [
+              76.0,
+              86.0
+            ],
+            "hits": 203,
+            "n": 250,
+            "pct": 81.2
+          }
+        },
+        "Rust": {
+          "labels": 572,
+          "p_at_10": {
+            "ci95": [
+              46.55,
+              72.41
+            ],
+            "hits": 35,
+            "n": 58,
+            "pct": 60.34
+          },
+          "worthy_labels": 255,
+          "worthy_recall": {
+            "ci95": [
+              90.2,
+              96.47
+            ],
+            "hits": 238,
+            "n": 255,
+            "pct": 93.33
+          }
+        },
+        "TypeScript": {
+          "labels": 648,
+          "p_at_10": {
+            "ci95": [
+              27.45,
+              54.9
+            ],
+            "hits": 21,
+            "n": 51,
+            "pct": 41.18
+          },
+          "worthy_labels": 247,
+          "worthy_recall": {
+            "ci95": [
+              91.09,
+              97.17
+            ],
+            "hits": 233,
+            "n": 247,
+            "pct": 94.33
+          }
+        }
+      }
+    }
+  },
+  "missing_repos": [],
+  "noise": {
+    "default": {
+      "default_surface_by_scope": {
+        "mixed": 833,
+        "prod": 29081,
+        "test": 37005
+      },
+      "default_surface_delta_by_scope": {
+        "mixed": 0,
+        "prod": 0,
+        "test": 0
+      },
+      "repos": 105,
+      "surface_delta_vs_default": {
+        "debug": 0,
+        "default": 0,
+        "hidden": 0,
+        "review": 0
+      },
+      "surfaces": {
+        "debug": 0,
+        "default": 66919,
+        "hidden": 4626,
+        "review": 209
+      }
+    },
+    "near": {
+      "default_surface_by_scope": {
+        "mixed": 1576,
+        "prod": 39849,
+        "test": 40300
+      },
+      "default_surface_delta_by_scope": {
+        "mixed": 743,
+        "prod": 10768,
+        "test": 3295
+      },
+      "repos": 105,
+      "surface_delta_vs_default": {
+        "debug": 0,
+        "default": 14806,
+        "hidden": -206,
+        "review": -121
+      },
+      "surfaces": {
+        "debug": 0,
+        "default": 81725,
+        "hidden": 4420,
+        "review": 88
+      }
+    },
+    "near:0.80": {
+      "default_surface_by_scope": {
+        "mixed": 1388,
+        "prod": 38566,
+        "test": 41569
+      },
+      "default_surface_delta_by_scope": {
+        "mixed": 555,
+        "prod": 9485,
+        "test": 4564
+      },
+      "repos": 105,
+      "surface_delta_vs_default": {
+        "debug": 0,
+        "default": 14604,
+        "hidden": -294,
+        "review": -125
+      },
+      "surfaces": {
+        "debug": 0,
+        "default": 81523,
+        "hidden": 4332,
+        "review": 84
+      }
+    },
+    "near:0.85": {
+      "default_surface_by_scope": {
+        "mixed": 1348,
+        "prod": 37566,
+        "test": 40442
+      },
+      "default_surface_delta_by_scope": {
+        "mixed": 515,
+        "prod": 8485,
+        "test": 3437
+      },
+      "repos": 105,
+      "surface_delta_vs_default": {
+        "debug": 0,
+        "default": 12437,
+        "hidden": -463,
+        "review": -158
+      },
+      "surfaces": {
+        "debug": 0,
+        "default": 79356,
+        "hidden": 4163,
+        "review": 51
+      }
+    }
+  },
+  "repos_root": "bench/repos",
+  "schema_version": 1
+}

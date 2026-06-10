@@ -58,6 +58,13 @@ over-approximated classification of whether generalized sub-DAG matching or one-
 pure inlining could recover it. The measured verdict and method are recorded in
 [`docs/experiments.md`](../../docs/experiments.md) §BJ.
 
+`near_default_surface_experiment.py` +
+`near_default_surface_2026_06_10.json` price the product decision of adding the
+`near` channel to the default scan surface. The script compares default,
+`syntax,semantic,near`, and two thresholded `near` arms on v5 P@10, worthy-recall,
+and default-surface family-count deltas. The decision record is in
+[`docs/experiments.md`](../../docs/experiments.md) §BM.
+
 `merge_exclusion_census.py` + `oracle_exclusion_census_2026_06_10.json` +
 `oracle_under_merge_leads_2026_06_10.json` are the oracle-completeness campaign's
 baseline: per-construct inventory of units the interpreter oracle cannot check (and the
@@ -73,4 +80,10 @@ essential: they tell you whether a per-language difference is real or noise.
 
 ```sh
 python3 bench/labels/eval_by_language.py
+```
+
+Pass `--mode` to compare a non-default channel mix without editing the script:
+
+```sh
+python3 bench/labels/eval_by_language.py --mode syntax,semantic,near
 ```

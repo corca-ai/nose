@@ -9,7 +9,9 @@ infrastructure that tells us whether a per-language number is trustworthy at the
 current label count.
 
 Usage: python3 bench/labels/eval_by_language.py
+       python3 bench/labels/eval_by_language.py --mode syntax,semantic,near
 """
+import argparse
 import importlib.util
 import json
 import random
@@ -64,6 +66,25 @@ def scan_families(stdout):
     return payload
 
 
+def split_modes(raw_modes):
+    modes = []
+    for raw in raw_modes or []:
+        modes.extend(part.strip() for part in raw.split(",") if part.strip())
+    return modes
+
+
+def scan_repo(repo, *, mode=None, cache_dir=None, top=1000000, timeout=300):
+    cmd = [str(NOSE), "scan", str(repo), "--format", "json", "--top", str(top)]
+    modes = split_modes([mode] if mode else [])
+    if modes:
+        cmd += ["--mode", ",".join(modes)]
+    if cache_dir:
+        cmd += ["--cache-dir", str(cache_dir)]
+    r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+    r.check_returncode()
+    return scan_families(r.stdout)
+
+
 def ci(flags, b=2000):
     """95% bootstrap CI for the mean of a 0/1 list; returns (lo, hi) in %."""
     if not flags:
@@ -77,7 +98,41 @@ def ci(flags, b=2000):
     return (means[int(0.025 * b)] * 100, means[int(0.975 * b)] * 100)
 
 
-def main():
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--mode",
+        action="append",
+        help=(
+            "nose scan channel list. Omit for the CLI default; repeat or pass a "
+            "comma-list, e.g. --mode syntax,semantic,near"
+        ),
+    )
+    p.add_argument(
+        "--repos-root",
+        type=Path,
+        default=ROOT / "bench" / "repos",
+        help="checkout root containing one directory per corpus repo",
+    )
+    p.add_argument("--cache-dir", type=Path, help="forwarded to nose scan --cache-dir")
+    p.add_argument("--top", type=int, default=1000000, help="forwarded to nose scan --top")
+    p.add_argument("--timeout", type=int, default=300, help="per-repo scan timeout in seconds")
+    p.add_argument("--bootstrap", type=int, default=2000, help="bootstrap resamples per CI")
+    p.add_argument(
+        "--rank",
+        choices=("value", "extractability"),
+        default="value",
+        help=(
+            "base P@10 order. 'value' preserves the historical report; "
+            "'extractability' uses nose's native JSON order."
+        ),
+    )
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    mode = ",".join(split_modes(args.mode))
     labels = json.loads((ROOT / "bench/labels/refactoring_families.v5.json").read_text())["families"]
     corpus = {r["id"]: r for r in json.loads((ROOT / "bench/goldens/corpus.json").read_text())["repositories"]}
     by_repo = defaultdict(list)
@@ -88,17 +143,25 @@ def main():
     acc = defaultdict(lambda: {"base": [], "rr": [], "rec": [0, 0], "n": 0, "worthy": 0})
 
     for rid, labs in by_repo.items():
-        repo = ROOT / "bench" / "repos" / rid
+        repo = args.repos_root / rid
         if not repo.is_dir():
             continue
         lang, split = corpus[rid]["primary_language"], corpus[rid]["split"]
         a = acc[(lang, split)]
         a["n"] += len(labs)
         a["worthy"] += sum(x["worthy"] for x in labs)
-        r = subprocess.run([str(NOSE), "scan", str(repo), "--format", "json", "--top", "1000000"],
-                           cwd=ROOT, capture_output=True, text=True, timeout=300)
-        r.check_returncode()
-        fams = sorted(scan_families(r.stdout), key=lambda f: -f["value"])
+        native = scan_repo(
+            repo,
+            mode=mode or None,
+            cache_dir=args.cache_dir,
+            top=args.top,
+            timeout=args.timeout,
+        )
+        fams = (
+            sorted(native, key=lambda f: -f["value"])
+            if args.rank == "value"
+            else list(native)
+        )
         top = fams[:40]
         for f in top:
             f["rv"] = f["value"] * refactorability(f)
@@ -127,12 +190,13 @@ def main():
         if not flags:
             return "    -        "
         m = sum(flags) / len(flags) * 100
-        lo, hi = ci(flags)
+        lo, hi = ci(flags, args.bootstrap)
         return f"{m:>3.0f}% [{lo:>3.0f}-{hi:>3.0f}] n={len(flags)}"
 
+    base_label = f"P@10 {args.rank}"
     for split in ("dev", "heldout"):
         print(f"\n=== {split} ===")
-        print(f"{'lang':<11}{'worthy':>7}  {'P@10 base':<18}{'P@10 re-rank':<18}{'recall':>8}")
+        print(f"{'lang':<11}{'worthy':>7}  {base_label:<18}{'P@10 re-rank':<18}{'recall':>8}")
         for lang in sorted({l for (l, s) in acc if s == split}):
             a = acc[(lang, split)]
             rec = f"{a['rec'][0]}/{a['rec'][1]}" if a["rec"][1] else "-"
