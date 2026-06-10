@@ -1430,71 +1430,13 @@ impl OperatorSemantics {
                 }
             }
         }
-        let cid_of = |node: NodeId, il: &Il| -> Option<u32> {
-            if il.kind(node) == NodeKind::Var {
-                if let Payload::Cid(cid) = il.node(node).payload {
-                    return Some(cid);
-                }
-            }
-            None
-        };
         let mut evidence: FxHashMap<u32, ValueDomain> = FxHashMap::default();
         for _ in 0..params.len() + 1 {
             let mut next = evidence.clone();
-            let add = |cid: u32, domain: ValueDomain, ev: &mut FxHashMap<u32, ValueDomain>| {
-                ev.entry(cid)
-                    .and_modify(|existing| *existing = existing.join(domain))
-                    .or_insert(domain);
-            };
             let mut stack = vec![root];
             while let Some(node) = stack.pop() {
                 let kids = il.children(node).to_vec();
-                match il.node(node).kind {
-                    NodeKind::BinOp => {
-                        if let Payload::Op(op) = il.node(node).payload {
-                            if self.strict_operand_domain(op).is_some() && kids.len() == 2 {
-                                for &kid in &kids {
-                                    if let Some(cid) = cid_of(kid, il) {
-                                        add(cid, ValueDomain::Number, &mut next);
-                                    }
-                                }
-                            } else if op == Op::Add && kids.len() == 2 {
-                                let lookup = |cid| {
-                                    evidence.get(&cid).copied().unwrap_or(ValueDomain::Unknown)
-                                };
-                                let domains = [
-                                    self.expression_value_domain(il, kids[0], &lookup),
-                                    self.expression_value_domain(il, kids[1], &lookup),
-                                ];
-                                for i in 0..2 {
-                                    if let Some(cid) = cid_of(kids[i], il) {
-                                        if matches!(
-                                            domains[1 - i],
-                                            ValueDomain::Number | ValueDomain::String
-                                        ) {
-                                            add(cid, domains[1 - i], &mut next);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    NodeKind::UnOp => {
-                        if let Payload::Op(op) = il.node(node).payload {
-                            if self.unary_operand_domain(op).is_some() {
-                                if let Some(cid) = kids.first().and_then(|&kid| cid_of(kid, il)) {
-                                    add(cid, ValueDomain::Number, &mut next);
-                                }
-                            }
-                        }
-                    }
-                    NodeKind::Index => {
-                        if let Some(cid) = kids.get(1).and_then(|&kid| cid_of(kid, il)) {
-                            add(cid, ValueDomain::Number, &mut next);
-                        }
-                    }
-                    _ => {}
-                }
+                self.note_param_domain_evidence(il, node, &kids, &evidence, &mut next);
                 stack.extend(kids);
             }
             if next == evidence {
@@ -1506,6 +1448,74 @@ impl OperatorSemantics {
             .iter()
             .map(|cid| evidence.get(cid).copied().unwrap_or(ValueDomain::Unknown))
             .collect()
+    }
+
+    fn note_param_domain_evidence(
+        self,
+        il: &Il,
+        node: NodeId,
+        kids: &[NodeId],
+        evidence: &FxHashMap<u32, ValueDomain>,
+        next: &mut FxHashMap<u32, ValueDomain>,
+    ) {
+        let cid_of = |node: NodeId, il: &Il| -> Option<u32> {
+            if il.kind(node) == NodeKind::Var {
+                if let Payload::Cid(cid) = il.node(node).payload {
+                    return Some(cid);
+                }
+            }
+            None
+        };
+        let add = |cid: u32, domain: ValueDomain, ev: &mut FxHashMap<u32, ValueDomain>| {
+            ev.entry(cid)
+                .and_modify(|existing| *existing = existing.join(domain))
+                .or_insert(domain);
+        };
+        match il.node(node).kind {
+            NodeKind::BinOp => {
+                if let Payload::Op(op) = il.node(node).payload {
+                    if self.strict_operand_domain(op).is_some() && kids.len() == 2 {
+                        for &kid in kids {
+                            if let Some(cid) = cid_of(kid, il) {
+                                add(cid, ValueDomain::Number, next);
+                            }
+                        }
+                    } else if op == Op::Add && kids.len() == 2 {
+                        let lookup =
+                            |cid| evidence.get(&cid).copied().unwrap_or(ValueDomain::Unknown);
+                        let domains = [
+                            self.expression_value_domain(il, kids[0], &lookup),
+                            self.expression_value_domain(il, kids[1], &lookup),
+                        ];
+                        for i in 0..2 {
+                            if let Some(cid) = cid_of(kids[i], il) {
+                                if matches!(
+                                    domains[1 - i],
+                                    ValueDomain::Number | ValueDomain::String
+                                ) {
+                                    add(cid, domains[1 - i], next);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            NodeKind::UnOp => {
+                if let Payload::Op(op) = il.node(node).payload {
+                    if self.unary_operand_domain(op).is_some() {
+                        if let Some(cid) = kids.first().and_then(|&kid| cid_of(kid, il)) {
+                            add(cid, ValueDomain::Number, next);
+                        }
+                    }
+                }
+            }
+            NodeKind::Index => {
+                if let Some(cid) = kids.get(1).and_then(|&kid| cid_of(kid, il)) {
+                    add(cid, ValueDomain::Number, next);
+                }
+            }
+            _ => {}
+        }
     }
 
     pub fn comparison_law(self, law: ComparisonLaw) -> Option<OperatorLawContract> {
@@ -2137,6 +2147,8 @@ pub fn method_call_contract(
     library_method_call_contract(lang, name, arg_count).map(|contract| contract.result)
 }
 
+type MethodBuiltinShape = (Builtin, MethodReceiverContract, MethodBuiltinArgs);
+
 fn method_call_contract_shape(
     lang: Lang,
     name: &str,
@@ -2145,6 +2157,56 @@ fn method_call_contract_shape(
     use MethodBuiltinArgs as Args;
     use MethodReceiverContract as Receiver;
     use MethodSemanticContract as Semantic;
+
+    let shaped = method_append_contract_shape(lang, name, arg_count)
+        .or_else(|| method_namespace_call_contract_shape(lang, name, arg_count))
+        .or_else(|| method_cardinality_contract_shape(lang, name, arg_count))
+        .or_else(|| method_string_affix_contract_shape(lang, name, arg_count))
+        .or_else(|| method_membership_contract_shape(lang, name, arg_count))
+        .or_else(|| method_lookup_default_contract_shape(lang, name, arg_count))
+        .or_else(|| method_numeric_contract_shape(lang, name, arg_count));
+    let contract = if let Some(contract) = shaped {
+        contract
+    } else if method_fold_name(lang, name) && arg_count > 0 {
+        (Builtin::Reduce, Receiver::ExactProtocol, Args::Fold)
+    } else if method_bool_reduction_builtin(lang, name).is_some() && arg_count > 0 {
+        (
+            method_bool_reduction_builtin(lang, name).unwrap(),
+            Receiver::ExactProtocol,
+            Args::BoolReduction,
+        )
+    } else if method_collection_reduction_builtin(lang, name).is_some() && arg_count == 0 {
+        (
+            method_collection_reduction_builtin(lang, name).unwrap(),
+            Receiver::ExactProtocol,
+            Args::CollectionReduction,
+        )
+    } else if method_hof_contract(lang, name).is_some() && arg_count > 0 {
+        return Some(MethodCallContract {
+            semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
+            receiver: Receiver::ExactProtocol,
+            args: Args::Hof,
+        });
+    } else if matches!((lang, name, arg_count), (Lang::Rust, "abs", 0)) {
+        (Builtin::Abs, Receiver::ExactInteger, Args::ReceiverOnly)
+    } else {
+        return None;
+    };
+
+    Some(MethodCallContract {
+        semantic: Semantic::Builtin(contract.0),
+        receiver: contract.1,
+        args: contract.2,
+    })
+}
+
+fn method_append_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
 
     let contract = match (lang, name, arg_count) {
         (Lang::Python, "append", 1) => (
@@ -2166,7 +2228,20 @@ fn method_call_contract_shape(
             Receiver::ExactCollection,
             Args::ReceiverThenAll,
         ),
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_namespace_call_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (
             Lang::JavaScript | Lang::TypeScript | Lang::Vue | Lang::Svelte | Lang::Html,
             "log" | "info" | "debug",
@@ -2201,7 +2276,20 @@ fn method_call_contract_shape(
             Receiver::ImportedNamespace("slices"),
             Args::GoSliceContains,
         ),
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_cardinality_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (Lang::Rust, "len", 0) | (Lang::Java, "size", 0) => {
             (Builtin::Len, Receiver::ExactCollection, Args::ReceiverOnly)
         }
@@ -2218,7 +2306,20 @@ fn method_call_contract_shape(
             Receiver::RustMapGetOrExactOption,
             Args::ReceiverOnly,
         ),
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_string_affix_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (
             Lang::JavaScript
             | Lang::TypeScript
@@ -2253,7 +2354,20 @@ fn method_call_contract_shape(
             Receiver::ExactString,
             Args::ReceiverAndFirst,
         ),
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_membership_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (Lang::Java, "containsKey", 1)
         | (Lang::Rust, "contains_key", 1)
         | (Lang::Ruby, "key?" | "has_key?", 1) => (
@@ -2284,7 +2398,20 @@ fn method_call_contract_shape(
                 Args::FirstThenReceiver,
             )
         }
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_lookup_default_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (Lang::Python, "join", 1) => (
             Builtin::Join,
             Receiver::LiteralString,
@@ -2320,7 +2447,20 @@ fn method_call_contract_shape(
             Receiver::ExactOption,
             Args::RustOptionMapOrIdentity,
         ),
+        _ => return None,
+    };
+    Some(contract)
+}
 
+fn method_numeric_contract_shape(
+    lang: Lang,
+    name: &str,
+    arg_count: usize,
+) -> Option<MethodBuiltinShape> {
+    use MethodBuiltinArgs as Args;
+    use MethodReceiverContract as Receiver;
+
+    let contract = match (lang, name, arg_count) {
         (Lang::Python, "reduce", 2..) => (
             Builtin::Reduce,
             Receiver::ImportedNamespace("functools"),
@@ -2353,36 +2493,9 @@ fn method_call_contract_shape(
             Receiver::ExactProtocolPairArgument,
             Args::RustZip,
         ),
-
-        _ if method_fold_name(lang, name) && arg_count > 0 => {
-            (Builtin::Reduce, Receiver::ExactProtocol, Args::Fold)
-        }
-        _ if method_bool_reduction_builtin(lang, name).is_some() && arg_count > 0 => (
-            method_bool_reduction_builtin(lang, name).unwrap(),
-            Receiver::ExactProtocol,
-            Args::BoolReduction,
-        ),
-        _ if method_collection_reduction_builtin(lang, name).is_some() && arg_count == 0 => (
-            method_collection_reduction_builtin(lang, name).unwrap(),
-            Receiver::ExactProtocol,
-            Args::CollectionReduction,
-        ),
-        _ if method_hof_contract(lang, name).is_some() && arg_count > 0 => {
-            return Some(MethodCallContract {
-                semantic: Semantic::HoF(method_hof_contract(lang, name).unwrap()),
-                receiver: Receiver::ExactProtocol,
-                args: Args::Hof,
-            });
-        }
-        (Lang::Rust, "abs", 0) => (Builtin::Abs, Receiver::ExactInteger, Args::ReceiverOnly),
         _ => return None,
     };
-
-    Some(MethodCallContract {
-        semantic: Semantic::Builtin(contract.0),
-        receiver: contract.1,
-        args: contract.2,
-    })
+    Some(contract)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

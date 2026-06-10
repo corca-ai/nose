@@ -491,67 +491,13 @@ impl<'a> Interp<'a> {
                 },
                 _ => Err(Unsupported),
             },
-            NodeKind::BinOp => {
-                let kids = self.il.children(node).to_vec();
-                if kids.len() != 2 {
-                    return Err(Unsupported);
-                }
-                let op = op_of(n.payload);
-                // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
-                // operand is evaluated ONLY when the left doesn't already decide the result,
-                // and the operator yields the deciding OPERAND's value (value-and/or), not a
-                // coerced bool. So `a or b` ≡ `a if a else b` and `a and b` ≡ `b if a else a`
-                // exactly — including laziness (`x or f()` does not run `f()` when `x` is
-                // truthy) and Err-propagation only on the evaluated side. (Previously both
-                // operands were evaluated eagerly through `bin`, so `5 or (1/0)` wrongly
-                // Err'd and a value-or never converged with its ternary — an oracle bug.)
-                let a = self.eval(kids[0], env)?;
-                if matches!(op, Op::Or) {
-                    return Ok(if matches!(a, Value::Err) || truthy(&a) {
-                        a
-                    } else {
-                        self.eval(kids[1], env)?
-                    });
-                }
-                if matches!(op, Op::And) {
-                    return Ok(if matches!(a, Value::Err) || !truthy(&a) {
-                        a
-                    } else {
-                        self.eval(kids[1], env)?
-                    });
-                }
-                if matches!(a, Value::Err) {
-                    return Ok(Value::Err);
-                }
-                let b = self.eval(kids[1], env)?;
-                Ok(bin(op, &a, &b))
-            }
+            NodeKind::BinOp => self.eval_bin_op(node, n.payload, env),
             NodeKind::UnOp => {
                 let kids = self.il.children(node).to_vec();
                 let a = self.eval(*kids.first().ok_or(Unsupported)?, env)?;
                 Ok(un(op_of(n.payload), &a))
             }
-            NodeKind::Index => {
-                let kids = self.il.children(node).to_vec();
-                if kids.len() != 2 {
-                    return Err(Unsupported);
-                }
-                let base = self.eval(kids[0], env)?;
-                if matches!(base, Value::Err) {
-                    return Ok(Value::Err);
-                }
-                let idx = self.eval(kids[1], env)?;
-                if matches!(idx, Value::Err) {
-                    return Ok(Value::Err);
-                }
-                match (base, idx) {
-                    (Value::List(xs), Value::Int(i)) => {
-                        let i = if i < 0 { i + xs.len() as i64 } else { i };
-                        Ok(xs.get(i as usize).cloned().unwrap_or(Value::Err))
-                    }
-                    _ => Ok(Value::Err),
-                }
-            }
+            NodeKind::Index => self.eval_index(node, env),
             NodeKind::Seq => {
                 let mut out = Vec::new();
                 for c in self.il.children(node).to_vec() {
@@ -604,6 +550,69 @@ impl<'a> Interp<'a> {
         }
     }
 
+    fn eval_bin_op(
+        &mut self,
+        node: NodeId,
+        payload: Payload,
+        env: &mut FxHashMap<u32, Value>,
+    ) -> R<Value> {
+        let kids = self.il.children(node).to_vec();
+        if kids.len() != 2 {
+            return Err(Unsupported);
+        }
+        let op = op_of(payload);
+        // SHORT-CIRCUIT `and`/`or` — real Python/JS/Go/C semantics: the right
+        // operand is evaluated ONLY when the left doesn't already decide the result,
+        // and the operator yields the deciding OPERAND's value (value-and/or), not a
+        // coerced bool. So `a or b` ≡ `a if a else b` and `a and b` ≡ `b if a else a`
+        // exactly — including laziness (`x or f()` does not run `f()` when `x` is
+        // truthy) and Err-propagation only on the evaluated side. (Previously both
+        // operands were evaluated eagerly through `bin`, so `5 or (1/0)` wrongly
+        // Err'd and a value-or never converged with its ternary — an oracle bug.)
+        let a = self.eval(kids[0], env)?;
+        if matches!(op, Op::Or) {
+            return Ok(if matches!(a, Value::Err) || truthy(&a) {
+                a
+            } else {
+                self.eval(kids[1], env)?
+            });
+        }
+        if matches!(op, Op::And) {
+            return Ok(if matches!(a, Value::Err) || !truthy(&a) {
+                a
+            } else {
+                self.eval(kids[1], env)?
+            });
+        }
+        if matches!(a, Value::Err) {
+            return Ok(Value::Err);
+        }
+        let b = self.eval(kids[1], env)?;
+        Ok(bin(op, &a, &b))
+    }
+
+    fn eval_index(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
+        let kids = self.il.children(node).to_vec();
+        if kids.len() != 2 {
+            return Err(Unsupported);
+        }
+        let base = self.eval(kids[0], env)?;
+        if matches!(base, Value::Err) {
+            return Ok(Value::Err);
+        }
+        let idx = self.eval(kids[1], env)?;
+        if matches!(idx, Value::Err) {
+            return Ok(Value::Err);
+        }
+        match (base, idx) {
+            (Value::List(xs), Value::Int(i)) => {
+                let i = if i < 0 { i + xs.len() as i64 } else { i };
+                Ok(xs.get(i as usize).cloned().unwrap_or(Value::Err))
+            }
+            _ => Ok(Value::Err),
+        }
+    }
+
     fn eval_call(&mut self, node: NodeId, env: &mut FxHashMap<u32, Value>) -> R<Value> {
         let b = match self.il.node(node).payload {
             Payload::Builtin(b) => b,
@@ -638,6 +647,14 @@ impl<'a> Interp<'a> {
             }
             args.push(arg);
         }
+        self.eval_eager_builtin(eager_contract, args)
+    }
+
+    fn eval_eager_builtin(
+        &mut self,
+        eager_contract: EagerBuiltinContract,
+        args: Vec<Value>,
+    ) -> R<Value> {
         match eager_contract {
             EagerBuiltinContract::Len => match args.first() {
                 Some(Value::List(xs)) => Ok(Value::Int(xs.len() as i64)),

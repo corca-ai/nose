@@ -604,99 +604,12 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "binary_operator" => lower_binary(lo, node),
         "boolean_operator" => lower_boolop(lo, node),
         "comparison_operator" => lower_comparison(lo, node),
-        "unary_operator" => {
-            let op = node
-                .child_by_field_name("operator")
-                .map(|o| lo.text(o))
-                .unwrap_or("-");
-            let il_op = match op {
-                "-" => Op::Neg,
-                "+" => Op::Pos,
-                "~" => Op::BitNot,
-                _ => Op::Neg,
-            };
-            let arg = node
-                .child_by_field_name("argument")
-                .map(|a| lower_expr(lo, a))
-                .unwrap_or_else(|| lo.empty_block(span));
-            lo.add(NodeKind::UnOp, Payload::Op(il_op), span, &[arg])
-        }
-        "not_operator" => {
-            let arg = node
-                .child_by_field_name("argument")
-                .map(|a| lower_expr(lo, a))
-                .unwrap_or_else(|| lo.empty_block(span));
-            lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[arg])
-        }
-        "attribute" => {
-            let obj = node
-                .child_by_field_name("object")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let attr = node
-                .child_by_field_name("attribute")
-                .map(|a| lo.text(a))
-                .unwrap_or("");
-            let sym = lo.sym(attr);
-            lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj])
-        }
-        "subscript" => {
-            let base = node
-                .child_by_field_name("value")
-                .map(|v| lower_expr(lo, v))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let idx = node
-                .child_by_field_name("subscript")
-                .map(|s| lower_expr(lo, s))
-                .unwrap_or_else(|| lo.empty_block(span));
-            lo.add(NodeKind::Index, Payload::None, span, &[base, idx])
-        }
-        "lambda" => {
-            let mut kids = Vec::new();
-            if let Some(params) = node.child_by_field_name("parameters") {
-                lower_params(lo, params, &mut kids);
-            }
-            // Wrap the single-expression body in `Block(Return(expr))` so a
-            // `lambda x: e` converges with a JS arrow `x => e` (and `x => { return e }`)
-            // and a one-line function — all single-expression callables share a shape.
-            let body = match node.child_by_field_name("body") {
-                Some(b) => {
-                    let bspan = lo.span(b);
-                    let e = lower_expr(lo, b);
-                    let ret = lo.add(NodeKind::Return, Payload::None, bspan, &[e]);
-                    lo.add(NodeKind::Block, Payload::None, bspan, &[ret])
-                }
-                None => lo.empty_block(span),
-            };
-            kids.push(body);
-            lo.add(NodeKind::Lambda, Payload::None, span, &kids)
-        }
-        "slice" => {
-            // Preserve start/stop/step POSITIONS: `a[1:]` (start=1) and `a[:1]` (stop=1)
-            // are different slices and must not collapse. tree-sitter omits empty bounds
-            // and the `:` separators are anonymous, so collecting only named children
-            // loses which slot the bound occupies. Walk children in order, split on `:`,
-            // and emit an explicit `None` placeholder for each empty slot so the `Seq` is
-            // positional.
-            let mut slots: Vec<NodeId> = Vec::new();
-            let mut cur: Option<NodeId> = None;
-            let mut cursor = node.walk();
-            for child in node.children(&mut cursor) {
-                if child.kind() == ":" {
-                    slots.push(cur.take().unwrap_or_else(|| {
-                        lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
-                    }));
-                } else if child.is_named() {
-                    cur = Some(lower_expr(lo, child));
-                }
-            }
-            slots.push(
-                cur.take().unwrap_or_else(|| {
-                    lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
-                }),
-            );
-            lo.add(NodeKind::Seq, Payload::None, span, &slots)
-        }
+        "unary_operator" => lower_unary(lo, node),
+        "not_operator" => lower_not(lo, node),
+        "attribute" => lower_attribute(lo, node),
+        "subscript" => lower_subscript(lo, node),
+        "lambda" => lower_lambda(lo, node),
+        "slice" => lower_slice(lo, node),
         "list" | "tuple" | "set" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -723,18 +636,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         // contribution `DictEntry(k, v)`. Plain dict literals use
         // `lower_dictionary_pair` instead so cross-language map literals retain a
         // language-neutral `pair` sequence tag.
-        "pair" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            lo.add(
-                NodeKind::Seq,
-                Payload::Builtin(Builtin::DictEntry),
-                span,
-                &kids,
-            )
-        }
+        "pair" => lower_comprehension_pair(lo, node),
         "list_comprehension"
         | "set_comprehension"
         | "generator_expression"
@@ -751,18 +653,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.await_boundary(span, value)
         }
-        "named_expression" => {
-            // walrus `name := value` → Assign in expression position
-            let lhs = node
-                .child_by_field_name("name")
-                .map(|n| lower_expr(lo, n))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let rhs = node
-                .child_by_field_name("value")
-                .map(|v| lower_expr(lo, v))
-                .unwrap_or_else(|| lo.empty_block(span));
-            lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
-        }
+        "named_expression" => lower_named_expr(lo, node),
         "keyword_argument" => node
             .child_by_field_name("value")
             .map(|v| lower_expr(lo, v))
@@ -791,6 +682,140 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let op = node
+        .child_by_field_name("operator")
+        .map(|o| lo.text(o))
+        .unwrap_or("-");
+    let il_op = match op {
+        "-" => Op::Neg,
+        "+" => Op::Pos,
+        "~" => Op::BitNot,
+        _ => Op::Neg,
+    };
+    let arg = node
+        .child_by_field_name("argument")
+        .map(|a| lower_expr(lo, a))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(NodeKind::UnOp, Payload::Op(il_op), span, &[arg])
+}
+
+fn lower_not(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let arg = node
+        .child_by_field_name("argument")
+        .map(|a| lower_expr(lo, a))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(NodeKind::UnOp, Payload::Op(Op::Not), span, &[arg])
+}
+
+fn lower_attribute(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let obj = node
+        .child_by_field_name("object")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let attr = node
+        .child_by_field_name("attribute")
+        .map(|a| lo.text(a))
+        .unwrap_or("");
+    let sym = lo.sym(attr);
+    lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj])
+}
+
+fn lower_subscript(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let base = node
+        .child_by_field_name("value")
+        .map(|v| lower_expr(lo, v))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let idx = node
+        .child_by_field_name("subscript")
+        .map(|s| lower_expr(lo, s))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(NodeKind::Index, Payload::None, span, &[base, idx])
+}
+
+fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    if let Some(params) = node.child_by_field_name("parameters") {
+        lower_params(lo, params, &mut kids);
+    }
+    // Wrap the single-expression body in `Block(Return(expr))` so a
+    // `lambda x: e` converges with a JS arrow `x => e` (and `x => { return e }`)
+    // and a one-line function — all single-expression callables share a shape.
+    let body = match node.child_by_field_name("body") {
+        Some(b) => {
+            let bspan = lo.span(b);
+            let e = lower_expr(lo, b);
+            let ret = lo.add(NodeKind::Return, Payload::None, bspan, &[e]);
+            lo.add(NodeKind::Block, Payload::None, bspan, &[ret])
+        }
+        None => lo.empty_block(span),
+    };
+    kids.push(body);
+    lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn lower_slice(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    // Preserve start/stop/step POSITIONS: `a[1:]` (start=1) and `a[:1]` (stop=1)
+    // are different slices and must not collapse. tree-sitter omits empty bounds
+    // and the `:` separators are anonymous, so collecting only named children
+    // loses which slot the bound occupies. Walk children in order, split on `:`,
+    // and emit an explicit `None` placeholder for each empty slot so the `Seq` is
+    // positional.
+    let mut slots: Vec<NodeId> = Vec::new();
+    let mut cur: Option<NodeId> = None;
+    let mut cursor = node.walk();
+    for child in node.children(&mut cursor) {
+        if child.kind() == ":" {
+            slots.push(
+                cur.take().unwrap_or_else(|| {
+                    lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
+                }),
+            );
+        } else if child.is_named() {
+            cur = Some(lower_expr(lo, child));
+        }
+    }
+    slots.push(
+        cur.take()
+            .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])),
+    );
+    lo.add(NodeKind::Seq, Payload::None, span, &slots)
+}
+
+fn lower_comprehension_pair(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|c| lower_expr(lo, c))
+        .collect();
+    lo.add(
+        NodeKind::Seq,
+        Payload::Builtin(Builtin::DictEntry),
+        span,
+        &kids,
+    )
+}
+
+fn lower_named_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    // walrus `name := value` → Assign in expression position
+    let span = lo.span(node);
+    let lhs = node
+        .child_by_field_name("name")
+        .map(|n| lower_expr(lo, n))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let rhs = node
+        .child_by_field_name("value")
+        .map(|v| lower_expr(lo, v))
+        .unwrap_or_else(|| lo.empty_block(span));
+    lo.add(NodeKind::Assign, Payload::None, span, &[lhs, rhs])
 }
 
 fn lower_dotted_name(lo: &mut Lowering, node: TsNode) -> NodeId {

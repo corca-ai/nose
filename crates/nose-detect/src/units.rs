@@ -18,7 +18,7 @@ use crate::strict_exact::{
 use crate::strict_exact::{strict_exact_safe_tree, StrictFacts};
 #[cfg(test)]
 use nose_il::Builtin;
-use nose_il::{Il, Interner, Lang, LoopKind, NodeId, NodeKind, Payload, Symbol, UnitKind};
+use nose_il::{Il, Interner, Lang, LoopKind, NodeId, NodeKind, Payload, Span, Symbol, UnitKind};
 use nose_normalize::node_tag;
 use nose_semantics::{
     admitted_builtin_semantics_at_call, builder_append_call_args, exact_java_return_this,
@@ -393,6 +393,36 @@ pub(crate) struct ExtractFeatures {
     pub(crate) abstraction_witnesses: bool,
 }
 
+/// Per-file inputs shared by every unit extraction in [`extract`].
+struct UnitExtractCtx<'a> {
+    il: &'a Il,
+    interner: &'a Interner,
+    seeds: &'a [u64],
+    min_lines: u32,
+    min_tokens: usize,
+    features: ExtractFeatures,
+    parents: Option<&'a [Option<NodeId>]>,
+    facts: &'a StrictFacts<'a>,
+    value_context: Option<&'a nose_normalize::ValueFingerprintContext>,
+}
+
+/// A unit root that survived the size/semantic gates, with the semantic
+/// fingerprint and per-stage timings already computed.
+struct GatedUnit {
+    span: Span,
+    pre: Vec<NodeId>,
+    exact_safe: bool,
+    value: Vec<u64>,
+    lits: Vec<u64>,
+    returns: Vec<u64>,
+    anchors: Vec<nose_normalize::Anchor>,
+    semantic_laws: Vec<ValueLaw>,
+    unit_start: Option<Instant>,
+    pre_ms: Option<f64>,
+    safe_ms: Option<f64>,
+    value_ms: Option<f64>,
+}
+
 /// Extract all units of `il` passing the size gates, with features computed.
 pub(crate) fn extract(
     il: &Il,
@@ -432,223 +462,293 @@ pub(crate) fn extract(
     let facts = StrictFacts::collect(il, interner);
     let value_context =
         (roots.len() > 1).then(|| nose_normalize::ValueFingerprintContext::new(il, interner));
+    let ctx = UnitExtractCtx {
+        il,
+        interner,
+        seeds,
+        min_lines,
+        min_tokens,
+        features,
+        parents: parents.as_deref(),
+        facts: &facts,
+        value_context: value_context.as_ref(),
+    };
     let mut unit_timer = UnitTimer::new();
     let mut out = Vec::new();
-    for UnitRoot {
+    for unit_root in roots {
+        if let Some(unit) = extract_unit(&ctx, unit_root, &mut unit_timer) {
+            out.push(unit);
+        }
+    }
+    unit_timer.report_summary(&il.meta.path);
+    out
+}
+
+/// Gate one unit root: collect its pre-order, apply the container/size/dense gates
+/// (reporting skips), and compute the strict-exact verdict and value fingerprint.
+fn gate_unit(
+    ctx: &UnitExtractCtx<'_>,
+    unit_root: UnitRoot,
+    unit_timer: &mut UnitTimer,
+) -> Option<GatedUnit> {
+    let UnitRoot {
         root,
         kind,
-        name: uname,
+        name: _,
         fragment_kind,
-    } in roots
-    {
-        let exact_fragment = fragment_kind.is_some();
-        let unit_start = unit_timer.start();
-        let span = il.node(root).span;
-        let lines = span.line_count();
+    } = unit_root;
+    let exact_fragment = fragment_kind.is_some();
+    let unit_start = unit_timer.start();
+    let span = ctx.il.node(root).span;
+    let lines = span.line_count();
 
-        let pre_start = unit_timer.start();
-        let mut pre = Vec::new();
-        collect_pre(il, root, &mut pre);
-        let pre_ms = UnitTimer::elapsed(pre_start);
-
-        // Broad container units are covered by their nested primary units. Apply
-        // this cap before strict/value extraction so discarded containers never pay
-        // the dominant semantic fingerprint cost.
-        if semantic_container_token_cap(kind).is_some_and(|cap| pre.len() > cap) {
-            unit_timer.report_skip(UnitTimingSkipSample {
-                start: unit_start,
-                kind: &kind,
-                path: &il.meta.path,
-                start_line: span.start_line,
-                end_line: span.end_line,
-                tokens: pre.len(),
-                pre_ms,
-                safe_ms: None,
-                value_ms: None,
-            });
-            continue;
-        }
-
-        let syntactically_small = lines < min_lines || pre.len() < min_tokens;
-        let can_use_dense_gate =
-            matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
-        if syntactically_small && !can_use_dense_gate {
-            unit_timer.report_skip(UnitTimingSkipSample {
-                start: unit_start,
-                kind: &kind,
-                path: &il.meta.path,
-                start_line: span.start_line,
-                end_line: span.end_line,
-                tokens: pre.len(),
-                pre_ms,
-                safe_ms: None,
-                value_ms: None,
-            });
-            continue;
-        }
-
-        let safe_start = unit_timer.start();
-        let strict_exact_safe = strict_exact_safe_tree(il, interner, &facts, root);
-        let exact_safe = strict_exact_safe
-            || (exact_fragment
-                && parents.as_deref().is_some_and(|parents| {
-                    strict_exact_self_field_fragment_safe(il, interner, &facts, parents, root)
-                }));
-        let safe_ms = UnitTimer::elapsed(safe_start);
-        // The value graph is the semantic fingerprint (already sorted), with the
-        // literal-only multiset for data-table detection. Computed before the size
-        // gate so the gate can consult semantic richness (below).
-        let value_start = unit_timer.start();
-        let (value, lits, returns, anchors, semantic_laws) = if let Some(context) = &value_context {
-            nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
-                il, root, interner, context,
-            )
-        } else {
-            nose_normalize::value_fingerprint_lits_anchors_laws(il, root, interner)
-        };
-        let value_ms = UnitTimer::elapsed(value_start);
-
-        // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
-        // frontend-tagged function whose body is behaviorally *dense*: a functional
-        // one-liner like `return sum(v for v in xs if v>0)` is a real Type-4 clone of a
-        // multi-line loop (the value graph converges them to an *identical* fingerprint),
-        // just compressed below the line/token gate. Admit such a function when its value
-        // fingerprint is rich enough to be matched by the oracle-certified exact-match
-        // path (`value.len() >= 4`, the same floor that path uses) — this recovers the
-        // compressed functional Type-4 forms without lowering the gate for trivial units
-        // (`return x` has 1–2 atoms) or for blocks (kept strict; they are the noisy ones).
-        // Control-flow blocks keep the same syntactic min-lines/min-size gate as
-        // functions: measurement showed the real sub-function clones are small (24–40
-        // tokens), so a stricter block gate drops signal (pool-precision 0.106→0.074,
-        // AUC 0.42→0.17) faster than noise. Exact statement fragments are the narrow
-        // exception: they may pass the dense gate only after `exact_safe` and the value
-        // fingerprint floor prove that the fragment itself is a usable semantic unit.
-        let dense_exact_unit = if exact_fragment {
-            exact_safe && value.len() >= EXACT_VALUE_MIN
-        } else {
-            matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN
-        };
-        if (syntactically_small || exact_fragment) && !dense_exact_unit {
-            unit_timer.report_skip(UnitTimingSkipSample {
-                start: unit_start,
-                kind: &kind,
-                path: &il.meta.path,
-                start_line: span.start_line,
-                end_line: span.end_line,
-                tokens: pre.len(),
-                pre_ms,
-                safe_ms,
-                value_ms,
-            });
-            continue;
-        }
-        let feature_start = unit_timer.start();
-        let (shapes, shape_minhash, linear, abstraction_tokens) = if features.shape_features {
-            let mut shapes = Vec::with_capacity(pre.len());
-            let mut linear = Vec::with_capacity(pre.len());
-            let mut abstraction_tokens = if features.abstraction_witnesses {
-                Vec::with_capacity(pre.len())
-            } else {
-                Vec::new()
-            };
-            for &nid in &pre {
-                let n = il.node(nid);
-                let tag = node_tag(n.kind, n.payload, interner);
-                linear.push(tag);
-                if features.abstraction_witnesses {
-                    abstraction_tokens.push(abstraction::token_for(il, interner, nid, tag));
-                }
-                let mut shape = tag;
-                for &c in il.children(nid) {
-                    let cn = il.node(c);
-                    shape = combine(shape, node_tag(cn.kind, cn.payload, interner));
-                }
-                shapes.push(shape);
-            }
-            shapes.sort_unstable();
-            let mut distinct_shapes = shapes.clone();
-            distinct_shapes.dedup();
-            (
-                shapes,
-                crate::minhash::sign(&distinct_shapes, seeds),
-                linear,
-                abstraction_tokens,
-            )
-        } else if features.abstraction_witnesses {
-            let abstraction_tokens = pre
-                .iter()
-                .map(|&nid| {
-                    let n = il.node(nid);
-                    let tag = node_tag(n.kind, n.payload, interner);
-                    abstraction::token_for(il, interner, nid, tag)
-                })
-                .collect();
-            (Vec::new(), Vec::new(), Vec::new(), abstraction_tokens)
-        } else {
-            (Vec::new(), Vec::new(), Vec::new(), Vec::new())
-        };
-
-        // Candidate generation keys on the value graph when present (so clones
-        // that converge only semantically still become candidates).
-        let minhash = if value.is_empty() && !features.shape_features {
-            Vec::new()
-        } else {
-            let mut distinct = if value.is_empty() {
-                shapes.clone()
-            } else {
-                value.clone()
-            };
-            distinct.dedup();
-            crate::minhash::sign(&distinct, seeds)
-        };
-
-        let display_name = uname
-            .map(|s| interner.resolve(s).to_string())
-            .unwrap_or_else(|| "-".to_string());
-        unit_timer.report_keep(UnitTimingSample {
+    let pre_start = unit_timer.start();
+    let mut pre = Vec::new();
+    collect_pre(ctx.il, root, &mut pre);
+    let pre_ms = UnitTimer::elapsed(pre_start);
+    let skip = |unit_timer: &mut UnitTimer, safe_ms: Option<f64>, value_ms: Option<f64>| {
+        unit_timer.report_skip(UnitTimingSkipSample {
             start: unit_start,
-            feature_start,
             kind: &kind,
-            name: &display_name,
-            path: &il.meta.path,
+            path: &ctx.il.meta.path,
             start_line: span.start_line,
             end_line: span.end_line,
             tokens: pre.len(),
-            value_atoms: value.len(),
             pre_ms,
             safe_ms,
             value_ms,
         });
+    };
 
-        let proof_facts = fragment_kind.map(|fk| match fk {
-            FragmentKind::SelfFieldBody => ProofFacts::self_field_body(),
-            other => ProofFacts::context_gated(other),
-        });
-        out.push(UnitFeat {
-            path: il.meta.path.clone(),
-            lang: il.meta.lang,
-            kind,
-            name: uname.map(|s| interner.resolve(s).to_string()),
-            start_line: span.start_line,
-            end_line: span.end_line,
-            token_count: pre.len(),
+    // Broad container units are covered by their nested primary units. Apply
+    // this cap before strict/value extraction so discarded containers never pay
+    // the dominant semantic fingerprint cost.
+    if semantic_container_token_cap(kind).is_some_and(|cap| pre.len() > cap) {
+        skip(unit_timer, None, None);
+        return None;
+    }
+
+    let syntactically_small = lines < ctx.min_lines || pre.len() < ctx.min_tokens;
+    let can_use_dense_gate =
+        matches!(kind, UnitKind::Function | UnitKind::Method) || exact_fragment;
+    if syntactically_small && !can_use_dense_gate {
+        skip(unit_timer, None, None);
+        return None;
+    }
+
+    let safe_start = unit_timer.start();
+    let strict_exact_safe = strict_exact_safe_tree(ctx.il, ctx.interner, ctx.facts, root);
+    let exact_safe = strict_exact_safe
+        || (exact_fragment
+            && ctx.parents.is_some_and(|parents| {
+                strict_exact_self_field_fragment_safe(
+                    ctx.il,
+                    ctx.interner,
+                    ctx.facts,
+                    parents,
+                    root,
+                )
+            }));
+    let safe_ms = UnitTimer::elapsed(safe_start);
+    // The value graph is the semantic fingerprint (already sorted), with the
+    // literal-only multiset for data-table detection. Computed before the size
+    // gate so the gate can consult semantic richness (below).
+    let value_start = unit_timer.start();
+    let (value, lits, returns, anchors, semantic_laws) = if let Some(context) = ctx.value_context {
+        nose_normalize::value_fingerprint_lits_anchors_laws_with_context(
+            ctx.il,
+            root,
+            ctx.interner,
+            context,
+        )
+    } else {
+        nose_normalize::value_fingerprint_lits_anchors_laws(ctx.il, root, ctx.interner)
+    };
+    let value_ms = UnitTimer::elapsed(value_start);
+
+    // Size gate. A short unit normally isn't a meaningful clone — EXCEPT a
+    // frontend-tagged function whose body is behaviorally *dense*: a functional
+    // one-liner like `return sum(v for v in xs if v>0)` is a real Type-4 clone of a
+    // multi-line loop (the value graph converges them to an *identical* fingerprint),
+    // just compressed below the line/token gate. Admit such a function when its value
+    // fingerprint is rich enough to be matched by the oracle-certified exact-match
+    // path (`value.len() >= 4`, the same floor that path uses) — this recovers the
+    // compressed functional Type-4 forms without lowering the gate for trivial units
+    // (`return x` has 1–2 atoms) or for blocks (kept strict; they are the noisy ones).
+    // Control-flow blocks keep the same syntactic min-lines/min-size gate as
+    // functions: measurement showed the real sub-function clones are small (24–40
+    // tokens), so a stricter block gate drops signal (pool-precision 0.106→0.074,
+    // AUC 0.42→0.17) faster than noise. Exact statement fragments are the narrow
+    // exception: they may pass the dense gate only after `exact_safe` and the value
+    // fingerprint floor prove that the fragment itself is a usable semantic unit.
+    let dense_exact_unit = if exact_fragment {
+        exact_safe && value.len() >= EXACT_VALUE_MIN
+    } else {
+        matches!(kind, UnitKind::Function | UnitKind::Method) && value.len() >= EXACT_VALUE_MIN
+    };
+    if (syntactically_small || exact_fragment) && !dense_exact_unit {
+        skip(unit_timer, safe_ms, value_ms);
+        return None;
+    }
+    Some(GatedUnit {
+        span,
+        pre,
+        exact_safe,
+        value,
+        lits,
+        returns,
+        anchors,
+        semantic_laws,
+        unit_start,
+        pre_ms,
+        safe_ms,
+        value_ms,
+    })
+}
+
+fn extract_unit(
+    ctx: &UnitExtractCtx<'_>,
+    unit_root: UnitRoot,
+    unit_timer: &mut UnitTimer,
+) -> Option<UnitFeat> {
+    let UnitRoot {
+        root: _,
+        kind,
+        name: uname,
+        fragment_kind,
+    } = unit_root;
+    let GatedUnit {
+        span,
+        pre,
+        exact_safe,
+        value,
+        lits,
+        returns,
+        anchors,
+        semantic_laws,
+        unit_start,
+        pre_ms,
+        safe_ms,
+        value_ms,
+    } = gate_unit(ctx, unit_root, unit_timer)?;
+    let feature_start = unit_timer.start();
+    let (shapes, shape_minhash, linear, abstraction_tokens) = unit_shape_features(ctx, &pre);
+
+    // Candidate generation keys on the value graph when present (so clones
+    // that converge only semantically still become candidates).
+    let minhash = unit_minhash(&value, &shapes, ctx.features.shape_features, ctx.seeds);
+
+    let display_name = uname
+        .map(|s| ctx.interner.resolve(s).to_string())
+        .unwrap_or_else(|| "-".to_string());
+    unit_timer.report_keep(UnitTimingSample {
+        start: unit_start,
+        feature_start,
+        kind: &kind,
+        name: &display_name,
+        path: &ctx.il.meta.path,
+        start_line: span.start_line,
+        end_line: span.end_line,
+        tokens: pre.len(),
+        value_atoms: value.len(),
+        pre_ms,
+        safe_ms,
+        value_ms,
+    });
+
+    let proof_facts = fragment_kind.map(|fk| match fk {
+        FragmentKind::SelfFieldBody => ProofFacts::self_field_body(),
+        other => ProofFacts::context_gated(other),
+    });
+    Some(UnitFeat {
+        path: ctx.il.meta.path.clone(),
+        lang: ctx.il.meta.lang,
+        kind,
+        name: uname.map(|s| ctx.interner.resolve(s).to_string()),
+        start_line: span.start_line,
+        end_line: span.end_line,
+        token_count: pre.len(),
+        shapes,
+        shape_minhash,
+        value,
+        minhash,
+        linear,
+        abstraction_tokens,
+        lits,
+        returns,
+        anchors,
+        semantic_laws,
+        exact_safe,
+        fragment_kind,
+        proof_facts,
+    })
+}
+
+fn unit_shape_features(
+    ctx: &UnitExtractCtx<'_>,
+    pre: &[NodeId],
+) -> (Vec<u64>, Vec<u64>, Vec<u64>, Vec<abstraction::WitnessToken>) {
+    let il = ctx.il;
+    let interner = ctx.interner;
+    let features = ctx.features;
+    if features.shape_features {
+        let mut shapes = Vec::with_capacity(pre.len());
+        let mut linear = Vec::with_capacity(pre.len());
+        let mut abstraction_tokens = if features.abstraction_witnesses {
+            Vec::with_capacity(pre.len())
+        } else {
+            Vec::new()
+        };
+        for &nid in pre {
+            let n = il.node(nid);
+            let tag = node_tag(n.kind, n.payload, interner);
+            linear.push(tag);
+            if features.abstraction_witnesses {
+                abstraction_tokens.push(abstraction::token_for(il, interner, nid, tag));
+            }
+            let mut shape = tag;
+            for &c in il.children(nid) {
+                let cn = il.node(c);
+                shape = combine(shape, node_tag(cn.kind, cn.payload, interner));
+            }
+            shapes.push(shape);
+        }
+        shapes.sort_unstable();
+        let mut distinct_shapes = shapes.clone();
+        distinct_shapes.dedup();
+        (
             shapes,
-            shape_minhash,
-            value,
-            minhash,
+            crate::minhash::sign(&distinct_shapes, ctx.seeds),
             linear,
             abstraction_tokens,
-            lits,
-            returns,
-            anchors,
-            semantic_laws,
-            exact_safe,
-            fragment_kind,
-            proof_facts,
-        });
+        )
+    } else if features.abstraction_witnesses {
+        let abstraction_tokens = pre
+            .iter()
+            .map(|&nid| {
+                let n = il.node(nid);
+                let tag = node_tag(n.kind, n.payload, interner);
+                abstraction::token_for(il, interner, nid, tag)
+            })
+            .collect();
+        (Vec::new(), Vec::new(), Vec::new(), abstraction_tokens)
+    } else {
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new())
     }
-    unit_timer.report_summary(&il.meta.path);
-    out
+}
+
+fn unit_minhash(value: &[u64], shapes: &[u64], shape_features: bool, seeds: &[u64]) -> Vec<u64> {
+    if value.is_empty() && !shape_features {
+        Vec::new()
+    } else {
+        let mut distinct = if value.is_empty() {
+            shapes.to_vec()
+        } else {
+            value.to_vec()
+        };
+        distinct.dedup();
+        crate::minhash::sign(&distinct, seeds)
+    }
 }
 
 /// Collect sub-function block roots (loops / ifs / try) as extra unit candidates.
@@ -2052,7 +2152,7 @@ pub(crate) fn build_parent_index(il: &Il) -> Vec<Option<NodeId>> {
     parents
 }
 
-pub(crate) fn subtree_spans_within(il: &Il, node: NodeId, span: nose_il::Span) -> bool {
+pub(crate) fn subtree_spans_within(il: &Il, node: NodeId, span: Span) -> bool {
     let node_span = il.node(node).span;
     if node_span.file != span.file
         || node_span.start_line < span.start_line
@@ -2153,6 +2253,31 @@ mod tests {
             arity as u16,
             dependencies,
         )
+    }
+
+    /// Push the `List.of(…)`-shaped factory contract plus the dependent `contains`
+    /// method-call evidence used by the Java collection-factory tests.
+    fn push_java_factory_contract_evidence(
+        il: &mut Il,
+        contract_id: nose_semantics::LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+    ) {
+        il.evidence.push(library_api_contract_evidence(
+            2,
+            sp(25),
+            contract_id,
+            callee,
+            2,
+            vec![EvidenceId(1)],
+        ));
+        il.evidence.push(method_call_library_api_evidence(
+            3,
+            Lang::Java,
+            "contains",
+            sp(28),
+            1,
+            vec![EvidenceId(2)],
+        ));
     }
 
     fn js_new_set_il(interner: &Interner) -> (Il, NodeId) {
@@ -2784,22 +2909,7 @@ mod tests {
         ));
         assert!(!strict_exact_safe_tree(&il, &interner, &facts, contains));
 
-        il.evidence.push(library_api_contract_evidence(
-            2,
-            sp(25),
-            contract.id,
-            contract.callee,
-            2,
-            vec![EvidenceId(1)],
-        ));
-        il.evidence.push(method_call_library_api_evidence(
-            3,
-            Lang::Java,
-            "contains",
-            sp(28),
-            1,
-            vec![EvidenceId(2)],
-        ));
+        push_java_factory_contract_evidence(&mut il, contract.id, contract.callee);
         let facts = StrictFacts::collect(&il, &interner);
         assert!(strict_exact_java_collection_factory_safe(
             &il, &interner, &facts, factory
@@ -2809,22 +2919,7 @@ mod tests {
         let wrong = library_js_like_set_constructor_contract(Lang::JavaScript, "Set").unwrap();
         il.evidence.pop();
         il.evidence.pop();
-        il.evidence.push(library_api_contract_evidence(
-            2,
-            sp(25),
-            wrong.id,
-            wrong.callee,
-            2,
-            vec![EvidenceId(1)],
-        ));
-        il.evidence.push(method_call_library_api_evidence(
-            3,
-            Lang::Java,
-            "contains",
-            sp(28),
-            1,
-            vec![EvidenceId(2)],
-        ));
+        push_java_factory_contract_evidence(&mut il, wrong.id, wrong.callee);
         let facts = StrictFacts::collect(&il, &interner);
         assert!(!strict_exact_java_collection_factory_safe(
             &il, &interner, &facts, factory

@@ -754,6 +754,13 @@ fn semantic_pack_check_fails_on_missing_fixture_files() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+/// Compiled-in pack rows share the same provenance coordinates.
+fn assert_compiled_first_party_pack(pack: &serde_json::Value, id: &str) {
+    assert_eq!(pack["id"], id);
+    assert_eq!(pack["source"], "compiled-first-party");
+    assert_eq!(pack["influence"], "evidence-and-contracts");
+}
+
 #[test]
 fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
     let dir = make_project("semantic_pack_cli");
@@ -779,19 +786,13 @@ fn scan_json_reports_first_party_and_local_semantic_pack_provenance() {
         4,
         "first-party packs + local opt-in pack: {json}"
     );
-    assert_eq!(packs[0]["id"], "nose.first_party");
-    assert_eq!(packs[0]["source"], "compiled-first-party");
-    assert_eq!(packs[0]["influence"], "evidence-and-contracts");
-    assert_eq!(packs[1]["id"], "nose.python.stdlib.type_domain");
+    assert_compiled_first_party_pack(&packs[0], "nose.first_party");
+    assert_compiled_first_party_pack(&packs[1], "nose.python.stdlib.type_domain");
     assert_eq!(packs[1]["kind"], "StdlibPack");
-    assert_eq!(packs[1]["source"], "compiled-first-party");
-    assert_eq!(packs[1]["influence"], "evidence-and-contracts");
     assert_eq!(packs[1]["counts"]["evidence_producers"], 1);
     assert_eq!(packs[1]["counts"]["contracts"], 1);
-    assert_eq!(packs[2]["id"], "nose.value_graph.laws");
+    assert_compiled_first_party_pack(&packs[2], "nose.value_graph.laws");
     assert_eq!(packs[2]["kind"], "LawPack");
-    assert_eq!(packs[2]["source"], "compiled-first-party");
-    assert_eq!(packs[2]["influence"], "evidence-and-contracts");
     assert_eq!(packs[2]["counts"]["value_laws"], 2);
     assert_eq!(packs[3]["id"], "com.example.semantic-pack");
     assert_eq!(packs[3]["trust"], "external-opt-in");
@@ -1439,6 +1440,13 @@ fn capabilities_command_emits_machine_readable_contract() {
     assert_eq!(json["interfaces"]["capabilities_json"], true);
     assert_eq!(json["interfaces"]["version_json"], false);
     assert_eq!(json["interfaces"]["doctor_json"], false);
+}
+
+#[test]
+fn capabilities_command_lists_stable_commands_and_schemas() {
+    let out = run(&["capabilities"]);
+    let json: serde_json::Value =
+        serde_json::from_str(&out).expect("capabilities must emit valid JSON");
 
     assert_eq!(
         json_array_strings(&json["commands"], "stable"),
@@ -1458,6 +1466,14 @@ fn capabilities_command_emits_machine_readable_contract() {
         "nose.semantic-pack.v0"
     );
     assert_eq!(json["schemas"]["semantic_pack_conformance"][0], 1);
+}
+
+#[test]
+fn capabilities_command_reports_scan_surface() {
+    let out = run(&["capabilities"]);
+    let json: serde_json::Value =
+        serde_json::from_str(&out).expect("capabilities must emit valid JSON");
+
     assert_eq!(
         json_array_strings(&json["scan"], "modes"),
         vec!["syntax", "semantic", "near"]
@@ -1477,6 +1493,14 @@ fn capabilities_command_emits_machine_readable_contract() {
     assert_eq!(json["scan"]["capabilities"]["baseline"], true);
     assert_eq!(json["scan"]["capabilities"]["semantic_pack_loading"], true);
     assert_eq!(json["scan"]["capabilities"]["structured_ignores"], true);
+}
+
+#[test]
+fn capabilities_command_reports_semantic_pack_il_and_stats_surfaces() {
+    let out = run(&["capabilities"]);
+    let json: serde_json::Value =
+        serde_json::from_str(&out).expect("capabilities must emit valid JSON");
+
     assert_eq!(
         json["semantic_packs"]["api_versions"][0],
         "nose.semantic-pack.v0"

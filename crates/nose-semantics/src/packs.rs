@@ -965,126 +965,10 @@ struct ManifestFixture {
 }
 
 fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
-    if manifest.api_version != SEMANTIC_PACK_API_VERSION {
-        return Err(format!(
-            "`api_version` must be {SEMANTIC_PACK_API_VERSION}, got `{}`",
-            manifest.api_version
-        ));
-    }
-    require_stable_id("pack.id", &manifest.pack.id)?;
-    require_non_empty("pack.version", &manifest.pack.version)?;
-    require_non_empty("pack.display_name", &manifest.pack.display_name)?;
-    optional_non_empty("pack.description", manifest.pack.description.as_deref())?;
-    require_non_empty(
-        "provenance.provider.name",
-        &manifest.provenance.provider.name,
-    )?;
-    optional_non_empty(
-        "provenance.provider.contact",
-        manifest.provenance.provider.contact.as_deref(),
-    )?;
-    require_non_empty("provenance.license", &manifest.provenance.license)?;
-    require_non_empty("provenance.repository", &manifest.provenance.repository)?;
-    optional_non_empty(
-        "provenance.source_revision",
-        manifest.provenance.source_revision.as_deref(),
-    )?;
-    validate_nose_version_requirement("compatibility.nose", &manifest.compatibility.nose)?;
-    optional_non_empty(
-        "compatibility.notes",
-        manifest.compatibility.notes.as_deref(),
-    )?;
-    if manifest.pack.trust != PackTrust::ExternalOptIn || manifest.pack.enabled_by_default {
-        return Err(
-            "local semantic pack manifests must be external-opt-in and disabled by default"
-                .to_string(),
-        );
-    }
-    if manifest.supported_languages.is_empty() {
-        return Err("`supported_languages` must contain at least one language".to_string());
-    }
-    for language in &manifest.supported_languages {
-        require_non_empty("supported_languages[].id", &language.id)?;
-        optional_non_empty(
-            "supported_languages[].language_version",
-            language.language_version.as_deref(),
-        )?;
-        optional_non_empty("supported_languages[].runtime", language.runtime.as_deref())?;
-        for version in &language.runtime_versions {
-            require_non_empty("supported_languages[].runtime_versions[]", version)?;
-        }
-    }
-    for package in &manifest.packages {
-        require_non_empty("packages[].ecosystem", &package.ecosystem)?;
-        require_non_empty("packages[].name", &package.name)?;
-        require_non_empty("packages[].versions", &package.versions)?;
-    }
-    for dependency in &manifest.dependencies {
-        require_stable_id("dependencies[].id", &dependency.id)?;
-        require_non_empty("dependencies[].version", &dependency.version)?;
-        let _required = dependency.required;
-    }
-
-    let mut known_refs = HashSet::new();
-    collect_unique_refs(
-        "dependencies",
-        manifest.dependencies.iter().map(|dep| &dep.id),
-        &mut known_refs,
-    )?;
-    collect_unique_refs(
-        "declares.evidence_producers",
-        manifest
-            .declares
-            .evidence_producers
-            .iter()
-            .map(|producer| &producer.id),
-        &mut known_refs,
-    )?;
-    collect_unique_refs(
-        "declares.contracts",
-        manifest
-            .declares
-            .contracts
-            .iter()
-            .map(|contract| &contract.id),
-        &mut known_refs,
-    )?;
-    collect_unique_refs(
-        "declares.value_laws",
-        manifest.declares.value_laws.iter().map(|law| &law.id),
-        &mut known_refs,
-    )?;
-
-    if manifest.conformance.positive_fixtures.is_empty() {
-        return Err("`conformance.positive_fixtures` must not be empty".to_string());
-    }
-    if manifest.conformance.hard_negatives.is_empty() {
-        return Err("`conformance.hard_negatives` must not be empty".to_string());
-    }
-    for fixture in manifest
-        .conformance
-        .positive_fixtures
-        .iter()
-        .chain(&manifest.conformance.hard_negatives)
-    {
-        require_stable_id("conformance fixture id", &fixture.id)?;
-        require_non_empty("conformance fixture description", &fixture.description)?;
-        optional_non_empty("conformance fixture path", fixture.path.as_deref())?;
-        optional_non_empty(
-            "conformance fixture expectation",
-            fixture.expectation.as_deref(),
-        )?;
-    }
-    for unsupported in &manifest.conformance.known_unsupported {
-        require_non_empty("conformance.known_unsupported[]", unsupported)?;
-    }
-    optional_non_empty(
-        "conformance.command",
-        manifest.conformance.command.as_deref(),
-    )?;
-    for proof in &manifest.conformance.proofs {
-        require_non_empty("conformance.proofs[]", proof)?;
-    }
+    validate_manifest_header(manifest)?;
+    validate_manifest_targets(manifest)?;
+    let known_refs = collect_declared_refs(manifest)?;
+    validate_manifest_conformance(manifest)?;
     let conformance_refs = collect_conformance_fixture_refs(manifest)?;
 
     for producer in &manifest.declares.evidence_producers {
@@ -1125,6 +1009,140 @@ fn validate_manifest(manifest: &SemanticPackManifest) -> Result<(), String> {
             &known_refs,
             &conformance_refs,
         )?;
+    }
+    Ok(())
+}
+
+fn validate_manifest_header(manifest: &SemanticPackManifest) -> Result<(), String> {
+    if manifest.api_version != SEMANTIC_PACK_API_VERSION {
+        return Err(format!(
+            "`api_version` must be {SEMANTIC_PACK_API_VERSION}, got `{}`",
+            manifest.api_version
+        ));
+    }
+    require_stable_id("pack.id", &manifest.pack.id)?;
+    require_non_empty("pack.version", &manifest.pack.version)?;
+    require_non_empty("pack.display_name", &manifest.pack.display_name)?;
+    optional_non_empty("pack.description", manifest.pack.description.as_deref())?;
+    require_non_empty(
+        "provenance.provider.name",
+        &manifest.provenance.provider.name,
+    )?;
+    optional_non_empty(
+        "provenance.provider.contact",
+        manifest.provenance.provider.contact.as_deref(),
+    )?;
+    require_non_empty("provenance.license", &manifest.provenance.license)?;
+    require_non_empty("provenance.repository", &manifest.provenance.repository)?;
+    optional_non_empty(
+        "provenance.source_revision",
+        manifest.provenance.source_revision.as_deref(),
+    )?;
+    validate_nose_version_requirement("compatibility.nose", &manifest.compatibility.nose)?;
+    optional_non_empty(
+        "compatibility.notes",
+        manifest.compatibility.notes.as_deref(),
+    )?;
+    if manifest.pack.trust != PackTrust::ExternalOptIn || manifest.pack.enabled_by_default {
+        return Err(
+            "local semantic pack manifests must be external-opt-in and disabled by default"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn validate_manifest_targets(manifest: &SemanticPackManifest) -> Result<(), String> {
+    if manifest.supported_languages.is_empty() {
+        return Err("`supported_languages` must contain at least one language".to_string());
+    }
+    for language in &manifest.supported_languages {
+        require_non_empty("supported_languages[].id", &language.id)?;
+        optional_non_empty(
+            "supported_languages[].language_version",
+            language.language_version.as_deref(),
+        )?;
+        optional_non_empty("supported_languages[].runtime", language.runtime.as_deref())?;
+        for version in &language.runtime_versions {
+            require_non_empty("supported_languages[].runtime_versions[]", version)?;
+        }
+    }
+    for package in &manifest.packages {
+        require_non_empty("packages[].ecosystem", &package.ecosystem)?;
+        require_non_empty("packages[].name", &package.name)?;
+        require_non_empty("packages[].versions", &package.versions)?;
+    }
+    for dependency in &manifest.dependencies {
+        require_stable_id("dependencies[].id", &dependency.id)?;
+        require_non_empty("dependencies[].version", &dependency.version)?;
+        let _required = dependency.required;
+    }
+    Ok(())
+}
+
+fn collect_declared_refs(manifest: &SemanticPackManifest) -> Result<HashSet<String>, String> {
+    let mut known_refs = HashSet::new();
+    collect_unique_refs(
+        "dependencies",
+        manifest.dependencies.iter().map(|dep| &dep.id),
+        &mut known_refs,
+    )?;
+    collect_unique_refs(
+        "declares.evidence_producers",
+        manifest
+            .declares
+            .evidence_producers
+            .iter()
+            .map(|producer| &producer.id),
+        &mut known_refs,
+    )?;
+    collect_unique_refs(
+        "declares.contracts",
+        manifest
+            .declares
+            .contracts
+            .iter()
+            .map(|contract| &contract.id),
+        &mut known_refs,
+    )?;
+    collect_unique_refs(
+        "declares.value_laws",
+        manifest.declares.value_laws.iter().map(|law| &law.id),
+        &mut known_refs,
+    )?;
+    Ok(known_refs)
+}
+
+fn validate_manifest_conformance(manifest: &SemanticPackManifest) -> Result<(), String> {
+    if manifest.conformance.positive_fixtures.is_empty() {
+        return Err("`conformance.positive_fixtures` must not be empty".to_string());
+    }
+    if manifest.conformance.hard_negatives.is_empty() {
+        return Err("`conformance.hard_negatives` must not be empty".to_string());
+    }
+    for fixture in manifest
+        .conformance
+        .positive_fixtures
+        .iter()
+        .chain(&manifest.conformance.hard_negatives)
+    {
+        require_stable_id("conformance fixture id", &fixture.id)?;
+        require_non_empty("conformance fixture description", &fixture.description)?;
+        optional_non_empty("conformance fixture path", fixture.path.as_deref())?;
+        optional_non_empty(
+            "conformance fixture expectation",
+            fixture.expectation.as_deref(),
+        )?;
+    }
+    for unsupported in &manifest.conformance.known_unsupported {
+        require_non_empty("conformance.known_unsupported[]", unsupported)?;
+    }
+    optional_non_empty(
+        "conformance.command",
+        manifest.conformance.command.as_deref(),
+    )?;
+    for proof in &manifest.conformance.proofs {
+        require_non_empty("conformance.proofs[]", proof)?;
     }
     Ok(())
 }

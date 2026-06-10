@@ -1,5 +1,147 @@
 use super::*;
 
+type FragmentScan = (PathBuf, String, Vec<serde_json::Value>);
+
+/// Write `fixtures` into a unique temp dir and run a semantic JSON scan,
+/// returning the project dir, the raw scan output, and the parsed families.
+fn scan_fragment_fixtures(tag: &str, fixtures: &[(&str, &str)]) -> FragmentScan {
+    scan_fragment_fixtures_with(tag, fixtures, &[])
+}
+
+/// Like [`scan_fragment_fixtures`], but raises the size gates so only exact
+/// fragments can report.
+fn scan_fragment_only_fixtures(tag: &str, fixtures: &[(&str, &str)]) -> FragmentScan {
+    scan_fragment_fixtures_with(tag, fixtures, &["--min-lines", "100", "--min-size", "100"])
+}
+
+fn scan_fragment_fixtures_with(
+    tag: &str,
+    fixtures: &[(&str, &str)],
+    size_args: &[&str],
+) -> FragmentScan {
+    let dir = std::env::temp_dir().join(format!("{tag}_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(&dir).unwrap();
+    for (name, src) in fixtures {
+        fs::write(dir.join(name), src).unwrap();
+    }
+    let mut args = vec!["scan", dir.to_str().unwrap(), "--mode", "semantic"];
+    args.extend_from_slice(size_args);
+    args.extend_from_slice(&["--format", "json", "--top", "0"]);
+    let out = run(&args);
+    let families = scan_families(&scan_json(&out)).to_vec();
+    (dir, out, families)
+}
+
+fn family_locations(family: &serde_json::Value) -> &[serde_json::Value] {
+    family["locations"].as_array().expect("locations")
+}
+
+fn location_files(family: &serde_json::Value) -> Vec<&str> {
+    family_locations(family)
+        .iter()
+        .filter_map(|loc| loc["file"].as_str())
+        .collect()
+}
+
+fn family_all_blocks(family: &serde_json::Value) -> bool {
+    family_locations(family)
+        .iter()
+        .all(|loc| loc["kind"] == "Block")
+}
+
+/// Locations of `family` whose file ends with `left` or `right`.
+fn pair_locations<'a>(
+    family: &'a serde_json::Value,
+    left: &str,
+    right: &str,
+) -> Vec<&'a serde_json::Value> {
+    family_locations(family)
+        .iter()
+        .filter(|loc| {
+            loc["file"].as_str().unwrap_or("").ends_with(left)
+                || loc["file"].as_str().unwrap_or("").ends_with(right)
+        })
+        .collect()
+}
+
+/// First family whose locations include both a `left` and a `right` file.
+fn find_pair_family<'a>(
+    families: &'a [serde_json::Value],
+    left: &str,
+    right: &str,
+) -> Option<&'a serde_json::Value> {
+    families.iter().find(|family| {
+        let files = location_files(family);
+        files.iter().any(|file| file.ends_with(left))
+            && files.iter().any(|file| file.ends_with(right))
+    })
+}
+
+fn has_pair_family(families: &[serde_json::Value], left: &str, right: &str) -> bool {
+    find_pair_family(families, left, right).is_some()
+}
+
+/// First all-Block family that pairs `left` with `right` and excludes `negative`.
+fn find_block_pair_family<'a>(
+    families: &'a [serde_json::Value],
+    left: &str,
+    right: &str,
+    negative: &str,
+) -> Option<&'a serde_json::Value> {
+    families.iter().find(|family| {
+        let files = location_files(family);
+        files.iter().any(|file| file.ends_with(left))
+            && files.iter().any(|file| file.ends_with(right))
+            && family_all_blocks(family)
+            && files.iter().all(|file| !file.ends_with(negative))
+    })
+}
+
+/// Like [`find_block_pair_family`], but `left`/`right` must report the
+/// `start_line..end_line` span.
+fn find_block_pair_family_at<'a>(
+    families: &'a [serde_json::Value],
+    left: &str,
+    right: &str,
+    negative: &str,
+    start_line: u64,
+    end_line: u64,
+) -> Option<&'a serde_json::Value> {
+    families.iter().find(|family| {
+        let span_files: Vec<&str> = family_locations(family)
+            .iter()
+            .filter(|loc| loc["start_line"] == start_line && loc["end_line"] == end_line)
+            .filter_map(|loc| loc["file"].as_str())
+            .collect();
+        span_files.iter().any(|file| file.ends_with(left))
+            && span_files.iter().any(|file| file.ends_with(right))
+            && family_all_blocks(family)
+            && location_files(family)
+                .iter()
+                .all(|file| !file.ends_with(negative))
+    })
+}
+
+/// Like [`find_block_pair_family`], but some location must span multiple lines.
+fn find_multiline_block_pair_family<'a>(
+    families: &'a [serde_json::Value],
+    left: &str,
+    right: &str,
+    negative: &str,
+) -> Option<&'a serde_json::Value> {
+    families.iter().find(|family| {
+        let files = location_files(family);
+        files.iter().any(|file| file.ends_with(left))
+            && files.iter().any(|file| file.ends_with(right))
+            && family_all_blocks(family)
+            && family_locations(family).iter().any(|loc| {
+                loc["end_line"].as_u64().unwrap_or(0) > loc["start_line"].as_u64().unwrap_or(0) + 1
+            })
+            && files.iter().all(|file| !file.ends_with(negative))
+    })
+}
+
 #[test]
 fn feature_extraction_keeps_dense_small_functions_and_exact_fragments_but_not_small_control_blocks()
 {
@@ -248,13 +390,6 @@ fn semantic_scan_reports_exact_safe_conditional_return_fragments_under_opaque_fu
 
 #[test]
 fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_functions() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_throw_guard_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "square_throw_guard_a.js",
@@ -293,48 +428,21 @@ fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_fun
             "function bothThrowMutated(zs) {\n  zs.push(1);\n  if (zs[0] > 0 && zs[1] > 0) {\n    throw zs[0] + zs[1];\n  }\n  audit(zs);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_fixtures("nose_exact_throw_guard_fragments", &fixtures);
 
     let assert_guard_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let files: Vec<&str> = family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-            })
-            .unwrap_or_else(|| {
-                panic!("missing exact conditional throw fragment family {left}/{right}: {out}")
-            });
-        let locations = family["locations"].as_array().expect("locations");
+        let family = find_pair_family(&families, left, right).unwrap_or_else(|| {
+            panic!("missing exact conditional throw fragment family {left}/{right}: {out}")
+        });
         assert!(
-            locations.iter().all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "conditional throw fragments should report as Block units: {family:?}"
         );
         assert!(
-            locations
+            location_files(family)
                 .iter()
-                .all(|loc| !loc["file"].as_str().unwrap_or("").ends_with(negative)),
+                .all(|file| !file.ends_with(negative)),
             "hard negative must not merge into {left}/{right}: {family:?}"
         );
     };
@@ -360,13 +468,6 @@ fn semantic_scan_reports_exact_safe_conditional_throw_fragments_under_opaque_fun
 #[test]
 fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_under_opaque_functions()
 {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_empty_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "empty_else_return_a.js",
@@ -405,48 +506,21 @@ fn semantic_scan_reports_exact_safe_empty_branch_conditional_exit_fragments_unde
             "function emptyThenThrowMutated(zs) {\n  zs.push(1);\n  if (zs[0] > 0 && zs[1] > 0) {\n  } else {\n    throw zs[0] + zs[1];\n  }\n  audit(zs);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_fixtures("nose_exact_empty_branch_fragments", &fixtures);
 
     let assert_guard_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let files: Vec<&str> = family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-            })
-            .unwrap_or_else(|| {
-                panic!("missing exact empty-branch fragment family {left}/{right}: {out}")
-            });
-        let locations = family["locations"].as_array().expect("locations");
+        let family = find_pair_family(&families, left, right).unwrap_or_else(|| {
+            panic!("missing exact empty-branch fragment family {left}/{right}: {out}")
+        });
         assert!(
-            locations.iter().all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "empty-branch conditional fragments should report as Block units: {family:?}"
         );
         assert!(
-            locations
+            location_files(family)
                 .iter()
-                .all(|loc| !loc["file"].as_str().unwrap_or("").ends_with(negative)),
+                .all(|file| !file.ends_with(negative)),
             "hard negative must not merge into {left}/{right}: {family:?}"
         );
     };
@@ -667,6 +741,9 @@ fn semantic_scan_reports_exact_safe_conditional_expr_effect_fragments_under_opaq
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for exact branch temp-consumption fragments. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaque_functions() {
     let dir = std::env::temp_dir().join(format!(
@@ -927,13 +1004,6 @@ fn semantic_scan_reports_exact_safe_branch_temp_consumption_fragments_under_opaq
 
 #[test]
 fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_opaque_functions() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_nested_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "nested_push_a.js",
@@ -972,54 +1042,17 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
             "function nestedPushProductWrong(zs, out) {\n  if ((zs[0] + 2) > 10) {\n    out.push((zs[0] + 2) * 2);\n  } else {\n    if (zs[1] + zs[2] > 0) {\n      out.push(zs[1] + zs[2]);\n    }\n  }\n  audit(zs);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_exact_nested_fragments", &fixtures);
 
     let assert_guard_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let full_nested_files: Vec<&str> = locations
-                    .iter()
-                    .filter(|loc| loc["start_line"] == 2 && loc["end_line"] == 8)
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                full_nested_files.iter().any(|file| file.ends_with(left))
-                    && full_nested_files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations
-                        .iter()
-                        .filter_map(|loc| loc["file"].as_str())
-                        .all(|file| !file.ends_with(negative))
-            })
+        let family = find_block_pair_family_at(&families, left, right, negative, 2, 8)
             .unwrap_or_else(|| {
                 panic!("missing exact nested conditional effect family {left}/{right}: {out}")
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["start_line"] == 2 && loc["end_line"] == 8),
             "nested conditional effect fragments should report the full nested if: {family:?}"
         );
@@ -1043,6 +1076,9 @@ fn semantic_scan_reports_exact_safe_nested_conditional_effect_fragments_under_op
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for exact foreach append-effect fragments. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque_functions() {
     let dir = std::env::temp_dir().join(format!(
@@ -1306,6 +1342,9 @@ fn semantic_scan_reports_exact_safe_foreach_append_effect_fragments_under_opaque
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for exact Go foreach index-assignment fragments. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_foreach_index_assignment_fragments_for_go() {
     let dir = std::env::temp_dir().join(format!(
@@ -1535,13 +1574,6 @@ fn semantic_scan_reports_exact_safe_foreach_index_assignment_fragments_for_go() 
 #[test]
 fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_under_opaque_functions(
 ) {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_conditional_loop_effect_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "cond_loop_square_a.ts",
@@ -1592,79 +1624,30 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
             "function condDirectUnused(enabled: boolean, out: number[]): void {\n  if (enabled) {\n    out.push(1);\n  }\n  audit(enabled);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_exact_conditional_loop_effect_fragments", &fixtures);
 
     let assert_conditional_loop_family = |left: &str,
                                           right: &str,
                                           negative: &str,
                                           start_line: u64,
                                           end_line: u64| {
-        let family = families
-                .iter()
-                .find(|family| {
-                    let locations = family["locations"].as_array().expect("locations");
-                    let fragment_files: Vec<&str> = locations
-                        .iter()
-                        .filter(|loc| {
-                            loc["start_line"] == start_line && loc["end_line"] == end_line
-                        })
-                        .filter_map(|loc| loc["file"].as_str())
-                        .collect();
-                    fragment_files.iter().any(|file| file.ends_with(left))
-                        && fragment_files.iter().any(|file| file.ends_with(right))
-                        && locations.iter().all(|loc| loc["kind"] == "Block")
-                        && locations
-                            .iter()
-                            .filter_map(|loc| loc["file"].as_str())
-                            .all(|file| !file.ends_with(negative))
-                })
-                .unwrap_or_else(|| {
-                    panic!(
-                        "missing exact conditional foreach append-effect fragment family {left}/{right}: {out}"
-                    )
-                });
+        let family =
+                find_block_pair_family_at(&families, left, right, negative, start_line, end_line)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "missing exact conditional foreach append-effect fragment family {left}/{right}: {out}"
+                        )
+                    });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "conditional foreach append-effect fragments should report as Block units: {family:?}"
         );
     };
 
     let assert_no_pair = |left: &str, right: &str| {
-        let has_pair = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !has_pair,
+            !has_pair_family(&families, left, right),
             "conditional foreach append effect boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -1695,6 +1678,9 @@ fn semantic_scan_reports_exact_safe_conditional_foreach_append_effect_fragments_
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered foreach-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -1917,6 +1903,9 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered mixed-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -2159,6 +2148,9 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered conditional-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -2401,6 +2393,9 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered conditional mixed-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -2521,13 +2516,13 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
                 )
             });
         assert!(
-                family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .all(|loc| loc["kind"] == "Block"),
-                "ordered conditional mixed-effect branch fragments should report as Block units: {family:?}"
-            );
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .all(|loc| loc["kind"] == "Block"),
+            "ordered conditional mixed-effect branch fragments should report as Block units: {family:?}"
+        );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -2658,6 +2653,9 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered loop conditional-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -2778,13 +2776,13 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
                 )
             });
         assert!(
-                family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .all(|loc| loc["kind"] == "Block"),
-                "ordered loop conditional-effect branch fragments should report as Block units: {family:?}"
-            );
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .all(|loc| loc["kind"] == "Block"),
+            "ordered loop conditional-effect branch fragments should report as Block units: {family:?}"
+        );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -2915,6 +2913,9 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered loop conditional mixed-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -3035,13 +3036,13 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
                 )
             });
         assert!(
-                family["locations"]
-                    .as_array()
-                    .expect("locations")
-                    .iter()
-                    .all(|loc| loc["kind"] == "Block"),
-                "ordered loop conditional mixed-effect branch fragments should report as Block units: {family:?}"
-            );
+            family["locations"]
+                .as_array()
+                .expect("locations")
+                .iter()
+                .all(|loc| loc["kind"] == "Block"),
+            "ordered loop conditional mixed-effect branch fragments should report as Block units: {family:?}"
+        );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -3172,6 +3173,9 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for ordered append-effect branch boundaries. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments() {
     let dir = std::env::temp_dir().join(format!(
@@ -3348,13 +3352,6 @@ fn semantic_scan_reports_exact_safe_ordered_append_effect_branch_fragments() {
 
 #[test]
 fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_three_append_effect_boundary_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "append_three_a.ts",
@@ -3409,86 +3406,43 @@ fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
             "function appendFourLeft(flag: boolean, out: number[], x: number): void {\n  if (flag) {\n    out.push(x + 1);\n    out.push(x + 2);\n    out.push(x + 3);\n    out.push(x + 4);\n  }\n  audit(/opaque/);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_three_append_effect_boundary", &fixtures);
 
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
-
-    let assert_block_pair = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && files.iter().all(|file| !file.ends_with(negative))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-            })
-            .unwrap_or_else(|| {
+    for (left, right, negative) in [
+        (
+            "append_three_a.ts",
+            "append_three_b.ts",
+            "append_three_wrong_order.ts",
+        ),
+        (
+            "append_three_temp_a.ts",
+            "append_three_temp_b.ts",
+            "append_three_temp_wrong.ts",
+        ),
+        (
+            "append_three_chain_a.ts",
+            "append_three_chain_b.ts",
+            "append_three_chain_wrong.ts",
+        ),
+    ] {
+        let family =
+            find_block_pair_family(&families, left, right, negative).unwrap_or_else(|| {
                 panic!("missing three-append-effect branch family {left}/{right}: {out}")
             });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "three append-effect branch fragments should report as Block units: {family:?}"
         );
-    };
+    }
 
     let assert_no_merge = |left: &str, right: &str| {
-        let merged = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !merged,
+            !has_pair_family(&families, left, right),
             "semantic mode must not merge three append effects across the boundary ({left}/{right}): {out}"
         );
     };
 
-    assert_block_pair(
-        "append_three_a.ts",
-        "append_three_b.ts",
-        "append_three_wrong_order.ts",
-    );
-    assert_block_pair(
-        "append_three_temp_a.ts",
-        "append_three_temp_b.ts",
-        "append_three_temp_wrong.ts",
-    );
-    assert_block_pair(
-        "append_three_chain_a.ts",
-        "append_three_chain_b.ts",
-        "append_three_chain_wrong.ts",
-    );
     assert_no_merge("append_three_a.ts", "append_three_wrong_order.ts");
     assert_no_merge("append_three_a.ts", "append_three_wrong_receiver.ts");
     assert_no_merge("append_three_a.ts", "append_three_mutated.ts");
@@ -3503,13 +3457,6 @@ fn semantic_scan_reports_exact_safe_three_append_effect_branch_fragments() {
 
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_index_assignment_branch_fragments_for_go() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_index_effect_order_boundary_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "index_pair_a.go",
@@ -3564,86 +3511,43 @@ fn semantic_scan_reports_exact_safe_ordered_index_assignment_branch_fragments_fo
             "function indexPairDynamicJs(flag, out, xs) {\n  if (flag) {\n    out[0] = xs[0] + 1;\n    out[1] = xs[0] + 2;\n  }\n  audit(/opaque/);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_index_effect_order_boundary", &fixtures);
 
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
-
-    let assert_block_pair = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && files.iter().all(|file| !file.ends_with(negative))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-            })
-            .unwrap_or_else(|| {
+    for (left, right, negative) in [
+        (
+            "index_pair_a.go",
+            "index_pair_b.go",
+            "index_pair_wrong_order.go",
+        ),
+        (
+            "index_temp_pair_a.go",
+            "index_temp_pair_b.go",
+            "index_temp_pair_wrong.go",
+        ),
+        (
+            "index_chain_pair_a.go",
+            "index_chain_pair_b.go",
+            "index_chain_pair_wrong.go",
+        ),
+    ] {
+        let family =
+            find_block_pair_family(&families, left, right, negative).unwrap_or_else(|| {
                 panic!("missing ordered index-assignment branch family {left}/{right}: {out}")
             });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "ordered index-assignment branch fragments should report as Block units: {family:?}"
         );
-    };
+    }
 
     let assert_no_merge = |left: &str, right: &str| {
-        let merged = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !merged,
+            !has_pair_family(&families, left, right),
             "semantic mode must not merge ordered index-assignment effects across the boundary ({left}/{right}): {out}"
         );
     };
 
-    assert_block_pair(
-        "index_pair_a.go",
-        "index_pair_b.go",
-        "index_pair_wrong_order.go",
-    );
-    assert_block_pair(
-        "index_temp_pair_a.go",
-        "index_temp_pair_b.go",
-        "index_temp_pair_wrong.go",
-    );
-    assert_block_pair(
-        "index_chain_pair_a.go",
-        "index_chain_pair_b.go",
-        "index_chain_pair_wrong.go",
-    );
     assert_no_merge("index_pair_a.go", "index_pair_wrong_order.go");
     assert_no_merge("index_pair_a.go", "index_pair_wrong_receiver.go");
     assert_no_merge("index_pair_a.go", "index_pair_mutated.go");
@@ -3655,13 +3559,6 @@ fn semantic_scan_reports_exact_safe_ordered_index_assignment_branch_fragments_fo
 
 #[test]
 fn semantic_scan_reports_exact_safe_three_index_assignment_branch_fragments_for_go() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_three_index_effect_boundary_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "index_three_a.go",
@@ -3720,86 +3617,43 @@ fn semantic_scan_reports_exact_safe_three_index_assignment_branch_fragments_for_
             "function indexThreeDynamicJs(flag, out, xs) {\n  if (flag) {\n    out[0] = xs[0] + 1;\n    out[1] = xs[0] + 2;\n    out[2] = xs[0] + 3;\n  }\n  audit(/opaque/);\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_three_index_effect_boundary", &fixtures);
 
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
-
-    let assert_block_pair = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && files.iter().all(|file| !file.ends_with(negative))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-            })
-            .unwrap_or_else(|| {
+    for (left, right, negative) in [
+        (
+            "index_three_a.go",
+            "index_three_b.go",
+            "index_three_wrong_order.go",
+        ),
+        (
+            "index_three_temp_a.go",
+            "index_three_temp_b.go",
+            "index_three_temp_wrong.go",
+        ),
+        (
+            "index_three_chain_a.go",
+            "index_three_chain_b.go",
+            "index_three_chain_wrong.go",
+        ),
+    ] {
+        let family =
+            find_block_pair_family(&families, left, right, negative).unwrap_or_else(|| {
                 panic!("missing three-index-assignment branch family {left}/{right}: {out}")
             });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
+            family_all_blocks(family),
             "three index-assignment branch fragments should report as Block units: {family:?}"
         );
-    };
+    }
 
     let assert_no_merge = |left: &str, right: &str| {
-        let merged = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !merged,
+            !has_pair_family(&families, left, right),
             "semantic mode must not merge three index-assignment effects across the boundary ({left}/{right}): {out}"
         );
     };
 
-    assert_block_pair(
-        "index_three_a.go",
-        "index_three_b.go",
-        "index_three_wrong_order.go",
-    );
-    assert_block_pair(
-        "index_three_temp_a.go",
-        "index_three_temp_b.go",
-        "index_three_temp_wrong.go",
-    );
-    assert_block_pair(
-        "index_three_chain_a.go",
-        "index_three_chain_b.go",
-        "index_three_chain_wrong.go",
-    );
     assert_no_merge("index_three_a.go", "index_three_wrong_order.go");
     assert_no_merge("index_three_a.go", "index_three_wrong_receiver.go");
     assert_no_merge("index_three_a.go", "index_three_mutated.go");
@@ -3812,13 +3666,6 @@ fn semantic_scan_reports_exact_safe_three_index_assignment_branch_fragments_for_
 
 #[test]
 fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloaded_languages() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_index_assign_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "index_square_a.c",
@@ -3873,50 +3720,17 @@ fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloade
             "def py_index_right(ys, j, w):\n    ys[j] = w + 1\n    trace(ys)\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_exact_index_assign_fragments", &fixtures);
 
     let assert_assignment_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && files.iter().all(|file| !file.ends_with(negative))
-            })
-            .unwrap_or_else(|| {
+        let family =
+            find_block_pair_family(&families, left, right, negative).unwrap_or_else(|| {
                 panic!("missing exact index-assignment fragment family {left}/{right}: {out}")
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["start_line"] == loc["end_line"]
                     || loc["end_line"].as_u64().unwrap_or(0)
                         <= loc["start_line"].as_u64().unwrap_or(0) + 3),
@@ -3925,18 +3739,8 @@ fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloade
     };
 
     let assert_no_pair = |left: &str, right: &str| {
-        let has_pair = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !has_pair,
+            !has_pair_family(&families, left, right),
             "overloadable index-assignment pair must stay outside exact fragments: {left}/{right}: {out}"
         );
     };
@@ -3955,13 +3759,6 @@ fn semantic_scan_reports_exact_safe_index_assignment_fragments_for_non_overloade
 
 #[test]
 fn semantic_scan_reports_exact_safe_java_this_field_assignment_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_this_field_assign_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "FieldSelfSquareA.java",
@@ -4016,50 +3813,17 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_fragments() {
             "class PyFieldRight:\n    def f(self, w):\n        self.value = (1 + w) * (1 + w)\n        trace(self)\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_exact_this_field_assign_fragments", &fixtures);
 
     let assert_fragment_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && files.iter().all(|file| !file.ends_with(negative))
-            })
-            .unwrap_or_else(|| {
+        let family =
+            find_block_pair_family(&families, left, right, negative).unwrap_or_else(|| {
                 panic!("missing exact this-field fragment family {left}/{right}: {out}")
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["end_line"].as_u64().unwrap_or(0)
                     <= loc["start_line"].as_u64().unwrap_or(0) + 5),
             "this-field fragments should stay tightly scoped: {family:?}"
@@ -4067,18 +3831,8 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_fragments() {
     };
 
     let assert_no_pair = |left: &str, right: &str| {
-        let has_pair = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !has_pair,
+            !has_pair_family(&families, left, right),
             "dynamic or wrong-receiver field assignment must stay outside exact fragments: {left}/{right}: {out}"
         );
     };
@@ -4106,13 +3860,6 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_fragments() {
 
 #[test]
 fn semantic_scan_reports_exact_safe_ordered_java_this_field_branch_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_ordered_this_field_branch_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "FieldBranchOrderedA.java",
@@ -4139,52 +3886,27 @@ fn semantic_scan_reports_exact_safe_ordered_java_this_field_branch_fragments() {
             "class FieldBranchTripleWrongReceiverBox { int limit; }\nclass FieldBranchTripleWrongReceiver {\n  int value;\n  int limit;\n  int score;\n  void f(FieldBranchTripleWrongReceiverBox other, boolean ready, int c, int d) {\n    if (ready) {\n      this.value = d + c;\n      other.limit = 2 * (d + c);\n      this.score = d - c;\n    }\n    audit(this);\n  }\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_ordered_this_field_branch_fragments", &fixtures);
 
     let assert_branch_family = |left: &str, right: &str, negative: &str| {
         let family = families
             .iter()
             .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
+                let files = location_files(family);
                 files.iter().any(|file| file.ends_with(left))
                     && files.iter().any(|file| file.ends_with(right))
                     && files.iter().all(|file| !file.ends_with(negative))
-                    && locations
+                    && family_locations(family)
                         .iter()
                         .all(|loc| loc["fragment_kind"] == "conditional-guard")
             })
             .unwrap_or_else(|| {
                 panic!("missing ordered self-field branch fragment family {left}/{right}: {out}")
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["end_line"].as_u64().unwrap_or(0)
                     <= loc["start_line"].as_u64().unwrap_or(0) + 5),
             "ordered self-field branch fragments should stay tightly scoped: {family:?}"
@@ -4193,16 +3915,12 @@ fn semantic_scan_reports_exact_safe_ordered_java_this_field_branch_fragments() {
 
     let assert_no_conditional_guard_location = |negative: &str| {
         let has_conditional_guard = families.iter().any(|family| {
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .any(|loc| {
-                    loc["file"]
-                        .as_str()
-                        .is_some_and(|file| file.ends_with(negative))
-                        && loc["fragment_kind"] == "conditional-guard"
-                })
+            family_locations(family).iter().any(|loc| {
+                loc["file"]
+                    .as_str()
+                    .is_some_and(|file| file.ends_with(negative))
+                    && loc["fragment_kind"] == "conditional-guard"
+            })
         });
         assert!(
             !has_conditional_guard,
@@ -4227,13 +3945,6 @@ fn semantic_scan_reports_exact_safe_ordered_java_this_field_branch_fragments() {
 
 #[test]
 fn semantic_scan_reports_exact_safe_java_this_field_assignment_body_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_this_field_body_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "FieldBodyDirectA.java",
@@ -4272,54 +3983,17 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_body_fragments() 
             "class FieldBodyNestedWrongReceiverBox { int score; }\nclass FieldBodyNestedWrongReceiver {\n  int base;\n  int score;\n  void f(FieldBodyNestedWrongReceiverBox other, boolean ready, int c, int d) {\n    this.base = d + c;\n    if (ready) {\n      if (0 < c) {\n        other.score = (d + c) * (d + c);\n      }\n    }\n  }\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) =
+        scan_fragment_only_fixtures("nose_exact_this_field_body_fragments", &fixtures);
 
     let assert_body_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations.iter().any(|loc| {
-                        loc["end_line"].as_u64().unwrap_or(0)
-                            > loc["start_line"].as_u64().unwrap_or(0) + 1
-                    })
-                    && files.iter().all(|file| !file.ends_with(negative))
-            })
+        let family = find_multiline_block_pair_family(&families, left, right, negative)
             .unwrap_or_else(|| {
                 panic!("missing exact this-field body fragment family {left}/{right}: {out}")
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["end_line"].as_u64().unwrap_or(0)
                     <= loc["start_line"].as_u64().unwrap_or(0) + 7),
             "this-field body fragments should stay tightly scoped: {family:?}"
@@ -4327,18 +4001,8 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_body_fragments() 
     };
 
     let assert_no_pair = |left: &str, right: &str| {
-        let has_pair = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !has_pair,
+            !has_pair_family(&families, left, right),
             "wrong-receiver field body must stay outside exact fragments: {left}/{right}: {out}"
         );
     };
@@ -4364,13 +4028,6 @@ fn semantic_scan_reports_exact_safe_java_this_field_assignment_body_fragments() 
 
 #[test]
 fn semantic_scan_reports_exact_safe_java_this_field_return_this_body_fragments() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_exact_this_field_return_this_body_fragments_{}",
-        std::process::id()
-    ));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(&dir).unwrap();
-
     let fixtures = [
         (
             "FluentBodyDirectA.java",
@@ -4409,56 +4066,21 @@ fn semantic_scan_reports_exact_safe_java_this_field_return_this_body_fragments()
             "class FluentBodyNestedWrongValue {\n  int base;\n  int score;\n  FluentBodyNestedWrongValue f(boolean ready, int c, int d) {\n    this.base = d + c;\n    if (ready) {\n      if (0 < c) {\n        this.score = (d + c) + (d + c);\n      }\n    }\n    return this;\n  }\n}\n",
         ),
     ];
-    for (name, src) in fixtures {
-        fs::write(dir.join(name), src).unwrap();
-    }
-
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "100",
-        "--min-size",
-        "100",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
-    let json = scan_json(&out);
-    let families = scan_families(&json);
+    let (dir, out, families) = scan_fragment_only_fixtures(
+        "nose_exact_this_field_return_this_body_fragments",
+        &fixtures,
+    );
 
     let assert_body_family = |left: &str, right: &str, negative: &str| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let files: Vec<&str> = locations
-                    .iter()
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                files.iter().any(|file| file.ends_with(left))
-                    && files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations.iter().any(|loc| {
-                        loc["end_line"].as_u64().unwrap_or(0)
-                            > loc["start_line"].as_u64().unwrap_or(0) + 1
-                    })
-                    && files.iter().all(|file| !file.ends_with(negative))
-            })
+        let family = find_multiline_block_pair_family(&families, left, right, negative)
             .unwrap_or_else(|| {
                 panic!(
                     "missing exact this-field return-this body fragment family {left}/{right}: {out}"
                 )
             });
-        let locations = family["locations"].as_array().expect("locations");
         assert!(
-            locations
+            pair_locations(family, left, right)
                 .iter()
-                .filter(|loc| loc["file"].as_str().unwrap_or("").ends_with(left)
-                    || loc["file"].as_str().unwrap_or("").ends_with(right))
                 .all(|loc| loc["end_line"].as_u64().unwrap_or(0)
                     <= loc["start_line"].as_u64().unwrap_or(0) + 9),
             "this-field return-this body fragments should stay tightly scoped: {family:?}"
@@ -4466,18 +4088,8 @@ fn semantic_scan_reports_exact_safe_java_this_field_return_this_body_fragments()
     };
 
     let assert_no_pair = |left: &str, right: &str| {
-        let has_pair = families.iter().any(|family| {
-            let files: Vec<&str> = family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .filter_map(|loc| loc["file"].as_str())
-                .collect();
-            files.iter().any(|file| file.ends_with(left))
-                && files.iter().any(|file| file.ends_with(right))
-        });
         assert!(
-            !has_pair,
+            !has_pair_family(&families, left, right),
             "wrong-return field body must stay outside exact fragments: {left}/{right}: {out}"
         );
     };

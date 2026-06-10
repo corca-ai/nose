@@ -66,7 +66,14 @@ pub(super) fn library_api_contract_id_from_hash(hash: u64) -> Option<LibraryApiC
 }
 
 fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
-    let mut ids = vec![
+    let mut ids = core_library_api_contract_ids();
+    push_keyed_library_api_contract_ids(&mut ids);
+    push_method_call_library_api_contract_ids(&mut ids);
+    ids
+}
+
+fn core_library_api_contract_ids() -> Vec<LibraryApiContractId> {
+    vec![
         LibraryApiContractId::PropertyBuiltin(Builtin::Len),
         LibraryApiContractId::PythonBuiltinCollectionFactory,
         LibraryApiContractId::PythonImportedCollectionFactory,
@@ -104,7 +111,10 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
         LibraryApiContractId::PromiseThen,
         LibraryApiContractId::IteratorIdentityAdapter,
         LibraryApiContractId::StaticCollectionAdapter,
-    ];
+    ]
+}
+
+fn push_keyed_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
     ids.extend(
         [
             ScalarIntegerMethod::Abs,
@@ -145,6 +155,9 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
         .into_iter()
         .map(LibraryApiContractId::ImportedNamespaceFunction),
     );
+}
+
+fn push_method_call_library_api_contract_ids(ids: &mut Vec<LibraryApiContractId>) {
     ids.extend(
         [
             MethodSemanticContract::Builtin(Builtin::Append),
@@ -175,7 +188,6 @@ fn library_api_contract_ids() -> Vec<LibraryApiContractId> {
         .into_iter()
         .map(LibraryApiContractId::MethodCall),
     );
-    ids
 }
 
 pub(super) fn library_api_record_admitted_for_current_shape(
@@ -282,6 +294,15 @@ fn library_api_callee_contracts_for_id(
             .filter(|contract| contract.id == LibraryApiContractId::ScalarIntegerMethod(method))
             .map(|contract| contract.callee)
             .collect(),
+        _ => library_api_factory_callee_contracts_for_id(lang, id),
+    }
+}
+
+fn library_api_factory_callee_contracts_for_id(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> Vec<LibraryApiCalleeContract> {
+    match id {
         LibraryApiContractId::RustStdMapFactory => library_free_name_map_factory_contracts(lang)
             .filter(|contract| contract.id == id)
             .map(|contract| contract.callee)
@@ -352,6 +373,15 @@ fn library_api_callee_contracts_for_id(
                 .map(|contract| vec![contract.callee])
                 .unwrap_or_default()
         }
+        _ => library_api_member_callee_contracts_for_id(lang, id),
+    }
+}
+
+fn library_api_member_callee_contracts_for_id(
+    lang: Lang,
+    id: LibraryApiContractId,
+) -> Vec<LibraryApiCalleeContract> {
+    match id {
         LibraryApiContractId::JsLikeStaticIndexMembership(kind) => ["indexOf", "findIndex"]
             .into_iter()
             .filter_map(|method| library_static_index_membership_contract(lang, method, 1))

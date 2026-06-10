@@ -1374,9 +1374,10 @@ mod tests {
         assert_eq!(importer.kind(appended.root), NodeKind::Assign);
     }
 
-    #[test]
-    fn snapshot_append_copies_relevant_evidence_with_source_origin_spans() {
-        let interner = Interner::new();
+    /// `tables.py` provider with `LOOKUP = {…}` plus the surface, export,
+    /// symbol, and (ambiguous) duplicate-surface evidence records the snapshot
+    /// copy tests filter over. Returns the provider and its assign statement.
+    fn provider_with_lookup_export_evidence(interner: &Interner) -> (Il, NodeId) {
         let mut b = IlBuilder::new(FileId(0));
         let span = Span::new(FileId(0), 4, 12, 1, 1);
         let lookup = interner.intern("LOOKUP");
@@ -1433,6 +1434,13 @@ mod tests {
             dependencies: Vec::new(),
             status: EvidenceStatus::Ambiguous,
         });
+        (provider, assign)
+    }
+
+    #[test]
+    fn snapshot_append_copies_relevant_evidence_with_source_origin_spans() {
+        let interner = Interner::new();
+        let (provider, assign) = provider_with_lookup_export_evidence(&interner);
         let snapshot = snapshot_subtree(&provider, assign);
 
         let mut b = IlBuilder::new(FileId(1));
@@ -1491,11 +1499,10 @@ mod tests {
         assert_eq!(copied_export.dependencies, vec![copied_surface.id]);
     }
 
-    #[test]
-    fn resolve_imported_literal_records_snapshot_provenance_dependencies() {
-        let interner = Interner::new();
+    /// `tables.py` provider exporting `LOOKUP = {"red": 1}` with asserted
+    /// map-surface evidence on the literal.
+    fn lookup_dict_provider(interner: &Interner, lookup: Symbol) -> Il {
         let provider_span = Span::new(FileId(0), 4, 24, 1, 1);
-        let lookup = interner.intern("LOOKUP");
         let mut b = IlBuilder::new(FileId(0));
         let lhs = b.add(NodeKind::Var, Payload::Name(lookup), provider_span, &[]);
         let key = b.add(
@@ -1531,7 +1538,12 @@ mod tests {
             dependencies: Vec::new(),
             status: EvidenceStatus::Asserted,
         });
+        provider
+    }
 
+    /// `consumer.py` importer binding `LOOKUP` from `tables` with an asserted
+    /// static-import proof. Returns the importer and its import assignment.
+    fn lookup_import_consumer(lookup: Symbol) -> (Il, NodeId) {
         let import_span = Span::new(FileId(1), 0, 24, 1, 1);
         let mut b = IlBuilder::new(FileId(1));
         let lhs = b.add(NodeKind::Var, Payload::Name(lookup), import_span, &[]);
@@ -1585,6 +1597,15 @@ mod tests {
             dependencies: Vec::new(),
             status: EvidenceStatus::Asserted,
         });
+        (importer, import_assign)
+    }
+
+    #[test]
+    fn resolve_imported_literal_records_snapshot_provenance_dependencies() {
+        let interner = Interner::new();
+        let lookup = interner.intern("LOOKUP");
+        let provider = lookup_dict_provider(&interner, lookup);
+        let (importer, import_assign) = lookup_import_consumer(lookup);
 
         let mut files = vec![provider, importer];
         resolve_imported_immutable_bindings(&mut files, &interner);

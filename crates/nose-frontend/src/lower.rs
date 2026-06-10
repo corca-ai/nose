@@ -1527,128 +1527,18 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
         return false;
     };
     let arg_count = args.len();
-    let contract = (arg_count == 1)
-        .then(|| library_free_name_collection_factory_contract(il.meta.lang, callee_name))
-        .flatten()
-        .map(|contract| {
-            (
-                contract.id,
-                contract.callee,
-                "library_api_free_name_collection_factory",
-                library_collection_factory_result_domain_for_arity(contract, arg_count),
-            )
-        })
-        .or_else(|| {
-            (arg_count == 1)
-                .then(|| library_free_name_map_factory_contract(il.meta.lang, callee_name))
-                .flatten()
-                .map(|contract| {
-                    (
-                        contract.id,
-                        contract.callee,
-                        "library_api_free_name_map_factory",
-                        Some(library_map_factory_result_domain(contract)),
-                    )
-                })
-        })
-        .or_else(|| {
-            library_rust_vec_macro_factory_contract(il.meta.lang, callee_name).map(|contract| {
-                (
-                    contract.id,
-                    contract.callee,
-                    "library_api_rust_vec_macro_factory",
-                    library_collection_factory_result_domain_for_arity(contract, arg_count),
-                )
-            })
-        })
-        .or_else(|| {
-            (arg_count == 0)
-                .then(|| library_rust_vec_new_factory_contract(il.meta.lang, callee_name))
-                .flatten()
-                .map(|contract| {
-                    (
-                        contract.id,
-                        contract.callee,
-                        "library_api_rust_vec_new_factory",
-                        library_collection_factory_result_domain_for_arity(contract, arg_count),
-                    )
-                })
-        })
-        .or_else(|| {
-            library_rust_option_some_constructor_contract(il.meta.lang, callee_name, arg_count).map(
-                |contract| {
-                    (
-                        contract.id,
-                        contract.callee,
-                        "library_api_rust_option_some_constructor",
-                        Some(contract.result_domain),
-                    )
-                },
-            )
-        })
-        .or_else(|| {
-            library_free_function_builtin_contract(il.meta.lang, callee_name, arg_count).map(
-                |contract| {
-                    (
-                        contract.id,
-                        contract.callee,
-                        "library_api_free_function_builtin",
-                        None,
-                    )
-                },
-            )
-        });
+    let contract = post_lower_free_name_library_api_contract(il.meta.lang, callee_name, arg_count);
     let Some((id, callee_contract, rule, result_domain)) = contract else {
         return false;
     };
     if il.meta.lang == Lang::Python && post_lower_has_python_wildcard_import_evidence(il) {
         return false;
     }
-    let mut dependencies = Vec::new();
-    match callee_contract {
-        LibraryApiCalleeContract::FreeName { name, shadow } => {
-            if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-                post_lower_file_defines_name_visible_at(
-                    il,
-                    interner,
-                    candidate,
-                    il.node(callee).span,
-                )
-            }) {
-                return false;
-            }
-            let Some(dependency) = post_lower_unshadowed_symbol_evidence_id(il, callee, name)
-            else {
-                return false;
-            };
-            dependencies.push(dependency);
-        }
-        LibraryApiCalleeContract::RustMacro { name, shadow } => {
-            if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
-                post_lower_file_defines_name_visible_at(
-                    il,
-                    interner,
-                    candidate,
-                    il.node(callee).span,
-                )
-            }) {
-                return false;
-            }
-            let Some(source_dependency) =
-                post_lower_source_call_evidence_id(il, call, SourceCallKind::MacroInvocation)
-            else {
-                return false;
-            };
-            let Some(symbol_dependency) =
-                post_lower_unshadowed_symbol_evidence_id(il, callee, name)
-            else {
-                return false;
-            };
-            dependencies.push(source_dependency);
-            dependencies.push(symbol_dependency);
-        }
-        _ => return false,
-    }
+    let Some(dependencies) =
+        post_lower_free_name_library_api_dependencies(il, interner, call, callee, callee_contract)
+    else {
+        return false;
+    };
     let api = post_lower_library_api_evidence_id(
         il,
         call,
@@ -1660,6 +1550,132 @@ fn record_post_lower_free_name_library_api(il: &mut Il, interner: &Interner, cal
     );
     post_lower_record_library_api_result_domain(il, call, result_domain, api);
     true
+}
+
+fn post_lower_free_name_library_api_contract(
+    lang: Lang,
+    callee_name: &str,
+    arg_count: usize,
+) -> Option<(
+    LibraryApiContractId,
+    LibraryApiCalleeContract,
+    &'static str,
+    Option<DomainEvidence>,
+)> {
+    (arg_count == 1)
+        .then(|| library_free_name_collection_factory_contract(lang, callee_name))
+        .flatten()
+        .map(|contract| {
+            (
+                contract.id,
+                contract.callee,
+                "library_api_free_name_collection_factory",
+                library_collection_factory_result_domain_for_arity(contract, arg_count),
+            )
+        })
+        .or_else(|| {
+            (arg_count == 1)
+                .then(|| library_free_name_map_factory_contract(lang, callee_name))
+                .flatten()
+                .map(|contract| {
+                    (
+                        contract.id,
+                        contract.callee,
+                        "library_api_free_name_map_factory",
+                        Some(library_map_factory_result_domain(contract)),
+                    )
+                })
+        })
+        .or_else(|| {
+            library_rust_vec_macro_factory_contract(lang, callee_name).map(|contract| {
+                (
+                    contract.id,
+                    contract.callee,
+                    "library_api_rust_vec_macro_factory",
+                    library_collection_factory_result_domain_for_arity(contract, arg_count),
+                )
+            })
+        })
+        .or_else(|| {
+            (arg_count == 0)
+                .then(|| library_rust_vec_new_factory_contract(lang, callee_name))
+                .flatten()
+                .map(|contract| {
+                    (
+                        contract.id,
+                        contract.callee,
+                        "library_api_rust_vec_new_factory",
+                        library_collection_factory_result_domain_for_arity(contract, arg_count),
+                    )
+                })
+        })
+        .or_else(|| {
+            library_rust_option_some_constructor_contract(lang, callee_name, arg_count).map(
+                |contract| {
+                    (
+                        contract.id,
+                        contract.callee,
+                        "library_api_rust_option_some_constructor",
+                        Some(contract.result_domain),
+                    )
+                },
+            )
+        })
+        .or_else(|| {
+            library_free_function_builtin_contract(lang, callee_name, arg_count).map(|contract| {
+                (
+                    contract.id,
+                    contract.callee,
+                    "library_api_free_function_builtin",
+                    None,
+                )
+            })
+        })
+}
+
+fn post_lower_free_name_library_api_dependencies(
+    il: &mut Il,
+    interner: &Interner,
+    call: NodeId,
+    callee: NodeId,
+    callee_contract: LibraryApiCalleeContract,
+) -> Option<Vec<EvidenceId>> {
+    let mut dependencies = Vec::new();
+    match callee_contract {
+        LibraryApiCalleeContract::FreeName { name, shadow } => {
+            if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                post_lower_file_defines_name_visible_at(
+                    il,
+                    interner,
+                    candidate,
+                    il.node(callee).span,
+                )
+            }) {
+                return None;
+            }
+            let dependency = post_lower_unshadowed_symbol_evidence_id(il, callee, name)?;
+            dependencies.push(dependency);
+        }
+        LibraryApiCalleeContract::RustMacro { name, shadow } => {
+            if !library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
+                post_lower_file_defines_name_visible_at(
+                    il,
+                    interner,
+                    candidate,
+                    il.node(callee).span,
+                )
+            }) {
+                return None;
+            }
+            let source_dependency =
+                post_lower_source_call_evidence_id(il, call, SourceCallKind::MacroInvocation)?;
+            let symbol_dependency = post_lower_unshadowed_symbol_evidence_id(il, callee, name)?;
+            dependencies.push(source_dependency);
+            dependencies.push(symbol_dependency);
+        }
+        _ => return None,
+    }
+    Some(dependencies)
 }
 
 fn record_post_lower_property_library_api(
@@ -2943,6 +2959,81 @@ mod tests {
             .collect()
     }
 
+    fn contract_api_count(
+        evidence: &[EvidenceRecord],
+        id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+    ) -> usize {
+        contract_api_ids(evidence, id, callee).len()
+    }
+
+    fn contract_api_ids(
+        evidence: &[EvidenceRecord],
+        id: LibraryApiContractId,
+        callee: LibraryApiCalleeContract,
+    ) -> Vec<EvidenceId> {
+        library_api_evidence_ids_in_records(
+            evidence,
+            library_api_contract_id_hash(id),
+            library_api_callee_contract_hash(callee),
+        )
+    }
+
+    fn lower_fixture(path: &str, src: &[u8], lang: Lang, interner: &Interner) -> Il {
+        crate::lower_source(FileId(0), path, src, lang, interner).expect("lowering should succeed")
+    }
+
+    fn array_seq(lo: &mut Lowering, interner: &Interner, sp: Span) -> NodeId {
+        lo.add(
+            NodeKind::Seq,
+            Payload::Name(interner.intern("array")),
+            sp,
+            &[],
+        )
+    }
+
+    fn field_callee(
+        lo: &mut Lowering,
+        interner: &Interner,
+        base: NodeId,
+        member: &str,
+        sp: Span,
+    ) -> NodeId {
+        lo.add(
+            NodeKind::Field,
+            Payload::Name(interner.intern(member)),
+            sp,
+            &[base],
+        )
+    }
+
+    fn named_node_span(il: &Il, interner: &Interner, kind: NodeKind, name: &str) -> Option<Span> {
+        il.nodes.iter().find_map(|node| {
+            (node.kind == kind
+                && matches!(
+                    node.payload,
+                    Payload::Name(symbol) if interner.resolve(symbol) == name
+                ))
+            .then_some(node.span)
+        })
+    }
+
+    fn call_span_with_callee_named(il: &Il, interner: &Interner, name: &str) -> Option<Span> {
+        il.nodes.iter().enumerate().find_map(|(idx, node)| {
+            (node.kind == NodeKind::Call
+                && il
+                    .children(NodeId(idx as u32))
+                    .first()
+                    .is_some_and(|&callee| {
+                        matches!(
+                            il.node(callee).payload,
+                            Payload::Name(symbol) if interner.resolve(symbol) == name
+                        )
+                    }))
+            .then_some(node.span)
+        })
+    }
+
     fn result_domain_depends_on_api(
         evidence: &[EvidenceRecord],
         span: Span,
@@ -3153,16 +3244,16 @@ mod tests {
     #[test]
     fn core_lowering_emits_result_domain_evidence_for_library_api_factories() {
         let interner = Interner::new();
+        assert_python_deque_factory_result_domain(&interner);
+        assert_java_factory_result_domains(&interner);
+        assert_js_constructor_result_domains(&interner);
+    }
 
-        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, &interner);
+    fn assert_python_deque_factory_result_domain(interner: &Interner) {
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Python, interner);
         import_binding(&mut lo, sp_at(1), "Values", "collections", "deque");
         let callee = lo.var("Values", sp_at(2));
-        let seq = lo.add(
-            NodeKind::Seq,
-            Payload::Name(interner.intern("array")),
-            sp_at(3),
-            &[],
-        );
+        let seq = array_seq(&mut lo, interner, sp_at(3));
         lo.add(NodeKind::Call, Payload::None, sp_at(4), &[callee, seq]);
         let deque = nose_semantics::library_imported_collection_factory_contract(
             Lang::Python,
@@ -3170,11 +3261,7 @@ mod tests {
             "deque",
         )
         .expect("deque contract");
-        let deque_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(deque.id),
-            library_api_callee_contract_hash(deque.callee),
-        );
+        let deque_api = contract_api_ids(&lo.evidence, deque.id, deque.callee);
         assert!(
             result_domain_depends_on_api(
                 &lo.evidence,
@@ -3184,20 +3271,21 @@ mod tests {
             ),
             "collections.deque result domain should depend on the admitted LibraryApi occurrence"
         );
+    }
 
-        let mut lo = Lowering::new(FileId(0), b"", Lang::Java, &interner);
+    fn assert_java_factory_result_domains(interner: &Interner) {
+        let mut lo = Lowering::new(FileId(0), b"", Lang::Java, interner);
         import_binding(&mut lo, sp_at(10), "List", "java.util", "List");
         import_binding(&mut lo, sp_at(11), "Set", "java.util", "Set");
         import_binding(&mut lo, sp_at(12), "Map", "java.util", "Map");
         import_binding(&mut lo, sp_at(13), "Arrays", "java.util", "Arrays");
+        assert_java_of_factory_result_domains(&mut lo, interner);
+        assert_java_arrays_and_map_entry_result_domains(&mut lo, interner);
+    }
 
+    fn assert_java_of_factory_result_domains(lo: &mut Lowering, interner: &Interner) {
         let list = lo.var("List", sp_at(20));
-        let list_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("of")),
-            sp_at(21),
-            &[list],
-        );
+        let list_callee = field_callee(lo, interner, list, "of", sp_at(21));
         let item = lo.int_lit("1", sp_at(22));
         lo.add(
             NodeKind::Call,
@@ -3205,13 +3293,8 @@ mod tests {
             sp_at(23),
             &[list_callee, item],
         );
-        let list_contract =
-            library_java_collection_factory_contract(Lang::Java, "List", "of").unwrap();
-        let list_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(list_contract.id),
-            library_api_callee_contract_hash(list_contract.callee),
-        );
+        let contract = library_java_collection_factory_contract(Lang::Java, "List", "of").unwrap();
+        let list_api = contract_api_ids(&lo.evidence, contract.id, contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(23),
@@ -3220,12 +3303,7 @@ mod tests {
         ));
 
         let set = lo.var("Set", sp_at(30));
-        let set_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("of")),
-            sp_at(31),
-            &[set],
-        );
+        let set_callee = field_callee(lo, interner, set, "of", sp_at(31));
         let item = lo.int_lit("1", sp_at(32));
         lo.add(
             NodeKind::Call,
@@ -3233,13 +3311,8 @@ mod tests {
             sp_at(33),
             &[set_callee, item],
         );
-        let set_contract =
-            library_java_collection_factory_contract(Lang::Java, "Set", "of").unwrap();
-        let set_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(set_contract.id),
-            library_api_callee_contract_hash(set_contract.callee),
-        );
+        let contract = library_java_collection_factory_contract(Lang::Java, "Set", "of").unwrap();
+        let set_api = contract_api_ids(&lo.evidence, contract.id, contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(33),
@@ -3248,12 +3321,7 @@ mod tests {
         ));
 
         let map = lo.var("Map", sp_at(40));
-        let map_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("of")),
-            sp_at(41),
-            &[map],
-        );
+        let map_callee = field_callee(lo, interner, map, "of", sp_at(41));
         let key = lo.str_lit("\"red\"", sp_at(42));
         let value = lo.int_lit("1", sp_at(43));
         lo.add(
@@ -3262,26 +3330,19 @@ mod tests {
             sp_at(44),
             &[map_callee, key, value],
         );
-        let map_contract = library_java_map_factory_contract(Lang::Java, "Map", "of").unwrap();
-        let map_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(map_contract.id),
-            library_api_callee_contract_hash(map_contract.callee),
-        );
+        let contract = library_java_map_factory_contract(Lang::Java, "Map", "of").unwrap();
+        let map_api = contract_api_ids(&lo.evidence, contract.id, contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(44),
             DomainEvidence::Map,
             &map_api,
         ));
+    }
 
+    fn assert_java_arrays_and_map_entry_result_domains(lo: &mut Lowering, interner: &Interner) {
         let arrays = lo.var("Arrays", sp_at(46));
-        let as_list_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("asList")),
-            sp_at(47),
-            &[arrays],
-        );
+        let as_list_callee = field_callee(lo, interner, arrays, "asList", sp_at(47));
         let maybe_array = lo.var("items", sp_at(48));
         lo.add(
             NodeKind::Call,
@@ -3296,12 +3357,7 @@ mod tests {
         );
 
         let arrays = lo.var("Arrays", sp_at(55));
-        let as_list_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("asList")),
-            sp_at(56),
-            &[arrays],
-        );
+        let as_list_callee = field_callee(lo, interner, arrays, "asList", sp_at(56));
         let red = lo.str_lit("\"red\"", sp_at(57));
         let blue = lo.str_lit("\"blue\"", sp_at(58));
         lo.add(
@@ -3327,12 +3383,7 @@ mod tests {
         ));
 
         let map = lo.var("Map", sp_at(50));
-        let entry_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("entry")),
-            sp_at(51),
-            &[map],
-        );
+        let entry_callee = field_callee(lo, interner, map, "entry", sp_at(51));
         let key = lo.str_lit("\"red\"", sp_at(52));
         let value = lo.int_lit("1", sp_at(53));
         lo.add(
@@ -3343,11 +3394,7 @@ mod tests {
         );
         let entry_contract = library_java_map_entry_contract(Lang::Java, "Map", "entry").unwrap();
         assert_eq!(
-            library_api_evidence_count(
-                &lo,
-                library_api_contract_id_hash(entry_contract.id),
-                library_api_callee_contract_hash(entry_contract.callee),
-            ),
+            contract_api_count(&lo.evidence, entry_contract.id, entry_contract.callee),
             1
         );
         assert_eq!(
@@ -3357,12 +3404,7 @@ mod tests {
         );
 
         let arrays = lo.var("Arrays", sp_at(60));
-        let stream_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("stream")),
-            sp_at(61),
-            &[arrays],
-        );
+        let stream_callee = field_callee(lo, interner, arrays, "stream", sp_at(61));
         let values = lo.var("values", sp_at(62));
         lo.add(
             NodeKind::Call,
@@ -3375,24 +3417,17 @@ mod tests {
             0,
             "Arrays.stream produces a stream/protocol surface, not any receiver-domain container"
         );
+    }
 
-        let mut lo = Lowering::new(FileId(0), b"", Lang::JavaScript, &interner);
+    fn assert_js_constructor_result_domains(interner: &Interner) {
+        let mut lo = Lowering::new(FileId(0), b"", Lang::JavaScript, interner);
         let set = lo.unshadowed_global_var("Set", sp_at(70));
-        let seq = lo.add(
-            NodeKind::Seq,
-            Payload::Name(interner.intern("array")),
-            sp_at(71),
-            &[],
-        );
+        let seq = array_seq(&mut lo, interner, sp_at(71));
         lo.record_source_fact(sp_at(72), SourceFactKind::Call(SourceCallKind::Construct));
         lo.add(NodeKind::Call, Payload::None, sp_at(72), &[set, seq]);
         let set_contract = library_js_like_set_constructor_contract(Lang::JavaScript, "Set")
             .expect("Set constructor");
-        let set_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(set_contract.id),
-            library_api_callee_contract_hash(set_contract.callee),
-        );
+        let set_api = contract_api_ids(&lo.evidence, set_contract.id, set_contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(72),
@@ -3401,21 +3436,12 @@ mod tests {
         ));
 
         let map = lo.unshadowed_global_var("Map", sp_at(80));
-        let seq = lo.add(
-            NodeKind::Seq,
-            Payload::Name(interner.intern("array")),
-            sp_at(81),
-            &[],
-        );
+        let seq = array_seq(&mut lo, interner, sp_at(81));
         lo.record_source_fact(sp_at(82), SourceFactKind::Call(SourceCallKind::Construct));
         lo.add(NodeKind::Call, Payload::None, sp_at(82), &[map, seq]);
         let map_contract = library_js_like_map_constructor_contract(Lang::JavaScript, "Map")
             .expect("Map constructor");
-        let map_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(map_contract.id),
-            library_api_callee_contract_hash(map_contract.callee),
-        );
+        let map_api = contract_api_ids(&lo.evidence, map_contract.id, map_contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(82),
@@ -3424,12 +3450,7 @@ mod tests {
         ));
 
         let array = lo.unshadowed_global_var("Array", sp_at(90));
-        let from_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("from")),
-            sp_at(91),
-            &[array],
-        );
+        let from_callee = field_callee(&mut lo, interner, array, "from", sp_at(91));
         lo.record_qualified_global_symbol(sp_at(91), NodeKind::Field, "Array.from");
         let iterable = lo.var("iterable", sp_at(92));
         lo.add(
@@ -3440,11 +3461,7 @@ mod tests {
         );
         let from_contract =
             library_map_key_view_wrapper_contract(Lang::JavaScript, "Array", "from", 1).unwrap();
-        let from_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(from_contract.id),
-            library_api_callee_contract_hash(from_contract.callee),
-        );
+        let from_api = contract_api_ids(&lo.evidence, from_contract.id, from_contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(93),
@@ -3453,12 +3470,7 @@ mod tests {
         ));
 
         let promise = lo.unshadowed_global_var("Promise", sp_at(95));
-        let resolve_callee = lo.add(
-            NodeKind::Field,
-            Payload::Name(interner.intern("resolve")),
-            sp_at(96),
-            &[promise],
-        );
+        let resolve_callee = field_callee(&mut lo, interner, promise, "resolve", sp_at(96));
         lo.record_qualified_global_symbol(sp_at(96), NodeKind::Field, "Promise.resolve");
         let value = lo.int_lit("1", sp_at(97));
         lo.add(
@@ -3469,11 +3481,8 @@ mod tests {
         );
         let resolve_contract =
             library_promise_resolve_contract(Lang::JavaScript, "Promise", "resolve", 1).unwrap();
-        let resolve_api = library_api_evidence_ids_in_records(
-            &lo.evidence,
-            library_api_contract_id_hash(resolve_contract.id),
-            library_api_callee_contract_hash(resolve_contract.callee),
-        );
+        let resolve_api =
+            contract_api_ids(&lo.evidence, resolve_contract.id, resolve_contract.callee);
         assert!(result_domain_depends_on_api(
             &lo.evidence,
             sp_at(98),
@@ -3523,282 +3532,233 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
     #[test]
     fn post_lowering_emits_free_name_and_require_library_api_occurrences() {
         let interner = Interner::new();
+        assert_python_free_name_occurrences(&interner);
+        assert_go_and_rust_free_name_occurrences(&interner);
+        assert_ruby_require_occurrences(&interner);
+    }
 
-        let py = crate::lower_source(
-            FileId(0),
+    fn assert_python_free_name_occurrences(interner: &Interner) {
+        let py = lower_fixture(
             "builtin.py",
             b"def f(values):\n    return list(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         let py_contract =
             library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &py.evidence,
-                library_api_contract_id_hash(py_contract.id),
-                library_api_callee_contract_hash(py_contract.callee),
-            ),
+            contract_api_count(&py.evidence, py_contract.id, py_contract.callee),
             1
         );
 
-        let shadowed_py = crate::lower_source(
-            FileId(0),
+        let shadowed_py = lower_fixture(
             "shadowed.py",
             b"def f(list, values):\n    return list(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &shadowed_py.evidence,
-                library_api_contract_id_hash(py_contract.id),
-                library_api_callee_contract_hash(py_contract.callee),
-            ),
+            contract_api_count(&shadowed_py.evidence, py_contract.id, py_contract.callee),
             0
         );
 
-        let wildcard_py = crate::lower_source(
-            FileId(0),
+        let wildcard_py = lower_fixture(
             "wildcard.py",
             b"from custom import *\n\ndef f(values):\n    return list(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert!(wildcard_py.evidence.iter().any(|record| matches!(
             record.kind,
             EvidenceKind::Import(ImportEvidenceKind::Wildcard { module_hash })
                 if module_hash == stable_symbol_hash("custom")
         )));
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &wildcard_py.evidence,
-                library_api_contract_id_hash(py_contract.id),
-                library_api_callee_contract_hash(py_contract.callee),
-            ),
+            contract_api_count(&wildcard_py.evidence, py_contract.id, py_contract.callee),
             0
         );
 
-        let py_len = crate::lower_source(
-            FileId(0),
+        let py_len = lower_fixture(
             "len.py",
             b"def f(values):\n    return len(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         let py_len_contract =
             library_free_function_builtin_contract(Lang::Python, "len", 1).unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &py_len.evidence,
-                library_api_contract_id_hash(py_len_contract.id),
-                library_api_callee_contract_hash(py_len_contract.callee),
-            ),
+            contract_api_count(&py_len.evidence, py_len_contract.id, py_len_contract.callee),
             1
         );
 
-        let shadowed_py_len = crate::lower_source(
-            FileId(0),
+        let shadowed_py_len = lower_fixture(
             "shadowed_len.py",
             b"def f(len, values):\n    return len(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &shadowed_py_len.evidence,
-                library_api_contract_id_hash(py_len_contract.id),
-                library_api_callee_contract_hash(py_len_contract.callee),
+                py_len_contract.id,
+                py_len_contract.callee
             ),
             0
         );
 
-        let wildcard_py_len = crate::lower_source(
-            FileId(0),
+        let wildcard_py_len = lower_fixture(
             "wildcard_len.py",
             b"from custom import *\n\ndef f(values):\n    return len(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &wildcard_py_len.evidence,
-                library_api_contract_id_hash(py_len_contract.id),
-                library_api_callee_contract_hash(py_len_contract.callee),
+                py_len_contract.id,
+                py_len_contract.callee
             ),
             0
         );
+    }
 
-        let go = crate::lower_source(
-            FileId(0),
+    fn assert_go_and_rust_free_name_occurrences(interner: &Interner) {
+        let go = lower_fixture(
             "builtin.go",
             b"package p\nfunc f(xs []int, x int) int { return len(xs) }\nfunc g(xs []int, x int) []int { return append(xs, x) }\n",
             Lang::Go,
-            &interner,
-        )
-        .expect("go lowering should succeed");
+            interner,
+        );
         let go_len_contract = library_free_function_builtin_contract(Lang::Go, "len", 1).unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &go.evidence,
-                library_api_contract_id_hash(go_len_contract.id),
-                library_api_callee_contract_hash(go_len_contract.callee),
-            ),
+            contract_api_count(&go.evidence, go_len_contract.id, go_len_contract.callee),
             1
         );
         let go_append_contract =
             library_free_function_builtin_contract(Lang::Go, "append", 2).unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &go.evidence,
-                library_api_contract_id_hash(go_append_contract.id),
-                library_api_callee_contract_hash(go_append_contract.callee),
+                go_append_contract.id,
+                go_append_contract.callee
             ),
             1
         );
 
-        let rust = crate::lower_source(
-            FileId(0),
+        let rust = lower_fixture(
             "vec.rs",
             b"fn f() { let xs = Vec::new(); }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         let rust_contract = library_rust_vec_new_factory_contract(Lang::Rust, "Vec::new").unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &rust.evidence,
-                library_api_contract_id_hash(rust_contract.id),
-                library_api_callee_contract_hash(rust_contract.callee),
-            ),
+            contract_api_count(&rust.evidence, rust_contract.id, rust_contract.callee),
             1
         );
 
-        let rust_macro = crate::lower_source(
-            FileId(0),
+        let rust_macro = lower_fixture(
             "vec_macro.rs",
             b"fn f() { let xs = vec![1, 2]; }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         let rust_macro_contract =
             library_rust_vec_macro_factory_contract(Lang::Rust, "vec").unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &rust_macro.evidence,
-                library_api_contract_id_hash(rust_macro_contract.id),
-                library_api_callee_contract_hash(rust_macro_contract.callee),
+                rust_macro_contract.id,
+                rust_macro_contract.callee
             ),
             1
         );
 
-        let rust_function_call = crate::lower_source(
-            FileId(0),
+        let rust_function_call = lower_fixture(
             "vec_function.rs",
             b"fn f(vec: fn(i32) -> Vec<i32>) { let xs = vec(1); }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &rust_function_call.evidence,
-                library_api_contract_id_hash(rust_macro_contract.id),
-                library_api_callee_contract_hash(rust_macro_contract.callee),
+                rust_macro_contract.id,
+                rust_macro_contract.callee
             ),
             0
         );
 
-        let rust_shadowed_macro = crate::lower_source(
-            FileId(0),
+        let rust_shadowed_macro = lower_fixture(
             "vec_shadowed_macro.rs",
             b"macro_rules! vec { ($($x:expr),*) => { custom_vec![$($x),*] }; }\nfn f() { let xs = vec![1, 2]; }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &rust_shadowed_macro.evidence,
-                library_api_contract_id_hash(rust_macro_contract.id),
-                library_api_callee_contract_hash(rust_macro_contract.callee),
+                rust_macro_contract.id,
+                rust_macro_contract.callee
             ),
             0
         );
+    }
 
-        let ruby = crate::lower_source(
-            FileId(0),
+    fn assert_ruby_require_occurrences(interner: &Interner) {
+        let ruby = lower_fixture(
             "set.rb",
             b"require \"set\"\n\ndef f(values)\n  Set.new(values)\nend\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
+            interner,
+        );
         let ruby_contract = library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap();
         assert_eq!(
-            library_api_evidence_count_in_records(
-                &ruby.evidence,
-                library_api_contract_id_hash(ruby_contract.id),
-                library_api_callee_contract_hash(ruby_contract.callee),
-            ),
+            contract_api_count(&ruby.evidence, ruby_contract.id, ruby_contract.callee),
             1
         );
 
-        let missing_require = crate::lower_source(
-            FileId(0),
+        let missing_require = lower_fixture(
             "set_missing_require.rb",
             b"def f(values)\n  Set.new(values)\nend\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &missing_require.evidence,
-                library_api_contract_id_hash(ruby_contract.id),
-                library_api_callee_contract_hash(ruby_contract.callee),
+                ruby_contract.id,
+                ruby_contract.callee
             ),
             0
         );
 
-        let late_require = crate::lower_source(
-            FileId(0),
+        let late_require = lower_fixture(
             "set_late_require.rb",
             b"def f(values)\n  Set.new(values)\nend\n\nrequire \"set\"\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &late_require.evidence,
-                library_api_contract_id_hash(ruby_contract.id),
-                library_api_callee_contract_hash(ruby_contract.callee),
+                ruby_contract.id,
+                ruby_contract.callee
             ),
             0
         );
 
-        let shadowed_require = crate::lower_source(
-            FileId(0),
+        let shadowed_require = lower_fixture(
             "set_shadowed_require.rb",
             b"def require(name)\n  name\nend\n\nrequire \"set\"\n\ndef f(values)\n  Set.new(values)\nend\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &shadowed_require.evidence,
-                library_api_contract_id_hash(ruby_contract.id),
-                library_api_callee_contract_hash(ruby_contract.callee),
+                ruby_contract.id,
+                ruby_contract.callee
             ),
             0
         );
@@ -3807,107 +3767,108 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
     #[test]
     fn parameter_type_domains_are_dependency_backed_and_not_substring_guesses() {
         let interner = Interner::new();
+        assert_python_typing_alias_param_domains(&interner);
+        assert_python_stdlib_pack_param_domains(&interner);
+        assert_ts_and_java_param_domains(&interner);
+    }
 
-        let py_alias = crate::lower_source(
-            FileId(0),
+    fn import_backed_param_domain_pack_hash(
+        evidence: &[EvidenceRecord],
+        exported: &str,
+        domain: DomainEvidence,
+    ) -> Option<u64> {
+        let import_ids = imported_binding_symbol_ids(evidence, "typing", exported);
+        assert_eq!(import_ids.len(), 1);
+        let py_domains = param_domain_records(evidence, domain);
+        assert_eq!(py_domains.len(), 1);
+        assert_eq!(py_domains[0].dependencies, import_ids);
+        py_domains[0].provenance.pack_hash
+    }
+
+    fn assert_python_typing_alias_param_domains(interner: &Interner) {
+        let py_alias = lower_fixture(
             "typing_alias.py",
             b"from typing import List as L\ndef f(xs: L[int]):\n    return len(xs)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
-        let import_ids = imported_binding_symbol_ids(&py_alias.evidence, "typing", "List");
-        assert_eq!(import_ids.len(), 1);
-        let py_domains = param_domain_records(&py_alias.evidence, DomainEvidence::Collection);
-        assert_eq!(py_domains.len(), 1);
-        assert_eq!(py_domains[0].dependencies, import_ids);
+            interner,
+        );
         assert_eq!(
-            py_domains[0].provenance.pack_hash,
+            import_backed_param_domain_pack_hash(
+                &py_alias.evidence,
+                "List",
+                DomainEvidence::Collection
+            ),
             Some(stable_symbol_hash(
                 nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
             )),
             "imported Python stdlib type aliases should carry the pilot pack provenance"
         );
 
-        let py_direct_import_alias = crate::lower_source(
-            FileId(0),
+        let py_direct_import_alias = lower_fixture(
             "typing_direct_import_alias.py",
             b"from typing import List\ndef f(xs: List[int]):\n    return len(xs)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
-        let import_ids =
-            imported_binding_symbol_ids(&py_direct_import_alias.evidence, "typing", "List");
-        assert_eq!(import_ids.len(), 1);
-        let py_domains =
-            param_domain_records(&py_direct_import_alias.evidence, DomainEvidence::Collection);
-        assert_eq!(py_domains.len(), 1);
-        assert_eq!(py_domains[0].dependencies, import_ids);
+            interner,
+        );
         assert_eq!(
-            py_domains[0].provenance.pack_hash,
+            import_backed_param_domain_pack_hash(
+                &py_direct_import_alias.evidence,
+                "List",
+                DomainEvidence::Collection
+            ),
             Some(stable_symbol_hash(
                 nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
             )),
             "a direct imported alias should not fall through to first-party text heuristics"
         );
 
-        let py_iter_alias = crate::lower_source(
-            FileId(0),
+        let py_iter_alias = lower_fixture(
             "typing_iter_alias.py",
             b"from typing import Iterable as I\ndef f(xs: I[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
-        let import_ids = imported_binding_symbol_ids(&py_iter_alias.evidence, "typing", "Iterable");
-        assert_eq!(import_ids.len(), 1);
-        let py_domains = param_domain_records(&py_iter_alias.evidence, DomainEvidence::Iterable);
-        assert_eq!(py_domains.len(), 1);
-        assert_eq!(py_domains[0].dependencies, import_ids);
+            interner,
+        );
         assert_eq!(
-            py_domains[0].provenance.pack_hash,
+            import_backed_param_domain_pack_hash(
+                &py_iter_alias.evidence,
+                "Iterable",
+                DomainEvidence::Iterable
+            ),
             Some(stable_symbol_hash(
                 nose_semantics::PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID
             ))
         );
 
-        let py_iter_shadowed = crate::lower_source(
-            FileId(0),
+        let py_iter_shadowed = lower_fixture(
             "typing_iter_alias_shadowed.py",
             b"from typing import Iterable as I\nI = object\ndef f(xs: I[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&py_iter_shadowed.evidence, DomainEvidence::Iterable),
             0,
             "a rebound iterable alias must not emit parameter Domain evidence"
         );
 
-        let py_iter_class_shadowed = crate::lower_source(
-            FileId(0),
+        let py_iter_class_shadowed = lower_fixture(
             "typing_iter_alias_class_shadowed.py",
             b"from typing import Iterable as I\nclass I:\n    pass\ndef f(xs: I[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&py_iter_class_shadowed.evidence, DomainEvidence::Iterable),
             0,
             "a class definition with the alias name must close later Domain evidence"
         );
 
-        let py_iter_function_shadowed = crate::lower_source(
-            FileId(0),
+        let py_iter_function_shadowed = lower_fixture(
             "typing_iter_alias_function_shadowed.py",
             b"from typing import Iterable as I\ndef I():\n    return None\ndef f(xs: I[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(
                 &py_iter_function_shadowed.evidence,
@@ -3916,15 +3877,15 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             0,
             "a function definition with the alias name must close later Domain evidence"
         );
+    }
 
-        let py_mapping_alias = crate::lower_source(
-            FileId(0),
+    fn assert_python_stdlib_pack_param_domains(interner: &Interner) {
+        let py_mapping_alias = lower_fixture(
             "collections_abc_mapping_alias.py",
             b"from collections.abc import Mapping as M\ndef f(xs: M[str, int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count_from_pack(
                 &py_mapping_alias.evidence,
@@ -3935,14 +3896,12 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             "collections.abc aliases should resolve through the same pilot pack"
         );
 
-        let py_future_alias = crate::lower_source(
-            FileId(0),
+        let py_future_alias = lower_fixture(
             "asyncio_future_alias.py",
             b"from asyncio import Future as Fut\ndef f(x: Fut[int]):\n    return x\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count_from_pack(
                 &py_future_alias.evidence,
@@ -3953,42 +3912,38 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             "asyncio Future aliases should resolve through the same pilot pack"
         );
 
-        let py_shadowed = crate::lower_source(
-            FileId(0),
+        let py_shadowed = lower_fixture(
             "typing_alias_shadowed.py",
             b"from typing import List as L\nL = object\ndef f(xs: L[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&py_shadowed.evidence, DomainEvidence::Collection),
             0,
             "a rebound typing alias must not emit parameter Domain evidence"
         );
 
-        let py_wrong_module_alias = crate::lower_source(
-            FileId(0),
+        let py_wrong_module_alias = lower_fixture(
             "typing_alias_wrong_module.py",
             b"from project.typing import Iterable as I\ndef f(xs: I[int]):\n    return xs\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&py_wrong_module_alias.evidence, DomainEvidence::Iterable),
             0,
             "a same-named alias from another module must not satisfy the stdlib pack"
         );
+    }
 
-        let ts = crate::lower_source(
-            FileId(0),
+    fn assert_ts_and_java_param_domains(interner: &Interner) {
+        let ts = lower_fixture(
             "domain_types.ts",
             b"function f(a: Bitmap<string, number>, b: Blacklist<string>, c: string[], d: Set<string>) { return c.length; }\n",
             Lang::TypeScript,
-            &interner,
-        )
-        .expect("typescript lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&ts.evidence, DomainEvidence::Map),
             0,
@@ -4010,14 +3965,12 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             "Set<T> should still emit set domain evidence"
         );
 
-        let ts_rich = crate::lower_source(
-            FileId(0),
+        let ts_rich = lower_fixture(
             "domain_types_rich.ts",
             b"function f(a: Iterable<string>, b: Iterator<string>, c: Promise<string>, d: Record<string, number>, e: Result<string, Error>, f: boolean) { return f; }\n",
             Lang::TypeScript,
-            &interner,
-        )
-        .expect("typescript lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&ts_rich.evidence, DomainEvidence::Iterable),
             1
@@ -4043,14 +3996,12 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             1
         );
 
-        let java = crate::lower_source(
-            FileId(0),
+        let java = lower_fixture(
             "Annotated.java",
             b"class T { void f(@Ann(\"...\") String value, @Nonnull List<String> xs) {} }\n",
             Lang::Java,
-            &interner,
-        )
-        .expect("java lowering should succeed");
+            interner,
+        );
         assert_eq!(
             param_domain_record_count(&java.evidence, DomainEvidence::Array),
             0,
@@ -4069,133 +4020,105 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
     #[test]
     fn post_lowering_emits_result_domains_for_supported_factories() {
         let interner = Interner::new();
+        assert_python_factory_result_domains(&interner);
+        assert_rust_and_ruby_factory_result_domains(&interner);
+    }
 
-        let py_list = crate::lower_source(
-            FileId(0),
+    fn assert_python_factory_result_domains(interner: &Interner) {
+        let py_list = lower_fixture(
             "builtin_list.py",
             b"def f(values):\n    return list(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         let list_contract =
             library_free_name_collection_factory_contract(Lang::Python, "list").unwrap();
-        let list_api = library_api_evidence_ids_in_records(
-            &py_list.evidence,
-            library_api_contract_id_hash(list_contract.id),
-            library_api_callee_contract_hash(list_contract.callee),
-        );
+        let list_api = contract_api_ids(&py_list.evidence, list_contract.id, list_contract.callee);
         assert!(result_domain_depends_on_any_api(
             &py_list.evidence,
             DomainEvidence::Collection,
             &list_api,
         ));
 
-        let py_set = crate::lower_source(
-            FileId(0),
+        let py_set = lower_fixture(
             "builtin_set.py",
             b"def f(values):\n    return set(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         let set_contract =
             library_free_name_collection_factory_contract(Lang::Python, "set").unwrap();
-        let set_api = library_api_evidence_ids_in_records(
-            &py_set.evidence,
-            library_api_contract_id_hash(set_contract.id),
-            library_api_callee_contract_hash(set_contract.callee),
-        );
+        let set_api = contract_api_ids(&py_set.evidence, set_contract.id, set_contract.callee);
         assert!(result_domain_depends_on_any_api(
             &py_set.evidence,
             DomainEvidence::Set,
             &set_api,
         ));
 
-        let shadowed_py = crate::lower_source(
-            FileId(0),
+        let shadowed_py = lower_fixture(
             "shadowed.py",
             b"def f(list, values):\n    return list(values)\n",
             Lang::Python,
-            &interner,
-        )
-        .expect("python lowering should succeed");
+            interner,
+        );
         assert_eq!(
             result_domain_record_count(&shadowed_py.evidence, DomainEvidence::Collection),
             0,
             "shadowed list(...) must not emit result-domain evidence"
         );
+    }
 
-        let rust_vec = crate::lower_source(
-            FileId(0),
+    fn assert_rust_and_ruby_factory_result_domains(interner: &Interner) {
+        let rust_vec = lower_fixture(
             "vec.rs",
             b"fn f() { let xs = Vec::new(); }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
-        let vec_contract = library_rust_vec_new_factory_contract(Lang::Rust, "Vec::new").unwrap();
-        let vec_api = library_api_evidence_ids_in_records(
-            &rust_vec.evidence,
-            library_api_contract_id_hash(vec_contract.id),
-            library_api_callee_contract_hash(vec_contract.callee),
+            interner,
         );
+        let vec_contract = library_rust_vec_new_factory_contract(Lang::Rust, "Vec::new").unwrap();
+        let vec_api = contract_api_ids(&rust_vec.evidence, vec_contract.id, vec_contract.callee);
         assert!(result_domain_depends_on_any_api(
             &rust_vec.evidence,
             DomainEvidence::Collection,
             &vec_api,
         ));
 
-        let rust_map = crate::lower_source(
-            FileId(0),
+        let rust_map = lower_fixture(
             "hash_map.rs",
             b"fn f() { let xs = std::collections::HashMap::from([(\"red\", 1)]); }",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         let map_contract =
             library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from")
                 .unwrap();
-        let map_api = library_api_evidence_ids_in_records(
-            &rust_map.evidence,
-            library_api_contract_id_hash(map_contract.id),
-            library_api_callee_contract_hash(map_contract.callee),
-        );
+        let map_api = contract_api_ids(&rust_map.evidence, map_contract.id, map_contract.callee);
         assert!(result_domain_depends_on_any_api(
             &rust_map.evidence,
             DomainEvidence::Map,
             &map_api,
         ));
 
-        let ruby = crate::lower_source(
-            FileId(0),
+        let ruby = lower_fixture(
             "set.rb",
             b"require \"set\"\n\ndef f(values)\n  Set.new(values)\nend\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
-        let ruby_contract = library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap();
-        let ruby_api = library_api_evidence_ids_in_records(
-            &ruby.evidence,
-            library_api_contract_id_hash(ruby_contract.id),
-            library_api_callee_contract_hash(ruby_contract.callee),
+            interner,
         );
+        let ruby_contract = library_ruby_set_factory_contract(Lang::Ruby, "Set", "new", 1).unwrap();
+        let ruby_api = contract_api_ids(&ruby.evidence, ruby_contract.id, ruby_contract.callee);
         assert!(result_domain_depends_on_any_api(
             &ruby.evidence,
             DomainEvidence::Set,
             &ruby_api,
         ));
 
-        let missing_require = crate::lower_source(
-            FileId(0),
+        let missing_require = lower_fixture(
             "set_missing_require.rb",
             b"def f(values)\n  Set.new(values)\nend\n",
             Lang::Ruby,
-            &interner,
-        )
-        .expect("ruby lowering should succeed");
+            interner,
+        );
         assert_eq!(
             result_domain_record_count(&missing_require.evidence, DomainEvidence::Set),
             0,
@@ -4340,32 +4263,24 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
     #[test]
     fn post_lowering_emits_property_and_rust_option_occurrences() {
         let interner = Interner::new();
-        let ts = crate::lower_source(
-            FileId(0),
+        assert_ts_length_property_occurrences(&interner);
+        assert_rust_option_occurrences(&interner);
+    }
+
+    fn assert_ts_length_property_occurrences(interner: &Interner) {
+        let ts = lower_fixture(
             "t.ts",
             b"function f(xs: number[]) { return xs.length; }\n",
             Lang::TypeScript,
-            &interner,
-        )
-        .expect("typescript lowering should succeed");
+            interner,
+        );
         let property_contract =
             library_property_builtin_contract(Lang::TypeScript, "length").unwrap();
-        let length_field = ts
-            .nodes
-            .iter()
-            .enumerate()
-            .find_map(|(idx, node)| {
-                (node.kind == NodeKind::Field
-                    && matches!(
-                        node.payload,
-                        Payload::Name(symbol) if interner.resolve(symbol) == "length"
-                    ))
-                .then_some((NodeId(idx as u32), node.span))
-            })
+        let length_field = named_node_span(&ts, interner, NodeKind::Field, "length")
             .expect("length field should be lowered");
         let property_api = library_api_evidence_ids_at_node(
             &ts.evidence,
-            length_field.1,
+            length_field,
             NodeKind::Field,
             library_api_contract_id_hash(property_contract.id),
             library_api_callee_contract_hash(property_contract.callee),
@@ -4376,30 +4291,18 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             1,
             "typed exact-collection property access should carry LibraryApi occurrence evidence"
         );
-        let ts_filter_length = crate::lower_source(
-            FileId(0),
+        let ts_filter_length = lower_fixture(
             "t.ts",
             b"function f(value: string) { return [\"red\", \"blue\"].filter((item: string) => item === value).length >= 1; }\n",
             Lang::TypeScript,
-            &interner,
-        )
-        .expect("typescript lowering should succeed");
-        let filter_length_field = ts_filter_length
-            .nodes
-            .iter()
-            .enumerate()
-            .find_map(|(idx, node)| {
-                (node.kind == NodeKind::Field
-                    && matches!(
-                        node.payload,
-                        Payload::Name(symbol) if interner.resolve(symbol) == "length"
-                    ))
-                .then_some((NodeId(idx as u32), node.span))
-            })
-            .expect("filter length field should be lowered");
+            interner,
+        );
+        let filter_length_field =
+            named_node_span(&ts_filter_length, interner, NodeKind::Field, "length")
+                .expect("filter length field should be lowered");
         let filter_length_api = library_api_evidence_ids_at_node(
             &ts_filter_length.evidence,
-            filter_length_field.1,
+            filter_length_field,
             NodeKind::Field,
             library_api_contract_id_hash(property_contract.id),
             library_api_callee_contract_hash(property_contract.callee),
@@ -4410,34 +4313,18 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             1,
             "HOF result property access should carry LibraryApi occurrence evidence"
         );
+    }
 
-        let rust_some = crate::lower_source(
-            FileId(0),
+    fn assert_rust_option_occurrences(interner: &Interner) {
+        let rust_some = lower_fixture(
             "t.rs",
             b"fn f(x: i32) -> Option<i32> { Some(x) }\n",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         let some_contract =
             library_rust_option_some_constructor_contract(Lang::Rust, "Some", 1).unwrap();
-        let some_call = rust_some
-            .nodes
-            .iter()
-            .enumerate()
-            .find_map(|(idx, node)| {
-                (node.kind == NodeKind::Call
-                    && rust_some
-                        .children(NodeId(idx as u32))
-                        .first()
-                        .is_some_and(|&callee| {
-                            matches!(
-                                rust_some.node(callee).payload,
-                                Payload::Name(symbol) if interner.resolve(symbol) == "Some"
-                            )
-                        }))
-                .then_some(node.span)
-            })
+        let some_call = call_span_with_callee_named(&rust_some, interner, "Some")
             .expect("Some call should be lowered");
         let some_api = library_api_evidence_ids_at(
             &rust_some.evidence,
@@ -4454,25 +4341,13 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             &some_api,
         ));
 
-        let rust_some_pattern = crate::lower_source(
-            FileId(0),
+        let rust_some_pattern = lower_fixture(
             "t.rs",
             b"pub fn f(value: Option<i32>) -> bool { if let Some(_) = value { true } else { false } }\n",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
-        let some_pattern_var = rust_some_pattern
-            .nodes
-            .iter()
-            .find_map(|node| {
-                (node.kind == NodeKind::Var
-                    && matches!(
-                        node.payload,
-                        Payload::Name(symbol) if interner.resolve(symbol) == "Some"
-                    ))
-                .then_some(node.span)
-            })
+            interner,
+        );
+        let some_pattern_var = named_node_span(&rust_some_pattern, interner, NodeKind::Var, "Some")
             .expect("Some pattern var should be preserved");
         let some_pattern_api = library_api_evidence_ids_at_node(
             &rust_some_pattern.evidence,
@@ -4494,26 +4369,14 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             "pattern occurrence identity must not become a constructor result domain"
         );
 
-        let rust_none = crate::lower_source(
-            FileId(0),
+        let rust_none = lower_fixture(
             "t.rs",
             b"fn f() -> Option<i32> { None }\n",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         let none_contract = library_rust_option_none_sentinel_contract(Lang::Rust, "None").unwrap();
-        let none_var = rust_none
-            .nodes
-            .iter()
-            .find_map(|node| {
-                (node.kind == NodeKind::Var
-                    && matches!(
-                        node.payload,
-                        Payload::Name(symbol) if interner.resolve(symbol) == "None"
-                    ))
-                .then_some(node.span)
-            })
+        let none_var = named_node_span(&rust_none, interner, NodeKind::Var, "None")
             .expect("None var should be lowered");
         let none_api = library_api_evidence_ids_at_node(
             &rust_none.evidence,
@@ -4532,19 +4395,17 @@ def f(value, other):\n    return Values([\"red\", \"blue\"]).__contains__(value)
             &none_api,
         ));
 
-        let shadowed_some = crate::lower_source(
-            FileId(0),
+        let shadowed_some = lower_fixture(
             "t.rs",
             b"fn Some(x: i32) -> Option<i32> { None }\nfn f(x: i32) -> Option<i32> { Some(x) }\n",
             Lang::Rust,
-            &interner,
-        )
-        .expect("rust lowering should succeed");
+            interner,
+        );
         assert_eq!(
-            library_api_evidence_count_in_records(
+            contract_api_count(
                 &shadowed_some.evidence,
-                library_api_contract_id_hash(some_contract.id),
-                library_api_callee_contract_hash(some_contract.callee),
+                some_contract.id,
+                some_contract.callee
             ),
             0,
             "local Rust Some item must close the std Option constructor occurrence"

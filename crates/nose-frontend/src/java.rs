@@ -468,25 +468,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "null_literal" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
         "binary_expression" => lower_binary(lo, node),
-        "unary_expression" => {
-            let operand = node
-                .child_by_field_name("operand")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
-            // `~`→BitNot, `!`→Not. Reading only the first byte collapsed `+x` and `~x`
-            // onto `Neg` (same class of bug as the C/Ruby frontends).
-            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
-            // `~`→BitNot, `!`→Not. Reading only the first byte collapsed `+x` and `~x`
-            // onto `Neg` (same class of bug as the C/Ruby frontends).
-            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
-                Some("+") => Op::Pos,
-                Some("~") => Op::BitNot,
-                Some("!") => Op::Not,
-                _ => Op::Neg,
-            };
-            lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
-        }
+        "unary_expression" => lower_unary(lo, node),
         "assignment_expression" => {
             let l = node
                 .child_by_field_name("left")
@@ -516,28 +498,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             }
             lo.add(NodeKind::Assign, Payload::None, span, &[l, r])
         }
-        "update_expression" => {
-            // x++ / ++x → x = x + 1
-            let operand = node
-                .named_child(0)
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let operand2 = node
-                .named_child(0)
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let one = lo.int_lit("1", span);
-            // Decide by the operator TOKEN among this node's direct children: a substring
-            // check on the whole text misreads a nested `--`/`++` in the operand (e.g.
-            // `a[i--]++`, whose outer op is `++`).
-            let op = if crate::lower::has_direct_token(node, "--") {
-                Op::Sub
-            } else {
-                Op::Add
-            };
-            let bin = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[operand2, one]);
-            lo.add(NodeKind::Assign, Payload::None, span, &[operand, bin])
-        }
+        "update_expression" => lower_update(lo, node),
         "method_invocation" => lower_call(lo, node),
         "switch_expression" => lower_switch_expr(lo, node),
         "object_creation_expression" => {
@@ -575,64 +536,17 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .collect();
             lo.add(NodeKind::Index, Payload::None, span, &kids)
         }
-        "lambda_expression" => {
-            let mut kids = Vec::new();
-            let body_node = node.child_by_field_name("body");
-            if let Some(params) = node.child_by_field_name("parameters") {
-                for p in Lowering::named_children(params) {
-                    let psym = if p.kind() == "identifier" {
-                        Some(lo.sym(lo.text(p)))
-                    } else {
-                        p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)))
-                    };
-                    let pspan = lo.span(p);
-                    kids.push(lo.add(
-                        NodeKind::Param,
-                        psym.map(Payload::Name).unwrap_or(Payload::None),
-                        pspan,
-                        &[],
-                    ));
-                }
-            } else if let Some(p) = node.child_by_field_name("parameter") {
-                let psym = if p.kind() == "identifier" {
-                    Some(lo.sym(lo.text(p)))
-                } else {
-                    p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)))
-                };
-                kids.push(lo.add(
-                    NodeKind::Param,
-                    psym.map(Payload::Name).unwrap_or(Payload::None),
-                    lo.span(p),
-                    &[],
-                ));
-            } else if let Some(p) = node.named_child(0) {
-                let body_start = body_node.map(|b| b.start_byte());
-                if p.kind() == "identifier" && Some(p.start_byte()) != body_start {
-                    kids.push(lo.add(
-                        NodeKind::Param,
-                        Payload::Name(lo.sym(lo.text(p))),
-                        lo.span(p),
-                        &[],
-                    ));
-                }
-            }
-            if kids.is_empty() {
-                if let Some(name) = lambda_single_param_from_text(lo.text(node)) {
-                    kids.push(lo.add(NodeKind::Param, Payload::Name(lo.sym(name)), span, &[]));
-                }
-            }
-            let body = body_node
-                .map(|b| {
-                    if b.kind() == "block" {
-                        lower_block(lo, b)
-                    } else {
-                        lower_expr(lo, b)
-                    }
-                })
-                .unwrap_or_else(|| lo.empty_block(span));
-            kids.push(body);
-            lo.add(NodeKind::Lambda, Payload::None, span, &kids)
-        }
+        "lambda_expression" => lower_lambda(lo, node),
+        _ => lower_expr_rest(lo, node),
+    }
+}
+
+/// Tail of [`lower_expr`]'s dispatch: grouping/cast wrappers, aggregate
+/// initializers, constructor delegation, label/constant kinds, and type-level
+/// nodes that reach expression position.
+fn lower_expr_rest(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    match node.kind() {
         "parenthesized_expression" | "cast_expression" => node
             .named_child(node.named_child_count().saturating_sub(1))
             .map(|c| lower_expr(lo, c))
@@ -730,6 +644,108 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let operand = node
+        .child_by_field_name("operand")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
+    // `~`→BitNot, `!`→Not. Reading only the first byte collapsed `+x` and `~x`
+    // onto `Neg` (same class of bug as the C/Ruby frontends).
+    let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+        Some("+") => Op::Pos,
+        Some("~") => Op::BitNot,
+        Some("!") => Op::Not,
+        _ => Op::Neg,
+    };
+    lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
+}
+
+fn lower_update(lo: &mut Lowering, node: TsNode) -> NodeId {
+    // x++ / ++x → x = x + 1
+    let span = lo.span(node);
+    let operand = node
+        .named_child(0)
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let operand2 = node
+        .named_child(0)
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let one = lo.int_lit("1", span);
+    // Decide by the operator TOKEN among this node's direct children: a substring
+    // check on the whole text misreads a nested `--`/`++` in the operand (e.g.
+    // `a[i--]++`, whose outer op is `++`).
+    let op = if crate::lower::has_direct_token(node, "--") {
+        Op::Sub
+    } else {
+        Op::Add
+    };
+    let bin = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[operand2, one]);
+    lo.add(NodeKind::Assign, Payload::None, span, &[operand, bin])
+}
+
+fn lower_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    let body_node = node.child_by_field_name("body");
+    if let Some(params) = node.child_by_field_name("parameters") {
+        for p in Lowering::named_children(params) {
+            let psym = if p.kind() == "identifier" {
+                Some(lo.sym(lo.text(p)))
+            } else {
+                p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)))
+            };
+            let pspan = lo.span(p);
+            kids.push(lo.add(
+                NodeKind::Param,
+                psym.map(Payload::Name).unwrap_or(Payload::None),
+                pspan,
+                &[],
+            ));
+        }
+    } else if let Some(p) = node.child_by_field_name("parameter") {
+        let psym = if p.kind() == "identifier" {
+            Some(lo.sym(lo.text(p)))
+        } else {
+            p.child_by_field_name("name").map(|n| lo.sym(lo.text(n)))
+        };
+        kids.push(lo.add(
+            NodeKind::Param,
+            psym.map(Payload::Name).unwrap_or(Payload::None),
+            lo.span(p),
+            &[],
+        ));
+    } else if let Some(p) = node.named_child(0) {
+        let body_start = body_node.map(|b| b.start_byte());
+        if p.kind() == "identifier" && Some(p.start_byte()) != body_start {
+            kids.push(lo.add(
+                NodeKind::Param,
+                Payload::Name(lo.sym(lo.text(p))),
+                lo.span(p),
+                &[],
+            ));
+        }
+    }
+    if kids.is_empty() {
+        if let Some(name) = lambda_single_param_from_text(lo.text(node)) {
+            kids.push(lo.add(NodeKind::Param, Payload::Name(lo.sym(name)), span, &[]));
+        }
+    }
+    let body = body_node
+        .map(|b| {
+            if b.kind() == "block" {
+                lower_block(lo, b)
+            } else {
+                lower_expr(lo, b)
+            }
+        })
+        .unwrap_or_else(|| lo.empty_block(span));
+    kids.push(body);
+    lo.add(NodeKind::Lambda, Payload::None, span, &kids)
 }
 
 fn lower_empty_java_collection_constructor(

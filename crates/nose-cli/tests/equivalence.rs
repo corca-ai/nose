@@ -1257,7 +1257,7 @@ fn scalar_abs_builtins_converge_cross_language_with_shadow_boundary() {
 }
 
 #[test]
-fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
+fn scalar_minmax_builtins_converge_cross_language() {
     let i = Interner::new();
     let py_min = "def f(left, right, other):\n    selected = left if left <= right else right\n    return selected + other\n";
     let py_min_call =
@@ -1278,17 +1278,6 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
     let rust_max = "pub fn f(left: i64, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
     let py_wrong_value =
         "def f(left, right, other):\n    selected = min(left, other)\n    return selected + other\n";
-    let py_shadowed_min =
-        "def min(_left, _right):\n    return 0\n\ndef f(left, right, other):\n    selected = min(left, right)\n    return selected + other\n";
-    let py_local_shadowed_min =
-        "def f(left, right, other):\n    min = lambda _left, _right: 0\n    selected = min(left, right)\n    return selected + other\n";
-    let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
-    let destructured_shadowed_js = "function f(scope, left, right, other) { const { Math } = scope; const selected = Math.min(left, right); return selected + other; }";
-    let java_shadowed_math_type = "class C { static int f(int left, int right, int other) { int selected = Math.min(left, right); return selected + other; } }\nclass Math { static int min(int left, int right) { return 0; } }\n";
-    let ts_number_method_min = "function f(left: number, right: number, other: number): number { const selected = left.min(right); return selected + other; }";
-    let rust_float_min = "pub fn f(left: f64, right: f64, other: f64) -> f64 { let selected = left.min(right); selected + other }\n";
-    let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
-    let custom_rust_max = "struct Wrap(i64);\nimpl Wrap { fn max(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
 
     let fp = value_fp(&i, py_min, Lang::Python);
     assert_eq!(fp, value_fp(&i, py_min_call, Lang::Python));
@@ -1310,6 +1299,26 @@ fn scalar_minmax_builtins_converge_cross_language_with_shadow_boundary() {
         value_fp(&i, rust_max, Lang::Rust)
     );
     assert_ne!(fp, value_fp(&i, py_wrong_value, Lang::Python));
+}
+
+#[test]
+fn scalar_minmax_builtins_respect_shadow_boundaries() {
+    let i = Interner::new();
+    let py_min = "def f(left, right, other):\n    selected = left if left <= right else right\n    return selected + other\n";
+    let py_max = "def f(left, right, other):\n    selected = left if left >= right else right\n    return selected + other\n";
+    let py_shadowed_min =
+        "def min(_left, _right):\n    return 0\n\ndef f(left, right, other):\n    selected = min(left, right)\n    return selected + other\n";
+    let py_local_shadowed_min =
+        "def f(left, right, other):\n    min = lambda _left, _right: 0\n    selected = min(left, right)\n    return selected + other\n";
+    let shadowed_js = "function f(left, right, other) { const Math = { min: function(_left, _right) { return 0; } }; const selected = Math.min(left, right); return selected + other; }";
+    let destructured_shadowed_js = "function f(scope, left, right, other) { const { Math } = scope; const selected = Math.min(left, right); return selected + other; }";
+    let java_shadowed_math_type = "class C { static int f(int left, int right, int other) { int selected = Math.min(left, right); return selected + other; } }\nclass Math { static int min(int left, int right) { return 0; } }\n";
+    let ts_number_method_min = "function f(left: number, right: number, other: number): number { const selected = left.min(right); return selected + other; }";
+    let rust_float_min = "pub fn f(left: f64, right: f64, other: f64) -> f64 { let selected = left.min(right); selected + other }\n";
+    let custom_rust_min = "struct Wrap(i64);\nimpl Wrap { fn min(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.min(right); selected + other }\n";
+    let custom_rust_max = "struct Wrap(i64);\nimpl Wrap { fn max(&self, _right: i64) -> i64 { 0 } }\npub fn f(left: Wrap, right: i64, other: i64) -> i64 { let selected = left.max(right); selected + other }\n";
+
+    let fp = value_fp(&i, py_min, Lang::Python);
     assert_ne!(fp, value_fp(&i, py_shadowed_min, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_local_shadowed_min, Lang::Python));
     assert_ne!(fp, value_fp(&i, shadowed_js, Lang::JavaScript));
@@ -2368,7 +2377,7 @@ fn multi_clause_comprehension_converges_as_flat_map() {
 /// mapped collection. Keep this bridge explicit so FlatMap is not accidentally treated as
 /// the filtered-Map representation (`Hof(Map, [contrib, pred])`).
 #[test]
-fn flat_map_aggregate_converges_with_nested_reduction_loop() {
+fn flat_map_sum_aggregate_converges_with_nested_reduction_loop() {
     let i = Interner::new();
     let sum_gen = value_fp(
         &i,
@@ -2395,6 +2404,28 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def nested(xs, ys):\n    return sum([x + y for y in ys] for x in xs)\n",
         Lang::Python,
     );
+
+    assert_eq!(
+        sum_gen, sum_loop,
+        "sum over a flat-map generator should match the nested reduction loop"
+    );
+    assert_eq!(
+        sum_gen, sum_js,
+        "sum over a flatMap/map chain should match the flattened reduction"
+    );
+    assert_ne!(
+        sum_gen, wrong_seed,
+        "changing the additive seed changes aggregate behavior"
+    );
+    assert_ne!(
+        sum_gen, nested_list,
+        "aggregating nested list rows is not aggregating the flattened stream"
+    );
+}
+
+#[test]
+fn flat_map_max_aggregate_keeps_loop_seed_behavior_defining() {
+    let i = Interner::new();
     let max_gen = value_fp(
         &i,
         "def f(xs, ys):\n    return max(x + y for x in xs for y in ys)\n",
@@ -2410,6 +2441,23 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def h(left, right):\n    top = 0\n    for a in left:\n        for b in right:\n            cand = a + b\n            if cand > top:\n                top = cand\n    return top\n",
         Lang::Python,
     );
+
+    // `max(gen)` errs on empty input and tracks all-negative maxima; a `best = 0`
+    // seeded loop clamps at 0 in both cases. The seed is behavior-defining, so the
+    // two must NOT merge — while equal-seeded loops still converge with each other.
+    assert_ne!(
+        max_gen, max_loop,
+        "a zero-seeded selection loop clamps at its seed; true max(...) does not"
+    );
+    assert_eq!(
+        max_loop, max_loop_same_seed,
+        "equally-seeded nested selection loops should still converge"
+    );
+}
+
+#[test]
+fn flat_map_any_aggregate_converges_with_nested_early_return_loop() {
+    let i = Interner::new();
     let any_gen = value_fp(
         &i,
         "def f(xs, ys):\n    return any(x + y > 0 for x in xs for y in ys)\n",
@@ -2425,6 +2473,20 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def bad(xs, ys):\n    return any(x + y < 0 for x in xs for y in ys)\n",
         Lang::Python,
     );
+
+    assert_eq!(
+        any_gen, any_loop,
+        "any over a flat-map generator should match the nested early-return loop"
+    );
+    assert_ne!(
+        any_gen, any_bad_predicate,
+        "changing the flattened any predicate changes behavior"
+    );
+}
+
+#[test]
+fn flat_map_outer_independent_aggregate_keeps_outer_cardinality() {
+    let i = Interner::new();
     let outer_independent_flat = value_fp(
         &i,
         "def f(xs, ys):\n    return sum(y for x in xs for y in ys)\n",
@@ -2440,6 +2502,20 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def h(xs, ys):\n    return sum(y for y in ys)\n",
         Lang::Python,
     );
+
+    assert_ne!(
+        outer_independent_flat, direct_inner_sum,
+        "a flat-map aggregate that ignores the outer value still depends on outer cardinality"
+    );
+    assert_ne!(
+        outer_independent_loop, direct_inner_sum,
+        "a nested loop that ignores the outer value still depends on outer cardinality"
+    );
+}
+
+#[test]
+fn filtered_flat_map_sum_converges_with_nested_guarded_reduction() {
+    let i = Interner::new();
     let filtered_sum_gen = value_fp(
         &i,
         "def f(xs, ys):\n    return sum(x + y for x in xs if x > 0 for y in ys if y < 10)\n",
@@ -2465,6 +2541,28 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         "def bad(xs, ys):\n    return sum(x + y for x in xs if x > 0 for y in ys if False)\n",
         Lang::Python,
     );
+
+    assert_eq!(
+        filtered_sum_gen, filtered_sum_loop,
+        "filtered flat-map sums should match equivalent nested guarded reductions"
+    );
+    assert_eq!(
+        filtered_sum_gen, filtered_sum_js,
+        "filtered flatMap().reduce() should preserve carried outer and inner predicates"
+    );
+    assert_ne!(
+        filtered_sum_gen, filtered_sum_outer_changed,
+        "changing the outer flat-map aggregate predicate changes behavior"
+    );
+    assert_ne!(
+        filtered_sum_gen, filtered_sum_inner_changed,
+        "changing the inner flat-map aggregate predicate changes behavior"
+    );
+}
+
+#[test]
+fn filtered_flat_map_any_all_converge_with_nested_guarded_loops() {
+    let i = Interner::new();
     let filtered_any_gen = value_fp(
         &i,
         "def f(xs, ys):\n    return any(x + y > 0 for x in xs if x > 0 for y in ys if y < 10)\n",
@@ -2506,65 +2604,6 @@ fn flat_map_aggregate_converges_with_nested_reduction_loop() {
         Lang::TypeScript,
     );
 
-    assert_eq!(
-        sum_gen, sum_loop,
-        "sum over a flat-map generator should match the nested reduction loop"
-    );
-    assert_eq!(
-        sum_gen, sum_js,
-        "sum over a flatMap/map chain should match the flattened reduction"
-    );
-    assert_ne!(
-        sum_gen, wrong_seed,
-        "changing the additive seed changes aggregate behavior"
-    );
-    assert_ne!(
-        sum_gen, nested_list,
-        "aggregating nested list rows is not aggregating the flattened stream"
-    );
-    // `max(gen)` errs on empty input and tracks all-negative maxima; a `best = 0`
-    // seeded loop clamps at 0 in both cases. The seed is behavior-defining, so the
-    // two must NOT merge — while equal-seeded loops still converge with each other.
-    assert_ne!(
-        max_gen, max_loop,
-        "a zero-seeded selection loop clamps at its seed; true max(...) does not"
-    );
-    assert_eq!(
-        max_loop, max_loop_same_seed,
-        "equally-seeded nested selection loops should still converge"
-    );
-    assert_eq!(
-        any_gen, any_loop,
-        "any over a flat-map generator should match the nested early-return loop"
-    );
-    assert_ne!(
-        any_gen, any_bad_predicate,
-        "changing the flattened any predicate changes behavior"
-    );
-    assert_ne!(
-        outer_independent_flat, direct_inner_sum,
-        "a flat-map aggregate that ignores the outer value still depends on outer cardinality"
-    );
-    assert_ne!(
-        outer_independent_loop, direct_inner_sum,
-        "a nested loop that ignores the outer value still depends on outer cardinality"
-    );
-    assert_eq!(
-        filtered_sum_gen, filtered_sum_loop,
-        "filtered flat-map sums should match equivalent nested guarded reductions"
-    );
-    assert_eq!(
-        filtered_sum_gen, filtered_sum_js,
-        "filtered flatMap().reduce() should preserve carried outer and inner predicates"
-    );
-    assert_ne!(
-        filtered_sum_gen, filtered_sum_outer_changed,
-        "changing the outer flat-map aggregate predicate changes behavior"
-    );
-    assert_ne!(
-        filtered_sum_gen, filtered_sum_inner_changed,
-        "changing the inner flat-map aggregate predicate changes behavior"
-    );
     assert_eq!(
         filtered_any_gen, filtered_any_js,
         "method terminal predicates over filtered flatMap should preserve carried predicates"
@@ -2677,50 +2716,6 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 3) } else { None }).collect() }",
         Lang::Rust,
     );
-    let falsey_py = value_fp(
-        &i,
-        "def f(xs):\n    return [0 for x in xs if x > 0]\n",
-        Lang::Python,
-    );
-    let filtered_none_py = value_fp(
-        &i,
-        "def f(xs):\n    return [None for x in xs if x > 0]\n",
-        Lang::Python,
-    );
-    let falsey_rs = value_fp(
-        &i,
-        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).collect() }",
-        Lang::Rust,
-    );
-    let wrapped_none_rs = value_fp(
-        &i,
-        "fn f(xs: &[i32]) -> Vec<Option<i32>> { xs.iter().copied().filter_map(|x| if x > 0 { Some(None) } else { None }).collect() }",
-        Lang::Rust,
-    );
-    let dropped_falsey_rs = value_fp(
-        &i,
-        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).filter(|x| *x != 0).collect() }",
-        Lang::Rust,
-    );
-    let shadowed_some_rs = value_fp_named(
-        &i,
-        "fn Some(_value: i32) -> Option<i32> { None }\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
-        Lang::Rust,
-        "f",
-    );
-    let shadowed_none_rs = value_fp_named(
-        &i,
-        "const None: Option<i32> = Some(0);\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
-        Lang::Rust,
-        "f",
-    );
-    let shadowed_vec_rs = value_fp_named(
-        &i,
-        "struct Vec;\nimpl Vec { fn new() -> Vec { Vec } fn push(&self, _value: i32) {} }\nfn f(xs: &[i32]) -> Vec { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
-        Lang::Rust,
-        "f",
-    );
-
     assert_ne!(
         filtered_py, filtered_js,
         "untyped JS parameter method calls lack a receiver proof and must stay opaque"
@@ -2753,6 +2748,42 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         filtered_py, changed_value_rs,
         "changing the emitted Some value must stay distinct"
     );
+}
+
+#[test]
+fn rust_filter_map_keeps_falsey_and_none_payload_boundaries() {
+    let i = Interner::new();
+    let filtered_py = value_fp(
+        &i,
+        "def f(xs):\n    return [x * 2 for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let falsey_py = value_fp(
+        &i,
+        "def f(xs):\n    return [0 for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let filtered_none_py = value_fp(
+        &i,
+        "def f(xs):\n    return [None for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let falsey_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let wrapped_none_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<Option<i32>> { xs.iter().copied().filter_map(|x| if x > 0 { Some(None) } else { None }).collect() }",
+        Lang::Rust,
+    );
+    let dropped_falsey_rs = value_fp(
+        &i,
+        "fn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(0) } else { None }).filter(|x| *x != 0).collect() }",
+        Lang::Rust,
+    );
+
     assert_eq!(
         falsey_py, falsey_rs,
         "Some(0) is an emitted value, not an absence sentinel"
@@ -2769,6 +2800,35 @@ fn rust_filter_map_converges_with_filtered_map_and_guarded_builder() {
         falsey_rs, dropped_falsey_rs,
         "truthy filtering after emitting 0 must stay distinct"
     );
+}
+
+#[test]
+fn rust_filter_map_respects_shadowed_std_name_boundaries() {
+    let i = Interner::new();
+    let filtered_py = value_fp(
+        &i,
+        "def f(xs):\n    return [x * 2 for x in xs if x > 0]\n",
+        Lang::Python,
+    );
+    let shadowed_some_rs = value_fp_named(
+        &i,
+        "fn Some(_value: i32) -> Option<i32> { None }\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+        "f",
+    );
+    let shadowed_none_rs = value_fp_named(
+        &i,
+        "const None: Option<i32> = Some(0);\nfn f(xs: &[i32]) -> Vec<i32> { xs.iter().copied().filter_map(|x| if x > 0 { Some(x * 2) } else { None }).collect() }",
+        Lang::Rust,
+        "f",
+    );
+    let shadowed_vec_rs = value_fp_named(
+        &i,
+        "struct Vec;\nimpl Vec { fn new() -> Vec { Vec } fn push(&self, _value: i32) {} }\nfn f(xs: &[i32]) -> Vec { let out = Vec::new(); for x in xs { if *x > 0 { out.push(*x * 2); } } out }",
+        Lang::Rust,
+        "f",
+    );
+
     assert_ne!(
         filtered_py, shadowed_some_rs,
         "a local Rust Some definition must not be treated as Option::Some"
@@ -2905,6 +2965,19 @@ fn corpus_value_fp(corpus: &Corpus, path_suffix: &str, name: &str) -> Vec<u64> {
         .map(|unit| unit.root)
         .unwrap_or_else(|| panic!("expected function unit named {name} in {path_suffix}"));
     nose_normalize::value_fingerprint(&n, root, &corpus.interner)
+}
+
+/// Write `files` into a fresh per-process temp dir named after `tag` and lower
+/// them together as one corpus. Callers remove the returned dir when done.
+fn lower_temp_corpus(tag: &str, files: &[(&str, &str)]) -> (std::path::PathBuf, Corpus) {
+    let dir = std::env::temp_dir().join(format!("{tag}_{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, contents) in files {
+        std::fs::write(dir.join(name), contents).unwrap();
+    }
+    let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
+    (dir, corpus)
 }
 
 #[test]
@@ -3550,7 +3623,7 @@ fn value_graph_distinguishes_membership_and_negation() {
 }
 
 #[test]
-fn map_key_membership_converges_cross_language_with_boundaries() {
+fn map_key_membership_converges_cross_language() {
     let i = Interner::new();
     let py = "def f(lookup, other_lookup, key, other):\n    return key in lookup\n";
     let py_method =
@@ -3567,19 +3640,6 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
     let ts_array_from_keys = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(key); }";
     let ts_direct_keys_includes = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return lookup.keys().includes(key); }";
     let typed_set_same_names = "function f(lookup: Set<string>, other_lookup: Set<string>, key: string, other: string): boolean { return lookup.has(key); }";
-    let wrong_key =
-        "def f(lookup, other_lookup, key, other):\n    return lookup.__contains__(other)\n";
-    let wrong_map =
-        "def f(lookup, other_lookup, key, other):\n    return other_lookup.__contains__(key)\n";
-    let value_membership =
-        "def f(lookup, other_lookup, key, other):\n    return key in lookup.values()\n";
-    let py_keys_wrong_key = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return other in lookup.keys()\n";
-    let py_keys_wrong_map = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return key in other_lookup.keys()\n";
-    let py_values_view = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return key in lookup.values()\n";
-    let ts_array_from_keys_wrong_key = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(other); }";
-    let ts_array_from_keys_wrong_map = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(other_lookup.keys()).includes(key); }";
-    let ts_array_from_values = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.values()).includes(key); }";
-    let ts_array_from_shadowed_array = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string, Array: any): boolean { return Array.from(lookup.keys()).includes(key); }";
 
     let fp = value_fp(&i, py, Lang::Python);
     assert_ne!(fp, value_fp(&i, py_method, Lang::Python));
@@ -3599,6 +3659,27 @@ fn map_key_membership_converges_cross_language_with_boundaries() {
         "Map.keys() is an iterator view; direct .includes is not a proven key-view collection"
     );
     assert_ne!(fp, value_fp(&i, typed_set_same_names, Lang::TypeScript));
+}
+
+#[test]
+fn map_key_membership_keeps_wrong_coordinate_boundaries() {
+    let i = Interner::new();
+    let py = "def f(lookup, other_lookup, key, other):\n    return key in lookup\n";
+    let wrong_key =
+        "def f(lookup, other_lookup, key, other):\n    return lookup.__contains__(other)\n";
+    let wrong_map =
+        "def f(lookup, other_lookup, key, other):\n    return other_lookup.__contains__(key)\n";
+    let value_membership =
+        "def f(lookup, other_lookup, key, other):\n    return key in lookup.values()\n";
+    let py_keys_wrong_key = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return other in lookup.keys()\n";
+    let py_keys_wrong_map = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return key in other_lookup.keys()\n";
+    let py_values_view = "def f(lookup: dict[str, str], other_lookup: dict[str, str], key: str, other: str) -> bool:\n    return key in lookup.values()\n";
+    let ts_array_from_keys_wrong_key = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.keys()).includes(other); }";
+    let ts_array_from_keys_wrong_map = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(other_lookup.keys()).includes(key); }";
+    let ts_array_from_values = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string): boolean { return Array.from(lookup.values()).includes(key); }";
+    let ts_array_from_shadowed_array = "function f(lookup: Map<string, string>, other_lookup: Map<string, string>, key: string, other: string, Array: any): boolean { return Array.from(lookup.keys()).includes(key); }";
+
+    let fp = value_fp(&i, py, Lang::Python);
     assert_ne!(fp, value_fp(&i, wrong_key, Lang::Python));
     assert_ne!(fp, value_fp(&i, wrong_map, Lang::Python));
     assert_ne!(fp, value_fp(&i, value_membership, Lang::Python));
@@ -4410,6 +4491,26 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
     let py_int_key_literal = "def f(key, other):\n    return {0: 1, 1: 2}.get(key, 0)\n";
     let go_keyed_slice =
         "package p\n\nfunc F(key int, other int) int { return []int{0: 1, 1: 2}[key] }\n";
+    let go_string_inline =
+        "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key] }\n";
+
+    let fp = value_fp(&i, py_literal, Lang::Python);
+    assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
+    assert_eq!(fp, value_fp(&i, go_inline, Lang::Go));
+    assert_eq!(fp, value_fp(&i, go_local, Lang::Go));
+    assert_eq!(fp, value_fp(&i, go_var, Lang::Go));
+    assert_ne!(fp, value_fp(&i, go_wrong_key, Lang::Go));
+    assert_ne!(fp, value_fp(&i, go_wrong_map, Lang::Go));
+    assert_ne!(
+        value_fp(&i, py_int_key_literal, Lang::Python),
+        value_fp(&i, go_keyed_slice, Lang::Go)
+    );
+    assert_ne!(fp, value_fp(&i, go_string_inline, Lang::Go));
+}
+
+#[test]
+fn literal_map_default_lookup_converges_with_go_literal_string_map_boundaries() {
+    let i = Interner::new();
     let py_string_literal =
         "def f(key, other):\n    return {\"red\": \"apple\", \"blue\": \"berry\"}.get(key, \"\")\n";
     let ruby_string_literal =
@@ -4424,6 +4525,24 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
         "def f(key, other):\n    return {0: \"apple\", 1: \"berry\"}.get(key, \"\")\n";
     let go_string_keyed_slice =
         "package p\n\nfunc F(key int, other int) string { return []string{0: \"apple\", 1: \"berry\"}[key] }\n";
+    let go_mixed_value =
+        "package p\n\nfunc F(key string, other string) interface{} { return map[string]interface{}{\"red\": \"apple\", \"blue\": false}[key] }\n";
+
+    let string_fp = value_fp(&i, py_string_literal, Lang::Python);
+    assert_eq!(string_fp, value_fp(&i, ruby_string_literal, Lang::Ruby));
+    assert_eq!(string_fp, value_fp(&i, go_string_inline, Lang::Go));
+    assert_eq!(string_fp, value_fp(&i, go_string_local, Lang::Go));
+    assert_ne!(string_fp, value_fp(&i, go_string_wrong_key, Lang::Go));
+    assert_ne!(string_fp, value_fp(&i, go_mixed_value, Lang::Go));
+    assert_ne!(
+        value_fp(&i, py_string_int_key_literal, Lang::Python),
+        value_fp(&i, go_string_keyed_slice, Lang::Go)
+    );
+}
+
+#[test]
+fn literal_map_default_lookup_converges_with_go_literal_scalar_map_boundaries() {
+    let i = Interner::new();
     let py_bool_literal =
         "def f(key, other):\n    return {\"red\": True, \"blue\": False}.get(key, False)\n";
     let ruby_bool_literal =
@@ -4450,32 +4569,6 @@ fn literal_map_default_lookup_converges_with_go_literal_map_index_boundaries() {
         "package p\n\ntype Item struct{}\n\nfunc F(key string, other string) *Item { return map[string]*Item{\"red\": nil, \"blue\": nil}[key] }\n";
     let go_nil_wrong_map =
         "package p\n\nfunc F(key string, other string) string { return map[string]string{\"red\": \"apple\", \"blue\": \"berry\"}[key] }\n";
-    let go_mixed_value =
-        "package p\n\nfunc F(key string, other string) interface{} { return map[string]interface{}{\"red\": \"apple\", \"blue\": false}[key] }\n";
-
-    let fp = value_fp(&i, py_literal, Lang::Python);
-    assert_eq!(fp, value_fp(&i, ruby_literal, Lang::Ruby));
-    assert_eq!(fp, value_fp(&i, go_inline, Lang::Go));
-    assert_eq!(fp, value_fp(&i, go_local, Lang::Go));
-    assert_eq!(fp, value_fp(&i, go_var, Lang::Go));
-    assert_ne!(fp, value_fp(&i, go_wrong_key, Lang::Go));
-    assert_ne!(fp, value_fp(&i, go_wrong_map, Lang::Go));
-    assert_ne!(
-        value_fp(&i, py_int_key_literal, Lang::Python),
-        value_fp(&i, go_keyed_slice, Lang::Go)
-    );
-    assert_ne!(fp, value_fp(&i, go_string_inline, Lang::Go));
-
-    let string_fp = value_fp(&i, py_string_literal, Lang::Python);
-    assert_eq!(string_fp, value_fp(&i, ruby_string_literal, Lang::Ruby));
-    assert_eq!(string_fp, value_fp(&i, go_string_inline, Lang::Go));
-    assert_eq!(string_fp, value_fp(&i, go_string_local, Lang::Go));
-    assert_ne!(string_fp, value_fp(&i, go_string_wrong_key, Lang::Go));
-    assert_ne!(string_fp, value_fp(&i, go_mixed_value, Lang::Go));
-    assert_ne!(
-        value_fp(&i, py_string_int_key_literal, Lang::Python),
-        value_fp(&i, go_string_keyed_slice, Lang::Go)
-    );
 
     let bool_fp = value_fp(&i, py_bool_literal, Lang::Python);
     assert_eq!(bool_fp, value_fp(&i, ruby_bool_literal, Lang::Ruby));
@@ -4522,72 +4615,56 @@ fn literal_map_default_lookup_converges_with_module_map_bindings() {
 
 #[test]
 fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
-    let dir =
-        std::env::temp_dir().join(format!("nose_imported_map_default_{}", std::process::id()));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(
-        dir.join("local.py"),
-        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("tables.py"),
-        "LOOKUP = {\"red\": 1, \"blue\": 2}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported.py"),
-        "from tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("wrong_map.py"),
-        "from tables import LOOKUP\n\ndef lookup(key, other):\n    return {\"red\": 9, \"blue\": 2}.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("mutated_tables.py"),
-        "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP.clear()\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("mutated_index_tables.py"),
-        "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP[\"red\"] = 9\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("escaped_tables.py"),
-        "LOOKUP = {\"red\": 1, \"blue\": 2}\nmutate(LOOKUP)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported_mutated_provider.py"),
-        "from mutated_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported_mutated_index_provider.py"),
-        "from mutated_index_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported_escaped_provider.py"),
-        "from escaped_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported_mutated_receiver.py"),
-        "from tables import LOOKUP\nLOOKUP.clear()\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("imported_mutated_index_receiver.py"),
-        "from tables import LOOKUP\nLOOKUP[\"red\"] = 9\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
-    )
-    .unwrap();
-
-    let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
+    let (dir, corpus) = lower_temp_corpus(
+        "nose_imported_map_default",
+        &[
+            (
+                "local.py",
+                "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+            ),
+            ("tables.py", "LOOKUP = {\"red\": 1, \"blue\": 2}\n"),
+            (
+                "imported.py",
+                "from tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+            (
+                "wrong_map.py",
+                "from tables import LOOKUP\n\ndef lookup(key, other):\n    return {\"red\": 9, \"blue\": 2}.get(key, 0)\n",
+            ),
+            (
+                "mutated_tables.py",
+                "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP.clear()\n",
+            ),
+            (
+                "mutated_index_tables.py",
+                "LOOKUP = {\"red\": 1, \"blue\": 2}\nLOOKUP[\"red\"] = 9\n",
+            ),
+            (
+                "escaped_tables.py",
+                "LOOKUP = {\"red\": 1, \"blue\": 2}\nmutate(LOOKUP)\n",
+            ),
+            (
+                "imported_mutated_provider.py",
+                "from mutated_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+            (
+                "imported_mutated_index_provider.py",
+                "from mutated_index_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+            (
+                "imported_escaped_provider.py",
+                "from escaped_tables import LOOKUP\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+            (
+                "imported_mutated_receiver.py",
+                "from tables import LOOKUP\nLOOKUP.clear()\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+            (
+                "imported_mutated_index_receiver.py",
+                "from tables import LOOKUP\nLOOKUP[\"red\"] = 9\n\ndef lookup(key, other):\n    return LOOKUP.get(key, 0)\n",
+            ),
+        ],
+    );
     let local = corpus_value_fp(&corpus, "local.py", "lookup");
     assert_eq!(
         local,
@@ -4629,120 +4706,48 @@ fn literal_map_default_lookup_converges_with_imported_python_literal_binding() {
 }
 
 #[test]
-fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
-    let dir = std::env::temp_dir().join(format!(
-        "nose_imported_non_python_map_default_{}",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(
-        dir.join("local.py"),
-        "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_tables.js"),
-        "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_imported.js"),
-        "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_mutated_tables.js"),
-        "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\nLOOKUP.set(\"red\", 9);\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_imported_mutated_provider.js"),
-        "import { LOOKUP } from './js_mutated_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_imported_mutated_receiver.js"),
-        "import { LOOKUP } from './js_tables';\nLOOKUP.set(\"red\", 9);\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("js_wrong_map.js"),
-        "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return new Map([[\"red\", 9], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("ts_tables.ts"),
-        "export const LOOKUP = new Map<string, number>([[\"red\", 1], [\"blue\", 2]]);\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("ts_imported.ts"),
-        "import { LOOKUP } from './ts_tables';\nexport function lookup(key: string, other: string): number {\n  return LOOKUP.get(key) ?? 0;\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("Tables.java"),
-        "import java.util.Map;\n\nclass Tables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("JavaImported.java"),
-        "import static Tables.LOOKUP;\n\nclass JavaImported {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("JavaImportedWithLocalMapShadow.java"),
-        "import static Tables.LOOKUP;\n\nclass JavaImportedWithLocalMapShadow {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n\nclass Map {}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("WrongTables.java"),
-        "import java.util.Map;\n\nclass WrongTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 9, \"blue\", 2);\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("JavaImportedWrongMap.java"),
-        "import static WrongTables.LOOKUP;\n\nclass JavaImportedWrongMap {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("MissingMapImportTables.java"),
-        "class MissingMapImportTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("JavaImportedMissingMapImport.java"),
-        "import static MissingMapImportTables.LOOKUP;\n\nclass JavaImportedMissingMapImport {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("tables.rs"),
-        "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 1), (\"blue\", 2)];\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("rust_imported.rs"),
-        "use tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("rust_imported_shadowed_std.rs"),
-        "use tables::LOOKUP;\n\nmod std { pub mod collections { pub struct HashMap; } }\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("wrong_tables.rs"),
-        "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 9), (\"blue\", 2)];\n",
-    )
-    .unwrap();
-    std::fs::write(
-        dir.join("rust_imported_wrong_map.rs"),
-        "use wrong_tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
-    )
-    .unwrap();
-
-    let corpus = nose_frontend::lower_corpus_many(&[dir.as_path()]);
+fn literal_map_default_lookup_converges_with_js_ts_imported_bindings() {
+    let (dir, corpus) = lower_temp_corpus(
+        "nose_imported_js_ts_map_default",
+        &[
+            (
+                "local.py",
+                "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+            ),
+            (
+                "js_tables.js",
+                "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\n",
+            ),
+            (
+                "js_imported.js",
+                "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+            ),
+            (
+                "js_mutated_tables.js",
+                "export const LOOKUP = new Map([[\"red\", 1], [\"blue\", 2]]);\nLOOKUP.set(\"red\", 9);\n",
+            ),
+            (
+                "js_imported_mutated_provider.js",
+                "import { LOOKUP } from './js_mutated_tables';\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+            ),
+            (
+                "js_imported_mutated_receiver.js",
+                "import { LOOKUP } from './js_tables';\nLOOKUP.set(\"red\", 9);\nexport function lookup(key, other) {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+            ),
+            (
+                "js_wrong_map.js",
+                "import { LOOKUP } from './js_tables';\nexport function lookup(key, other) {\n  return new Map([[\"red\", 9], [\"blue\", 2]]).get(key) ?? 0;\n}\n",
+            ),
+            (
+                "ts_tables.ts",
+                "export const LOOKUP = new Map<string, number>([[\"red\", 1], [\"blue\", 2]]);\n",
+            ),
+            (
+                "ts_imported.ts",
+                "import { LOOKUP } from './ts_tables';\nexport function lookup(key: string, other: string): number {\n  return LOOKUP.get(key) ?? 0;\n}\n",
+            ),
+        ],
+    );
     let local = corpus_value_fp(&corpus, "local.py", "lookup");
     assert_ne!(
         local,
@@ -4753,26 +4758,6 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         local,
         corpus_value_fp(&corpus, "ts_imported.ts", "lookup"),
         "TS imported Map bindings stay closed until constructor/provenance proof exists"
-    );
-    assert_eq!(
-        local,
-        corpus_value_fp(&corpus, "JavaImported.java", "lookup"),
-        "Java static import should prove the same literal map/default coordinates"
-    );
-    assert_eq!(
-        local,
-        corpus_value_fp(&corpus, "JavaImportedWithLocalMapShadow.java", "lookup"),
-        "provider-proven Java static import should not be invalidated by importer-local Map shadowing"
-    );
-    assert_eq!(
-        local,
-        corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
-        "Rust use-imported const entries should prove the same map/default coordinates"
-    );
-    assert_ne!(
-        local,
-        corpus_value_fp(&corpus, "rust_imported_shadowed_std.rs", "lookup"),
-        "a local Rust std module must block imported std map factory provenance"
     );
     assert_ne!(
         local,
@@ -4789,6 +4774,60 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         corpus_value_fp(&corpus, "js_wrong_map.js", "lookup"),
         "different JS map contents must stay distinct"
     );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn literal_map_default_lookup_converges_with_java_imported_bindings() {
+    let (dir, corpus) = lower_temp_corpus(
+        "nose_imported_java_map_default",
+        &[
+            (
+                "local.py",
+                "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+            ),
+            (
+                "Tables.java",
+                "import java.util.Map;\n\nclass Tables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
+            ),
+            (
+                "JavaImported.java",
+                "import static Tables.LOOKUP;\n\nclass JavaImported {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+            ),
+            (
+                "JavaImportedWithLocalMapShadow.java",
+                "import static Tables.LOOKUP;\n\nclass JavaImportedWithLocalMapShadow {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n\nclass Map {}\n",
+            ),
+            (
+                "WrongTables.java",
+                "import java.util.Map;\n\nclass WrongTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 9, \"blue\", 2);\n}\n",
+            ),
+            (
+                "JavaImportedWrongMap.java",
+                "import static WrongTables.LOOKUP;\n\nclass JavaImportedWrongMap {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+            ),
+            (
+                "MissingMapImportTables.java",
+                "class MissingMapImportTables {\n  static final Map<String, Integer> LOOKUP = Map.of(\"red\", 1, \"blue\", 2);\n}\n",
+            ),
+            (
+                "JavaImportedMissingMapImport.java",
+                "import static MissingMapImportTables.LOOKUP;\n\nclass JavaImportedMissingMapImport {\n  static int lookup(String key, String other) {\n    return LOOKUP.getOrDefault(key, 0);\n  }\n}\n",
+            ),
+        ],
+    );
+    let local = corpus_value_fp(&corpus, "local.py", "lookup");
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "JavaImported.java", "lookup"),
+        "Java static import should prove the same literal map/default coordinates"
+    );
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "JavaImportedWithLocalMapShadow.java", "lookup"),
+        "provider-proven Java static import should not be invalidated by importer-local Map shadowing"
+    );
     assert_ne!(
         local,
         corpus_value_fp(&corpus, "JavaImportedWrongMap.java", "lookup"),
@@ -4798,6 +4837,52 @@ fn literal_map_default_lookup_converges_with_non_python_imported_bindings() {
         local,
         corpus_value_fp(&corpus, "JavaImportedMissingMapImport.java", "lookup"),
         "Java imported Map.of provider must require java.util.Map proof"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn literal_map_default_lookup_converges_with_rust_imported_bindings() {
+    let (dir, corpus) = lower_temp_corpus(
+        "nose_imported_rust_map_default",
+        &[
+            (
+                "local.py",
+                "def lookup(key, other):\n    return {\"red\": 1, \"blue\": 2}.get(key, 0)\n",
+            ),
+            (
+                "tables.rs",
+                "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 1), (\"blue\", 2)];\n",
+            ),
+            (
+                "rust_imported.rs",
+                "use tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+            ),
+            (
+                "rust_imported_shadowed_std.rs",
+                "use tables::LOOKUP;\n\nmod std { pub mod collections { pub struct HashMap; } }\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+            ),
+            (
+                "wrong_tables.rs",
+                "pub const LOOKUP: [(&str, i32); 2] = [(\"red\", 9), (\"blue\", 2)];\n",
+            ),
+            (
+                "rust_imported_wrong_map.rs",
+                "use wrong_tables::LOOKUP;\n\npub fn lookup(key: &str, other: &str) -> i32 {\n    *std::collections::HashMap::from(LOOKUP).get(key).unwrap_or(&0)\n}\n",
+            ),
+        ],
+    );
+    let local = corpus_value_fp(&corpus, "local.py", "lookup");
+    assert_eq!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported.rs", "lookup"),
+        "Rust use-imported const entries should prove the same map/default coordinates"
+    );
+    assert_ne!(
+        local,
+        corpus_value_fp(&corpus, "rust_imported_shadowed_std.rs", "lookup"),
+        "a local Rust std module must block imported std map factory provenance"
     );
     assert_ne!(
         local,
@@ -4839,7 +4924,7 @@ fn literal_map_default_lookup_converges_with_js_object_own_property_boundaries()
 }
 
 #[test]
-fn map_default_lookup_converges_cross_language_with_boundaries() {
+fn map_default_lookup_converges_cross_language() {
     let i = Interner::new();
     let go = "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := lookup[key]; if !ok { value = fallback }; return value }\n";
     let java_explicit = "import java.util.Map;\n\nclass C { static int f(Map<String, Integer> lookup, Map<String, Integer> other_lookup, String key, String other_key, int fallback, int other_default) { return lookup.containsKey(key) ? lookup.get(key) : fallback; } }\n";
@@ -4858,26 +4943,6 @@ fn map_default_lookup_converges_cross_language_with_boundaries() {
     let py_alias_mapping = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
     let py_alias_mutable_mapping = "from collections.abc import MutableMapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
     let py_alias_dict = "from typing import Dict as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
-    let wrong_key = "import java.util.Map;\n\nclass C { static int f(Map<String, Integer> lookup, Map<String, Integer> other_lookup, String key, String other_key, int fallback, int other_default) { return lookup.getOrDefault(other_key, fallback); } }\n";
-    let wrong_default = "use std::collections::HashMap;\n\npub fn f(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, key: &str, other_key: &str, fallback: i32, other_default: i32) -> i32 { *lookup.get(key).unwrap_or(&other_default) }\n";
-    let wrong_map = "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := otherLookup[key]; if !ok { value = fallback }; return value }\n";
-    let ts_wrong_key = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return lookup.get(other_key) ?? fallback; }\n";
-    let ts_wrong_default = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return lookup.get(key) ?? other_default; }\n";
-    let ts_wrong_map = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return other_lookup.get(key) ?? fallback; }\n";
-    let ts_untyped = "function f(lookup, other_lookup, key, other_key, fallback, other_default) { return lookup.get(key) ?? fallback; }\n";
-    let ts_temp_shadowed_undefined = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number, undefined: number): number { const selected = lookup.get(key); return selected === undefined ? fallback : selected; }\n";
-    let py_wrong_key = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n";
-    let py_wrong_default = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n";
-    let py_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n";
-    let py_untyped = "def f(lookup, other_lookup, key, other_key, fallback, other_default):\n    return lookup.get(key, fallback)\n";
-    let py_alias_wrong_key = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n";
-    let py_alias_wrong_default = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n";
-    let py_alias_wrong_map = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n";
-    let py_alias_unresolved = "def f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
-    let py_alias_shadowed = "from collections.abc import Mapping as MapLike\nMapLike = list\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
-    let guard_wrong_key = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { if (lookup.has(other_key)) { return lookup.get(other_key)!; } return fallback; }\n";
-    let guard_wrong_default = "import java.util.Map;\n\nclass C { static int f(Map<String, Integer> lookup, Map<String, Integer> other_lookup, String key, String other_key, int fallback, int other_default) { if (lookup.containsKey(key)) { return lookup.get(key); } return other_default; } }\n";
-    let guard_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    if key in other_lookup:\n        return other_lookup[key]\n    return fallback\n";
 
     let fp = value_fp(&i, go, Lang::Go);
     assert_eq!(fp, value_fp(&i, java_explicit, Lang::Java));
@@ -4896,6 +4961,26 @@ fn map_default_lookup_converges_cross_language_with_boundaries() {
     assert_eq!(fp, value_fp(&i, py_alias_mapping, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_alias_mutable_mapping, Lang::Python));
     assert_eq!(fp, value_fp(&i, py_alias_dict, Lang::Python));
+}
+
+#[test]
+fn map_default_lookup_keeps_wrong_coordinate_boundaries() {
+    let i = Interner::new();
+    let go = "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := lookup[key]; if !ok { value = fallback }; return value }\n";
+    let wrong_key = "import java.util.Map;\n\nclass C { static int f(Map<String, Integer> lookup, Map<String, Integer> other_lookup, String key, String other_key, int fallback, int other_default) { return lookup.getOrDefault(other_key, fallback); } }\n";
+    let wrong_default = "use std::collections::HashMap;\n\npub fn f(lookup: &HashMap<&str, i32>, other_lookup: &HashMap<&str, i32>, key: &str, other_key: &str, fallback: i32, other_default: i32) -> i32 { *lookup.get(key).unwrap_or(&other_default) }\n";
+    let wrong_map = "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := otherLookup[key]; if !ok { value = fallback }; return value }\n";
+    let ts_wrong_key = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return lookup.get(other_key) ?? fallback; }\n";
+    let ts_wrong_default = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return lookup.get(key) ?? other_default; }\n";
+    let ts_wrong_map = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { return other_lookup.get(key) ?? fallback; }\n";
+    let ts_untyped = "function f(lookup, other_lookup, key, other_key, fallback, other_default) { return lookup.get(key) ?? fallback; }\n";
+    let ts_temp_shadowed_undefined = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number, undefined: number): number { const selected = lookup.get(key); return selected === undefined ? fallback : selected; }\n";
+    let py_wrong_key = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n";
+    let py_wrong_default = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n";
+    let py_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n";
+    let py_untyped = "def f(lookup, other_lookup, key, other_key, fallback, other_default):\n    return lookup.get(key, fallback)\n";
+
+    let fp = value_fp(&i, go, Lang::Go);
     assert_ne!(fp, value_fp(&i, wrong_key, Lang::Java));
     assert_ne!(fp, value_fp(&i, wrong_default, Lang::Rust));
     assert_ne!(fp, value_fp(&i, wrong_map, Lang::Go));
@@ -4911,6 +4996,22 @@ fn map_default_lookup_converges_cross_language_with_boundaries() {
     assert_ne!(fp, value_fp(&i, py_wrong_default, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_wrong_map, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_untyped, Lang::Python));
+}
+
+#[test]
+fn map_default_lookup_keeps_alias_and_guard_boundaries() {
+    let i = Interner::new();
+    let go = "package p\n\nfunc F(lookup map[string]int, otherLookup map[string]int, key string, otherKey string, fallback int, otherDefault int) int { value, ok := lookup[key]; if !ok { value = fallback }; return value }\n";
+    let py_alias_wrong_key = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(other_key, fallback)\n";
+    let py_alias_wrong_default = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, other_default)\n";
+    let py_alias_wrong_map = "from collections.abc import Mapping as MapLike\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return other_lookup.get(key, fallback)\n";
+    let py_alias_unresolved = "def f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
+    let py_alias_shadowed = "from collections.abc import Mapping as MapLike\nMapLike = list\n\ndef f(lookup: MapLike[str, int], other_lookup: MapLike[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    return lookup.get(key, fallback)\n";
+    let guard_wrong_key = "function f(lookup: Map<string, number>, other_lookup: Map<string, number>, key: string, other_key: string, fallback: number, other_default: number): number { if (lookup.has(other_key)) { return lookup.get(other_key)!; } return fallback; }\n";
+    let guard_wrong_default = "import java.util.Map;\n\nclass C { static int f(Map<String, Integer> lookup, Map<String, Integer> other_lookup, String key, String other_key, int fallback, int other_default) { if (lookup.containsKey(key)) { return lookup.get(key); } return other_default; } }\n";
+    let guard_wrong_map = "def f(lookup: dict[str, int], other_lookup: dict[str, int], key: str, other_key: str, fallback: int, other_default: int) -> int:\n    if key in other_lookup:\n        return other_lookup[key]\n    return fallback\n";
+
+    let fp = value_fp(&i, go, Lang::Go);
     assert_ne!(fp, value_fp(&i, py_alias_wrong_key, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_alias_wrong_default, Lang::Python));
     assert_ne!(fp, value_fp(&i, py_alias_wrong_map, Lang::Python));

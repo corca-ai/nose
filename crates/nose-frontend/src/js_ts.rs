@@ -928,6 +928,15 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.await_boundary(span, value)
         }
+        _ => lower_expr_rest(lo, node),
+    }
+}
+
+/// Tail of [`lower_expr`]'s dispatch: destructuring patterns, parameters,
+/// JSX, template internals, and TS-only kinds that reach expression position.
+fn lower_expr_rest(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    match node.kind() {
         // TS-only wrappers have no runtime behavior.
         "as_expression" | "satisfies_expression" | "non_null_expression" | "type_assertion" => node
             .named_child(0)

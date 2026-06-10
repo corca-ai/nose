@@ -9,271 +9,310 @@ use super::*;
 
 impl<'a> Builder<'a> {
     pub(super) fn mk(&mut self, mut op: ValOp, mut args: Vec<ValueId>) -> ValueId {
-        if let ValOp::Bin(opc) = op {
-            // Canonicalize comparison DIRECTION: `a > b` ≡ `b < a`, `a >= b` ≡ `b <= a`.
-            // Reduce the >/>= family to </<= with swapped operands so a guard converges
-            // however it was written or negated (`0 < v`, `v > 0`, `!(v <= 0)` all become
-            // one node). Language-agnostic and sound (total order). This is what lets a
-            // `reduce(λa,v: a+v if v>0 else a, …)` fold converge with its loop, whose
-            // guard may lower to the mirror comparison.
-            if args.len() == 2 && self.comparison_law_enabled(ComparisonLaw::DirectionCanon) {
-                if opc == Op::Gt as u32 {
-                    op = ValOp::Bin(Op::Lt as u32);
-                    args.swap(0, 1);
-                } else if opc == Op::Ge as u32 {
-                    op = ValOp::Bin(Op::Le as u32);
-                    args.swap(0, 1);
-                }
-            }
-            // Canonicalize commutative operands by structural hash. `+` commutes UNLESS an
-            // operand is PROVEN string/list — concat is non-commutative (`s + x` ≠ `x + s`)
-            // and the free-monoid oracle distinguishes the orders. Unknown operands keep
-            // commuting (optimistic, and the oracle still checks it), so the common untyped
-            // numeric case is unaffected; only known-concat is held ordered. Other
-            // commutative ops Err on non-numeric regardless of order, so stay safe.
-            if let ValOp::Bin(o) = op {
-                let concat = o == Op::Add as u32
-                    && args.len() == 2
-                    && !self.add_values_not_concat(ValueLaw::AddCommutativity, &args);
-                if is_commutative(o)
-                    && args.len() == 2
-                    && !concat
-                    && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
-                {
-                    args.swap(0, 1);
-                }
-            }
-        }
-        if let ValOp::Bin(o) = op {
-            if args.len() == 2 && (o == Op::Add as u32 || o == Op::BitOr as u32) {
-                if let Some(v) = self.c_u16_be_byte_pack_pattern(args[0], args[1]) {
-                    return v;
-                }
-            }
+        self.order_bin_operands(&mut op, &mut args);
+        if let Some(v) = self.u16_byte_pack(&op, &args) {
+            return v;
         }
         // Type-gated simplifications — now SOUND because the operand type is PROVEN (these
         // were the 17 false merges when applied untyped; they only hold on numbers/bools):
         //   -(-x) → x        when x : Num   (−(−x) = x; on a list it would Err ≠ x)
         //   x & x, x | x → x when x : Num   (idempotent integer bitwise)
         //   x && x, x || x → x when x : Bool (idempotent boolean)
-        if let ValOp::Un(o) = op {
-            // NEGATED COMPARISON: `!(a<=b) → a>b`, `!(a<b) → a>=b`, `!(a==b) → a!=b`, etc.
-            // Sound for a total order, and on non-numeric operands both sides Err
-            // (`!(Err)` propagates — see interp `un`), so the rewrite preserves behavior.
-            // This canonicalizes the residual `Not` the algebra pass leaves on a pushed
-            // double-negation (`!!(a<b)` → `!(b<=a)` → `a<b`), converging it with the bare
-            // comparison without the unsound untyped `!!x → x`.
-            if o == Op::Not as u32
-                && !args.is_empty()
-                && self.comparison_law_enabled(ComparisonLaw::Negation)
-            {
-                if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
-                    if let Some(neg) = negate_cmp_code(self.il.meta.lang, bo) {
-                        let cargs = self.nodes[args[0] as usize].args.clone();
-                        return self.mk(ValOp::Bin(neg), cargs);
-                    }
-                }
-            }
-            if o == Op::Neg as u32 && !args.is_empty() {
-                if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
-                    let inner = self.nodes[args[0] as usize].args[0];
-                    if io == Op::Neg as u32
-                        && self.value_law_satisfied(ValueLaw::NumericNegationInvolution, &[inner])
-                    {
-                        return inner;
-                    }
-                }
-                // Distribute negation over addition: `-(x + y) → (-x) + (-y)`. Sound for
-                // ALL types — `Neg` errors on non-numeric, and so does the distributed
-                // form (`-list` is Err either way). Pushing Neg inward gives a canonical
-                // form so `-(a+b)` converges with `-a - b` (= `-a + -b`).
-                if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
-                    if bo == Op::Add as u32 {
-                        let inner = self.nodes[args[0] as usize].args.clone();
-                        let negs: Vec<ValueId> = inner
-                            .iter()
-                            .map(|&t| self.mk(ValOp::Un(Op::Neg as u32), vec![t]))
-                            .collect();
-                        let mut acc = negs[0];
-                        for &n in &negs[1..] {
-                            acc = self.mk(ValOp::Bin(Op::Add as u32), vec![acc, n]);
-                        }
-                        return acc;
-                    }
-                }
-            }
+        if let Some(v) = self.unary_canon(&op, &args) {
+            return v;
         }
-        if let ValOp::Bin(o) = op {
-            if args.len() == 2 && args[0] == args[1] {
-                let bitwise = o == Op::BitAnd as u32 || o == Op::BitOr as u32;
-                let logical = o == Op::And as u32 || o == Op::Or as u32;
-                if (bitwise
-                    && self.value_law_satisfied(ValueLaw::NumericBitwiseIdempotence, &[args[0]]))
-                    || (logical
-                        && self.value_law_satisfied(ValueLaw::BooleanIdempotence, &[args[0]]))
-                {
-                    return args[0];
-                }
-            }
-            // NOTE: arithmetic identity elimination (`x+0→x`, `x*1→x`) is deliberately NOT
-            // done — it is unsound for non-numeric `x` (`"a"+0` Errs; `self*1` on a
-            // non-number need not equal `self`), and value-domain inference is optimistic (it infers
-            // `x:Num` from `x*1` itself), so a Num gate would still merge `return self*1`
-            // with an identity `return self`. The oracle's all-types battery sees the
-            // difference. `x*1`/`x+0` keep their identity operand (algebra no longer drops
-            // it) and stay distinct from a bare `x` — a tiny convergence cost for soundness.
-
-            // DISTRIBUTION / FACTORING: `x*f + y*f → (x+y)*f`. Canonicalizes toward the
-            // factored form so `a*c + b*c` converges with `(a+b)*c`. Sound ONLY on numbers —
-            // string `*int` is repetition, where `"a"*2 + "b"*2` ("aabb") ≠ `("a"+"b")*2`
-            // ("abab") — so every leaf must be PROVEN `Num`. Lean obligation:
-            // `normalize.value_graph.factor_distribute`.
-            if o == Op::Add as u32 && args.len() == 2 {
-                if let Some(v) = rules::factor_distribute::apply(self, args[0], args[1]) {
-                    return v;
-                }
-            }
-            // DOUBLING (`x*k → x+…+x`, so `x*2` ≡ `x+x`) was TRIED and REJECTED: expansion is
-            // sound only on numbers, so it must gate on a PROVEN `Num`; but then the canonical
-            // form of `(a+b)*2` depends on whether the surrounding code happens to prove the
-            // operands numeric, splitting two behaviorally-identical functions (`a+=b; a*=2`
-            // diverged from `(a+b)*2`). It closed `x*2 vs x+x` but opened `compound assign` —
-            // net-zero, plus fragility. The gap stays open; see experiments §BA. (`x+x` in
-            // isolation cannot be proven `Num`, so the sound contraction direction never fires.)
+        if let Some(v) = self.bin_idempotence_and_factor(&op, &args) {
+            return v;
         }
-        // `and`/`or` are TYPE-GATED on commutativity, exactly like `+` is gated on concat:
-        //   • both operands PROVEN Bool → boolean-and/or, which IS commutative
-        //     (`X && Y` = `Y && X` for booleans) — sort operands so `p∧q` converges with
-        //     `q∧p` (e.g. `(a>b)∧(b>0)` vs `(0<b)∧(b<a)` after comparison-direction canon).
-        //   • otherwise → short-circuit VALUE-and/or, which is NOT commutative and yields
-        //     the deciding operand's VALUE: `a or b ≡ a if a else b`, `a and b ≡ b if a
-        //     else a`. Canonicalize to the positional `Phi` the ternary builds, so a guard
-        //     written `a or b` converges with its `a if a else b` twin — without ever
-        //     merging `a or b` with `b or a` (the value-or false merge the oracle now sees).
-        // (Idempotent `x∧x`/`x∨x` on Bool, handled just above, returns before this.)
-        if let ValOp::Bin(o) = op {
-            let is_or = o == Op::Or as u32;
-            let is_and = o == Op::And as u32;
-            if (is_or || is_and) && args.len() == 2 {
-                if self.value_law_satisfied(ValueLaw::BooleanCommutativity, &args) {
-                    if is_or {
-                        if let Some(v) = self.literal_equality_disjunction(args[0], args[1]) {
-                            return v;
-                        }
-                    }
-                    // LATTICE CANON on a total order — close the strict comparison from a
-                    // non-strict one plus an (in)equality, so a guard written as the
-                    // conjunction/disjunction converges with the strict comparison:
-                    //   (x ≤ y) ∧ (x ≠ y) → x < y     (dual of below)
-                    //   (x < y) ∨ (x = y) → x ≤ y
-                    // Sound for any total order (`normalize.value_graph.compare`); on a type
-                    // error every comparison Errs identically on both sides. It composes through
-                    // the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
-                    if is_and {
-                        if let Some(v) = self.lattice_strict_absorbs_nonstrict(args[0], args[1]) {
-                            return v;
-                        }
-                        if let Some(v) = self.lattice_le_ne_to_lt(args[0], args[1]) {
-                            return v;
-                        }
-                    } else if let Some(v) = self.lattice_lt_eq_to_le(args[0], args[1]) {
-                        return v;
-                    }
-                    if self.vhash[args[0] as usize] > self.vhash[args[1] as usize] {
-                        args.swap(0, 1);
-                    }
-                } else if is_or {
-                    return self.mk(ValOp::Phi, vec![args[0], args[0], args[1]]);
-                } else {
-                    return self.mk(ValOp::Phi, vec![args[0], args[1], args[0]]);
-                }
-            }
+        if let Some(v) = self.bool_and_or_canon(&op, &mut args) {
+            return v;
         }
-        // Recognize select idioms on EVERY branch merge — `Phi(cond, then, els)` is built
-        // both by a ternary (`a if c else b`) and by an if/else that assigns a variable, so
-        // doing this here (not just at the ternary) keeps the two forms convergent:
-        //   `x if x>=0 else -x` → Abs(x) ;  `x if x<y else y` → Min(x,y) / Max(x,y).
-        if let ValOp::Phi = op {
-            if args.len() == 3 {
-                if self.bool_const(args[1]) == Some(true) && self.bool_const(args[2]) == Some(false)
-                {
-                    return args[0];
-                }
-                if self.bool_const(args[1]) == Some(false) && self.bool_const(args[2]) == Some(true)
-                {
-                    return self.mk(ValOp::Un(Op::Not as u32), vec![args[0]]);
-                }
-                if let Some(v) = self.boolean_guarded_identity_phi(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.abs_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.clamp_ternary_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.low_bit_toggle_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.map_default_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.value_default_pattern(args[0], args[1], args[2]) {
-                    return v;
-                }
-                if let Some(v) = self.flatten_nested_guarded_identity_phi(args[0], args[1], args[2])
-                {
-                    return v;
-                }
-            }
+        if let Some(v) = self.phi_select_idioms(&op, &args) {
+            return v;
         }
-        // Boolean logical `and`/`or` is associative and commutative only when both sides are
-        // proven Bool. Flattening that narrow shape lets `guard && (p && q)` converge with
-        // `(guard && p) && q` without reviving value-short-circuit false merges for unknowns.
-        if let ValOp::Bin(o) = op {
-            if args.len() == 2 && (o == Op::And as u32 || o == Op::Or as u32) {
-                let mut leaves = Vec::new();
-                self.flatten_into(args[0], o, &mut leaves);
-                self.flatten_into(args[1], o, &mut leaves);
-                if leaves.len() > 2
-                    && self.value_law_satisfied(ValueLaw::BooleanAssociativity, &leaves)
-                {
-                    leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
-                    return self.intern_ac_chain(o, &leaves);
-                }
-            }
+        if let Some(v) = self.bool_chain_flatten(&op, &args) {
+            return v;
         }
-
-        // Full ASSOCIATIVE-COMMUTATIVE canonicalization: flatten a `+`/`*`/`&`/`|`/`^`
-        // chain to its leaves, sort them by structural hash, and rebuild one canonical
-        // left-leaning chain — so `(a+b)+c`, `a+(b+c)`, and a factored `(a+b)+d` (from
-        // `factor_distribute`) all reach ONE node regardless of how they were grouped or
-        // built. The value graph thus canonicalizes AC chains itself, not only via the
-        // earlier `algebra` IL pass (which keyed by a different hash and did not see nodes
-        // synthesized here). Sound: any operand permutation of an AC chain is denotation-
-        // preserving (`normalize.value_graph.algebra`). String/list `+` is NOT reordered
-        // (it is ordered concat); `* & | ^` Err on non-numeric regardless of order.
-        if let ValOp::Bin(o) = op {
-            if is_assoc_comm_code(o) && args.len() == 2 {
-                let concat = o == Op::Add as u32
-                    && !self.add_values_not_concat(ValueLaw::AddAssociativity, &args);
-                if !concat {
-                    let mut leaves = Vec::new();
-                    for &a in &args {
-                        self.flatten_into(a, o, &mut leaves);
-                    }
-                    if leaves.len() > 2 {
-                        leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
-                        return self.intern_ac_chain(o, &leaves);
-                    }
-                }
-            }
+        if let Some(v) = self.ac_chain_canon(&op, &args) {
+            return v;
         }
         let id = self.intern_node(op, args);
         rules::clamp::apply(self, id).unwrap_or(id)
+    }
+
+    fn order_bin_operands(&mut self, op: &mut ValOp, args: &mut [ValueId]) {
+        let ValOp::Bin(opc) = *op else { return };
+        // Canonicalize comparison DIRECTION: `a > b` ≡ `b < a`, `a >= b` ≡ `b <= a`.
+        // Reduce the >/>= family to </<= with swapped operands so a guard converges
+        // however it was written or negated (`0 < v`, `v > 0`, `!(v <= 0)` all become
+        // one node). Language-agnostic and sound (total order). This is what lets a
+        // `reduce(λa,v: a+v if v>0 else a, …)` fold converge with its loop, whose
+        // guard may lower to the mirror comparison.
+        if args.len() == 2 && self.comparison_law_enabled(ComparisonLaw::DirectionCanon) {
+            if opc == Op::Gt as u32 {
+                *op = ValOp::Bin(Op::Lt as u32);
+                args.swap(0, 1);
+            } else if opc == Op::Ge as u32 {
+                *op = ValOp::Bin(Op::Le as u32);
+                args.swap(0, 1);
+            }
+        }
+        // Canonicalize commutative operands by structural hash. `+` commutes UNLESS an
+        // operand is PROVEN string/list — concat is non-commutative (`s + x` ≠ `x + s`)
+        // and the free-monoid oracle distinguishes the orders. Unknown operands keep
+        // commuting (optimistic, and the oracle still checks it), so the common untyped
+        // numeric case is unaffected; only known-concat is held ordered. Other
+        // commutative ops Err on non-numeric regardless of order, so stay safe.
+        if let ValOp::Bin(o) = *op {
+            let concat = o == Op::Add as u32
+                && args.len() == 2
+                && !self.add_values_not_concat(ValueLaw::AddCommutativity, args);
+            if is_commutative(o)
+                && args.len() == 2
+                && !concat
+                && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
+            {
+                args.swap(0, 1);
+            }
+        }
+    }
+
+    fn u16_byte_pack(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        let ValOp::Bin(o) = *op else { return None };
+        if args.len() == 2 && (o == Op::Add as u32 || o == Op::BitOr as u32) {
+            if let Some(v) = self.c_u16_be_byte_pack_pattern(args[0], args[1]) {
+                return Some(v);
+            }
+        }
+        None
+    }
+
+    fn unary_canon(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        let ValOp::Un(o) = *op else { return None };
+        // NEGATED COMPARISON: `!(a<=b) → a>b`, `!(a<b) → a>=b`, `!(a==b) → a!=b`, etc.
+        // Sound for a total order, and on non-numeric operands both sides Err
+        // (`!(Err)` propagates — see interp `un`), so the rewrite preserves behavior.
+        // This canonicalizes the residual `Not` the algebra pass leaves on a pushed
+        // double-negation (`!!(a<b)` → `!(b<=a)` → `a<b`), converging it with the bare
+        // comparison without the unsound untyped `!!x → x`.
+        if o == Op::Not as u32
+            && !args.is_empty()
+            && self.comparison_law_enabled(ComparisonLaw::Negation)
+        {
+            if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
+                if let Some(neg) = negate_cmp_code(self.il.meta.lang, bo) {
+                    let cargs = self.nodes[args[0] as usize].args.clone();
+                    return Some(self.mk(ValOp::Bin(neg), cargs));
+                }
+            }
+        }
+        if o == Op::Neg as u32 && !args.is_empty() {
+            if let ValOp::Un(io) = self.nodes[args[0] as usize].op {
+                let inner = self.nodes[args[0] as usize].args[0];
+                if io == Op::Neg as u32
+                    && self.value_law_satisfied(ValueLaw::NumericNegationInvolution, &[inner])
+                {
+                    return Some(inner);
+                }
+            }
+            // Distribute negation over addition: `-(x + y) → (-x) + (-y)`. Sound for
+            // ALL types — `Neg` errors on non-numeric, and so does the distributed
+            // form (`-list` is Err either way). Pushing Neg inward gives a canonical
+            // form so `-(a+b)` converges with `-a - b` (= `-a + -b`).
+            if let ValOp::Bin(bo) = self.nodes[args[0] as usize].op {
+                if bo == Op::Add as u32 {
+                    let inner = self.nodes[args[0] as usize].args.clone();
+                    let negs: Vec<ValueId> = inner
+                        .iter()
+                        .map(|&t| self.mk(ValOp::Un(Op::Neg as u32), vec![t]))
+                        .collect();
+                    let mut acc = negs[0];
+                    for &n in &negs[1..] {
+                        acc = self.mk(ValOp::Bin(Op::Add as u32), vec![acc, n]);
+                    }
+                    return Some(acc);
+                }
+            }
+        }
+        None
+    }
+
+    fn bin_idempotence_and_factor(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        let ValOp::Bin(o) = *op else { return None };
+        if args.len() == 2 && args[0] == args[1] {
+            let bitwise = o == Op::BitAnd as u32 || o == Op::BitOr as u32;
+            let logical = o == Op::And as u32 || o == Op::Or as u32;
+            if (bitwise
+                && self.value_law_satisfied(ValueLaw::NumericBitwiseIdempotence, &[args[0]]))
+                || (logical && self.value_law_satisfied(ValueLaw::BooleanIdempotence, &[args[0]]))
+            {
+                return Some(args[0]);
+            }
+        }
+        // NOTE: arithmetic identity elimination (`x+0→x`, `x*1→x`) is deliberately NOT
+        // done — it is unsound for non-numeric `x` (`"a"+0` Errs; `self*1` on a
+        // non-number need not equal `self`), and value-domain inference is optimistic (it infers
+        // `x:Num` from `x*1` itself), so a Num gate would still merge `return self*1`
+        // with an identity `return self`. The oracle's all-types battery sees the
+        // difference. `x*1`/`x+0` keep their identity operand (algebra no longer drops
+        // it) and stay distinct from a bare `x` — a tiny convergence cost for soundness.
+
+        // DISTRIBUTION / FACTORING: `x*f + y*f → (x+y)*f`. Canonicalizes toward the
+        // factored form so `a*c + b*c` converges with `(a+b)*c`. Sound ONLY on numbers —
+        // string `*int` is repetition, where `"a"*2 + "b"*2` ("aabb") ≠ `("a"+"b")*2`
+        // ("abab") — so every leaf must be PROVEN `Num`. Lean obligation:
+        // `normalize.value_graph.factor_distribute`.
+        if o == Op::Add as u32 && args.len() == 2 {
+            if let Some(v) = rules::factor_distribute::apply(self, args[0], args[1]) {
+                return Some(v);
+            }
+        }
+        // DOUBLING (`x*k → x+…+x`, so `x*2` ≡ `x+x`) was TRIED and REJECTED: expansion is
+        // sound only on numbers, so it must gate on a PROVEN `Num`; but then the canonical
+        // form of `(a+b)*2` depends on whether the surrounding code happens to prove the
+        // operands numeric, splitting two behaviorally-identical functions (`a+=b; a*=2`
+        // diverged from `(a+b)*2`). It closed `x*2 vs x+x` but opened `compound assign` —
+        // net-zero, plus fragility. The gap stays open; see experiments §BA. (`x+x` in
+        // isolation cannot be proven `Num`, so the sound contraction direction never fires.)
+        None
+    }
+
+    // `and`/`or` are TYPE-GATED on commutativity, exactly like `+` is gated on concat:
+    //   • both operands PROVEN Bool → boolean-and/or, which IS commutative
+    //     (`X && Y` = `Y && X` for booleans) — sort operands so `p∧q` converges with
+    //     `q∧p` (e.g. `(a>b)∧(b>0)` vs `(0<b)∧(b<a)` after comparison-direction canon).
+    //   • otherwise → short-circuit VALUE-and/or, which is NOT commutative and yields
+    //     the deciding operand's VALUE: `a or b ≡ a if a else b`, `a and b ≡ b if a
+    //     else a`. Canonicalize to the positional `Phi` the ternary builds, so a guard
+    //     written `a or b` converges with its `a if a else b` twin — without ever
+    //     merging `a or b` with `b or a` (the value-or false merge the oracle now sees).
+    // (Idempotent `x∧x`/`x∨x` on Bool, handled just above, returns before this.)
+    fn bool_and_or_canon(&mut self, op: &ValOp, args: &mut [ValueId]) -> Option<ValueId> {
+        let ValOp::Bin(o) = *op else { return None };
+        let is_or = o == Op::Or as u32;
+        let is_and = o == Op::And as u32;
+        if (is_or || is_and) && args.len() == 2 {
+            if self.value_law_satisfied(ValueLaw::BooleanCommutativity, args) {
+                if is_or {
+                    if let Some(v) = self.literal_equality_disjunction(args[0], args[1]) {
+                        return Some(v);
+                    }
+                }
+                // LATTICE CANON on a total order — close the strict comparison from a
+                // non-strict one plus an (in)equality, so a guard written as the
+                // conjunction/disjunction converges with the strict comparison:
+                //   (x ≤ y) ∧ (x ≠ y) → x < y     (dual of below)
+                //   (x < y) ∨ (x = y) → x ≤ y
+                // Sound for any total order (`normalize.value_graph.compare`); on a type
+                // error every comparison Errs identically on both sides. It composes through
+                // the recursive `mk` fixpoint, so `not (a>b or a==b)` reaches `a<b`.
+                if is_and {
+                    if let Some(v) = self.lattice_strict_absorbs_nonstrict(args[0], args[1]) {
+                        return Some(v);
+                    }
+                    if let Some(v) = self.lattice_le_ne_to_lt(args[0], args[1]) {
+                        return Some(v);
+                    }
+                } else if let Some(v) = self.lattice_lt_eq_to_le(args[0], args[1]) {
+                    return Some(v);
+                }
+                if self.vhash[args[0] as usize] > self.vhash[args[1] as usize] {
+                    args.swap(0, 1);
+                }
+            } else if is_or {
+                return Some(self.mk(ValOp::Phi, vec![args[0], args[0], args[1]]));
+            } else {
+                return Some(self.mk(ValOp::Phi, vec![args[0], args[1], args[0]]));
+            }
+        }
+        None
+    }
+
+    // Recognize select idioms on EVERY branch merge — `Phi(cond, then, els)` is built
+    // both by a ternary (`a if c else b`) and by an if/else that assigns a variable, so
+    // doing this here (not just at the ternary) keeps the two forms convergent:
+    //   `x if x>=0 else -x` → Abs(x) ;  `x if x<y else y` → Min(x,y) / Max(x,y).
+    fn phi_select_idioms(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        if !matches!(*op, ValOp::Phi) || args.len() != 3 {
+            return None;
+        }
+        if self.bool_const(args[1]) == Some(true) && self.bool_const(args[2]) == Some(false) {
+            return Some(args[0]);
+        }
+        if self.bool_const(args[1]) == Some(false) && self.bool_const(args[2]) == Some(true) {
+            return Some(self.mk(ValOp::Un(Op::Not as u32), vec![args[0]]));
+        }
+        if let Some(v) = self.boolean_guarded_identity_phi(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.abs_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.minmax_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.clamp_ternary_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.low_bit_toggle_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.map_default_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.value_default_pattern(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        if let Some(v) = self.flatten_nested_guarded_identity_phi(args[0], args[1], args[2]) {
+            return Some(v);
+        }
+        None
+    }
+
+    // Boolean logical `and`/`or` is associative and commutative only when both sides are
+    // proven Bool. Flattening that narrow shape lets `guard && (p && q)` converge with
+    // `(guard && p) && q` without reviving value-short-circuit false merges for unknowns.
+    fn bool_chain_flatten(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        let ValOp::Bin(o) = *op else { return None };
+        if args.len() == 2 && (o == Op::And as u32 || o == Op::Or as u32) {
+            let mut leaves = Vec::new();
+            self.flatten_into(args[0], o, &mut leaves);
+            self.flatten_into(args[1], o, &mut leaves);
+            if leaves.len() > 2 && self.value_law_satisfied(ValueLaw::BooleanAssociativity, &leaves)
+            {
+                leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
+                return Some(self.intern_ac_chain(o, &leaves));
+            }
+        }
+        None
+    }
+
+    // Full ASSOCIATIVE-COMMUTATIVE canonicalization: flatten a `+`/`*`/`&`/`|`/`^`
+    // chain to its leaves, sort them by structural hash, and rebuild one canonical
+    // left-leaning chain — so `(a+b)+c`, `a+(b+c)`, and a factored `(a+b)+d` (from
+    // `factor_distribute`) all reach ONE node regardless of how they were grouped or
+    // built. The value graph thus canonicalizes AC chains itself, not only via the
+    // earlier `algebra` IL pass (which keyed by a different hash and did not see nodes
+    // synthesized here). Sound: any operand permutation of an AC chain is denotation-
+    // preserving (`normalize.value_graph.algebra`). String/list `+` is NOT reordered
+    // (it is ordered concat); `* & | ^` Err on non-numeric regardless of order.
+    fn ac_chain_canon(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
+        let ValOp::Bin(o) = *op else { return None };
+        if is_assoc_comm_code(o) && args.len() == 2 {
+            let concat = o == Op::Add as u32
+                && !self.add_values_not_concat(ValueLaw::AddAssociativity, args);
+            if !concat {
+                let mut leaves = Vec::new();
+                for &a in args {
+                    self.flatten_into(a, o, &mut leaves);
+                }
+                if leaves.len() > 2 {
+                    leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
+                    return Some(self.intern_ac_chain(o, &leaves));
+                }
+            }
+        }
+        None
     }
 
     /// Intern a value node by `(op, args)` (hash-consing), computing its structural hash

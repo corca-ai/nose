@@ -98,6 +98,10 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
         domain_evidence_from_param_semantic(ParamSemantic::Result),
         DomainEvidence::Result
     );
+}
+
+#[test]
+fn domain_evidence_predicates_match_domain_families() {
     assert!(DomainEvidence::Array.is_array_collection_or_set());
     assert!(DomainEvidence::Boolean.is_boolean());
     assert!(DomainEvidence::Collection.is_array_or_collection());
@@ -116,6 +120,10 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
     assert!(DomainEvidence::PromiseLike.is_promise_like());
     assert!(DomainEvidence::Record.is_record());
     assert!(DomainEvidence::Result.is_result());
+}
+
+#[test]
+fn scalar_domain_evidence_predicates_keep_numeric_axes_separate() {
     assert!(DomainEvidence::String.is_string());
     assert!(DomainEvidence::ByteArray.is_byte_array());
     assert!(DomainEvidence::Integer.is_integer());
@@ -125,6 +133,10 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
     assert!(!DomainEvidence::Number.is_integer());
     assert!(!DomainEvidence::Array.is_collection_or_set());
     assert!(!DomainEvidence::Set.is_array_or_collection());
+}
+
+#[test]
+fn domain_requirements_accept_matching_evidence() {
     assert!(DomainRequirement::Boolean.accepts(DomainEvidence::Boolean));
     assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Array));
     assert!(DomainRequirement::CollectionOrMap.accepts(DomainEvidence::Map));
@@ -141,6 +153,10 @@ fn domain_evidence_preserves_param_semantic_boundaries() {
     .accepts(DomainEvidence::Nominal {
         type_hash: stable_symbol_hash("pkg.Widget")
     }));
+}
+
+#[test]
+fn domain_requirements_reject_mismatches_and_map_value_domains() {
     assert!(DomainRequirement::Number.accepts(DomainEvidence::Float));
     assert!(DomainRequirement::Record.accepts(DomainEvidence::Record));
     assert!(DomainRequirement::Result.accepts(DomainEvidence::Result));
@@ -205,7 +221,10 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         type_domain_from_source_text(Lang::TypeScript, "xs: Blacklist<string>"),
         None
     );
+}
 
+#[test]
+fn type_domain_contracts_cover_java_rust_c_and_go_signatures() {
     assert_eq!(
         type_domain_from_source_text(Lang::Java, "@Nonnull List<String> xs"),
         Some(DomainEvidence::Collection)
@@ -269,7 +288,10 @@ fn type_domain_contracts_are_language_scoped_and_exact_enough() {
         type_domain_from_source_text(Lang::Go, "type User struct { id int }"),
         Some(DomainEvidence::Record)
     );
+}
 
+#[test]
+fn python_stdlib_type_domain_rows_are_module_scoped() {
     let iterable = python_stdlib_type_domain_contract("typing", "Iterable")
         .expect("typing.Iterable should be a first-party pack row");
     assert_eq!(iterable.pack_id, PYTHON_STDLIB_TYPE_DOMAIN_PACK_ID);
@@ -955,7 +977,10 @@ fn sequence_surface_contracts_keep_value_and_exact_axes_separate() {
     assert!(object.exact_tree_safe);
     assert!(!object.membership_collection);
     assert!(object.imported_literal);
+}
 
+#[test]
+fn go_sequence_surface_contracts_stay_language_scoped() {
     let go_map = seq_surface_contract(Lang::Go, Some("composite_literal")).unwrap();
     assert_eq!(
         go_map.value_tag,

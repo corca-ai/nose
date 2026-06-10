@@ -293,75 +293,11 @@ fn lower_assign_like(lo: &mut Lowering, node: TsNode) -> NodeId {
     let rights: Vec<TsNode> = right.map(expr_list_items).unwrap_or_default();
 
     if !compound && lefts.len() == 2 && rights.len() == 1 {
-        if let Some(ok_rhs) = lower_map_lookup_ok(lo, rights[0]) {
-            if lo.text(lefts[1]) != "_" {
-                let mut assigns = Vec::new();
-                if lo.text(lefts[0]) != "_" {
-                    let lhs = lower_expr(lo, lefts[0]);
-                    let rhs = lower_expr(lo, rights[0]);
-                    assigns.push(lo.add(
-                        NodeKind::Assign,
-                        Payload::None,
-                        lo.span(lefts[0]),
-                        &[lhs, rhs],
-                    ));
-                }
-                let ok_lhs = lower_expr(lo, lefts[1]);
-                assigns.push(lo.add(
-                    NodeKind::Assign,
-                    Payload::None,
-                    lo.span(lefts[1]),
-                    &[ok_lhs, ok_rhs],
-                ));
-                return if assigns.len() == 1 {
-                    assigns[0]
-                } else {
-                    lo.add(NodeKind::Block, Payload::None, span, &assigns)
-                };
-            }
+        if let Some(id) = lower_two_value_map_ok(lo, span, &lefts, &rights) {
+            return id;
         }
-        if is_channel_receive_expr(lo, rights[0]) {
-            let mut assigns = Vec::new();
-            let receive_span = lo.span(rights[0]);
-            let channel = rights[0]
-                .child_by_field_name("operand")
-                .map(|operand| lower_expr(lo, operand))
-                .unwrap_or_else(|| lo.empty_block(receive_span));
-            if lo.text(lefts[0]) != "_" {
-                let lhs = lower_expr(lo, lefts[0]);
-                let value = lo.protocol_boundary(
-                    receive_span,
-                    SourceProtocolKind::ChannelReceive,
-                    "channel_receive",
-                    &[channel],
-                );
-                assigns.push(lo.add(
-                    NodeKind::Assign,
-                    Payload::None,
-                    lo.span(lefts[0]),
-                    &[lhs, value],
-                ));
-            }
-            if lo.text(lefts[1]) != "_" {
-                let ok_lhs = lower_expr(lo, lefts[1]);
-                let ok = lo.protocol_boundary(
-                    receive_span,
-                    SourceProtocolKind::ChannelReceive,
-                    "channel_receive_status",
-                    &[channel],
-                );
-                assigns.push(lo.add(
-                    NodeKind::Assign,
-                    Payload::None,
-                    lo.span(lefts[1]),
-                    &[ok_lhs, ok],
-                ));
-            }
-            return if assigns.len() == 1 {
-                assigns[0]
-            } else {
-                lo.add(NodeKind::Block, Payload::None, span, &assigns)
-            };
+        if let Some(id) = lower_two_value_channel_receive(lo, span, &lefts, &rights) {
+            return id;
         }
     }
 
@@ -398,6 +334,97 @@ fn lower_assign_like(lo: &mut Lowering, node: TsNode) -> NodeId {
     } else {
         lo.add(NodeKind::Block, Payload::None, span, &assigns)
     }
+}
+
+/// `v, ok := m[k]` — the comma-ok map lookup. The ok target becomes a
+/// `Contains(key, map)` proof; a `_` ok target falls back to the generic path.
+fn lower_two_value_map_ok(
+    lo: &mut Lowering,
+    span: Span,
+    lefts: &[TsNode],
+    rights: &[TsNode],
+) -> Option<NodeId> {
+    let ok_rhs = lower_map_lookup_ok(lo, rights[0])?;
+    if lo.text(lefts[1]) == "_" {
+        return None;
+    }
+    let mut assigns = Vec::new();
+    if lo.text(lefts[0]) != "_" {
+        let lhs = lower_expr(lo, lefts[0]);
+        let rhs = lower_expr(lo, rights[0]);
+        assigns.push(lo.add(
+            NodeKind::Assign,
+            Payload::None,
+            lo.span(lefts[0]),
+            &[lhs, rhs],
+        ));
+    }
+    let ok_lhs = lower_expr(lo, lefts[1]);
+    assigns.push(lo.add(
+        NodeKind::Assign,
+        Payload::None,
+        lo.span(lefts[1]),
+        &[ok_lhs, ok_rhs],
+    ));
+    Some(if assigns.len() == 1 {
+        assigns[0]
+    } else {
+        lo.add(NodeKind::Block, Payload::None, span, &assigns)
+    })
+}
+
+/// `v, ok := <-ch` — the comma-ok channel receive; both targets stay
+/// source-backed protocol boundaries over the same channel operand.
+fn lower_two_value_channel_receive(
+    lo: &mut Lowering,
+    span: Span,
+    lefts: &[TsNode],
+    rights: &[TsNode],
+) -> Option<NodeId> {
+    if !is_channel_receive_expr(lo, rights[0]) {
+        return None;
+    }
+    let mut assigns = Vec::new();
+    let receive_span = lo.span(rights[0]);
+    let channel = rights[0]
+        .child_by_field_name("operand")
+        .map(|operand| lower_expr(lo, operand))
+        .unwrap_or_else(|| lo.empty_block(receive_span));
+    if lo.text(lefts[0]) != "_" {
+        let lhs = lower_expr(lo, lefts[0]);
+        let value = lo.protocol_boundary(
+            receive_span,
+            SourceProtocolKind::ChannelReceive,
+            "channel_receive",
+            &[channel],
+        );
+        assigns.push(lo.add(
+            NodeKind::Assign,
+            Payload::None,
+            lo.span(lefts[0]),
+            &[lhs, value],
+        ));
+    }
+    if lo.text(lefts[1]) != "_" {
+        let ok_lhs = lower_expr(lo, lefts[1]);
+        let ok = lo.protocol_boundary(
+            receive_span,
+            SourceProtocolKind::ChannelReceive,
+            "channel_receive_status",
+            &[channel],
+        );
+        assigns.push(lo.add(
+            NodeKind::Assign,
+            Payload::None,
+            lo.span(lefts[1]),
+            &[ok_lhs, ok],
+        ));
+    }
+    Some(if assigns.len() == 1 {
+        assigns[0]
+    } else {
+        lo.add(NodeKind::Block, Payload::None, span, &assigns)
+    })
 }
 
 fn lower_map_lookup_ok(lo: &mut Lowering, node: TsNode) -> Option<NodeId> {
@@ -744,18 +771,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "call_expression" => lower_call(lo, node),
         "binary_expression" => lower_binary(lo, node),
         "unary_expression" => lower_unary(lo, node),
-        "selector_expression" => {
-            let obj = node
-                .child_by_field_name("operand")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let field = node
-                .child_by_field_name("field")
-                .map(|f| lo.text(f))
-                .unwrap_or("");
-            let sym = lo.sym(field);
-            lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj])
-        }
+        "selector_expression" => lower_selector(lo, node),
         "index_expression" => {
             let base = node
                 .child_by_field_name("operand")
@@ -767,44 +783,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.add(NodeKind::Index, Payload::None, span, &[base, idx])
         }
-        "func_literal" => {
-            let mut kids = Vec::new();
-            if let Some(params) = node.child_by_field_name("parameters") {
-                lower_params(lo, params, &mut kids);
-            }
-            let body = node
-                .child_by_field_name("body")
-                .map(|b| lower_block(lo, b))
-                .unwrap_or_else(|| lo.empty_block(span));
-            kids.push(body);
-            lo.add(NodeKind::Lambda, Payload::None, span, &kids)
-        }
-        "composite_literal" => {
-            let body = node.child_by_field_name("body");
-            let kids: Vec<NodeId> = match body {
-                Some(b) => Lowering::named_children(b)
-                    .into_iter()
-                    .map(|c| lower_expr(lo, c))
-                    .collect(),
-                None => Vec::new(),
-            };
-            // Tag the literal by its TYPE so the kinds stay semantically distinct (the old
-            // blanket `composite_literal` tag collapsed slice ≡ map ≡ struct to one value):
-            //   • slice/array  → `array`  — an ordered sequence; converges with `[1,2]` / JS.
-            //   • map          → `composite_literal` — preserves go-map handling
-            //                    (`proven_go_literal_zero_map_seq`, which keys on this tag).
-            //   • struct/named → `go_struct` — a record, NOT a collection; a distinct value so
-            //                    `Point{1,2}` no longer value-merges with `[1,2]`.
-            // Named-type aliases default to `go_struct` (conservative: distinct, never a false
-            // sequence merge — at worst a missed convergence for a named slice alias).
-            let tag_str = match node.child_by_field_name("type").map(|t| t.kind()) {
-                Some("slice_type" | "array_type") => "array",
-                Some("map_type") => "composite_literal",
-                _ => "go_struct",
-            };
-            let tag = lo.sym(tag_str);
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
+        "func_literal" => lower_func_literal(lo, node),
+        "composite_literal" => lower_composite_literal(lo, node),
         "literal_element" | "keyed_element" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -835,26 +815,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.add(NodeKind::Seq, Payload::None, span, &kids)
         }
         // `a[lo:hi:cap]` → indexing shape: base plus whatever bounds are present.
-        "slice_expression" => {
-            let base = node
-                .child_by_field_name("operand")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            // Preserve slot POSITIONS: `a[1:]` (start) and `a[:1]` (end) are different
-            // slices. A missing bound emits an explicit `None` placeholder so the
-            // operands stay positional rather than both collapsing to `Index(a, 1)`.
-            let mut kids = vec![base];
-            for field in ["start", "end", "capacity"] {
-                let v = node
-                    .child_by_field_name(field)
-                    .map(|n| lower_expr(lo, n))
-                    .unwrap_or_else(|| {
-                        lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[])
-                    });
-                kids.push(v);
-            }
-            lo.add(NodeKind::Index, Payload::None, span, &kids)
-        }
+        "slice_expression" => lower_slice_expr(lo, node),
         // `x.(T)` is a type-level check; keep the operand `x`, drop the assertion.
         "type_assertion_expression" => node
             .child_by_field_name("operand")
@@ -880,6 +841,82 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_selector(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let obj = node
+        .child_by_field_name("operand")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let field = node
+        .child_by_field_name("field")
+        .map(|f| lo.text(f))
+        .unwrap_or("");
+    let sym = lo.sym(field);
+    lo.add(NodeKind::Field, Payload::Name(sym), span, &[obj])
+}
+
+fn lower_func_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    if let Some(params) = node.child_by_field_name("parameters") {
+        lower_params(lo, params, &mut kids);
+    }
+    let body = node
+        .child_by_field_name("body")
+        .map(|b| lower_block(lo, b))
+        .unwrap_or_else(|| lo.empty_block(span));
+    kids.push(body);
+    lo.add(NodeKind::Lambda, Payload::None, span, &kids)
+}
+
+fn lower_composite_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let body = node.child_by_field_name("body");
+    let kids: Vec<NodeId> = match body {
+        Some(b) => Lowering::named_children(b)
+            .into_iter()
+            .map(|c| lower_expr(lo, c))
+            .collect(),
+        None => Vec::new(),
+    };
+    // Tag the literal by its TYPE so the kinds stay semantically distinct (the old
+    // blanket `composite_literal` tag collapsed slice ≡ map ≡ struct to one value):
+    //   • slice/array  → `array`  — an ordered sequence; converges with `[1,2]` / JS.
+    //   • map          → `composite_literal` — preserves go-map handling
+    //                    (`proven_go_literal_zero_map_seq`, which keys on this tag).
+    //   • struct/named → `go_struct` — a record, NOT a collection; a distinct value so
+    //                    `Point{1,2}` no longer value-merges with `[1,2]`.
+    // Named-type aliases default to `go_struct` (conservative: distinct, never a false
+    // sequence merge — at worst a missed convergence for a named slice alias).
+    let tag_str = match node.child_by_field_name("type").map(|t| t.kind()) {
+        Some("slice_type" | "array_type") => "array",
+        Some("map_type") => "composite_literal",
+        _ => "go_struct",
+    };
+    let tag = lo.sym(tag_str);
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
+}
+
+fn lower_slice_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let base = node
+        .child_by_field_name("operand")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    // Preserve slot POSITIONS: `a[1:]` (start) and `a[:1]` (end) are different
+    // slices. A missing bound emits an explicit `None` placeholder so the
+    // operands stay positional rather than both collapsing to `Index(a, 1)`.
+    let mut kids = vec![base];
+    for field in ["start", "end", "capacity"] {
+        let v = node
+            .child_by_field_name(field)
+            .map(|n| lower_expr(lo, n))
+            .unwrap_or_else(|| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]));
+        kids.push(v);
+    }
+    lo.add(NodeKind::Index, Payload::None, span, &kids)
 }
 
 fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {

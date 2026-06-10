@@ -910,28 +910,7 @@ pub fn detect_from_units(
         //    near-duplicate scans also use shape signatures so Type-3 edits that
         //    change behavior-defining values still reach the scorer. When both
         //    channels run, score the union once.
-        let mut candidates = Vec::new();
-        if opts.value_candidates {
-            candidates.extend(lsh::candidates(
-                units.len(),
-                |i| units[i].minhash.as_slice(),
-                opts.bands,
-            ));
-            candidates.extend(exact_value_candidates(&units));
-        }
-        if opts.shape_candidates {
-            candidates.extend(lsh::candidates(
-                units.len(),
-                |i| units[i].shape_minhash.as_slice(),
-                opts.bands,
-            ));
-            // Partial / sub-DAG clones: pair units that share a rare heavy anchor (an
-            // extractable common sub-computation). They share no shape band, so shape-LSH
-            // alone never proposes them — this is the candidate channel's sub-DAG path.
-            candidates.extend(anchor_candidates(&units));
-        }
-        candidates.sort_unstable();
-        candidates.dedup();
+        let candidates = structural_candidates(&units, opts);
         clk.lap("candidates");
 
         // 4. Score candidates in parallel; keep accepted pairs.
@@ -975,53 +954,7 @@ pub fn detect_from_units(
         .collect();
     duplicates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
-    // Group score = mean of the accepted-pair scores within the group. Accumulate it in
-    // ONE pass over `accepted` instead of rescanning every accepted pair for every group
-    // (which was O(groups × accepted) — ~1e9 iterations / ~0.9s on guava's 17.6k groups ×
-    // 59k pairs, the detector's real hot spot). Each accepted pair was unioned, so its two
-    // endpoints share a component; index its contribution by that component's root. The
-    // per-group sum still walks `accepted` in order, so the float total — and the rounded
-    // score — is byte-identical to the per-group rescan.
-    let mut by_root: rustc_hash::FxHashMap<usize, (f64, u32)> = rustc_hash::FxHashMap::default();
-    for &(i, _j, s) in &accepted {
-        let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
-        e.0 += s;
-        e.1 += 1;
-    }
-    let groups: Vec<Group> = raw_groups
-        .iter()
-        .map(|members| {
-            let root = uf.find(members[0]);
-            let (sum, n) = by_root.get(&root).copied().unwrap_or((0.0, 0));
-            let score = if n == 0 { 0.0 } else { sum / n as f64 };
-            let mut locs: Vec<Loc> = members
-                .iter()
-                .map(|&m| loc_of(&units[m], enclosing[m].clone()))
-                .collect();
-            // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each
-            // site with its OWN source range for that shared computation — so the report can point
-            // at where the shared logic lives in each copy, not just that one exists.
-            if let Some(hash) = shared_subdag_hash(members, &units) {
-                for (&m, loc) in members.iter().zip(locs.iter_mut()) {
-                    if let Some(a) = units[m].anchors.iter().find(|a| a.hash == hash) {
-                        if a.line_start > 0 || a.line_end > 0 {
-                            loc.shared_subdag = Some((a.line_start, a.line_end));
-                        }
-                    }
-                }
-            }
-            Group {
-                score: round3(score),
-                members: locs,
-                semantic_laws: semantic_laws_for_members(members, &units),
-                abstraction_witness: if opts.abstraction_witnesses {
-                    units::abstraction_family_witness(members.iter().map(|&m| &units[m]))
-                } else {
-                    None
-                },
-            }
-        })
-        .collect();
+    let groups = build_groups(&units, &accepted, &mut uf, &raw_groups, &enclosing, opts);
     clk.lap("groups");
 
     let mut report = Report {
@@ -1072,6 +1005,93 @@ pub fn detect_from_units(
     };
 
     (report, dump)
+}
+
+/// LSH candidate generation for the structural pass: the value-graph and/or shape
+/// channels per `opts`, unioned, sorted, and deduped.
+fn structural_candidates(units: &[UnitFeat], opts: &DetectOptions) -> Vec<(usize, usize)> {
+    let mut candidates = Vec::new();
+    if opts.value_candidates {
+        candidates.extend(lsh::candidates(
+            units.len(),
+            |i| units[i].minhash.as_slice(),
+            opts.bands,
+        ));
+        candidates.extend(exact_value_candidates(units));
+    }
+    if opts.shape_candidates {
+        candidates.extend(lsh::candidates(
+            units.len(),
+            |i| units[i].shape_minhash.as_slice(),
+            opts.bands,
+        ));
+        // Partial / sub-DAG clones: pair units that share a rare heavy anchor (an
+        // extractable common sub-computation). They share no shape band, so shape-LSH
+        // alone never proposes them — this is the candidate channel's sub-DAG path.
+        candidates.extend(anchor_candidates(units));
+    }
+    candidates.sort_unstable();
+    candidates.dedup();
+    candidates
+}
+
+/// Build the report's `groups` from the clustered components.
+///
+/// Group score = mean of the accepted-pair scores within the group. Accumulate it in
+/// ONE pass over `accepted` instead of rescanning every accepted pair for every group
+/// (which was O(groups × accepted) — ~1e9 iterations / ~0.9s on guava's 17.6k groups ×
+/// 59k pairs, the detector's real hot spot). Each accepted pair was unioned, so its two
+/// endpoints share a component; index its contribution by that component's root. The
+/// per-group sum still walks `accepted` in order, so the float total — and the rounded
+/// score — is byte-identical to the per-group rescan.
+fn build_groups(
+    units: &[UnitFeat],
+    accepted: &[(usize, usize, f64)],
+    uf: &mut cluster::UnionFind,
+    raw_groups: &[Vec<usize>],
+    enclosing: &[Option<EnclosingUnit>],
+    opts: &DetectOptions,
+) -> Vec<Group> {
+    let mut by_root: rustc_hash::FxHashMap<usize, (f64, u32)> = rustc_hash::FxHashMap::default();
+    for &(i, _j, s) in accepted {
+        let e = by_root.entry(uf.find(i)).or_insert((0.0, 0));
+        e.0 += s;
+        e.1 += 1;
+    }
+    raw_groups
+        .iter()
+        .map(|members| {
+            let root = uf.find(members[0]);
+            let (sum, n) = by_root.get(&root).copied().unwrap_or((0.0, 0));
+            let score = if n == 0 { 0.0 } else { sum / n as f64 };
+            let mut locs: Vec<Loc> = members
+                .iter()
+                .map(|&m| loc_of(&units[m], enclosing[m].clone()))
+                .collect();
+            // If every member shares a heavy sub-DAG (a partial / sub-DAG clone), annotate each
+            // site with its OWN source range for that shared computation — so the report can point
+            // at where the shared logic lives in each copy, not just that one exists.
+            if let Some(hash) = shared_subdag_hash(members, units) {
+                for (&m, loc) in members.iter().zip(locs.iter_mut()) {
+                    if let Some(a) = units[m].anchors.iter().find(|a| a.hash == hash) {
+                        if a.line_start > 0 || a.line_end > 0 {
+                            loc.shared_subdag = Some((a.line_start, a.line_end));
+                        }
+                    }
+                }
+            }
+            Group {
+                score: round3(score),
+                members: locs,
+                semantic_laws: semantic_laws_for_members(members, units),
+                abstraction_witness: if opts.abstraction_witnesses {
+                    units::abstraction_family_witness(members.iter().map(|&m| &units[m]))
+                } else {
+                    None
+                },
+            }
+        })
+        .collect()
 }
 
 fn semantic_laws_for_members(members: &[usize], units: &[UnitFeat]) -> Vec<ValueLaw> {

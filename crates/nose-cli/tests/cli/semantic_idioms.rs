@@ -1390,6 +1390,9 @@ fn scan_mode_semantic_keeps_unproven_contains_calls_distinct() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for typed dynamic collection membership contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     let dir = std::env::temp_dir().join(format!(
@@ -1548,6 +1551,9 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for proven Set membership receiver contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
     let dir = std::env::temp_dir().join(format!("nose_set_membership_{}", std::process::id()));
@@ -1800,6 +1806,9 @@ fn scan_mode_semantic_handles_shadowed_callback_collection_name() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for typed TypeScript map-key membership contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_typed_typescript_map_key_membership() {
     let dir = std::env::temp_dir().join(format!("nose_typed_ts_map_key_{}", std::process::id()));
@@ -1940,6 +1949,9 @@ fn scan_mode_semantic_proves_typed_typescript_map_key_membership() {
     let _ = fs::remove_dir_all(&dir);
 }
 
+// Broad fixture matrix for typed TypeScript map default lookup contracts. The size is
+// intentional until the fixture setup has a clearer table-builder abstraction.
+#[allow(clippy::too_many_lines)]
 #[test]
 fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     let dir =

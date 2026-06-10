@@ -348,6 +348,62 @@ fn library_api_dependencies_match_callee(
         return false;
     };
     match callee {
+        LibraryApiCalleeContract::FreeName { .. }
+        | LibraryApiCalleeContract::RustMacro { .. }
+        | LibraryApiCalleeContract::JsGlobalConstructor { .. }
+        | LibraryApiCalleeContract::ImportedBinding { .. } => {
+            library_api_dependencies_match_named_callee(
+                il,
+                interner,
+                node,
+                callee_node,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::JavaUtilStaticMember { .. }
+        | LibraryApiCalleeContract::JavaUtilConstructor { .. }
+        | LibraryApiCalleeContract::RubyRequireStaticMember { .. } => {
+            library_api_dependencies_match_static_import_callee(
+                il,
+                interner,
+                node,
+                callee_node,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::RegexLiteralMethod { .. }
+        | LibraryApiCalleeContract::Property { .. }
+        | LibraryApiCalleeContract::StaticIndexMembershipMethod { .. }
+        | LibraryApiCalleeContract::ImportedNamespaceFunction { .. }
+        | LibraryApiCalleeContract::StaticGlobalMethod { .. }
+        | LibraryApiCalleeContract::StaticGlobalFunction { .. } => {
+            library_api_dependencies_match_static_member_callee(
+                il,
+                interner,
+                callee_node,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::Method { .. }
+        | LibraryApiCalleeContract::IteratorAdapterMethod { .. }
+        | LibraryApiCalleeContract::AsyncMethod { .. } => {
+            library_api_dependencies_match_method_callee(il, interner, node, callee, record)
+        }
+    }
+}
+
+fn library_api_dependencies_match_named_callee(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee_node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
             dependency_has_unshadowed_global_node(il, record, callee_node, name)
                 && library_api_free_name_shadow_safe(il.meta.lang, name, shadow, |candidate| {
@@ -376,6 +432,19 @@ fn library_api_dependencies_match_callee(
         LibraryApiCalleeContract::ImportedBinding { module, exported } => {
             dependency_has_imported_member_node(il, interner, record, callee_node, module, exported)
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_static_import_callee(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee_node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
             let Some(receiver_node) = il.children(callee_node).first().copied() else {
                 return false;
@@ -439,6 +508,18 @@ fn library_api_dependencies_match_callee(
                     il.node(receiver_node).span,
                 )
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_static_member_callee(
+    il: &Il,
+    interner: &Interner,
+    callee_node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
             ..
@@ -483,6 +564,18 @@ fn library_api_dependencies_match_callee(
             !requires_unshadowed_function
                 || dependency_has_unshadowed_global_node(il, record, callee_node, function)
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_method_callee(
+    il: &Il,
+    interner: &Interner,
+    node: NodeId,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::Method { .. }
         | LibraryApiCalleeContract::IteratorAdapterMethod { .. } => {
             library_api_receiver_dependencies_for_call(il, interner, node, callee)
@@ -492,6 +585,7 @@ fn library_api_dependencies_match_callee(
             library_api_receiver_dependencies_for_call(il, interner, node, callee)
                 .is_some_and(|dependencies| dependency_ids_are_present(record, &dependencies))
         }
+        _ => false,
     }
 }
 
@@ -701,6 +795,73 @@ fn library_api_dependencies_match_callee_at_span(
     record: &EvidenceRecord,
 ) -> bool {
     match callee {
+        LibraryApiCalleeContract::FreeName { .. }
+        | LibraryApiCalleeContract::RustMacro { .. }
+        | LibraryApiCalleeContract::JsGlobalConstructor { .. }
+        | LibraryApiCalleeContract::ImportedBinding { .. } => {
+            library_api_dependencies_match_named_callee_at_span(
+                il,
+                interner,
+                call_span,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::JavaUtilStaticMember { .. }
+        | LibraryApiCalleeContract::JavaUtilConstructor { .. }
+        | LibraryApiCalleeContract::RubyRequireStaticMember { .. } => {
+            library_api_dependencies_match_static_import_callee_at_span(
+                il,
+                interner,
+                call_span,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::RegexLiteralMethod { .. }
+        | LibraryApiCalleeContract::Property { .. }
+        | LibraryApiCalleeContract::StaticIndexMembershipMethod { .. }
+        | LibraryApiCalleeContract::ImportedNamespaceFunction { .. }
+        | LibraryApiCalleeContract::StaticGlobalMethod { .. }
+        | LibraryApiCalleeContract::StaticGlobalFunction { .. } => {
+            library_api_dependencies_match_static_member_callee_at_span(
+                il,
+                interner,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            )
+        }
+        LibraryApiCalleeContract::Method { .. }
+        | LibraryApiCalleeContract::IteratorAdapterMethod { .. }
+        | LibraryApiCalleeContract::AsyncMethod { .. } => {
+            library_api_dependencies_match_method_callee_at_span(
+                il,
+                interner,
+                callee_span,
+                receiver_span,
+                callee,
+                record,
+            )
+        }
+    }
+}
+
+fn library_api_dependencies_match_named_callee_at_span(
+    il: &Il,
+    interner: &Interner,
+    call_span: Span,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::FreeName { name, shadow } => {
             callee_span.is_some_and(|span| {
                 dependency_has_unshadowed_global_anchor(il, record, span, NodeKind::Var, name)
@@ -761,6 +922,20 @@ fn library_api_dependencies_match_callee_at_span(
                     || dependency_has_imported_namespace_dependency(il, interner, record, module)
             }
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_static_import_callee_at_span(
+    il: &Il,
+    interner: &Interner,
+    call_span: Span,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::JavaUtilStaticMember { receiver, .. } => {
             let receiver_proven = if let Some(span) = receiver_span {
                 dependency_has_imported_binding_anchor(
@@ -828,6 +1003,19 @@ fn library_api_dependencies_match_callee_at_span(
             ) && receiver_span
                 .is_some_and(|span| !file_defines_name_visible_at(il, interner, shadow_root, span))
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_static_member_callee_at_span(
+    il: &Il,
+    interner: &Interner,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::RegexLiteralMethod {
             required_receiver_fact,
             ..
@@ -898,6 +1086,19 @@ fn library_api_dependencies_match_callee_at_span(
                     )
                 })
         }
+        _ => false,
+    }
+}
+
+fn library_api_dependencies_match_method_callee_at_span(
+    il: &Il,
+    interner: &Interner,
+    callee_span: Option<Span>,
+    receiver_span: Option<Span>,
+    callee: LibraryApiCalleeContract,
+    record: &EvidenceRecord,
+) -> bool {
+    match callee {
         LibraryApiCalleeContract::Method { method, receiver } => {
             callee_span.is_some_and(|span| field_method_at_span(il, interner, span, method))
                 && receiver_span.is_some_and(|span| {
@@ -923,6 +1124,7 @@ fn library_api_dependencies_match_callee_at_span(
                     )
                 })
         }
+        _ => false,
     }
 }
 
@@ -1118,23 +1320,7 @@ fn receiver_dependency_ids(
             domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
         }
         MethodReceiverContract::ExactCollection | MethodReceiverContract::ExactCollectionOrMap => {
-            if let Some(ids) =
-                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
-            {
-                return Some(ids);
-            }
-            if let Some(id) =
-                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
-            {
-                return Some(vec![id]);
-            }
-            library_api_dependency_id_for_map_key_view_call(
-                il,
-                interner,
-                receiver,
-                &[MapKeyViewKind::Collection],
-            )
-            .map(|id| vec![id])
+            collection_receiver_dependency_ids(il, interner, receiver, contract, cache)
         }
         MethodReceiverContract::RustMapGetOrExactOption => {
             if let Some(ids) =
@@ -1163,58 +1349,11 @@ fn receiver_dependency_ids(
                 .map(|id| vec![id])
         }
         MethodReceiverContract::ExactProtocol => {
-            if let Some(ids) =
-                domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache)
-            {
-                return Some(ids);
-            }
-            if let Some(id) = library_api_dependency_id_for_map_key_view_call(
-                il,
-                interner,
-                receiver,
-                &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
-            ) {
-                return Some(vec![id]);
-            }
-            if let Some(id) =
-                library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
-            {
-                return Some(vec![id]);
-            }
-            if let Some(id) = library_api_dependency_id_for_normalized_hof(il, receiver) {
-                return Some(vec![id]);
-            }
-            library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
+            exact_protocol_receiver_dependency_ids(il, interner, receiver, contract, cache)
         }
-        MethodReceiverContract::ExactProtocolPairArgument => domain_or_sequence_dependency_ids(
-            il,
-            interner,
-            receiver,
-            MethodReceiverContract::ExactProtocol,
-            cache,
-        )
-        .or_else(|| {
-            library_api_dependency_id_for_map_key_view_call(
-                il,
-                interner,
-                receiver,
-                &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
-            )
-            .map(|id| vec![id])
-        })
-        .or_else(|| {
-            library_api_dependency_id_for_receiver_domain_call(
-                il,
-                interner,
-                receiver,
-                MethodReceiverContract::ExactProtocol,
-            )
-            .map(|id| vec![id])
-        })
-        .or_else(|| library_api_dependency_id_for_normalized_hof(il, receiver).map(|id| vec![id]))
-        .or_else(|| {
-            library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
-        }),
+        MethodReceiverContract::ExactProtocolPairArgument => {
+            protocol_pair_argument_receiver_dependency_ids(il, interner, receiver, cache)
+        }
         _ => domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache).or_else(
             || {
                 library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
@@ -1222,6 +1361,96 @@ fn receiver_dependency_ids(
             },
         ),
     }
+}
+
+fn collection_receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    if let Some(ids) = domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache) {
+        return Some(ids);
+    }
+    if let Some(id) =
+        library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+    {
+        return Some(vec![id]);
+    }
+    library_api_dependency_id_for_map_key_view_call(
+        il,
+        interner,
+        receiver,
+        &[MapKeyViewKind::Collection],
+    )
+    .map(|id| vec![id])
+}
+
+fn exact_protocol_receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    contract: MethodReceiverContract,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    if let Some(ids) = domain_or_sequence_dependency_ids(il, interner, receiver, contract, cache) {
+        return Some(ids);
+    }
+    if let Some(id) = library_api_dependency_id_for_map_key_view_call(
+        il,
+        interner,
+        receiver,
+        &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
+    ) {
+        return Some(vec![id]);
+    }
+    if let Some(id) =
+        library_api_dependency_id_for_receiver_domain_call(il, interner, receiver, contract)
+    {
+        return Some(vec![id]);
+    }
+    if let Some(id) = library_api_dependency_id_for_normalized_hof(il, receiver) {
+        return Some(vec![id]);
+    }
+    library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
+}
+
+fn protocol_pair_argument_receiver_dependency_ids(
+    il: &Il,
+    interner: &Interner,
+    receiver: NodeId,
+    cache: &mut LibraryApiDependencyCache,
+) -> Option<Vec<EvidenceId>> {
+    domain_or_sequence_dependency_ids(
+        il,
+        interner,
+        receiver,
+        MethodReceiverContract::ExactProtocol,
+        cache,
+    )
+    .or_else(|| {
+        library_api_dependency_id_for_map_key_view_call(
+            il,
+            interner,
+            receiver,
+            &[MapKeyViewKind::Collection, MapKeyViewKind::Iterator],
+        )
+        .map(|id| vec![id])
+    })
+    .or_else(|| {
+        library_api_dependency_id_for_receiver_domain_call(
+            il,
+            interner,
+            receiver,
+            MethodReceiverContract::ExactProtocol,
+        )
+        .map(|id| vec![id])
+    })
+    .or_else(|| library_api_dependency_id_for_normalized_hof(il, receiver).map(|id| vec![id]))
+    .or_else(|| {
+        library_api_dependency_id_for_protocol_call(il, interner, receiver).map(|id| vec![id])
+    })
 }
 
 fn domain_or_sequence_dependency_ids(

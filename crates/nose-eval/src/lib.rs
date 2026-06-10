@@ -265,9 +265,28 @@ pub fn evaluate(
     };
 
     // --- pool-aware precision (honest denominator on a non-exhaustive gold) ---
-    // Each prediction is matched to its best-overlapping judged pool pair (≥0.5);
-    // a matched prediction is "judged" and counts toward precision iff that pair
-    // was a true clone. Predictions overlapping no pool pair are simply unjudged.
+    let (pool_judged, pool_clone_hits) = pool_counts(&gold, &pred_pairs);
+    let pool_precision = (pool_judged > 0).then(|| pool_clone_hits as f64 / pool_judged as f64);
+
+    Ok(Report {
+        prediction_count: pred_pairs.len(),
+        gold_count: golds.len(),
+        slices,
+        macro_f1,
+        hn_fp_rate,
+        hn_matched,
+        hn_total,
+        pool_precision,
+        pool_judged,
+        pool_clone_hits,
+    })
+}
+
+/// Count judged predictions and true-clone hits against the precision pool.
+/// Each prediction is matched to its best-overlapping judged pool pair (≥0.5);
+/// a matched prediction is "judged" and counts toward precision iff that pair
+/// was a true clone. Predictions overlapping no pool pair are simply unjudged.
+fn pool_counts(gold: &Gold, pred_pairs: &[EvalPair]) -> (usize, usize) {
     let (mut pool_judged, mut pool_clone_hits) = (0usize, 0usize);
     if !gold.pool.is_empty() {
         let pool: Vec<(EvalPair, bool)> = gold
@@ -292,7 +311,7 @@ pub fn evaluate(
                 )
             })
             .collect();
-        for p in &pred_pairs {
+        for p in pred_pairs {
             let best = pool
                 .iter()
                 .map(|(pe, lbl)| (pair_overlap(p, pe), *lbl))
@@ -304,20 +323,7 @@ pub fn evaluate(
             }
         }
     }
-    let pool_precision = (pool_judged > 0).then(|| pool_clone_hits as f64 / pool_judged as f64);
-
-    Ok(Report {
-        prediction_count: pred_pairs.len(),
-        gold_count: golds.len(),
-        slices,
-        macro_f1,
-        hn_fp_rate,
-        hn_matched,
-        hn_total,
-        pool_precision,
-        pool_judged,
-        pool_clone_hits,
-    })
+    (pool_judged, pool_clone_hits)
 }
 
 // ---------------------------------------------------------------------------

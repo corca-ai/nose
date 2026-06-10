@@ -1415,116 +1415,15 @@ fn run() -> Result<()> {
         Cmd::SemanticPack { cmd } => match cmd {
             SemanticPackCmd::Check { paths, format } => semantic_pack::cmd_check(paths, format),
         },
-        Cmd::Detect {
-            paths,
-            min_lines,
-            min_tokens,
-            threshold,
-            candidates,
-            minhash_k,
-            bands,
-            no_cfg_norm,
-            dce,
-            no_blocks,
-            out,
-            summary,
-            bench_schema,
-            repos_root,
-            dump,
-        } => cmd_detect(DetectArgs {
-            paths,
-            min_lines,
-            min_tokens,
-            threshold,
-            candidates,
-            minhash_k,
-            bands,
-            no_cfg_norm,
-            dce,
-            no_blocks,
-            out,
-            summary,
-            bench_schema,
-            repos_root,
-            dump,
-        }),
+        cmd @ Cmd::Detect { .. } => run_detect_cmd(cmd),
         Cmd::Eval {
             gold,
             predictions,
             hard_negatives,
             corpus,
         } => cmd_eval(gold, predictions, hard_negatives, corpus),
-        Cmd::Scan {
-            paths,
-            top,
-            min_members,
-            min_value,
-            sort,
-            config,
-            mode,
-            show,
-            cache_dir,
-            fail_on,
-            baseline,
-            ignore_file,
-            semantic_pack,
-            write_baseline,
-            format,
-            exclude,
-            min_size,
-            min_lines,
-        } => cmd_scan(ScanArgs {
-            paths,
-            top,
-            min_members,
-            min_value,
-            sort,
-            config,
-            mode,
-            show,
-            cache_dir,
-            fail_on,
-            baseline,
-            ignore_file,
-            semantic_pack,
-            write_baseline,
-            format,
-            exclude,
-            min_size,
-            min_lines,
-        }),
-        Cmd::Review {
-            paths,
-            base,
-            mode,
-            min_size,
-            min_lines,
-            exclude,
-            config,
-            ignore_file,
-            format,
-            top,
-            fail,
-        } => {
-            let paths = if paths.is_empty() {
-                vec![PathBuf::from(".")]
-            } else {
-                paths
-            };
-            review::cmd_review(review::ReviewArgs {
-                paths,
-                base,
-                mode,
-                min_size,
-                min_lines,
-                exclude,
-                config,
-                ignore_file,
-                format,
-                top,
-                fail,
-            })
-        }
+        cmd @ Cmd::Scan { .. } => run_scan_cmd(cmd),
+        cmd @ Cmd::Review { .. } => run_review_cmd(cmd),
         Cmd::Ceiling {
             gold,
             units,
@@ -1551,6 +1450,129 @@ fn run() -> Result<()> {
             battery,
         } => cmd_behavioral_gate(paths, manifest, battery),
     }
+}
+
+fn run_detect_cmd(cmd: Cmd) -> Result<()> {
+    let Cmd::Detect {
+        paths,
+        min_lines,
+        min_tokens,
+        threshold,
+        candidates,
+        minhash_k,
+        bands,
+        no_cfg_norm,
+        dce,
+        no_blocks,
+        out,
+        summary,
+        bench_schema,
+        repos_root,
+        dump,
+    } = cmd
+    else {
+        unreachable!("run_detect_cmd requires Cmd::Detect")
+    };
+    cmd_detect(DetectArgs {
+        paths,
+        min_lines,
+        min_tokens,
+        threshold,
+        candidates,
+        minhash_k,
+        bands,
+        no_cfg_norm,
+        dce,
+        no_blocks,
+        out,
+        summary,
+        bench_schema,
+        repos_root,
+        dump,
+    })
+}
+
+fn run_scan_cmd(cmd: Cmd) -> Result<()> {
+    let Cmd::Scan {
+        paths,
+        top,
+        min_members,
+        min_value,
+        sort,
+        config,
+        mode,
+        show,
+        cache_dir,
+        fail_on,
+        baseline,
+        ignore_file,
+        semantic_pack,
+        write_baseline,
+        format,
+        exclude,
+        min_size,
+        min_lines,
+    } = cmd
+    else {
+        unreachable!("run_scan_cmd requires Cmd::Scan")
+    };
+    cmd_scan(ScanArgs {
+        paths,
+        top,
+        min_members,
+        min_value,
+        sort,
+        config,
+        mode,
+        show,
+        cache_dir,
+        fail_on,
+        baseline,
+        ignore_file,
+        semantic_pack,
+        write_baseline,
+        format,
+        exclude,
+        min_size,
+        min_lines,
+    })
+}
+
+fn run_review_cmd(cmd: Cmd) -> Result<()> {
+    let Cmd::Review {
+        paths,
+        base,
+        mode,
+        min_size,
+        min_lines,
+        exclude,
+        config,
+        ignore_file,
+        format,
+        top,
+        fail,
+    } = cmd
+    else {
+        unreachable!("run_review_cmd requires Cmd::Review")
+    };
+    let paths = if paths.is_empty() {
+        vec![PathBuf::from(".")]
+    } else {
+        paths
+    };
+    review::cmd_review(review::ReviewArgs {
+        paths,
+        base,
+        mode,
+        min_size,
+        min_lines,
+        exclude,
+        config,
+        ignore_file,
+        format,
+        top,
+        fail,
+    })
 }
 
 /// Deterministic input battery for an `arity`-parameter function. The parameters range
@@ -1708,44 +1730,92 @@ fn cmd_behavioral_gate(
     manifest: PathBuf,
     battery_kind: BatteryKind,
 ) -> Result<()> {
-    use nose_normalize::{run_unit, Behavior, NormalizeOptions, Value};
-    use std::collections::hash_map::DefaultHasher;
-    use std::collections::{HashMap, HashSet};
-    use std::hash::{Hash, Hasher};
-
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
-    let opts = NormalizeOptions::default();
-    let oracle_opts = NormalizeOptions {
-        oracle: true,
-        ..opts
-    };
     let battery = match battery_kind {
         BatteryKind::Standard => verify_battery(&verify_probes(&corpus)),
         BatteryKind::Wide => wide_battery(&verify_probes(&corpus)),
     };
+    let units = gate_units(&corpus, &battery);
+    let m: GateManifest = serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+    let outcome = tally_gate(&m, &units);
+    print_gate_report(battery_kind, battery.len(), &outcome);
+    Ok(())
+}
 
-    // One interpretable record per generated source file (each holds exactly one function).
-    struct U {
-        fp: Vec<u64>,
-        beh_hash: u64,
-        trivial: bool,
+/// Index every `Func` in `il` by its source byte span, so a fully-normalized unit can
+/// be matched (by span) to the same function in the pre-canon core IL.
+fn func_span_index(il: &nose_il::Il) -> std::collections::HashMap<(u32, u32), nose_il::NodeId> {
+    let mut index = std::collections::HashMap::new();
+    let mut stk = vec![il.root];
+    while let Some(x) = stk.pop() {
+        if il.kind(x) == nose_il::NodeKind::Func {
+            let s = il.node(x).span;
+            index.entry((s.start_byte, s.end_byte)).or_insert(x);
+        }
+        stk.extend(il.children(x).iter().copied());
     }
-    let mut units: HashMap<String, U> = HashMap::new();
+    index
+}
 
+/// Interpret `root` on every battery row (under the unit's pointer-length contracts);
+/// `None` when any input fails to run — the unit is not interpretable on this battery.
+fn run_battery(
+    il: &nose_il::Il,
+    interner: &Interner,
+    root: nose_il::NodeId,
+    battery: &[Vec<nose_normalize::Value>],
+    contracts: &[(u32, u32)],
+) -> Option<Vec<nose_normalize::Behavior>> {
+    let mut beh = Vec::with_capacity(battery.len());
+    for inputs in battery {
+        let row = apply_contracts(inputs, contracts);
+        beh.push(nose_normalize::run_unit(il, interner, root, &row)?);
+    }
+    Some(beh)
+}
+
+/// Trivial behavior (constant / all-Err) is coincidental, never evidence of a
+/// clone — exclude it from behavioral merging.
+fn is_trivial_behavior(beh: &[nose_normalize::Behavior]) -> bool {
+    use nose_normalize::Value;
+    let distinct: std::collections::HashSet<&Value> = beh.iter().map(|b| &b.ret).collect();
+    distinct.len() < 2
+        || beh
+            .iter()
+            .all(|b| matches!(b.ret, Value::Null | Value::Err))
+}
+
+/// Stable hash of a behavior battery (equal hash ⟺ behaviorally equal on the battery).
+fn behavior_hash(beh: &[nose_normalize::Behavior]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    beh.hash(&mut h);
+    h.finish()
+}
+
+/// One interpretable record per generated source file (each holds exactly one function).
+struct GateUnit {
+    fp: Vec<u64>,
+    beh_hash: u64,
+    trivial: bool,
+}
+
+fn gate_units(
+    corpus: &Corpus,
+    battery: &[Vec<nose_normalize::Value>],
+) -> std::collections::HashMap<String, GateUnit> {
+    let opts = nose_normalize::NormalizeOptions::default();
+    let oracle_opts = nose_normalize::NormalizeOptions {
+        oracle: true,
+        ..opts
+    };
+    let mut units = std::collections::HashMap::new();
     for il in &corpus.files {
         let n = nose_normalize::normalize(il, &corpus.interner, &opts);
         let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        let mut core_func: HashMap<(u32, u32), nose_il::NodeId> = HashMap::new();
-        let mut stk = vec![core.root];
-        while let Some(x) = stk.pop() {
-            if core.kind(x) == nose_il::NodeKind::Func {
-                let s = core.node(x).span;
-                core_func.entry((s.start_byte, s.end_byte)).or_insert(x);
-            }
-            stk.extend(core.children(x).iter().copied());
-        }
+        let core_func = func_span_index(&core);
         for u in &n.units {
             let root = u.root;
             if n.kind(root) != nose_il::NodeKind::Func {
@@ -1761,91 +1831,89 @@ fn cmd_behavioral_gate(
             if fp.is_empty() {
                 continue;
             }
-            let mut beh: Vec<Behavior> = Vec::with_capacity(battery.len());
-            let mut ok = true;
-            for inputs in &battery {
-                let row = apply_contracts(inputs, &contracts);
-                match run_unit(&core, &corpus.interner, core_root, &row) {
-                    Some(b) => beh.push(b),
-                    None => {
-                        ok = false;
-                        break;
-                    }
-                }
-            }
-            if !ok {
+            let Some(beh) = run_battery(&core, &corpus.interner, core_root, battery, &contracts)
+            else {
                 continue;
-            }
-            // Trivial behavior (constant / all-Err) is coincidental, never evidence of a
-            // clone — exclude it from behavioral merging (matches the verify completeness gate).
-            let distinct: HashSet<&Value> = beh.iter().map(|b| &b.ret).collect();
-            let trivial = distinct.len() < 2
-                || beh
-                    .iter()
-                    .all(|b| matches!(b.ret, Value::Null | Value::Err));
-            let mut h = DefaultHasher::new();
-            beh.hash(&mut h);
+            };
+            let trivial = is_trivial_behavior(&beh);
             units.insert(
                 manifest_key(&il.meta.path),
-                U {
+                GateUnit {
                     fp,
-                    beh_hash: h.finish(),
+                    beh_hash: behavior_hash(&beh),
                     trivial,
                 },
             );
         }
     }
+    units
+}
 
-    // Cross-reference the manifest's labeled pairs.
-    #[derive(serde::Deserialize)]
-    struct Side {
-        path: String,
-    }
-    #[derive(serde::Deserialize)]
-    struct Item {
-        left: Side,
-        right: Side,
-        semantic_status: String,
-        split: String,
-    }
-    #[derive(serde::Deserialize)]
-    struct Manifest {
-        items: Vec<Item>,
-    }
-    let m: Manifest = serde_json::from_str(&std::fs::read_to_string(&manifest)?)?;
+// The manifest's labeled pairs, cross-referenced against the interpretable units.
+#[derive(serde::Deserialize)]
+struct GateSide {
+    path: String,
+}
+#[derive(serde::Deserialize)]
+struct GateItem {
+    left: GateSide,
+    right: GateSide,
+    semantic_status: String,
+    split: String,
+}
+#[derive(serde::Deserialize)]
+struct GateManifest {
+    items: Vec<GateItem>,
+}
 
-    // Tally, restricted to pairs where BOTH units are interpretable (the slice this gate
-    // can speak to). For each: did exact-fingerprint merge them? did the behavioral gate?
-    struct Tally {
-        pairs: usize,
-        fp_merge: usize,
-        beh_merge: usize,
-        beh_only: usize, // behavioral merge that fingerprint missed (the leap value / cost)
-    }
-    impl Tally {
-        fn new() -> Self {
-            Tally {
-                pairs: 0,
-                fp_merge: 0,
-                beh_merge: 0,
-                beh_only: 0,
-            }
+/// Per-class tally: did exact-fingerprint merge the pair? did the behavioral gate?
+struct GateTally {
+    pairs: usize,
+    fp_merge: usize,
+    beh_merge: usize,
+    beh_only: usize, // behavioral merge that fingerprint missed (the leap value / cost)
+}
+
+impl GateTally {
+    fn new() -> Self {
+        GateTally {
+            pairs: 0,
+            fp_merge: 0,
+            beh_merge: 0,
+            beh_only: 0,
         }
     }
-    let mut pos = Tally::new();
-    let mut neg = Tally::new();
-    let mut pos_heldout = 0usize;
-    let mut pos_heldout_beh_only = 0usize;
-    let mut uninterp_pairs = 0usize;
+}
 
+struct GateOutcome {
+    pos: GateTally,
+    neg: GateTally,
+    pos_heldout: usize,
+    pos_heldout_beh_only: usize,
+    uninterp_pairs: usize,
+}
+
+/// Tally, restricted to pairs where BOTH units are interpretable (the slice this gate
+/// can speak to).
+fn tally_gate(
+    m: &GateManifest,
+    units: &std::collections::HashMap<String, GateUnit>,
+) -> GateOutcome {
+    let mut out = GateOutcome {
+        pos: GateTally::new(),
+        neg: GateTally::new(),
+        pos_heldout: 0,
+        pos_heldout_beh_only: 0,
+        uninterp_pairs: 0,
+    };
     for it in &m.items {
         let (lk, rk) = (manifest_key(&it.left.path), manifest_key(&it.right.path));
         let (Some(lu), Some(ru)) = (units.get(&lk), units.get(&rk)) else {
-            uninterp_pairs += 1;
+            out.uninterp_pairs += 1;
             continue;
         };
         let positive = it.semantic_status == "equivalent";
-        let t = if positive { &mut pos } else { &mut neg };
+        let t = if positive { &mut out.pos } else { &mut out.neg };
         t.pairs += 1;
         let fp_merge = lu.fp == ru.fp;
         // A behavioral merge requires identical behavior on EVERY battery input and a
@@ -1860,20 +1928,30 @@ fn cmd_behavioral_gate(
         if beh_merge && !fp_merge {
             t.beh_only += 1;
             if positive && it.split == "heldout" {
-                pos_heldout_beh_only += 1;
+                out.pos_heldout_beh_only += 1;
             }
         }
         if positive && it.split == "heldout" {
-            pos_heldout += 1;
+            out.pos_heldout += 1;
         }
     }
+    out
+}
 
+fn print_gate_report(battery_kind: BatteryKind, battery_rows: usize, outcome: &GateOutcome) {
+    let GateOutcome {
+        pos,
+        neg,
+        pos_heldout,
+        pos_heldout_beh_only,
+        uninterp_pairs,
+    } = outcome;
     let kind = match battery_kind {
         BatteryKind::Standard => "standard (leap 2)",
         BatteryKind::Wide => "wide (leap 3)",
     };
     println!("=== behavioral-equivalence acceptance gate — battery: {kind} ===");
-    println!("battery rows: {}", battery.len());
+    println!("battery rows: {battery_rows}");
     println!(
         "manifest pairs: {} interpretable-both / {} excluded (a unit not interpretable)",
         pos.pairs + neg.pairs,
@@ -1918,7 +1996,6 @@ fn cmd_behavioral_gate(
         pct(neg.beh_merge, neg.pairs)
     );
     println!("  → INTRODUCED beyond fingerprint: {}", neg.beh_only);
-    Ok(())
 }
 
 fn pct(a: usize, b: usize) -> f64 {
@@ -1986,14 +2063,10 @@ fn cmd_verify(
     max_violations: Option<usize>,
     leads: Option<PathBuf>,
 ) -> Result<()> {
-    use nose_normalize::{run_unit, Behavior, NormalizeOptions, Value};
-    use std::collections::HashMap;
-    use std::hash::{Hash, Hasher};
-
     let refs = paths_as_refs(&paths);
     let corpus = nose_frontend::lower_corpus_many(&refs);
     warn_if_empty(&corpus, &paths);
-    let opts = NormalizeOptions {
+    let opts = nose_normalize::NormalizeOptions {
         cfg_norm: !no_cfg_norm,
         ..Default::default()
     };
@@ -2001,193 +2074,210 @@ fn cmd_verify(
     // battery is identical for every unit (a function uses only its first `arity`
     // inputs), so behavior vectors are always length-comparable.
     let battery = verify_battery(&verify_probes(&corpus));
+    let oracle = collect_verify_recs(&corpus, &opts, &battery);
 
-    // One record per interpretable unit.
-    struct Rec {
-        fp: Vec<u64>,
-        beh: Vec<Behavior>,
-        file: String,
-        start: u32,
-        end: u32,
-        tokens: usize,
-        loc: String,
-    }
-    let mut recs: Vec<Rec> = Vec::new();
-    let mut total = 0usize;
-    // CANON PRESERVATION: a stricter, pair-free soundness check — does the full
-    // normalization pipeline preserve each unit's behavior vs the pre-canon core IL? A
-    // mismatch is a behavior-changing canon bug, even if no corpus twin collides with it.
-    let mut canon_checked = 0usize;
-    let mut canon_violations: Vec<String> = Vec::new();
-
-    let oracle_opts = NormalizeOptions {
-        oracle: true,
-        ..opts
-    };
-    for il in &corpus.files {
-        let n = nose_normalize::normalize(il, &corpus.interner, &opts);
-        // The behavioral ground truth comes from the pre-canonicalization core IL (so a
-        // behavior-changing canon can't mask itself), matched to each fully-normalized
-        // unit by source span. Walk the core IL once, indexing every Func by its byte span.
-        let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
-        let mut core_func: HashMap<(u32, u32), nose_il::NodeId> = HashMap::new();
-        {
-            let mut stk = vec![core.root];
-            while let Some(x) = stk.pop() {
-                if core.kind(x) == nose_il::NodeKind::Func {
-                    let s = core.node(x).span;
-                    core_func.entry((s.start_byte, s.end_byte)).or_insert(x);
-                }
-                stk.extend(core.children(x).iter().copied());
-            }
-        }
-        for u in &n.units {
-            let root = u.root;
-            if n.kind(root) != nose_il::NodeKind::Func {
-                continue;
-            }
-            total += 1;
-            // The same function in the core IL (by span) — interpret THAT, not `n`.
-            let span0 = n.node(root).span;
-            let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
-                continue;
-            };
-            // Soundness is about merges on the VALUE fingerprint. A unit whose value
-            // graph is EMPTY (`fn resumed() {}`, or a body the graph captures nothing of)
-            // has no value fingerprint to merge on — the detector keys candidates on
-            // structure there, never on an empty value multiset — so distinct empty-fp
-            // bodies "colliding" is not a product false merge. Exclude empty fingerprints
-            // (only those — small non-empty ones stay, so completeness is unaffected).
-            // Fingerprint AND pointer-length contracts from ONE value-graph build (the
-            // oracle needs both; building twice doubled the per-unit cost). The contract
-            // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
-            // convention the value graph used to merge it; gated on the contract actually
-            // firing, so a non-contract false merge is still exposed by the free battery.
-            let (fp, contracts) =
-                nose_normalize::value_fingerprint_and_contracts(&n, root, &corpus.interner);
-            if fp.is_empty() {
-                continue;
-            }
-            // Run the battery; the unit is interpretable only if every input runs.
-            let mut beh = Vec::new();
-            let mut ok = true;
-            for inputs in &battery {
-                let row = apply_contracts(inputs, &contracts);
-                match run_unit(&core, &corpus.interner, core_root, &row) {
-                    Some(b) => beh.push(b),
-                    None => {
-                        ok = false;
-                        break;
-                    }
-                }
-            }
-            if !ok {
-                continue;
-            }
-            // Stricter canon check: the SAME function interpreted on the fully-normalized
-            // IL must agree with the core IL on every input — else a canon pass changed
-            // behavior. (Only when the full IL is itself fully interpretable on the battery.)
-            {
-                let mut full_beh = Vec::with_capacity(battery.len());
-                let mut full_ok = true;
-                for inputs in &battery {
-                    let row = apply_contracts(inputs, &contracts);
-                    match run_unit(&n, &corpus.interner, root, &row) {
-                        Some(b) => full_beh.push(b),
-                        None => {
-                            full_ok = false;
-                            break;
-                        }
-                    }
-                }
-                if full_ok {
-                    canon_checked += 1;
-                    if full_beh != beh && canon_violations.len() < 20 {
-                        let s = n.node(root).span;
-                        canon_violations.push(format!("{}:{}", il.meta.path, s.start_line));
-                    }
-                }
-            }
-            let span = n.node(root).span;
-            // Subtree node count — the same size signal the detector gates on, so the
-            // value-add evaluator can restrict its gold to meaningful-size units.
-            let mut tokens = 0usize;
-            let mut stack = vec![root];
-            while let Some(x) = stack.pop() {
-                tokens += 1;
-                stack.extend(n.children(x).iter().copied());
-            }
-            recs.push(Rec {
-                fp,
-                beh,
-                file: il.meta.path.clone(),
-                start: span.start_line,
-                end: span.end_line,
-                tokens,
-                loc: format!("{}:{}", il.meta.path, span.start_line),
-            });
-        }
-    }
-
-    // Behavioral ground truth for the value-add evaluator: each interpretable unit with
-    // a stable hash of its behavior battery (equal hash ⟺ behaviorally equal on the
-    // battery) and whether that behavior is trivial (constant / all-Err — coincidental,
-    // not evidence of a real clone). The evaluator groups by behavior to form gold clone
-    // pairs, then scores jscpd and nose against them on equal footing.
     if json {
-        let recs_json: Vec<_> = recs
-            .iter()
-            .map(|r| {
-                let mut h = std::collections::hash_map::DefaultHasher::new();
-                r.beh.hash(&mut h);
-                let distinct: std::collections::HashSet<&Value> =
-                    r.beh.iter().map(|b| &b.ret).collect();
-                let trivial = distinct.len() < 2
-                    || r.beh
-                        .iter()
-                        .all(|b| matches!(b.ret, Value::Null | Value::Err));
-                serde_json::json!({
-                    "file": r.file,
-                    "start_line": r.start,
-                    "end_line": r.end,
-                    "tokens": r.tokens,
-                    "behavior": format!("{:016x}", h.finish()),
-                    "trivial": trivial,
-                })
-            })
-            .collect();
-        println!(
-            "{}",
-            serde_json::to_string(&serde_json::json!({ "units": recs_json }))?
-        );
-        return Ok(());
+        return print_verify_json(&oracle.recs);
     }
 
     println!("=== value-graph oracle (soundness + completeness) ===");
     println!(
-        "units: {total} total, {} interpretable ({} excluded)",
-        recs.len(),
-        total - recs.len()
+        "units: {} total, {} interpretable ({} excluded)",
+        oracle.total,
+        oracle.recs.len(),
+        oracle.total - oracle.recs.len()
     );
 
     // --- Canon preservation: full-normalize behavior must equal pre-canon core behavior. ---
     println!("\nCANON PRESERVATION — normalization preserves behavior:");
-    println!("  units checked (interpretable both ways): {canon_checked}");
-    if canon_violations.is_empty() {
+    println!(
+        "  units checked (interpretable both ways): {}",
+        oracle.canon_checked
+    );
+    if oracle.canon_violations.is_empty() {
         println!("  PRESERVED: every canon-changed unit computes the same thing ✓");
     } else {
         println!(
             "  [!] {} unit(s) whose behavior CHANGED under canonicalization:",
-            canon_violations.len()
+            oracle.canon_violations.len()
         );
-        for loc in &canon_violations {
+        for loc in &oracle.canon_violations {
             println!("    {loc}");
         }
     }
 
-    // --- Soundness: fingerprint-equal ⟹ behavior-equal. ---
-    let mut by_fp: HashMap<&[u64], Vec<&Rec>> = HashMap::new();
-    for r in &recs {
+    let n_violations = report_verify_soundness(&oracle.recs);
+    report_verify_completeness(&oracle.recs, leads.as_deref())?;
+    report_verify_calibration(&oracle.recs);
+
+    // CI soundness gate: fail if false merges exceed the budget. The independent oracle thus
+    // becomes a permanent regression gate on the detection campaign — a new canon that
+    // introduces a real false merge pushes the count over budget here.
+    if let Some(budget) = max_violations {
+        if n_violations > budget {
+            anyhow::bail!("verify gate: {n_violations} false merges exceed the budget of {budget}");
+        }
+        println!("\nGATE: {n_violations} ≤ {budget} false merges — OK ✓");
+    }
+    Ok(())
+}
+
+/// One record per interpretable unit.
+struct VerifyRec {
+    fp: Vec<u64>,
+    beh: Vec<nose_normalize::Behavior>,
+    file: String,
+    start: u32,
+    end: u32,
+    tokens: usize,
+    loc: String,
+}
+
+/// The oracle's interpretation pass: every interpretable unit's record, plus the
+/// CANON PRESERVATION tallies — a stricter, pair-free soundness check: does the full
+/// normalization pipeline preserve each unit's behavior vs the pre-canon core IL? A
+/// mismatch is a behavior-changing canon bug, even if no corpus twin collides with it.
+struct VerifyOracle {
+    recs: Vec<VerifyRec>,
+    total: usize,
+    canon_checked: usize,
+    canon_violations: Vec<String>,
+}
+
+fn collect_verify_recs(
+    corpus: &Corpus,
+    opts: &nose_normalize::NormalizeOptions,
+    battery: &[Vec<nose_normalize::Value>],
+) -> VerifyOracle {
+    let mut oracle = VerifyOracle {
+        recs: Vec::new(),
+        total: 0,
+        canon_checked: 0,
+        canon_violations: Vec::new(),
+    };
+    let oracle_opts = nose_normalize::NormalizeOptions {
+        oracle: true,
+        ..*opts
+    };
+    for il in &corpus.files {
+        let n = nose_normalize::normalize(il, &corpus.interner, opts);
+        // The behavioral ground truth comes from the pre-canonicalization core IL (so a
+        // behavior-changing canon can't mask itself), matched to each fully-normalized
+        // unit by source span.
+        let core = nose_normalize::normalize(il, &corpus.interner, &oracle_opts);
+        collect_file_verify_recs(il, &n, &core, &corpus.interner, battery, &mut oracle);
+    }
+    oracle
+}
+
+fn collect_file_verify_recs(
+    il: &nose_il::Il,
+    n: &nose_il::Il,
+    core: &nose_il::Il,
+    interner: &Interner,
+    battery: &[Vec<nose_normalize::Value>],
+    oracle: &mut VerifyOracle,
+) {
+    let core_func = func_span_index(core);
+    for u in &n.units {
+        let root = u.root;
+        if n.kind(root) != nose_il::NodeKind::Func {
+            continue;
+        }
+        oracle.total += 1;
+        // The same function in the core IL (by span) — interpret THAT, not `n`.
+        let span0 = n.node(root).span;
+        let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
+            continue;
+        };
+        // Soundness is about merges on the VALUE fingerprint. A unit whose value
+        // graph is EMPTY (`fn resumed() {}`, or a body the graph captures nothing of)
+        // has no value fingerprint to merge on — the detector keys candidates on
+        // structure there, never on an empty value multiset — so distinct empty-fp
+        // bodies "colliding" is not a product false merge. Exclude empty fingerprints
+        // (only those — small non-empty ones stay, so completeness is unaffected).
+        // Fingerprint AND pointer-length contracts from ONE value-graph build (the
+        // oracle needs both; building twice doubled the per-unit cost). The contract
+        // binds n = len(array) so the oracle interprets `f(xs,n)` under the same
+        // convention the value graph used to merge it; gated on the contract actually
+        // firing, so a non-contract false merge is still exposed by the free battery.
+        let (fp, contracts) = nose_normalize::value_fingerprint_and_contracts(n, root, interner);
+        if fp.is_empty() {
+            continue;
+        }
+        // Run the battery; the unit is interpretable only if every input runs.
+        let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
+            continue;
+        };
+        // Stricter canon check: the SAME function interpreted on the fully-normalized
+        // IL must agree with the core IL on every input — else a canon pass changed
+        // behavior. (Only when the full IL is itself fully interpretable on the battery.)
+        if let Some(full_beh) = run_battery(n, interner, root, battery, &contracts) {
+            oracle.canon_checked += 1;
+            if full_beh != beh && oracle.canon_violations.len() < 20 {
+                let s = n.node(root).span;
+                oracle
+                    .canon_violations
+                    .push(format!("{}:{}", il.meta.path, s.start_line));
+            }
+        }
+        let span = n.node(root).span;
+        oracle.recs.push(VerifyRec {
+            fp,
+            beh,
+            file: il.meta.path.clone(),
+            start: span.start_line,
+            end: span.end_line,
+            tokens: subtree_node_count(n, root),
+            loc: format!("{}:{}", il.meta.path, span.start_line),
+        });
+    }
+}
+
+/// Subtree node count — the same size signal the detector gates on, so the
+/// value-add evaluator can restrict its gold to meaningful-size units.
+fn subtree_node_count(il: &nose_il::Il, root: nose_il::NodeId) -> usize {
+    let mut tokens = 0usize;
+    let mut stack = vec![root];
+    while let Some(x) = stack.pop() {
+        tokens += 1;
+        stack.extend(il.children(x).iter().copied());
+    }
+    tokens
+}
+
+/// Behavioral ground truth for the value-add evaluator: each interpretable unit with
+/// a stable hash of its behavior battery (equal hash ⟺ behaviorally equal on the
+/// battery) and whether that behavior is trivial (constant / all-Err — coincidental,
+/// not evidence of a real clone). The evaluator groups by behavior to form gold clone
+/// pairs, then scores jscpd and nose against them on equal footing.
+fn print_verify_json(recs: &[VerifyRec]) -> Result<()> {
+    let recs_json: Vec<_> = recs
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "file": r.file,
+                "start_line": r.start,
+                "end_line": r.end,
+                "tokens": r.tokens,
+                "behavior": format!("{:016x}", behavior_hash(&r.beh)),
+                "trivial": is_trivial_behavior(&r.beh),
+            })
+        })
+        .collect();
+    println!(
+        "{}",
+        serde_json::to_string(&serde_json::json!({ "units": recs_json }))?
+    );
+    Ok(())
+}
+
+/// Soundness: fingerprint-equal ⟹ behavior-equal. Prints the section and returns the
+/// false-merge count (the input to the `--max-violations` gate).
+fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
+    let mut by_fp: std::collections::HashMap<&[u64], Vec<&VerifyRec>> =
+        std::collections::HashMap::new();
+    for r in recs {
         by_fp.entry(&r.fp).or_default().push(r);
     }
     let mut fp_groups = 0usize;
@@ -2216,24 +2306,21 @@ fn cmd_verify(
             println!("    {a}  ≡?  {b}   ({d} differing inputs)");
         }
     }
+    n_violations
+}
 
-    // --- Completeness: behavior-equal ⟹ fingerprint-equal (the under-merge / recall
-    // direction). Restricted to *non-trivial* behaviors (the return value varies across
-    // inputs and isn't uniformly Err/Null) — trivial functions agree coincidentally and
-    // aren't evidence of a missed clone. A behavior group split across ≥2 fingerprints
-    // is a real Type-4 clone the value graph fails to recognize. Behavior-equal on the
-    // battery is necessary-not-sufficient for equivalence, so this is a lower bound on
-    // completeness / upper bound on misses — but each surfaced pair is a concrete lead.
-    let trivial = |beh: &[Behavior]| -> bool {
-        let distinct: std::collections::HashSet<&Value> = beh.iter().map(|b| &b.ret).collect();
-        distinct.len() < 2
-            || beh
-                .iter()
-                .all(|b| matches!(b.ret, Value::Null | Value::Err))
-    };
-    let mut by_beh: HashMap<&[Behavior], Vec<&Rec>> = HashMap::new();
-    for r in &recs {
-        if !trivial(&r.beh) {
+/// Completeness: behavior-equal ⟹ fingerprint-equal (the under-merge / recall
+/// direction). Restricted to *non-trivial* behaviors (the return value varies across
+/// inputs and isn't uniformly Err/Null) — trivial functions agree coincidentally and
+/// aren't evidence of a missed clone. A behavior group split across ≥2 fingerprints
+/// is a real Type-4 clone the value graph fails to recognize. Behavior-equal on the
+/// battery is necessary-not-sufficient for equivalence, so this is a lower bound on
+/// completeness / upper bound on misses — but each surfaced pair is a concrete lead.
+fn report_verify_completeness(recs: &[VerifyRec], leads: Option<&std::path::Path>) -> Result<()> {
+    let mut by_beh: std::collections::HashMap<&[nose_normalize::Behavior], Vec<&VerifyRec>> =
+        std::collections::HashMap::new();
+    for r in recs {
+        if !is_trivial_behavior(&r.beh) {
             by_beh.entry(&r.beh).or_default().push(r);
         }
     }
@@ -2252,7 +2339,8 @@ fn cmd_verify(
         let k = members.len();
         beh_pairs += k * (k - 1) / 2;
         // partition by fingerprint
-        let mut by_fp2: HashMap<&[u64], Vec<&&Rec>> = HashMap::new();
+        let mut by_fp2: std::collections::HashMap<&[u64], Vec<&&VerifyRec>> =
+            std::collections::HashMap::new();
         for r in members {
             by_fp2.entry(&r.fp).or_default().push(r);
         }
@@ -2262,33 +2350,11 @@ fn cmd_verify(
         }
         if by_fp2.len() > 1 {
             split_groups += 1;
-            // one representative per distinct fingerprint; find the max-vj cross pair.
-            // Sort the reps by location so the chosen pair (and so the printed output) is
-            // deterministic: `by_fp2.values()` iterates a `HashMap` in an unspecified order
-            // that varies across runs/thread counts, which would otherwise pick a different
-            // max-vj pair on ties and break byte-identical output.
-            let mut reps: Vec<&&Rec> = by_fp2.values().map(|v| v[0]).collect();
-            reps.sort_by(|a, b| a.loc.cmp(&b.loc));
-            let mut best = (0.0f64, &reps[0], &reps[0]);
-            for i in 0..reps.len() {
-                for j in (i + 1)..reps.len() {
-                    let vj = multiset_jaccard_u64(&reps[i].fp, &reps[j].fp);
-                    if vj >= best.0 {
-                        best = (vj, &reps[i], &reps[j]);
-                    }
-                }
-            }
-            if best.0 >= 0.7 {
+            let (a, b, vj) = best_split_pair(by_fp2.values().map(|v| *v[0]).collect());
+            if vj >= 0.7 {
                 near_groups += 1;
             }
-            // Canonical orientation (smaller location first) so the pair reads identically
-            // regardless of which rep the scan happened to encounter first.
-            let (a, b) = if best.1.loc <= best.2.loc {
-                (best.1.loc.clone(), best.2.loc.clone())
-            } else {
-                (best.2.loc.clone(), best.1.loc.clone())
-            };
-            misses.push((a, b, best.0));
+            misses.push((a, b, vj));
         }
     }
     // Total order: vj desc, then the two locations — `misses` is collected in `HashMap`
@@ -2317,39 +2383,73 @@ fn cmd_verify(
     for (a, b, vj) in misses.iter().take(30) {
         println!("    vj={vj:.2}  {a}  ↮  {b}");
     }
-    // D1: export the under-merged pairs as detection leads — oracle-discovered candidates the
-    // detection campaign can turn into convergence proposals. Sorted by vj (already), so the
-    // strongest (structurally-near AND behavior-equal) come first.
-    if let Some(path) = &leads {
-        let items: Vec<_> = misses
-            .iter()
-            .map(|(a, b, vj)| {
-                serde_json::json!({ "a": a, "b": b, "vj": vj, "structurally_near": *vj >= 0.7 })
-            })
-            .collect();
-        let near = misses.iter().filter(|(_, _, vj)| *vj >= 0.7).count();
-        std::fs::write(
-            path,
-            serde_json::to_string_pretty(&serde_json::json!({
-                "under_merged_pairs": items.len(),
-                "structurally_near": near,
-                "leads": items,
-            }))?,
-        )?;
-        println!(
-            "\nLEADS: wrote {} under-merged pairs ({near} structurally-near) to {}",
-            misses.len(),
-            path.display()
-        );
+    if let Some(path) = leads {
+        write_verify_leads(path, &misses)?;
     }
+    Ok(())
+}
 
-    // --- Calibration: P(behavior-equal | value-Jaccard bin). The detector currently
-    // trusts only an *exact* fingerprint match (vj = 1.0). This measures how safe it
-    // would be to also accept *near* matches — for each vj band, the fraction of pairs
-    // that are actually behavior-equal = the precision of accepting at that band. Pairs
-    // are sampled by sorting units by fingerprint and comparing each to a window of
-    // neighbors (so high-vj pairs are well represented, unlike uniform random pairs).
-    let mut sorted: Vec<&Rec> = recs.iter().collect();
+/// One representative per distinct fingerprint; find the max-vj cross pair.
+/// Sort the reps by location so the chosen pair (and so the printed output) is
+/// deterministic: `HashMap` iteration is an unspecified order that varies across
+/// runs/thread counts, which would otherwise pick a different max-vj pair on ties
+/// and break byte-identical output. The pair comes back in canonical orientation
+/// (smaller location first) so it reads identically regardless of which rep the
+/// scan happened to encounter first.
+fn best_split_pair(mut reps: Vec<&VerifyRec>) -> (String, String, f64) {
+    reps.sort_by(|a, b| a.loc.cmp(&b.loc));
+    let mut best = (0.0f64, reps[0], reps[0]);
+    for i in 0..reps.len() {
+        for j in (i + 1)..reps.len() {
+            let vj = multiset_jaccard_u64(&reps[i].fp, &reps[j].fp);
+            if vj >= best.0 {
+                best = (vj, reps[i], reps[j]);
+            }
+        }
+    }
+    let (a, b) = if best.1.loc <= best.2.loc {
+        (best.1.loc.clone(), best.2.loc.clone())
+    } else {
+        (best.2.loc.clone(), best.1.loc.clone())
+    };
+    (a, b, best.0)
+}
+
+/// D1: export the under-merged pairs as detection leads — oracle-discovered candidates the
+/// detection campaign can turn into convergence proposals. Sorted by vj (already), so the
+/// strongest (structurally-near AND behavior-equal) come first.
+fn write_verify_leads(path: &std::path::Path, misses: &[(String, String, f64)]) -> Result<()> {
+    let items: Vec<_> = misses
+        .iter()
+        .map(|(a, b, vj)| {
+            serde_json::json!({ "a": a, "b": b, "vj": vj, "structurally_near": *vj >= 0.7 })
+        })
+        .collect();
+    let near = misses.iter().filter(|(_, _, vj)| *vj >= 0.7).count();
+    std::fs::write(
+        path,
+        serde_json::to_string_pretty(&serde_json::json!({
+            "under_merged_pairs": items.len(),
+            "structurally_near": near,
+            "leads": items,
+        }))?,
+    )?;
+    println!(
+        "\nLEADS: wrote {} under-merged pairs ({near} structurally-near) to {}",
+        misses.len(),
+        path.display()
+    );
+    Ok(())
+}
+
+/// Calibration: P(behavior-equal | value-Jaccard bin). The detector currently
+/// trusts only an *exact* fingerprint match (vj = 1.0). This measures how safe it
+/// would be to also accept *near* matches — for each vj band, the fraction of pairs
+/// that are actually behavior-equal = the precision of accepting at that band. Pairs
+/// are sampled by sorting units by fingerprint and comparing each to a window of
+/// neighbors (so high-vj pairs are well represented, unlike uniform random pairs).
+fn report_verify_calibration(recs: &[VerifyRec]) {
+    let mut sorted: Vec<&VerifyRec> = recs.iter().collect();
     sorted.sort_unstable_by(|a, b| a.fp.cmp(&b.fp));
     const BINS: usize = 5; // [.5,.7) [.7,.8) [.8,.9) [.9,1.0) [1.0]
     let mut tot = [0usize; BINS];
@@ -2387,16 +2487,6 @@ fn cmd_verify(
             );
         }
     }
-    // CI soundness gate: fail if false merges exceed the budget. The independent oracle thus
-    // becomes a permanent regression gate on the detection campaign — a new canon that
-    // introduces a real false merge pushes the count over budget here.
-    if let Some(budget) = max_violations {
-        if n_violations > budget {
-            anyhow::bail!("verify gate: {n_violations} false merges exceed the budget of {budget}");
-        }
-        println!("\nGATE: {n_violations} ≤ {budget} false merges — OK ✓");
-    }
-    Ok(())
 }
 
 /// Multiset Jaccard over two sorted `u64` vectors (intersection / union by count).
@@ -2629,9 +2719,25 @@ pub(crate) fn detect_families(
     validate_exclude_globs(exclude)?;
     let refs = paths_as_refs(paths);
     let channels = ScanChannels::resolve(mode, cfg_mode)?;
-    let threshold = channels.threshold();
-    let opts = nose_detect::DetectOptions {
-        threshold,
+    let opts = scan_detect_options(channels, min_tokens, min_lines);
+    let detector = scan_detector(channels, &opts);
+    let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
+    let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
+    let mut families = nose_detect::rank_families(&report);
+    if channels.abstraction_only() {
+        families.retain(|f| f.abstraction_witness.is_some());
+    }
+    Ok(families)
+}
+
+/// Detection options for the resolved scan channels — shared by `scan` and `review`.
+fn scan_detect_options(
+    channels: ScanChannels,
+    min_tokens: usize,
+    min_lines: u32,
+) -> nose_detect::DetectOptions {
+    nose_detect::DetectOptions {
+        threshold: channels.threshold(),
         min_lines,
         min_tokens,
         contiguous_min_tokens: min_tokens,
@@ -2646,15 +2752,7 @@ pub(crate) fn detect_families(
         shape_features: channels.near || channels.abstraction,
         abstraction_witnesses: channels.abstraction,
         ..Default::default()
-    };
-    let detector = scan_detector(channels, &opts);
-    let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
-    let report = nose_detect::detect(&corpus, &opts, detector.as_ref());
-    let mut families = nose_detect::rank_families(&report);
-    if channels.abstraction_only() {
-        families.retain(|f| f.abstraction_witness.is_some());
     }
-    Ok(families)
 }
 
 fn validate_exclude_globs(exclude: &[String]) -> Result<()> {
@@ -2779,81 +2877,16 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     }
 
     let refs = paths_as_refs(&args.paths);
-
-    // Resolve each setting: CLI flag wins, else config file, else built-in default.
-    let cfg = config::load_scan(args.config.as_deref())?;
-    let top = args.top.or(cfg.top).unwrap_or(30);
-    let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
-    let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
-    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let channels = ScanChannels::resolve(args.mode, cfg.mode)?;
-    let threshold = channels.threshold();
-    let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
-    let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
-    let ignore_file = args.ignore_file.or(cfg.ignore_file);
-    let mut semantic_pack_paths = cfg.semantic_packs;
-    semantic_pack_paths.extend(args.semantic_pack.iter().cloned());
-    let semantic_packs = nose_semantics::SemanticPackSet::new_local(&semantic_pack_paths)?;
-    // Excludes are additive: config patterns plus any given on the command line.
-    let mut exclude = cfg.exclude;
-    exclude.extend(args.exclude.iter().cloned());
-    validate_exclude_globs(&exclude)?;
-    let ignore_set = ignores::load_for_scan(ignore_file.as_deref())?;
-    if let Some(ignore_set) = &ignore_set {
-        ignore_set.warn_expired();
-    }
-
-    let opts = nose_detect::DetectOptions {
-        threshold,
-        min_lines,
-        min_tokens,
-        contiguous_min_tokens: min_tokens,
-        contiguous_min_lines: min_lines,
-        structural: channels.structural(),
-        contiguous: channels.syntax,
-        // Near also generates VALUE candidates so behaviorally-convergent but shape-divergent
-        // pairs (async `.then` ≡ await, impure loop ≡ comprehension) reach the candidate scorer —
-        // they share no shape band, so shape-LSH alone would never propose them.
-        value_candidates: channels.semantic || channels.near || channels.abstraction,
-        shape_candidates: channels.near || channels.abstraction,
-        shape_features: channels.near || channels.abstraction,
-        abstraction_witnesses: channels.abstraction,
-        ..Default::default()
-    };
-    let detector = scan_detector(channels, &opts);
-
-    // With --cache-dir, build units per file through the on-disk cache (skips
-    // parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
-    let (report, scope) = if let Some(dir) = &args.cache_dir {
-        let cache::CachedUnits {
-            units,
-            streams,
-            files,
-            langs,
-        } = time_lower(|| cache::build_units_cached(&refs, &exclude, &opts, dir));
-        if files == 0 {
-            warn_no_files(&args.paths);
-        }
-        // The cache path supplies both cached unit features and syntax streams, so every
-        // selected scan channel behaves the same as the non-cached path.
-        let report =
-            nose_detect::detect_from_units(units, files, &streams, &opts, detector.as_ref()).0;
-        (report, ScanScope { files, langs })
-    } else {
-        let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(&refs, &exclude));
-        warn_if_empty(&corpus, &args.paths);
-        let scope = ScanScope::from_corpus(&corpus);
-        (
-            nose_detect::detect(&corpus, &opts, detector.as_ref()),
-            scope,
-        )
-    };
+    let settings = resolve_scan_settings(&args)?;
+    let opts = scan_detect_options(settings.channels, settings.min_tokens, settings.min_lines);
+    let detector = scan_detector(settings.channels, &opts);
+    let (report, scope) = scan_report(&args, &refs, &settings.exclude, &opts, detector.as_ref());
 
     let mut families = nose_detect::rank_families(&report);
-    if channels.abstraction_only() {
+    if settings.channels.abstraction_only() {
         families.retain(|f| f.abstraction_witness.is_some());
     }
-    families.retain(|f| f.members >= min_members && f.value >= min_value);
+    families.retain(|f| f.members >= settings.min_members && f.value >= settings.min_value);
     // Show paths relative to the working directory — absolute paths are unreadable
     // in CI logs and reviews, and relative ones are clickable and portable.
     if let Ok(cwd) = std::env::current_dir() {
@@ -2863,43 +2896,8 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             }
         }
     }
-    // Compute the honest shared-line count for each family, then rank. This layer has
-    // source access; the detector deals only in IL.
-    //
-    // `shared_lines` (displayed) is the count of *all* lines invariant across the family
-    // — including boilerplate, so it matches what `--show proposal` shows. For *ranking*
-    // (`shared_weight`) we separate signal from noise: sum the IDF weight of the
-    // substantive lines (non-trivial, and rare across the corpus — a `if err != nil {`
-    // that appears in most files contributes ~0), then use that as a **gate** on the
-    // full block. A family whose shared lines are all boilerplate/idiom has ~0
-    // substantive weight → it scores ~0 however much it "shares"; a family with real
-    // shared content is credited for its whole extractable block (boilerplate included).
-    // Cross-language families have no shared *source* lines to diff, so they keep
-    // `shared_weight = 0` and fall back to the structural estimate in `extractability()`.
-    // Only same-language families with ≥2 sites get an honest shared-line count; the
-    // rest keep the detector's structural estimate. Computing the corpus line-IDF means
-    // re-reading every scanned file, so skip it entirely when no family qualifies (a
-    // clean repo, or a run where `--min-value`/`--min-members` filtered everything) —
-    // otherwise a quiet scan pays a full second corpus read for nothing.
-    let needs_shared = |f: &nose_detect::RefactorFamily| f.languages == 1 && f.locations.len() >= 2;
-    if families.iter().any(needs_shared) {
-        let mut lines = FileLineCache::default();
-        let idf = corpus_line_idf(&refs, &exclude, &mut lines);
-        for f in families.iter_mut().filter(|f| needs_shared(f)) {
-            if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
-                let substantive: f64 = shared
-                    .iter()
-                    .filter(|l| !is_trivial_line(l))
-                    .map(|l| idf.weight(l))
-                    .sum();
-                // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
-                let gate = (substantive / 2.0).clamp(0.0, 1.0);
-                f.shared_lines = shared.len() as u32;
-                f.shared_weight = shared.len() as f64 * gate;
-                f.params = params;
-            }
-        }
-    }
+    weight_shared_lines(&mut families, &refs, &settings.exclude);
+    let sort = settings.sort;
     families.sort_by(|a, b| {
         sort.score(b)
             .total_cmp(&sort.score(a))
@@ -2910,18 +2908,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     // Baseline: write the current state, or hide already-accepted families so only
     // new/changed duplication is reported and gated.
     if args.write_baseline {
-        let path = args
-            .baseline
-            .as_ref()
-            .expect("--write-baseline requires --baseline");
-        baseline::write(path, &families, family_hint)
-            .with_context(|| format!("writing baseline {}", path.display()))?;
-        eprintln!(
-            "nose: wrote baseline of {} families to {}",
-            families.len(),
-            path.display()
-        );
-        return Ok(());
+        return write_scan_baseline(&args, &families);
     }
     let baseline_comparison = if let Some(path) = args.baseline.as_ref() {
         let accepted = baseline::load(path)?;
@@ -2931,28 +2918,21 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     } else {
         None
     };
-    let mut ignored_families = Vec::new();
-    if let Some(ignore_set) = &ignore_set {
-        let mut active = Vec::with_capacity(families.len());
-        for family in families {
-            if let Some(ignore) = ignore_set.match_family(&family) {
-                ignored_families.push(IgnoredFamily { family, ignore });
-            } else {
-                active.push(family);
-            }
-        }
-        families = active;
-    }
+    let (families, ignored_families) = partition_ignored(families, settings.ignore_set.as_ref());
     let needs_default_surface =
         !matches!(args.format, ReportFormat::Json) || args.fail_on.is_some();
     let generated_sources = if needs_default_surface && !families.is_empty() {
-        generated_source_index(&refs, &exclude)
+        generated_source_index(&refs, &settings.exclude)
     } else {
         std::collections::HashSet::new()
     };
 
     // `--top 0` means "no limit": show every family (documented in docs/usage.md).
-    let limit = if top == 0 { usize::MAX } else { top };
+    let limit = if settings.top == 0 {
+        usize::MAX
+    } else {
+        settings.top
+    };
     let shown = families.iter().take(limit).collect::<Vec<_>>();
     let reportable_families = families
         .iter()
@@ -2965,64 +2945,20 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         .collect::<Vec<_>>();
     let omitted_note = surface_omission_note(&families, &generated_sources);
 
-    match args.format {
-        ReportFormat::Json => {
-            let json = ScanJsonReport::new(ScanJsonInput {
-                scope: &scope,
-                sort,
-                top,
-                families: &families,
-                shown: &shown,
-                baseline: baseline_comparison.as_ref(),
-                ignore_set: ignore_set.as_ref(),
-                ignored_families: &ignored_families,
-                semantic_packs: &semantic_packs,
-            });
-            println!("{}", serde_json::to_string_pretty(&json)?);
-        }
-        ReportFormat::Markdown => {
-            // Scope line first — tells the reader what was actually scanned (so a small
-            // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
-            println!("{}\n", scope.summary());
-            if let Some(line) = semantic_pack_summary_line(&semantic_packs) {
-                println!("{line}\n");
-            }
-            print_refactor_markdown(
-                &reportable_families,
-                &shown_reportable,
-                channels,
-                baseline_comparison.as_ref(),
-                ignore_set.as_ref(),
-                ignored_families.len(),
-                omitted_note.as_deref(),
-            );
-        }
-        ReportFormat::Human => {
-            println!("{}", scope.summary());
-            if let Some(line) = semantic_pack_summary_line(&semantic_packs) {
-                println!("{line}");
-            }
-            if let Some(comparison) = &baseline_comparison {
-                println!("{}", comparison.summary.line());
-            }
-            if let Some(ignore_set) = &ignore_set {
-                println!("{}", ignore_set.summary(ignored_families.len()).line());
-            }
-            print_refactor_human(
-                &reportable_families,
-                &shown_reportable,
-                sort,
-                channels,
-                args.show.contains(&ShowView::Diff),
-                args.show.contains(&ShowView::Proposal),
-                omitted_note.as_deref(),
-            )
-        }
-        ReportFormat::Sarif => println!(
-            "{}",
-            refactor_sarif(&shown_reportable, reportable_families.len())?
-        ),
-    }
+    render_scan_report(
+        &args,
+        &ScanReportView {
+            scope: &scope,
+            settings: &settings,
+            families: &families,
+            shown: &shown,
+            reportable: &reportable_families,
+            shown_reportable: &shown_reportable,
+            baseline: baseline_comparison.as_ref(),
+            ignored_families: &ignored_families,
+            omitted_note: omitted_note.as_deref(),
+        },
+    )?;
     if args.show.contains(&ShowView::Hotspots)
         && matches!(args.format, ReportFormat::Human | ReportFormat::Markdown)
     {
@@ -3030,13 +2966,264 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
     }
     // CI gate: report is already printed; a non-empty (filtered) family set is a
     // failure when --fail-on is set.
-    if let (true, Some(comparison)) = (
-        matches!(args.fail_on, Some(FailOn::New)) && !reportable_families.is_empty(),
+    enforce_scan_fail_on(
+        &args,
+        settings.channels,
+        &reportable_families,
         baseline_comparison.as_ref(),
+    );
+    Ok(())
+}
+
+/// The scan settings after layering: CLI flag wins, else config file, else built-in
+/// default.
+struct ScanSettings {
+    top: usize,
+    min_members: usize,
+    min_value: f64,
+    sort: SortKey,
+    channels: ScanChannels,
+    min_lines: u32,
+    min_tokens: usize,
+    semantic_packs: nose_semantics::SemanticPackSet,
+    exclude: Vec<String>,
+    ignore_set: Option<ignores::IgnoreSet>,
+}
+
+fn resolve_scan_settings(args: &ScanArgs) -> Result<ScanSettings> {
+    let cfg = config::load_scan(args.config.as_deref())?;
+    let top = args.top.or(cfg.top).unwrap_or(30);
+    let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
+    let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
+    let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
+    let channels = ScanChannels::resolve(args.mode.clone(), cfg.mode)?;
+    let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
+    let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
+    let ignore_file = args.ignore_file.clone().or(cfg.ignore_file);
+    let mut semantic_pack_paths = cfg.semantic_packs;
+    semantic_pack_paths.extend(args.semantic_pack.iter().cloned());
+    let semantic_packs = nose_semantics::SemanticPackSet::new_local(&semantic_pack_paths)?;
+    // Excludes are additive: config patterns plus any given on the command line.
+    let mut exclude = cfg.exclude;
+    exclude.extend(args.exclude.iter().cloned());
+    validate_exclude_globs(&exclude)?;
+    let ignore_set = ignores::load_for_scan(ignore_file.as_deref())?;
+    if let Some(ignore_set) = &ignore_set {
+        ignore_set.warn_expired();
+    }
+    Ok(ScanSettings {
+        top,
+        min_members,
+        min_value,
+        sort,
+        channels,
+        min_lines,
+        min_tokens,
+        semantic_packs,
+        exclude,
+        ignore_set,
+    })
+}
+
+/// With --cache-dir, build units per file through the on-disk cache (skips
+/// parse/normalize/extract for unchanged files); otherwise lower the whole corpus.
+fn scan_report(
+    args: &ScanArgs,
+    refs: &[&std::path::Path],
+    exclude: &[String],
+    opts: &nose_detect::DetectOptions,
+    detector: &dyn nose_detect::Detector,
+) -> (nose_detect::Report, ScanScope) {
+    if let Some(dir) = &args.cache_dir {
+        let cache::CachedUnits {
+            units,
+            streams,
+            files,
+            langs,
+        } = time_lower(|| cache::build_units_cached(refs, exclude, opts, dir));
+        if files == 0 {
+            warn_no_files(&args.paths);
+        }
+        // The cache path supplies both cached unit features and syntax streams, so every
+        // selected scan channel behaves the same as the non-cached path.
+        let report = nose_detect::detect_from_units(units, files, &streams, opts, detector).0;
+        (report, ScanScope { files, langs })
+    } else {
+        let corpus = time_lower(|| nose_frontend::lower_corpus_filtered(refs, exclude));
+        warn_if_empty(&corpus, &args.paths);
+        let scope = ScanScope::from_corpus(&corpus);
+        (nose_detect::detect(&corpus, opts, detector), scope)
+    }
+}
+
+/// Compute the honest shared-line count for each family, before ranking. This layer has
+/// source access; the detector deals only in IL.
+///
+/// `shared_lines` (displayed) is the count of *all* lines invariant across the family
+/// — including boilerplate, so it matches what `--show proposal` shows. For *ranking*
+/// (`shared_weight`) we separate signal from noise: sum the IDF weight of the
+/// substantive lines (non-trivial, and rare across the corpus — a `if err != nil {`
+/// that appears in most files contributes ~0), then use that as a **gate** on the
+/// full block. A family whose shared lines are all boilerplate/idiom has ~0
+/// substantive weight → it scores ~0 however much it "shares"; a family with real
+/// shared content is credited for its whole extractable block (boilerplate included).
+/// Cross-language families have no shared *source* lines to diff, so they keep
+/// `shared_weight = 0` and fall back to the structural estimate in `extractability()`.
+/// Only same-language families with ≥2 sites get an honest shared-line count; the
+/// rest keep the detector's structural estimate. Computing the corpus line-IDF means
+/// re-reading every scanned file, so skip it entirely when no family qualifies (a
+/// clean repo, or a run where `--min-value`/`--min-members` filtered everything) —
+/// otherwise a quiet scan pays a full second corpus read for nothing.
+fn weight_shared_lines(
+    families: &mut [nose_detect::RefactorFamily],
+    refs: &[&std::path::Path],
+    exclude: &[String],
+) {
+    let needs_shared = |f: &nose_detect::RefactorFamily| f.languages == 1 && f.locations.len() >= 2;
+    if !families.iter().any(needs_shared) {
+        return;
+    }
+    let mut lines = FileLineCache::default();
+    let idf = corpus_line_idf(refs, exclude, &mut lines);
+    for f in families.iter_mut().filter(|f| needs_shared(f)) {
+        if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
+            let substantive: f64 = shared
+                .iter()
+                .filter(|l| !is_trivial_line(l))
+                .map(|l| idf.weight(l))
+                .sum();
+            // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
+            let gate = (substantive / 2.0).clamp(0.0, 1.0);
+            f.shared_lines = shared.len() as u32;
+            f.shared_weight = shared.len() as f64 * gate;
+            f.params = params;
+        }
+    }
+}
+
+fn write_scan_baseline(args: &ScanArgs, families: &[nose_detect::RefactorFamily]) -> Result<()> {
+    let path = args
+        .baseline
+        .as_ref()
+        .expect("--write-baseline requires --baseline");
+    baseline::write(path, families, family_hint)
+        .with_context(|| format!("writing baseline {}", path.display()))?;
+    eprintln!(
+        "nose: wrote baseline of {} families to {}",
+        families.len(),
+        path.display()
+    );
+    Ok(())
+}
+
+fn partition_ignored(
+    families: Vec<nose_detect::RefactorFamily>,
+    ignore_set: Option<&ignores::IgnoreSet>,
+) -> (Vec<nose_detect::RefactorFamily>, Vec<IgnoredFamily>) {
+    let Some(ignore_set) = ignore_set else {
+        return (families, Vec::new());
+    };
+    let mut active = Vec::with_capacity(families.len());
+    let mut ignored_families = Vec::new();
+    for family in families {
+        if let Some(ignore) = ignore_set.match_family(&family) {
+            ignored_families.push(IgnoredFamily { family, ignore });
+        } else {
+            active.push(family);
+        }
+    }
+    (active, ignored_families)
+}
+
+/// Everything the format arms need to render one scan's report.
+struct ScanReportView<'a> {
+    scope: &'a ScanScope,
+    settings: &'a ScanSettings,
+    families: &'a [nose_detect::RefactorFamily],
+    shown: &'a [&'a nose_detect::RefactorFamily],
+    reportable: &'a [&'a nose_detect::RefactorFamily],
+    shown_reportable: &'a [&'a nose_detect::RefactorFamily],
+    baseline: Option<&'a BaselineComparison>,
+    ignored_families: &'a [IgnoredFamily],
+    omitted_note: Option<&'a str>,
+}
+
+fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
+    let settings = view.settings;
+    match args.format {
+        ReportFormat::Json => {
+            let json = ScanJsonReport::new(ScanJsonInput {
+                scope: view.scope,
+                sort: settings.sort,
+                top: settings.top,
+                families: view.families,
+                shown: view.shown,
+                baseline: view.baseline,
+                ignore_set: settings.ignore_set.as_ref(),
+                ignored_families: view.ignored_families,
+                semantic_packs: &settings.semantic_packs,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+        ReportFormat::Markdown => {
+            // Scope line first — tells the reader what was actually scanned (so a small
+            // count from `.gitignore`/`--exclude` pruning is visible, not a silent gap).
+            println!("{}\n", view.scope.summary());
+            if let Some(line) = semantic_pack_summary_line(&settings.semantic_packs) {
+                println!("{line}\n");
+            }
+            print_refactor_markdown(
+                view.reportable,
+                view.shown_reportable,
+                settings.channels,
+                view.baseline,
+                settings.ignore_set.as_ref(),
+                view.ignored_families.len(),
+                view.omitted_note,
+            );
+        }
+        ReportFormat::Human => {
+            println!("{}", view.scope.summary());
+            if let Some(line) = semantic_pack_summary_line(&settings.semantic_packs) {
+                println!("{line}");
+            }
+            if let Some(comparison) = view.baseline {
+                println!("{}", comparison.summary.line());
+            }
+            if let Some(ignore_set) = &settings.ignore_set {
+                println!("{}", ignore_set.summary(view.ignored_families.len()).line());
+            }
+            print_refactor_human(
+                view.reportable,
+                view.shown_reportable,
+                settings.sort,
+                settings.channels,
+                args.show.contains(&ShowView::Diff),
+                args.show.contains(&ShowView::Proposal),
+                view.omitted_note,
+            )
+        }
+        ReportFormat::Sarif => println!(
+            "{}",
+            refactor_sarif(view.shown_reportable, view.reportable.len())?
+        ),
+    }
+    Ok(())
+}
+
+fn enforce_scan_fail_on(
+    args: &ScanArgs,
+    channels: ScanChannels,
+    reportable: &[&nose_detect::RefactorFamily],
+    baseline_comparison: Option<&BaselineComparison>,
+) {
+    if let (true, Some(comparison)) = (
+        matches!(args.fail_on, Some(FailOn::New)) && !reportable.is_empty(),
+        baseline_comparison,
     ) {
         let mut new_families = 0usize;
         let mut changed_families = 0usize;
-        for family in &reportable_families {
+        for family in reportable {
             match comparison.statuses.get(&baseline::family_key(family)) {
                 Some(BaselineStatus::Changed) => changed_families += 1,
                 Some(BaselineStatus::New) => new_families += 1,
@@ -3052,15 +3239,14 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         );
         std::process::exit(1);
     }
-    if matches!(args.fail_on, Some(FailOn::Any)) && !reportable_families.is_empty() {
+    if matches!(args.fail_on, Some(FailOn::Any)) && !reportable.is_empty() {
         eprintln!(
             "\nnose: {} {} found (--fail-on any)",
-            reportable_families.len(),
-            channels.report_label(reportable_families.len())
+            reportable.len(),
+            channels.report_label(reportable.len())
         );
         std::process::exit(1);
     }
-    Ok(())
 }
 
 fn print_hotspots_refs(families: &[&nose_detect::RefactorFamily]) {

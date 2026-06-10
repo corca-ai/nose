@@ -223,21 +223,7 @@ fn apply_method_contract(
             op,
             arg_olds: vec![args[0]],
         },
-        MethodBuiltinArgs::ReceiverOnly => {
-            if let ProvenReceiver::MapGet { map, key } = receiver {
-                if op == Builtin::IsNotNull {
-                    return CallCanon::Builtin {
-                        op: Builtin::Contains,
-                        arg_olds: vec![key, map],
-                    };
-                }
-                return CallCanon::None;
-            }
-            CallCanon::Builtin {
-                op,
-                arg_olds: vec![direct.unwrap()],
-            }
-        }
+        MethodBuiltinArgs::ReceiverOnly => receiver_only_args(op, receiver, direct),
         MethodBuiltinArgs::ReceiverThenAll => {
             let Some(base) = direct else {
                 return CallCanon::None;
@@ -279,83 +265,19 @@ fn apply_method_contract(
             }
         }
         MethodBuiltinArgs::MapGetDefaultOrZeroArgLambda => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            let fallback = if old.kind(args[1]) == NodeKind::Lambda {
-                let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
-                    return CallCanon::None;
-                };
-                fallback
-            } else {
-                args[1]
-            };
-            CallCanon::Builtin {
-                op,
-                arg_olds: vec![base, args[0], fallback],
-            }
+            map_get_default_or_zero_arg_lambda_args(old, op, direct, args)
         }
-        MethodBuiltinArgs::RustMapGetOrOptionDefault => match receiver {
-            ProvenReceiver::MapGet { map, key } => CallCanon::Builtin {
-                op: Builtin::GetOrDefault,
-                arg_olds: vec![map, key, args[0]],
-            },
-            ProvenReceiver::Direct(base) => CallCanon::Builtin {
-                op,
-                arg_olds: vec![base, args[0]],
-            },
-        },
+        MethodBuiltinArgs::RustMapGetOrOptionDefault => {
+            rust_map_get_or_option_default_args(op, receiver, args)
+        }
         MethodBuiltinArgs::RustOptionDefaultLambda => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            if let Some(fallback) = zero_arg_lambda_body(old, args[0]) {
-                return CallCanon::Builtin {
-                    op,
-                    arg_olds: vec![base, fallback],
-                };
-            }
-            CallCanon::None
+            rust_option_default_lambda_args(old, op, direct, args)
         }
         MethodBuiltinArgs::RustOptionMapOrIdentity => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            if identity_lambda(old, args[1]) {
-                return CallCanon::Builtin {
-                    op,
-                    arg_olds: vec![base, args[0]],
-                };
-            }
-            CallCanon::None
+            rust_option_map_or_identity_args(old, op, direct, args)
         }
-        MethodBuiltinArgs::RustZip => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            CallCanon::Builtin {
-                op,
-                arg_olds: vec![
-                    unwrap_iter(old, interner, base),
-                    unwrap_iter(old, interner, args[0]),
-                ],
-            }
-        }
-        MethodBuiltinArgs::Fold => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            let (fn_old, init_old) = fold_fn_init(old, args);
-            let Some(fn_old) = fn_old else {
-                return CallCanon::None;
-            };
-            let coll = unwrap_iter(old, interner, base);
-            let mut a = vec![fn_old, coll];
-            if let Some(init) = init_old {
-                a.push(init);
-            }
-            CallCanon::Builtin { op, arg_olds: a }
-        }
+        MethodBuiltinArgs::RustZip => rust_zip_args(old, interner, op, direct, args),
+        MethodBuiltinArgs::Fold => fold_args(old, interner, op, direct, args),
         MethodBuiltinArgs::BoolReduction => {
             let Some(base) = direct else {
                 return CallCanon::None;
@@ -367,23 +289,165 @@ fn apply_method_contract(
         }
         MethodBuiltinArgs::Hof => CallCanon::None,
         MethodBuiltinArgs::CollectionReduction => {
-            let Some(base) = direct else {
-                return CallCanon::None;
-            };
-            if matches!(op, Builtin::Min | Builtin::Max) && old.kind(base) == NodeKind::Seq {
-                let items = old.children(base);
-                if items.len() == 2 {
-                    return CallCanon::Builtin {
-                        op,
-                        arg_olds: items.to_vec(),
-                    };
-                }
-            }
-            CallCanon::Builtin {
-                op,
-                arg_olds: vec![unwrap_iter(old, interner, base)],
-            }
+            collection_reduction_args(old, interner, op, direct)
         }
+    }
+}
+
+fn receiver_only_args(op: Builtin, receiver: ProvenReceiver, direct: Option<NodeId>) -> CallCanon {
+    if let ProvenReceiver::MapGet { map, key } = receiver {
+        if op == Builtin::IsNotNull {
+            return CallCanon::Builtin {
+                op: Builtin::Contains,
+                arg_olds: vec![key, map],
+            };
+        }
+        return CallCanon::None;
+    }
+    CallCanon::Builtin {
+        op,
+        arg_olds: vec![direct.unwrap()],
+    }
+}
+
+fn map_get_default_or_zero_arg_lambda_args(
+    old: &Il,
+    op: Builtin,
+    direct: Option<NodeId>,
+    args: &[NodeId],
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    let fallback = if old.kind(args[1]) == NodeKind::Lambda {
+        let Some(fallback) = zero_arg_lambda_body_value(old, args[1]) else {
+            return CallCanon::None;
+        };
+        fallback
+    } else {
+        args[1]
+    };
+    CallCanon::Builtin {
+        op,
+        arg_olds: vec![base, args[0], fallback],
+    }
+}
+
+fn rust_map_get_or_option_default_args(
+    op: Builtin,
+    receiver: ProvenReceiver,
+    args: &[NodeId],
+) -> CallCanon {
+    match receiver {
+        ProvenReceiver::MapGet { map, key } => CallCanon::Builtin {
+            op: Builtin::GetOrDefault,
+            arg_olds: vec![map, key, args[0]],
+        },
+        ProvenReceiver::Direct(base) => CallCanon::Builtin {
+            op,
+            arg_olds: vec![base, args[0]],
+        },
+    }
+}
+
+fn rust_option_default_lambda_args(
+    old: &Il,
+    op: Builtin,
+    direct: Option<NodeId>,
+    args: &[NodeId],
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    if let Some(fallback) = zero_arg_lambda_body(old, args[0]) {
+        return CallCanon::Builtin {
+            op,
+            arg_olds: vec![base, fallback],
+        };
+    }
+    CallCanon::None
+}
+
+fn rust_option_map_or_identity_args(
+    old: &Il,
+    op: Builtin,
+    direct: Option<NodeId>,
+    args: &[NodeId],
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    if identity_lambda(old, args[1]) {
+        return CallCanon::Builtin {
+            op,
+            arg_olds: vec![base, args[0]],
+        };
+    }
+    CallCanon::None
+}
+
+fn rust_zip_args(
+    old: &Il,
+    interner: &Interner,
+    op: Builtin,
+    direct: Option<NodeId>,
+    args: &[NodeId],
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    CallCanon::Builtin {
+        op,
+        arg_olds: vec![
+            unwrap_iter(old, interner, base),
+            unwrap_iter(old, interner, args[0]),
+        ],
+    }
+}
+
+fn fold_args(
+    old: &Il,
+    interner: &Interner,
+    op: Builtin,
+    direct: Option<NodeId>,
+    args: &[NodeId],
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    let (fn_old, init_old) = fold_fn_init(old, args);
+    let Some(fn_old) = fn_old else {
+        return CallCanon::None;
+    };
+    let coll = unwrap_iter(old, interner, base);
+    let mut a = vec![fn_old, coll];
+    if let Some(init) = init_old {
+        a.push(init);
+    }
+    CallCanon::Builtin { op, arg_olds: a }
+}
+
+fn collection_reduction_args(
+    old: &Il,
+    interner: &Interner,
+    op: Builtin,
+    direct: Option<NodeId>,
+) -> CallCanon {
+    let Some(base) = direct else {
+        return CallCanon::None;
+    };
+    if matches!(op, Builtin::Min | Builtin::Max) && old.kind(base) == NodeKind::Seq {
+        let items = old.children(base);
+        if items.len() == 2 {
+            return CallCanon::Builtin {
+                op,
+                arg_olds: items.to_vec(),
+            };
+        }
+    }
+    CallCanon::Builtin {
+        op,
+        arg_olds: vec![unwrap_iter(old, interner, base)],
     }
 }
 

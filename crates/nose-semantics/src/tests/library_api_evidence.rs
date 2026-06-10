@@ -60,6 +60,60 @@ fn library_api_record_with_arity(
     )
 }
 
+fn is_array_contract() -> LibraryStaticGlobalMethodContract {
+    library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1)
+        .expect("test contract")
+}
+
+fn contract_status_for_call(
+    il: &Il,
+    interner: &Interner,
+    call: NodeId,
+    id: LibraryApiContractId,
+    callee: LibraryApiCalleeContract,
+) -> LibraryApiEvidenceStatus {
+    library_api_contract_evidence_for_call(il, interner, call, id, callee, 1)
+}
+
+fn admitted_js_array_is_array_il(interner: &Interner) -> (Il, NodeId, NodeId, NodeId) {
+    let (mut il, call, callee, array) = js_array_is_array_call_il(interner);
+    let contract = is_array_contract();
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::node(il.node(array).span, NodeKind::Var),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("Array"),
+        }),
+        EvidenceStatus::Asserted,
+    ));
+    il.evidence.push(evidence(
+        1,
+        EvidenceAnchor::source_span(il.node(callee).span),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("Array"),
+        }),
+        EvidenceStatus::Asserted,
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        2,
+        EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
+        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+            path_hash: stable_symbol_hash("Array.isArray"),
+        }),
+        EvidenceStatus::Asserted,
+        vec![EvidenceId(1)],
+    ));
+    il.evidence.push(library_api_record(
+        3,
+        il.node(call).span,
+        contract.id,
+        contract.callee,
+        EvidenceStatus::Asserted,
+        &[0, 2],
+    ));
+    (il, call, callee, array)
+}
+
 fn canonical_builtin_call_il(
     lang: Lang,
     builtin: Builtin,
@@ -430,66 +484,19 @@ fn java_list_of_import_evidence_il(
 }
 
 #[test]
-fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
+fn library_api_evidence_resolution_is_dependency_backed() {
     let interner = Interner::new();
-    let (mut il, call, callee, array) = js_array_is_array_call_il(&interner);
-    let contract = library_js_array_is_array_contract(Lang::JavaScript, "Array", "isArray", 1)
-        .expect("test contract");
+    let (il, call, _callee, _array) = js_array_is_array_call_il(&interner);
+    let contract = is_array_contract();
 
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Missing
     );
 
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::node(il.node(array).span, NodeKind::Var),
-        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
-            name_hash: stable_symbol_hash("Array"),
-        }),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(evidence(
-        1,
-        EvidenceAnchor::source_span(il.node(callee).span),
-        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
-            name_hash: stable_symbol_hash("Array"),
-        }),
-        EvidenceStatus::Asserted,
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        2,
-        EvidenceAnchor::node(il.node(callee).span, NodeKind::Field),
-        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
-            path_hash: stable_symbol_hash("Array.isArray"),
-        }),
-        EvidenceStatus::Asserted,
-        vec![EvidenceId(1)],
-    ));
-    il.evidence.push(library_api_record(
-        3,
-        il.node(call).span,
-        contract.id,
-        contract.callee,
-        EvidenceStatus::Asserted,
-        &[0, 2],
-    ));
+    let (il, call, callee, array) = admitted_js_array_is_array_il(&interner);
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
     assert_eq!(
@@ -507,6 +514,13 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         ),
         LibraryApiEvidenceStatus::Admitted
     );
+}
+
+#[test]
+fn library_api_span_queries_reject_mismatched_callee_and_receiver_spans() {
+    let interner = Interner::new();
+    let (il, call, callee, array) = admitted_js_array_is_array_il(&interner);
+    let contract = is_array_contract();
     assert_eq!(
         library_api_contract_evidence_at_call_span(
             &il,
@@ -537,6 +551,12 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         ),
         LibraryApiEvidenceStatus::Rejected
     );
+}
+
+#[test]
+fn library_api_evidence_resolution_rejects_missing_or_ambiguous_dependencies() {
+    let interner = Interner::new();
+    let contract = is_array_contract();
 
     let (mut missing_dep, call, _callee, _array) = js_array_is_array_call_il(&interner);
     missing_dep.evidence.push(library_api_record(
@@ -548,14 +568,7 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         &[],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &missing_dep,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&missing_dep, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Rejected
     );
 
@@ -585,16 +598,21 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         &[0, 1],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
+        contract_status_for_call(
             &ambiguous_dep,
             &interner,
             call,
             contract.id,
-            contract.callee,
-            1,
+            contract.callee
         ),
         LibraryApiEvidenceStatus::Rejected
     );
+}
+
+#[test]
+fn library_api_evidence_resolution_rejects_conflicting_or_misanchored_records() {
+    let interner = Interner::new();
+    let contract = is_array_contract();
 
     let (mut conflicting_dep, call, callee, array) = js_array_is_array_call_il(&interner);
     conflicting_dep.evidence.push(evidence(
@@ -630,17 +648,17 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         &[0, 1],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
+        contract_status_for_call(
             &conflicting_dep,
             &interner,
             call,
             contract.id,
-            contract.callee,
-            1,
+            contract.callee
         ),
         LibraryApiEvidenceStatus::Rejected
     );
 
+    let (mut il, call, _callee, _array) = admitted_js_array_is_array_il(&interner);
     let boolean = library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 1).unwrap();
     il.evidence.push(library_api_record(
         3,
@@ -651,14 +669,7 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         &[0],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Rejected
     );
 
@@ -672,20 +683,13 @@ fn library_api_evidence_resolution_is_dependency_backed_and_fail_closed() {
         &[],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &wrong_anchor,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&wrong_anchor, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Missing
     );
 }
 
 #[test]
-fn library_api_evidence_resolution_accepts_import_and_source_backed_callees() {
+fn library_api_evidence_resolution_accepts_import_backed_callees() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let local = interner.intern("Values");
@@ -731,17 +735,14 @@ fn library_api_evidence_resolution_accepts_import_and_source_backed_callees() {
         &[1],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
+}
 
+#[test]
+fn library_api_evidence_resolution_accepts_source_backed_callees() {
+    let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let regex = b.add(
         NodeKind::Lit,
@@ -781,20 +782,13 @@ fn library_api_evidence_resolution_accepts_import_and_source_backed_callees() {
         &[0],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
 }
 
 #[test]
-fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees() {
+fn library_api_evidence_resolution_accepts_free_name_backed_callees() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let callee = b.add(
@@ -831,14 +825,7 @@ fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees(
         &[0],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
     assert_eq!(
@@ -856,7 +843,11 @@ fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees(
         ),
         LibraryApiEvidenceStatus::Admitted
     );
+}
 
+#[test]
+fn library_api_evidence_resolution_accepts_free_function_builtin_callees() {
+    let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let callee = b.add(
         NodeKind::Var,
@@ -892,17 +883,14 @@ fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees(
         &[0],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
+}
 
+#[test]
+fn library_api_evidence_resolution_accepts_require_backed_callees() {
+    let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let require_callee = b.add(
         NodeKind::Var,
@@ -983,14 +971,7 @@ fn library_api_evidence_resolution_accepts_free_name_and_require_backed_callees(
         &[0, 2],
     ));
     assert_eq!(
-        library_api_contract_evidence_for_call(
-            &il,
-            &interner,
-            call,
-            contract.id,
-            contract.callee,
-            1,
-        ),
+        contract_status_for_call(&il, &interner, call, contract.id, contract.callee),
         LibraryApiEvidenceStatus::Admitted
     );
 }

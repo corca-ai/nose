@@ -591,8 +591,7 @@ mod tests {
         walk(il, il.root, parents, interner).expect("a contract for the migrated shape")
     }
 
-    #[test]
-    fn resolves_place_and_effect_for_write_shapes() {
+    fn assert_java_self_field_write_contract() {
         // Java `this.x = …` → FieldWrite over a proven This.field place (fail-closed safe).
         let (il, parents, interner) = norm(
             "class C { int x; void s(int v){ this.x = v + 1; } }",
@@ -610,7 +609,9 @@ mod tests {
             c.writes_proven(),
             "a proven self-field write must pass writes_proven"
         );
+    }
 
+    fn assert_java_index_write_contract() {
         // Java `a[i] = v` → IndexWrite, observable in the effect trace, so it carries no
         // receiver-identity obligation and records no place on the contract (place is reserved
         // for receiver-bearing effects like field writes).
@@ -629,7 +630,9 @@ mod tests {
         );
         assert!(!site.effect.requires_proven_place());
         assert!(c.writes_proven());
+    }
 
+    fn assert_typed_ts_push_contract() {
         // Typed TS `xs.push(v)` proves the receiver is an array, lowers to the canonical
         // append builtin, and then records an Append effect with no heap place.
         let (il, parents, interner) = norm(
@@ -641,7 +644,9 @@ mod tests {
         assert_eq!(c.effects.len(), 1);
         assert_eq!(c.effects[0].effect, Effect::Append);
         assert_eq!(c.effects[0].place, None);
+    }
 
+    fn assert_untyped_js_push_contract() {
         // The same raw selector without receiver proof is not append evidence. It may still
         // be accepted by the separate opaque-call policy as `Other`, but it must not claim
         // append semantics.
@@ -652,6 +657,14 @@ mod tests {
         assert_eq!(c.effects.len(), 1);
         assert_eq!(c.effects[0].effect, Effect::Other);
         assert_eq!(c.effects[0].place, None);
+    }
+
+    #[test]
+    fn resolves_place_and_effect_for_write_shapes() {
+        assert_java_self_field_write_contract();
+        assert_java_index_write_contract();
+        assert_typed_ts_push_contract();
+        assert_untyped_js_push_contract();
     }
 
     #[test]

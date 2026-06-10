@@ -1605,32 +1605,110 @@ fn static_index_membership_value_graph_uses_library_api_evidence() {
     ));
 }
 
+fn java_util_map_import(b: &mut IlBuilder, lhs_payload: Payload, span: Span) -> NodeId {
+    let import_lhs = b.add(NodeKind::Var, lhs_payload, span, &[]);
+    let module = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("java.util")),
+        span,
+        &[],
+    );
+    let exported = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("Map")),
+        span,
+        &[],
+    );
+    let import_rhs = b.add(NodeKind::Seq, Payload::None, span, &[module, exported]);
+    b.add(
+        NodeKind::Assign,
+        Payload::None,
+        span,
+        &[import_lhs, import_rhs],
+    )
+}
+
+fn java_map_of_call(b: &mut IlBuilder, callee: NodeId, base_line: u32) -> NodeId {
+    let red = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("red")),
+        sp(base_line),
+        &[],
+    );
+    let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(base_line + 1), &[]);
+    let blue = b.add(
+        NodeKind::Lit,
+        Payload::LitStr(stable_symbol_hash("blue")),
+        sp(base_line + 2),
+        &[],
+    );
+    let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(base_line + 3), &[]);
+    b.add(
+        NodeKind::Call,
+        Payload::None,
+        sp(base_line + 4),
+        &[callee, red, one, blue, two],
+    )
+}
+
+fn push_java_map_lookup_evidence(
+    il: &mut Il,
+    import_span: Span,
+    receiver_span: Span,
+    call_span: Span,
+    binding_span: Span,
+    snapshot_module: &str,
+) {
+    let contract =
+        library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
+    il.evidence.push(evidence(
+        0,
+        EvidenceAnchor::sequence(import_span),
+        EvidenceKind::Import(ImportEvidenceKind::Binding {
+            module_hash: stable_symbol_hash("java.util"),
+            exported_hash: stable_symbol_hash("Map"),
+        }),
+    ));
+    push_imported_binding_use(il, 1, import_span, 2, receiver_span, "java.util", "Map");
+    il.evidence.push(library_api_contract_evidence(
+        3,
+        call_span,
+        contract.id,
+        contract.callee,
+        4,
+        vec![EvidenceId(2)],
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        4,
+        EvidenceAnchor::node(call_span, NodeKind::Call),
+        EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
+            module_hash: stable_symbol_hash(snapshot_module),
+            exported_hash: stable_symbol_hash("LOOKUP"),
+            root_kind: NodeKind::Call,
+        }),
+        vec![EvidenceId(3)],
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        5,
+        EvidenceAnchor::node(call_span, NodeKind::Call),
+        EvidenceKind::Domain(DomainEvidence::Map),
+        vec![EvidenceId(3)],
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        6,
+        EvidenceAnchor::binding(binding_span, stable_symbol_hash("LOOKUP")),
+        EvidenceKind::Domain(DomainEvidence::Map),
+        vec![EvidenceId(5)],
+    ));
+}
+
 #[test]
 fn java_map_factory_value_graph_uses_library_api_after_import_seed() {
     let interner = Interner::new();
     let mut b = IlBuilder::new(FileId(0));
     let map = interner.intern("Map");
     let lookup = interner.intern("LOOKUP");
-    let import_lhs = b.add(NodeKind::Var, Payload::Name(map), sp(100), &[]);
-    let module = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("java.util")),
-        sp(100),
-        &[],
-    );
-    let exported = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("Map")),
-        sp(100),
-        &[],
-    );
-    let import_rhs = b.add(NodeKind::Seq, Payload::None, sp(100), &[module, exported]);
-    let import = b.add(
-        NodeKind::Assign,
-        Payload::None,
-        sp(100),
-        &[import_lhs, import_rhs],
-    );
+    let import = java_util_map_import(&mut b, Payload::Name(map), sp(100));
     let receiver = b.add(NodeKind::Var, Payload::Name(map), sp(101), &[]);
     let callee = b.add(
         NodeKind::Field,
@@ -1638,26 +1716,7 @@ fn java_map_factory_value_graph_uses_library_api_after_import_seed() {
         sp(102),
         &[receiver],
     );
-    let red = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("red")),
-        sp(103),
-        &[],
-    );
-    let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(104), &[]);
-    let blue = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("blue")),
-        sp(105),
-        &[],
-    );
-    let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(106), &[]);
-    let call = b.add(
-        NodeKind::Call,
-        Payload::None,
-        sp(107),
-        &[callee, red, one, blue, two],
-    );
+    let call = java_map_of_call(&mut b, callee, 103);
     let lookup_lhs = b.add(NodeKind::Var, Payload::Name(lookup), sp(108), &[]);
     let lookup_assign = b.add(
         NodeKind::Assign,
@@ -1673,47 +1732,14 @@ fn java_map_factory_value_graph_uses_library_api_after_import_seed() {
         &[import, lookup_assign, lookup_ref],
     );
     let mut il = finish_test_il(b, root, Lang::Java);
-    let contract =
-        library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::sequence(sp(100)),
-        EvidenceKind::Import(ImportEvidenceKind::Binding {
-            module_hash: stable_symbol_hash("java.util"),
-            exported_hash: stable_symbol_hash("Map"),
-        }),
-    ));
-    push_imported_binding_use(&mut il, 1, sp(100), 2, sp(101), "java.util", "Map");
-    il.evidence.push(library_api_contract_evidence(
-        3,
+    push_java_map_lookup_evidence(
+        &mut il,
+        sp(100),
+        sp(101),
         sp(107),
-        contract.id,
-        contract.callee,
-        4,
-        vec![EvidenceId(2)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        4,
-        EvidenceAnchor::node(sp(107), NodeKind::Call),
-        EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
-            module_hash: stable_symbol_hash("LookupProvider"),
-            exported_hash: stable_symbol_hash("LOOKUP"),
-            root_kind: NodeKind::Call,
-        }),
-        vec![EvidenceId(3)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        5,
-        EvidenceAnchor::node(sp(107), NodeKind::Call),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        vec![EvidenceId(3)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        6,
-        EvidenceAnchor::binding(sp(108), stable_symbol_hash("LOOKUP")),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        vec![EvidenceId(5)],
-    ));
+        sp(108),
+        "LookupProvider",
+    );
 
     let mut builder = Builder::new(&il, &interner);
     assert!(!builder.unit_defines_symbol(lookup));
@@ -1746,27 +1772,7 @@ fn normalized_java_static_import_map_binding_feeds_get_or_default() {
     let lookup = interner.intern("LOOKUP");
     let lookup_method = interner.intern("lookup");
 
-    let import_lhs = b.add(NodeKind::Var, Payload::Cid(0), sp(130), &[]);
-    let module = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("java.util")),
-        sp(130),
-        &[],
-    );
-    let exported = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("Map")),
-        sp(130),
-        &[],
-    );
-    let import_rhs = b.add(NodeKind::Seq, Payload::None, sp(130), &[module, exported]);
-    let import = b.add(
-        NodeKind::Assign,
-        Payload::None,
-        sp(130),
-        &[import_lhs, import_rhs],
-    );
-
+    let import = java_util_map_import(&mut b, Payload::Cid(0), sp(130));
     let receiver = b.add(NodeKind::Var, Payload::Cid(0), sp(131), &[]);
     let callee = b.add(
         NodeKind::Field,
@@ -1774,26 +1780,7 @@ fn normalized_java_static_import_map_binding_feeds_get_or_default() {
         sp(132),
         &[receiver],
     );
-    let red = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("red")),
-        sp(133),
-        &[],
-    );
-    let one = b.add(NodeKind::Lit, Payload::LitInt(1), sp(134), &[]);
-    let blue = b.add(
-        NodeKind::Lit,
-        Payload::LitStr(stable_symbol_hash("blue")),
-        sp(135),
-        &[],
-    );
-    let two = b.add(NodeKind::Lit, Payload::LitInt(2), sp(136), &[]);
-    let map_of = b.add(
-        NodeKind::Call,
-        Payload::None,
-        sp(137),
-        &[callee, red, one, blue, two],
-    );
+    let map_of = java_map_of_call(&mut b, callee, 133);
     let lookup_lhs = b.add(NodeKind::Var, Payload::Cid(1), sp(138), &[]);
     let lookup_assign = b.add(
         NodeKind::Assign,
@@ -1846,47 +1833,7 @@ fn normalized_java_static_import_map_binding_feeds_get_or_default() {
         }],
         vec![map, lookup],
     );
-    let contract =
-        library_java_map_factory_contract(Lang::Java, "Map", "of").expect("Map.of contract");
-    il.evidence.push(evidence(
-        0,
-        EvidenceAnchor::sequence(sp(130)),
-        EvidenceKind::Import(ImportEvidenceKind::Binding {
-            module_hash: stable_symbol_hash("java.util"),
-            exported_hash: stable_symbol_hash("Map"),
-        }),
-    ));
-    push_imported_binding_use(&mut il, 1, sp(130), 2, sp(131), "java.util", "Map");
-    il.evidence.push(library_api_contract_evidence(
-        3,
-        sp(137),
-        contract.id,
-        contract.callee,
-        4,
-        vec![EvidenceId(2)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        4,
-        EvidenceAnchor::node(sp(137), NodeKind::Call),
-        EvidenceKind::Import(ImportEvidenceKind::ImportedLiteralSnapshot {
-            module_hash: stable_symbol_hash("Tables"),
-            exported_hash: stable_symbol_hash("LOOKUP"),
-            root_kind: NodeKind::Call,
-        }),
-        vec![EvidenceId(3)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        5,
-        EvidenceAnchor::node(sp(137), NodeKind::Call),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        vec![EvidenceId(3)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        6,
-        EvidenceAnchor::binding(sp(138), stable_symbol_hash("LOOKUP")),
-        EvidenceKind::Domain(DomainEvidence::Map),
-        vec![EvidenceId(5)],
-    ));
+    push_java_map_lookup_evidence(&mut il, sp(130), sp(131), sp(137), sp(138), "Tables");
     push_method_call_library_api_evidence(&mut il, &interner, 7, get_call, "getOrDefault", 2);
 
     let mut builder = Builder::new(&il, &interner);
@@ -2106,6 +2053,32 @@ fn record_guard_value_tag_requires_guard_evidence() {
     ));
 }
 
+fn push_own_property_guard_evidence(il: &mut Il, base_id: u32, span: Span) {
+    il.evidence.push(evidence(
+        base_id,
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
+            name_hash: stable_symbol_hash("Object"),
+        }),
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        base_id + 1,
+        EvidenceAnchor::source_span(span),
+        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
+            path_hash: stable_symbol_hash("Object.hasOwn"),
+        }),
+        vec![EvidenceId(base_id)],
+    ));
+    il.evidence.push(evidence_with_dependencies(
+        base_id + 2,
+        EvidenceAnchor::sequence(span),
+        EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
+            api_path_hash: stable_symbol_hash("Object.hasOwn"),
+        }),
+        vec![EvidenceId(base_id + 1)],
+    ));
+}
+
 #[test]
 fn own_property_guard_value_tag_requires_node_shape_and_guard_evidence() {
     let interner = Interner::new();
@@ -2162,52 +2135,8 @@ fn own_property_guard_value_tag_requires_node_shape_and_guard_evidence() {
             EvidenceKind::SequenceSurface(SequenceSurfaceKind::OwnPropertyGuard),
         ));
     }
-    il.evidence.push(evidence(
-        1,
-        EvidenceAnchor::source_span(sp(62)),
-        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
-            name_hash: stable_symbol_hash("Object"),
-        }),
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        2,
-        EvidenceAnchor::source_span(sp(62)),
-        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
-            path_hash: stable_symbol_hash("Object.hasOwn"),
-        }),
-        vec![EvidenceId(1)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        3,
-        EvidenceAnchor::sequence(sp(62)),
-        EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
-            api_path_hash: stable_symbol_hash("Object.hasOwn"),
-        }),
-        vec![EvidenceId(2)],
-    ));
-    il.evidence.push(evidence(
-        5,
-        EvidenceAnchor::source_span(sp(63)),
-        EvidenceKind::Symbol(SymbolEvidenceKind::UnshadowedGlobal {
-            name_hash: stable_symbol_hash("Object"),
-        }),
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        6,
-        EvidenceAnchor::source_span(sp(63)),
-        EvidenceKind::Symbol(SymbolEvidenceKind::QualifiedGlobal {
-            path_hash: stable_symbol_hash("Object.hasOwn"),
-        }),
-        vec![EvidenceId(5)],
-    ));
-    il.evidence.push(evidence_with_dependencies(
-        7,
-        EvidenceAnchor::sequence(sp(63)),
-        EvidenceKind::Guard(GuardEvidenceKind::JsOwnProperty {
-            api_path_hash: stable_symbol_hash("Object.hasOwn"),
-        }),
-        vec![EvidenceId(6)],
-    ));
+    push_own_property_guard_evidence(&mut il, 1, sp(62));
+    push_own_property_guard_evidence(&mut il, 5, sp(63));
 
     let mut builder = Builder::new(&il, &interner);
     let malformed_value = builder.eval(malformed, &FxHashMap::default());

@@ -358,36 +358,8 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "true" => lo.add(NodeKind::Lit, Payload::LitBool(true), span, &[]),
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "nil" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
-        "binary" => {
-            let l = node.child_by_field_name("left").map(|x| lower_expr(lo, x));
-            let r = node.child_by_field_name("right").map(|x| lower_expr(lo, x));
-            let op = node
-                .child_by_field_name("operator")
-                .map(|o| lo.text(o))
-                .and_then(common_bin_op);
-            match (l, r, op) {
-                (Some(l), Some(r), Some(op)) => {
-                    lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l, r])
-                }
-                _ => raw_kids(lo, node),
-            }
-        }
-        "unary" => {
-            let operand = node
-                .named_child(node.named_child_count().saturating_sub(1))
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
-            // `~`→BitNot, `!`/`not`→Not. Reading only the first byte collapsed `+5`
-            // and `~5` onto `Neg`.
-            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
-                Some("+") => Op::Pos,
-                Some("~") => Op::BitNot,
-                Some("!") | Some("not") => Op::Not,
-                _ => Op::Neg,
-            };
-            lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
-        }
+        "binary" => lower_binary(lo, node),
+        "unary" => lower_unary(lo, node),
         "assignment" | "operator_assignment" => lower_assign(lo, node),
         "method_call" | "call" => lower_call(lo, node),
         "element_reference" => {
@@ -407,23 +379,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         "hash" => lower_hash(lo, node),
         "pair" => lower_hash_pair(lo, node),
-        "block" | "do_block" => {
-            let mut kids = Vec::new();
-            if let Some(params) = node.child_by_field_name("parameters") {
-                for p in Lowering::named_children(params) {
-                    let pspan = lo.span(p);
-                    let sym = param_name(lo, p);
-                    kids.push(lo.add(
-                        NodeKind::Param,
-                        sym.map(Payload::Name).unwrap_or(Payload::None),
-                        pspan,
-                        &[],
-                    ));
-                }
-            }
-            kids.push(block_body(lo, node));
-            lo.add(NodeKind::Lambda, Payload::None, span, &kids)
-        }
+        "block" | "do_block" => lower_block_lambda(lo, node),
         "parenthesized_statements" => node
             .named_child(0)
             .map(|c| lower_expr(lo, c))
@@ -473,6 +429,57 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "super" | "forward_argument" => lo.var(lo.text(node), span),
         _ => raw_kids(lo, node),
     }
+}
+
+fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let l = node.child_by_field_name("left").map(|x| lower_expr(lo, x));
+    let r = node.child_by_field_name("right").map(|x| lower_expr(lo, x));
+    let op = node
+        .child_by_field_name("operator")
+        .map(|o| lo.text(o))
+        .and_then(common_bin_op);
+    match (l, r, op) {
+        (Some(l), Some(r), Some(op)) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l, r]),
+        _ => raw_kids(lo, node),
+    }
+}
+
+fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let operand = node
+        .named_child(node.named_child_count().saturating_sub(1))
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    // Map by the operator token, not the leading byte: `+`→Pos, `-`→Neg,
+    // `~`→BitNot, `!`/`not`→Not. Reading only the first byte collapsed `+5`
+    // and `~5` onto `Neg`.
+    let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+        Some("+") => Op::Pos,
+        Some("~") => Op::BitNot,
+        Some("!") | Some("not") => Op::Not,
+        _ => Op::Neg,
+    };
+    lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
+}
+
+fn lower_block_lambda(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    if let Some(params) = node.child_by_field_name("parameters") {
+        for p in Lowering::named_children(params) {
+            let pspan = lo.span(p);
+            let sym = param_name(lo, p);
+            kids.push(lo.add(
+                NodeKind::Param,
+                sym.map(Payload::Name).unwrap_or(Payload::None),
+                pspan,
+                &[],
+            ));
+        }
+    }
+    kids.push(block_body(lo, node));
+    lo.add(NodeKind::Lambda, Payload::None, span, &kids)
 }
 
 fn lower_hash(lo: &mut Lowering, node: TsNode) -> NodeId {

@@ -512,45 +512,22 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 .unwrap_or_else(|| lo.empty_block(span));
             lo.await_boundary(span, value)
         }
-        "parenthesized_expression" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
-        "reference_pattern" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
-        // `&x` / `&mut x` → the referenced value (skip the mutable_specifier)
-        "reference_expression" => node
-            .child_by_field_name("value")
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
+        // Wrappers that peel to their single child: `(x)`, `&pat`, turbofish
+        // `foo::<T>` / `Vec::<T>::new` (drop the turbofish), and `unsafe { … }`
+        // (just its block).
+        "parenthesized_expression" | "reference_pattern" | "generic_function" | "unsafe_block" => {
+            node.named_child(0)
+                .map(|c| lower_expr(lo, c))
+                .unwrap_or_else(|| lo.empty_block(span))
+        }
+        // `&x` / `&mut x` → the referenced value (skip the mutable_specifier);
         // `x as T` → `x` (a cast is type-level; erase it, like TS `as`)
-        "type_cast_expression" => node
+        "reference_expression" | "type_cast_expression" => node
             .child_by_field_name("value")
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
         // `a..b` / `a..=b` / `a..` → a sequence of its endpoints
-        "range_expression" => {
-            // Preserve start/end POSITIONS and inclusivity: `1..`, `..1`, `1..2`,
-            // `1..=2` are all different. tree-sitter omits empty bounds and the
-            // `..`/`..=` operator is anonymous, so collecting named children collapsed
-            // `1..` and `..1` to `Seq(1)`. Split on the operator; emit a `None`
-            // placeholder for each empty slot and a trailing `0`/`1` inclusivity flag.
-            let (start, end, inclusive) = lower_range_bounds(lo, node);
-            let none =
-                |lo: &mut Lowering| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]);
-            let s = start.unwrap_or_else(|| none(lo));
-            let e = end.unwrap_or_else(|| none(lo));
-            let flag = lo.int_lit(if inclusive { "1" } else { "0" }, span);
-            let range = if inclusive {
-                SourceRangeKind::RustInclusiveRangeExpression
-            } else {
-                SourceRangeKind::RustHalfOpenRangeExpression
-            };
-            lo.record_source_fact(span, SourceFactKind::Range(range));
-            lo.add(NodeKind::Seq, Payload::None, span, &[s, e, flag])
-        }
+        "range_expression" => lower_range_expr(lo, node),
         "call_expression" => lower_call(lo, node),
         "macro_invocation" => lower_macro(lo, node),
         "method_call_expression" => lower_method_call(lo, node),
@@ -571,41 +548,12 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         "break_expression" => lo.add(NodeKind::Break, Payload::None, span, &[]),
         "continue_expression" => lo.add(NodeKind::Continue, Payload::None, span, &[]),
-        "tuple_pattern" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            let tag = lo.sym("tuple_expression");
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
-        "slice_pattern" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            let tag = lo.sym("array_expression");
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
-        "array_expression" | "tuple_expression" => {
-            let kids: Vec<NodeId> = Lowering::named_children(node)
-                .into_iter()
-                .map(|c| lower_expr(lo, c))
-                .collect();
-            let tag = lo.sym(node.kind());
-            lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
-        }
+        // Patterns share the tag of the expression form they destructure so
+        // `(a, b)` and `[a, b]` shapes converge across binding/value position.
+        "tuple_pattern" => lower_seq_tagged(lo, node, "tuple_expression"),
+        "slice_pattern" => lower_seq_tagged(lo, node, "array_expression"),
+        "array_expression" | "tuple_expression" => lower_seq_tagged(lo, node, node.kind()),
         "struct_expression" => lower_struct_expr(lo, node),
-        // `foo::<T>` / `Vec::<T>::new` — lower the function/value, drop the turbofish.
-        "generic_function" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
-        // `unsafe { … }` is just its block.
-        "unsafe_block" => node
-            .named_child(0)
-            .map(|c| lower_expr(lo, c))
-            .unwrap_or_else(|| lo.empty_block(span)),
         "async_block" => {
             let body = node
                 .named_child(0)
@@ -615,26 +563,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         }
         // Type-level nodes carry no runtime behavior — erase (don't Raw). These reach
         // expression position via turbofish, casts, and closure/fn param subtrees.
-        "type_arguments"
-        | "type_parameters"
-        | "reference_type"
-        | "primitive_type"
-        | "generic_type"
-        | "scoped_type_identifier"
-        | "array_type"
-        | "tuple_type"
-        | "pointer_type"
-        | "dynamic_type"
-        | "lifetime"
-        | "parameters"
-        | "parameter"
-        | "self_parameter"
-        | "function_signature_item"
-        | "where_clause"
-        | "type_arguments_list"
-        | "trait_bounds"
-        | "type_binding"
-        | "constrained_type_parameter" => lo.empty_block(span),
+        k if is_type_level(k) => lo.empty_block(span),
         "macro_definition" => lower_macro_definition_shadow(lo, node),
         "line_comment" | "block_comment" | "attribute_item" => lo.empty_block(span),
         _ => {
@@ -645,6 +574,63 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn is_type_level(k: &str) -> bool {
+    matches!(
+        k,
+        "type_arguments"
+            | "type_parameters"
+            | "reference_type"
+            | "primitive_type"
+            | "generic_type"
+            | "scoped_type_identifier"
+            | "array_type"
+            | "tuple_type"
+            | "pointer_type"
+            | "dynamic_type"
+            | "lifetime"
+            | "parameters"
+            | "parameter"
+            | "self_parameter"
+            | "function_signature_item"
+            | "where_clause"
+            | "type_arguments_list"
+            | "trait_bounds"
+            | "type_binding"
+            | "constrained_type_parameter"
+    )
+}
+
+fn lower_range_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    // Preserve start/end POSITIONS and inclusivity: `1..`, `..1`, `1..2`,
+    // `1..=2` are all different. tree-sitter omits empty bounds and the
+    // `..`/`..=` operator is anonymous, so collecting named children collapsed
+    // `1..` and `..1` to `Seq(1)`. Split on the operator; emit a `None`
+    // placeholder for each empty slot and a trailing `0`/`1` inclusivity flag.
+    let (start, end, inclusive) = lower_range_bounds(lo, node);
+    let none = |lo: &mut Lowering| lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]);
+    let s = start.unwrap_or_else(|| none(lo));
+    let e = end.unwrap_or_else(|| none(lo));
+    let flag = lo.int_lit(if inclusive { "1" } else { "0" }, span);
+    let range = if inclusive {
+        SourceRangeKind::RustInclusiveRangeExpression
+    } else {
+        SourceRangeKind::RustHalfOpenRangeExpression
+    };
+    lo.record_source_fact(span, SourceFactKind::Range(range));
+    lo.add(NodeKind::Seq, Payload::None, span, &[s, e, flag])
+}
+
+fn lower_seq_tagged(lo: &mut Lowering, node: TsNode, tag_str: &str) -> NodeId {
+    let span = lo.span(node);
+    let kids: Vec<NodeId> = Lowering::named_children(node)
+        .into_iter()
+        .map(|c| lower_expr(lo, c))
+        .collect();
+    let tag = lo.sym(tag_str);
+    lo.add(NodeKind::Seq, Payload::Name(tag), span, &kids)
 }
 
 fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {

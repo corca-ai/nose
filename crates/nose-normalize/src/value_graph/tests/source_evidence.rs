@@ -294,9 +294,7 @@ fn raw_hof_value_graph_requires_source_or_api_admission() {
     );
 }
 
-#[test]
-fn library_hof_static_callback_error_requires_explicit_eager_demand() {
-    let interner = Interner::new();
+fn div_zero_map_len_il() -> (Il, NodeId) {
     let mut b = IlBuilder::new(FileId(0));
     let item = b.add(NodeKind::Lit, Payload::LitInt(1), sp(1), &[]);
     let coll = b.add(NodeKind::Seq, Payload::None, sp(1), &[item]);
@@ -313,8 +311,11 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         sp(4),
         &[hof],
     );
-    let mut il = finish_test_il(b, count, Lang::Rust);
-    let contract = library_method_call_contract(Lang::Rust, "map", 1).expect("Rust map contract");
+    (finish_test_il(b, count, Lang::Rust), hof)
+}
+
+fn push_map_contract_evidence(il: &mut Il, lang: Lang, hof: NodeId, expect_msg: &str) {
+    let contract = library_method_call_contract(lang, "map", 1).expect(expect_msg);
     il.evidence.push(library_api_contract_evidence(
         0,
         il.node(hof).span,
@@ -323,6 +324,13 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         1,
         Vec::new(),
     ));
+}
+
+#[test]
+fn library_hof_static_callback_error_requires_explicit_eager_demand() {
+    let interner = Interner::new();
+    let (mut il, hof) = div_zero_map_len_il();
+    push_map_contract_evidence(&mut il, Lang::Rust, hof, "Rust map contract");
     assert!(nose_semantics::admitted_hof_api_at_node(
         &il,
         hof,
@@ -339,20 +347,14 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
         "admitted library HOF payloads must not prove eager callback exception timing"
     );
+}
 
-    let mut js_il = il.clone();
+#[test]
+fn eager_js_map_demand_exposes_static_callback_error_unless_broken() {
+    let interner = Interner::new();
+    let (mut js_il, hof) = div_zero_map_len_il();
     js_il.meta.lang = Lang::JavaScript;
-    js_il.evidence.clear();
-    let contract =
-        library_method_call_contract(Lang::JavaScript, "map", 1).expect("JS map contract");
-    js_il.evidence.push(library_api_contract_evidence(
-        0,
-        js_il.node(hof).span,
-        contract.id,
-        contract.callee,
-        1,
-        Vec::new(),
-    ));
+    push_map_contract_evidence(&mut js_il, Lang::JavaScript, hof, "JS map contract");
     assert!(nose_semantics::admitted_hof_api_at_node(
         &js_il,
         hof,
@@ -381,20 +383,14 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
         "broken library API evidence must keep callback exception timing closed"
     );
+}
 
-    let mut java_il = il.clone();
+#[test]
+fn pull_lazy_java_stream_map_keeps_static_callback_error_closed() {
+    let interner = Interner::new();
+    let (mut java_il, hof) = div_zero_map_len_il();
     java_il.meta.lang = Lang::Java;
-    java_il.evidence.clear();
-    let contract =
-        library_method_call_contract(Lang::Java, "map", 1).expect("Java stream map contract");
-    java_il.evidence.push(library_api_contract_evidence(
-        0,
-        java_il.node(hof).span,
-        contract.id,
-        contract.callee,
-        1,
-        Vec::new(),
-    ));
+    push_map_contract_evidence(&mut java_il, Lang::Java, hof, "Java stream map contract");
     assert!(nose_semantics::admitted_hof_api_at_node(
         &java_il,
         hof,
@@ -410,9 +406,12 @@ fn library_hof_static_callback_error_requires_explicit_eager_demand() {
         !builder.expr_is_static_runtime_err(hof, &FxHashMap::default()),
         "an admitted pull-lazy Java Stream.map profile delays callback exception timing"
     );
+}
 
-    let mut list_il = il.clone();
-    list_il.evidence.clear();
+#[test]
+fn source_comprehension_timing_controls_static_callback_error() {
+    let interner = Interner::new();
+    let (mut list_il, hof) = div_zero_map_len_il();
     list_il.meta.lang = Lang::Python;
     push_source_comprehension(
         &mut list_il,

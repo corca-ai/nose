@@ -602,23 +602,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
                 lo.var(lo.text(node), span)
             }
         }
-        "number_literal" => {
-            let t = lo.text(node);
-            let lower = t.to_ascii_lowercase();
-            // In a hex literal (`0x…`) the digits e/E are hex digits, not a float exponent;
-            // a hex float instead uses a `.` or a binary `p`/`P` exponent. A decimal literal
-            // is a float if it has a `.` or an `e`/`E` exponent.
-            let is_float = if lower.starts_with("0x") {
-                lower.contains('.') || lower.contains('p')
-            } else {
-                lower.contains('.') || lower.contains('e')
-            };
-            if is_float {
-                lo.float_lit(t, span)
-            } else {
-                lo.int_lit(t.trim_end_matches(['u', 'U', 'l', 'L']), span)
-            }
-        }
+        "number_literal" => lower_number_literal(lo, node),
         "string_literal" | "concatenated_string" | "char_literal" => {
             let t = lo.text(node);
             lo.str_lit(t, span)
@@ -627,22 +611,7 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
         "false" => lo.add(NodeKind::Lit, Payload::LitBool(false), span, &[]),
         "null" => lo.add(NodeKind::Lit, Payload::Lit(LitClass::Null), span, &[]),
         "binary_expression" => lower_binary(lo, node),
-        "unary_expression" => {
-            let operand = node
-                .child_by_field_name("argument")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            // Map by the operator token, not the whole node's text: `+` is `Pos`,
-            // `-` is `Neg`, `!` is `Not`, `~` is `BitNot`. Reading only the leading
-            // byte once collapsed `+x` and `~x` onto `Neg`.
-            let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
-                Some("+") => Op::Pos,
-                Some("!") => Op::Not,
-                Some("~") => Op::BitNot,
-                _ => Op::Neg,
-            };
-            lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
-        }
+        "unary_expression" => lower_unary(lo, node),
         // `*p`, `&x` pointer ops, and parentheses peel to the operand. Most casts keep
         // the historical behavior too, but explicit unsigned 32-bit casts are proof facts
         // for C byte-pack shifts such as `((u32)a[0]) << 24`.
@@ -653,81 +622,10 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             .or_else(|| node.named_child(node.named_child_count().saturating_sub(1)))
             .map(|c| lower_expr(lo, c))
             .unwrap_or_else(|| lo.empty_block(span)),
-        "assignment_expression" => {
-            let l = node
-                .child_by_field_name("left")
-                .map(|x| lower_expr(lo, x))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let opt = node
-                .child_by_field_name("operator")
-                .map(|o| lo.text(o))
-                .unwrap_or("=");
-            let r = node
-                .child_by_field_name("right")
-                .map(|x| lower_expr(lo, x))
-                .unwrap_or_else(|| lo.empty_block(span));
-            if opt.len() > 1 {
-                let l2 = node
-                    .child_by_field_name("left")
-                    .map(|x| lower_expr(lo, x))
-                    .unwrap_or_else(|| lo.empty_block(span));
-                // An unmapped compound operator keeps its own raw shape —
-                // dropping the operator would merge it with `x = y`.
-                let value = match common_bin_op(opt.trim_end_matches('=')) {
-                    Some(op) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l2, r]),
-                    None => lo.raw(&format!("compound_assignment {opt}"), span, &[l2, r]),
-                };
-                return lo.add(NodeKind::Assign, Payload::None, span, &[l, value]);
-            }
-            lo.add(NodeKind::Assign, Payload::None, span, &[l, r])
-        }
-        "update_expression" => {
-            let arg = node.child_by_field_name("argument");
-            let operand = arg
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let operand2 = arg
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let one = lo.int_lit("1", span);
-            // Decide by the operator TOKEN, scanning only this node's direct children:
-            // a substring check on the whole text misreads a nested `--`/`++` in the
-            // operand (e.g. `a[i--]++`, whose outer op is `++`).
-            let op = if crate::lower::has_direct_token(node, "--") {
-                Op::Sub
-            } else {
-                Op::Add
-            };
-            let bin = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[operand2, one]);
-            lo.add(NodeKind::Assign, Payload::None, span, &[operand, bin])
-        }
-        "call_expression" => {
-            let mut kids = Vec::new();
-            if let Some(f) = node.child_by_field_name("function") {
-                kids.push(lower_expr(lo, f));
-            }
-            if let Some(args) = node.child_by_field_name("arguments") {
-                for a in Lowering::named_children(args) {
-                    kids.push(lower_expr(lo, a));
-                }
-            }
-            lo.add(NodeKind::Call, Payload::None, span, &kids)
-        }
-        "field_expression" => {
-            let base = node
-                .child_by_field_name("argument")
-                .map(|o| lower_expr(lo, o))
-                .unwrap_or_else(|| lo.empty_block(span));
-            let field = node
-                .child_by_field_name("field")
-                .map(|f| lo.sym(lo.text(f)));
-            lo.add(
-                NodeKind::Field,
-                field.map(Payload::Name).unwrap_or(Payload::None),
-                span,
-                &[base],
-            )
-        }
+        "assignment_expression" => lower_assignment(lo, node),
+        "update_expression" => lower_update(lo, node),
+        "call_expression" => lower_call(lo, node),
+        "field_expression" => lower_field_expr(lo, node),
         "subscript_expression" => {
             let kids: Vec<NodeId> = Lowering::named_children(node)
                 .into_iter()
@@ -796,6 +694,126 @@ fn lower_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
             lo.raw(node.kind(), span, &kids)
         }
     }
+}
+
+fn lower_number_literal(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let t = lo.text(node);
+    let lower = t.to_ascii_lowercase();
+    // In a hex literal (`0x…`) the digits e/E are hex digits, not a float exponent;
+    // a hex float instead uses a `.` or a binary `p`/`P` exponent. A decimal literal
+    // is a float if it has a `.` or an `e`/`E` exponent.
+    let is_float = if lower.starts_with("0x") {
+        lower.contains('.') || lower.contains('p')
+    } else {
+        lower.contains('.') || lower.contains('e')
+    };
+    if is_float {
+        lo.float_lit(t, span)
+    } else {
+        lo.int_lit(t.trim_end_matches(['u', 'U', 'l', 'L']), span)
+    }
+}
+
+fn lower_unary(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let operand = node
+        .child_by_field_name("argument")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    // Map by the operator token, not the whole node's text: `+` is `Pos`,
+    // `-` is `Neg`, `!` is `Not`, `~` is `BitNot`. Reading only the leading
+    // byte once collapsed `+x` and `~x` onto `Neg`.
+    let op = match node.child_by_field_name("operator").map(|o| lo.text(o)) {
+        Some("+") => Op::Pos,
+        Some("!") => Op::Not,
+        Some("~") => Op::BitNot,
+        _ => Op::Neg,
+    };
+    lo.add(NodeKind::UnOp, Payload::Op(op), span, &[operand])
+}
+
+fn lower_assignment(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let l = node
+        .child_by_field_name("left")
+        .map(|x| lower_expr(lo, x))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let opt = node
+        .child_by_field_name("operator")
+        .map(|o| lo.text(o))
+        .unwrap_or("=");
+    let r = node
+        .child_by_field_name("right")
+        .map(|x| lower_expr(lo, x))
+        .unwrap_or_else(|| lo.empty_block(span));
+    if opt.len() > 1 {
+        let l2 = node
+            .child_by_field_name("left")
+            .map(|x| lower_expr(lo, x))
+            .unwrap_or_else(|| lo.empty_block(span));
+        // An unmapped compound operator keeps its own raw shape —
+        // dropping the operator would merge it with `x = y`.
+        let value = match common_bin_op(opt.trim_end_matches('=')) {
+            Some(op) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l2, r]),
+            None => lo.raw(&format!("compound_assignment {opt}"), span, &[l2, r]),
+        };
+        return lo.add(NodeKind::Assign, Payload::None, span, &[l, value]);
+    }
+    lo.add(NodeKind::Assign, Payload::None, span, &[l, r])
+}
+
+fn lower_update(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let arg = node.child_by_field_name("argument");
+    let operand = arg
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let operand2 = arg
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let one = lo.int_lit("1", span);
+    // Decide by the operator TOKEN, scanning only this node's direct children:
+    // a substring check on the whole text misreads a nested `--`/`++` in the
+    // operand (e.g. `a[i--]++`, whose outer op is `++`).
+    let op = if crate::lower::has_direct_token(node, "--") {
+        Op::Sub
+    } else {
+        Op::Add
+    };
+    let bin = lo.add(NodeKind::BinOp, Payload::Op(op), span, &[operand2, one]);
+    lo.add(NodeKind::Assign, Payload::None, span, &[operand, bin])
+}
+
+fn lower_call(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let mut kids = Vec::new();
+    if let Some(f) = node.child_by_field_name("function") {
+        kids.push(lower_expr(lo, f));
+    }
+    if let Some(args) = node.child_by_field_name("arguments") {
+        for a in Lowering::named_children(args) {
+            kids.push(lower_expr(lo, a));
+        }
+    }
+    lo.add(NodeKind::Call, Payload::None, span, &kids)
+}
+
+fn lower_field_expr(lo: &mut Lowering, node: TsNode) -> NodeId {
+    let span = lo.span(node);
+    let base = node
+        .child_by_field_name("argument")
+        .map(|o| lower_expr(lo, o))
+        .unwrap_or_else(|| lo.empty_block(span));
+    let field = node
+        .child_by_field_name("field")
+        .map(|f| lo.sym(lo.text(f)));
+    lo.add(
+        NodeKind::Field,
+        field.map(Payload::Name).unwrap_or(Payload::None),
+        span,
+        &[base],
+    )
 }
 
 fn lower_cast(lo: &mut Lowering, node: TsNode) -> NodeId {

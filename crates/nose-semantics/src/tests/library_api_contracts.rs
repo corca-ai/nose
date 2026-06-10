@@ -166,6 +166,10 @@ fn library_api_contracts_carry_identity_and_result_obligations() {
         LibraryApiShadowPolicy::RustStdRootForStdPath,
         |_| false
     ));
+}
+
+#[test]
+fn library_api_factory_contracts_cover_java_ruby_and_js_like_surfaces() {
     assert_eq!(
         library_java_collection_factory_contract(Lang::Java, "Arrays", "asList"),
         Some(LibraryCollectionFactoryContract {
@@ -324,6 +328,10 @@ fn library_api_result_domain_mapping_is_contract_scoped() {
         ),
         DomainEvidence::Set
     );
+}
+
+#[test]
+fn library_map_factory_result_domain_mapping_is_contract_scoped() {
     assert_eq!(
         library_map_factory_result_domain(
             library_free_name_map_factory_contract(Lang::Rust, "std::collections::HashMap::from",)
@@ -416,6 +424,10 @@ fn library_non_factory_api_contracts_carry_identity_and_result_obligations() {
             },
         })
     );
+}
+
+#[test]
+fn library_coercion_regex_namespace_and_promise_contracts_carry_obligations() {
     assert_eq!(
         library_js_boolean_coercion_contract(Lang::TypeScript, "Boolean", 1),
         Some(LibraryStaticGlobalFunctionContract {
@@ -501,6 +513,10 @@ fn library_non_factory_api_contracts_carry_identity_and_result_obligations() {
             },
         })
     );
+}
+
+#[test]
+fn library_iterator_adapter_and_method_call_contracts_carry_obligations() {
     assert_eq!(
         library_iterator_identity_adapter_contract(Lang::Rust, "collect", 0),
         Some(LibraryIteratorIdentityAdapterContract {
@@ -580,6 +596,10 @@ fn library_non_factory_api_contracts_reject_raw_name_only_matches() {
         library_js_boolean_coercion_contract(Lang::JavaScript, "Boolean", 2),
         None
     );
+}
+
+#[test]
+fn library_promise_adapter_and_method_contracts_reject_raw_name_only_matches() {
     assert_eq!(library_regex_test_contract(Lang::Ruby, "test", 1), None);
     assert_eq!(
         library_imported_namespace_function_contract(Lang::JavaScript, "prod", 1),
@@ -704,6 +724,10 @@ fn builtin_contracts_preserve_current_special_demand_split() {
         Some(ReductionBuiltinContract::Bool { all: false })
     );
     assert_eq!(reduction_builtin_contract(Builtin::Print), None);
+}
+
+#[test]
+fn hof_contracts_carry_callback_demand_profiles() {
     assert_eq!(
         hof_contract(HoFKind::FilterMap),
         HofContract {
@@ -773,6 +797,10 @@ fn builtin_contracts_preserve_current_special_demand_split() {
             effect_visibility: EffectVisibility::DelayedUntilPull,
         })
     );
+}
+
+#[test]
+fn hof_demand_effect_profiles_split_eager_and_pull_lazy_timing() {
     assert!(hof_demand_effect_profile(
         HoFKind::Map,
         HofDemandSource::SourceComprehension(SourceComprehensionKind::PythonGeneratorExpression)
@@ -807,6 +835,10 @@ fn builtin_contracts_preserve_current_special_demand_split() {
         library_hof_demand_effect_profile(Lang::Python, HoFKind::Map),
         None
     );
+}
+
+#[test]
+fn promise_and_protocol_demand_profiles_keep_async_boundaries() {
     assert_eq!(
         promise_then_demand_effect_profile(),
         DemandEffectProfile {
@@ -1000,6 +1032,10 @@ fn method_call_contracts_carry_receiver_and_resolution_obligations() {
             args: MethodBuiltinArgs::All,
         })
     );
+}
+
+#[test]
+fn method_call_contracts_cover_membership_and_map_default_lookups() {
     assert_eq!(
         method_call_contract(Lang::Python, "__contains__", 1),
         Some(MethodCallContract {
