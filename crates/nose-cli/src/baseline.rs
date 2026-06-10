@@ -323,6 +323,7 @@ mod tests {
             fragment_kind: Some(FragmentKind::ExprEffect),
             reason_code: Some(FragmentKind::ExprEffect.reason_code()),
             enclosing_unit: None,
+            looks_generated: false,
             shared_subdag: None,
         }
     }
