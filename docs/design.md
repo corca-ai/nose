@@ -195,7 +195,8 @@ matrix evenly instead of by prevalence:
 
 **Soundness co-evolves with recall by construction**: no axis is "done" without a
 hard-negative guard, and the oracle runs on every sweep (0 merged hard-negatives across all
-swept axes; the real-corpus 0-violation gate remains `nose verify bench/repos`).
+swept axes; the real-corpus 0-violation gate is the nightly pinned-corpus
+`nose verify --max-violations 0` workflow).
 
 The battery has already paid off — it surfaced a systematic **`exact_safe` language
 asymmetry** (recursion / builder loops / java stream-reduce admitted to the exact channel in

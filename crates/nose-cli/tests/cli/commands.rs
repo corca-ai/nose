@@ -150,6 +150,21 @@ fn verify_json_reports_battery_bail_exclusions() {
 }
 
 #[test]
+fn verify_max_violations_zero_accepts_sound_fixture() {
+    let dir = make_project("verify_gate_green");
+    let out = run(&["verify", dir.to_str().unwrap(), "--max-violations", "0"]);
+    assert!(
+        out.contains("PRESERVED: every canon-changed unit computes the same thing"),
+        "verify gate should report canon preservation: {out}"
+    );
+    assert!(
+        out.contains("GATE: 0"),
+        "zero-violation gate should pass a sound fixture: {out}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn min_value_filters_low_value_families() {
     let dir = make_project("minval");
     let p = dir.to_str().unwrap();

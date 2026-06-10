@@ -20,6 +20,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: corpus prune self-test
         run: python3 bench/prune_corpus.py --self-test
+      - name: corpus verify runner self-test
+        run: ./scripts/corpus-verify-nightly.sh --self-test
       - name: format
         run: cargo fmt --all --check
       - name: clippy

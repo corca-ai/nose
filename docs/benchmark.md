@@ -56,8 +56,13 @@ units whose estimated work (`IL nodes × battery rows`) exceeds the oracle budge
 `battery-bail` and appear in the exclusion census instead of monopolizing the run.
 
 ```sh
-nose verify bench/repos   # SOUND / canon PRESERVED, + a completeness ratio
+nose verify bench/repos --max-violations 0   # SOUND / canon PRESERVED, + a completeness ratio
 ```
+
+The repository's nightly `corpus verify` workflow runs the same oracle one
+pinned corpus repo at a time and uploads per-repo logs if the zero-false-merge or
+canon-preservation gate trips. Symbolic-trace disagreements remain advisory and
+are counted in the summary without failing the run.
 
 ## Throughput
 

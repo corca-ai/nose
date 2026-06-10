@@ -1,0 +1,60 @@
+name: corpus verify
+
+on:
+  schedule:
+    # Nightly tripwire for the pinned corpus soundness invariant.
+    - cron: "17 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: corpus-verify-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  verify:
+    name: nightly pinned-corpus verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: cache pinned benchmark corpus
+        uses: actions/cache@v4
+        with:
+          path: bench/repos
+          key: bench-corpus-${{ hashFiles('bench/goldens/corpus.json', 'bench/setup_repos.sh', 'bench/prune_corpus.py', 'bench/labels/prune_manifest.json') }}
+
+      - name: build nose
+        run: cargo build --release -p nose-cli
+
+      - name: reconstruct pinned corpus
+        run: |
+          bench/setup_repos.sh
+          python3 bench/prune_corpus.py --check-manifest
+
+      - name: verify corpus soundness
+        env:
+          NOSE_CORPUS_VERIFY_JOBS: "6"
+        run: |
+          ./scripts/corpus-verify-nightly.sh \
+            --nose target/release/nose \
+            --repos-root bench/repos \
+            --logs-dir target/corpus-verify-logs
+
+      - name: upload per-repo verify logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-verify-logs
+          path: target/corpus-verify-logs
+          if-no-files-found: warn

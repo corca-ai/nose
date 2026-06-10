@@ -2198,10 +2198,18 @@ fn cmd_verify(
     report_verify_completeness(&oracle.recs, leads.as_deref())?;
     report_verify_calibration(&oracle.recs);
 
-    // CI soundness gate: fail if false merges exceed the budget. The independent oracle thus
-    // becomes a permanent regression gate on the detection campaign — a new canon that
-    // introduces a real false merge pushes the count over budget here.
+    // CI soundness gate: fail if false merges exceed the budget, or if any normalization
+    // pass changes a unit's behavior vs the pre-canon core IL. The independent oracle thus
+    // becomes a permanent regression gate on the detection campaign: a new canon that
+    // introduces a real false merge, or changes behavior before it even collides with a twin,
+    // trips this gate.
     if let Some(budget) = max_violations {
+        if !oracle.canon_violations.is_empty() {
+            anyhow::bail!(
+                "verify gate: {} canon-preservation violations",
+                oracle.canon_violations.len()
+            );
+        }
         if n_violations > budget {
             anyhow::bail!("verify gate: {n_violations} false merges exceed the budget of {budget}");
         }

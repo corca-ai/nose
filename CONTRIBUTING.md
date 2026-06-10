@@ -15,7 +15,9 @@ Run the fast PR/push preflight locally before opening or updating a PR:
 ```
 
 That runs rustfmt, clippy with warnings as errors, the `nose-cli` test suite, and
-the docs wiki lint. It is the gate meant to catch the common CI failures quickly.
+the docs wiki lint. It also self-tests the nightly corpus-verify runner without
+checking out the full corpus. It is the gate meant to catch the common CI
+failures quickly.
 
 Run everything CI runs, locally, with one command:
 
