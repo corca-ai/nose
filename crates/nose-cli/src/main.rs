@@ -2219,6 +2219,14 @@ struct VerifyRec {
     end: u32,
     tokens: usize,
     loc: String,
+    /// Can the exact `semantic` channel ever claim this unit (strict-exact-safe
+    /// and above the degenerate-fingerprint floor)? Scopes the HARD gate.
+    claimable: bool,
+    /// Hash of the unit's declared parameter domains. The oracle binds battery
+    /// rows under declared-type coercion, so two units are battery-COMPARABLE
+    /// only when their declarations agree; a disagreement across different
+    /// declarations is an advisory lead, not a hard violation.
+    domain_sig: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -2305,6 +2313,7 @@ struct VerifyOracle {
     /// Per-unit census records (outcome + construct tags), populated only when
     /// the `--exclusion-census` instrument is requested.
     census: Vec<verify_census::CensusUnit>,
+    census_enabled: bool,
     exclusions: VerifyExclusions,
 }
 
@@ -2333,6 +2342,7 @@ fn collect_verify_recs(
                 canon_checked: 0,
                 canon_violations: Vec::new(),
                 census: Vec::new(),
+                census_enabled: census,
                 exclusions: VerifyExclusions::default(),
             };
             let func_count = n
@@ -2342,6 +2352,22 @@ fn collect_verify_recs(
                 .count();
             let value_context = (func_count > 1)
                 .then(|| nose_normalize::ValueFingerprintContext::new(&n, &corpus.interner));
+            // The exact channel's claim surface for this file, from the RAW lowered
+            // IL (the same input the detector extracts from), keyed by line span.
+            let claim_by_span: std::collections::HashMap<(u32, u32), bool> =
+                nose_detect::units_of_file(
+                    il,
+                    &corpus.interner,
+                    &nose_detect::DetectOptions::default(),
+                )
+                .iter()
+                .map(|f| {
+                    (
+                        (f.start_line, f.end_line),
+                        nose_detect::exact_claim_eligible(f),
+                    )
+                })
+                .collect();
             collect_file_verify_recs(
                 &n,
                 &core,
@@ -2349,7 +2375,7 @@ fn collect_verify_recs(
                 &corpus.interner,
                 battery,
                 &mut oracle,
-                census,
+                &claim_by_span,
             );
             oracle
         })
@@ -2361,6 +2387,7 @@ fn collect_verify_recs(
         canon_checked: 0,
         canon_violations: Vec::new(),
         census: Vec::new(),
+        census_enabled: census,
         exclusions: VerifyExclusions::default(),
     };
     for mut file_oracle in per_file {
@@ -2385,14 +2412,13 @@ fn collect_verify_recs(
 /// fully-normalized unit).
 fn push_verify_census(
     oracle: &mut VerifyOracle,
-    enabled: bool,
     loc: String,
     tag_il: &nose_il::Il,
     tag_root: nose_il::NodeId,
     fp: &[u64],
     reason: &'static str,
 ) {
-    if !enabled {
+    if !oracle.census_enabled {
         return;
     }
     oracle.census.push(verify_census::CensusUnit {
@@ -2410,7 +2436,9 @@ fn collect_file_verify_recs(
     interner: &Interner,
     battery: &[Vec<nose_normalize::Value>],
     oracle: &mut VerifyOracle,
-    census: bool,
+    // A span the detector never extracted stays CLAIMABLE (fail closed: an
+    // unknown unit must not silently exempt itself from the gate).
+    claim_by_span: &std::collections::HashMap<(u32, u32), bool>,
 ) {
     let file_path = &n.meta.path;
     let core_func = func_span_index(core);
@@ -2425,7 +2453,7 @@ fn collect_file_verify_recs(
         let span0 = n.node(root).span;
         let tokens = subtree_node_count(n, root);
         let Some(&core_root) = core_func.get(&(span0.start_byte, span0.end_byte)) else {
-            push_verify_census(oracle, census, loc, n, root, &[], "no-core-span");
+            push_verify_census(oracle, loc, n, root, &[], "no-core-span");
             oracle
                 .exclusions
                 .record(VerifyExclusionReason::CoreMissing, file_path, span0, tokens);
@@ -2435,7 +2463,7 @@ fn collect_file_verify_recs(
             oracle
                 .exclusions
                 .record(VerifyExclusionReason::BatteryBail, file_path, span0, tokens);
-            push_verify_census(oracle, census, loc, core, core_root, &[], "battery-bail");
+            push_verify_census(oracle, loc, core, core_root, &[], "battery-bail");
             continue;
         }
         // Soundness is about merges on the VALUE fingerprint. A unit whose value
@@ -2456,7 +2484,7 @@ fn collect_file_verify_recs(
             None => nose_normalize::value_fingerprint_and_contracts(n, root, interner),
         };
         if fp.is_empty() {
-            push_verify_census(oracle, census, loc, n, root, &[], "empty-fp");
+            push_verify_census(oracle, loc, n, root, &[], "empty-fp");
             oracle.exclusions.record(
                 VerifyExclusionReason::EmptyFingerprint,
                 file_path,
@@ -2467,7 +2495,7 @@ fn collect_file_verify_recs(
         }
         // Run the battery; the unit is interpretable only if every input runs.
         let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
-            push_verify_census(oracle, census, loc, core, core_root, &fp, "battery-bail");
+            push_verify_census(oracle, loc, core, core_root, &fp, "battery-bail");
             oracle.exclusions.record(
                 VerifyExclusionReason::Uninterpretable,
                 file_path,
@@ -2476,7 +2504,7 @@ fn collect_file_verify_recs(
             );
             continue;
         };
-        push_verify_census(oracle, census, loc, core, core_root, &fp, "interpretable");
+        push_verify_census(oracle, loc, core, core_root, &fp, "interpretable");
         // Stricter canon check: the SAME function interpreted on the fully-normalized
         // IL must agree with the core IL on every input — else a canon pass changed
         // behavior. (Only when the full IL is itself fully interpretable on the battery.)
@@ -2505,8 +2533,30 @@ fn collect_file_verify_recs(
             end: span.end_line,
             tokens,
             loc: format!("{}:{}", file_path, span.start_line),
+            claimable: claim_by_span
+                .get(&(span.start_line, span.end_line))
+                .copied()
+                .unwrap_or(true),
+            domain_sig: param_domain_signature(n, root),
         });
     }
+}
+
+/// Stable hash of a unit's declared parameter domains (position-sensitive).
+/// Units whose declarations differ are interpreted under different battery
+/// coercions and are not behavior-comparable row-for-row.
+fn param_domain_signature(il: &nose_il::Il, root: nose_il::NodeId) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for &k in il.children(root) {
+        if il.kind(k) == nose_il::NodeKind::Param {
+            match nose_semantics::domain_evidence_for_param(il, k) {
+                Some(d) => d.hash(&mut h),
+                None => 0xD07Fu16.hash(&mut h),
+            }
+        }
+    }
+    h.finish()
 }
 
 /// Subtree node count — the same size signal the detector gates on, so the
@@ -2601,6 +2651,7 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
     let mut fp_groups = 0usize;
     let mut violations: Vec<(String, String, usize)> = Vec::new();
     let mut advisory: Vec<(String, String, usize)> = Vec::new();
+    let mut lossy: Vec<(String, String, usize)> = Vec::new();
     for members in by_fp.values() {
         if members.len() < 2 {
             continue;
@@ -2611,15 +2662,17 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
             if r.beh != first.beh {
                 let diff = r.beh.iter().zip(&first.beh).filter(|(a, b)| a != b).count();
                 let rec = (first.loc.clone(), r.loc.clone(), diff);
-                if has_sym(first) || has_sym(r) {
+                if has_sym(first) || has_sym(r) || first.domain_sig != r.domain_sig {
                     advisory.push(rec);
-                } else {
+                } else if first.claimable && r.claimable {
                     violations.push(rec);
+                } else {
+                    lossy.push(rec);
                 }
             }
         }
     }
-    println!("\nSOUNDNESS — fingerprint-equal ⟹ behavior-equal:");
+    println!("\nSOUNDNESS — fingerprint-equal ⟹ behavior-equal (exact claim surface):");
     println!("  fingerprint groups (≥2): {fp_groups}");
     let n_violations = violations.len();
     if violations.is_empty() {
@@ -2628,6 +2681,16 @@ fn report_verify_soundness(recs: &[VerifyRec]) -> usize {
         println!("  [!] {n_violations} VIOLATION(S) (false merges):");
         for (a, b, d) in violations.iter().take(20) {
             println!("    {a}  ≡?  {b}   ({d} differing inputs)");
+        }
+    }
+    if !lossy.is_empty() {
+        lossy.sort();
+        println!(
+            "  lossy-fingerprint collisions (outside the exact claim — diagnostics, not gated): {}",
+            lossy.len()
+        );
+        for (a, b, d) in lossy.iter().take(10) {
+            println!("    {a}  ≠  {b}   ({d} differing inputs)");
         }
     }
     if !advisory.is_empty() {

@@ -4180,7 +4180,7 @@ fn scan_mode_semantic_keeps_python_try_else_wrapper_apart_from_identity() {
 }
 
 /// Per-unit value fingerprints by unit name, via the hidden `features` command.
-fn unit_value_fingerprints(dir: &std::path::Path) -> std::collections::HashMap<String, String> {
+fn unit_value_fingerprints(dir: &Path) -> std::collections::HashMap<String, String> {
     let out = run(&[
         "features",
         dir.to_str().unwrap(),

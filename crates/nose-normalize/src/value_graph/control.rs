@@ -542,6 +542,33 @@ impl<'a> Builder<'a> {
         }
     }
 
+    /// Does this returning branch provably evaluate WITHOUT raising? Conservative:
+    /// only literal/variable returns qualify (`return 1`, `return x` — no language
+    /// raises on reading a bound local), plus blocks/ifs composed of them. Any
+    /// operation (`x+1` TypeErrors in Python, indexing can raise anywhere) keeps
+    /// the try handler alive in the fingerprint.
+    pub(super) fn branch_returns_throw_free(&self, node: NodeId) -> bool {
+        match self.il.kind(node) {
+            NodeKind::Return => self
+                .il
+                .children(node)
+                .first()
+                .is_none_or(|&e| matches!(self.il.kind(e), NodeKind::Lit | NodeKind::Var)),
+            NodeKind::Block => {
+                let kids = self.il.children(node);
+                kids.len() == 1 && self.branch_returns_throw_free(kids[0])
+            }
+            NodeKind::If => {
+                let k = self.il.children(node);
+                k.len() >= 3
+                    && matches!(self.il.kind(k[0]), NodeKind::Lit | NodeKind::Var)
+                    && self.branch_returns_throw_free(k[1])
+                    && self.branch_returns_throw_free(k[2])
+            }
+            _ => false,
+        }
+    }
+
     pub(super) fn is_effect_free_throw_body(&self, node: NodeId) -> bool {
         match self.il.kind(node) {
             NodeKind::Throw => true,
@@ -1101,6 +1128,21 @@ impl<'a> Builder<'a> {
                 }
                 if kids.len() == 2 && self.branch_returns(kids[0]) {
                     self.process_stmt(kids[0], env);
+                    // Erasing the handler is sound ONLY when the body provably cannot
+                    // raise (`try { return 1 }` — the pinned no-throw convention). A
+                    // body that evaluates throw-capable expressions (`return x+1` can
+                    // TypeError in Python) keeps its handler as the EXCEPTIONAL path:
+                    // processed under a synthetic exception guard so its sinks join
+                    // the multiset distinctly — `try {return x+1} except {return x}`
+                    // no longer fingerprints as the bare `return x+1` (#210). The env
+                    // clone keeps exceptional bindings out of the normal path.
+                    if !self.branch_returns_throw_free(kids[0]) {
+                        let exc = self.mk(ValOp::Const(0xCA7C_4A4D), vec![]);
+                        self.path.push(exc);
+                        let mut handler_env = env.clone();
+                        self.process_stmt(kids[1], &mut handler_env);
+                        self.path.pop();
+                    }
                     return;
                 }
                 if kids.len() == 2 && self.is_effect_free_throw_body(kids[0]) {
@@ -1193,6 +1235,39 @@ impl<'a> Builder<'a> {
         }
     }
 
+    /// An ELEMENT-FREE effect under a loop is keyed by WHAT is iterated: wrap it
+    /// with the loop's canonical element source (`Elem(iterable)` — already
+    /// canonical across loop shapes, so `while i < len(xs)` and `for x in xs`
+    /// still converge; a bare `while cond` keys by its condition). Without this,
+    /// `for k in obj.keys(): log(MSG)` and `for v of arr: log(MSG)` fingerprint
+    /// identically — same effect, different iteration — the #210 for-in/for-of
+    /// false merge. Element-REFERENCING effects already differ via `Elem`, and
+    /// builder contributions never reach raw effect sinks, so the celebrated
+    /// builder ↔ comprehension convergences are untouched.
+    fn guard_element_free_loop_effects(
+        &mut self,
+        kind: LoopKind,
+        kids: &[NodeId],
+        pattern_bindings: &[(u32, ValueId)],
+        env: &mut FxHashMap<u32, ValueId>,
+        sink_start: usize,
+    ) {
+        // (`env` is the loop's OUTER frame, untouched by the body's env clone, so
+        // evaluating the guard here matches the loop-entry view.)
+        let guard = pattern_bindings.first().map(|&(_, v)| v).or_else(|| {
+            (kind != LoopKind::ForEach && kids.len() >= 2).then(|| self.eval(kids[0], env))
+        });
+        let Some(guard) = guard else { return };
+        let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);
+        for i in sink_start..self.sinks.len() {
+            let sink = self.sinks[i];
+            if !matches!(sink.kind, SinkKind::Effect) || self.refs_elem(sink.value) {
+                continue;
+            }
+            self.sinks[i].value = self.mk(ValOp::Phi, vec![guard, sink.value, bot]);
+        }
+    }
+
     pub(super) fn process_loop(&mut self, stmt: NodeId, env: &mut FxHashMap<u32, ValueId>) {
         let kids = self.il.children(stmt).to_vec();
         let kind = match self.il.node(stmt).payload {
@@ -1268,6 +1343,7 @@ impl<'a> Builder<'a> {
         });
         let pre_body_env = body_env.clone();
         self.process_stmt(body, &mut body_env);
+        self.guard_element_free_loop_effects(kind, &kids, &pattern_bindings, env, sink_start);
         self.loop_recurrence = outer_recurrence;
         self.rewrite_loop_index_sinks(sink_start, &index_vals, &carried, &mut body_env);
         let flag_break_reduction = self.detect_flag_break_reduction(

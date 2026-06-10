@@ -702,6 +702,27 @@ fn lower_switch(lo: &mut Lowering, node: TsNode) -> NodeId {
                 let blk = lower_case_body(lo, c);
                 cases.push((None, blk));
             }
+            // A type-switch case: the runtime type test is unmodeled semantics, but
+            // the ARM BODIES are real code — keep the test as a raw shape keyed by
+            // the case's type spelling so the bodies survive in the fingerprint.
+            // (They used to fall through this match, lowering the whole type-switch
+            // to an empty block — a recursive type-switch traversal fingerprinted
+            // identically to a constant stub, #210.)
+            "type_case" => {
+                let cspan = lo.span(c);
+                let spelling = c
+                    .child_by_field_name("type")
+                    .map(|t| lo.text(t).to_string())
+                    .unwrap_or_else(|| {
+                        Lowering::named_children(c)
+                            .first()
+                            .map(|t| lo.text(*t).to_string())
+                            .unwrap_or_default()
+                    });
+                let test = lo.raw(&format!("type_case {spelling}"), cspan, &[]);
+                let blk = lower_case_body(lo, c);
+                cases.push((Some(test), blk));
+            }
             _ => {}
         }
     }

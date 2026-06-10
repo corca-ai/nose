@@ -150,6 +150,16 @@ pub struct ExactBehaviorDetector;
 
 const EXACT_VALUE_MIN: usize = 4;
 
+/// Can this unit ever participate in the exact `semantic` channel's merge claim?
+/// The product asserts behavioral equality only for strict-exact-safe units whose
+/// value fingerprint clears the degenerate-size floor — the same two gates
+/// `ExactBehaviorDetector` and the candidate value-accept apply. The verify
+/// oracle's HARD soundness gate is scoped to exactly this surface; collisions
+/// between lossy fingerprints are diagnostics, not product false merges (#210).
+pub fn exact_claim_eligible(u: &UnitFeat) -> bool {
+    u.exact_safe && u.value.len() >= EXACT_VALUE_MIN
+}
+
 impl Detector for ExactBehaviorDetector {
     fn name(&self) -> &str {
         "exact-behavior"
