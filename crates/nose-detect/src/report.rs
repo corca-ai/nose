@@ -518,6 +518,10 @@ pub fn rank_families(report: &Report) -> Vec<RefactorFamily> {
         // refactor code a tool regenerates. A *partly*-generated family is kept — that's
         // a real leak of hand-written logic into generated output.
         .filter(|f| !f.locations.iter().all(is_generated_loc))
+        // A raw group can collapse to one reported site when all of its matches are
+        // overlapping windows in the same file. That is not a clone family, and it must
+        // not subsume a real multi-site family before the CLI's min-member gate drops it.
+        .filter(|f| f.members >= 2)
         .collect();
     // Dedup overlapping families by total span, LARGEST FIRST, so the most complete
     // family of a region is the one kept and the sub-blocks inside it are dropped. (A
@@ -953,6 +957,42 @@ mod tests {
             fams[0].mean_lines, 31,
             "the surviving family is the outer one"
         );
+    }
+
+    #[test]
+    fn single_site_family_does_not_subsume_reportable_family() {
+        // A contiguous-channel group can be one long same-file window after
+        // `family_of` coalesces overlapping matches. It is not itself reportable, so
+        // it must not hide the exact semantic method family it covers.
+        let syntax_window = Group {
+            score: 1.0,
+            members: vec![loc("Param.java", 1589, 1611, "java")],
+            semantic_laws: Vec::new(),
+            abstraction_witness: None,
+        };
+        let semantic_methods = Group {
+            score: 1.0,
+            members: vec![
+                loc("Param.java", 1589, 1593, "java"),
+                loc("Param.java", 1595, 1599, "java"),
+                loc("Param.java", 1601, 1605, "java"),
+                loc("Param.java", 1607, 1611, "java"),
+            ],
+            semantic_laws: Vec::new(),
+            abstraction_witness: None,
+        };
+
+        let fams = rank_families(&report(vec![syntax_window, semantic_methods]));
+
+        assert_eq!(fams.len(), 1);
+        assert_eq!(
+            fams[0].members, 4,
+            "the reportable semantic family should survive"
+        );
+        assert!(fams[0]
+            .locations
+            .iter()
+            .any(|loc| loc.start_line <= 1592 && loc.end_line >= 1592));
     }
 
     #[test]

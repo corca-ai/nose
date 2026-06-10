@@ -946,7 +946,9 @@ fires) — among stub/parallel-by-design neighbours (curl no-op callbacks, sympy
 type-defs). The deeper catch was mechanical: chasing *why* fp-equal `exact_safe` pairs
 (`junit5` annotation-varying `fail(...)` methods) never surface exposed that **adding
 the syntax channel can drop an exact semantic family the semantic channel reports
-alone** — a channel-merge reporting bug, filed with a single-file reproducer as #202.
+alone** — a channel-merge reporting bug, closed by #202. The fix drops
+single-site windows after same-file coalescing before they can subsume reportable
+multi-site semantic families.
 That is the arm working as designed: candidates are cheap, and each audited one either
 dies as scaffolding/generated (raising confidence in the policy layers) or names a
 precise defect.

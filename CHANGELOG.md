@@ -7,6 +7,11 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- Combining `--mode syntax,semantic` no longer drops an exact semantic family when
+  the syntax channel also creates a same-file window that collapses to one reported
+  site. Such single-site windows are not clone families and no longer participate
+  in rank-time overlap subsumption, so adding the syntax channel cannot erase an
+  otherwise reported semantic region.
 - Scan JSON `family_id` values are now unique for distinct reported families that
   share the same files and symbol names but point at different spans, especially
   hidden exact-fragment families. The ID now includes each member's displayed
