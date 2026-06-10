@@ -174,8 +174,15 @@ impl RefactorFamily {
                 )
             )
         });
+        let tiny_test_scaffold = all_test
+            && all_have_enclosing
+            && (self.mean_lines <= 3 || (has_effect_or_body && self.mean_lines <= 4));
 
-        if high_fanout && self.mean_lines <= 3 {
+        if tiny_test_scaffold {
+            // The fragment-quality audit found these are usually correct but too often
+            // test arrange/assert or fixture-constructor substrate to be review items.
+            "hidden"
+        } else if high_fanout && self.mean_lines <= 3 {
             "hidden"
         } else if has_effect_or_body {
             // Receiver/effect-bearing fragments are usually synchronization hazards first.
@@ -595,7 +602,7 @@ fn subsumes(outer: &RefactorFamily, inner: &RefactorFamily) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{LineSpan, LocInit, Metrics, Report};
+    use crate::{EnclosingUnit, LineSpan, LocInit, Metrics, Report};
     use nose_il::UnitKind::{Class, Function};
 
     fn loc(file: &str, s: u32, e: u32, lang: &str) -> Loc {
@@ -642,6 +649,24 @@ mod tests {
             })
         }
     }
+
+    fn test_fragment_loc_k(file: &str, s: u32, e: u32, fragment_kind: crate::FragmentKind) -> Loc {
+        let mut loc = fragment_loc_k(file, s, e, fragment_kind);
+        loc.enclosing_unit = Some(EnclosingUnit {
+            file: file.into(),
+            start_line: s.saturating_sub(5).max(1),
+            end_line: e + 5,
+            kind: Function,
+            name: Some("test_scaffold".into()),
+            unit_key: format!(
+                "{file}:Function:{}-{}:test_scaffold",
+                s.saturating_sub(5).max(1),
+                e + 5
+            ),
+        });
+        loc
+    }
+
     /// A family with the given locations and metrics, other fields at neutral values.
     fn fam(
         value: f64,
@@ -1248,6 +1273,54 @@ mod tests {
             review_effect.recommended_surface(),
             "review",
             "medium effect fragments are synchronization hazards before default refactors"
+        );
+
+        let tiny_test_expr = fam(
+            10.0,
+            3,
+            3,
+            0,
+            vec![
+                test_fragment_loc_k("tests/a.py", 1, 3, crate::FragmentKind::ExprEffect),
+                test_fragment_loc_k("tests/b.py", 1, 3, crate::FragmentKind::ExprEffect),
+            ],
+        );
+        assert_eq!(
+            tiny_test_expr.recommended_surface(),
+            "hidden",
+            "tiny test-only expression-effect scaffolding stays diagnostic-only"
+        );
+
+        let tiny_test_self_field = fam(
+            10.0,
+            4,
+            3,
+            1,
+            vec![
+                test_fragment_loc_k("tests/A.java", 10, 13, crate::FragmentKind::SelfFieldBody),
+                test_fragment_loc_k("tests/B.java", 20, 23, crate::FragmentKind::SelfFieldBody),
+            ],
+        );
+        assert_eq!(
+            tiny_test_self_field.recommended_surface(),
+            "hidden",
+            "small test fixture constructor bodies stay out of review output"
+        );
+
+        let medium_test_expr = fam(
+            10.0,
+            8,
+            7,
+            0,
+            vec![
+                test_fragment_loc_k("tests/a.py", 10, 17, crate::FragmentKind::ExprEffect),
+                test_fragment_loc_k("tests/b.py", 20, 27, crate::FragmentKind::ExprEffect),
+            ],
+        );
+        assert_eq!(
+            medium_test_expr.recommended_surface(),
+            "review",
+            "larger test setup fragments can still be useful review context"
         );
 
         let default_guard = fam(

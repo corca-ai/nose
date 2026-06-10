@@ -47,6 +47,15 @@ break.
   `default`, `review`, `hidden`, and `debug` families plus the same breakdown for
   exact-fragment families. This makes the human-action surface explicit for
   integrations that should filter `recommended_surface == "default"`.
+- A three-reviewer fragment-quality audit artifact for Java/Python hidden/review
+  exact-fragment families now records the criteria, votes, and policy decisions
+  behind the diagnostic-surface follow-up.
+
+### Changed
+- Tiny test-only exact-fragment scaffolding now stays on the hidden diagnostic surface
+  instead of the review surface: all-test fragments with enclosing context and mean span
+  ≤3 lines, plus all-test effect/body fragments up to 4 lines. Larger test setup
+  fragments remain available for review.
 
 ### Performance
 - Minified-bundle-sized files no longer hit a quadratic cliff: `nearest_scope`

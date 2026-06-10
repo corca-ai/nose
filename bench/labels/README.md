@@ -35,6 +35,13 @@ The labelset evolved v1 (235) → v2 (576, +heldout) → v3 (3,092) → v4 (4,61
 *precision* CIs (bounded by #repos×10, not #labels). v5 (§AU) settled the anti-unification
 re-rank as small-sample overfit (+1pp dev / −1pp heldout, Rust-only — **not shipped**).
 
+## Adjacent audit artifacts
+
+`fragment_quality_audit_2026_06_10.json` is not part of the v5 product metric. It is a
+small, three-reviewer audit of Java/Python hidden/review exact-fragment families used to
+validate surface policy after the semantic corpus pass. See
+[`docs/fragment-quality-audit-2026-06-10.md`](../../docs/fragment-quality-audit-2026-06-10.md).
+
 ## Scoring against it
 
 `eval_by_language.py` — per-language precision@10 + worthy-recall, dev/heldout split, with
