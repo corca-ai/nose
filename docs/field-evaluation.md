@@ -218,3 +218,21 @@ integration contract now makes that explicit by documenting
 `recommended_surface == "default"` as the human-action filter and by emitting
 `ranking.surface_counts`, including a nested exact-fragment breakdown, before
 `--top` truncation.
+
+## Fourth pass follow-up — fragment quality audit
+
+The Java/Python hidden/review volume was sampled rather than tuned by guesswork. A
+three-reviewer audit of 20 exact-fragment candidates is recorded in
+[fragment-quality-audit-2026-06-10](fragment-quality-audit-2026-06-10.md), with the
+machine-readable votes in
+[bench/labels/fragment_quality_audit_2026_06_10.json](../bench/labels/fragment_quality_audit_2026_06_10.json).
+
+The result was mostly validating for the semantic kernel: 17/20 candidates were
+consensus correct diagnostic substrate, but 15/20 were too small or scaffold-like to be
+action output. The `review` surface had no consensus noise and kept the two useful
+signals in the sample: a long RxJava2/RxJava3 adapter constructor parity fragment and a
+larger Poetry authenticator test setup fragment. The policy change from the audit is
+narrow: tiny test-only exact fragments with enclosing-unit context now stay hidden
+instead of review-visible. Broader pruning is deferred; the real follow-ups are stable
+`family_id` collisions in hidden JSON output and overly generic one-line direct-return
+fragments.

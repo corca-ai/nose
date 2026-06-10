@@ -73,6 +73,7 @@ You want to *change* nose or understand how it works inside.
 - [type4-adversarial-coverage](type4-adversarial-coverage.md) — focused Type-4 cases, target-packet task cards, and verifier-lead draft workflow.
 - [frontier-platform](frontier-platform.md) — corpus-balanced evidence platform that ranks the next Type-4 axis by presence breadth (not raw count) and separates the queue signal from human-verified evidence.
 - [field-evaluation](field-evaluation.md) — qualitative results from running nose on real third-party projects.
+- [fragment-quality-audit-2026-06-10](fragment-quality-audit-2026-06-10.md) — labeled Java/Python hidden/review exact-fragment sample and the resulting surface policy.
 - [dogfooding](dogfooding.md) — nose run on its own source, and what its findings taught us.
 
 The contributor workflow and quality gates live in

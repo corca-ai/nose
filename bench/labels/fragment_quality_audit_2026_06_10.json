@@ -1,0 +1,789 @@
+{
+  "schema_version": "fragment-quality-audit.v1",
+  "audit_date": "2026-06-10",
+  "issue": "https://github.com/corca-ai/nose/issues/185",
+  "source": {
+    "historical_cache": "/tmp/nose-semantic-eval-current-517ad5c",
+    "selection": "Top five hidden/review exact-fragment families from each audited repo, preserving each repo JSON order.",
+    "repos": [
+      "bench/repos/commons-lang",
+      "bench/repos/retrofit",
+      "bench/repos/poetry",
+      "bench/repos/packaging"
+    ],
+    "scan_command_template": "nose scan bench/repos/<repo> --mode semantic --format json --top 0"
+  },
+  "label_schema": {
+    "useful_diagnostic": "Correct exact fragment with meaningful synchronization, refactor, or review signal.",
+    "acceptable_low_value": "Correct or plausible diagnostic fragment but too tiny, boilerplate, test-scaffold-like, or common to be default action output.",
+    "noise": "Misleading, duplicate bookkeeping artifact, incorrect, or should be pruned rather than merely hidden/review."
+  },
+  "labelers": [
+    {
+      "id": "A",
+      "stance": "general independent reviewer"
+    },
+    {
+      "id": "B",
+      "stance": "pragmatic maintainer, conservative about actionability"
+    },
+    {
+      "id": "C",
+      "stance": "integration/product reviewer focused on output-surface policy"
+    }
+  ],
+  "policy_summary": {
+    "consensus_counts": {
+      "useful_diagnostic": 2,
+      "acceptable_low_value": 15,
+      "noise": 3
+    },
+    "by_language": {
+      "java": {
+        "useful_diagnostic": 1,
+        "acceptable_low_value": 7,
+        "noise": 2
+      },
+      "python": {
+        "useful_diagnostic": 1,
+        "acceptable_low_value": 8,
+        "noise": 1
+      }
+    },
+    "by_original_surface": {
+      "review": {
+        "useful_diagnostic": 2,
+        "acceptable_low_value": 9,
+        "noise": 0
+      },
+      "hidden": {
+        "useful_diagnostic": 0,
+        "acceptable_low_value": 6,
+        "noise": 3
+      }
+    },
+    "decision": "Keep exact fragments as diagnostic JSON substrate and out of default action output. Demote tiny test-only scaffold fragments from review to hidden. Track repeated family_id collisions and one-line direct-return over-breadth as follow-up issues rather than broad-pruning semantic fragments."
+  },
+  "items": [
+    {
+      "id": "java-01",
+      "language": "java",
+      "repo": "commons-lang",
+      "rank_in_repo": 23,
+      "family_id": "7e6f9dad0acc00b9",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 13,
+      "files": 4,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 6694,
+          "end_line": 6696,
+          "enclosing": "reverse"
+        },
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 6736,
+          "end_line": 6738,
+          "enclosing": "reverse"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "useful_diagnostic",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden: correct overload null-guard substrate, but too small and routine for action output."
+    },
+    {
+      "id": "java-02",
+      "language": "java",
+      "repo": "commons-lang",
+      "rank_in_repo": 27,
+      "family_id": "b85f4b4a882e594d",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 4,
+      "files": 2,
+      "mean_lines": 4,
+      "shared_lines": 3,
+      "params": 1,
+      "representative_locations": [
+        {
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/builder/EqualsBuilderTest.java",
+          "start_line": 181,
+          "end_line": 184,
+          "enclosing": "TestObjectEqualsExclude"
+        },
+        {
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/builder/EqualsBuilderTest.java",
+          "start_line": 293,
+          "end_line": 296,
+          "enclosing": "TestRecursiveObject"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Demote to hidden when test-only and tiny: fixture constructor assignment boilerplate."
+    },
+    {
+      "id": "java-03",
+      "language": "java",
+      "repo": "commons-lang",
+      "rank_in_repo": 30,
+      "family_id": "11cd7d3b0f9bdf57",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "direct-return",
+      "reason_code": "exact-direct-return",
+      "members": 10,
+      "files": 7,
+      "mean_lines": 2,
+      "shared_lines": 3,
+      "params": 1,
+      "representative_locations": [
+        {
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/function/FailableTest.java",
+          "start_line": 83,
+          "end_line": 83,
+          "enclosing": "inc"
+        },
+        {
+          "file": "bench/repos/commons-lang/src/test/java/org/apache/commons/lang3/function/FailableTest.java",
+          "start_line": 88,
+          "end_line": 88,
+          "enclosing": "incCnfe"
+        }
+      ],
+      "votes": {
+        "A": "noise",
+        "B": "acceptable_low_value",
+        "C": "noise"
+      },
+      "consensus": "noise",
+      "policy_decision": "Keep out of visible surfaces and investigate pruning: one-line direct-return fragments can be too generic and mix awkwardly with enclosing methods."
+    },
+    {
+      "id": "java-04",
+      "language": "java",
+      "repo": "commons-lang",
+      "rank_in_repo": 33,
+      "family_id": "272926fba0300285",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 9,
+      "files": 1,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 3131,
+          "end_line": 3133,
+          "enclosing": "insert"
+        },
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 3172,
+          "end_line": 3174,
+          "enclosing": "insert"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "noise",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden but flag stable-id risk: correct overload guard substrate shares family_id with other ArrayUtils families."
+    },
+    {
+      "id": "java-05",
+      "language": "java",
+      "repo": "commons-lang",
+      "rank_in_repo": 34,
+      "family_id": "272926fba0300285",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 9,
+      "files": 1,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 7144,
+          "end_line": 7146,
+          "enclosing": "shift"
+        },
+        {
+          "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/ArrayUtils.java",
+          "start_line": 7214,
+          "end_line": 7216,
+          "enclosing": "shift"
+        }
+      ],
+      "votes": {
+        "A": "useful_diagnostic",
+        "B": "noise",
+        "C": "noise"
+      },
+      "consensus": "noise",
+      "policy_decision": "Track as stable-id collision before relying on JSON identity: distinct shift guard family shares java-04's family_id."
+    },
+    {
+      "id": "java-06",
+      "language": "java",
+      "repo": "retrofit",
+      "rank_in_repo": 1,
+      "family_id": "42196bd5241b8168",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 3,
+      "files": 3,
+      "mean_lines": 4,
+      "shared_lines": 4,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava/src/main/java/retrofit2/adapter/rxjava/Result.java",
+          "start_line": 39,
+          "end_line": 42,
+          "enclosing": "Result"
+        },
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava2/src/main/java/retrofit2/adapter/rxjava2/Result.java",
+          "start_line": 39,
+          "end_line": 42,
+          "enclosing": "Result"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "useful_diagnostic"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep review, not default: product-code module parity is plausible, but the fragment is mostly constructor assignment."
+    },
+    {
+      "id": "java-07",
+      "language": "java",
+      "repo": "retrofit",
+      "rank_in_repo": 2,
+      "family_id": "4beffc785dfefe42",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 2,
+      "files": 2,
+      "mean_lines": 11,
+      "shared_lines": 11,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava2/src/main/java/retrofit2/adapter/rxjava2/RxJava2CallAdapter.java",
+          "start_line": 48,
+          "end_line": 58,
+          "enclosing": "RxJava2CallAdapter"
+        },
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava3/src/main/java/retrofit2/adapter/rxjava3/RxJava3CallAdapter.java",
+          "start_line": 48,
+          "end_line": 58,
+          "enclosing": "RxJava3CallAdapter"
+        }
+      ],
+      "votes": {
+        "A": "useful_diagnostic",
+        "B": "useful_diagnostic",
+        "C": "useful_diagnostic"
+      },
+      "consensus": "useful_diagnostic",
+      "policy_decision": "Keep review: long cross-module state initialization is a concrete synchronization signal."
+    },
+    {
+      "id": "java-08",
+      "language": "java",
+      "repo": "retrofit",
+      "rank_in_repo": 4,
+      "family_id": "117a00db8e54ad37",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 3,
+      "files": 3,
+      "mean_lines": 4,
+      "shared_lines": 3,
+      "params": 1,
+      "representative_locations": [
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava/src/main/java/retrofit2/adapter/rxjava/RxJavaCallAdapterFactory.java",
+          "start_line": 90,
+          "end_line": 93,
+          "enclosing": "RxJavaCallAdapterFactory"
+        },
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava2/src/main/java/retrofit2/adapter/rxjava2/RxJava2CallAdapterFactory.java",
+          "start_line": 88,
+          "end_line": 91,
+          "enclosing": "RxJava2CallAdapterFactory"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "useful_diagnostic"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep review, not default: small product-code adapter parity signal."
+    },
+    {
+      "id": "java-09",
+      "language": "java",
+      "repo": "retrofit",
+      "rank_in_repo": 5,
+      "family_id": "21e2c006ddc7e7b3",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 2,
+      "files": 2,
+      "mean_lines": 4,
+      "shared_lines": 4,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava2/src/main/java/retrofit2/adapter/rxjava2/CallEnqueueObservable.java",
+          "start_line": 52,
+          "end_line": 55,
+          "enclosing": "CallCallback"
+        },
+        {
+          "file": "bench/repos/retrofit/retrofit-adapters/rxjava3/src/main/java/retrofit2/adapter/rxjava3/CallEnqueueObservable.java",
+          "start_line": 52,
+          "end_line": 55,
+          "enclosing": "CallCallback"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep review-only: exact but mechanical product-code constructor assignment."
+    },
+    {
+      "id": "java-10",
+      "language": "java",
+      "repo": "retrofit",
+      "rank_in_repo": 6,
+      "family_id": "dcce50a0c18b3117",
+      "original_recommended_surface": "review",
+      "fragment_kind": "self-field-body",
+      "reason_code": "exact-self-field-body",
+      "members": 2,
+      "files": 2,
+      "mean_lines": 4,
+      "shared_lines": 4,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/retrofit/retrofit-converters/jaxb/src/main/java/retrofit2/converter/jaxb/JaxbRequestConverter.java",
+          "start_line": 34,
+          "end_line": 37,
+          "enclosing": "JaxbRequestConverter"
+        },
+        {
+          "file": "bench/repos/retrofit/retrofit-converters/jaxb3/src/main/java/retrofit2/converter/jaxb3/JaxbRequestConverter.java",
+          "start_line": 34,
+          "end_line": 37,
+          "enclosing": "JaxbRequestConverter"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep review-only: exact converter parity, too mechanical for default action output."
+    },
+    {
+      "id": "python-01",
+      "language": "python",
+      "repo": "poetry",
+      "rank_in_repo": 9,
+      "family_id": "b5fb42404e0cef48",
+      "original_recommended_surface": "review",
+      "fragment_kind": "expr-effect",
+      "reason_code": "exact-expr-effect",
+      "members": 5,
+      "files": 1,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/poetry/tests/puzzle/test_solver.py",
+          "start_line": 2727,
+          "end_line": 2729,
+          "enclosing": "test_solver_git_dependencies_update"
+        },
+        {
+          "file": "bench/repos/poetry/tests/puzzle/test_solver.py",
+          "start_line": 2770,
+          "end_line": 2772,
+          "enclosing": "test_solver_git_dependencies_update_skipped"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Demote to hidden: tiny test dependency setup scaffold."
+    },
+    {
+      "id": "python-02",
+      "language": "python",
+      "repo": "poetry",
+      "rank_in_repo": 12,
+      "family_id": "12eaefcda17d1095",
+      "original_recommended_surface": "review",
+      "fragment_kind": "expr-effect",
+      "reason_code": "exact-expr-effect",
+      "members": 3,
+      "files": 2,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/poetry/tests/installation/test_installer.py",
+          "start_line": 2964,
+          "end_line": 2966,
+          "enclosing": "test_installer_should_use_the_locked_version_of_git_dependencies_without_reference"
+        },
+        {
+          "file": "bench/repos/poetry/tests/puzzle/test_solver.py",
+          "start_line": 2341,
+          "end_line": 2343,
+          "enclosing": "test_solver_can_resolve_git_dependencies"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Demote to hidden: tiny test arrange scaffold, even across files."
+    },
+    {
+      "id": "python-03",
+      "language": "python",
+      "repo": "poetry",
+      "rank_in_repo": 16,
+      "family_id": "8eebac82de5ac9ed",
+      "original_recommended_surface": "review",
+      "fragment_kind": "expr-effect",
+      "reason_code": "exact-expr-effect",
+      "members": 2,
+      "files": 1,
+      "mean_lines": 8,
+      "shared_lines": 7,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/poetry/tests/utils/test_authenticator.py",
+          "start_line": 518,
+          "end_line": 525,
+          "enclosing": "test_authenticator_falls_back_to_keyring_url_matched_by_path"
+        },
+        {
+          "file": "bench/repos/poetry/tests/utils/test_authenticator.py",
+          "start_line": 563,
+          "end_line": 570,
+          "enclosing": "test_authenticator_uses_env_provided_credentials_matched_by_url_path"
+        }
+      ],
+      "votes": {
+        "A": "useful_diagnostic",
+        "B": "acceptable_low_value",
+        "C": "useful_diagnostic"
+      },
+      "consensus": "useful_diagnostic",
+      "policy_decision": "Keep review: larger shared authenticator setup is meaningful synchronization context."
+    },
+    {
+      "id": "python-04",
+      "language": "python",
+      "repo": "poetry",
+      "rank_in_repo": 17,
+      "family_id": "2026b8257713aa10",
+      "original_recommended_surface": "review",
+      "fragment_kind": "expr-effect",
+      "reason_code": "exact-expr-effect",
+      "members": 3,
+      "files": 1,
+      "mean_lines": 3,
+      "shared_lines": 3,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/poetry/tests/console/commands/test_run.py",
+          "start_line": 106,
+          "end_line": 108,
+          "enclosing": "test_run_keeps_options_passed_before_command_args_combined_short_opts"
+        },
+        {
+          "file": "bench/repos/poetry/tests/console/commands/test_run.py",
+          "start_line": 118,
+          "end_line": 120,
+          "enclosing": "test_run_keeps_options_passed_before_command_args"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Demote to hidden: tiny repeated assertion scaffold."
+    },
+    {
+      "id": "python-05",
+      "language": "python",
+      "repo": "poetry",
+      "rank_in_repo": 18,
+      "family_id": "e2d12762f3788c9d",
+      "original_recommended_surface": "review",
+      "fragment_kind": "expr-effect",
+      "reason_code": "exact-expr-effect",
+      "members": 2,
+      "files": 1,
+      "mean_lines": 6,
+      "shared_lines": 6,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/poetry/tests/utils/env/test_env.py",
+          "start_line": 165,
+          "end_line": 170,
+          "enclosing": "test_run_with_called_process_error"
+        },
+        {
+          "file": "bench/repos/poetry/tests/utils/env/test_env.py",
+          "start_line": 198,
+          "end_line": 203,
+          "enclosing": "test_check_output_with_called_process_error"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep review-only: plausible test helper opportunity, but still scaffold-like."
+    },
+    {
+      "id": "python-06",
+      "language": "python",
+      "repo": "packaging",
+      "rank_in_repo": 6,
+      "family_id": "003bc790327ebd05",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 4,
+      "files": 1,
+      "mean_lines": 2,
+      "shared_lines": 2,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/packaging/src/packaging/version.py",
+          "start_line": 286,
+          "end_line": 287,
+          "enclosing": "_validate_pre"
+        },
+        {
+          "file": "bench/repos/packaging/src/packaging/version.py",
+          "start_line": 299,
+          "end_line": 300,
+          "enclosing": "_validate_post"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "acceptable_low_value",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden: correct None guard, too small/common for review."
+    },
+    {
+      "id": "python-07",
+      "language": "python",
+      "repo": "packaging",
+      "rank_in_repo": 7,
+      "family_id": "dec180d30fb91a88",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 2,
+      "files": 2,
+      "mean_lines": 2,
+      "shared_lines": 2,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/packaging/src/packaging/direct_url.py",
+          "start_line": 48,
+          "end_line": 49,
+          "enclosing": "_get"
+        },
+        {
+          "file": "bench/repos/packaging/src/packaging/pylock.py",
+          "start_line": 106,
+          "end_line": 107,
+          "enclosing": "_get"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "useful_diagnostic",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden: points at helper parity, but fragment alone is too tiny."
+    },
+    {
+      "id": "python-08",
+      "language": "python",
+      "repo": "packaging",
+      "rank_in_repo": 9,
+      "family_id": "a64ff675e0f9f3ed",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 2,
+      "files": 1,
+      "mean_lines": 2,
+      "shared_lines": 2,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/packaging/src/packaging/metadata.py",
+          "start_line": 603,
+          "end_line": 604,
+          "enclosing": "_process_name"
+        },
+        {
+          "file": "bench/repos/packaging/src/packaging/metadata.py",
+          "start_line": 616,
+          "end_line": 617,
+          "enclosing": "_process_version"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "useful_diagnostic",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden: validation consistency is real but too small for review output."
+    },
+    {
+      "id": "python-09",
+      "language": "python",
+      "repo": "packaging",
+      "rank_in_repo": 10,
+      "family_id": "a80e66532f54ba2d",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 2,
+      "files": 1,
+      "mean_lines": 2,
+      "shared_lines": 2,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/packaging/src/packaging/specifiers.py",
+          "start_line": 420,
+          "end_line": 421,
+          "enclosing": "_to_ranges"
+        },
+        {
+          "file": "bench/repos/packaging/src/packaging/specifiers.py",
+          "start_line": 1051,
+          "end_line": 1052,
+          "enclosing": "_get_ranges"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "noise",
+        "C": "acceptable_low_value"
+      },
+      "consensus": "acceptable_low_value",
+      "policy_decision": "Keep hidden but flag stable-id risk: tiny cache guard shares family_id with python-10."
+    },
+    {
+      "id": "python-10",
+      "language": "python",
+      "repo": "packaging",
+      "rank_in_repo": 11,
+      "family_id": "a80e66532f54ba2d",
+      "original_recommended_surface": "hidden",
+      "fragment_kind": "conditional-guard",
+      "reason_code": "exact-conditional-guard",
+      "members": 2,
+      "files": 1,
+      "mean_lines": 2,
+      "shared_lines": 2,
+      "params": 0,
+      "representative_locations": [
+        {
+          "file": "bench/repos/packaging/src/packaging/specifiers.py",
+          "start_line": 443,
+          "end_line": 444,
+          "enclosing": "prereleases"
+        },
+        {
+          "file": "bench/repos/packaging/src/packaging/specifiers.py",
+          "start_line": 852,
+          "end_line": 853,
+          "enclosing": "prereleases"
+        }
+      ],
+      "votes": {
+        "A": "acceptable_low_value",
+        "B": "noise",
+        "C": "noise"
+      },
+      "consensus": "noise",
+      "policy_decision": "Track as stable-id collision before relying on JSON identity: distinct prerelease cache guard shares python-09's family_id."
+    }
+  ]
+}
