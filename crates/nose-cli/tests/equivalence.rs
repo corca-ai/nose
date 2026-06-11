@@ -6860,3 +6860,52 @@ fn effectful_commutative_operands_do_not_reorder() {
         "effect-free numeric commutative operands must still converge"
     );
 }
+
+#[test]
+fn sound_recall_rules_converge_with_hard_negatives() {
+    // #284 (coevo §CE / S5-C4): three behaviorally-equal forms that nose now
+    // converges. Each is sound for ALL inputs because the error behavior is
+    // preserved on both sides (unlike the §BA identity rewrites), so no type gate.
+    let i = Interner::new();
+
+    // abs(abs x) ≡ abs x — abs is idempotent; a non-orderable input Errs on both.
+    let abs_nested = "def f(x):\n    a = x if x >= 0 else -x\n    return a if a >= 0 else -a\n";
+    let abs_once = "def g(x):\n    return x if x >= 0 else -x\n";
+    assert_eq!(
+        value_fp(&i, abs_nested, Lang::Python),
+        value_fp(&i, abs_once, Lang::Python),
+        "abs(abs x) must converge with abs x"
+    );
+
+    // ~(a&b) ≡ ~a|~b — bitwise De Morgan; a non-integer Errs on both.
+    let demorgan_l = "def f(a, b):\n    return ~(a & b)\n";
+    let demorgan_r = "def g(a, b):\n    return (~a) | (~b)\n";
+    assert_eq!(
+        value_fp(&i, demorgan_l, Lang::Python),
+        value_fp(&i, demorgan_r, Lang::Python),
+        "~(a&b) must converge with ~a|~b"
+    );
+    // Hard negative: ~(a|b) ≡ ~a&~b, and must NOT collide with the AND form.
+    let demorgan_or = "def h(a, b):\n    return ~(a | b)\n";
+    assert_ne!(
+        value_fp(&i, demorgan_l, Lang::Python),
+        value_fp(&i, demorgan_or, Lang::Python),
+        "~(a&b) and ~(a|b) are different functions"
+    );
+
+    // max(max(a,b),c) ≡ max(a,max(b,c)) — associative on the ternary semantics
+    // (total for all inputs, incl. NaN). Hard negative: min vs max stays distinct.
+    let max_l = "def f(a, b, c):\n    m = a if a > b else b\n    return m if m > c else c\n";
+    let max_r = "def g(a, b, c):\n    n = b if b > c else c\n    return a if a > n else n\n";
+    assert_eq!(
+        value_fp(&i, max_l, Lang::Python),
+        value_fp(&i, max_r, Lang::Python),
+        "nested max must flatten and converge"
+    );
+    let min_l = "def h(a, b, c):\n    m = a if a < b else b\n    return m if m < c else c\n";
+    assert_ne!(
+        value_fp(&i, max_l, Lang::Python),
+        value_fp(&i, min_l, Lang::Python),
+        "max and min chains must stay distinct"
+    );
+}
