@@ -33,6 +33,20 @@ pub(crate) struct ReviewArgs {
     pub format: ReportFormat,
     pub top: Option<usize>,
     pub fail: bool,
+    pub fail_on: ReviewFailOn,
+}
+
+/// What `--fail` fires on. The default is the #245 conservative tier: only
+/// findings where the diff PROVABLY touches lines a changed member shares with
+/// its un-updated sibling (§BR measured span-overlap firing at 33% of merged
+/// PRs with ~4% top-1 precision — a gate that cries wolf gets disabled).
+#[derive(Clone, Copy, PartialEq, Eq, Default, clap::ValueEnum)]
+pub(crate) enum ReviewFailOn {
+    /// Fire only on shared-logic-touching findings (the conservative gate).
+    #[default]
+    SharedLogic,
+    /// Fire on any flagged finding (the pre-#245 span-overlap behavior).
+    Any,
 }
 
 /// A flagged family: a clone whose copies were edited apart in this change set. Locations
@@ -43,6 +57,15 @@ struct Divergence {
     hazard: f64,
     review_priority: u8,
     complexity: usize,
+    /// Family scope: `prod` / `test` / `mixed` (test scaffolding fires differently).
+    scope: &'static str,
+    /// The family's equivalence-witness kind (`exact-value-graph`,
+    /// `copy-paste-run`, `shared-sub-dag`, `structural-similarity`).
+    witness_kind: Option<&'static str>,
+    /// The #245 conservative gate verdict: some changed member PROVABLY touches
+    /// lines it shares with an un-updated sibling. `--fail` fires only on these;
+    /// `--fail-on any` restores span-overlap firing.
+    fire_eligible: bool,
     /// Members whose base span was changed by the diff (the edit landed here).
     changed: Vec<Site>,
     /// Sibling members the change did *not* touch (where it may be missing).
@@ -63,6 +86,11 @@ struct Site {
     fragment_kind: Option<FragmentKind>,
     reason_code: Option<&'static str>,
     enclosing_unit: Option<EnclosingUnit>,
+    /// For CHANGED sites: does the diff touch lines this member shares with an
+    /// un-updated sibling? `Some(false)` = the edit stayed inside this member's
+    /// varying spots; `None` = unprovable (unreadable source / capped diff) or a
+    /// not-updated site.
+    touches_shared: Option<bool>,
 }
 
 pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
@@ -110,6 +138,7 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
     // normalized to repo-relative first, so the family_id is stable across runs (the base
     // worktree lives at a per-run temp path) and matches what `scan` and the ignore file use.
     let prefix = canonical(&base_tree.path);
+    let mut lines = crate::FileLineCache::default();
     let mut flagged: Vec<Divergence> = Vec::new();
     for fam in &families {
         let fam = repo_relative(fam, &prefix);
@@ -124,6 +153,28 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
             .iter()
             .partition(|loc| site_touched_loc(loc, &changed));
         if !changed_members.is_empty() && !untouched.is_empty() {
+            // The #245 fire policy input: does the diff touch lines this changed
+            // member SHARES with an un-updated sibling (its span minus the
+            // varying spots)? §BR measured 51% of review false-fires as
+            // span-overlap-but-not-shared-logic; a gate fires only on proof.
+            let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+            let touches: Vec<Option<bool>> = changed_members
+                .iter()
+                .map(|c| {
+                    touches_shared_lines(
+                        c,
+                        &untouched,
+                        witness_kind,
+                        &base_tree.path,
+                        &mut lines,
+                        &changed,
+                    )
+                })
+                .collect();
+            // All-test families are review context, not gate material: §BG-audit
+            // found test variants legitimately diverge, and on the §BR labels the
+            // scope term doubled gate precision at zero true-positive cost.
+            let fire_eligible = touches.iter().any(|t| *t == Some(true)) && fam.scope != "test";
             flagged.push(Divergence {
                 family_id: crate::baseline::family_id(&fam),
                 similarity: fam.mean_score,
@@ -134,7 +185,14 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
                 // profile (the most likely un-propagated fix); an edit in a trivial clone is
                 // likely benign.
                 complexity: changed_members.iter().map(|l| l.sem).max().unwrap_or(0),
-                changed: changed_members.iter().map(|l| to_site(l)).collect(),
+                scope: fam.scope,
+                witness_kind,
+                fire_eligible,
+                changed: changed_members
+                    .iter()
+                    .zip(&touches)
+                    .map(|(l, t)| to_site_touch(l, *t))
+                    .collect(),
                 not_updated: untouched.iter().map(|l| to_site(l)).collect(),
             });
         }
@@ -158,8 +216,14 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
         _ => print_review_human(&flagged, &args.base, changed_files, args.top.unwrap_or(30)),
     }
 
-    if args.fail && !flagged.is_empty() {
-        std::process::exit(1);
+    if args.fail {
+        let fires = match args.fail_on {
+            ReviewFailOn::SharedLogic => flagged.iter().any(|d| d.fire_eligible),
+            ReviewFailOn::Any => !flagged.is_empty(),
+        };
+        if fires {
+            std::process::exit(1);
+        }
     }
     Ok(())
 }
@@ -203,7 +267,79 @@ fn to_site(loc: &Loc) -> Site {
         fragment_kind: loc.fragment_kind,
         reason_code: loc.reason_code,
         enclosing_unit: loc.enclosing_unit.clone(),
+        touches_shared: None,
     }
+}
+
+fn to_site_touch(loc: &Loc, touches_shared: Option<bool>) -> Site {
+    Site {
+        touches_shared,
+        ..to_site(loc)
+    }
+}
+
+/// Does the diff PROVABLY touch lines `member` shares with an un-updated sibling?
+///
+/// Two proof shapes, by the family's equivalence witness:
+///
+/// - `exact-value-graph`: the WHOLE span is shared logic by the channel's own
+///   proof — equal value fingerprints retain literal VALUES, so the copies
+///   compute identically down to constants, and the typical exact clone is a
+///   *renamed* twin whose every line differs textually while all of the logic
+///   is shared (a line diff would under-fire exactly on the strongest
+///   families). Any in-span change qualifies.
+/// - everything else (`copy-paste-run`, `structural-similarity`,
+///   `shared-sub-dag`): shared lines = the member's span minus its side of the
+///   varying spots vs the first sibling whose source diffs cleanly. The token
+///   channel abstracts identifiers/literals, so a `copy-paste-run` member may
+///   legitimately vary in exactly those spots — and the §BR 51% bucket (span
+///   overlap without shared-logic contact) lives in the fuzzy families. `None`
+///   (unknown) when no sibling pair diffs — unreadable source, or the spot list
+///   hit its cap (a truncated list under-counts variance, which would
+///   over-claim shared lines). The gate treats unknown as not-eligible: it
+///   fires on proof, never on absence of one.
+fn touches_shared_lines(
+    member: &Loc,
+    siblings: &[&Loc],
+    witness_kind: Option<&'static str>,
+    base_root: &Path,
+    lines: &mut crate::FileLineCache,
+    changed: &HashMap<String, Vec<(u32, u32)>>,
+) -> Option<bool> {
+    const SPOT_CAP: usize = 16; // mirrors varying_spots_of's cap
+    let changed_ranges = changed.get(&member.file)?;
+    if witness_kind == Some("exact-value-graph") {
+        return Some(true);
+    }
+    let abs = |loc: &Loc| {
+        let mut l = loc.clone();
+        l.file = base_root.join(&loc.file).to_string_lossy().into_owned();
+        l
+    };
+    let a = abs(member);
+    let spots = siblings.iter().find_map(|s| {
+        // Same-language siblings only: a cross-language "diff" is all-varying noise.
+        (s.lang == member.lang).then(|| crate::varying_spots_of(&a, &abs(s), lines))?
+    })?;
+    if spots.len() >= SPOT_CAP {
+        return None;
+    }
+    let varying: Vec<(u32, u32)> = spots.iter().filter_map(|s| s.a_lines).collect();
+    let shared_touched = changed_ranges.iter().any(|&(cs, ce)| {
+        // Walk the member's span; a changed line inside the span that is not in
+        // any varying range is a shared-line hit. (Pure insertions are encoded
+        // as empty ranges between lines and count as touching the gap they sit in.)
+        let lo = cs.max(member.start_line);
+        let hi = ce.min(member.end_line);
+        if lo > hi {
+            // Empty/insertion range: touches shared logic when it falls inside
+            // the span but not strictly inside a varying range.
+            let inside = cs > member.start_line && ce < member.end_line;
+            return inside && !varying.iter().any(|&(vs, ve)| ce >= vs && cs <= ve);
+        }
+        (lo..=hi).any(|line| !varying.iter().any(|&(vs, ve)| line >= vs && line <= ve))
+    });
+    Some(shared_touched)
 }
 
 fn review_priority(fam: &RefactorFamily, changed: &[&Loc], untouched: &[&Loc]) -> u8 {
@@ -496,14 +632,19 @@ fn print_review_human(flagged: &[Divergence], base: &str, changed_files: usize, 
             break;
         }
         println!(
-            "#{}  changed: {}  (sim {:.2})",
+            "#{}  changed: {}  (sim {:.2}){}",
             i + 1,
             d.changed
                 .iter()
                 .map(site_label)
                 .collect::<Vec<_>>()
                 .join(", "),
-            d.similarity
+            d.similarity,
+            if d.fire_eligible {
+                "  [gate: touches shared lines]"
+            } else {
+                ""
+            }
         );
         for s in &d.changed {
             if let Some(context) = fragment_context(s) {
@@ -536,6 +677,7 @@ fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Resu
             "fragment_kind": s.fragment_kind,
             "reason_code": s.reason_code,
             "enclosing_unit": s.enclosing_unit,
+            "touches_shared": s.touches_shared,
         })
     };
     let items: Vec<_> = flagged
@@ -545,6 +687,9 @@ fn review_json(flagged: &[Divergence], base: &str, changed_files: usize) -> Resu
                 "family_id": d.family_id,
                 "similarity": d.similarity,
                 "complexity": d.complexity,
+                "scope": d.scope,
+                "witness_kind": d.witness_kind,
+                "fire_eligible": d.fire_eligible,
                 "changed": d.changed.iter().map(&site).collect::<Vec<_>>(),
                 "not_updated": d.not_updated.iter().map(&site).collect::<Vec<_>>(),
             })

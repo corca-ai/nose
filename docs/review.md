@@ -52,11 +52,28 @@ decide whether the edit belongs there too, or whether the divergence is intentio
 
 This is a **candidate surfacer, not a proof**: nose tells you a sibling exists and wasn't
 touched, not that the change definitely belongs there. Review each flagged sibling.
-Measured on replayed merged PRs ([experiments §BR](experiments.md)), review fires on
-roughly a third of real changes and the top finding is a genuine missed propagation in
-~4% of fires — real catches exist (including one later fixed upstream for exactly the
-flagged reason), but treat `--fail` as an explicitly-opted, policy-tuned gate, not a
-default-on blocker, until the conservative fire policy lands.
+
+## The gate (`--fail`)
+
+The report and the gate are deliberately different surfaces. The report shows every
+inconsistently-changed family; **`--fail` fires only on findings that pass the
+conservative fire policy** ([experiments §BV](experiments.md)):
+
+- the diff **provably touches lines the changed copy shares with its un-updated
+  sibling** — by the family's own equivalence proof for `exact-value-graph` families
+  (a renamed twin's every line is shared logic), or by subtracting the member's
+  varying spots for token/fuzzy families (an edit inside the part that already
+  differed is not a propagation hazard); unprovable cases do not fire — the gate
+  fires on proof, never on absence of one; and
+- the family is not all-test scaffolding (`scope != "test"`).
+
+Measured on replayed merged PRs against judge-labeled findings (§BR/§BV): the policy
+keeps **every** genuine missed propagation while firing 73% less often than
+span-overlap firing (change-level: 15% of merged changes vs 33%), at 3.7× the
+precision. `--fail-on any` restores the old fire-on-anything behavior for
+ratchet-style use. Each JSON finding carries `fire_eligible`, `witness_kind`,
+`scope`, and per-changed-site `touches_shared`, so a CI wrapper can apply its own
+tier without re-deriving the analysis.
 
 ## Flags
 
@@ -71,7 +88,8 @@ review with the fuzzy channel included.
 |---|---|
 | `--base <ref>` | compare the working tree against this git ref (default `HEAD` = uncommitted changes; `origin/main` for a PR branch) |
 | `--format human\|json\|markdown\|sarif` | output format (default `human`; `markdown` is accepted but currently uses the human-readable review report) |
-| `--fail` | exit non-zero if any family changed inconsistently (CI gate) |
+| `--fail` | exit non-zero when the gate fires (see *The gate* above) |
+| `--fail-on shared-logic\|any` | what `--fail` fires on: `shared-logic` (default, the conservative policy) or `any` flagged finding |
 | `--ignore-file <file>` | suppress accepted divergences (auto-reads `nose.ignore.json`) |
 | `--top N` | show at most N findings (`0` = all; default 30) |
 
