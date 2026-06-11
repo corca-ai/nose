@@ -264,7 +264,7 @@ fn sequence_surface_evidence_matches_node(
 
 fn guard_evidence_at_sequence_span(il: &Il, span: Span) -> EvidenceResolution<GuardEvidenceKind> {
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if !matches!(record.anchor, EvidenceAnchor::Sequence { span: anchor_span } if anchor_span == span)
         {
             continue;
@@ -594,7 +594,7 @@ pub fn import_fact_evidence_rhs(il: &Il, rhs: NodeId) -> Option<ImportFact> {
 /// provider-scope literal producer after cross-file replacement; consumers must
 /// still check the expression shape/result contract they are about to build.
 pub fn imported_literal_producer_evidence_at_span(il: &Il, span: Span, kind: NodeKind) -> bool {
-    il.evidence.iter().any(|record| {
+    il.evidence_anchored_at(span).any(|record| {
         record.status == EvidenceStatus::Asserted
             && first_party_record(record)
             && record.anchor == EvidenceAnchor::node(span, kind)
@@ -615,7 +615,7 @@ pub fn imported_literal_producer_evidence_at_span(il: &Il, span: Span, kind: Nod
 }
 
 pub fn imported_literal_snapshot_evidence_at_span(il: &Il, span: Span, kind: NodeKind) -> bool {
-    il.evidence.iter().any(|record| {
+    il.evidence_anchored_at(span).any(|record| {
         record.status == EvidenceStatus::Asserted
             && first_party_record(record)
             && record.anchor == EvidenceAnchor::node(span, kind)
@@ -715,7 +715,7 @@ fn imported_symbol_identity_at_node_matches(
     let kind = il.kind(node);
     let mut found = None;
     let mut dependencies_valid = true;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if record.anchor != EvidenceAnchor::node(span, kind) {
             continue;
         }
@@ -873,7 +873,7 @@ fn qualified_global_symbol_at_evidence_anchor(
     contract: QualifiedGlobalSymbolContract,
 ) -> EvidenceResolution<()> {
     let mut found = false;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor {
             continue;
         }

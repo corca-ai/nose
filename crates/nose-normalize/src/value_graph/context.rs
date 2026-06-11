@@ -1,5 +1,6 @@
 //! File-level value-graph context and immutable module seeding.
 
+use super::inline::InlineCandidate;
 use super::*;
 use nose_il::UnitKind;
 
@@ -16,6 +17,9 @@ use nose_il::UnitKind;
 pub struct ValueFingerprintContext {
     module: ModuleSeedContext,
     function_bindings: Vec<(Symbol, u64)>,
+    /// Per-file pure-inline candidates (see [`InlineCandidate`]);
+    /// shared by every unit builder instead of rebuilding the registry per unit.
+    inline_candidates: Vec<InlineCandidate>,
     subtree_hashes: OnceLock<Vec<u64>>,
 }
 
@@ -23,16 +27,20 @@ impl ValueFingerprintContext {
     pub fn new(il: &Il, interner: &Interner) -> Self {
         let module = ModuleSeedContext::new(il, interner);
         let subtree_hashes = OnceLock::new();
-        let function_bindings = {
+        let (function_bindings, inline_candidates) = {
             let mut b = Builder::new(il, interner)
                 .with_shared_subtree_hashes(&subtree_hashes)
                 .with_local_scope_nodes(&module.local_scope);
             b.seed_module_value_bindings_from_context(&module, None);
-            b.collect_function_binding_hashes()
+            (
+                b.collect_function_binding_hashes(),
+                b.collect_inline_candidates(),
+            )
         };
         Self {
             module,
             function_bindings,
+            inline_candidates,
             subtree_hashes,
         }
     }
@@ -140,6 +148,12 @@ fn evidence_backed_raw_assignment_name(il: &Il, stmt: NodeId) -> Option<Symbol> 
         Some(symbol)
     } else {
         None
+    }
+}
+
+impl ValueFingerprintContext {
+    pub(super) fn inline_candidates(&self) -> &[InlineCandidate] {
+        &self.inline_candidates
     }
 }
 
@@ -277,7 +291,9 @@ impl<'a> Builder<'a> {
 
     fn collect_function_binding_hashes(&mut self) -> Vec<(Symbol, u64)> {
         let mut bindings = Vec::new();
-        for unit in self.il.units.clone() {
+        // Indexed loop: the body needs `&mut self` but never mutates `units`.
+        for i in 0..self.il.units.len() {
+            let unit = self.il.units[i];
             if !matches!(unit.kind, UnitKind::Function | UnitKind::Method) {
                 continue;
             }

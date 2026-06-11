@@ -31,20 +31,7 @@ fn scan_mode_semantic_proves_regex_literal_predicate_matches() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -62,20 +49,7 @@ fn scan_mode_semantic_proves_regex_literal_predicate_matches() {
         "semantic mode must consume regex literal provenance without merging different patterns: {semantic}"
     );
 
-    let near = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "near:0.5",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let near = scan_min_json(&dir, "near:0.5");
     assert!(
         near.contains("dot-only.ts") && near.contains("markdown-link.ts"),
         "near mode may still surface the review candidate: {near}"
@@ -105,20 +79,7 @@ fn scan_mode_semantic_allows_proved_js_static_builtins() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -166,20 +127,7 @@ fn scan_mode_semantic_rejects_unproved_typeof_function_name() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     assert!(
         !family_contains_all(
@@ -211,20 +159,7 @@ fn scan_mode_semantic_rejects_unproved_array_isarray_name() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     assert!(
         !family_contains_all(&semantic_json, &["array_a.py", "array_b.py"]),
@@ -251,20 +186,7 @@ fn scan_mode_semantic_rejects_unproved_literal_test_method_name() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     assert!(
         !family_contains_all(
@@ -322,20 +244,7 @@ fn scan_mode_semantic_proves_extreme_type4_idioms() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let family = |positives: &[&str], negatives: &[&str]| {
@@ -407,20 +316,7 @@ fn scan_mode_semantic_proves_collection_empty_checks() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert!(
@@ -499,20 +395,7 @@ fn scan_mode_semantic_proves_string_prefix_checks() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert!(
@@ -605,20 +488,7 @@ fn scan_mode_semantic_proves_rust_integer_methods() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     for expected_pair in [
@@ -1151,20 +1021,7 @@ fn scan_mode_semantic_proves_literal_collection_membership() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert!(
@@ -1365,20 +1222,7 @@ fn scan_mode_semantic_keeps_unproven_contains_calls_distinct() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json: serde_json::Value =
         serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
     let semantic_text = semantic_json.to_string();
@@ -1487,20 +1331,7 @@ fn scan_mode_semantic_proves_typed_dynamic_collection_membership() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let expected = [
@@ -1645,20 +1476,7 @@ fn scan_mode_semantic_proves_set_membership_when_receiver_is_proven() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let expected_positive = [
@@ -1736,20 +1554,7 @@ fn scan_mode_semantic_keeps_aslist_single_unproven_receiver_distinct() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     for family in semantic_families {
@@ -1885,20 +1690,7 @@ fn scan_mode_semantic_proves_typed_typescript_map_key_membership() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let positive_family = semantic_families
@@ -2104,20 +1896,7 @@ fn scan_mode_semantic_proves_typed_typescript_map_default_lookup() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let expected = [
@@ -2594,20 +2373,7 @@ fn scan_mode_semantic_proves_literal_map_default_lookup() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     let expected = [
@@ -2856,20 +2622,7 @@ fn scan_mode_semantic_proves_null_presence_predicates() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -2916,20 +2669,7 @@ fn scan_mode_semantic_reports_flattened_guard_span_only() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let families = scan_families(&semantic_json);
     let text = semantic_json.to_string();
@@ -2987,20 +2727,7 @@ fn scan_mode_semantic_preserves_js_typeof_operator() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3149,20 +2876,7 @@ fn scan_mode_semantic_distinguishes_sequence_kinds() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3202,20 +2916,7 @@ fn scan_mode_semantic_allows_static_import_identity() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3263,20 +2964,7 @@ fn scan_mode_semantic_allows_named_namespace_import_identity() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json: serde_json::Value =
         serde_json::from_str(&semantic).expect("semantic scan should emit JSON");
     let semantic_text = semantic_json.to_string();
@@ -3330,20 +3018,7 @@ fn scan_mode_semantic_allows_static_projection_identity() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert!(
@@ -3397,20 +3072,7 @@ fn scan_mode_semantic_distinguishes_nullish_from_truthy_defaults() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3463,20 +3125,7 @@ fn scan_mode_semantic_pins_strict_nullish_default_boundaries() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3536,20 +3185,7 @@ fn scan_mode_semantic_pins_js_object_guard_nullish_boundary() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let strict_family = family_with_all(
         &semantic_json,
@@ -3626,20 +3262,7 @@ fn scan_mode_semantic_proves_js_record_shape_guards() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3730,20 +3353,7 @@ fn scan_mode_semantic_proves_js_own_property_guards() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3801,20 +3411,7 @@ fn scan_mode_semantic_converges_cross_language_list_literals() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3865,20 +3462,7 @@ fn scan_mode_semantic_preserves_js_object_keys() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3925,20 +3509,7 @@ fn scan_mode_semantic_converges_cross_language_map_literals() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -3984,20 +3555,7 @@ fn scan_mode_semantic_captures_module_literal_bindings() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -4048,20 +3606,7 @@ fn scan_mode_semantic_preserves_python_dict_keys() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(
@@ -4113,20 +3658,7 @@ fn scan_mode_semantic_preserves_ruby_hash_keys() {
     )
     .unwrap();
 
-    let semantic = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let semantic = scan_min_json(&dir, "semantic");
     let semantic_json = scan_json(&semantic);
     let semantic_families = scan_families(&semantic_json);
     assert_eq!(

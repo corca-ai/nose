@@ -410,12 +410,15 @@ pub fn ceiling(
         let p = eval_gold(g);
         let lu = cover(&p.left);
         let ru = cover(&p.right);
-        let unit_ok = matches!((lu, ru), (Some(a), Some(b)) if a != b);
-        let cand_ok = unit_ok && {
-            let (a, b) = (lu.unwrap() as u32, ru.unwrap() as u32);
+        let covered = match (lu, ru) {
+            (Some(a), Some(b)) if a != b => Some((a as u32, b as u32)),
+            _ => None,
+        };
+        let unit_ok = covered.is_some();
+        let cand_ok = covered.is_some_and(|(a, b)| {
             let key = if a <= b { (a, b) } else { (b, a) };
             cand_set.contains(&key)
-        };
+        });
         let t4flag = is_type4(&p);
         all.gold += 1;
         all.unit_reachable += unit_ok as usize;

@@ -82,6 +82,17 @@ pub struct Il {
     /// immutable once an `Il` is built — passes rebuild the arena instead.
     #[serde(skip)]
     scope_index: std::sync::OnceLock<Vec<Option<NodeId>>>,
+    /// Lazy byte-span → node-ids index (see [`Il::nodes_spanning`]). Sound under
+    /// the same immutability discipline as `scope_index`: node spans and kinds
+    /// are never rewritten in place (only payloads/edges are), and passes that
+    /// restructure the tree rebuild the arena.
+    #[serde(skip)]
+    span_index: std::sync::OnceLock<std::collections::HashMap<(u32, u32), Vec<u32>>>,
+    /// Lazy nearest-scope → assign-node-ids index (see [`Il::assigns_in_scope`]).
+    /// Keyed by the scope's node id (+1, with `0` for module level), each bucket
+    /// in arena order. Same immutability discipline as `scope_index`.
+    #[serde(skip)]
+    assign_scope_index: std::sync::OnceLock<std::collections::HashMap<u32, Vec<NodeId>>>,
     /// Lazy evidence lookup index (see [`Il::evidence_anchored_at`]). Appends to
     /// `evidence` are picked up incrementally (the index tracks how many records
     /// it has seen); code that mutates existing records IN PLACE must call
@@ -98,11 +109,35 @@ pub struct Il {
 #[derive(Debug, Default)]
 struct EvidenceIndex {
     indexed_len: usize,
+    /// `(id, anchor)` of the last record indexed — a cheap staleness sentinel.
+    /// Appends keep it valid; a `clear()`/`retain()`/splice that replaces the
+    /// prefix almost always changes the record at this position, which
+    /// [`Il::with_evidence_index`] detects and answers with a rebuild. (The
+    /// only undetectable rewrite is one that preserves every indexed record's
+    /// `(id, anchor)` pair — and such a rewrite leaves the index correct,
+    /// because those two fields are all it derives buckets from.)
+    sentinel: Option<(u32, EvidenceAnchor)>,
     by_anchor_span: std::collections::HashMap<(u32, u32, u32), Vec<u32>>,
+    /// `Binding` anchors are queried by `local_hash` (not span) — see
+    /// [`Il::evidence_binding_anchored`] — so they get their own bucket.
+    by_binding_hash: std::collections::HashMap<u64, Vec<u32>>,
     by_id: std::collections::HashMap<u32, u32>,
 }
 
 impl EvidenceIndex {
+    /// `false` when the already-indexed prefix no longer ends with the record
+    /// the index last saw — evidence was rewritten, not appended to.
+    fn prefix_intact(&self, evidence: &[EvidenceRecord]) -> bool {
+        match self.sentinel {
+            None => true,
+            Some((id, anchor)) => self
+                .indexed_len
+                .checked_sub(1)
+                .and_then(|last| evidence.get(last))
+                .is_some_and(|record| record.id.0 == id && record.anchor == anchor),
+        }
+    }
+
     fn extend_from(&mut self, evidence: &[EvidenceRecord]) {
         for (idx, record) in evidence.iter().enumerate().skip(self.indexed_len) {
             let span = record.anchor.span();
@@ -110,6 +145,12 @@ impl EvidenceIndex {
                 .entry((span.file.0, span.start_byte, span.end_byte))
                 .or_default()
                 .push(idx as u32);
+            if let EvidenceAnchor::Binding { local_hash, .. } = record.anchor {
+                self.by_binding_hash
+                    .entry(local_hash)
+                    .or_default()
+                    .push(idx as u32);
+            }
             // Mirror `evidence_record_by_id`: the record at position `id` wins;
             // otherwise the first record with that id.
             let id = record.id.0;
@@ -120,6 +161,7 @@ impl EvidenceIndex {
             }
         }
         self.indexed_len = evidence.len();
+        self.sentinel = evidence.last().map(|record| (record.id.0, record.anchor));
     }
 
     /// The same walk as the pre-index `evidence_dependencies_asserted`: every
@@ -162,6 +204,8 @@ impl Clone for Il {
             // Caches are cheap to recompute and a clone is usually about to be
             // mutated — start fresh.
             scope_index: std::sync::OnceLock::new(),
+            span_index: std::sync::OnceLock::new(),
+            assign_scope_index: std::sync::OnceLock::new(),
             evidence_index: std::sync::RwLock::new(None),
         }
     }
@@ -308,7 +352,10 @@ impl Il {
     ) -> EvidenceId {
         let pack_hash = stable_symbol_hash(pack_id);
         let rule_hash = stable_symbol_hash(rule);
-        if let Some(id) = self.evidence.iter().find_map(|record| {
+        // Index-backed dedup: only records anchored at this exact span can match,
+        // so the previous whole-`evidence` scan (quadratic over an emit-heavy
+        // pass) narrows to one bucket.
+        if let Some(id) = self.evidence_anchored_at(anchor.span()).find_map(|record| {
             (record.anchor == anchor
                 && record.kind == kind
                 && record.status == EvidenceStatus::Asserted
@@ -371,26 +418,119 @@ impl Il {
             .map(move |idx| &self.evidence[idx as usize])
     }
 
+    /// Node ids whose span covers exactly these bytes (callers still compare
+    /// full [`Span`]/kind/payload as needed), in arena order. Replaces
+    /// whole-arena scans for span-keyed lookups — those were quadratic when a
+    /// consumer queried per node. Backed by a lazy index under the arena
+    /// immutability discipline (see the `span_index` field).
+    pub fn nodes_spanning(&self, span: Span) -> impl Iterator<Item = NodeId> + '_ {
+        let index = self.span_index.get_or_init(|| {
+            let mut by_bytes: std::collections::HashMap<(u32, u32), Vec<u32>> =
+                std::collections::HashMap::new();
+            for (idx, node) in self.nodes.iter().enumerate() {
+                by_bytes
+                    .entry((node.span.start_byte, node.span.end_byte))
+                    .or_default()
+                    .push(idx as u32);
+            }
+            by_bytes
+        });
+        index
+            .get(&(span.start_byte, span.end_byte))
+            .map(|ids| ids.as_slice())
+            .unwrap_or_default()
+            .iter()
+            .map(|&idx| NodeId(idx))
+    }
+
+    /// `Assign` node ids whose [`Il::nearest_scope`] is `scope` (`None` =
+    /// module level), in arena order. Backed by a lazy index: binding-LHS
+    /// resolution filters assignments by scope per *reference*, which was a
+    /// whole-arena scan per query before.
+    pub fn assigns_in_scope(&self, scope: Option<NodeId>) -> &[NodeId] {
+        let index = self.assign_scope_index.get_or_init(|| {
+            let mut by_scope: std::collections::HashMap<u32, Vec<NodeId>> =
+                std::collections::HashMap::new();
+            for (idx, node) in self.nodes.iter().enumerate() {
+                if node.kind != NodeKind::Assign {
+                    continue;
+                }
+                let id = NodeId(idx as u32);
+                let key = self.nearest_scope(id).map_or(0, |scope| scope.0 + 1);
+                by_scope.entry(key).or_default().push(id);
+            }
+            by_scope
+        });
+        let key = scope.map_or(0, |scope| scope.0 + 1);
+        index
+            .get(&key)
+            .map(|ids| ids.as_slice())
+            .unwrap_or_default()
+    }
+
+    /// Indices into [`Il::evidence`] for records whose anchor sits exactly at
+    /// `span`, in evidence order — the mutating sibling of
+    /// [`Il::evidence_anchored_at`] (returning indices lets a caller re-borrow
+    /// `evidence` mutably while walking the bucket).
+    pub fn evidence_indices_anchored_at(&self, span: Span) -> Vec<u32> {
+        self.with_evidence_index(|index| {
+            index
+                .by_anchor_span
+                .get(&(span.file.0, span.start_byte, span.end_byte))
+                .cloned()
+                .unwrap_or_default()
+        })
+    }
+
+    /// Evidence records with an [`EvidenceAnchor::Binding`] anchor carrying this
+    /// `local_hash`, in evidence order. Binding anchors are matched by hash (not
+    /// span) by their consumers, so they get a dedicated index bucket.
+    pub fn evidence_binding_anchored(
+        &self,
+        local_hash: u64,
+    ) -> impl Iterator<Item = &EvidenceRecord> {
+        let indices = self.with_evidence_index(|index| {
+            index
+                .by_binding_hash
+                .get(&local_hash)
+                .cloned()
+                .unwrap_or_default()
+        });
+        indices
+            .into_iter()
+            .map(move |idx| &self.evidence[idx as usize])
+    }
+
     /// Drop the lazy evidence index. Appends are picked up automatically,
     /// removals trigger a rebuild, and `status`/`dependencies` are read live —
     /// call this only after rewriting a record's `anchor` or `id` in place.
     pub fn invalidate_evidence_index(&mut self) {
-        *self.evidence_index.write().unwrap() = None;
+        *self
+            .evidence_index
+            .write()
+            .expect("evidence index lock poisoned") = None;
     }
 
     fn with_evidence_index<T>(&self, read: impl FnOnce(&EvidenceIndex) -> T) -> T {
         {
-            let guard = self.evidence_index.read().unwrap();
+            let guard = self
+                .evidence_index
+                .read()
+                .expect("evidence index lock poisoned");
             if let Some(index) = guard.as_ref() {
-                if index.indexed_len == self.evidence.len() {
+                if index.indexed_len == self.evidence.len() && index.prefix_intact(&self.evidence) {
                     return read(index);
                 }
             }
         }
-        let mut guard = self.evidence_index.write().unwrap();
+        let mut guard = self
+            .evidence_index
+            .write()
+            .expect("evidence index lock poisoned");
         let index = guard.get_or_insert_with(EvidenceIndex::default);
-        if index.indexed_len > self.evidence.len() {
-            // Records were removed (e.g. a `retain`); indices are stale — rebuild.
+        if index.indexed_len > self.evidence.len() || !index.prefix_intact(&self.evidence) {
+            // Records were removed or the prefix was rewritten (e.g. a `retain`
+            // or `clear` + re-push); indices are stale — rebuild.
             *index = EvidenceIndex::default();
         }
         if index.indexed_len != self.evidence.len() {
@@ -544,6 +684,8 @@ impl IlBuilder {
             suppressed: Vec::new(),
             evidence: Vec::new(),
             scope_index: std::sync::OnceLock::new(),
+            span_index: std::sync::OnceLock::new(),
+            assign_scope_index: std::sync::OnceLock::new(),
             evidence_index: std::sync::RwLock::new(None),
         }
     }
@@ -660,5 +802,39 @@ mod validate_tests {
         assert_eq!(first, EvidenceId(1));
         assert_eq!(duplicate, first);
         assert_eq!(different_rule, EvidenceId(2));
+    }
+
+    /// `clear()` + re-push rewrites the indexed prefix without shrinking below
+    /// the indexed length — the staleness sentinel must trigger a rebuild, not
+    /// serve buckets for records that no longer exist.
+    #[test]
+    fn evidence_index_survives_clear_and_repush() {
+        let mut il = leaf_il();
+        let span = il.node(il.root).span;
+        let record = |id: u32, anchor| EvidenceRecord {
+            id: EvidenceId(id),
+            anchor,
+            kind: EvidenceKind::Domain(DomainEvidence::Collection),
+            provenance: EvidenceProvenance {
+                emitter: EvidenceEmitter::FirstParty,
+                pack_hash: None,
+                rule_hash: None,
+            },
+            dependencies: Vec::new(),
+            status: EvidenceStatus::Asserted,
+        };
+
+        il.evidence
+            .push(record(0, EvidenceAnchor::node(span, NodeKind::Module)));
+        // Build the index, then invalidate it the rude way.
+        assert_eq!(il.evidence_anchored_at(span).count(), 1);
+        il.evidence.clear();
+        il.evidence
+            .push(record(0, EvidenceAnchor::binding(span, 7)));
+        il.evidence
+            .push(record(1, EvidenceAnchor::node(span, NodeKind::Module)));
+
+        assert_eq!(il.evidence_anchored_at(span).count(), 2);
+        assert_eq!(il.evidence_binding_anchored(7).count(), 1);
     }
 }

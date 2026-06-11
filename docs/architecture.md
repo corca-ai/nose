@@ -97,6 +97,13 @@ The current semantic assumptions these crates share are summarized in
   indices and out-of-line child edges — cache-friendly and cheap to serialize,
   which is what makes per-file feature caching ([continuous-integration](continuous-integration.md))
   possible.
+- **Index-backed lookups on the arena.** Nodes are immutable once an `Il` is
+  built (passes rebuild the arena), so `Il` carries lazy indexes — nearest
+  enclosing scope, span → nodes, scope → assignments, and the evidence anchor
+  index (span buckets, binding-hash buckets, id resolution). Per-node helpers
+  must query these instead of scanning `il.nodes`/`il.evidence`; the raw scans
+  were the dominant scan cost until they were indexed
+  ([experiments §BQ](experiments.md)).
 - **Interner-independent features.** A unit's features are content-derived
   hashes, not interner ids, so they're portable across runs — the basis for the
   content-hash cache.

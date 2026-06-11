@@ -59,14 +59,7 @@ impl<'a> Builder<'a> {
     }
 
     pub(super) fn guarded(&mut self, v: ValueId) -> ValueId {
-        let mut pc: Option<ValueId> = None;
-        for &c in &self.path.clone() {
-            pc = Some(match pc {
-                None => c,
-                Some(p) => self.mk(ValOp::Bin(Op::And as u32), vec![p, c]),
-            });
-        }
-        match pc {
+        match self.path_cond() {
             None => v,
             Some(pc) => {
                 let bot = self.mk(ValOp::Const(0x3000_0000), vec![]);

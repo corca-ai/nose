@@ -252,20 +252,7 @@ fn c_u16_byte_pack_recognized_in_either_operand_order() {
         "unsigned int or2(int d, unsigned char *a) {\n  return (a[0] << 8) | a[1];\n}\n",
     )
     .unwrap();
-    let out = run(&[
-        "scan",
-        dir.to_str().unwrap(),
-        "--mode",
-        "semantic",
-        "--min-lines",
-        "1",
-        "--min-size",
-        "1",
-        "--format",
-        "json",
-        "--top",
-        "0",
-    ]);
+    let out = scan_min_json(&dir, "semantic");
     let json = scan_json(&out);
     let families = scan_families(&json);
     assert_eq!(

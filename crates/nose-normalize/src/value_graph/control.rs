@@ -16,13 +16,21 @@ impl<'a> Builder<'a> {
     pub(super) fn build_unit_with_context(
         &mut self,
         root: NodeId,
-        context: Option<&ValueFingerprintContext>,
+        context: Option<&'a ValueFingerprintContext>,
     ) {
         self.param_domain.clear();
         self.seed_param_domains(root);
         self.seed_param_value_domains(root);
         self.seed_immutable_bindings(root, context);
-        self.build_inline_registry(root);
+        match context {
+            Some(context) => {
+                self.adopt_inline_candidates(root, Cow::Borrowed(context.inline_candidates()));
+            }
+            None => {
+                let candidates = self.collect_inline_candidates();
+                self.adopt_inline_candidates(root, Cow::Owned(candidates));
+            }
+        }
         let mut env: FxHashMap<u32, ValueId> = FxHashMap::default();
         match self.il.kind(root) {
             NodeKind::Func => {
@@ -325,7 +333,9 @@ impl<'a> Builder<'a> {
     /// The conjunction of the current branch path (`c₁ ∧ c₂ ∧ …`), or `None` at top level.
     pub(super) fn path_cond(&mut self) -> Option<ValueId> {
         let mut pc: Option<ValueId> = None;
-        for &c in &self.path.clone() {
+        // Indexed loop: `mk` needs `&mut self` and never touches `path`.
+        for i in 0..self.path.len() {
+            let c = self.path[i];
             pc = Some(match pc {
                 None => c,
                 Some(p) => self.mk(ValOp::Bin(Op::And as u32), vec![p, c]),

@@ -304,9 +304,12 @@ fn receiver_only_args(op: Builtin, receiver: ProvenReceiver, direct: Option<Node
         }
         return CallCanon::None;
     }
+    let Some(direct) = direct else {
+        return CallCanon::None;
+    };
     CallCanon::Builtin {
         op,
-        arg_olds: vec![direct.unwrap()],
+        arg_olds: vec![direct],
     }
 }
 

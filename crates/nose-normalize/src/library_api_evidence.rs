@@ -241,7 +241,7 @@ fn domain_evidence_id_for_node(
     expected: DomainEvidence,
 ) -> Option<EvidenceId> {
     let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
-    il.evidence.iter().find_map(|record| {
+    il.evidence_anchored_at(anchor.span()).find_map(|record| {
         (record.anchor == anchor
             && record.kind == EvidenceKind::Domain(expected)
             && record.status == EvidenceStatus::Asserted
@@ -259,7 +259,7 @@ fn sequence_surface_evidence_id_for_node(
         return None;
     }
     let anchor = EvidenceAnchor::sequence(il.node(node).span);
-    il.evidence.iter().find_map(|record| {
+    il.evidence_anchored_at(anchor.span()).find_map(|record| {
         (record.anchor == anchor
             && record.kind == EvidenceKind::SequenceSurface(expected)
             && record.status == EvidenceStatus::Asserted
@@ -486,15 +486,8 @@ fn binding_symbol_evidence_id(
         return None;
     }
     let local_hash = node_name_hash(il, interner, node)?;
-    il.evidence.iter().find_map(|record| {
-        (matches!(
-            record.anchor,
-            EvidenceAnchor::Binding {
-                local_hash: anchor_hash,
-                ..
-            } if anchor_hash == local_hash
-        ) && record.kind == EvidenceKind::Symbol(expected)
-            && record.status == EvidenceStatus::Asserted)
+    il.evidence_binding_anchored(local_hash).find_map(|record| {
+        (record.kind == EvidenceKind::Symbol(expected) && record.status == EvidenceStatus::Asserted)
             .then_some(record.id)
     })
 }
@@ -547,7 +540,10 @@ fn upsert_first_party_evidence(
     let pack_hash = stable_symbol_hash(FIRST_PARTY_PACK_ID);
     let rule_hash = stable_symbol_hash(rule);
     let mut found = None;
-    for record in &mut il.evidence {
+    // Index-backed (see `effect_evidence::upsert`): only same-span records can
+    // match, and the fields updated in place are read live by the index.
+    for idx in il.evidence_indices_anchored_at(anchor.span()) {
+        let record = &mut il.evidence[idx as usize];
         if record.anchor == anchor
             && record.kind == kind
             && record.status == EvidenceStatus::Asserted

@@ -38,7 +38,7 @@ pub fn library_api_contract_evidence_for_call(
     let span = il.node(node).span;
     let mut saw_library_api_evidence = false;
     let mut admitted = false;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if record.anchor != EvidenceAnchor::node(span, NodeKind::Call) {
             continue;
         }
@@ -84,7 +84,7 @@ pub fn library_api_contract_evidence_for_node(
     let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
     let mut saw_library_api_evidence = false;
     let mut admitted = false;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor {
             continue;
         }
@@ -130,7 +130,7 @@ pub fn library_api_contract_evidence_at_call_span(
     let source_call = node_at_span_with_kind(il, span, NodeKind::Call);
     let mut saw_library_api_evidence = false;
     let mut admitted = false;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if record.anchor != EvidenceAnchor::node(span, NodeKind::Call) {
             continue;
         }
@@ -787,14 +787,8 @@ fn java_explicit_import_conflicts(
         module_hash: stable_symbol_hash(module),
         exported_hash: stable_symbol_hash(simple_type),
     };
-    il.evidence.iter().any(|record| {
-        matches!(
-            record.anchor,
-            EvidenceAnchor::Binding {
-                local_hash: anchor_hash,
-                ..
-            } if anchor_hash == local_hash
-        ) && matches!(record.kind, EvidenceKind::Symbol(actual) if actual != expected)
+    il.evidence_binding_anchored(local_hash).any(|record| {
+        matches!(record.kind, EvidenceKind::Symbol(actual) if actual != expected)
             && record.status == EvidenceStatus::Asserted
     })
 }
@@ -1155,7 +1149,8 @@ fn method_callee_receiver(
 }
 
 fn field_method_at_span(il: &Il, interner: &Interner, span: Span, expected: &str) -> bool {
-    il.nodes.iter().any(|node| {
+    il.nodes_spanning(span).any(|id| {
+        let node = il.node(id);
         node.span == span
             && node.kind == NodeKind::Field
             && matches!(node.payload, Payload::Name(method) if interner.resolve(method) == expected)
@@ -1264,11 +1259,11 @@ fn async_receiver_dependencies_at_span(
 
 fn node_at_span(il: &Il, span: Span) -> Option<NodeId> {
     let mut found = None;
-    for (idx, node) in il.nodes.iter().enumerate() {
+    for id in il.nodes_spanning(span) {
+        let node = il.node(id);
         if node.span != span {
             continue;
         }
-        let id = NodeId(idx as u32);
         match found {
             None => found = Some(id),
             Some(existing)
@@ -1281,11 +1276,11 @@ fn node_at_span(il: &Il, span: Span) -> Option<NodeId> {
 
 fn node_at_span_with_kind(il: &Il, span: Span, kind: NodeKind) -> Option<NodeId> {
     let mut found = None;
-    for (idx, node) in il.nodes.iter().enumerate() {
+    for id in il.nodes_spanning(span) {
+        let node = il.node(id);
         if node.span != span || node.kind != kind {
             continue;
         }
-        let id = NodeId(idx as u32);
         match found {
             None => found = Some(id),
             Some(existing) if il.node(existing).payload == node.payload => {}
@@ -1498,8 +1493,25 @@ fn domain_dependency_id_for_receiver_requirement(
     requirement: DomainRequirement,
     cache: &mut LibraryApiDependencyCache,
 ) -> Option<EvidenceId> {
+    // A record can match the receiver only when anchored at one of three spans
+    // (the receiver node itself, its unique binding LHS, or its declaring
+    // param — see `domain_dependency_anchor_matches_receiver`), so query those
+    // index buckets instead of scanning the whole evidence table. Candidates
+    // are visited in evidence order, exactly like the scan they replace.
+    let mut indices = il.evidence_indices_anchored_at(il.node(receiver).span);
+    if let EvidenceResolution::Found(lhs) =
+        unique_binding_lhs_for_var_reference_cached(il, receiver, cache)
+    {
+        indices.extend(il.evidence_indices_anchored_at(il.node(lhs).span));
+    }
+    if let Some(span) = receiver_param_span_cached(il, receiver, cache) {
+        indices.extend(il.evidence_indices_anchored_at(span));
+    }
+    indices.sort_unstable();
+    indices.dedup();
     let mut found = None;
-    for record in &il.evidence {
+    for idx in indices {
+        let record = &il.evidence[idx as usize];
         let EvidenceKind::Domain(domain) = record.kind else {
             continue;
         };
@@ -1572,15 +1584,13 @@ fn unique_binding_lhs_for_var_reference_with_cache(
     let scope = nearest_scope_cached(il, node, cache);
     let reference_is_free_name = matches!(il.node(node).payload, Payload::Name(_));
     let mut found = None;
-    for (idx, candidate) in il.nodes.iter().enumerate() {
-        if candidate.kind != NodeKind::Assign {
-            continue;
-        }
-        let assign = NodeId(idx as u32);
-        let assignment_scope = nearest_scope_cached(il, assign, cache);
-        if assignment_scope != scope && !(reference_is_free_name && assignment_scope.is_none()) {
-            continue;
-        }
+    // Same scope-bucketed candidate set as `evidence::unique_binding_lhs_for_var_reference`.
+    let module_level: &[NodeId] = if reference_is_free_name && scope.is_some() {
+        il.assigns_in_scope(None)
+    } else {
+        &[]
+    };
+    for &assign in il.assigns_in_scope(scope).iter().chain(module_level) {
         if !assignment_is_visible_at_reference(il, assign, node) {
             continue;
         }
@@ -1714,7 +1724,7 @@ fn sequence_surface_dependency_id_for_receiver(
     }
     let anchor = EvidenceAnchor::sequence(il.node(receiver).span);
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         let EvidenceKind::SequenceSurface(kind) = record.kind else {
             continue;
         };
@@ -1760,7 +1770,7 @@ fn static_index_membership_receiver_dependency_id_at_span(
     }
     let anchor = EvidenceAnchor::sequence(span);
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         let EvidenceKind::SequenceSurface(kind) = record.kind else {
             continue;
         };
@@ -1838,7 +1848,7 @@ fn symbol_dependency_id_for_node(
     expected: SymbolEvidenceKind,
 ) -> Option<EvidenceId> {
     let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
-    il.evidence.iter().find_map(|record| {
+    il.evidence_anchored_at(anchor.span()).find_map(|record| {
         (record.anchor == anchor
             && record.status == EvidenceStatus::Asserted
             && record.kind == EvidenceKind::Symbol(expected)
@@ -1854,7 +1864,7 @@ fn imported_symbol_dependency_id_for_node(
     expected: SymbolEvidenceKind,
 ) -> Option<EvidenceId> {
     let anchor = EvidenceAnchor::node(il.node(node).span, il.kind(node));
-    il.evidence.iter().find_map(|record| {
+    il.evidence_anchored_at(anchor.span()).find_map(|record| {
         (record.anchor == anchor
             && record.status == EvidenceStatus::Asserted
             && record.kind == EvidenceKind::Symbol(expected)
@@ -1874,7 +1884,7 @@ pub(crate) fn library_api_dependency_id_for_normalized_hof(
     let expected_contract_hash = library_api_contract_id_hash(expected_id);
     let anchor = EvidenceAnchor::node(il.node(receiver).span, NodeKind::Call);
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor
             || record.status != EvidenceStatus::Asserted
             || !il.evidence_dependencies_asserted(record)
@@ -2035,7 +2045,7 @@ fn library_api_dependency_id_for_canonical_builtin_call_contract(
     }
     let span = il.node(call).span;
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(span) {
         if !matches!(
             record.anchor,
             EvidenceAnchor::Node {
@@ -2186,7 +2196,7 @@ fn library_api_dependency_id_for_call_contract(
     }
     let anchor = EvidenceAnchor::node(il.node(call).span, NodeKind::Call);
     let mut found = None;
-    for record in &il.evidence {
+    for record in il.evidence_anchored_at(anchor.span()) {
         if record.anchor != anchor
             || record.status != EvidenceStatus::Asserted
             || !il.evidence_dependencies_asserted(record)
@@ -2873,17 +2883,7 @@ fn binding_symbol_evidence_consistent_for_local(
     expected: SymbolEvidenceKind,
 ) -> bool {
     let mut saw_symbol = false;
-    for record in &il.evidence {
-        let EvidenceAnchor::Binding {
-            local_hash: anchor_hash,
-            ..
-        } = record.anchor
-        else {
-            continue;
-        };
-        if anchor_hash != local_hash {
-            continue;
-        }
+    for record in il.evidence_binding_anchored(local_hash) {
         let EvidenceKind::Symbol(symbol) = record.kind else {
             continue;
         };

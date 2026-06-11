@@ -140,7 +140,7 @@ same breakdown for families with at least one exact fragment location. That make
 | `ranking.total_families` | integer | Active families remaining after rank-time pruning, filters, baseline suppression, and structured ignores, before `--top`. |
 | `ranking.shown_families` | integer | Families present in `families`. |
 | `ranking.limit` | integer or null | The `--top` limit; `null` means `--top 0` showed every family. |
-| `ranking.surface_counts` | object | Active family counts by `recommended_surface` before `--top`: `default`, `review`, `hidden`, `debug`, plus `fragments.total/default/review/hidden/debug` for families with exact fragment locations. |
+| `ranking.surface_counts` | object | Active family counts by effective surface before `--top`: `default`, `review`, `hidden`, `debug`, and `generated` (families wholly in generated-header source, which the human report omits from default output), plus `fragments.total/default/review/hidden/debug` for families with exact fragment locations. |
 | `baseline` | object, optional | Baseline comparison summary when `--baseline` is active. |
 | `ignore` | object, optional | Structured ignore summary when an ignore file was read. |
 | `families` | array | Active ranked clone families in JSON order, including diagnostic review/hidden families. Empty means no family survived the filters, baseline, and structured ignores. |

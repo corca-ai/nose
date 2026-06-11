@@ -6,6 +6,19 @@ break.
 
 ## [Unreleased]
 
+### Performance
+- Scans are 2–4× faster end-to-end on the benchmark corpus (sympy 20.0 → 4.7s,
+  redis 3.9 → 1.0s, git 2.7 → 1.1s wall; experiments §BQ) with byte-identical
+  output. The evidence passes and semantic-evidence queries that dominated
+  `normalize+extract` were quadratic — per-node helpers re-scanning the whole
+  `il.evidence`/`il.nodes` tables — and now go through index-backed lookups:
+  the anchor-span evidence index everywhere (emit-path dedup included, plus a
+  new binding-hash bucket and a staleness sentinel that survives
+  `clear()`/`retain()`), new lazy span→nodes and scope→assignments arena
+  indexes, a one-pass `ScopeMutationFacts` walk in binding evidence, and a
+  per-file (was per-unit) pure-inline candidate registry shared through
+  `ValueFingerprintContext`.
+
 ### Fixed
 - Rust units inside an inline `#[cfg(test)] mod tests` now classify as test
   scope (the path+name heuristic tagged them `prod`, distorting triage — the

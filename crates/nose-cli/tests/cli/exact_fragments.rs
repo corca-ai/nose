@@ -1767,28 +1767,11 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
 
     let assert_branch_pair =
         |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
-            let family = families
-                .iter()
-                .find(|family| {
-                    let locations = family["locations"].as_array().expect("locations");
-                    let branch_files: Vec<&str> = locations
-                        .iter()
-                        .filter(|loc| {
-                            loc["start_line"] == start_line && loc["end_line"] == end_line
-                        })
-                        .filter_map(|loc| loc["file"].as_str())
-                        .collect();
-                    branch_files.iter().any(|file| file.ends_with(left))
-                        && branch_files.iter().any(|file| file.ends_with(right))
-                        && locations.iter().all(|loc| loc["kind"] == "Block")
-                        && locations
-                            .iter()
-                            .filter_map(|loc| loc["file"].as_str())
-                            .all(|file| !file.ends_with(negative))
-                })
-                .unwrap_or_else(|| {
-                    panic!("missing ordered foreach-effect branch family {left}/{right}: {out}")
-                });
+            let family =
+                block_branch_pair_family(families, left, right, negative, start_line, end_line)
+                    .unwrap_or_else(|| {
+                        panic!("missing ordered foreach-effect branch family {left}/{right}: {out}")
+                    });
             assert!(
                 family["locations"]
                     .as_array()
@@ -1805,26 +1788,12 @@ fn semantic_scan_reports_exact_safe_ordered_foreach_effect_branch_fragments() {
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered foreach-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -1996,28 +1965,11 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
 
     let assert_branch_pair =
         |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
-            let family = families
-                .iter()
-                .find(|family| {
-                    let locations = family["locations"].as_array().expect("locations");
-                    let branch_files: Vec<&str> = locations
-                        .iter()
-                        .filter(|loc| {
-                            loc["start_line"] == start_line && loc["end_line"] == end_line
-                        })
-                        .filter_map(|loc| loc["file"].as_str())
-                        .collect();
-                    branch_files.iter().any(|file| file.ends_with(left))
-                        && branch_files.iter().any(|file| file.ends_with(right))
-                        && locations.iter().all(|loc| loc["kind"] == "Block")
-                        && locations
-                            .iter()
-                            .filter_map(|loc| loc["file"].as_str())
-                            .all(|file| !file.ends_with(negative))
-                })
-                .unwrap_or_else(|| {
-                    panic!("missing ordered mixed-effect branch family {left}/{right}: {out}")
-                });
+            let family =
+                block_branch_pair_family(families, left, right, negative, start_line, end_line)
+                    .unwrap_or_else(|| {
+                        panic!("missing ordered mixed-effect branch family {left}/{right}: {out}")
+                    });
             assert!(
                 family["locations"]
                     .as_array()
@@ -2034,26 +1986,12 @@ fn semantic_scan_reports_exact_safe_ordered_mixed_effect_branch_fragments() {
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered mixed-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -2241,28 +2179,12 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
 
     let assert_branch_pair =
         |left: &str, right: &str, negative: &str, start_line: u64, end_line: u64| {
-            let family = families
-                .iter()
-                .find(|family| {
-                    let locations = family["locations"].as_array().expect("locations");
-                    let branch_files: Vec<&str> = locations
-                        .iter()
-                        .filter(|loc| {
-                            loc["start_line"] == start_line && loc["end_line"] == end_line
-                        })
-                        .filter_map(|loc| loc["file"].as_str())
-                        .collect();
-                    branch_files.iter().any(|file| file.ends_with(left))
-                        && branch_files.iter().any(|file| file.ends_with(right))
-                        && locations.iter().all(|loc| loc["kind"] == "Block")
-                        && locations
-                            .iter()
-                            .filter_map(|loc| loc["file"].as_str())
-                            .all(|file| !file.ends_with(negative))
-                })
-                .unwrap_or_else(|| {
-                    panic!("missing ordered conditional-effect branch family {left}/{right}: {out}")
-                });
+            let family = block_branch_pair_family(
+                families, left, right, negative, start_line, end_line,
+            )
+            .unwrap_or_else(|| {
+                panic!("missing ordered conditional-effect branch family {left}/{right}: {out}")
+            });
             assert!(
             family["locations"]
                 .as_array()
@@ -2279,26 +2201,12 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_effect_branch_fragments(
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered conditional-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -2493,36 +2401,20 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
                               negative: &str,
                               start_line: u64,
                               end_line: u64| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let branch_files: Vec<&str> = locations
-                    .iter()
-                    .filter(|loc| loc["start_line"] == start_line && loc["end_line"] == end_line)
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                branch_files.iter().any(|file| file.ends_with(left))
-                    && branch_files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations
-                        .iter()
-                        .filter_map(|loc| loc["file"].as_str())
-                        .all(|file| !file.ends_with(negative))
-            })
-            .unwrap_or_else(|| {
-                panic!(
-                    "missing ordered conditional mixed-effect branch family {left}/{right}: {out}"
-                )
-            });
+        let family = block_branch_pair_family(
+            families, left, right, negative, start_line, end_line,
+        )
+        .unwrap_or_else(|| {
+            panic!("missing ordered conditional mixed-effect branch family {left}/{right}: {out}")
+        });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
-            "ordered conditional mixed-effect branch fragments should report as Block units: {family:?}"
-        );
+                family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .all(|loc| loc["kind"] == "Block"),
+                "ordered conditional mixed-effect branch fragments should report as Block units: {family:?}"
+            );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -2531,26 +2423,12 @@ fn semantic_scan_reports_exact_safe_ordered_conditional_mixed_effect_branch_frag
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered conditional mixed-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -2753,36 +2631,20 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
                               negative: &str,
                               start_line: u64,
                               end_line: u64| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let branch_files: Vec<&str> = locations
-                    .iter()
-                    .filter(|loc| loc["start_line"] == start_line && loc["end_line"] == end_line)
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                branch_files.iter().any(|file| file.ends_with(left))
-                    && branch_files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations
-                        .iter()
-                        .filter_map(|loc| loc["file"].as_str())
-                        .all(|file| !file.ends_with(negative))
-            })
-            .unwrap_or_else(|| {
-                panic!(
-                    "missing ordered loop conditional-effect branch family {left}/{right}: {out}"
-                )
-            });
+        let family = block_branch_pair_family(
+            families, left, right, negative, start_line, end_line,
+        )
+        .unwrap_or_else(|| {
+            panic!("missing ordered loop conditional-effect branch family {left}/{right}: {out}")
+        });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
-            "ordered loop conditional-effect branch fragments should report as Block units: {family:?}"
-        );
+                family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .all(|loc| loc["kind"] == "Block"),
+                "ordered loop conditional-effect branch fragments should report as Block units: {family:?}"
+            );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -2791,26 +2653,12 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_effect_branch_fragm
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered loop conditional-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
@@ -3013,36 +2861,21 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
                               negative: &str,
                               start_line: u64,
                               end_line: u64| {
-        let family = families
-            .iter()
-            .find(|family| {
-                let locations = family["locations"].as_array().expect("locations");
-                let branch_files: Vec<&str> = locations
-                    .iter()
-                    .filter(|loc| loc["start_line"] == start_line && loc["end_line"] == end_line)
-                    .filter_map(|loc| loc["file"].as_str())
-                    .collect();
-                branch_files.iter().any(|file| file.ends_with(left))
-                    && branch_files.iter().any(|file| file.ends_with(right))
-                    && locations.iter().all(|loc| loc["kind"] == "Block")
-                    && locations
-                        .iter()
-                        .filter_map(|loc| loc["file"].as_str())
-                        .all(|file| !file.ends_with(negative))
-            })
-            .unwrap_or_else(|| {
-                panic!(
-                    "missing ordered loop conditional mixed-effect branch family {left}/{right}: {out}"
-                )
-            });
+        let family =
+            block_branch_pair_family(families, left, right, negative, start_line, end_line)
+                .unwrap_or_else(|| {
+                    panic!(
+                "missing ordered loop conditional mixed-effect branch family {left}/{right}: {out}"
+            )
+                });
         assert!(
-            family["locations"]
-                .as_array()
-                .expect("locations")
-                .iter()
-                .all(|loc| loc["kind"] == "Block"),
-            "ordered loop conditional mixed-effect branch fragments should report as Block units: {family:?}"
-        );
+                family["locations"]
+                    .as_array()
+                    .expect("locations")
+                    .iter()
+                    .all(|loc| loc["kind"] == "Block"),
+                "ordered loop conditional mixed-effect branch fragments should report as Block units: {family:?}"
+            );
     };
 
     let assert_no_branch_pair = |left: &str,
@@ -3051,26 +2884,12 @@ fn semantic_scan_reports_exact_safe_ordered_loop_conditional_mixed_effect_branch
                                  left_end: u64,
                                  right_start: u64,
                                  right_end: u64| {
-        let has_branch_pair = families.iter().any(|family| {
-            let locations = family["locations"].as_array().expect("locations");
-            let has_left = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(left))
-                    && loc["start_line"] == left_start
-                    && loc["end_line"] == left_end
-            });
-            let has_right = locations.iter().any(|loc| {
-                loc["file"]
-                    .as_str()
-                    .is_some_and(|file| file.ends_with(right))
-                    && loc["start_line"] == right_start
-                    && loc["end_line"] == right_end
-            });
-            has_left && has_right
-        });
         assert!(
-            !has_branch_pair,
+            !families_pair_locations(
+                families,
+                (left, left_start, left_end),
+                (right, right_start, right_end),
+            ),
             "ordered loop conditional mixed-effect branch boundary must not merge {left}/{right}: {out}"
         );
     };
