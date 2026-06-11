@@ -134,77 +134,7 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
         set.warn_expired();
     }
 
-    // Flag families with *some but not all* members changed by the diff. Member paths are
-    // normalized to repo-relative first, so the family_id is stable across runs (the base
-    // worktree lives at a per-run temp path) and matches what `scan` and the ignore file use.
-    let prefix = canonical(&base_tree.path);
-    let mut lines = crate::FileLineCache::default();
-    let mut flagged: Vec<Divergence> = Vec::new();
-    for fam in &families {
-        let fam = repo_relative(fam, &prefix);
-        if ignore_set
-            .as_ref()
-            .is_some_and(|set| set.match_family(&fam).is_some())
-        {
-            continue;
-        }
-        let (changed_members, untouched): (Vec<&Loc>, Vec<&Loc>) = fam
-            .locations
-            .iter()
-            .partition(|loc| site_touched_loc(loc, &changed));
-        if !changed_members.is_empty() && !untouched.is_empty() {
-            // The #245 fire policy input: does the diff touch lines this changed
-            // member SHARES with an un-updated sibling (its span minus the
-            // varying spots)? §BR measured 51% of review false-fires as
-            // span-overlap-but-not-shared-logic; a gate fires only on proof.
-            let witness_kind = fam.witness.as_ref().map(|w| w.kind);
-            let touches: Vec<Option<bool>> = changed_members
-                .iter()
-                .map(|c| {
-                    touches_shared_lines(
-                        c,
-                        &untouched,
-                        witness_kind,
-                        &base_tree.path,
-                        &mut lines,
-                        &changed,
-                    )
-                })
-                .collect();
-            // All-test families are review context, not gate material: §BG-audit
-            // found test variants legitimately diverge, and on the §BR labels the
-            // scope term doubled gate precision at zero true-positive cost.
-            let fire_eligible = touches.iter().any(|t| *t == Some(true)) && fam.scope != "test";
-            flagged.push(Divergence {
-                family_id: crate::baseline::family_id(&fam),
-                similarity: fam.mean_score,
-                hazard: fam.hazard(),
-                review_priority: review_priority(&fam, &changed_members, &untouched),
-                // Heaviest changed member's value-graph size — a cheap complexity proxy. A
-                // small edit inside a computation-rich clone is the Krinke "critical change"
-                // profile (the most likely un-propagated fix); an edit in a trivial clone is
-                // likely benign.
-                complexity: changed_members.iter().map(|l| l.sem).max().unwrap_or(0),
-                scope: fam.scope,
-                witness_kind,
-                fire_eligible,
-                changed: changed_members
-                    .iter()
-                    .zip(&touches)
-                    .map(|(l, t)| to_site_touch(l, *t))
-                    .collect(),
-                not_updated: untouched.iter().map(|l| to_site(l)).collect(),
-            });
-        }
-    }
-    // Most likely un-propagated fix first.
-    flagged.sort_by(|a, b| {
-        b.review_priority
-            .cmp(&a.review_priority)
-            .then(b.hazard.total_cmp(&a.hazard))
-            .then(b.complexity.cmp(&a.complexity))
-            .then(b.similarity.total_cmp(&a.similarity))
-    });
+    let flagged = flag_divergences(&families, ignore_set.as_ref(), &changed, &base_tree.path);
 
     // base_tree is removed by Drop after we finish reading families.
     drop(base_tree);
@@ -226,6 +156,78 @@ pub(crate) fn cmd_review(args: ReviewArgs) -> Result<()> {
         }
     }
     Ok(())
+}
+
+/// Flag families with *some but not all* members changed by the diff, most likely
+/// un-propagated fix first. Member paths are normalized to repo-relative first, so the
+/// family_id is stable across runs (the base worktree lives at a per-run temp path) and
+/// matches what `scan` and the ignore file use.
+fn flag_divergences(
+    families: &[RefactorFamily],
+    ignore_set: Option<&crate::ignores::IgnoreSet>,
+    changed: &HashMap<String, Vec<(u32, u32)>>,
+    base_root: &Path,
+) -> Vec<Divergence> {
+    let prefix = canonical(base_root);
+    let mut lines = crate::FileLineCache::default();
+    let mut flagged: Vec<Divergence> = Vec::new();
+    for fam in families {
+        let fam = repo_relative(fam, &prefix);
+        if ignore_set.is_some_and(|set| set.match_family(&fam).is_some()) {
+            continue;
+        }
+        let (changed_members, untouched): (Vec<&Loc>, Vec<&Loc>) = fam
+            .locations
+            .iter()
+            .partition(|loc| site_touched_loc(loc, changed));
+        if changed_members.is_empty() || untouched.is_empty() {
+            continue;
+        }
+        // The #245 fire policy input: does the diff touch lines this changed
+        // member SHARES with an un-updated sibling (its span minus the
+        // varying spots)? §BR measured 51% of review false-fires as
+        // span-overlap-but-not-shared-logic; a gate fires only on proof.
+        let witness_kind = fam.witness.as_ref().map(|w| w.kind);
+        let touches: Vec<Option<bool>> = changed_members
+            .iter()
+            .map(|c| {
+                touches_shared_lines(c, &untouched, witness_kind, base_root, &mut lines, changed)
+            })
+            .collect();
+        // All-test families are review context, not gate material: §BG-audit
+        // found test variants legitimately diverge, and on the §BR labels the
+        // scope term doubled gate precision at zero true-positive cost.
+        let fire_eligible = touches.contains(&Some(true)) && fam.scope != "test";
+        flagged.push(Divergence {
+            family_id: crate::baseline::family_id(&fam),
+            similarity: fam.mean_score,
+            hazard: fam.hazard(),
+            review_priority: review_priority(&fam, &changed_members, &untouched),
+            // Heaviest changed member's value-graph size — a cheap complexity proxy. A
+            // small edit inside a computation-rich clone is the Krinke "critical change"
+            // profile (the most likely un-propagated fix); an edit in a trivial clone is
+            // likely benign.
+            complexity: changed_members.iter().map(|l| l.sem).max().unwrap_or(0),
+            scope: fam.scope,
+            witness_kind,
+            fire_eligible,
+            changed: changed_members
+                .iter()
+                .zip(&touches)
+                .map(|(l, t)| to_site_touch(l, *t))
+                .collect(),
+            not_updated: untouched.iter().map(|l| to_site(l)).collect(),
+        });
+    }
+    // Most likely un-propagated fix first.
+    flagged.sort_by(|a, b| {
+        b.review_priority
+            .cmp(&a.review_priority)
+            .then(b.hazard.total_cmp(&a.hazard))
+            .then(b.complexity.cmp(&a.complexity))
+            .then(b.similarity.total_cmp(&a.similarity))
+    });
+    flagged
 }
 
 /// Clone the family with every member path made repo-relative (stripping the base-worktree
