@@ -34,6 +34,11 @@ break.
   `nose capabilities` advertises the new `scan.default_modes` truthfully.
 
 ### Added
+- `NOSE_ANCHOR_MIN_WEIGHT` research knob: overrides the sub-DAG anchor weight
+  floor (default 20). The #248 sweep (experiments §BW) measured floor 8 at
+  +0.9pp held-out worthy-recall with flat P@10 and consolidated corpus
+  families, but 3× more small families on near-only gate surfaces — so the
+  default stays conservative and recall-first consumers can opt in.
 - `nose verify`'s oracle now explores BOTH arms of a symbolic If/ternary
   condition under recorded assumptions instead of bailing the unit (#244,
   experiments §BU): conditioned, never guessed — each path's trace carries a

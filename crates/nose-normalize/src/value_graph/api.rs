@@ -42,14 +42,32 @@ pub fn value_fingerprint_lits(
 
 /// The default minimum sub-computation size (in value-nodes) for a node to be an extractable
 /// anchor. Below this a shared sub-DAG is a common idiom (`x+1`, `len(xs)`), not a refactor.
+/// The #248 sweep (experiments §BW) measured the §BJ 8–20 band: floor 8 gains real
+/// worthy-recall (+0.9pp held-out, flat P@10, default-surface families CONSOLIDATE on
+/// corpus repos) but floods the near-only gate surface with small families (nose's own
+/// dup-gate 24 → 73) — recall-positive, burden-heavy. The default stays 20; recall-first
+/// consumers can set `NOSE_ANCHOR_MIN_WEIGHT=8`.
 pub const ANCHOR_MIN_WEIGHT: u32 = 20;
+
+/// The effective anchor weight floor: `ANCHOR_MIN_WEIGHT` unless the research
+/// knob `NOSE_ANCHOR_MIN_WEIGHT` overrides it (#248 — the §BJ 8–20 band sweep).
+/// A research surface like `NOSE_ANCHOR_SCORE*`, not a product setting.
+pub fn anchor_min_weight() -> u32 {
+    static V: OnceLock<u32> = OnceLock::new();
+    *V.get_or_init(|| {
+        std::env::var("NOSE_ANCHOR_MIN_WEIGHT")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(ANCHOR_MIN_WEIGHT)
+    })
+}
 
 /// Heavy sub-DAG anchor hashes of a unit — see `Builder::anchors`. Two units sharing a (rare)
 /// anchor share an extractable sub-computation: a partial / sub-DAG clone.
 pub fn value_anchors(il: &Il, root: NodeId, interner: &Interner) -> Anchors {
     let mut b = Builder::new(il, interner);
     b.build_unit(root);
-    b.anchors(ANCHOR_MIN_WEIGHT)
+    b.anchors(anchor_min_weight())
 }
 
 /// `value_fingerprint_lits` plus the unit's heavy sub-DAG anchors, all from ONE value-graph
@@ -101,7 +119,7 @@ pub fn value_fingerprint_lits_anchors_laws_with_context(
 
 fn finish_fingerprint_law_bundle(mut b: Builder<'_>) -> FingerprintLawBundle {
     let (v, l, r) = b.fingerprint_lits();
-    let a = b.anchors(ANCHOR_MIN_WEIGHT);
+    let a = b.anchors(anchor_min_weight());
     b.value_laws.sort_unstable();
     b.value_laws.dedup();
     (v, l, r, a, b.value_laws)

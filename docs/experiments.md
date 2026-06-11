@@ -1667,3 +1667,44 @@ work are the levers, not more gate logic. The §BG-gold3 ordering result also
 closes here: all 5 positives sat at rank 0 under review's existing
 priority/complexity ordering on this labelset — the post-divergence ordering
 already works; the gate needed precision, not better ranking (#23's answer).
+
+## BW. Re-sweeping two shelved knobs — one stays shelved, one yields a usable knob
+
+#248 executed the §AY discipline (re-sweep old blockers when the system improves)
+on the two smallest parked items.
+
+**Num-gated doubling (`x*2 ≡ x+x`) — still rejected, now with corpus evidence.**
+§AY rejected it for verify cost, §BA for cross-language soundness (the canonical
+form depends on operands proving Num — since supplied by `ValueDomain`). Before
+re-implementing, the §BS behavior-keyed instrument gave a prevalence check the
+original attempts never had: across all 163 corpus-wide behavior-equal
+fingerprint-split leads, **zero** pairs are split by the doubling representation
+(4 textual `x+x`/`2*x` matches, all in battery-artifact pairs of unrelated
+computations). Doubling is precisely the numeric shape the oracle interprets
+best, so the instrument's blind spot argument is weak here. Verdict: the idiom
+splits nothing real; rejected without re-implementation — the re-sweep's value
+is the evidence trail.
+
+**The §BJ 8–20 anchor-mass band — measured, knob shipped, default kept.**
+`NOSE_ANCHOR_MIN_WEIGHT` (research surface, like `NOSE_ANCHOR_SCORE*`) now
+overrides the anchor weight floor; the never-run §BJ sweep ran at 20/16/12/8
+(105 repos, native order):
+
+| floor | dev P@10 | dev recall | heldout P@10 | heldout recall |
+|---|---:|---:|---:|---:|
+| 20 (default) | 58% [54–64] | 95.2% | 55% [49–60] | 96.9% |
+| 16 | 58% [53–63] | 95.4% | 54% [48–59] | 97.1% |
+| 12 | 61% [56–66] | 95.7% | 54% [48–59] | 97.3% |
+| 8 | 60% [55–65] | 96.6% | 55% [49–60] | **97.8%** |
+
+The recall gain is real and monotone (+1.4pp dev / +0.9pp held-out at floor 8)
+with P@10 flat across overlapping CIs — and on corpus repos the default surface
+CONSOLIDATES (more shared anchors merge related families: netty 4,882 → 3,120
+total) at a 5–15% scan-time cost. §BJ's "weak refactor targets" expectation was
+half wrong. The other half was right where it bites: on the near-only gate
+surface, nose's own dup-gate jumps 24 → 73 "substantial" families — the band IS
+dense in small real-but-marginal near-duplicates, and the dogfood budget is a
+never-loosen ratchet. **Verdict: default stays 20; the knob ships.** A
+recall-first consumer (design §2's agent) can set `NOSE_ANCHOR_MIN_WEIGHT=8` for
++0.9pp held-out worthy-recall at no measured precision cost; gate-shaped
+surfaces keep the conservative floor.
