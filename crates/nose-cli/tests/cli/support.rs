@@ -55,6 +55,20 @@ pub(crate) fn make_mode_project(tag: &str) -> PathBuf {
     fs::write(dir.join("copy_a.py"), copied).unwrap();
     fs::write(dir.join("copy_b.py"), copied).unwrap();
 
+    // A near-duplicate pair: mostly the same body, but each side has one
+    // statement the other lacks — different raw tokens (no syntax run),
+    // different value fingerprints (no exact semantic), near-similar shape.
+    fs::write(
+        dir.join("near_a.py"),
+        "def fetch_users(client, ids):\n    results = []\n    for uid in ids:\n        row = client.get(uid)\n        if row is None:\n            continue\n        results.append(normalize(row))\n    log_count(len(results))\n    return results\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.join("near_b.py"),
+        "def fetch_orders(client, keys):\n    found = []\n    for key in keys:\n        record = client.get(key)\n        if record is None:\n            continue\n        found.append(normalize(record))\n        audit(record)\n    return found\n",
+    )
+    .unwrap();
+
     dir
 }
 

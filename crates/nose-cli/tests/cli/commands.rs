@@ -1541,7 +1541,7 @@ fn capabilities_command_reports_scan_surface() {
     );
     assert_eq!(
         json_array_strings(&json["scan"], "default_modes"),
-        vec!["syntax", "semantic"]
+        vec!["syntax", "semantic", "near"]
     );
     assert_eq!(
         json_array_strings(&json["scan"], "output_formats"),

@@ -57,7 +57,10 @@ touched, not that the change definitely belongs there. Review each flagged sibli
 
 The review command shares the detection flags with [scan](usage.md): `--mode`
 (`syntax`/`semantic`/`near[:T]`), `--min-size`, advanced `--min-lines`, `--exclude`,
-`--config`.
+`--config`. One deliberate difference: review's default mix stays the conservative
+`syntax,semantic` (scan's default also includes `near`) — review feeds a gate, where a
+false fire costs more than a missed candidate. Add `--mode syntax,semantic,near` to
+review with the fuzzy channel included.
 
 | flag | effect |
 |---|---|

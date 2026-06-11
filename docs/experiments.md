@@ -1183,6 +1183,27 @@ that consumer. With no held-out precision hit and a measured +8.2pp held-out
 worthy-recall gain, keeping `near` opt-in would leave proven useful candidates behind
 the flag that the primary consumer is least likely to remember.
 
+### BM.4 — the flip, shipped + post-flip sanity re-run (#241, 2026-06-11)
+
+The verdict was executed in #241: `nose scan`'s default is now
+`syntax,semantic,near` (an explicit `--mode`/config `mode` still replaces it;
+`nose review`'s default deliberately stays `syntax,semantic` — review feeds a
+gate, and this experiment priced the scan surface only). Post-flip sanity on the
+then-current binary (post-§BP/§BQ, so absolute numbers differ from the BM.1–BM.2
+tables), default arm vs pinned `--mode syntax,semantic`
+(`bench/labels/near_default_flip_sanity_2026_06_11.txt`):
+
+| arm | split | P@10 | worthy-recall |
+|---|---|---:|---:|
+| `syntax,semantic` (old default) | dev | 59% [54–64] | 86.3% |
+| default (flipped) | dev | 58% [54–64] | 95.2% |
+| `syntax,semantic` (old default) | heldout | 52% [47–58] | 88.7% |
+| default (flipped) | heldout | 55% [49–60] | **96.9%** |
+
+The §BM direction reproduces exactly: held-out worthy-recall +8.2pp, held-out
+P@10 +3pp (within CI), dev P@10 flat. CI/baseline migration notes are in the
+CHANGELOG entry.
+
 ## BN. Ruby test-DSL blocks — turn invisible test bodies into block units
 
 Issue #214 investigated the Ruby no-overlapping-unit misses left by §BJ. The

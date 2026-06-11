@@ -6,9 +6,11 @@ and runs fast on every push.
 
 ## The `--fail-on any` gate
 
-`--fail-on any` makes nose exit non-zero if **any** family survives the filters. Pick the
-channels deliberately: `--mode syntax` is the closest jscpd replacement, while the
-default also reports exact semantic Type-4 clones.
+`--fail-on any` makes nose exit non-zero if **any** family survives the filters.
+**A gate should pin `--mode` explicitly** rather than ride the default: the default mix
+serves the report/agent surface and now includes fuzzy `near` candidates, and a pinned
+mode keeps the gate's surface stable across nose upgrades. `--mode syntax` is the
+closest jscpd replacement.
 
 For a jscpd-style copy-paste gate:
 
@@ -16,10 +18,10 @@ For a jscpd-style copy-paste gate:
 nose scan src --mode syntax --fail-on any
 ```
 
-For a broader exact gate, omit `--mode` and keep only substantial findings:
+For a broader exact gate, pin both exact channels and keep only substantial findings:
 
 ```sh
-nose scan src --min-value 300 --min-members 3 --fail-on any
+nose scan src --mode syntax,semantic --min-value 300 --min-members 3 --fail-on any
 ```
 
 To include Type-3 near-duplicates in a review ratchet, add `near` and tune the fuzzy

@@ -70,15 +70,16 @@ The detector is parallel at every stage and designed for deterministic output; t
 repeat runs and thread-count variation on the local platform. The archived §T run measured
 about **19,500 files/sec** warm on its pinned corpus/hardware, with frontend parse+lower
 dominating and scaling about 11.6x on 18 cores. `NOSE_TIME=1 nose scan <path> --top 0`
-prints the per-stage breakdown for your machine. Add
-`--mode syntax,semantic,near` when measuring the full review surface. See
+prints the per-stage breakdown for your machine. The default mode already runs
+the full `syntax,semantic,near` surface. See
 experiments §T for the throughput work.
 
 ## The research commands
 
-The everyday surface is `nose scan` ([usage](usage.md)). The exact default is
-`syntax,semantic`; benchmark runs that evaluate review-oriented Type-3 candidates should
-enable `near` explicitly. The benchmark also uses a hidden research surface:
+The everyday surface is `nose scan` ([usage](usage.md)). The default mix is
+`syntax,semantic,near` (experiments §BM priced the flip); benchmark runs that need the
+pre-flip exact-only surface pin `--mode syntax,semantic` explicitly. The benchmark also
+uses a hidden research surface:
 
 - `nose detect <paths> --out preds.json` — raw clone pairs/groups (the signal before the
   refactoring-family grouping).

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn default_mode_runs_syntax_and_semantic() {
+fn default_mode_runs_syntax_semantic_and_near() {
     let dir = make_mode_project("default_modes");
     let p = dir.to_str().unwrap();
     let out = run(&["scan", p, "--min-size", "12", "--format", "json"]);
@@ -13,6 +13,12 @@ fn default_mode_runs_syntax_and_semantic() {
         out.contains("renamed_a.py") && out.contains("renamed_b.py"),
         "default mode includes semantic: {out}"
     );
+    // §BM / #241: the default surface includes unthresholded `near`.
+    assert!(
+        out.contains("near_a.py") && out.contains("near_b.py"),
+        "default mode includes near: {out}"
+    );
+    // An explicit --mode replaces the default, so the near pair drops out.
     let repeated = run(&[
         "scan",
         p,
@@ -32,6 +38,10 @@ fn default_mode_runs_syntax_and_semantic() {
     assert!(
         repeated.contains("renamed_a.py") && repeated.contains("renamed_b.py"),
         "repeated --mode includes semantic: {repeated}"
+    );
+    assert!(
+        !repeated.contains("near_a.py"),
+        "explicit --mode replaces the default; near must not run: {repeated}"
     );
     let _ = fs::remove_dir_all(&dir);
 }

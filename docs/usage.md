@@ -39,7 +39,8 @@ from-source `./target/release/nose`.
 `.gitignore` files inside each scanned tree), groups duplicated code into **families**, and
 ranks them by **extractability** — how cleanly each family folds into one shared helper — so the
 duplication you can actually act on surfaces first. With no `--mode`, it runs
-`syntax,semantic`: CPD-style syntax runs plus exact semantic Type-4 clones.
+`syntax,semantic,near`: CPD-style syntax runs, exact semantic Type-4 clones, and
+fuzzy Type-3 near-duplicates.
 
 ```sh
 nose scan path/to/project
@@ -118,10 +119,11 @@ Structured suppressions are covered in [structured-ignores](structured-ignores.m
 
 ### Scan modes
 
-`nose scan` has three stable orthogonal channels. Omitting `--mode` runs
-`syntax,semantic`. When `--mode` is present, nose runs exactly the channels you
-list; it does not add them to the default. See [clone-types](clone-types.md) for
-what each finds against the standard Type-1–4 taxonomy.
+`nose scan` has three stable orthogonal channels. Omitting `--mode` runs all
+three: `syntax,semantic,near`. When `--mode` is present, nose runs exactly the
+channels you list; it does not add them to the default. See
+[clone-types](clone-types.md) for what each finds against the standard Type-1–4
+taxonomy.
 
 | mode | clone type | detector channel | use when |
 |---|---|---|---|
@@ -132,11 +134,11 @@ what each finds against the standard Type-1–4 taxonomy.
 Examples:
 
 ```sh
-nose scan src                                  # syntax + semantic
+nose scan src                                  # syntax + semantic + near (the default)
 nose scan src --mode syntax --fail-on any             # jscpd-style gate
 nose scan src --mode semantic                  # exact Type-4 only
 nose scan src --mode near:0.70                 # Type-3 only
-nose scan src --mode syntax,semantic,near      # all channels
+nose scan src --mode syntax,semantic           # exact channels only, no fuzzy near
 nose scan src --mode syntax --mode semantic    # same as --mode syntax,semantic
 ```
 
