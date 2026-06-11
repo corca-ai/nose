@@ -84,8 +84,12 @@ impl<'a> Builder<'a> {
     /// an active-builder receiver alone does not prove that a raw method selector has
     /// builder-append semantics.
     pub(super) fn list_append_parts(&self, e: NodeId) -> Option<(u32, Vec<NodeId>)> {
+        // Ruby's shovel `out << item` is form-only recognition: it admits an append
+        // ONLY through the active-builder gates below/in the callers (the empty-list
+        // seed is the receiver proof), so an integer's `<<` stays a shift.
         let (receiver, item) = builder_append_call_args(self.il, self.interner, e)
-            .or_else(|| admitted_builder_append_method_call_args(self.il, self.interner, e))?;
+            .or_else(|| admitted_builder_append_method_call_args(self.il, self.interner, e))
+            .or_else(|| ruby_shovel_append_parts(self.il, e))?;
         let (NodeKind::Var, Payload::Cid(c)) =
             (self.il.kind(receiver), self.il.node(receiver).payload)
         else {

@@ -8,7 +8,7 @@ use crate::{
 };
 use nose_il::{
     stable_symbol_hash, Builtin, EffectEvidenceKind, EvidenceAnchor, EvidenceKind, EvidenceStatus,
-    Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Payload, PlaceEvidenceKind,
+    Il, Interner, Lang, LibraryApiEvidenceKind, NodeId, NodeKind, Op, Payload, PlaceEvidenceKind,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -584,6 +584,27 @@ pub fn builder_append_call_args(
         EvidenceResolution::Found(_) | EvidenceResolution::Ambiguous => None,
         EvidenceResolution::Missing => None,
     }
+}
+
+/// `(receiver, value)` of Ruby's shovel form `recv << item`.
+///
+/// The operator alone is NOT proof — integer `<<` is a shift, and any object can
+/// overload `<<`. This recognizes only the syntactic form; admission mirrors
+/// `MethodEffectReceiverContract::ActiveCollectionBuilder`: the caller must hold an
+/// ACTIVE list builder for the receiver (seeded by a proven empty list literal),
+/// which is what makes the shovel an append rather than a shift. A receiver without
+/// that seed proof never becomes a builder, so its `<<` stays an ordinary `Shl`.
+pub fn ruby_shovel_append_parts(il: &Il, node: NodeId) -> Option<(NodeId, NodeId)> {
+    if il.meta.lang != Lang::Ruby
+        || il.kind(node) != NodeKind::BinOp
+        || !matches!(il.node(node).payload, Payload::Op(Op::Shl))
+    {
+        return None;
+    }
+    let [recv, item] = il.children(node) else {
+        return None;
+    };
+    Some((*recv, *item))
 }
 
 /// `(receiver, value)` of a source method call whose append meaning is proven by

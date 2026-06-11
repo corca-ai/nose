@@ -6,6 +6,14 @@ break.
 
 ## [Unreleased]
 
+### Added
+- Ruby `for x in xs … out << e` builder loops now converge with comprehensions
+  and builder loops across languages in the exact semantic channel (#247,
+  experiments §BT). The shovel is admitted as an append only through the
+  active-builder seed proof (`out = []`); an integer-seeded `<<` stays a shift,
+  a parameter receiver never builds, and `each`-block builders remain pack-gated
+  (no Enumerable inference from a method name).
+
 ### Changed
 - **`nose scan`'s default channel mix is now `syntax,semantic,near`** (#241,
   experiments §BM): omitting `--mode` also runs the fuzzy Type-3 `near` channel
@@ -36,6 +44,10 @@ break.
   `ValueFingerprintContext`.
 
 ### Fixed
+- Ruby `for x in xs` loops are no longer excluded from the exact channel:
+  tree-sitter-ruby wraps the iterable in an `in` node, which lowered to an
+  exact-unsafe `Raw("in")` and split every Ruby `for` loop from its
+  cross-language equivalents (#247).
 - `nose review --format json|sarif` now emits its machine contract (an empty
   findings envelope) instead of a human sentence when the diff has nothing
   reviewable — e.g. an adds-only change. Found by the #243 fire-precision

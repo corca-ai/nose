@@ -6647,3 +6647,79 @@ fn two_argument_min_max_interpret_as_two_way_selection() {
         "min(3, 1) is 1 and max(3, 1) is 3"
     );
 }
+
+/// Ruby `for x in xs … out << e` is the same list build as a Python comprehension:
+/// `for..in` is a language construct (no receiver proof needed, unlike `each`), and
+/// the shovel is admitted as an append ONLY through the active-builder seed proof
+/// (`out = []`). The shovel operator alone proves nothing — an integer-seeded `<<`
+/// stays a shift, and a parameter receiver (no seed) never becomes a builder.
+#[test]
+fn ruby_for_in_shovel_builder_converges_with_comprehension() {
+    let i = Interner::new();
+    let comp = value_fp(
+        &i,
+        "def f(xs):\n    return [x * x for x in xs]\n",
+        Lang::Python,
+    );
+    let ruby_for = value_fp(
+        &i,
+        "def f(xs)\n  out = []\n  for x in xs\n    out << x * x\n  end\n  out\nend\n",
+        Lang::Ruby,
+    );
+    assert_eq!(comp, ruby_for, "ruby for-in shovel builder ≡ comprehension");
+
+    // Adjacent hard negative: a different per-element contribution stays distinct.
+    let ruby_diff = value_fp(
+        &i,
+        "def f(xs)\n  out = []\n  for x in xs\n    out << x + 1\n  end\n  out\nend\n",
+        Lang::Ruby,
+    );
+    assert_ne!(
+        ruby_for, ruby_diff,
+        "different contribution must stay distinct"
+    );
+
+    // Hard negative: an integer-seeded `<<` is a SHIFT — must not become a builder
+    // (and must stay distinct from a doubling accumulator, which it behaviorally is not
+    // for non-trivial seeds; here the point is it must not merge with the list build).
+    let ruby_shift = value_fp(
+        &i,
+        "def f(xs)\n  acc = 1\n  for x in xs\n    acc = acc << 1\n  end\n  acc\nend\n",
+        Lang::Ruby,
+    );
+    assert_ne!(
+        ruby_for, ruby_shift,
+        "integer shovel is a shift, not an append"
+    );
+
+    // Hard negative: a parameter receiver has no empty-list seed proof, so its
+    // shovel never builds — the loop keeps its opaque per-element effect.
+    let ruby_param = value_fp(
+        &i,
+        "def f(xs, out)\n  for x in xs\n    out << x * x\n  end\n  out\nend\n",
+        Lang::Ruby,
+    );
+    assert_ne!(
+        comp, ruby_param,
+        "shovel to an unproven (parameter) receiver must stay closed"
+    );
+}
+
+/// The bare Ruby `for x in xs` loop converges with Python's: tree-sitter-ruby wraps
+/// the iterable in an `in` node, which must lower to the iterable itself, not an
+/// exact-unsafe `Raw("in")`.
+#[test]
+fn ruby_for_in_loop_converges_with_python_for() {
+    let i = Interner::new();
+    let rb = value_fp(
+        &i,
+        "def f(xs)\n  for x in xs\n    y = x\n  end\n  0\nend\n",
+        Lang::Ruby,
+    );
+    let py = value_fp(
+        &i,
+        "def f(xs):\n    for x in xs:\n        y = x\n    return 0\n",
+        Lang::Python,
+    );
+    assert_eq!(rb, py, "ruby for-in ≡ python for (no Raw iterable wrapper)");
+}

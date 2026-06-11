@@ -202,9 +202,19 @@ fn lower_for(lo: &mut Lowering, node: TsNode) -> NodeId {
         .child_by_field_name("pattern")
         .map(|p| lower_expr(lo, p))
         .unwrap_or_else(|| lo.empty_block(span));
+    // tree-sitter-ruby wraps the iterable in an `in` node (`for x in xs` →
+    // value: (in (identifier))); lower the wrapped expression, not the wrapper,
+    // or the iterable becomes an exact-unsafe `Raw("in")`.
     let iter = node
         .child_by_field_name("value")
-        .map(|v| lower_expr(lo, v))
+        .map(|v| {
+            let target = if v.kind() == "in" {
+                Lowering::named_children(v).into_iter().next().unwrap_or(v)
+            } else {
+                v
+            };
+            lower_expr(lo, target)
+        })
         .unwrap_or_else(|| lo.empty_block(span));
     let body = node
         .child_by_field_name("body")

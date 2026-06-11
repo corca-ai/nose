@@ -96,7 +96,7 @@ use nose_semantics::{
     imported_literal_producer_evidence_for_node, imported_namespace_symbol,
     map_builder_index_write_contract, nullish_global_contract, opaque_argument_escape_args,
     own_property_guard_for_node, receiver_mutation_call_receiver, record_shape_guard_for_node,
-    reduction_builtin_contract, semantics, seq_surface_contract_for_node,
+    reduction_builtin_contract, ruby_shovel_append_parts, semantics, seq_surface_contract_for_node,
     source_comprehension_at_node, source_operator_at_node, source_pattern_at_node,
     source_range_at_node, unproven_membership_like_method_contract, BuiltinArgContract,
     CBytePackWidth, CardinalityPredicate, CardinalityThreshold, ComparisonLaw, DomainEvidence,

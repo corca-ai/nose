@@ -100,29 +100,39 @@ Remaining structural axes are larger NEW MECHANISMS (not gate alignments), track
 **extract-method / interprocedural pure inlining**. These need their own design + the same
 validation discipline.
 
-## L5 — ruby `arr << x` builder (`<<` = `Shl`) — ✅ RESOLVED (scoped append)
+## L5 — ruby `arr << x` builder (`<<` = `Shl`) — ✅ RESOLVED (#247: seed-proven shovel append)
 
-ruby flat_map builder loop stays a gap: `out << y` lowers to `(binop Shl out y)` (ruby `<<` is
-overloaded shift/append). The builder loop's value graph is a shift recurrence, not an append,
-so it never matches the `flat_map`. Fix is in the ruby frontend (lower `<<` as append when the
-receiver is array-like) and is inherently ambiguous without type/context — a separate frontend
-lead, not a value-graph/gate alignment. Low-to-medium value; deferred.
+`out << y` lowers to `(binop Shl out y)` — ruby `<<` is overloaded shift/append, so the
+operator alone proves nothing. The original note proposed a frontend "lower `<<` as append
+when the receiver is array-like" and correctly deferred it as type-ambiguous. The shipped
+resolution (#247) keeps the proof where it already lives: `ruby_shovel_append_parts`
+(nose-semantics) recognizes only the *form*, and admission goes through the active-builder
+machinery — the receiver must be a local var seeded by a proven empty list literal
+(`out = []`), exactly the `MethodEffectReceiverContract::ActiveCollectionBuilder` contract.
+An integer-seeded `<<` stays a shift; a parameter receiver (no seed) never builds; the
+`each`-block form stays pack-gated (no Enumerable inference from the method name). The same
+issue fixed the prerequisite frontend bug: tree-sitter-ruby wraps the `for x in xs` iterable
+in an `in` node, which lowered to an exact-unsafe `Raw("in")` — every ruby `for` loop was
+out of the exact channel. Tests: `ruby_for_in_shovel_builder_converges_with_comprehension`
+(positive + shift/parameter/contribution hard negatives),
+`ruby_for_in_loop_converges_with_python_for`. Ruby-corpus scan diff: zero detection change
+(idiomatic ruby uses `each`, which stays closed by design) — this closes the cross-language
+evenness gap, not a corpus-recall one.
 
 ## L6 — go composite-literal disambiguation + functional-append builder — ✅ RESOLVED
 
-Cross-language builder loops (`out := []T{}; for … out = append(out, e)` in Go; `new ArrayList`
-+ `.add` in Java) do not converge with the comprehension/`.map` form. Investigation:
-- The VALUE GRAPH *can* be made to converge them. Go's functional append `r = append(r, e)`
-  (an `Assign` whose RHS is `Append(r, …)`) is recognizable as the same per-element `Map` build
-  as the effect-form `r.append(e)`; with that recognition the Go builder's value fingerprint
-  becomes byte-identical to the Python comprehension (verified end-to-end in a spike).
-- But the EXACT channel is then blocked at the gate: the Go seed `[]int{}` lowers to a
-  `Seq("composite_literal")`, which `strict_exact_safe_seq` rejects. Admitting it is NOT a clean
-  L2-style alignment: `composite_literal` is also Go's MAP and STRUCT literal syntax, and the
-  value graph already tags all three `Seq(1)` — so opening the gate would let `Point{1,2}`
-  merge with `[]int{1,2}` / `[1,2]` (a struct ≡ slice false merge). Sound admission needs Go
-  type/context info (slice vs map vs struct). Java `.add` (List vs Set) and Ruby `<<`
-  (shift vs append, L5) have the same shape of ambiguity.
-- These are therefore NOT quick gate-alignments like L1/L2; they need a typed/contextual
-  collection-kind proof to stay sound. Deferred (the spike value-graph change was reverted to
-  avoid shipping a fingerprint change with no sound exact-channel payoff).
+Originally deferred for the same ambiguity shape: the Go seed `[]int{}` lowered to the same
+`Seq("composite_literal")` as Go MAP and STRUCT literals, so opening `strict_exact_safe_seq`
+blindly would merge `Point{1,2}` with `[]int{1,2}` (a struct ≡ slice false merge). Resolved
+since by the typed/contextual collection-kind route the deferral asked for: the Go frontend
+now distinguishes the literal kinds at lowering (`array` vs `composite_literal` (map) vs
+`go_struct` — `lower_composite_literal`, keyed on the tree-sitter `type` field), the
+functional append `r = append(r, e)` is recognized as the per-element build
+(`try_record_reassign_append`), and Java `new ArrayList` + `.add` is admitted only under
+import/shadow proof (`lower_empty_java_collection_constructor` + library-API evidence).
+Locked by `go_functional_append_builder_loop_converges_with_comprehension`,
+`java_arraylist_add_builder_loop_converges_with_comprehension`, and the unimported/shadowed
+Java hard negatives. Builder-loop ≡ comprehension now converges in the exact channel for
+python/js/ts/rust/go/java, and for ruby via the `for..in` + shovel form (L5); ruby
+`each`/`map` on bare receivers remain pack-gated by design, and C has no comparable
+builder idiom (out of scope).

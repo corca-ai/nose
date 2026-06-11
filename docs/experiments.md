@@ -1534,3 +1534,42 @@ representative pair — so this measures the *oracle-visible* frontier, not the
 absolute one. The cheap re-run path when #244 widens the oracle (symbolic-
 condition path exploration raises interpretable coverage): re-run `mine` —
 the arm is corpus-pinned, deterministic, and now ~30 minutes wall.
+
+## BT. Collection-kind closure — the L5/L6 audit, and the Ruby for-in/shovel residue
+
+#247 set out to "close the L5/L6 builder-loop exact-channel asymmetry" — and the
+first finding was that **most of it had already shipped** in the semantic-kernel
+tranche, with `bench/type4/coverage_leads.md`'s body text stale against its own
+✅ headers: Go's composite-literal kinds are distinguished at lowering (`array` /
+map / `go_struct`), Go functional append and Java's import-proven
+`new ArrayList` + `.add` both converge with the comprehension form, each locked by
+equivalence tests with struct/unimported/shadowed hard negatives. Ruby `each`/`map`
+on bare receivers stay closed **by design** (no Enumerable inference from a method
+name — a pack supplies receiver proof). The audit-then-implement shape mattered:
+the issue as written would have rebuilt existing machinery.
+
+The genuine residue was Ruby's receiver-proof-free path, and it was two small
+defects deep:
+
+1. **Every Ruby `for` loop was out of the exact channel**: tree-sitter-ruby wraps
+   the iterable in an `in` node (`for x in xs` → `value: (in (identifier))`), and
+   `lower_for` lowered the wrapper — an exact-unsafe `Raw("in")` that also blocked
+   `Elem(xs)` recognition. Fixed at the frontend (lower the wrapped expression).
+2. **The shovel had no sound admission path**: `out << e` is `BinOp(Shl)` — shift
+   on integers, append on arrays, anything on objects. `ruby_shovel_append_parts`
+   (nose-semantics) now recognizes the *form only*; admission rides the existing
+   active-builder proof — the receiver must be seeded by a proven empty list
+   literal, the same `ActiveCollectionBuilder` contract the method form uses. An
+   integer-seeded `<<` stays a shift; a parameter receiver never builds.
+
+Result: Ruby `out = []; for x in xs; out << x*x; end; out` is exact-safe and
+fingerprint-identical to the Python comprehension/builder loop (and the bare
+ruby `for` ≡ python `for`). Validation per the standing discipline: equivalence
+tests + 3 adjacent hard negatives (different contribution / integer shift /
+unproven parameter receiver); `nose verify` SOUND + canon PRESERVED on
+rubocop/fastlane/sidekiq/jekyll/asciidoctor; maximal-surface scan diff across 7
+Ruby corpus repos: **zero locations lost, zero gained** — idiomatic Ruby uses
+`each`, so the axis closes the §4b cross-language `exact_safe` evenness gap, not
+a corpus-recall gap (the §BO macro-arm shape). Builder ≡ comprehension now holds
+in the exact channel for python/js/ts/rust/go/java + ruby-for-in; C has no
+comparable idiom.
