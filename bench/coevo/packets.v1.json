@@ -324,6 +324,18 @@
    "summary": "exact-channel law provenance is structurally measure-zero; product role = near influence + proof discipline; Phase 3+ gated on a priced consumer case (roadmap entry gate added)",
    "verdict": "refuted",
    "defense": "#270 closed; semantic-kernel-roadmap Phase-3 entry gate"
+  },
+  {
+   "packet_id": "s4-ast-parse-cost",
+   "series": 4,
+   "campaign": "perf",
+   "persona": "user-question",
+   "mode": "measured",
+   "surface": "performance-determinism",
+   "claim": "the AST migration is cost-neutral",
+   "summary": "A/B vs pre-AST binary: sympy 4.96->6.42s (+29%), craken-agents 0.546->0.760s (+39%) \u2014 serial re-parse of nearly every family-hosting file. Defense: sound-direction prescreen (declaration starters + mid-statement continuation shapes; false negatives only fail open) + parallel parse of unique candidate files. After: sympy 4.67s, craken-agents 0.550s \u2014 at or under the pre-AST baseline, classification byte-identical (42/10). The prescreen's first draft dropped a mid-statement-start family (caught by classification diff, not timing) \u2014 even perf-only gates need the classification diff check",
+   "verdict": "violation-fixed",
+   "defense": "prescreen + rayon parse (this PR)"
   }
  ]
 }
