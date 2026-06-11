@@ -6,6 +6,24 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Adversarial co-evolution, series 1** (experiments §BZ, issue #268): five
+  white-box campaigns against nose's own claims. Claim-violation fixes — the
+  declaration filter now enforces a *single-statement discipline* (a line mixing
+  a declaration with code, e.g. `import pdb;pdb.post_mortem()`, a multi-declarator
+  `require`, or a Ruby modifier-conditional `require`, can no longer classify;
+  shapes found verbatim in the corpus); the "call the existing helper" hint never
+  points production copies at a test-code or generated-file helper; the
+  declaration classifier reads each file once per scan instead of once per family
+  member. Corpus price after all tightening: identical (2,265 declaration
+  families, zero worthy-label loss). Two priced findings deferred with
+  measurements: few-huge-files inputs serialize `normalize+extract` (#269), and
+  semantic-laws provenance is structurally gated to ~zero field probability
+  (#270 — the clamp-law escalation was refuted five-for-five by sound gates,
+  explaining the LawPack audit's zero-provenance result). The runbook gained the
+  performance/determinism attack surface, the claim-violation pricing asymmetry,
+  defense-deferral verdicts, and measured campaign costs.
+
 ### Added
 - **Triage ergonomics from the 0.6.0 field feedback** (issues #263/#264):
   - **Opportunity grouping**: families whose members are overlapping slices of

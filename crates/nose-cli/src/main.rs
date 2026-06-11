@@ -4104,9 +4104,18 @@ fn family_declaration_run(
 fn declaration_run_ids(
     families: &[nose_detect::RefactorFamily],
 ) -> std::collections::HashSet<String> {
+    // One classification pass, one cache: members of different families share
+    // files, and a per-member full read made this O(families × file size)
+    // (coevo C3 measured it on a 123-family / 2-file pathological input).
+    let mut lines = FileLineCache::default();
     families
         .iter()
-        .filter(|f| !f.locations.is_empty() && f.locations.iter().all(declaration_run_span))
+        .filter(|f| {
+            !f.locations.is_empty()
+                && f.locations
+                    .iter()
+                    .all(|l| declaration_run_span(l, &mut lines))
+        })
         .map(baseline::family_id)
         .collect()
 }
@@ -4114,17 +4123,22 @@ fn declaration_run_ids(
 /// An import run longer than this is implausible; skip the read and fail open.
 const DECLARATION_SPAN_CAP: u32 = 80;
 
-fn declaration_run_span(loc: &nose_detect::Loc) -> bool {
+fn declaration_run_span(loc: &nose_detect::Loc, lines: &mut FileLineCache) -> bool {
     if loc.end_line.saturating_sub(loc.start_line) > DECLARATION_SPAN_CAP {
         return false;
     }
     let Some(lang) = declaration_lang(&loc.file) else {
         return false;
     };
-    let Some(lines) = read_lines(&loc.file, loc.start_line, loc.end_line) else {
+    let Some(all) = lines.whole(&loc.file) else {
         return false;
     };
-    span_is_only_declarations(&lines, lang)
+    let s = loc.start_line.saturating_sub(1) as usize;
+    let e = (loc.end_line as usize).min(all.len());
+    if s >= e {
+        return false;
+    }
+    span_is_only_declarations(&all[s..e], lang)
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -4225,8 +4239,10 @@ fn python_declaration(line: &str) -> DeclLine {
         if rest.contains(" import ") {
             return if line.ends_with('(') {
                 DeclLine::Opens
-            } else {
+            } else if semicolon_free(line) {
                 DeclLine::Complete
+            } else {
+                DeclLine::No
             };
         }
     }
@@ -4235,24 +4251,27 @@ fn python_declaration(line: &str) -> DeclLine {
 
 fn jsts_declaration(line: &str) -> DeclLine {
     let stmt_done = line.ends_with(';') || line.ends_with('\'') || line.ends_with('"');
+    let single = lone_terminal_semicolon(line);
     if line.starts_with("import ") || line.starts_with("import{") {
-        return if stmt_done {
+        return if stmt_done && single {
             DeclLine::Complete
-        } else {
+        } else if !stmt_done && single {
             DeclLine::Opens
+        } else {
+            DeclLine::No
         };
     }
     // Re-exports are declaration wiring only with a `from` source (a barrel
     // line); `export const …` is code and must fail.
-    if line.starts_with("export ") && line.contains(" from ") && stmt_done {
+    if line.starts_with("export ") && line.contains(" from ") && stmt_done && single {
         return DeclLine::Complete;
     }
-    if (line.starts_with("export {") || line.starts_with("export *")) && !stmt_done {
+    if (line.starts_with("export {") || line.starts_with("export *")) && !stmt_done && single {
         return DeclLine::Opens;
     }
     for head in ["const ", "let ", "var "] {
         if let Some(rest) = line.strip_prefix(head) {
-            if rest.contains("= require(") && stmt_done {
+            if is_require_line(rest) && single {
                 return DeclLine::Complete;
             }
         }
@@ -4265,7 +4284,7 @@ fn go_declaration(line: &str) -> DeclLine {
         return DeclLine::Opens;
     }
     if let Some(rest) = line.strip_prefix("import ") {
-        return if rest.contains('"') {
+        return if rest.contains('"') && rest.trim_end().ends_with('"') && semicolon_free(line) {
             DeclLine::Complete
         } else {
             DeclLine::No
@@ -4291,9 +4310,9 @@ fn rust_declaration(line: &str) -> DeclLine {
         })
         .unwrap_or(line);
     if body.starts_with("use ") || body.starts_with("extern crate ") {
-        return if body.ends_with(';') {
+        return if body.ends_with(';') && lone_terminal_semicolon(body) {
             DeclLine::Complete
-        } else if body.ends_with('{') {
+        } else if body.ends_with('{') && semicolon_free(body) {
             DeclLine::Opens
         } else {
             DeclLine::No
@@ -4308,22 +4327,33 @@ fn rust_declaration(line: &str) -> DeclLine {
 }
 
 fn java_declaration(line: &str) -> DeclLine {
-    if (line.starts_with("import ") || line.starts_with("package ")) && line.ends_with(';') {
+    if (line.starts_with("import ") || line.starts_with("package "))
+        && line.ends_with(';')
+        && lone_terminal_semicolon(line)
+    {
         return DeclLine::Complete;
     }
     DeclLine::No
 }
 
 fn c_declaration(line: &str) -> DeclLine {
-    if line.starts_with("#include") || line == "#pragma once" {
+    if let Some(rest) = line.strip_prefix("#include") {
+        if rest.starts_with([' ', '<', '"']) {
+            return DeclLine::Complete;
+        }
+    }
+    if line == "#pragma once" {
         return DeclLine::Complete;
     }
     DeclLine::No
 }
 
 fn ruby_declaration(line: &str) -> DeclLine {
+    // A modifier conditional (`require 'x' if cond`) rides an expression on
+    // the declaration — more than a bare require, so it fails open (C5).
+    let conditional = line.contains(" if ") || line.contains(" unless ");
     for head in ["require ", "require_relative ", "require("] {
-        if line.starts_with(head) {
+        if line.starts_with(head) && semicolon_free(line) && !conditional {
             return DeclLine::Complete;
         }
     }
@@ -4336,11 +4366,55 @@ fn declaration_closes(line: &str, lang: DeclLang) -> bool {
         DeclLang::JsTs => {
             line.starts_with('}')
                 && (line.ends_with(';') || line.ends_with('\'') || line.ends_with('"'))
+                && lone_terminal_semicolon(line)
         }
         DeclLang::Rust => line.ends_with("};"),
         // Java/C/Ruby declarations are single-line; nothing opens.
         DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
     }
+}
+
+/// The single-statement discipline (coevo series 1, C1): a declaration line
+/// must BE one declaration, not merely *start* with one — `import x; evil()`
+/// rides real code on a recognized prefix, and classifying it would break the
+/// "provably no extraction exists" claim. For `;`-terminated grammars the
+/// only `;` may be the final character; for grammars whose declarations carry
+/// no `;` at all, any `;` means a second statement and the line fails open.
+fn lone_terminal_semicolon(line: &str) -> bool {
+    match line.find(';') {
+        None => true,
+        Some(i) => i == line.len() - 1,
+    }
+}
+
+fn semicolon_free(line: &str) -> bool {
+    !line.contains(';')
+}
+
+/// Strict `NAME = require('literal')` shape for the CommonJS arm: a single
+/// identifier, a single string-literal argument, nothing after the call. A
+/// multi-declarator line (`…, b = compute();`) must fail open.
+fn is_require_line(rest: &str) -> bool {
+    let Some((name, call)) = rest.split_once("= require(") else {
+        return false;
+    };
+    let name = name.trim();
+    if name.is_empty()
+        || !name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '$')
+    {
+        return false;
+    }
+    let call = call.trim_end();
+    let Some(arg) = call.strip_suffix(");").or_else(|| call.strip_suffix(')')) else {
+        return false;
+    };
+    let arg = arg.trim();
+    arg.len() >= 2
+        && ((arg.starts_with('\'') && arg.ends_with('\''))
+            || (arg.starts_with('"') && arg.ends_with('"')))
+        && !arg[1..arg.len() - 1].contains(['\'', '"'])
 }
 
 /// Bare module-path lists: identifiers, dots, commas, spaces, and `as`
@@ -4571,8 +4645,13 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
         .iter()
         .filter(|l| l.kind == UnitKind::Block || l.is_fragment)
         .count();
+    // Coevo C2 guards: never point production copies at a helper that lives
+    // in test code (tests may call prod, not the reverse), and never
+    // recommend calling into a generated file (not the maintainer's API).
     if let [helper] = named_units[..] {
-        if inline_copies >= 1 && inline_copies == f.locations.len() - 1 {
+        let helper_callable =
+            !helper.looks_generated && (f.scope == "test" || !nose_detect::is_test_loc(helper));
+        if helper_callable && inline_copies >= 1 && inline_copies == f.locations.len() - 1 {
             let name = helper.name.as_deref().unwrap_or("the helper");
             let sites = if inline_copies == 1 {
                 "1 site reimplements".to_string()
@@ -5681,6 +5760,75 @@ mod tests {
     }
 
     #[test]
+    fn helper_hint_never_points_prod_at_a_test_helper() {
+        // Coevo C2: the named function lives in test code while the inline
+        // copies are production — "call the existing helper" would be wrong-
+        // direction advice, so the hint falls back to plain extraction.
+        let mut f = fam(1, 2, &[None, None, None]);
+        f.scope = "mixed";
+        f.locations = vec![
+            {
+                let mut l = loc_at("tests/helpers.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("clamp".to_string());
+                l
+            },
+            loc_at("ui/model.ts", 80, 84, nose_il::UnitKind::Block),
+            loc_at("worker/job.ts", 33, 37, nose_il::UnitKind::Block),
+        ];
+        let hint = family_hint(&f);
+        assert!(
+            !hint.contains("call the existing helper"),
+            "a test-code helper must not be recommended to prod copies: {hint}"
+        );
+        // All-test families may keep the recommendation: tests calling a test
+        // helper is exactly the refactor.
+        f.scope = "test";
+        assert!(
+            family_hint(&f).contains("call the existing helper"),
+            "an all-test family may still consolidate on its test helper"
+        );
+    }
+
+    #[test]
+    fn helper_hint_allows_test_copies_to_call_a_prod_helper() {
+        // C5 boundary: the inverse direction is fine — tests calling a
+        // production helper is exactly the refactor.
+        let mut f = fam(1, 2, &[None, None]);
+        f.scope = "mixed";
+        f.locations = vec![
+            {
+                let mut l = loc_at("core/math.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("clamp".to_string());
+                l
+            },
+            loc_at("tests/model.spec.ts", 80, 84, nose_il::UnitKind::Block),
+        ];
+        assert!(
+            family_hint(&f).contains("call the existing helper"),
+            "prod helper recommended to test copies is the right direction"
+        );
+    }
+
+    #[test]
+    fn helper_hint_never_points_at_generated_code() {
+        let mut f = fam(1, 2, &[None, None]);
+        f.locations = vec![
+            {
+                let mut l = loc_at("gen/api.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("encode".to_string());
+                l.looks_generated = true;
+                l
+            },
+            loc_at("ui/model.ts", 80, 84, nose_il::UnitKind::Block),
+        ];
+        let hint = family_hint(&f);
+        assert!(
+            !hint.contains("call the existing helper"),
+            "a generated-file helper is not the maintainer's API: {hint}"
+        );
+    }
+
+    #[test]
     fn hint_flags_high_parameter_extractions() {
         let mut f = fam(1, 1, &[None, None]);
         f.params = 8;
@@ -5769,6 +5917,20 @@ mod tests {
             (DeclLang::C, "#include <stdio.h>\n#define MAX 4"),
             (DeclLang::Ruby, "require 'json'\nputs 'hi'"),
             (DeclLang::Python, ""),
+            // C1 claim-violation packets: a single LINE mixing a declaration
+            // with executable code must never classify (the "provably no
+            // extraction exists" claim breaks if real code rides along).
+            (DeclLang::JsTs, "import { a } from './a'; doEvil();"),
+            (DeclLang::JsTs, "var a = require('a'), b = compute();"),
+            (DeclLang::Go, "import \"fmt\"; func main() { hack() }"),
+            (DeclLang::Ruby, "require 'json'; system('x')"),
+            (DeclLang::Python, "from x import y; z = 1"),
+            (DeclLang::Java, "import java.util.List; int x = 1;"),
+            (DeclLang::Rust, "use std::fmt; let x = 1;"),
+            (DeclLang::C, "#includeevil <x.h>"),
+            // C5 boundary re-attack on the C1 defense itself.
+            (DeclLang::JsTs, "import { a } from './a';;"),
+            (DeclLang::Ruby, "require 'x' if expensive_check()"),
         ];
         for (lang, src) in no {
             assert!(

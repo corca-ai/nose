@@ -63,6 +63,15 @@ Rotate campaigns across these; each entry names what to read and what claim to a
    stated conditions (e.g. a family that groups but is two genuine opportunities).
 7. **The clone-type claims** — [clone-types](clone-types.md) honest limits. Attack: a
    limit statement that is no longer true (stale fences are silent recall loss).
+8. **Performance & determinism claims** (added by series 1, [§BZ](experiments.md)) —
+   the moat's speed/determinism legs ([design §1](design.md)). Attack: inputs whose
+   shape concentrates cost (few huge files serialize per-file parallelism — the §BH
+   class; §BZ measured 3.1 s on two 4.8 k-line files vs 0.63 s on a 1,364-file repo),
+   super-linear presentation-layer passes (per-member file re-reads, per-file pair
+   blowups), and byte-determinism under repeated runs and `RAYON_NUM_THREADS`
+   variation. Pricing for this surface IS the measurement (`NOSE_TIME=1` per-stage
+   breakdown); fixture-generation note: vary token *shape* in synthetic filler, or
+   Type-2 identifier abstraction bridges your blocks into one run.
 
 ## Target packet format
 
@@ -92,12 +101,26 @@ Reuse the [frontier platform](frontier-platform.md) evidence shape
    on splits. Reject without prejudice anything unpriced; record the rejection — an
    evidence-backed rejection is a result ([§BW](experiments.md) re-rejected doubling and
    that *was* the deliverable).
+
+   **The claim-violation asymmetry** (series 1, [§BZ](experiments.md)): pricing gates
+   *recall-direction* attacks ("nose should also detect X"). An attack that breaks a
+   **"provably…" claim itself** — a §2b filter classifying real code, a hint giving
+   unsafe advice, a false merge — is soundness-class and is fixed at ANY prevalence,
+   exactly like a false merge. Every C1/C2/C5 hit in series 1 was this kind.
 4. **Defend.** Priced packets only. The defense is the largest sound generalization, and
    it ships through ALL of: adversarial battery including the packet's hard negatives;
    Lean obligation if proof-sensitive ([formal-soundness](formal-soundness.md));
    corpus label join showing zero worthy-label loss (the
    [eval/declaration_runs](../eval/declaration_runs/RESULTS.md) precedent); the
    zero-false-merge and determinism gates ([CONTRIBUTING](../CONTRIBUTING.md)).
+
+   **Defense-deferral is a first-class verdict**: a priced packet whose sound defense
+   exceeds the campaign's scope (detector-core work, new proof obligations) closes as
+   `deferred: #issue` with the packet and measurement attached — series 1 produced
+   two (#269 few-huge-files serialization, #270 law-provenance gating). An attack
+   **refuted by an existing sound gate is a green result with teeth**: record what
+   refuted it (series 1's clamp escalation was refuted five-for-five and the refutation
+   trail explained the LawPack zero-provenance field mystery).
 5. **Boundary re-attack.** One round: attack the new generalization's edges (its type
    gates, fail-open conditions, thresholds) before the campaign closes — the
    doubling → type-gating cycle ([§AY/§BA](experiments.md)) is the model.
@@ -121,11 +144,27 @@ Reuse the [frontier platform](frontier-platform.md) evidence shape
 - A campaign that finds nothing priced is a **green result**, not a failure — say so in
   the closeout.
 
-## Cadence
+## Cadence & cost (measured, series 1)
 
 On demand ("run adversarial co-evolution" = one full protocol pass) or per release
 alongside the [hazard release checklist](hazard-release-checklist.md). A campaign is
 bounded: 3–5 surfaces, one boundary re-attack round, one experiments.md section.
+A *series* of campaigns may share one tracking issue (series 1 ran five under #268)
+and one combined ledger section when run in a single session.
+
+Measured execution speed ([§BZ](experiments.md), series 1 on an M-class laptop):
+
+| unit of work | wall time |
+|---|---|
+| one campaign (attack → price → defend → re-attack) | ~6–20 min of agent time |
+| five-campaign series incl. recording | ~70 min |
+| corpus re-price sweep (105 repos, declaration filter) | ~3 min |
+| full nose-cli e2e suite | ~23 s |
+| pathological perf fixture scan (the C3 packet) | ≤ 3.2 s |
+
+Budget rule of thumb: a release-cadence series costs about an hour of agent time and
+two corpus sweeps; the dominant human cost is arbitrating judgment-axis packets,
+which series 1 needed zero of.
 
 ---
 
