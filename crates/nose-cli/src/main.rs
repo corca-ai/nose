@@ -4104,19 +4104,51 @@ fn family_declaration_run(
 fn declaration_run_ids(
     families: &[nose_detect::RefactorFamily],
 ) -> std::collections::HashSet<String> {
-    // One classification pass, one cache pair: members of different families
-    // share files (coevo C3), and the AST facts parse each file once.
+    // Three passes (coevo s4 perf packet): a cheap serial prescreen picks the
+    // candidate families, the unique candidate files parse in PARALLEL (the
+    // serial per-file AST parse cost +29% wall on sympy), and the final pass
+    // classifies against the shared facts.
     let mut lines = FileLineCache::default();
-    let mut facts = std::collections::HashMap::new();
-    families
+    let mut candidates: Vec<&nose_detect::RefactorFamily> = Vec::new();
+    let mut wanted: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for f in families {
+        if f.locations.is_empty() {
+            continue;
+        }
+        let pass = f.locations.iter().all(|l| {
+            l.end_line.saturating_sub(l.start_line) <= DECLARATION_SPAN_CAP
+                && lines
+                    .whole(&l.file)
+                    .is_some_and(|all| declaration_prescreen(all, l.start_line, l.end_line))
+        });
+        if pass {
+            candidates.push(f);
+            wanted.extend(f.locations.iter().map(|l| l.file.clone()));
+        }
+    }
+    let facts: std::collections::HashMap<String, Option<nose_frontend::DeclarationFacts>> = wanted
+        .into_iter()
+        .collect::<Vec<_>>()
+        .into_par_iter()
+        .map(|file| {
+            let parsed = std::path::Path::new(&file)
+                .extension()
+                .and_then(|e| e.to_str())
+                .and_then(|ext| {
+                    let src = std::fs::read_to_string(&file).ok()?;
+                    nose_frontend::declaration_facts(ext, &src)
+                });
+            (file, parsed)
+        })
+        .collect();
+    candidates
         .iter()
         .filter(|f| {
-            !f.locations.is_empty()
-                && f.locations
-                    .iter()
-                    .all(|l| declaration_run_span(l, &mut lines, &mut facts))
+            f.locations
+                .iter()
+                .all(|l| declaration_run_span(l, &mut lines, &facts))
         })
-        .map(baseline::family_id)
+        .map(|f| baseline::family_id(f))
         .collect()
 }
 
@@ -4126,25 +4158,71 @@ const DECLARATION_SPAN_CAP: u32 = 80;
 fn declaration_run_span(
     loc: &nose_detect::Loc,
     lines: &mut FileLineCache,
-    facts: &mut std::collections::HashMap<String, Option<nose_frontend::DeclarationFacts>>,
+    facts: &std::collections::HashMap<String, Option<nose_frontend::DeclarationFacts>>,
 ) -> bool {
     if loc.end_line.saturating_sub(loc.start_line) > DECLARATION_SPAN_CAP {
         return false;
     }
-    let facts = facts.entry(loc.file.clone()).or_insert_with(|| {
-        let ext = std::path::Path::new(&loc.file)
-            .extension()
-            .and_then(|e| e.to_str())?;
-        let src = std::fs::read_to_string(&loc.file).ok()?;
-        nose_frontend::declaration_facts(ext, &src)
-    });
-    let Some(facts) = facts else {
+    let Some(Some(facts)) = facts.get(&loc.file) else {
         return false;
     };
     let Some(all) = lines.whole(&loc.file) else {
         return false;
     };
     span_is_declarations(facts, all, loc.start_line, loc.end_line)
+}
+
+/// Cheap starter check before the AST parse. Comment lines are transparent;
+/// the first content line must begin like wiring. False negatives only fail
+/// open (the family keeps its ranked surface), so this can never misclassify.
+fn declaration_prescreen(all: &[String], start: u32, end: u32) -> bool {
+    const STARTERS: &[&str] = &[
+        "import",
+        "from ",
+        "use ",
+        "pub use ",
+        "pub mod ",
+        "pub extern ",
+        "pub(",
+        "#include",
+        "#pragma",
+        "package ",
+        "require",
+        "export ",
+        "extern ",
+        "mod ",
+    ];
+    let end = (end as usize).min(all.len());
+    if start == 0 || start as usize > end {
+        return false;
+    }
+    for line in &all[start as usize - 1..end] {
+        let t = line.trim_start();
+        if t.is_empty() || t.starts_with("//") || t.starts_with("/*") {
+            continue;
+        }
+        if t.starts_with('#') && !t.starts_with("#include") && !t.starts_with("#pragma") {
+            continue;
+        }
+        // A span may begin INSIDE a multi-line import (specifier list or its
+        // closer) — the AST node covers those lines, so let the parse decide.
+        if t.starts_with('}') || t.starts_with(')') {
+            return true;
+        }
+        if t.chars()
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '$' | ',' | ' ' | '.'))
+        {
+            return true;
+        }
+        // CommonJS wiring needs the call, not just the keyword.
+        for head in ["const ", "let ", "var "] {
+            if t.starts_with(head) {
+                return t.contains("= require(");
+            }
+        }
+        return STARTERS.iter().any(|s| t.starts_with(s));
+    }
+    false
 }
 
 /// The line rule over AST facts: every line in the span must be blank, a

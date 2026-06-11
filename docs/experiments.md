@@ -2053,3 +2053,18 @@ blocks). Verdict: pass — recall-direction diff, zero cost.
   Silent-miss direction; sound fix needs cross-file cache invalidation (core
   work, reproducer attached to the issue). Method note: **the test suite is a
   discriminating-input arsenal** — informed attackers should mine it.
+
+**§CC addendum — the migration's performance packet (surface 8).** The AST
+engine shipped with a regression the §CC pre-gate did not measure (the
+re-price checks classification, not time): A/B against the pre-AST binary
+showed sympy 4.96 → 6.42 s (+29%) and a 1,364-file TS app 0.546 → 0.760 s —
+the classifier serially re-parsed nearly every family-hosting file. Defense:
+a **sound-direction prescreen** (the span's first content line must look like
+wiring or a mid-statement continuation; false negatives only fail open) plus
+**parallel parsing** of the unique candidate files. After: sympy 4.67 s,
+craken-agents 0.550 s — at or under the pre-AST baseline with byte-identical
+classification. Two lessons folded back: (1) the prescreen's first draft
+silently dropped a mid-statement-start family — caught by the classification
+diff, not by timing, so perf defenses take the SAME pre-gate; (2) the
+performance surface needs its own baseline pair in the pre-gate (wall time on
+a family-dense repo, A/B against the prior binary), now noted in the runbook.

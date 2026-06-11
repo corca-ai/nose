@@ -100,7 +100,11 @@ Rotate campaigns across these; each entry names what to read and what claim to a
    blowups), and byte-determinism under repeated runs and `RAYON_NUM_THREADS`
    variation. Pricing for this surface IS the measurement (`NOSE_TIME=1` per-stage
    breakdown); fixture-generation note: vary token *shape* in synthetic filler, or
-   Type-2 identifier abstraction bridges your blocks into one run.
+   Type-2 identifier abstraction bridges your blocks into one run. Defenses on
+   THIS surface take a paired pre-gate (§CC addendum): the classification diff
+   AND a wall-time A/B on a family-dense repo against the prior binary — a perf
+   fix can silently change classification, and a classification fix can
+   silently cost time.
 
 ## Target packet format — executable, self-verified (series 3)
 

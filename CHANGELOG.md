@@ -7,6 +7,12 @@ break.
 ## [Unreleased]
 
 ### Changed
+- **The AST declaration classifier is cost-neutral** (§CC addendum): the
+  migration's serial per-file re-parse cost +29% wall on family-dense scans
+  (measured A/B vs the prior binary); a sound-direction prescreen plus
+  parallel candidate-file parsing brings sympy to 4.67 s and a 1,364-file TS
+  app to 0.55 s — at or under the pre-migration baseline, with byte-identical
+  classification.
 - **Declaration classification now rests on AST facts** (experiments §CC):
   `nose_frontend::declaration_facts` derives per-line declaration/comment/code
   facts from the tree-sitter AST (ERROR subtrees never count as declarations;
