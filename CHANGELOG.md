@@ -6,6 +6,8 @@ break.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-11
+
 ### Changed
 - **CLI usability pass for first-time users.** `nose scan`, `nose review`, and
   `nose stats` now **error on a named path that doesn't exist** (a typo'd path
