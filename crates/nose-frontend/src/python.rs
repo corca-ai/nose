@@ -1216,7 +1216,7 @@ fn py_bin_op(text: &str) -> Option<Op> {
         // vs `5 // 2 == 2`); each gets its own op so they never share a fingerprint.
         "/" => Op::Div,
         "//" => Op::FloorDiv,
-        "%" => Op::Mod,
+        "%" => Op::FloorMod,
         "**" => Op::Pow,
         "&" => Op::BitAnd,
         "|" => Op::BitOr,

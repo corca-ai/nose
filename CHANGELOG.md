@@ -6,6 +6,20 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Floored vs truncated `%` no longer false-merges across languages** (#283-D).
+  Python/Ruby `%` is floored (remainder takes the divisor's sign); JS/Go/Java/
+  Rust/C `%` is truncated (dividend's sign) — they differ on sign-disagreeing
+  operands (`-1 % 3 == 2` floored vs `== -1` truncated). A single `Op::Mod` for
+  all languages merged them (a false merge the verify interpreter, also blind,
+  could not catch). A distinct `Op::FloorMod` is now lowered for Python/Ruby and
+  evaluated with floor semantics: Python `%` no longer merges with JS `%`, while
+  Python ≡ Ruby and JS ≡ Go still converge (recall preserved). The remaining
+  #283-D cases — three-way division semantics (`/` is true-float in Python/JS,
+  floored-int in Ruby, truncated-int in C/Go/Java/Rust, with no float in the
+  interpreter model) and JS bitwise int32 narrowing — are root-caused in the
+  issue and remain open.
+
 ### Added
 - **Three sound recall rules from coevo §CE / #284** — behaviorally-equal forms
   the exact channel now converges, each sound for ALL inputs (no type gate)

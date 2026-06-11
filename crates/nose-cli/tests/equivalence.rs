@@ -6909,3 +6909,35 @@ fn sound_recall_rules_converge_with_hard_negatives() {
         "max and min chains must stay distinct"
     );
 }
+
+#[test]
+fn floored_mod_distinguishes_python_ruby_from_c_family() {
+    // #283-D: Python/Ruby `%` is FLOORED (remainder takes the divisor's sign);
+    // C/Go/Java/JS/Rust `%` is TRUNCATED (dividend's sign). They differ on
+    // sign-disagreeing operands (`-1 % 3 == 2` vs `== -1`), so a single `Op::Mod`
+    // for all languages was a false merge the interpreter was blind to.
+    let i = Interner::new();
+    let py = "def rem(a, b):\n    return a % b\n";
+    let rb = "def rem(a, b)\n  a % b\nend\n";
+    let js = "function rem(a, b){ return a % b; }";
+    let go = "package p\nfunc Rem(a int, b int) int { return a % b }\n";
+
+    // Floored ≠ truncated: Python must NOT converge with JS.
+    assert_ne!(
+        value_fp(&i, py, Lang::Python),
+        value_fp(&i, js, Lang::JavaScript),
+        "Python floored % must not merge with JS truncated %"
+    );
+    // Same semantics still converge: Python ≡ Ruby (both floored).
+    assert_eq!(
+        value_fp(&i, py, Lang::Python),
+        value_fp(&i, rb, Lang::Ruby),
+        "Python and Ruby % are both floored — must converge"
+    );
+    // JS ≡ Go (both truncated).
+    assert_eq!(
+        value_fp(&i, js, Lang::JavaScript),
+        value_fp(&i, go, Lang::Go),
+        "JS and Go % are both truncated — must converge"
+    );
+}

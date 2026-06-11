@@ -819,7 +819,7 @@ impl<'a> Builder<'a> {
         }
         let rhs = self.eval(kids[1], env);
         match op {
-            Op::Div | Op::FloorDiv | Op::Mod => self.int_const_eq(rhs, 0),
+            Op::Div | Op::FloorDiv | Op::Mod | Op::FloorMod => self.int_const_eq(rhs, 0),
             Op::Pow => self
                 .static_int_expr(kids[1])
                 .is_some_and(|exp| !(0..=u32::MAX as i64).contains(&exp)),

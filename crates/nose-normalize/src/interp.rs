@@ -1617,6 +1617,21 @@ fn bin(op: Op, a: &Value, b: &Value) -> Value {
                     Int(x.wrapping_rem(*y))
                 }
             }
+            // Floored modulo (Python/Ruby `%`): the remainder takes the sign of the
+            // DIVISOR. Truncated `wrapping_rem` takes the dividend's sign, so adjust
+            // by adding the divisor when they disagree (#283-D). `-1 %% 3 == 2`.
+            Op::FloorMod => {
+                if *y == 0 {
+                    Value::Err
+                } else {
+                    let r = x.wrapping_rem(*y);
+                    Int(if r != 0 && (r < 0) != (*y < 0) {
+                        r.wrapping_add(*y)
+                    } else {
+                        r
+                    })
+                }
+            }
             // Floor division rounds the quotient toward −∞ (Python `//`): the
             // truncating quotient is decremented when the remainder is nonzero
             // and the operands disagree in sign (`-5 // 2 == -3`, `5 // -2 == -3`).
