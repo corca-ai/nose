@@ -7,6 +7,19 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Embedded `<script>` extraction (Vue/Svelte/HTML) is now context-aware** (#280,
+  coevo §CE). The byte-scanner was naive `find_ci`, so five real shapes broke it:
+  a `</script>` inside a JS string truncated the block (missed dup); a
+  commented-out `<script>` was analyzed as live and the span swallowed the
+  surrounding markup; a Vue 3.3 `generic="T extends Record<string, number>"`
+  attribute `>` was taken as the tag end (span started mid-tag); an unclosed
+  `<script>` (valid HTML) was dropped (missed dup); and trailing markup left as
+  blank lines made the whole-block span bleed past `</script>`. The scanner now
+  skips HTML comments, finds the tag-end `>` outside quoted attributes, finds
+  `</script>` outside JS strings/comments, extracts an unclosed block to EOF, and
+  truncates the analyzed buffer at the last script byte so spans stop at the
+  content. Plain and multi-block extraction, `lang="ts"` detection, and
+  same-as-plain-JS convergence are unchanged.
 - **`--cache-dir` now reproduces cross-file imported-literal convergence** (#275).
   The cache keyed each file's units on its source bytes and lowered files
   independently, skipping the corpus-level `resolve_imported_immutable_bindings`
