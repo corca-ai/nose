@@ -284,3 +284,96 @@ fn review_machine_formats_emit_json_when_nothing_to_review() {
     assert!(doc["runs"].is_array(), "sarif keeps its runs envelope");
     let _ = fs::remove_dir_all(&dir);
 }
+
+/// #245 — the conservative `--fail` gate: a change INSIDE a member's varying
+/// spot (the part that already differed from the sibling) is not a propagation
+/// hazard and must not fire; a change to SHARED lines must. `--fail-on any`
+/// restores span-overlap firing.
+#[test]
+fn review_fail_fires_on_shared_logic_only() {
+    let body = |tag: &str| {
+        format!(
+            "def process(items, flag):\n    out = []\n    for item in items:\n        if item > 0:\n            out.append(item * 2 + 1)\n    log_result(out, \"{tag}\")\n    return out\n"
+        )
+    };
+    let dir = std::env::temp_dir().join(format!("nose_fire_policy_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    fs::create_dir_all(dir.join("a")).unwrap();
+    fs::create_dir_all(dir.join("b")).unwrap();
+    fs::write(dir.join("a/f.py"), body("alpha")).unwrap();
+    fs::write(dir.join("b/f.py"), body("beta")).unwrap();
+    init_git_repo(&dir);
+
+    let review = |dir: &Path, extra: &[&str]| {
+        let mut args = vec![
+            "review",
+            ".",
+            "--min-size",
+            "8",
+            "--mode",
+            "syntax,semantic,near",
+        ];
+        args.extend_from_slice(extra);
+        Command::new(bin())
+            .current_dir(dir)
+            .env_remove("GIT_DIR")
+            .env_remove("GIT_WORK_TREE")
+            .env_remove("GIT_INDEX_FILE")
+            .env_remove("GIT_OBJECT_DIRECTORY")
+            .env_remove("GIT_COMMON_DIR")
+            .args(&args)
+            .output()
+            .expect("run nose review")
+    };
+
+    // Scenario 1: edit only the varying spot ("alpha" → "gamma") — the line that
+    // already differed from the sibling. Flagged for review, but the gate stays quiet.
+    fs::write(dir.join("a/f.py"), body("gamma")).unwrap();
+    let out = review(&dir, &["--format", "json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("review JSON");
+    let finding = json["findings"]
+        .as_array()
+        .and_then(|f| f.first())
+        .expect("the divergence is still flagged for review");
+    assert_eq!(
+        finding["fire_eligible"], false,
+        "a varying-spot-only change must not be gate-eligible: {json}"
+    );
+    let gated = review(&dir, &["--fail"]);
+    assert!(
+        gated.status.success(),
+        "--fail must not fire on a varying-spot-only change"
+    );
+    let any = review(&dir, &["--fail", "--fail-on", "any"]);
+    assert!(
+        !any.status.success(),
+        "--fail-on any restores span-overlap firing"
+    );
+
+    // Scenario 2: edit a SHARED line (the computation both copies carry).
+    fs::write(
+        dir.join("a/f.py"),
+        body("alpha").replace("item * 2 + 1", "item * 2 + 3"),
+    )
+    .unwrap();
+    let out = review(&dir, &["--format", "json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).expect("review JSON");
+    let finding = json["findings"]
+        .as_array()
+        .and_then(|f| f.first())
+        .expect("the shared-line divergence is flagged");
+    assert_eq!(
+        finding["fire_eligible"], true,
+        "a shared-line change is gate-eligible: {json}"
+    );
+    assert_eq!(
+        finding["changed"][0]["touches_shared"], true,
+        "the changed site carries the per-site verdict: {json}"
+    );
+    let gated = review(&dir, &["--fail"]);
+    assert!(
+        !gated.status.success(),
+        "--fail fires when the change touches shared lines"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}

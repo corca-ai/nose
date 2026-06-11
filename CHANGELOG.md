@@ -6,6 +6,33 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- **`nose review --fail` now fires on the conservative gate tier by default**
+  (#245, experiments §BV): only findings where the diff provably touches lines
+  the changed copy shares with its un-updated sibling (by the family's own
+  proof for exact-value-graph families; by varying-spot subtraction for
+  token/fuzzy families), excluding all-test scaffolding. Measured on the §BR
+  judge-labeled replay: every genuine missed propagation kept, 73% fewer fires,
+  3.7× precision. **Migration:** `--fail-on any` restores the old
+  fire-on-anything behavior. Review JSON findings gain `fire_eligible`,
+  `witness_kind`, `scope`, and per-changed-site `touches_shared`; human output
+  marks gate-firing findings with `[gate: touches shared lines]`.
+
+- **`nose scan`'s default channel mix is now `syntax,semantic,near`** (#241,
+  experiments §BM): omitting `--mode` also runs the fuzzy Type-3 `near` channel
+  at its standard `0.70` acceptance floor. Measured on the 105-repo corpus,
+  the flip lifts held-out worthy-recall 88.5% → 96.7% with held-out P@10
+  *improving* 55.5% → 58.6%; the cost is a larger default report
+  (+22% default-surface families corpus-wide, mostly production scope).
+  **Migration:** an explicit `--mode` (or config `mode`) is unaffected — it
+  replaces the default exactly as before. CI gates and baseline users should
+  pin `--mode` (e.g. `--mode syntax,semantic` for the old mix) or re-baseline
+  with `--write-baseline`, since a default-mode scan now reports more families
+  and `--fail-on any` can newly fail. `nose review`'s default is **unchanged**
+  (`syntax,semantic`): review feeds a gate, where false fires cost more than
+  missed candidates, and the §BM pricing covered the scan surface only.
+  `nose capabilities` advertises the new `scan.default_modes` truthfully.
+
 ### Added
 - `nose verify`'s oracle now explores BOTH arms of a symbolic If/ternary
   condition under recorded assumptions instead of bailing the unit (#244,
@@ -22,22 +49,6 @@ break.
   active-builder seed proof (`out = []`); an integer-seeded `<<` stays a shift,
   a parameter receiver never builds, and `each`-block builders remain pack-gated
   (no Enumerable inference from a method name).
-
-### Changed
-- **`nose scan`'s default channel mix is now `syntax,semantic,near`** (#241,
-  experiments §BM): omitting `--mode` also runs the fuzzy Type-3 `near` channel
-  at its standard `0.70` acceptance floor. Measured on the 105-repo corpus,
-  the flip lifts held-out worthy-recall 88.5% → 96.7% with held-out P@10
-  *improving* 55.5% → 58.6%; the cost is a larger default report
-  (+22% default-surface families corpus-wide, mostly production scope).
-  **Migration:** an explicit `--mode` (or config `mode`) is unaffected — it
-  replaces the default exactly as before. CI gates and baseline users should
-  pin `--mode` (e.g. `--mode syntax,semantic` for the old mix) or re-baseline
-  with `--write-baseline`, since a default-mode scan now reports more families
-  and `--fail-on any` can newly fail. `nose review`'s default is **unchanged**
-  (`syntax,semantic`): review feeds a gate, where false fires cost more than
-  missed candidates, and the §BM pricing covered the scan surface only.
-  `nose capabilities` advertises the new `scan.default_modes` truthfully.
 
 ### Performance
 - Scans are 2–4× faster end-to-end on the benchmark corpus (sympy 20.0 → 4.7s,

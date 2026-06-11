@@ -246,9 +246,16 @@ enum Cmd {
         /// Show at most N findings (0 = all). [default: 30]
         #[arg(long)]
         top: Option<usize>,
-        /// Exit non-zero if any family changed inconsistently (CI gate).
+        /// Exit non-zero when the gate fires (CI gate). What fires is governed
+        /// by --fail-on (default: only findings whose change provably touches
+        /// lines shared with the un-updated sibling).
         #[arg(long)]
         fail: bool,
+        /// Gate tier for --fail: `shared-logic` (default — fire only when the
+        /// diff provably touches lines a changed copy shares with its
+        /// un-updated sibling) or `any` (fire on every flagged finding).
+        #[arg(long, value_enum, default_value_t = review::ReviewFailOn::SharedLogic)]
+        fail_on: review::ReviewFailOn,
     },
     /// Recall-ceiling diagnostic: split gold recall across unit-extraction /
     /// candidate-generation stages. (Hidden — benchmark/research tooling.)
@@ -1648,6 +1655,7 @@ fn run_review_cmd(cmd: Cmd) -> Result<()> {
         format,
         top,
         fail,
+        fail_on,
     } = cmd
     else {
         unreachable!("run_review_cmd requires Cmd::Review")
@@ -1669,6 +1677,7 @@ fn run_review_cmd(cmd: Cmd) -> Result<()> {
         format,
         top,
         fail,
+        fail_on,
     })
 }
 
@@ -4291,7 +4300,7 @@ fn shared_lines_of(
 /// source-line ranges and trimmed, length-capped text — so an agent can see WHAT
 /// an extracted helper would parameterize (e.g. "every spot is a data literal")
 /// without opening files. Same diff the `params` count walks.
-fn varying_spots_of(
+pub(crate) fn varying_spots_of(
     a: &nose_detect::Loc,
     b: &nose_detect::Loc,
     cache: &mut FileLineCache,
@@ -4460,7 +4469,7 @@ fn family_anchor(f: &nose_detect::RefactorFamily) -> (String, u32) {
 /// Memoizes file contents (split into lines) so ranking many families that touch the
 /// same files reads each file at most once. `None` for files that fail to read.
 #[derive(Default)]
-struct FileLineCache(std::collections::HashMap<String, Option<Vec<String>>>);
+pub(crate) struct FileLineCache(std::collections::HashMap<String, Option<Vec<String>>>);
 
 impl FileLineCache {
     /// All lines of `file`, reading and caching on first touch. `None` if unreadable.

@@ -1621,3 +1621,49 @@ construct unlock will move it. That refines the campaign order the census set in
 not another control-flow mechanism — and given §BS measured the frontier this
 instrument feeds at one worthy pair per 105 repos, further oracle-completeness
 investment should wait for a consumer that needs it.
+
+## BV. The conservative review fire policy — measured, shipped as the `--fail` default
+
+§BR gave the gate its labelset (120 refuter-confirmed top-1 findings; 5 genuine
+should-propagate) and its gap list (51% of false fires = span overlap without
+shared-logic contact). #245 turns that into the `--fail` policy. Review now
+computes, per changed member, whether the diff PROVABLY touches lines the member
+shares with an un-updated sibling — two proof shapes keyed on the family's
+equivalence witness: an `exact-value-graph` family's whole span is shared by the
+channel's own proof (equal value fingerprints retain literal values; the typical
+exact clone is a renamed twin whose every line differs textually — a line diff
+would under-fire exactly on the strongest families), while fuzzy and token
+families subtract the member's varying spots (the token channel abstracts
+identifiers/literals, so a `copy-paste-run` member may legitimately vary in
+exactly those spots). Unknown (unreadable source, capped spot list) is
+not-eligible: the gate fires on proof, never on absence of one. Scan JSON gains
+`fire_eligible` / `witness_kind` / `scope` per finding and `touches_shared` per
+changed site.
+
+**Measured on the §BR labels** (re-replay with policy fields, joined 120/120 by
+changed-site span; `eval/review_fire/policy_eval_2026_06_11.json`):
+
+| policy | fires (n=120) | true positives kept | precision |
+|---|---:|---:|---:|
+| any (pre-#245 `--fail`) | 120 | 5/5 | 4.2% |
+| touches-shared (line proof) | 64 | **5/5** | 7.8% |
+| exact-witness only | 4 | 0/5 | 0% |
+| **shipped: (line ∨ exact-witness) ∧ scope ≠ test** | **32** | **5/5** | **15.6%** |
+
+Every true positive survives every tier — a real propagation hazard by
+definition touches shared logic — so the policy is pure noise reduction: 73%
+fewer fires at 3.7× the precision. Change-level, the gate now fires on 15% of
+replayed merged changes (was 33%) on review's default mix. The exact-witness
+fast path is measured-neutral on this sample (its 4 fires were all judged
+intentional/no-propagation) but stays for correctness on renamed twins, locked
+by the `review_flags_a_clone_changed_in_one_copy_only` fixture. `--fail-on any`
+restores span-overlap firing for ratchet-style use.
+
+Honest limits: 16% precision is a measured floor on THIS labelset (top-1
+findings only, 14 repos, no held-out split), not a precision claim; the
+remaining false fires are §BR's judgment classes (intentional variants,
+not-a-clone grouping artifacts) where structured ignores and family-quality
+work are the levers, not more gate logic. The §BG-gold3 ordering result also
+closes here: all 5 positives sat at rank 0 under review's existing
+priority/complexity ordering on this labelset — the post-divergence ordering
+already works; the gate needed precision, not better ranking (#23's answer).

@@ -1,0 +1,895 @@
+{
+ "schema_version": 1,
+ "method": "#243 replay re-run with policy fields; joined 120/120 labeled findings by (repo,commit,arm,changed-site span); policies simulated offline from witness_kind/touches_shared/scope",
+ "finding_level": [
+  {
+   "policy": "any (pre-#245 --fail)",
+   "fires": 120,
+   "tp": 5,
+   "fp": 115,
+   "precision": 0.042
+  },
+  {
+   "policy": "touches-shared (line)",
+   "fires": 64,
+   "tp": 5,
+   "fp": 59,
+   "precision": 0.078
+  },
+  {
+   "policy": "exact-witness only",
+   "fires": 4,
+   "tp": 0,
+   "fp": 4,
+   "precision": 0.0
+  },
+  {
+   "policy": "line OR exact-witness",
+   "fires": 65,
+   "tp": 5,
+   "fp": 60,
+   "precision": 0.077
+  },
+  {
+   "policy": "SHIPPED: (line OR exact-witness) AND scope!=test",
+   "fires": 32,
+   "tp": 5,
+   "fp": 27,
+   "precision": 0.156
+  }
+ ],
+ "change_level": {
+  "default": {
+   "changes": 350,
+   "span_overlap_fire": 115,
+   "gate_fire": 52
+  },
+  "near": {
+   "changes": 350,
+   "span_overlap_fire": 143,
+   "gate_fire": 60
+  }
+ },
+ "rows": [
+  {
+   "sid": "rf-000",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-001",
+   "pos": false,
+   "line": true,
+   "witness": "exact-value-graph",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-002",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-003",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-004",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-005",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-006",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-007",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-008",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-009",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-010",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-011",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-012",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-013",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-014",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-015",
+   "pos": false,
+   "line": true,
+   "witness": "exact-value-graph",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-016",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-017",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-018",
+   "pos": false,
+   "line": true,
+   "witness": "structural-similarity",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-019",
+   "pos": false,
+   "line": true,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-020",
+   "pos": false,
+   "line": true,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-021",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-022",
+   "pos": false,
+   "line": true,
+   "witness": "structural-similarity",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-023",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-024",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-025",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-026",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-027",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-028",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-029",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-030",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-031",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-032",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-033",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-034",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-035",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-036",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-037",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-038",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-039",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-040",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-041",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-042",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-043",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-044",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-045",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-046",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-047",
+   "pos": false,
+   "line": true,
+   "witness": "shared-sub-dag",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-048",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-049",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-050",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-051",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-052",
+   "pos": false,
+   "line": true,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-053",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-054",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-055",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-056",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-057",
+   "pos": false,
+   "line": false,
+   "witness": "exact-value-graph",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-058",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-059",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-060",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-061",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "mixed"
+  },
+  {
+   "sid": "rf-062",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-063",
+   "pos": true,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-064",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-065",
+   "pos": true,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-066",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-067",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-068",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-069",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-070",
+   "pos": false,
+   "line": false,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-071",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-072",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-073",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-074",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-075",
+   "pos": false,
+   "line": false,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-076",
+   "pos": true,
+   "line": true,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-077",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-078",
+   "pos": true,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-079",
+   "pos": false,
+   "line": true,
+   "witness": "shared-sub-dag",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-080",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-081",
+   "pos": false,
+   "line": false,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-082",
+   "pos": true,
+   "line": true,
+   "witness": "structural-similarity",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-083",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-084",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-085",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-086",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-087",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-088",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-089",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-090",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-091",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-092",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "mixed"
+  },
+  {
+   "sid": "rf-093",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-094",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-095",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-096",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-097",
+   "pos": false,
+   "line": false,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-098",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-099",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-100",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-101",
+   "pos": false,
+   "line": true,
+   "witness": "shared-sub-dag",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-102",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-103",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-104",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-105",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "mixed"
+  },
+  {
+   "sid": "rf-106",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-107",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-108",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-109",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-110",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-111",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-112",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-113",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-114",
+   "pos": false,
+   "line": true,
+   "witness": "exact-value-graph",
+   "scope": "mixed"
+  },
+  {
+   "sid": "rf-115",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  },
+  {
+   "sid": "rf-116",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-117",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-118",
+   "pos": false,
+   "line": false,
+   "witness": "copy-paste-run",
+   "scope": "prod"
+  },
+  {
+   "sid": "rf-119",
+   "pos": false,
+   "line": true,
+   "witness": "copy-paste-run",
+   "scope": "test"
+  }
+ ]
+}
