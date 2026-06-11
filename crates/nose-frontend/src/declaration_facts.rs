@@ -78,13 +78,22 @@ pub fn declaration_facts(ext: &str, src: &str) -> Option<DeclarationFacts> {
         "rb" => (grammar::RUBY, || tree_sitter_ruby::LANGUAGE.into()),
         _ => return None,
     };
-    // Newline-terminated grammars (C preprocessor directives) read a missing
-    // EOF newline as a MISSING token, which would fail-open the last line.
+    // A UTF-8 BOM (Windows-authored files) makes tree-sitter emit an error
+    // leaf in the line-1 region, which poisoned the first declaration and
+    // flipped import-only families onto the default surface (coevo S4-C3).
+    // The main IL-lowering path already tolerates it; strip it here too, on a
+    // single owned buffer that also normalizes the missing-EOF-newline case
+    // (C preprocessor directives read a missing final newline as MISSING).
+    let stripped = src.strip_prefix('\u{feff}').unwrap_or(src);
     let owned;
-    let src = if src.ends_with('\n') {
+    let src = if stripped.ends_with('\n') && std::ptr::eq(stripped, src) {
         src
     } else {
-        owned = format!("{src}\n");
+        owned = if stripped.ends_with('\n') {
+            stripped.to_string()
+        } else {
+            format!("{stripped}\n")
+        };
         &owned
     };
     let tree = parse(key, lang_fn, src.as_bytes()).ok()?;
@@ -131,7 +140,12 @@ fn is_declaration(node: Node, key: u16, src: &[u8]) -> bool {
             // Re-exports are wiring only with a `from` source.
             "export_statement" => node.child_by_field_name("source").is_some(),
             // CommonJS: `const x = require('lit');` — exactly one declarator,
-            // a bare require call with one string-literal argument.
+            // a bare require call with one string-literal argument, and a
+            // binding target that EXECUTES NOTHING. The early-return mark
+            // skips the subtree, so a destructuring default/computed key
+            // (`const { a = steal() } = require('lit')`) would smuggle a call
+            // onto the import's line undetected (coevo S4-C1) — the binding
+            // pattern must therefore be call-free.
             "lexical_declaration" | "variable_declaration" => {
                 let mut cursor = node.walk();
                 let declarators: Vec<Node> = node
@@ -143,6 +157,9 @@ fn is_declaration(node: Node, key: u16, src: &[u8]) -> bool {
                     && declarators[0]
                         .child_by_field_name("value")
                         .is_some_and(|value| is_require_call(value, src))
+                    && declarators[0]
+                        .child_by_field_name("name")
+                        .is_none_or(|name| !subtree_executes(name))
             }
             _ => false,
         },
@@ -170,9 +187,35 @@ fn is_declaration(node: Node, key: u16, src: &[u8]) -> bool {
                     .is_some_and(|m| m == "require" || m == "require_relative")
                 && node.child_by_field_name("receiver").is_none()
                 && lone_string_arguments(node, "argument_list")
+                // `require('x') { launch() }` carries a block that executes
+                // (coevo S4-C1) — a bare require has none.
+                && node.child_by_field_name("block").is_none()
         }
         _ => false,
     }
+}
+
+/// Does this subtree contain a node that EXECUTES code (a call, an awaited
+/// expression, a defined function body)? Used to reject call-shaped
+/// declaration entries whose binding target smuggles execution — the
+/// early-return mark would otherwise skip the subtree. Bounded DAG walk.
+fn subtree_executes(node: Node) -> bool {
+    const EXECUTES: &[&str] = &[
+        "call_expression",
+        "call",
+        "await_expression",
+        "arrow_function",
+        "function_expression",
+        "function",
+        "new_expression",
+        "yield_expression",
+    ];
+    if EXECUTES.contains(&node.kind()) {
+        return true;
+    }
+    let mut cursor = node.walk();
+    let children: Vec<Node> = node.named_children(&mut cursor).collect();
+    children.into_iter().any(subtree_executes)
 }
 
 /// `require('lit')` / `require("lit")` with exactly one plain string argument.

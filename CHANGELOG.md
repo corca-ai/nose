@@ -6,6 +6,26 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Adversarial co-evolution, series 4** (experiments §CD, issue #279) — the AST
+  declaration classifier's first attack plus the difference-evidence and
+  encoding surfaces:
+  - **Declaration classifier: call-shaped entries inspect their children**
+    (S4-C1). `const { a = steal() } = require('lit')`, a computed key, and a
+    Ruby `require('x') { … }` block smuggled live calls onto an import line
+    because the node-kind match returned before recursing; the JS binding name
+    and Ruby block must now execute nothing. Plain destructuring stays wiring.
+  - **`N of M lines shared` is honest** (S4-C2): the displayed count is now the
+    representative pair's physical invariant-line count, so the summary can no
+    longer read `5 of 6 shared, 2 spots differ` (5+2>6) or undercount repeated
+    identical lines; the majority-voted set still drives ranking weight.
+  - **UTF-8 BOM no longer flips classification** (S4-C3): a BOM'd import-only
+    file stays a declaration run (stripped in the classifier and prescreen),
+    matching the IL-lowering path that already tolerated it.
+  - Embedded `<script>` text-extraction defects deferred (#280, grammar-driven
+    boundary detection is frontend core work); coverage rows adopted for Rust
+    `extern crate`, Go `package`, Ruby `require_relative`.
+
 ### Changed
 - **The AST declaration classifier is cost-neutral** (§CC addendum): the
   migration's serial per-file re-parse cost +29% wall on family-dense scans

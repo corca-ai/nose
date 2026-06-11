@@ -2068,3 +2068,70 @@ silently dropped a mid-statement-start family — caught by the classification
 diff, not by timing, so perf defenses take the SAME pre-gate; (2) the
 performance surface needs its own baseline pair in the pre-gate (wall time on
 a family-dense repo, A/B against the prior binary), now noted in the runbook.
+
+## CD. Adversarial co-evolution, series 4 — the AST classifier's first attack, evidence honesty, encoding
+
+Fourth runbook execution (#279), five fresh-subagent campaigns against the
+newest code (the AST declaration classifier from §CC, the all-members ignore
+fix) plus two never-attacked surfaces (the #223 difference-evidence contract;
+encoding/embedded-container robustness). The AST migration that ended four
+text-grammar waves took its own first attack — and leaked, but at the node
+level, not the line level.
+
+**S4-C1 (blind grammar-lawyer → the AST classifier).** Four reproduced
+violations, one root cause: `walk` marks a node `declaration` and **returns
+without recursing** the moment `is_declaration` matches the kind, so the two
+*call-shaped* whitelist entries (JS `const … = require()`, Ruby `require`)
+never inspect their non-wiring children. A destructuring default
+(`const { a = steal() } = require('lit')`), a computed key
+(`{ [exfil()]: x }`), and a Ruby block (`require('x') { launch }`) each smuggle
+a live call onto the import's line. The code-poison pass never saw them because
+the subtree was skipped. Defense: the JS binding `name` and the Ruby `block`
+field must execute nothing (`subtree_executes`, a bounded kind-walk for
+call/await/arrow/new/yield) — plain destructuring (`const { a, b } =
+require()`) stays inert wiring. Locked as no-rows.
+
+**S4-C2 (blind evidence-skeptic → the #223 difference contract).** Six packets;
+two were displayed-dishonesty bugs. `shared_lines` was a ≥60% **majority vote
+across up to 8 members** but shown against the representative pair, so a 6-line
+body could read `5 of 6 lines shared, 2 spots differ` (5+2=7) and three
+identical `buf.append(x)` lines deduped to `2 of 6`. Split into
+`SharedLines { rank_lines, display, params }`: the display count is now the
+representative pair's physical invariant-line count (partitions the pair's diff
+with `params`, no dedup), while the majority-voted `rank_lines` still drives
+`shared_weight` so the ranking keeps its outlier robustness. The other four
+(params from one pair = a documented lower bound; the `languages == 1` gate
+dropping a same-language extractable sub-pair in a mixed family; `removable` on
+a zero-shared structural match) are recorded as documented lower-bound
+behavior, not fixed.
+
+**S4-C3 (blind robustness-attacker → encoding/determinism).** Determinism held
+byte-identical across repeats and `RAYON_NUM_THREADS`; CRLF, multibyte
+identifiers, no-trailing-newline, long lines all green. One violation: a UTF-8
+**BOM** on any member of an import-only family flipped it from `declaration` to
+`default` (the BOM makes tree-sitter emit a line-1 error leaf that poisons the
+first declaration), in Python and Rust — while the IL-lowering path already
+tolerated it. Defense: strip a leading BOM in both `declaration_facts` and the
+prescreen.
+
+**S4-C4 (blind container-attacker → embedded `<script>`).** Five reproduced
+defects, all from text byte-scanning instead of parsing: `</script>` in a JS
+string literal truncates the block (miss); a commented-out `<script>` is
+analyzed live and the span swallows `</body></html>`; a Vue 3.3
+`generic="T extends Record<…>"` attribute `>` breaks tag-end detection;
+`end_line` over-claims onto the closing tag; an unclosed `<script>` is dropped.
+Deferred as #280 — grammar-driven boundary detection is frontend core work.
+
+**S4-C5 (informed coverage auditor).** 14 gaps; adopted Rust `extern crate`, Go
+`package`, and Ruby `require_relative` rows. The AST code-poison check (gap 6)
+and the languages all-members selector (gap 12) were already locked — the first
+by the migration routing every no-row through the AST engine, the second by
+sharing the `.all()` code path the partial-path test exercises.
+
+**Corpus price** (the pre-gate): **2,279 declaration families, same
+per-extension split as §CC, zero worthy reclassification** — the S4-C1
+tightening (call-shaped false declarations removed) and the S4-C3 loosening
+(BOM'd files now classify) net to no change on the pinned corpus, because
+neither shape is common there; the value of both fixes is in the field
+(destructured CommonJS requires; Windows-authored BOM files) and the unit
+battery, not the corpus count.

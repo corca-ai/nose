@@ -336,6 +336,66 @@
    "summary": "A/B vs pre-AST binary: sympy 4.96->6.42s (+29%), craken-agents 0.546->0.760s (+39%) \u2014 serial re-parse of nearly every family-hosting file. Defense: sound-direction prescreen (declaration starters + mid-statement continuation shapes; false negatives only fail open) + parallel parse of unique candidate files. After: sympy 4.67s, craken-agents 0.550s \u2014 at or under the pre-AST baseline, classification byte-identical (42/10). The prescreen's first draft dropped a mid-statement-start family (caught by classification diff, not timing) \u2014 even perf-only gates need the classification diff check",
    "verdict": "violation-fixed",
    "defense": "prescreen + rayon parse (this PR)"
+  },
+  {
+   "packet_id": "s4-c1-uninspected-children",
+   "series": 4,
+   "campaign": "S4-C1",
+   "persona": "grammar-lawyer",
+   "mode": "blind-executable",
+   "surface": "decidability-filters",
+   "claim": "a declaration node proves its whole line range is wiring",
+   "summary": "4 reproduced: call-shaped declaration entries (JS require-binding, Ruby require) mark the node and early-return WITHOUT recursing, so a destructuring default `{a=steal()}`, computed key `{[exfil()]:x}`, or Ruby block `require('x'){launch}` smuggles a call onto the import line; node-kind whitelist never inspected the name-pattern/block child",
+   "verdict": "violation-fixed",
+   "defense": "subtree_executes guard on JS binding name + Ruby block-field check (this PR)"
+  },
+  {
+   "packet_id": "s4-c2-shared-lines-semantics",
+   "series": 4,
+   "campaign": "S4-C2",
+   "persona": "evidence-skeptic",
+   "mode": "blind-executable",
+   "surface": "ranking-grouping-hints",
+   "claim": "N of M lines shared is the representative pair's invariant count; honest",
+   "summary": "6 packets: shared_lines was a majority vote across up to 8 members but displayed against the rep pair (5 of 6 shared + 2 spots = 7 in a 6-line body), and HashSet-deduped (3 identical buf.append counted once -> 2 of 6). Fixed display to the rep pair's physical invariant count (rank set keeps majority vote for shared_weight). Remaining packets (params from one pair = lower bound; languages==1 gate drops mixed-family evidence; removable on 0-shared) recorded as documented lower-bound behavior",
+   "verdict": "violation-fixed",
+   "defense": "SharedLines{rank_lines,display,params} split (this PR); residuals recorded"
+  },
+  {
+   "packet_id": "s4-c3-bom-misclass",
+   "series": 4,
+   "campaign": "S4-C3",
+   "persona": "robustness-attacker",
+   "mode": "blind-executable",
+   "surface": "performance-determinism",
+   "claim": "encoding never changes classification; determinism holds",
+   "summary": "a UTF-8 BOM on any member of an import-only family flipped it from declaration to default (tree-sitter error leaf in line-1 region) in py+rust; the IL-lowering path already tolerated it. Determinism/CRLF/multibyte/no-trailing-newline all GREEN (3 packets BOM only)",
+   "verdict": "violation-fixed",
+   "defense": "strip BOM in declaration_facts + prescreen (this PR)"
+  },
+  {
+   "packet_id": "s4-c4-embedded-text-extraction",
+   "series": 4,
+   "campaign": "S4-C4",
+   "persona": "container-attacker",
+   "mode": "blind-executable",
+   "surface": "embedded-containers",
+   "claim": "embedded <script> extraction is correct and line-accurate",
+   "summary": "5 reproduced: </script> in a JS string truncates (miss); commented-out <script> analyzed live + span swallows </body></html>; generic=\"T extends X<Y>\" attribute > breaks tag-end; end_line over-claims onto the close tag; unclosed <script> dropped. All from text byte-scanning, not parsing",
+   "verdict": "deferred-issue",
+   "defense": "#280 (grammar-driven boundary detection is frontend core work)"
+  },
+  {
+   "packet_id": "s4-c5-coverage",
+   "series": 4,
+   "campaign": "S4-C5",
+   "persona": "coverage-auditor",
+   "mode": "informed",
+   "surface": "decidability-filters",
+   "claim": "the AST classifier's per-language kinds are covered",
+   "summary": "14 gaps; adopted rows for Rust extern crate, Go package clause, Ruby require_relative; AST code-poison (gap 6) and the languages all-members selector (gap 12) already locked by the migration + the partial-path test sharing the same .all() code path",
+   "verdict": "violation-fixed",
+   "defense": "coverage rows (this PR)"
   }
  ]
 }

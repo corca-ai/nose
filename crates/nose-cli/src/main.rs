@@ -3676,17 +3676,21 @@ fn weight_shared_lines(
             .iter()
             .find_map(|b| varying_spots_of(&f.locations[0], b, &mut lines))
             .unwrap_or_default();
-        if let Some((shared, params)) = shared_lines_of(&f.locations, &mut lines) {
-            let substantive: f64 = shared
+        if let Some(s) = shared_lines_of(&f.locations, &mut lines) {
+            let substantive: f64 = s
+                .rank_lines
                 .iter()
                 .filter(|l| !is_trivial_line(l))
                 .map(|l| idf.weight(l))
                 .sum();
             // Gate ramps 0→1 as substantive shared content goes 0→2 lines.
             let gate = (substantive / 2.0).clamp(0.0, 1.0);
-            f.shared_lines = shared.len() as u32;
-            f.shared_weight = shared.len() as f64 * gate;
-            f.params = params;
+            // Display is the representative pair's physical invariant count;
+            // ranking weights the majority-voted set. `shared_weight` keeps
+            // using the rank set so the robust signal still drives the order.
+            f.shared_lines = s.display;
+            f.shared_weight = s.rank_lines.len() as f64 * gate;
+            f.params = s.params;
         }
     }
 }
@@ -4197,7 +4201,10 @@ fn declaration_prescreen(all: &[String], start: u32, end: u32) -> bool {
         return false;
     }
     for line in &all[start as usize - 1..end] {
-        let t = line.trim_start();
+        // A leading UTF-8 BOM is invisible to the AST classifier (it strips
+        // one) — the prescreen must too, or a BOM'd first import never reaches
+        // the parse (coevo S4-C3).
+        let t = line.trim_start_matches('\u{feff}').trim_start();
         if t.is_empty() || t.starts_with("//") || t.starts_with("/*") {
             continue;
         }
@@ -4766,17 +4773,34 @@ fn anti_unify(a: &[&str], b: &[&str]) -> (Vec<String>, u32, u32) {
 /// just the closest pair — so a diverging copy shrinks the count honestly rather than
 /// the flattering pair count overstating `N of M shared`. Parameters come from the first
 /// pair that reads (a lower bound on the varying spots). `None` if no pair reads.
-fn shared_lines_of(
-    locs: &[nose_detect::Loc],
-    cache: &mut FileLineCache,
-) -> Option<(Vec<String>, u32)> {
-    // Lines invariant across the representative pair, plus the parameter count.
+/// What the difference analysis yields for a family: the lines that drive the
+/// *ranking* weight, the *displayed* invariant-line count, and the parameter
+/// count — kept as three values because the display count and the ranking set
+/// answer different questions (coevo S4-C2).
+struct SharedLines {
+    /// Majority-voted invariant lines (deduped, sorted) — the robust signal the
+    /// ranking weights by IDF. Robustness is the point: a 6-copy family isn't
+    /// tanked because its 6th copy diverges.
+    rank_lines: Vec<String>,
+    /// The representative pair's invariant **physical** line count — what the
+    /// `N of M shared, K spots differ` summary shows. Counted (not deduped) and
+    /// taken from the same pair as `params`, so `display + params` partitions
+    /// the pair's diff and the summary can never read `5 of 6 + 2 spots`
+    /// (the §S4-C2 self-contradiction) or undercount repeated lines.
+    display: u32,
+    params: u32,
+}
+
+fn shared_lines_of(locs: &[nose_detect::Loc], cache: &mut FileLineCache) -> Option<SharedLines> {
+    // The representative pair: invariant lines (for the majority vote), the
+    // physical invariant-line count (for display), and the hole count.
     let pair = |a: &nose_detect::Loc, b: &nose_detect::Loc, cache: &mut FileLineCache| {
         let la = cache.slice(&a.file, a.start_line, a.end_line)?;
         let lb = cache.slice(&b.file, b.start_line, b.end_line)?;
         let ar: Vec<&str> = la.iter().map(String::as_str).collect();
         let br: Vec<&str> = lb.iter().map(String::as_str).collect();
         let mut shared = Vec::new();
+        let mut display = 0u32;
         let mut params = 0u32;
         let mut in_hole = false;
         for (tag, line) in &line_diff(&ar, &br) {
@@ -4784,6 +4808,10 @@ fn shared_lines_of(
                 in_hole = false;
                 let t = line.trim();
                 if !t.is_empty() {
+                    // Every physical invariant line counts toward display (so
+                    // three identical `buf.append(x)` lines count as 3); the
+                    // dedup happens only in the majority-vote set below.
+                    display += 1;
                     shared.push(t.to_string());
                 }
             } else if !in_hole {
@@ -4791,26 +4819,23 @@ fn shared_lines_of(
                 params += 1;
             }
         }
-        Some((shared, params))
+        Some((shared, display, params))
     };
     const MEMBER_CAP: usize = 8;
-    // Count, per representative-line, how many other members share it. Keep the lines
-    // shared by a *majority* (≥60%) of members: honest about a diverging copy (a line
-    // only one other member has is dropped) yet robust to a single outlier (a 6-copy
-    // family isn't tanked because its 6th copy differs). Parameters come from the first
-    // pair (a lower bound on the varying spots).
     let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut n_others = 0usize;
     let mut params = 0u32;
+    let mut display = 0u32;
     for b in locs.iter().skip(1).take(MEMBER_CAP - 1) {
-        let Some((s, p)) = pair(&locs[0], b, cache) else {
+        let Some((s, d, p)) = pair(&locs[0], b, cache) else {
             continue;
         };
-        // Parameters come from the first pair that actually reads — keyed on
-        // `n_others`, not the loop index, so an unreadable representative pair
-        // doesn't silently drop the count to zero.
+        // Display and params come from the first pair that actually reads —
+        // keyed on `n_others`, not the loop index, so an unreadable
+        // representative pair doesn't silently drop them to zero.
         if n_others == 0 {
             params = p;
+            display = d;
         }
         n_others += 1;
         let uniq: std::collections::HashSet<String> = s.into_iter().collect();
@@ -4822,7 +4847,7 @@ fn shared_lines_of(
         return None;
     }
     let need = ((n_others as f64) * 0.6).ceil().max(1.0) as usize;
-    let mut shared: Vec<String> = counts
+    let mut rank_lines: Vec<String> = counts
         .into_iter()
         .filter(|(_, c)| *c >= need)
         .map(|(l, _)| l)
@@ -4831,8 +4856,12 @@ fn shared_lines_of(
     // and float addition isn't associative, so a `HashMap`-iteration order would make
     // `shared_weight` (and, via sort ties, the family order) vary run-to-run and across
     // thread counts — violating the byte-identical-output guarantee.
-    shared.sort_unstable();
-    Some((shared, params))
+    rank_lines.sort_unstable();
+    Some(SharedLines {
+        rank_lines,
+        display,
+        params,
+    })
 }
 
 /// The varying spots between two location line-blocks (#223): each maximal
@@ -5482,14 +5511,15 @@ mod tests {
         // from the representative by one parameter line.
         let locs = vec![mk(f0), mk(missing), mk(f2)];
         let mut cache = FileLineCache(std::collections::HashMap::new());
-        let (shared, params) = shared_lines_of(&locs, &mut cache).expect("a later pair reads");
+        let s = shared_lines_of(&locs, &mut cache).expect("a later pair reads");
 
         assert!(
-            shared.contains(&"shared1".to_string()),
-            "shared lines extracted: {shared:?}"
+            s.rank_lines.contains(&"shared1".to_string()),
+            "shared lines extracted: {:?}",
+            s.rank_lines
         );
         assert_eq!(
-            params, 1,
+            s.params, 1,
             "params must come from the first successful pair, not iteration 0"
         );
 
@@ -5785,6 +5815,10 @@ mod tests {
             // The closer may carry the final import names (corpus re-price
             // regression in series 2: bare-`)` leaked real Python imports).
             ("py", "from typing import (\n    Any,\n    Mapping)"),
+            // S4-C5 coverage adoptions (supported kinds with no locked row).
+            ("rs", "extern crate serde;\nextern crate serde_json;"),
+            ("go", "package main"),
+            ("rb", "require_relative './helpers'"),
             // S3-C5 coverage adoptions.
             ("go", "import (\n\t. \"fmt\"\n\t_ \"encoding/json\"\n)"),
             ("rs", "use std::{\n    io::{self, Read},\n};"),
@@ -5854,9 +5888,32 @@ mod tests {
             // S3-C5 boundary re-attacks on the strict closers.
             ("rs", "use std::{\n  A,\n}x;"),
             ("go", "import (\n\tfunc() \"x\"\n)"),
+            // S4-C1: call-shaped declaration entries whose binding/block
+            // smuggles execution past the node-kind whitelist.
+            (
+                "js",
+                "const { boom = stealCreditCards() } = require('lit');",
+            ),
+            ("js", "const { [exfiltrate()]: grabbed } = require('lit');"),
+            (
+                "ts",
+                "const { boom = stealCreditCards() } = require('lit');",
+            ),
+            ("rb", "require('socket') { launch_missiles }"),
         ];
         for (ext, src) in no {
             assert!(!ast_classifies(ext, src), "must fail open on: {src:?}");
         }
+    }
+
+    #[test]
+    fn declaration_spans_inert_destructure_still_classifies() {
+        // The S4-C1 fix must not over-reject: a plain destructuring require
+        // executes nothing and stays wiring.
+        assert!(ast_classifies(
+            "js",
+            "const { boom, fizz } = require('lit');"
+        ));
+        assert!(ast_classifies("py", "\u{feff}import os")); // BOM-tolerant
     }
 }
