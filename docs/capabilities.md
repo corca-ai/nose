@@ -52,7 +52,7 @@ nose capabilities
   },
   "scan": {
     "modes": ["syntax", "semantic", "near"],
-    "default_modes": ["syntax", "semantic"],
+    "default_modes": ["syntax", "semantic", "near"],
     "output_formats": ["human", "json", "markdown", "sarif"],
     "sort_keys": ["extractability", "value", "sites", "hazard"],
     "config_keys": [

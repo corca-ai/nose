@@ -105,9 +105,10 @@ nose scan src --show proposal   # show the extracted helper skeleton, varying sp
 | Machine-readable output | `nose scan src --format json` |
 | Faster repeated runs | `nose scan src --cache-dir .nose-cache` |
 
-`nose scan` runs `syntax` + `semantic` by default (literal copy-paste plus exact
-same-logic clones). Passing `--mode` replaces that default with exactly the
-channels you list — see [clone-types](clone-types.md) for what each one finds.
+`nose scan` runs `syntax` + `semantic` + `near` by default (literal copy-paste,
+exact same-logic clones, and fuzzy near-duplicates). Passing `--mode` replaces
+that default with exactly the channels you list — see
+[clone-types](clone-types.md) for what each one finds.
 
 ## Where to go next
 

@@ -140,8 +140,8 @@ enum Cmd {
         /// Read defaults from this config file (else `nose.toml`/`.nose.toml`).
         #[arg(long, value_name = "FILE")]
         config: Option<PathBuf>,
-        /// Detection channels to run. Omit for `syntax,semantic`. If present, this
-        /// replaces the default; pass a comma-list or repeat it, e.g.
+        /// Detection channels to run. Omit for `syntax,semantic,near`. If present,
+        /// this replaces the default; pass a comma-list or repeat it, e.g.
         /// `--mode syntax,near` or `--mode syntax --mode semantic`. Fuzzy channels
         /// take an optional acceptance threshold inline: `--mode near:0.8`.
         #[arg(
@@ -213,7 +213,8 @@ enum Cmd {
         #[arg(long, default_value = "HEAD")]
         base: String,
         /// Detection channels, like `scan`: `syntax`, `semantic`, `near[:T]` (comma-list
-        /// or repeatable). Omit for `syntax,semantic`.
+        /// or repeatable). Omit for `syntax,semantic` (review keeps the conservative
+        /// mix; `scan`'s default also includes `near`).
         #[arg(
             long,
             value_delimiter = ',',
@@ -533,6 +534,16 @@ fn validate_min_value(value: f64) -> Result<f64> {
     }
 }
 
+/// The `scan` default surface: include unthresholded `near` (experiments §BM:
+/// +8.2pp held-out worthy-recall at no held-out P@10 price — consumer 1 filters).
+const SCAN_DEFAULT_MODES: &[ScanMode] =
+    &[ScanMode::Syntax, ScanMode::Semantic, ScanMode::Near(None)];
+
+/// The `review` default stays the conservative mix: review feeds a gate
+/// (consumer 2 — false fires are the failure mode), and §BM priced the scan
+/// surface only. Revisit with the fire-precision benchmark (#243/#245).
+const REVIEW_DEFAULT_MODES: &[ScanMode] = &[ScanMode::Syntax, ScanMode::Semantic];
+
 #[derive(Clone, Copy)]
 struct ScanChannels {
     syntax: bool,
@@ -544,13 +555,13 @@ struct ScanChannels {
 }
 
 impl ScanChannels {
-    fn resolve(cli: Vec<ScanMode>, cfg: Vec<ScanMode>) -> Result<Self> {
+    fn resolve(cli: Vec<ScanMode>, cfg: Vec<ScanMode>, default: &[ScanMode]) -> Result<Self> {
         let selected = if !cli.is_empty() {
             cli
         } else if !cfg.is_empty() {
             cfg
         } else {
-            vec![ScanMode::Syntax, ScanMode::Semantic]
+            default.to_vec()
         };
         let mut channels = ScanChannels {
             syntax: false,
@@ -890,7 +901,7 @@ impl CapabilitiesReport {
             },
             scan: CapabilitiesScan {
                 modes: vec!["syntax", "semantic", "near"],
-                default_modes: vec!["syntax", "semantic"],
+                default_modes: vec!["syntax", "semantic", "near"],
                 output_formats: vec!["human", "json", "markdown", "sarif"],
                 sort_keys: vec!["extractability", "value", "sites", "hazard"],
                 config_keys: vec![
@@ -3140,7 +3151,7 @@ pub(crate) fn detect_families(
 ) -> Result<Vec<nose_detect::RefactorFamily>> {
     validate_exclude_globs(exclude)?;
     let refs = paths_as_refs(paths);
-    let channels = ScanChannels::resolve(mode, cfg_mode)?;
+    let channels = ScanChannels::resolve(mode, cfg_mode, REVIEW_DEFAULT_MODES)?;
     let opts = scan_detect_options(channels, min_tokens, min_lines);
     let detector = scan_detector(channels, &opts);
     let corpus = nose_frontend::lower_corpus_filtered(&refs, exclude);
@@ -3428,7 +3439,7 @@ fn resolve_scan_settings(args: &ScanArgs) -> Result<ScanSettings> {
     let min_members = args.min_members.or(cfg.min_members).unwrap_or(2);
     let min_value = validate_min_value(args.min_value.or(cfg.min_value).unwrap_or(0.0))?;
     let sort = args.sort.or(cfg.sort).unwrap_or(SortKey::Extractability);
-    let channels = ScanChannels::resolve(args.mode.clone(), cfg.mode)?;
+    let channels = ScanChannels::resolve(args.mode.clone(), cfg.mode, SCAN_DEFAULT_MODES)?;
     let min_lines = args.min_lines.or(cfg.min_lines).unwrap_or(5);
     let min_tokens = args.min_size.or(cfg.min_size).unwrap_or(24);
     let ignore_file = args.ignore_file.clone().or(cfg.ignore_file);

@@ -37,8 +37,8 @@ fingerprints.
 
 `--mode syntax` is intentionally the CPD floor: it is excellent for same-language copied
 runs that a token detector should catch, including runs that cross function boundaries, but
-it is not the renamed/literal-varied Type-2 story by itself. Use the default or add `near`
-when renamed or literal-varied copies matter.
+it is not the renamed/literal-varied Type-2 story by itself. Use the default (which
+includes `near`) when renamed or literal-varied copies matter.
 
 The hidden experimental `abstraction` mode narrows one slice of this space for tools:
 it starts from low-threshold `near` candidates, then reports only same-language pairs
@@ -155,7 +155,7 @@ copy floors → `syntax`**, identifier/type-normalized **Type-2 → `semantic` o
 literal-varied Type-2 and **Type-3 → `near`** (fuzzy; the threshold rides on the mode,
 `near:0.8`), and exact **Type-4 → `semantic`**. The experimental
 `abstraction[:T]` mode is a weak family-wide witness layer over a narrow `near` subset;
-it does not feed `semantic` or `verify`. The default is `syntax,semantic`; see
+it does not feed `semantic` or `verify`. The default is `syntax,semantic,near`; see
 [usage → Scan modes](usage.md#scan-modes) for the full table and how to compose channels.
 
 The taxonomy is usually stated within a single language; because every language lowers to

@@ -35,9 +35,9 @@ nose scan src --mode syntax --fail-on any
 nose review --base origin/main --fail
 ```
 
-`nose scan` respects `.gitignore` files inside scanned trees. Use `--mode semantic` for
-exact semantic-only findings, or `--mode syntax,semantic,near:0.70` to include fuzzy
-near-duplicates.
+`nose scan` respects `.gitignore` files inside scanned trees. The default surface
+includes fuzzy near-duplicates; use `--mode semantic` for exact semantic-only findings,
+or `--mode syntax,semantic` to drop the fuzzy channel.
 
 ## Documentation
 

@@ -6,6 +6,22 @@ break.
 
 ## [Unreleased]
 
+### Changed
+- **`nose scan`'s default channel mix is now `syntax,semantic,near`** (#241,
+  experiments §BM): omitting `--mode` also runs the fuzzy Type-3 `near` channel
+  at its standard `0.70` acceptance floor. Measured on the 105-repo corpus,
+  the flip lifts held-out worthy-recall 88.5% → 96.7% with held-out P@10
+  *improving* 55.5% → 58.6%; the cost is a larger default report
+  (+22% default-surface families corpus-wide, mostly production scope).
+  **Migration:** an explicit `--mode` (or config `mode`) is unaffected — it
+  replaces the default exactly as before. CI gates and baseline users should
+  pin `--mode` (e.g. `--mode syntax,semantic` for the old mix) or re-baseline
+  with `--write-baseline`, since a default-mode scan now reports more families
+  and `--fail-on any` can newly fail. `nose review`'s default is **unchanged**
+  (`syntax,semantic`): review feeds a gate, where false fires cost more than
+  missed candidates, and the §BM pricing covered the scan surface only.
+  `nose capabilities` advertises the new `scan.default_modes` truthfully.
+
 ### Performance
 - Scans are 2–4× faster end-to-end on the benchmark corpus (sympy 20.0 → 4.7s,
   redis 3.9 → 1.0s, git 2.7 → 1.1s wall; experiments §BQ) with byte-identical

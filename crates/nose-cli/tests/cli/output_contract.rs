@@ -348,9 +348,14 @@ fn scan_json_block_locations_carry_enclosing_unit() {
     )
     .unwrap();
 
+    // Pin the exact surface: with `near` in the default mix the two host
+    // functions also merge as one near family, which subsumes the Block
+    // members this contract is about.
     let out = run(&[
         "scan",
         dir.to_str().unwrap(),
+        "--mode",
+        "syntax,semantic",
         "--min-lines",
         "1",
         "--format",
