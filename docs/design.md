@@ -129,7 +129,10 @@ Both ride the same sound core. They differ only in operating point and output co
   *Measured 2026-06-10 ([experiments §BJ](experiments.md)): the residual beyond the
   shipped v1 mechanisms is small (sub-DAG ceiling 2.0% optimistic / 0.6% at the shipped
   anchor weight; inlining 0.3%) — further effort routes to unit-extraction coverage and
-  the fragment axis, not more matching.*
+  the fragment axis, not more matching. The last unmeasured frontier — different-algorithm
+  Type-4 below vj 0.8 — was measured 2026-06-11 ([experiments §BS](experiments.md)) via the
+  behavior-keyed arm: one worthy pair in 105 repos; every measured recall frontier is now
+  small.*
 - **Extractability ranking** — a "good enough" deterministic triage signal; no need to chase
   more.
 

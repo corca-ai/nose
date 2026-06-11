@@ -103,6 +103,14 @@ auto-elevated; a confirmed miss graduates by hand into `real_frontier.v1.json` v
 audit template below. Method, the dated artifact, and the first audit's findings are
 recorded in [experiments §BK](experiments.md).
 
+The complementary **behavior-keyed arm** (`bench/type4/behavior_miss_mining.py`,
+[experiments §BS](experiments.md)) covers the slice this arm is blind to by
+construction — pairs below the vj floor. Its candidates come from `nose verify
+--leads` (concrete-battery behavior groups), so structure plays no part in
+generation; records carry `evidence_tier: oracle-suggested` under the same no
+auto-elevation rule. First corpus run (2026-06-11): the oracle-visible vj<0.8
+frontier is one worthy pair across 105 repos — the §BS no-go verdict.
+
 ## Target packets (`frontier_target_packets.v1.json`)
 
 An *implementation-ready* candidate becomes a **target packet** in a separate artifact —

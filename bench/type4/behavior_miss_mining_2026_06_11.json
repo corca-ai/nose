@@ -1,0 +1,5077 @@
+{
+ "schema_version": 1,
+ "summary": {
+  "leads_total": 163,
+  "by_band": {
+   "<0.5": 145,
+   "0.7-0.8": 3,
+   "0.5-0.7": 15
+  },
+  "frontier_vj_lt_0.8_unreported_nontrivial": 11,
+  "frontier_by_band": {
+   "<0.5": 11
+  },
+  "frontier_by_lang": {
+   "Go": 5,
+   "Python": 1,
+   "C": 5
+  },
+  "frontier_text_sim_lt_0.5": 10
+ },
+ "failures": [],
+ "leads": [
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Go/antlr/v4/atn_deserializer.go:30",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Go/antlr/v4/parser_atn_simulator.go:22",
+   "structurally_near": false,
+   "vj": 0.1111111111111111,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/Go/antlr/v4/atn_deserializer.go",
+     "start_line": 30,
+     "end_line": 36,
+     "name": "NewATNDeserializer",
+     "kind": "Function",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/Go/antlr/v4/parser_atn_simulator.go",
+     "start_line": 22,
+     "end_line": 26,
+     "name": "NewClosureBusy",
+     "kind": "Function",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.27,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Go/antlr/v4/diagnostic_error_listener.go:100",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/DiagnosticErrorListener.java:141",
+   "structurally_near": false,
+   "vj": 0.27586206896551724,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/Go/antlr/v4/diagnostic_error_listener.go",
+     "start_line": 100,
+     "end_line": 110,
+     "name": "getConflictingAlts",
+     "kind": "Method",
+     "tokens": 20
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/DiagnosticErrorListener.java",
+     "start_line": 141,
+     "end_line": 152,
+     "name": "getConflictingAlts",
+     "kind": "Method",
+     "tokens": 17
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.696,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/FailedPredicateException.java:67",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/JavaScript/src/antlr4/error/FailedPredicateException.js:37",
+   "structurally_near": false,
+   "vj": 0.08695652173913043,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/Java/src/org/antlr/v4/runtime/FailedPredicateException.java",
+     "start_line": 67,
+     "end_line": 73,
+     "name": "formatMessage",
+     "kind": "Method",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/JavaScript/src/antlr4/error/FailedPredicateException.js",
+     "start_line": 37,
+     "end_line": 43,
+     "name": "formatMessage",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.637,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/JavaScript/src/antlr4/transition/NotSetTransition.js:14",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/JavaScript/src/antlr4/transition/WildcardTransition.js:13",
+   "structurally_near": false,
+   "vj": 0.35714285714285715,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/JavaScript/src/antlr4/transition/NotSetTransition.js",
+     "start_line": 14,
+     "end_line": 17,
+     "name": "matches",
+     "kind": "Method",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/JavaScript/src/antlr4/transition/WildcardTransition.js",
+     "start_line": 13,
+     "end_line": 15,
+     "name": "matches",
+     "kind": "Method",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.785,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py:393",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py:405",
+   "structurally_near": false,
+   "vj": 0.4,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py",
+     "start_line": 393,
+     "end_line": 394,
+     "name": "hasNonConflictingAltSet",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/Python3/src/antlr4/atn/PredictionMode.py",
+     "start_line": 405,
+     "end_line": 406,
+     "name": "hasConflictingAltSet",
+     "kind": "Method",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.971,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Python3/src/antlr4/error/Errors.py:156",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/antlr4/runtime/Python3/src/antlr4/tree/Tree.py:58",
+   "structurally_near": false,
+   "vj": 0.1111111111111111,
+   "repo": "antlr4",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/antlr4/runtime/Python3/src/antlr4/error/Errors.py",
+     "start_line": 156,
+     "end_line": 160,
+     "name": "formatMessage",
+     "kind": "Method",
+     "tokens": 8
+    },
+    {
+     "file": "bench/repos/antlr4/runtime/Python3/src/antlr4/tree/Tree.py",
+     "start_line": 58,
+     "end_line": 59,
+     "name": "aggregateResult",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.388,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/black/src/black/nodes.py:969",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/black/src/black/nodes.py:982",
+   "structurally_near": false,
+   "vj": 0.08571428571428572,
+   "repo": "black",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/black/src/black/nodes.py",
+     "start_line": 969,
+     "end_line": 970,
+     "name": "is_type_comment_string",
+     "kind": "Function",
+     "tokens": 18
+    },
+    {
+     "file": "bench/repos/black/src/black/nodes.py",
+     "start_line": 982,
+     "end_line": 987,
+     "name": "is_type_ignore_comment_string",
+     "kind": "Function",
+     "tokens": 20
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.557,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/boltons/boltons/ecoutils.py:417",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/boltons/boltons/strutils.py:795",
+   "structurally_near": true,
+   "vj": 0.7066666666666667,
+   "repo": "boltons",
+   "lang": "Python",
+   "band": "0.7-0.8",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/boltons/boltons/ecoutils.py",
+     "start_line": 417,
+     "end_line": 456,
+     "name": "_args2cmd",
+     "kind": "Function",
+     "tokens": 63
+    },
+    {
+     "file": "bench/repos/boltons/boltons/strutils.py",
+     "start_line": 795,
+     "end_line": 871,
+     "name": "args2cmd",
+     "kind": "Function",
+     "tokens": 65
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.595,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/click/src/click/_compat.py:499",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/click/src/click/testing.py:503",
+   "structurally_near": false,
+   "vj": 0.23529411764705882,
+   "repo": "click",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/click/src/click/_compat.py",
+     "start_line": 499,
+     "end_line": 510,
+     "name": "should_strip_ansi",
+     "kind": "Function",
+     "tokens": 30
+    },
+    {
+     "file": "bench/repos/click/src/click/testing.py",
+     "start_line": 503,
+     "end_line": 508,
+     "name": "should_strip_ansi",
+     "kind": "Function",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.512,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/click/src/click/globals.py:54",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/click/src/click/types.py:1177",
+   "structurally_near": false,
+   "vj": 0.109375,
+   "repo": "click",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/click/src/click/globals.py",
+     "start_line": 54,
+     "end_line": 67,
+     "name": "resolve_color_default",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/click/src/click/types.py",
+     "start_line": 1177,
+     "end_line": 1209,
+     "name": "_guess_type",
+     "kind": "Function",
+     "tokens": 52
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.313,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/click/src/click/types.py:219",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/click/tests/test_termui.py:1227",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "click",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/click/src/click/types.py",
+     "start_line": 219,
+     "end_line": 222,
+     "name": "convert",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/click/tests/test_termui.py",
+     "start_line": 1227,
+     "end_line": 1230,
+     "name": "convert",
+     "kind": "Method",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.509,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/click/tests/test_options.py:796",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/click/tests/test_options.py:814",
+   "structurally_near": false,
+   "vj": 0.5294117647058824,
+   "repo": "click",
+   "lang": "Python",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/click/tests/test_options.py",
+     "start_line": 796,
+     "end_line": 799,
+     "name": "validate_pos_int",
+     "kind": "Function",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/click/tests/test_options.py",
+     "start_line": 814,
+     "end_line": 818,
+     "name": "validate",
+     "kind": "Function",
+     "tokens": 13
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.915,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/cmark/src/scanners.c:5270",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/cmark/src/scanners.c:8412",
+   "structurally_near": false,
+   "vj": 0.026168224299065422,
+   "repo": "cmark",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/cmark/src/scanners.c",
+     "start_line": 5270,
+     "end_line": 5347,
+     "name": "_scan_html_cdata",
+     "kind": "Function",
+     "tokens": 148
+    },
+    {
+     "file": "bench/repos/cmark/src/scanners.c",
+     "start_line": 8412,
+     "end_line": 8536,
+     "name": "_scan_atx_heading_start",
+     "kind": "Function",
+     "tokens": 401
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.379,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/cmark/src/scanners.c:8680",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/cmark/src/scanners.c:8807",
+   "structurally_near": false,
+   "vj": 0.10849909584086799,
+   "repo": "cmark",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/cmark/src/scanners.c",
+     "start_line": 8680,
+     "end_line": 8804,
+     "name": "_scan_open_code_fence",
+     "kind": "Function",
+     "tokens": 256
+    },
+    {
+     "file": "bench/repos/cmark/src/scanners.c",
+     "start_line": 8807,
+     "end_line": 8948,
+     "name": "_scan_close_code_fence",
+     "kind": "Function",
+     "tokens": 357
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.551,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java:43",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java:65",
+   "structurally_near": false,
+   "vj": 0.4,
+   "repo": "commons-lang",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java",
+     "start_line": 43,
+     "end_line": 45,
+     "name": "toCharset",
+     "kind": "Method",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/commons-lang/src/main/java/org/apache/commons/lang3/Charsets.java",
+     "start_line": 65,
+     "end_line": 67,
+     "name": "toCharsetName",
+     "kind": "Method",
+     "tokens": 8
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.838,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1To24Parser.ts:21",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1to12Parser.ts:21",
+   "structurally_near": false,
+   "vj": 0.2727272727272727,
+   "repo": "date-fns",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1To24Parser.ts",
+     "start_line": 21,
+     "end_line": 26,
+     "name": "validate",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/Hour1to12Parser.ts",
+     "start_line": 21,
+     "end_line": 26,
+     "name": "validate",
+     "kind": "Method",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.993,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/ISOWeekParser.ts:24",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/date-fns/pkgs/core/src/parseISO/index.ts:291",
+   "structurally_near": false,
+   "vj": 0.11538461538461539,
+   "repo": "date-fns",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/date-fns/pkgs/core/src/parse/_lib/parsers/ISOWeekParser.ts",
+     "start_line": 24,
+     "end_line": 29,
+     "name": "validate",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/date-fns/pkgs/core/src/parseISO/index.ts",
+     "start_line": 291,
+     "end_line": 293,
+     "name": "validateDayOfYearDate",
+     "kind": "Function",
+     "tokens": 22
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.485,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/fncall.go:179",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/fncall.go:195",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/_fixtures/fncall.go",
+     "start_line": 179,
+     "end_line": 181,
+     "name": "regabistacktest",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/delve/_fixtures/fncall.go",
+     "start_line": 195,
+     "end_line": 197,
+     "name": "floatsum",
+     "kind": "Function",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.282,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/increment.go:6",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/stepintobug.go:12",
+   "structurally_near": false,
+   "vj": 0.125,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/_fixtures/increment.go",
+     "start_line": 6,
+     "end_line": 14,
+     "name": "Increment",
+     "kind": "Function",
+     "tokens": 23
+    },
+    {
+     "file": "bench/repos/delve/_fixtures/stepintobug.go",
+     "start_line": 12,
+     "end_line": 14,
+     "name": "m1",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.407,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/leaf4.go:16",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/leafregex.go:16",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/_fixtures/leaf4.go",
+     "start_line": 16,
+     "end_line": 18,
+     "name": "A",
+     "kind": "Function",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/delve/_fixtures/leafregex.go",
+     "start_line": 16,
+     "end_line": 18,
+     "name": "callme",
+     "kind": "Function",
+     "tokens": 6
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.831,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/leafindrec.go:12",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/testtracefns.go:26",
+   "structurally_near": false,
+   "vj": 0.5555555555555556,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/_fixtures/leafindrec.go",
+     "start_line": 12,
+     "end_line": 18,
+     "name": "A",
+     "kind": "Function",
+     "tokens": 14
+    },
+    {
+     "file": "bench/repos/delve/_fixtures/testtracefns.go",
+     "start_line": 26,
+     "end_line": 32,
+     "name": "first",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.919,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/leafindrec.go:5",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/_fixtures/testtracefns.go:19",
+   "structurally_near": false,
+   "vj": 0.5555555555555556,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/_fixtures/leafindrec.go",
+     "start_line": 5,
+     "end_line": 11,
+     "name": "B",
+     "kind": "Function",
+     "tokens": 14
+    },
+    {
+     "file": "bench/repos/delve/_fixtures/testtracefns.go",
+     "start_line": 19,
+     "end_line": 25,
+     "name": "second",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.918,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/dwarf/line/line_parser.go:278",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/locspec/locations.go:338",
+   "structurally_near": false,
+   "vj": 0.07407407407407407,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/pkg/dwarf/line/line_parser.go",
+     "start_line": 278,
+     "end_line": 286,
+     "name": "pathIsAbs",
+     "kind": "Function",
+     "tokens": 40
+    },
+    {
+     "file": "bench/repos/delve/pkg/locspec/locations.go",
+     "start_line": 338,
+     "end_line": 340,
+     "name": "tryMatchRelativePathByProc",
+     "kind": "Function",
+     "tokens": 18
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.318,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/internal/gosym/additions.go:204",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/logflags/logflags.go:340",
+   "structurally_near": false,
+   "vj": 0.05084745762711865,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/pkg/internal/gosym/additions.go",
+     "start_line": 204,
+     "end_line": 210,
+     "name": "isBadNum",
+     "kind": "Function",
+     "tokens": 20
+    },
+    {
+     "file": "bench/repos/delve/pkg/logflags/logflags.go",
+     "start_line": 340,
+     "end_line": 350,
+     "name": "needsQuoting",
+     "kind": "Function",
+     "tokens": 42
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.336,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/internal/gosym/additions.go:218",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/proc/native/proc_linux.go:222",
+   "structurally_near": false,
+   "vj": 0.13043478260869565,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/pkg/internal/gosym/additions.go",
+     "start_line": 218,
+     "end_line": 224,
+     "name": "isNum",
+     "kind": "Function",
+     "tokens": 16
+    },
+    {
+     "file": "bench/repos/delve/pkg/proc/native/proc_linux.go",
+     "start_line": 222,
+     "end_line": 229,
+     "name": "isProcDir",
+     "kind": "Function",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.548,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go:1555",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go:759",
+   "structurally_near": false,
+   "vj": 0.04804804804804805,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go",
+     "start_line": 1555,
+     "end_line": 1569,
+     "name": "checksumok",
+     "kind": "Function",
+     "tokens": 33
+    },
+    {
+     "file": "bench/repos/delve/pkg/proc/gdbserial/gdbserver_conn.go",
+     "start_line": 759,
+     "end_line": 895,
+     "name": "parseStopPacket",
+     "kind": "Method",
+     "tokens": 316
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.085,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/proc/native/proc_windows.go:532",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/delve/pkg/terminal/command.go:1449",
+   "structurally_near": false,
+   "vj": 0.07692307692307693,
+   "repo": "delve",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/delve/pkg/proc/native/proc_windows.go",
+     "start_line": 532,
+     "end_line": 534,
+     "name": "exitGuard",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/delve/pkg/terminal/command.go",
+     "start_line": 1449,
+     "end_line": 1454,
+     "name": "exitedToError",
+     "kind": "Function",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.283,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts:251",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts:262",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "drizzle-orm",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts",
+     "start_line": 251,
+     "end_line": 260,
+     "name": "flattenDatabaseCredentials",
+     "kind": "Function",
+     "tokens": 18
+    },
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-kit/src/cli/commands/utils.ts",
+     "start_line": 262,
+     "end_line": 272,
+     "name": "flattenPull",
+     "kind": "Function",
+     "tokens": 22
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.839,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-kit/src/cli/connections.ts:287",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-kit/src/introspect-sqlite.ts:51",
+   "structurally_near": false,
+   "vj": 0.043478260869565216,
+   "repo": "drizzle-orm",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-kit/src/cli/connections.ts",
+     "start_line": 287,
+     "end_line": 287,
+     "name": "transparentParser",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-kit/src/introspect-sqlite.ts",
+     "start_line": 51,
+     "end_line": 60,
+     "name": "withCasing",
+     "kind": "Function",
+     "tokens": 22
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.221,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-kit/src/cli/views.ts:83",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-orm/src/mysql2/session.ts:352",
+   "structurally_near": false,
+   "vj": 0.1,
+   "repo": "drizzle-orm",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-kit/src/cli/views.ts",
+     "start_line": 83,
+     "end_line": 87,
+     "name": "isRenamePromptItem",
+     "kind": "Function",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-orm/src/mysql2/session.ts",
+     "start_line": 352,
+     "end_line": 354,
+     "name": "isPool",
+     "kind": "Function",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.275,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-orm/src/alias.ts:15",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-orm/src/alias.ts:82",
+   "structurally_near": false,
+   "vj": 0.20833333333333334,
+   "repo": "drizzle-orm",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-orm/src/alias.ts",
+     "start_line": 15,
+     "end_line": 21,
+     "name": "get",
+     "kind": "Method",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-orm/src/alias.ts",
+     "start_line": 82,
+     "end_line": 88,
+     "name": "get",
+     "kind": "Method",
+     "tokens": 16
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.7,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-seed/src/index.ts:1113",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/drizzle-orm/drizzle-seed/src/index.ts:1434",
+   "structurally_near": false,
+   "vj": 0.4492753623188406,
+   "repo": "drizzle-orm",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-seed/src/index.ts",
+     "start_line": 1113,
+     "end_line": 1141,
+     "name": "getTypeParams",
+     "kind": "Function",
+     "tokens": 56
+    },
+    {
+     "file": "bench/repos/drizzle-orm/drizzle-seed/src/index.ts",
+     "start_line": 1434,
+     "end_line": 1458,
+     "name": "getTypeParams",
+     "kind": "Function",
+     "tokens": 44
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.893,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/css_lexer/css_lexer.go:554",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/pkg/api/api_impl.go:500",
+   "structurally_near": false,
+   "vj": 0.06060606060606061,
+   "repo": "esbuild",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/esbuild/internal/css_lexer/css_lexer.go",
+     "start_line": 554,
+     "end_line": 561,
+     "name": "containsAtPreserveOrAtLicense",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/esbuild/pkg/api/api_impl.go",
+     "start_line": 500,
+     "end_line": 502,
+     "name": "isValidExtension",
+     "kind": "Function",
+     "tokens": 16
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.271,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/css_parser/css_color_spaces.go:326",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/css_parser/css_color_spaces.go:366",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "esbuild",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/esbuild/internal/css_parser/css_color_spaces.go",
+     "start_line": 326,
+     "end_line": 330,
+     "name": "lch_to_lab",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/esbuild/internal/css_parser/css_color_spaces.go",
+     "start_line": 366,
+     "end_line": 368,
+     "name": "oklch_to_oklab",
+     "kind": "Function",
+     "tokens": 6
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.58,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/css_parser/css_parser.go:816",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/css_parser/css_parser.go:928",
+   "structurally_near": false,
+   "vj": 0.029411764705882353,
+   "repo": "esbuild",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/esbuild/internal/css_parser/css_parser.go",
+     "start_line": 816,
+     "end_line": 823,
+     "name": "allSelectorsAreDead",
+     "kind": "Function",
+     "tokens": 9
+    },
+    {
+     "file": "bench/repos/esbuild/internal/css_parser/css_parser.go",
+     "start_line": 928,
+     "end_line": 984,
+     "name": "isSafeSelectors",
+     "kind": "Function",
+     "tokens": 96
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.14,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/internal/resolver/resolver.go:1848",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/esbuild/pkg/api/api_impl.go:504",
+   "structurally_near": false,
+   "vj": 0.0898876404494382,
+   "repo": "esbuild",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/esbuild/internal/resolver/resolver.go",
+     "start_line": 1848,
+     "end_line": 1864,
+     "name": "loadAsIndex",
+     "kind": "Method",
+     "tokens": 54
+    },
+    {
+     "file": "bench/repos/esbuild/pkg/api/api_impl.go",
+     "start_line": 504,
+     "end_line": 514,
+     "name": "validateResolveExtensions",
+     "kind": "Function",
+     "tokens": 43
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.312,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/etcd/client/v3/watch.go:56",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/etcd/server/etcdserver/api/membership/cluster_test.go:672",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "etcd",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/etcd/client/v3/watch.go",
+     "start_line": 56,
+     "end_line": 61,
+     "name": "ensureWatchHeader",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/etcd/server/etcdserver/api/membership/cluster_test.go",
+     "start_line": 672,
+     "end_line": 672,
+     "name": "stringp",
+     "kind": "Function",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.309,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/etcd/pkg/pbutil/pbutil.go:67",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/etcd/pkg/pbutil/pbutil.go:74",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "etcd",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/etcd/pkg/pbutil/pbutil.go",
+     "start_line": 67,
+     "end_line": 72,
+     "name": "GetBool",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/etcd/pkg/pbutil/pbutil.go",
+     "start_line": 74,
+     "end_line": 74,
+     "name": "Boolp",
+     "kind": "Function",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.429,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/etcd/pkg/schedule/schedule.go:44",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/etcd/server/etcdserver/api/snap/snapshotter.go:59",
+   "structurally_near": false,
+   "vj": 0.23076923076923078,
+   "repo": "etcd",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/etcd/pkg/schedule/schedule.go",
+     "start_line": 44,
+     "end_line": 49,
+     "name": "NewJob",
+     "kind": "Function",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/etcd/server/etcdserver/api/snap/snapshotter.go",
+     "start_line": 59,
+     "end_line": 67,
+     "name": "New",
+     "kind": "Function",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.443,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/etcd/server/embed/serve.go:422",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/etcd/server/storage/storage.go:55",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "etcd",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/etcd/server/embed/serve.go",
+     "start_line": 422,
+     "end_line": 427,
+     "name": "createAccessController",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/etcd/server/storage/storage.go",
+     "start_line": 55,
+     "end_line": 57,
+     "name": "NewStorage",
+     "kind": "Function",
+     "tokens": 8
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.442,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/etcd/tests/robustness/validate/patch_history.go:384",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/etcd/tests/robustness/validate/patch_history.go:414",
+   "structurally_near": false,
+   "vj": 0.5384615384615384,
+   "repo": "etcd",
+   "lang": "Go",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/etcd/tests/robustness/validate/patch_history.go",
+     "start_line": 384,
+     "end_line": 393,
+     "name": "countClientDeletes",
+     "kind": "Function",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/etcd/tests/robustness/validate/patch_history.go",
+     "start_line": 414,
+     "end_line": 423,
+     "name": "countClientCompacts",
+     "kind": "Function",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.896,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/execa/lib/io/max-buffer.js:89",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/execa/lib/transform/normalize.js:111",
+   "structurally_near": false,
+   "vj": 0.07692307692307693,
+   "repo": "execa",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/execa/lib/io/max-buffer.js",
+     "start_line": 89,
+     "end_line": 89,
+     "name": "getMaxBufferSync",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/execa/lib/transform/normalize.js",
+     "start_line": 111,
+     "end_line": 111,
+     "name": "sortTransforms",
+     "kind": "Function",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.337,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/fastlane/fastlane/lib/fastlane/command_line_handler.rb:39",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/fastlane/fastlane/lib/fastlane/swift_fastlane_api_generator.rb:145",
+   "structurally_near": false,
+   "vj": 0.043478260869565216,
+   "repo": "fastlane",
+   "lang": "Ruby",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/fastlane/fastlane/lib/fastlane/command_line_handler.rb",
+     "start_line": 39,
+     "end_line": 45,
+     "name": "convert_value",
+     "kind": "Method",
+     "tokens": 22
+    },
+    {
+     "file": "bench/repos/fastlane/fastlane/lib/fastlane/swift_fastlane_api_generator.rb",
+     "start_line": 145,
+     "end_line": 147,
+     "name": "extend_content",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.321,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/flask/src/flask/json/tag.py:297",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/flask/tests/test_json.py:235",
+   "structurally_near": false,
+   "vj": 0.13157894736842105,
+   "repo": "flask",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/flask/src/flask/json/tag.py",
+     "start_line": 297,
+     "end_line": 307,
+     "name": "untag",
+     "kind": "Method",
+     "tokens": 27
+    },
+    {
+     "file": "bench/repos/flask/tests/test_json.py",
+     "start_line": 235,
+     "end_line": 243,
+     "name": "CustomProvider",
+     "kind": "Class",
+     "tokens": 28
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.401,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/fzf/src/algo/indexbyte2_other.go:26",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/fzf/src/algo/indexbyte2_test.go:187",
+   "structurally_near": false,
+   "vj": 0.2692307692307692,
+   "repo": "fzf",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/fzf/src/algo/indexbyte2_other.go",
+     "start_line": 26,
+     "end_line": 33,
+     "name": "lastIndexByteTwo",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/fzf/src/algo/indexbyte2_test.go",
+     "start_line": 187,
+     "end_line": 194,
+     "name": "loopIndexByteTwo",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.84,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/gin/internal/bytesconv/bytesconv_test.go:25",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/gin/utils.go:100",
+   "structurally_near": false,
+   "vj": 0.05,
+   "repo": "gin",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/gin/internal/bytesconv/bytesconv_test.go",
+     "start_line": 25,
+     "end_line": 27,
+     "name": "rawStrToBytes",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/gin/utils.go",
+     "start_line": 100,
+     "end_line": 108,
+     "name": "chooseData",
+     "kind": "Function",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.295,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/gin/path.go:155",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/gin/utils.go:91",
+   "structurally_near": false,
+   "vj": 0.05063291139240506,
+   "repo": "gin",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/gin/path.go",
+     "start_line": 155,
+     "end_line": 203,
+     "name": "removeRepeatedChar",
+     "kind": "Function",
+     "tokens": 70
+    },
+    {
+     "file": "bench/repos/gin/utils.go",
+     "start_line": 91,
+     "end_line": 98,
+     "name": "filterFlags",
+     "kind": "Function",
+     "tokens": 13
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.169,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/git/config.c:3276",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/git/diff.c:3522",
+   "structurally_near": false,
+   "vj": 0.05263157894736842,
+   "repo": "git",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/git/config.c",
+     "start_line": 3276,
+     "end_line": 3314,
+     "name": "section_name_match",
+     "kind": "Function",
+     "tokens": 104
+    },
+    {
+     "file": "bench/repos/git/diff.c",
+     "start_line": 3522,
+     "end_line": 3543,
+     "name": "is_conflict_marker",
+     "kind": "Function",
+     "tokens": 56
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.183,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/git/diffcore-pickaxe.c:26",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/git/strbuf.c:438",
+   "structurally_near": false,
+   "vj": 0.09722222222222222,
+   "repo": "git",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/git/diffcore-pickaxe.c",
+     "start_line": 26,
+     "end_line": 41,
+     "name": "diffgrep_consume",
+     "kind": "Function",
+     "tokens": 40
+    },
+    {
+     "file": "bench/repos/git/strbuf.c",
+     "start_line": 438,
+     "end_line": 455,
+     "name": "strbuf_expand_literal",
+     "kind": "Function",
+     "tokens": 39
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.259,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/git/git-compat-util.h:669",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/git/git-compat-util.h:678",
+   "structurally_near": false,
+   "vj": 0.38461538461538464,
+   "repo": "git",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/git/git-compat-util.h",
+     "start_line": 669,
+     "end_line": 676,
+     "name": "cast_size_t_to_ulong",
+     "kind": "Function",
+     "tokens": 9
+    },
+    {
+     "file": "bench/repos/git/git-compat-util.h",
+     "start_line": 678,
+     "end_line": 685,
+     "name": "cast_size_t_to_uint32_t",
+     "kind": "Function",
+     "tokens": 9
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.833,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/graphhopper/core/src/main/java/com/graphhopper/storage/BaseGraph.java:448",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/graphhopper/web-bundle/src/main/java/no/ecc/vectortile/VectorTileEncoder.java:417",
+   "structurally_near": false,
+   "vj": 0.125,
+   "repo": "graphhopper",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/graphhopper/core/src/main/java/com/graphhopper/storage/BaseGraph.java",
+     "start_line": 448,
+     "end_line": 451,
+     "name": "wrapWeighting",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/graphhopper/web-bundle/src/main/java/no/ecc/vectortile/VectorTileEncoder.java",
+     "start_line": 417,
+     "end_line": 419,
+     "name": "shouldClosePath",
+     "kind": "Method",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.358,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java:50",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java:442",
+   "structurally_near": false,
+   "vj": 0.30434782608695654,
+   "repo": "gson",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/NonNullElementWrapperList.java",
+     "start_line": 50,
+     "end_line": 55,
+     "name": "nonNull",
+     "kind": "Method",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/gson/gson/src/main/java/com/google/gson/internal/bind/JavaTimeTypeAdapters.java",
+     "start_line": 442,
+     "end_line": 448,
+     "name": "requireNonNullField",
+     "kind": "Method",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.545,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava-tests/benchmark/com/google/common/collect/ConcurrentHashMultisetBenchmark.java:548",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava-tests/test/com/google/common/cache/TestingWeighers.java:60",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "guava",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/guava/android/guava-tests/benchmark/com/google/common/collect/ConcurrentHashMultisetBenchmark.java",
+     "start_line": 548,
+     "end_line": 550,
+     "name": "unbox",
+     "kind": "Method",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/guava/android/guava-tests/test/com/google/common/cache/TestingWeighers.java",
+     "start_line": 60,
+     "end_line": 63,
+     "name": "weigh",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.506,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java:1357",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java:1377",
+   "structurally_near": false,
+   "vj": 0.5909090909090909,
+   "repo": "guava",
+   "lang": "Java",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java",
+     "start_line": 1357,
+     "end_line": 1368,
+     "name": "checkNotNull",
+     "kind": "Method",
+     "tokens": 17
+    },
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/base/Preconditions.java",
+     "start_line": 1377,
+     "end_line": 1389,
+     "name": "checkNotNull",
+     "kind": "Method",
+     "tokens": 18
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.959,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java:157",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java:89",
+   "structurally_near": false,
+   "vj": 0.14814814814814814,
+   "repo": "guava",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java",
+     "start_line": 157,
+     "end_line": 167,
+     "name": "distance",
+     "kind": "Method",
+     "tokens": 26
+    },
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/collect/DiscreteDomain.java",
+     "start_line": 89,
+     "end_line": 92,
+     "name": "distance",
+     "kind": "Method",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.429,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/primitives/Booleans.java:167",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/guava/android/guava/src/com/google/common/primitives/Booleans.java:218",
+   "structurally_near": false,
+   "vj": 0.3076923076923077,
+   "repo": "guava",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/primitives/Booleans.java",
+     "start_line": 167,
+     "end_line": 174,
+     "name": "indexOf",
+     "kind": "Method",
+     "tokens": 18
+    },
+    {
+     "file": "bench/repos/guava/android/guava/src/com/google/common/primitives/Booleans.java",
+     "start_line": 218,
+     "end_line": 225,
+     "name": "lastIndexOf",
+     "kind": "Method",
+     "tokens": 16
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.922,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/command/Prepared.java:331",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/table/InformationSchemaTableLegacy.java:719",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "h2database",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/command/Prepared.java",
+     "start_line": 331,
+     "end_line": 333,
+     "name": "getPlanSQL",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/table/InformationSchemaTableLegacy.java",
+     "start_line": 719,
+     "end_line": 721,
+     "name": "replaceNullWithEmpty",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.532,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/jdbc/JdbcConnection.java:1164",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/mvstore/MVMap.java:1848",
+   "structurally_near": false,
+   "vj": 0.125,
+   "repo": "h2database",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/jdbc/JdbcConnection.java",
+     "start_line": 1164,
+     "end_line": 1166,
+     "name": "prepareCommand",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/mvstore/MVMap.java",
+     "start_line": 1848,
+     "end_line": 1850,
+     "name": "selectValue",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.362,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/mvstore/type/ByteArrayDataType.java:24",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/test/org/h2/test/jdbc/TestCallableStatement.java:484",
+   "structurally_near": false,
+   "vj": 0.16666666666666666,
+   "repo": "h2database",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/mvstore/type/ByteArrayDataType.java",
+     "start_line": 24,
+     "end_line": 27,
+     "name": "getMemory",
+     "kind": "Method",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/h2database/h2/src/test/org/h2/test/jdbc/TestCallableStatement.java",
+     "start_line": 484,
+     "end_line": 486,
+     "name": "getArrayLength",
+     "kind": "Method",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.629,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java:186",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java:190",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "h2database",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java",
+     "start_line": 186,
+     "end_line": 188,
+     "name": "isJavascriptSource",
+     "kind": "Method",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/util/SourceCompiler.java",
+     "start_line": 190,
+     "end_line": 192,
+     "name": "isRubySource",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.87,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/main/org/h2/util/TimeZoneProvider.java:425",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/h2database/h2/src/test/org/h2/test/db/TestFunctionOverload.java:139",
+   "structurally_near": false,
+   "vj": 0.047619047619047616,
+   "repo": "h2database",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/h2database/h2/src/main/org/h2/util/TimeZoneProvider.java",
+     "start_line": 425,
+     "end_line": 432,
+     "name": "yearForCalendar",
+     "kind": "Method",
+     "tokens": 20
+    },
+    {
+     "file": "bench/repos/h2database/h2/src/test/org/h2/test/db/TestFunctionOverload.java",
+     "start_line": 139,
+     "end_line": 141,
+     "name": "overload1or2",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.348,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/commands/commandeer.go:705",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/tpl/internal/go_templates/htmltemplate/css.go:128",
+   "structurally_near": false,
+   "vj": 0.1267605633802817,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/commands/commandeer.go",
+     "start_line": 705,
+     "end_line": 711,
+     "name": "mapLegacyArgs",
+     "kind": "Function",
+     "tokens": 31
+    },
+    {
+     "file": "bench/repos/hugo/tpl/internal/go_templates/htmltemplate/css.go",
+     "start_line": 128,
+     "end_line": 146,
+     "name": "skipCSSSpace",
+     "kind": "Function",
+     "tokens": 49
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.313,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/common/herrors/error_locator.go:93",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/tpl/collections/collections_test.go:887",
+   "structurally_near": false,
+   "vj": 0.07692307692307693,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/common/herrors/error_locator.go",
+     "start_line": 93,
+     "end_line": 99,
+     "name": "chromaLexerFromType",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/hugo/tpl/collections/collections_test.go",
+     "start_line": 887,
+     "end_line": 889,
+     "name": "MethodWithArg",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.364,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/common/htime/time.go:81",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/resources/page/site.go:165",
+   "structurally_near": false,
+   "vj": 0.5,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/common/htime/time.go",
+     "start_line": 81,
+     "end_line": 88,
+     "name": "NewTimeFormatter",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/hugo/resources/page/site.go",
+     "start_line": 165,
+     "end_line": 170,
+     "name": "WrapSite",
+     "kind": "Function",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.545,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/common/hugio/readers.go:76",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/hugolib/doctree/nodeshiftree_test.go:289",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/common/hugio/readers.go",
+     "start_line": 76,
+     "end_line": 78,
+     "name": "NewReadSeekerNoOpCloser",
+     "kind": "Function",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/hugo/hugolib/doctree/nodeshiftree_test.go",
+     "start_line": 289,
+     "end_line": 291,
+     "name": "All",
+     "kind": "Method",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.411,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/common/types/types.go:138",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/tpl/internal/go_templates/htmltemplate/exec_test.go:241",
+   "structurally_near": false,
+   "vj": 0.1,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/common/types/types.go",
+     "start_line": 138,
+     "end_line": 140,
+     "name": "NewBool",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/hugo/tpl/internal/go_templates/htmltemplate/exec_test.go",
+     "start_line": 241,
+     "end_line": 246,
+     "name": "MyError",
+     "kind": "Method",
+     "tokens": 9
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.422,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/config/allconfig/load.go:303",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/hugolib/doctree/nodeshiftree_test.go:257",
+   "structurally_near": false,
+   "vj": 0.020833333333333332,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/config/allconfig/load.go",
+     "start_line": 303,
+     "end_line": 321,
+     "name": "envStringToVal",
+     "kind": "Method",
+     "tokens": 47
+    },
+    {
+     "file": "bench/repos/hugo/hugolib/doctree/nodeshiftree_test.go",
+     "start_line": 257,
+     "end_line": 259,
+     "name": "Insert",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.172,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/identity/identity.go:472",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/resources/resource_transformers/templates/execute_as_template.go:36",
+   "structurally_near": false,
+   "vj": 0.3157894736842105,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/identity/identity.go",
+     "start_line": 472,
+     "end_line": 474,
+     "name": "Or",
+     "kind": "Function",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/hugo/resources/resource_transformers/templates/execute_as_template.go",
+     "start_line": 36,
+     "end_line": 44,
+     "name": "New",
+     "kind": "Function",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.303,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/hugo/tpl/internal/go_templates/texttemplate/exec.go:620",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/hugo/tpl/internal/go_templates/texttemplate/exec.go:624",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "hugo",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/hugo/tpl/internal/go_templates/texttemplate/exec.go",
+     "start_line": 620,
+     "end_line": 622,
+     "name": "isRuneInt",
+     "kind": "Function",
+     "tokens": 9
+    },
+    {
+     "file": "bench/repos/hugo/tpl/internal/go_templates/texttemplate/exec.go",
+     "start_line": 624,
+     "end_line": 626,
+     "name": "isHexInt",
+     "kind": "Function",
+     "tokens": 23
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.633,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jackson-core/src/main/java/tools/jackson/core/JacksonException.java:248",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jackson-core/src/main/java/tools/jackson/core/JsonParser.java:1607",
+   "structurally_near": false,
+   "vj": 0.16666666666666666,
+   "repo": "jackson-core",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jackson-core/src/main/java/tools/jackson/core/JacksonException.java",
+     "start_line": 248,
+     "end_line": 250,
+     "name": "_nonNullLocation",
+     "kind": "Method",
+     "tokens": 5
+    },
+    {
+     "file": "bench/repos/jackson-core/src/main/java/tools/jackson/core/JsonParser.java",
+     "start_line": 1607,
+     "end_line": 1609,
+     "name": "getValueAsDouble",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.348,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jest/e2e/coverage-report/cached-duplicates/a/identical.js:8",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-transform/src/ScriptTransformer.ts:138",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "jest",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jest/e2e/coverage-report/cached-duplicates/a/identical.js",
+     "start_line": 8,
+     "end_line": 8,
+     "name": "sum",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/jest/packages/jest-transform/src/ScriptTransformer.ts",
+     "start_line": 138,
+     "end_line": 140,
+     "name": "_buildTransformCacheKey",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.226,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-haste-map/src/watchers/WatchmanWatcher.js:312",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-snapshot/src/utils.ts:86",
+   "structurally_near": false,
+   "vj": 0.023809523809523808,
+   "repo": "jest",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jest/packages/jest-haste-map/src/watchers/WatchmanWatcher.js",
+     "start_line": 312,
+     "end_line": 322,
+     "name": "handleWarning",
+     "kind": "Function",
+     "tokens": 25
+    },
+    {
+     "file": "bench/repos/jest/packages/jest-snapshot/src/utils.ts",
+     "start_line": 86,
+     "end_line": 89,
+     "name": "isAnyOrAnything",
+     "kind": "Function",
+     "tokens": 18
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.238,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-matcher-utils/src/index.ts:257",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-snapshot/src/printSnapshot.ts:148",
+   "structurally_near": false,
+   "vj": 0.42857142857142855,
+   "repo": "jest",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jest/packages/jest-matcher-utils/src/index.ts",
+     "start_line": 257,
+     "end_line": 273,
+     "name": "getCommonAndChangedSubstrings",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/jest/packages/jest-snapshot/src/printSnapshot.ts",
+     "start_line": 148,
+     "end_line": 164,
+     "name": "joinDiffs",
+     "kind": "Function",
+     "tokens": 21
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.948,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-resolve/src/resolver.ts:494",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts:173",
+   "structurally_near": false,
+   "vj": 0.10714285714285714,
+   "repo": "jest",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jest/packages/jest-resolve/src/resolver.ts",
+     "start_line": 494,
+     "end_line": 496,
+     "name": "normalizeCoreModuleSpecifier",
+     "kind": "Method",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts",
+     "start_line": 173,
+     "end_line": 179,
+     "name": "describeForWarning",
+     "kind": "Function",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.393,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts:164",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jest/packages/jest-runtime/src/internals/Resolution.ts:12",
+   "structurally_near": false,
+   "vj": 0.1,
+   "repo": "jest",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jest/packages/jest-runtime/src/internals/EsmLoader.ts",
+     "start_line": 164,
+     "end_line": 169,
+     "name": "isJsonModule",
+     "kind": "Function",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/jest/packages/jest-runtime/src/internals/Resolution.ts",
+     "start_line": 12,
+     "end_line": 13,
+     "name": "isWasm",
+     "kind": "Function",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.543,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java:53",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java:70",
+   "structurally_near": false,
+   "vj": 0.3684210526315789,
+   "repo": "jsoup",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java",
+     "start_line": 53,
+     "end_line": 58,
+     "name": "ensureNotNull",
+     "kind": "Method",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/jsoup/src/main/java/org/jsoup/helper/Validate.java",
+     "start_line": 70,
+     "end_line": 75,
+     "name": "ensureNotNull",
+     "kind": "Method",
+     "tokens": 15
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.837,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/junit5/documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java:103",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/junit5/junit-platform-commons/src/main/java/org/junit/platform/commons/util/ReflectionUtils.java:1931",
+   "structurally_near": false,
+   "vj": 0.125,
+   "repo": "junit5",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/junit5/documentation/src/tools/java/org/junit/api/tools/AbstractApiReportWriter.java",
+     "start_line": 103,
+     "end_line": 105,
+     "name": "paragraph",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/junit5/junit-platform-commons/src/main/java/org/junit/platform/commons/util/ReflectionUtils.java",
+     "start_line": 1931,
+     "end_line": 1933,
+     "name": "isGeneric",
+     "kind": "Method",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.368,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:144",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:160",
+   "structurally_near": false,
+   "vj": 0.5,
+   "repo": "libgdx",
+   "lang": "Java",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java",
+     "start_line": 144,
+     "end_line": 150,
+     "name": "fastFloor",
+     "kind": "Method",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java",
+     "start_line": 160,
+     "end_line": 166,
+     "name": "fastCeil",
+     "kind": "Method",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.954,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java:244",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:510",
+   "structurally_near": false,
+   "vj": 0.5384615384615384,
+   "repo": "libgdx",
+   "lang": "Java",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/libgdx/extensions/gdx-box2d/gdx-box2d-gwt/src/com/badlogic/gdx/physics/box2d/gwt/emu/org/jbox2d/common/MathUtils.java",
+     "start_line": 244,
+     "end_line": 246,
+     "name": "isPowerOfTwo",
+     "kind": "Method",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java",
+     "start_line": 510,
+     "end_line": 512,
+     "name": "isPowerOfTwo",
+     "kind": "Method",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.731,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/BulletSoftBody/btSoftBodyInternals.h:216",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:534",
+   "structurally_near": false,
+   "vj": 0.42105263157894735,
+   "repo": "libgdx",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/BulletSoftBody/btSoftBodyInternals.h",
+     "start_line": 216,
+     "end_line": 217,
+     "name": "Clamp",
+     "kind": "Function",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java",
+     "start_line": 534,
+     "end_line": 538,
+     "name": "clamp",
+     "kind": "Method",
+     "tokens": 16
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.383,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/LinearMath/btScalar.h:552",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java:648",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "libgdx",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/libgdx/extensions/gdx-bullet/jni/src/bullet/LinearMath/btScalar.h",
+     "start_line": 552,
+     "end_line": 555,
+     "name": "btEqual",
+     "kind": "Function",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/libgdx/gdx/src/com/badlogic/gdx/math/MathUtils.java",
+     "start_line": 648,
+     "end_line": 650,
+     "name": "isZero",
+     "kind": "Method",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.361,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/libsodium/src/libsodium/crypto_stream/chacha20/dolbeau/chacha20_dolbeau-avx2.c:123",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/libsodium/src/libsodium/crypto_stream/salsa20/xmm6int/salsa20_xmm6int-avx2.c:99",
+   "structurally_near": false,
+   "vj": 0.6923076923076923,
+   "repo": "libsodium",
+   "lang": "C",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/libsodium/src/libsodium/crypto_stream/chacha20/dolbeau/chacha20_dolbeau-avx2.c",
+     "start_line": 123,
+     "end_line": 146,
+     "name": "stream_ref_xor_ic",
+     "kind": "Function",
+     "tokens": 44
+    },
+    {
+     "file": "bench/repos/libsodium/src/libsodium/crypto_stream/salsa20/xmm6int/salsa20_xmm6int-avx2.c",
+     "start_line": 99,
+     "end_line": 122,
+     "name": "stream_avx2_xor_ic",
+     "kind": "Function",
+     "tokens": 44
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.97,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/marked/docs/demo/demo.js:124",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/marked/src/Hooks.ts:31",
+   "structurally_near": false,
+   "vj": 0.08333333333333333,
+   "repo": "marked",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/marked/docs/demo/demo.js",
+     "start_line": 124,
+     "end_line": 126,
+     "name": "getEffectiveTheme",
+     "kind": "Function",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/marked/src/Hooks.ts",
+     "start_line": 31,
+     "end_line": 33,
+     "name": "preprocess",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.303,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/marshmallow/src/marshmallow/constants.py:12",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/marshmallow/tests/test_fields.py:717",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "marshmallow",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/marshmallow/src/marshmallow/constants.py",
+     "start_line": 12,
+     "end_line": 13,
+     "name": "__copy__",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/marshmallow/tests/test_fields.py",
+     "start_line": 717,
+     "end_line": 720,
+     "name": "handle_none",
+     "kind": "Function",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.416,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/marshmallow/src/marshmallow/fields.py:416",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/marshmallow/tests/test_decorators.py:978",
+   "structurally_near": false,
+   "vj": 0.08695652173913043,
+   "repo": "marshmallow",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/marshmallow/src/marshmallow/fields.py",
+     "start_line": 416,
+     "end_line": 436,
+     "name": "_serialize",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/marshmallow/tests/test_decorators.py",
+     "start_line": 978,
+     "end_line": 984,
+     "name": "noop",
+     "kind": "Method",
+     "tokens": 23
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.212,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/api-headers.go:262",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/generic-handlers.go:90",
+   "structurally_near": false,
+   "vj": 0.04878048780487805,
+   "repo": "minio",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/minio/cmd/api-headers.go",
+     "start_line": 262,
+     "end_line": 269,
+     "name": "needsMimeEncoding",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/minio/cmd/generic-handlers.go",
+     "start_line": 90,
+     "end_line": 106,
+     "name": "isHTTPHeaderSizeTooLarge",
+     "kind": "Function",
+     "tokens": 31
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.356,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/auth-handler_test.go:36",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/erasure-metadata-utils.go:162",
+   "structurally_near": false,
+   "vj": 0.09090909090909091,
+   "repo": "minio",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/minio/cmd/auth-handler_test.go",
+     "start_line": 36,
+     "end_line": 38,
+     "name": "Read",
+     "kind": "Method",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/minio/cmd/erasure-metadata-utils.go",
+     "start_line": 162,
+     "end_line": 171,
+     "name": "diskCount",
+     "kind": "Function",
+     "tokens": 9
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.296,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/streaming-signature-v4.go:612",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/minio/internal/kms/secret-key.go:227",
+   "structurally_near": false,
+   "vj": 0.10666666666666667,
+   "repo": "minio",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/minio/cmd/streaming-signature-v4.go",
+     "start_line": 612,
+     "end_line": 617,
+     "name": "trimTrailingWhitespace",
+     "kind": "Function",
+     "tokens": 22
+    },
+    {
+     "file": "bench/repos/minio/internal/kms/secret-key.go",
+     "start_line": 227,
+     "end_line": 248,
+     "name": "parseCiphertext",
+     "kind": "Function",
+     "tokens": 61
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.245,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/minio/cmd/utils.go:730",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/minio/internal/lock/lock_windows.go:111",
+   "structurally_near": false,
+   "vj": 0.03870967741935484,
+   "repo": "minio",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/minio/cmd/utils.go",
+     "start_line": 730,
+     "end_line": 742,
+     "name": "trimLeadingSlash",
+     "kind": "Function",
+     "tokens": 29
+    },
+    {
+     "file": "bench/repos/minio/internal/lock/lock_windows.go",
+     "start_line": 111,
+     "end_line": 181,
+     "name": "fixLongPath",
+     "kind": "Function",
+     "tokens": 132
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.138,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/minio/internal/dsync/drwmutex.go:550",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/minio/internal/dsync/drwmutex.go:576",
+   "structurally_near": false,
+   "vj": 0.17857142857142858,
+   "repo": "minio",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/minio/internal/dsync/drwmutex.go",
+     "start_line": 550,
+     "end_line": 573,
+     "name": "checkFailedUnlocks",
+     "kind": "Function",
+     "tokens": 22
+    },
+    {
+     "file": "bench/repos/minio/internal/dsync/drwmutex.go",
+     "start_line": 576,
+     "end_line": 585,
+     "name": "checkQuorumLocked",
+     "kind": "Function",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.278,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/ModuleHandler.java:175",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/util/Checks.java:14",
+   "structurally_near": false,
+   "vj": 0.05,
+   "repo": "mockito",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/creation/bytebuddy/ModuleHandler.java",
+     "start_line": 175,
+     "end_line": 178,
+     "name": "toCodegenLoader",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/util/Checks.java",
+     "start_line": 14,
+     "end_line": 23,
+     "name": "checkNotNull",
+     "kind": "Method",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.262,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java:46",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java:50",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "mockito",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java",
+     "start_line": 46,
+     "end_line": 48,
+     "name": "isFromMockito",
+     "kind": "Method",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/mockito/mockito-core/src/main/java/org/mockito/internal/exceptions/stacktrace/DefaultStackTraceCleaner.java",
+     "start_line": 50,
+     "end_line": 52,
+     "name": "isFromMockitoRule",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.895,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/buffer/src/main/java/io/netty/buffer/AbstractByteBuf.java:1404",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/common/src/main/java/io/netty/util/internal/MathUtil.java:63",
+   "structurally_near": false,
+   "vj": 0.3157894736842105,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/buffer/src/main/java/io/netty/buffer/AbstractByteBuf.java",
+     "start_line": 1404,
+     "end_line": 1407,
+     "name": "isOutOfBoundsTrustedCapacity",
+     "kind": "Method",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/netty/common/src/main/java/io/netty/util/internal/MathUtil.java",
+     "start_line": 63,
+     "end_line": 65,
+     "name": "isOutOfBounds",
+     "kind": "Method",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.61,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/buffer/src/main/java/io/netty/buffer/PoolChunk.java:721",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/common/src/main/java/io/netty/util/internal/ObjectUtil.java:337",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/buffer/src/main/java/io/netty/buffer/PoolChunk.java",
+     "start_line": 721,
+     "end_line": 723,
+     "name": "bitmapIdx",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ObjectUtil.java",
+     "start_line": 337,
+     "end_line": 339,
+     "name": "intValue",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.539,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/codec-classes-quic/src/main/java/io/netty/handler/codec/quic/QuicheQuicSslEngine.java:305",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java:147",
+   "structurally_near": false,
+   "vj": 0.2857142857142857,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/codec-classes-quic/src/main/java/io/netty/handler/codec/quic/QuicheQuicSslEngine.java",
+     "start_line": 305,
+     "end_line": 307,
+     "name": "isEmpty",
+     "kind": "Method",
+     "tokens": 9
+    },
+    {
+     "file": "bench/repos/netty/common/src/main/java/io/netty/util/concurrent/AbstractScheduledEventExecutor.java",
+     "start_line": 147,
+     "end_line": 149,
+     "name": "isNullOrEmpty",
+     "kind": "Method",
+     "tokens": 9
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.585,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/codec-http/src/main/java/io/netty/handler/codec/http/HttpContentEncoder.java:76",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/transport/src/main/java/io/netty/channel/local/LocalServerChannel.java:83",
+   "structurally_near": false,
+   "vj": 0.5,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/codec-http/src/main/java/io/netty/handler/codec/http/HttpContentEncoder.java",
+     "start_line": 76,
+     "end_line": 79,
+     "name": "acceptOutboundMessage",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/netty/transport/src/main/java/io/netty/channel/local/LocalServerChannel.java",
+     "start_line": 83,
+     "end_line": 87,
+     "name": "isCompatible",
+     "kind": "Method",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.512,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/codec-http/src/main/java/io/netty/handler/codec/http/HttpUtil.java:58",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/codec-http2/src/test/java/io/netty/handler/codec/http2/HttpConversionUtilFuzzTest.java:113",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/codec-http/src/main/java/io/netty/handler/codec/http/HttpUtil.java",
+     "start_line": 58,
+     "end_line": 60,
+     "name": "isOriginForm",
+     "kind": "Method",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/netty/codec-http2/src/test/java/io/netty/handler/codec/http2/HttpConversionUtilFuzzTest.java",
+     "start_line": 113,
+     "end_line": 115,
+     "name": "hasEmptyQueryAndFragmentDelimiters",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.644,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/codec-http2/src/main/java/io/netty/handler/codec/http2/HttpConversionUtil.java:672",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/microbench/src/main/java/io/netty/microbench/headers/HeadersBenchmark.java:54",
+   "structurally_near": false,
+   "vj": 0.16,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/codec-http2/src/main/java/io/netty/handler/codec/http2/HttpConversionUtil.java",
+     "start_line": 672,
+     "end_line": 675,
+     "name": "dropEmptyFragment",
+     "kind": "Method",
+     "tokens": 17
+    },
+    {
+     "file": "bench/repos/netty/microbench/src/main/java/io/netty/microbench/headers/HeadersBenchmark.java",
+     "start_line": 54,
+     "end_line": 56,
+     "name": "toHttpName",
+     "kind": "Method",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.552,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java:36",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java:61",
+   "structurally_near": false,
+   "vj": 0.17647058823529413,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java",
+     "start_line": 36,
+     "end_line": 44,
+     "name": "equalsConstantTime",
+     "kind": "Method",
+     "tokens": 30
+    },
+    {
+     "file": "bench/repos/netty/common/src/main/java/io/netty/util/internal/ConstantTimeUtils.java",
+     "start_line": 61,
+     "end_line": 70,
+     "name": "equalsConstantTime",
+     "kind": "Method",
+     "tokens": 30
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.903,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/netty/handler/src/main/java/io/netty/handler/ssl/ReferenceCountedOpenSslContext.java:1256",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/netty/resolver-dns/src/main/java/io/netty/resolver/dns/DnsRecordResolveContext.java:66",
+   "structurally_near": false,
+   "vj": 0.09090909090909091,
+   "repo": "netty",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/netty/handler/src/main/java/io/netty/handler/ssl/ReferenceCountedOpenSslContext.java",
+     "start_line": 1256,
+     "end_line": 1261,
+     "name": "verifyResult",
+     "kind": "Method",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/netty/resolver-dns/src/main/java/io/netty/resolver/dns/DnsRecordResolveContext.java",
+     "start_line": 66,
+     "end_line": 69,
+     "name": "filterResults",
+     "kind": "Method",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.316,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/nginx/src/http/modules/ngx_http_geo_module.c:1670",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/nginx/src/stream/ngx_stream_geo_module.c:1598",
+   "structurally_near": true,
+   "vj": 0.7916666666666666,
+   "repo": "nginx",
+   "lang": "C",
+   "band": "0.7-0.8",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/nginx/src/http/modules/ngx_http_geo_module.c",
+     "start_line": 1670,
+     "end_line": 1696,
+     "name": "ngx_http_geo_copy_values",
+     "kind": "Function",
+     "tokens": 43
+    },
+    {
+     "file": "bench/repos/nginx/src/stream/ngx_stream_geo_module.c",
+     "start_line": 1598,
+     "end_line": 1624,
+     "name": "ngx_stream_geo_copy_values",
+     "kind": "Function",
+     "tokens": 43
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.958,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-parser/src/lex.rs:56",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/nushell/crates/nu-parser/src/lex.rs:83",
+   "structurally_near": false,
+   "vj": 0.34615384615384615,
+   "repo": "nushell",
+   "lang": "Rust",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/nushell/crates/nu-parser/src/lex.rs",
+     "start_line": 56,
+     "end_line": 71,
+     "name": "is_item_terminator",
+     "kind": "Function",
+     "tokens": 24
+    },
+    {
+     "file": "bench/repos/nushell/crates/nu-parser/src/lex.rs",
+     "start_line": 83,
+     "end_line": 85,
+     "name": "is_special_item",
+     "kind": "Function",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.494,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prettier/src/language-js/print/mapped-type.js:63",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/js/non-strict/argument-name-clash.js:1",
+   "structurally_near": false,
+   "vj": 0.07142857142857142,
+   "repo": "prettier",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prettier/src/language-js/print/mapped-type.js",
+     "start_line": 63,
+     "end_line": 69,
+     "name": "printTypeScriptMappedTypeModifier",
+     "kind": "Function",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/prettier/tests/format/js/non-strict/argument-name-clash.js",
+     "start_line": 1,
+     "end_line": 1,
+     "name": "f",
+     "kind": "Function",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.216,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/annot/annot.js:1",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/modules/lib.js:7",
+   "structurally_near": false,
+   "vj": 0.4,
+   "repo": "prettier",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/annot/annot.js",
+     "start_line": 1,
+     "end_line": 3,
+     "name": "foo",
+     "kind": "Function",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/modules/lib.js",
+     "start_line": 7,
+     "end_line": 7,
+     "name": "f",
+     "kind": "Function",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.642,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js:19",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js:7",
+   "structurally_near": false,
+   "vj": 0.6363636363636364,
+   "repo": "prettier",
+   "lang": "TypeScript",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js",
+     "start_line": 19,
+     "end_line": 24,
+     "name": "h",
+     "kind": "Function",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/return/function_return.js",
+     "start_line": 7,
+     "end_line": 11,
+     "name": "f",
+     "kind": "Function",
+     "tokens": 7
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.906,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/throw/test.js:9",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prettier/tests/format/flow/flow-repo/unary/unary.js:3",
+   "structurally_near": false,
+   "vj": 0.06666666666666667,
+   "repo": "prettier",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/throw/test.js",
+     "start_line": 9,
+     "end_line": 14,
+     "name": "g",
+     "kind": "Function",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/prettier/tests/format/flow/flow-repo/unary/unary.js",
+     "start_line": 3,
+     "end_line": 5,
+     "name": "x0",
+     "kind": "Function",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.439,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/model/labels/regexp_test.go:1341",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/model/labels/regexp_test.go:151",
+   "structurally_near": false,
+   "vj": 0.18181818181818182,
+   "repo": "prometheus",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prometheus/model/labels/regexp_test.go",
+     "start_line": 1341,
+     "end_line": 1346,
+     "name": "getTestNameFromRegexp",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/prometheus/model/labels/regexp_test.go",
+     "start_line": 151,
+     "end_line": 157,
+     "name": "readable",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.5,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/tsdb/chunks/head_chunks.go:414",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/util/documentcli/documentcli.go:208",
+   "structurally_near": false,
+   "vj": 0.028846153846153848,
+   "repo": "prometheus",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prometheus/tsdb/chunks/head_chunks.go",
+     "start_line": 414,
+     "end_line": 453,
+     "name": "repairLastChunkFile",
+     "kind": "Function",
+     "tokens": 81
+    },
+    {
+     "file": "bench/repos/prometheus/util/documentcli/documentcli.go",
+     "start_line": 208,
+     "end_line": 226,
+     "name": "determineColumnsToRender",
+     "kind": "Function",
+     "tokens": 26
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.225,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/web/api/v1/translate_ast.go:181",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/web/ui/react-app/src/pages/graph/DataTable.tsx:49",
+   "structurally_near": false,
+   "vj": 0.0625,
+   "repo": "prometheus",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prometheus/web/api/v1/translate_ast.go",
+     "start_line": 181,
+     "end_line": 186,
+     "name": "sanitizeList",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/prometheus/web/ui/react-app/src/pages/graph/DataTable.tsx",
+     "start_line": 49,
+     "end_line": 56,
+     "name": "limitSeries",
+     "kind": "Function",
+     "tokens": 13
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.328,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:28",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts:53",
+   "structurally_near": false,
+   "vj": 0.2962962962962963,
+   "repo": "prometheus",
+   "lang": "Go",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts",
+     "start_line": 28,
+     "end_line": 49,
+     "name": "findMinPositive",
+     "kind": "Function",
+     "tokens": 45
+    },
+    {
+     "file": "bench/repos/prometheus/web/ui/mantine-ui/src/pages/query/HistogramHelpers.ts",
+     "start_line": 53,
+     "end_line": 74,
+     "name": "findMaxNegative",
+     "kind": "Function",
+     "tokens": 60
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.608,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/raylib/src/external/dr_flac.h:2017",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/raylib/src/external/miniaudio.h:85375",
+   "structurally_near": false,
+   "vj": 0.5263157894736842,
+   "repo": "raylib",
+   "lang": "C",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/raylib/src/external/dr_flac.h",
+     "start_line": 2017,
+     "end_line": 2034,
+     "name": "drflac_crc16_bytes",
+     "kind": "Function",
+     "tokens": 58
+    },
+    {
+     "file": "bench/repos/raylib/src/external/miniaudio.h",
+     "start_line": 85375,
+     "end_line": 85391,
+     "name": "ma_dr_flac_crc16_bytes",
+     "kind": "Function",
+     "tokens": 58
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.928,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/raylib/src/external/miniaudio.h:80290",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/raylib/src/external/miniaudio.h:94483",
+   "structurally_near": false,
+   "vj": 0.4,
+   "repo": "raylib",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/raylib/src/external/miniaudio.h",
+     "start_line": 80290,
+     "end_line": 80302,
+     "name": "ma_dr_wav_copy_allocation_callbacks_or_defaults",
+     "kind": "Function",
+     "tokens": 28
+    },
+    {
+     "file": "bench/repos/raylib/src/external/miniaudio.h",
+     "start_line": 94483,
+     "end_line": 94495,
+     "name": "ma_dr_mp3_copy_allocation_callbacks_or_defaults",
+     "kind": "Function",
+     "tokens": 28
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.965,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/hiredis/sds.c:434",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/hiredis/sds.c:466",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "redis",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/redis/deps/hiredis/sds.c",
+     "start_line": 434,
+     "end_line": 463,
+     "name": "hi_sdsll2str",
+     "kind": "Function",
+     "tokens": 45
+    },
+    {
+     "file": "bench/repos/redis/deps/hiredis/sds.c",
+     "start_line": 466,
+     "end_line": 492,
+     "name": "hi_sdsull2str",
+     "kind": "Function",
+     "tokens": 39
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.877,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/include/jemalloc/internal/extent.h:63",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/test/unit/fb.c:909",
+   "structurally_near": false,
+   "vj": 0.11764705882352941,
+   "repo": "redis",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/extent.h",
+     "start_line": 63,
+     "end_line": 81,
+     "name": "extent_neighbor_head_state_mergeable",
+     "kind": "Function",
+     "tokens": 14
+    },
+    {
+     "file": "bench/repos/redis/deps/jemalloc/test/unit/fb.c",
+     "start_line": 909,
+     "end_line": 915,
+     "name": "binary_not",
+     "kind": "Function",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.189,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/include/jemalloc/internal/fxp.h:82",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/test/unit/fxp.c:5",
+   "structurally_near": false,
+   "vj": 0.25,
+   "repo": "redis",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/fxp.h",
+     "start_line": 82,
+     "end_line": 85,
+     "name": "fxp_round_down",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/redis/deps/jemalloc/test/unit/fxp.c",
+     "start_line": 5,
+     "end_line": 10,
+     "name": "fxp2double",
+     "kind": "Function",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.352,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h:86",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h:91",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "redis",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h",
+     "start_line": 86,
+     "end_line": 89,
+     "name": "arena_choose",
+     "kind": "Function",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/redis/deps/jemalloc/include/jemalloc/internal/jemalloc_internal_inlines_b.h",
+     "start_line": 91,
+     "end_line": 94,
+     "name": "arena_ichoose",
+     "kind": "Function",
+     "tokens": 6
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.965,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/redis/src/geohash.c:217",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/redis/src/geohash.c:224",
+   "structurally_near": false,
+   "vj": 0.09523809523809523,
+   "repo": "redis",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/redis/src/geohash.c",
+     "start_line": 217,
+     "end_line": 222,
+     "name": "geohashDecodeToLongLatType",
+     "kind": "Function",
+     "tokens": 18
+    },
+    {
+     "file": "bench/repos/redis/src/geohash.c",
+     "start_line": 224,
+     "end_line": 226,
+     "name": "geohashDecodeToLongLatWGS84",
+     "kind": "Function",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.643,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/rubocop/lib/rubocop/cop/lint/redundant_cop_enable_directive.rb:116",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/rubocop/lib/rubocop/cop/style/format_string.rb:99",
+   "structurally_near": false,
+   "vj": 0.1111111111111111,
+   "repo": "rubocop",
+   "lang": "Ruby",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/rubocop/lib/rubocop/cop/lint/redundant_cop_enable_directive.rb",
+     "start_line": 116,
+     "end_line": 118,
+     "name": "all_or_name",
+     "kind": "Method",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/rubocop/lib/rubocop/cop/style/format_string.rb",
+     "start_line": 99,
+     "end_line": 101,
+     "name": "method_name",
+     "kind": "Method",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.702,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/functions/Functions.java:668",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/util/ExceptionHelper.java:177",
+   "structurally_near": false,
+   "vj": 0.07692307692307693,
+   "repo": "rxjava",
+   "lang": "Java",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/functions/Functions.java",
+     "start_line": 668,
+     "end_line": 671,
+     "name": "apply",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/rxjava/src/main/java/io/reactivex/rxjava4/internal/util/ExceptionHelper.java",
+     "start_line": 177,
+     "end_line": 182,
+     "name": "nullCheck",
+     "kind": "Method",
+     "tokens": 12
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.364,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/rxjs/apps/rxjs.dev/tools/transforms/angular-api-package/mocks/testSrc.ts:42",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/rxjs/packages/rxjs/spec/util/pipe-spec.ts:10",
+   "structurally_near": false,
+   "vj": 0.16666666666666666,
+   "repo": "rxjs",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/rxjs/apps/rxjs.dev/tools/transforms/angular-api-package/mocks/testSrc.ts",
+     "start_line": 42,
+     "end_line": 42,
+     "name": "myFn",
+     "kind": "Function",
+     "tokens": 4
+    },
+    {
+     "file": "bench/repos/rxjs/packages/rxjs/spec/util/pipe-spec.ts",
+     "start_line": 10,
+     "end_line": 10,
+     "name": "a",
+     "kind": "Function",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.675,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts:243",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts:288",
+   "structurally_near": false,
+   "vj": 0.30434782608695654,
+   "repo": "rxjs",
+   "lang": "TypeScript",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts",
+     "start_line": 243,
+     "end_line": 245,
+     "name": "predicate",
+     "kind": "Function",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/rxjs/packages/rxjs/spec/operators/max-spec.ts",
+     "start_line": 288,
+     "end_line": 293,
+     "name": "predicate",
+     "kind": "Function",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.688,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/scrapy/extras/qps-bench-server.py:21",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/scrapy/scrapy/downloadermiddlewares/httpcompression.py:185",
+   "structurally_near": false,
+   "vj": 0.02,
+   "repo": "scrapy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/scrapy/extras/qps-bench-server.py",
+     "start_line": 21,
+     "end_line": 22,
+     "name": "getChild",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/scrapy/scrapy/downloadermiddlewares/httpcompression.py",
+     "start_line": 185,
+     "end_line": 195,
+     "name": "_decode",
+     "kind": "Method",
+     "tokens": 49
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.145,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/scrapy/scrapy/contracts/__init__.py:88",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/scrapy/scrapy/spidermiddlewares/start.py:26",
+   "structurally_near": false,
+   "vj": 0.15384615384615385,
+   "repo": "scrapy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/scrapy/scrapy/contracts/__init__.py",
+     "start_line": 88,
+     "end_line": 89,
+     "name": "adjust_request_args",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/scrapy/scrapy/spidermiddlewares/start.py",
+     "start_line": 26,
+     "end_line": 31,
+     "name": "get_processed_request",
+     "kind": "Method",
+     "tokens": 13
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.268,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/connectors/asyncio.py:305",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/util/langhelpers.py:1845",
+   "structurally_near": false,
+   "vj": 0.05263157894736842,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/connectors/asyncio.py",
+     "start_line": 305,
+     "end_line": 306,
+     "name": "__enter__",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/util/langhelpers.py",
+     "start_line": 1845,
+     "end_line": 1852,
+     "name": "ellipses_string",
+     "kind": "Function",
+     "tokens": 18
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.278,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mssql/base.py:2132",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/orm/test_validators.py:97",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mssql/base.py",
+     "start_line": 2132,
+     "end_line": 2133,
+     "name": "get_from_hint_text",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/orm/test_validators.py",
+     "start_line": 97,
+     "end_line": 99,
+     "name": "validate_address",
+     "kind": "Method",
+     "tokens": 6
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.417,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mysql/reflection.py:689",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/orm/inheritance/test_single.py:307",
+   "structurally_near": false,
+   "vj": 0.19047619047619047,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/mysql/reflection.py",
+     "start_line": 689,
+     "end_line": 697,
+     "name": "_strip_values",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/orm/inheritance/test_single.py",
+     "start_line": 307,
+     "end_line": 308,
+     "name": "scalar",
+     "kind": "Function",
+     "tokens": 6
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.172,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/array.py:214",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/sql/selectable.py:1841",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/array.py",
+     "start_line": 214,
+     "end_line": 215,
+     "name": "_select_iterable",
+     "kind": "Method",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/sql/selectable.py",
+     "start_line": 1841,
+     "end_line": 1842,
+     "name": "_from_objects",
+     "kind": "Method",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.615,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/asyncpg.py:1069",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/orm/test_unitofworkv2.py:3595",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/dialects/postgresql/asyncpg.py",
+     "start_line": 1069,
+     "end_line": 1070,
+     "name": "Binary",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/orm/test_unitofworkv2.py",
+     "start_line": 3595,
+     "end_line": 3598,
+     "name": "process_bind_param",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.454,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/lib/sqlalchemy/sql/traversals.py:394",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/orm/test_query.py:647",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/lib/sqlalchemy/sql/traversals.py",
+     "start_line": 394,
+     "end_line": 395,
+     "name": "visit_clauseelement",
+     "kind": "Method",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/orm/test_query.py",
+     "start_line": 647,
+     "end_line": 648,
+     "name": "process_result_value",
+     "kind": "Method",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.509,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py:2371",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py:2376",
+   "structurally_near": false,
+   "vj": 0.4090909090909091,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py",
+     "start_line": 2371,
+     "end_line": 2374,
+     "name": "process_bind_param",
+     "kind": "Method",
+     "tokens": 15
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/dialect/postgresql/test_types.py",
+     "start_line": 2376,
+     "end_line": 2379,
+     "name": "process_result_value",
+     "kind": "Method",
+     "tokens": 16
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.94,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/sql/test_types.py:719",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlalchemy/test/sql/test_types.py:724",
+   "structurally_near": false,
+   "vj": 0.25,
+   "repo": "sqlalchemy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlalchemy/test/sql/test_types.py",
+     "start_line": 719,
+     "end_line": 722,
+     "name": "process_bind_param",
+     "kind": "Method",
+     "tokens": 6
+    },
+    {
+     "file": "bench/repos/sqlalchemy/test/sql/test_types.py",
+     "start_line": 724,
+     "end_line": 725,
+     "name": "process_result_value",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.667,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/fts3/fts3.c:3218",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/tool/sqlite3_rsync.c:923",
+   "structurally_near": false,
+   "vj": 0.1794871794871795,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/ext/fts3/fts3.c",
+     "start_line": 3218,
+     "end_line": 3231,
+     "name": "fts3DoclistCountDocids",
+     "kind": "Function",
+     "tokens": 24
+    },
+    {
+     "file": "bench/repos/sqlite/tool/sqlite3_rsync.c",
+     "start_line": 923,
+     "end_line": 931,
+     "name": "file_tail",
+     "kind": "Function",
+     "tokens": 22
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.286,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/fts3/fts3_porter.c:150",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/fts3/fts3_porter.c:159",
+   "structurally_near": false,
+   "vj": 0.5510204081632653,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/ext/fts3/fts3_porter.c",
+     "start_line": 150,
+     "end_line": 158,
+     "name": "isConsonant",
+     "kind": "Function",
+     "tokens": 41
+    },
+    {
+     "file": "bench/repos/sqlite/ext/fts3/fts3_porter.c",
+     "start_line": 159,
+     "end_line": 167,
+     "name": "isVowel",
+     "kind": "Function",
+     "tokens": 35
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.903,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/fts5/fts5_tokenize.c:1066",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/fts5/fts5_tokenize.c:751",
+   "structurally_near": false,
+   "vj": 0.10429447852760736,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/ext/fts5/fts5_tokenize.c",
+     "start_line": 1066,
+     "end_line": 1129,
+     "name": "fts5PorterStep3",
+     "kind": "Function",
+     "tokens": 162
+    },
+    {
+     "file": "bench/repos/sqlite/ext/fts5/fts5_tokenize.c",
+     "start_line": 751,
+     "end_line": 882,
+     "name": "fts5PorterStep4",
+     "kind": "Function",
+     "tokens": 378
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.531,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/misc/btreeinfo.c:272",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/ext/misc/tmstmpvfs.c:471",
+   "structurally_near": false,
+   "vj": 0.6521739130434783,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/ext/misc/btreeinfo.c",
+     "start_line": 272,
+     "end_line": 274,
+     "name": "get_uint32",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/sqlite/ext/misc/tmstmpvfs.c",
+     "start_line": 471,
+     "end_line": 473,
+     "name": "tmstmpGetU32",
+     "kind": "Function",
+     "tokens": 19
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.786,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/src/util.c:2087",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/tool/logest.c:42",
+   "structurally_near": false,
+   "vj": 0.1951219512195122,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/src/util.c",
+     "start_line": 2087,
+     "end_line": 2108,
+     "name": "sqlite3LogEstAdd",
+     "kind": "Function",
+     "tokens": 61
+    },
+    {
+     "file": "bench/repos/sqlite/tool/logest.c",
+     "start_line": 42,
+     "end_line": 58,
+     "name": "logEstAdd",
+     "kind": "Function",
+     "tokens": 37
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.898,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/src/util.c:2235",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/src/util.c:2251",
+   "structurally_near": false,
+   "vj": 0.5,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "0.5-0.7",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/src/util.c",
+     "start_line": 2235,
+     "end_line": 2245,
+     "name": "sqlite3VListNumToName",
+     "kind": "Function",
+     "tokens": 23
+    },
+    {
+     "file": "bench/repos/sqlite/src/util.c",
+     "start_line": 2251,
+     "end_line": 2262,
+     "name": "sqlite3VListNameToNum",
+     "kind": "Function",
+     "tokens": 28
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.712,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/test/dbfuzz2.c:248",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sqlite/tool/sqlite3_rsync.c:1972",
+   "structurally_near": false,
+   "vj": 0.16666666666666666,
+   "repo": "sqlite",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sqlite/test/dbfuzz2.c",
+     "start_line": 248,
+     "end_line": 255,
+     "name": "numberOfVChar",
+     "kind": "Function",
+     "tokens": 18
+    },
+    {
+     "file": "bench/repos/sqlite/tool/sqlite3_rsync.c",
+     "start_line": 1972,
+     "end_line": 1980,
+     "name": "numVs",
+     "kind": "Function",
+     "tokens": 31
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.587,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/assumptions/assume.py:351",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/tensor/array/expressions/from_array_to_matrix.py:583",
+   "structurally_near": false,
+   "vj": 0.25,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/assumptions/assume.py",
+     "start_line": 351,
+     "end_line": 353,
+     "name": "_eval_refine",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/sympy/sympy/tensor/array/expressions/from_array_to_matrix.py",
+     "start_line": 583,
+     "end_line": 662,
+     "name": "convert_array_to_matrix",
+     "kind": "Function",
+     "tokens": 8
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.037,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/combinatorics/fp_groups.py:612",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/holonomic/holonomic.py:305",
+   "structurally_near": false,
+   "vj": 0.14285714285714285,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/combinatorics/fp_groups.py",
+     "start_line": 612,
+     "end_line": 613,
+     "name": "_inverse_label",
+     "kind": "Function",
+     "tokens": 3
+    },
+    {
+     "file": "bench/repos/sympy/sympy/holonomic/holonomic.py",
+     "start_line": 305,
+     "end_line": 306,
+     "name": "__neg__",
+     "kind": "Method",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.609,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/core/logic.py:150",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/matrices/sdm.py:1361",
+   "structurally_near": false,
+   "vj": 0.18181818181818182,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/core/logic.py",
+     "start_line": 150,
+     "end_line": 170,
+     "name": "fuzzy_not",
+     "kind": "Function",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/sympy/sympy/polys/matrices/sdm.py",
+     "start_line": 1361,
+     "end_line": 1365,
+     "name": "is_zero_matrix",
+     "kind": "Method",
+     "tokens": 3
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.274,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/core/logic.py:173",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/core/logic.py:201",
+   "structurally_near": false,
+   "vj": 0.15625,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/core/logic.py",
+     "start_line": 173,
+     "end_line": 198,
+     "name": "fuzzy_or",
+     "kind": "Function",
+     "tokens": 17
+    },
+    {
+     "file": "bench/repos/sympy/sympy/core/logic.py",
+     "start_line": 201,
+     "end_line": 211,
+     "name": "fuzzy_xor",
+     "kind": "Function",
+     "tokens": 20
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.379,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/discrete/convolutions.py:382",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/discrete/convolutions.py:452",
+   "structurally_near": true,
+   "vj": 0.7432432432432432,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "0.7-0.8",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/discrete/convolutions.py",
+     "start_line": 382,
+     "end_line": 443,
+     "name": "covering_product",
+     "kind": "Function",
+     "tokens": 64
+    },
+    {
+     "file": "bench/repos/sympy/sympy/discrete/convolutions.py",
+     "start_line": 452,
+     "end_line": 513,
+     "name": "intersecting_product",
+     "kind": "Function",
+     "tokens": 65
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.937,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/holonomic/holonomic.py:299",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/matrices/common.py:3032",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/holonomic/holonomic.py",
+     "start_line": 299,
+     "end_line": 300,
+     "name": "__sub__",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/sympy/sympy/matrices/common.py",
+     "start_line": 3032,
+     "end_line": 3033,
+     "name": "__sub__",
+     "kind": "Method",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.862,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/holonomic/holonomic.py:302",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/matrices/common.py:3028",
+   "structurally_near": false,
+   "vj": 0.2,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/holonomic/holonomic.py",
+     "start_line": 302,
+     "end_line": 303,
+     "name": "__rsub__",
+     "kind": "Method",
+     "tokens": 7
+    },
+    {
+     "file": "bench/repos/sympy/sympy/matrices/common.py",
+     "start_line": 3028,
+     "end_line": 3029,
+     "name": "__rsub__",
+     "kind": "Method",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.847,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/parsing/mathematica.py:1008",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/agca/modules.py:198",
+   "structurally_near": false,
+   "vj": 0.08108108108108109,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/parsing/mathematica.py",
+     "start_line": 1008,
+     "end_line": 1017,
+     "name": "_check_op_compatible",
+     "kind": "Method",
+     "tokens": 36
+    },
+    {
+     "file": "bench/repos/sympy/sympy/polys/agca/modules.py",
+     "start_line": 198,
+     "end_line": 200,
+     "name": "eq",
+     "kind": "Method",
+     "tokens": 4
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.348,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/parsing/mathematica.py:1178",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/physics/quantum/qasm.py:46",
+   "structurally_near": false,
+   "vj": 0.05,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/parsing/mathematica.py",
+     "start_line": 1178,
+     "end_line": 1199,
+     "name": "named_characters_to_unicode",
+     "kind": "Function",
+     "tokens": 28
+    },
+    {
+     "file": "bench/repos/sympy/sympy/physics/quantum/qasm.py",
+     "start_line": 46,
+     "end_line": 57,
+     "name": "trim",
+     "kind": "Function",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.174,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/parsing/sympy_parser.py:30",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/utilities/iterables.py:2025",
+   "structurally_near": false,
+   "vj": 0.03225806451612903,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/parsing/sympy_parser.py",
+     "start_line": 30,
+     "end_line": 43,
+     "name": "_token_splittable",
+     "kind": "Function",
+     "tokens": 22
+    },
+    {
+     "file": "bench/repos/sympy/sympy/utilities/iterables.py",
+     "start_line": 2025,
+     "end_line": 2044,
+     "name": "has_variety",
+     "kind": "Function",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.19,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/physics/quantum/operator.py:314",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/plotting/pygletplot/plot_axes.py:59",
+   "structurally_near": false,
+   "vj": 0.027777777777777776,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/physics/quantum/operator.py",
+     "start_line": 314,
+     "end_line": 315,
+     "name": "_apply_operator",
+     "kind": "Method",
+     "tokens": 2
+    },
+    {
+     "file": "bench/repos/sympy/sympy/plotting/pygletplot/plot_axes.py",
+     "start_line": 59,
+     "end_line": 66,
+     "name": "flexible_boolean",
+     "kind": "Function",
+     "tokens": 35
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.19,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/physics/quantum/spin.py:2137",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/plotting/textplot.py:41",
+   "structurally_near": false,
+   "vj": 0.07692307692307693,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/physics/quantum/spin.py",
+     "start_line": 2137,
+     "end_line": 2151,
+     "name": "_confignum_to_difflist",
+     "kind": "Function",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/sympy/sympy/plotting/textplot.py",
+     "start_line": 41,
+     "end_line": 42,
+     "name": "linspace",
+     "kind": "Function",
+     "tokens": 15
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.075,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/plotting/pygletplot/color_scheme.py:143",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/tensor/array/expressions/array_expressions.py:854",
+   "structurally_near": false,
+   "vj": 0.10204081632653061,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/plotting/pygletplot/color_scheme.py",
+     "start_line": 143,
+     "end_line": 160,
+     "name": "_pop_symbol_list",
+     "kind": "Method",
+     "tokens": 40
+    },
+    {
+     "file": "bench/repos/sympy/sympy/tensor/array/expressions/array_expressions.py",
+     "start_line": 854,
+     "end_line": 855,
+     "name": "_remove_trivial_dimensions",
+     "kind": "Method",
+     "tokens": 14
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.161,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/plotting/pygletplot/plot_rotation.py:16",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/plotting/pygletplot/util.py:179",
+   "structurally_near": false,
+   "vj": 0.12,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/plotting/pygletplot/plot_rotation.py",
+     "start_line": 16,
+     "end_line": 17,
+     "name": "dot",
+     "kind": "Function",
+     "tokens": 17
+    },
+    {
+     "file": "bench/repos/sympy/sympy/plotting/pygletplot/util.py",
+     "start_line": 179,
+     "end_line": 180,
+     "name": "dot_product",
+     "kind": "Function",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.459,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/galoistools.py:1329",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/series/formal.py:169",
+   "structurally_near": false,
+   "vj": 0.26,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/polys/galoistools.py",
+     "start_line": 1329,
+     "end_line": 1355,
+     "name": "gf_compose_mod",
+     "kind": "Function",
+     "tokens": 25
+    },
+    {
+     "file": "bench/repos/sympy/sympy/series/formal.py",
+     "start_line": 169,
+     "end_line": 200,
+     "name": "rational_independent",
+     "kind": "Function",
+     "tokens": 38
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.405,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/galoistools.py:261",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/galoistools.py:347",
+   "structurally_near": false,
+   "vj": 0.18181818181818182,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/polys/galoistools.py",
+     "start_line": 261,
+     "end_line": 274,
+     "name": "gf_trunc",
+     "kind": "Function",
+     "tokens": 8
+    },
+    {
+     "file": "bench/repos/sympy/sympy/polys/galoistools.py",
+     "start_line": 347,
+     "end_line": 360,
+     "name": "gf_from_int_poly",
+     "kind": "Function",
+     "tokens": 5
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.763,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/matrices/ddm.py:1139",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/matrices/ddm.py:1147",
+   "structurally_near": false,
+   "vj": 0.3333333333333333,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/polys/matrices/ddm.py",
+     "start_line": 1139,
+     "end_line": 1145,
+     "name": "is_upper",
+     "kind": "Method",
+     "tokens": 13
+    },
+    {
+     "file": "bench/repos/sympy/sympy/polys/matrices/ddm.py",
+     "start_line": 1147,
+     "end_line": 1153,
+     "name": "is_lower",
+     "kind": "Method",
+     "tokens": 15
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.971,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/rings.py:1235",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/polys/rings.py:2604",
+   "structurally_near": false,
+   "vj": 0.3125,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/polys/rings.py",
+     "start_line": 1235,
+     "end_line": 1236,
+     "name": "is_monomial",
+     "kind": "Method",
+     "tokens": 10
+    },
+    {
+     "file": "bench/repos/sympy/sympy/polys/rings.py",
+     "start_line": 2604,
+     "end_line": 2606,
+     "name": "is_ground",
+     "kind": "Method",
+     "tokens": 11
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.611,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/utilities/iterables.py:1204",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/sympy/sympy/utilities/iterables.py:1223",
+   "structurally_near": false,
+   "vj": 0.42857142857142855,
+   "repo": "sympy",
+   "lang": "Python",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/sympy/sympy/utilities/iterables.py",
+     "start_line": 1204,
+     "end_line": 1220,
+     "name": "rotate_left",
+     "kind": "Function",
+     "tokens": 19
+    },
+    {
+     "file": "bench/repos/sympy/sympy/utilities/iterables.py",
+     "start_line": 1223,
+     "end_line": 1239,
+     "name": "rotate_right",
+     "kind": "Function",
+     "tokens": 21
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.937,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/tmux/tty-keys.c:1681",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/tmux/tty-keys.c:1756",
+   "structurally_near": false,
+   "vj": 0.1523046092184369,
+   "repo": "tmux",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/tmux/tty-keys.c",
+     "start_line": 1681,
+     "end_line": 1753,
+     "name": "tty_keys_colours",
+     "kind": "Function",
+     "tokens": 317
+    },
+    {
+     "file": "bench/repos/tmux/tty-keys.c",
+     "start_line": 1756,
+     "end_line": 1820,
+     "name": "tty_keys_palette",
+     "kind": "Function",
+     "tokens": 258
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.705,
+   "unreported": false
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/cindent.c:327",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/cindent.c:336",
+   "structurally_near": false,
+   "vj": 0.4666666666666667,
+   "repo": "vim",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/vim/src/cindent.c",
+     "start_line": 327,
+     "end_line": 331,
+     "name": "cin_iscomment",
+     "kind": "Function",
+     "tokens": 12
+    },
+    {
+     "file": "bench/repos/vim/src/cindent.c",
+     "start_line": 336,
+     "end_line": 340,
+     "name": "cin_islinecomment",
+     "kind": "Function",
+     "tokens": 10
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.889,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/clipboard.c:2235",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/regexp.c:188",
+   "structurally_near": false,
+   "vj": 0.02702702702702703,
+   "repo": "vim",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/vim/src/clipboard.c",
+     "start_line": 2235,
+     "end_line": 2253,
+     "name": "may_get_selection",
+     "kind": "Function",
+     "tokens": 39
+    },
+    {
+     "file": "bench/repos/vim/src/regexp.c",
+     "start_line": 188,
+     "end_line": 199,
+     "name": "backslash_trans",
+     "kind": "Function",
+     "tokens": 37
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.403,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/ex_docmd.c:3579",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/gui_gtk4.c:1343",
+   "structurally_near": false,
+   "vj": 0.027777777777777776,
+   "repo": "vim",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/vim/src/ex_docmd.c",
+     "start_line": 3579,
+     "end_line": 3594,
+     "name": "skip_option_env_lead",
+     "kind": "Function",
+     "tokens": 35
+    },
+    {
+     "file": "bench/repos/vim/src/gui_gtk4.c",
+     "start_line": 1343,
+     "end_line": 1347,
+     "name": "gui_mch_get_rgb",
+     "kind": "Function",
+     "tokens": 2
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.182,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/os_win32.c:796",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/usercmd.c:1213",
+   "structurally_near": false,
+   "vj": 0.0380952380952381,
+   "repo": "vim",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/vim/src/os_win32.c",
+     "start_line": 796,
+     "end_line": 803,
+     "name": "null_libintl_ngettext",
+     "kind": "Function",
+     "tokens": 11
+    },
+    {
+     "file": "bench/repos/vim/src/usercmd.c",
+     "start_line": 1213,
+     "end_line": 1255,
+     "name": "may_get_cmd_block",
+     "kind": "Function",
+     "tokens": 98
+    }
+   ],
+   "trivial": true,
+   "text_similarity": 0.128,
+   "unreported": true
+  },
+  {
+   "a": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/regexp.c:460",
+   "b": "/Users/ak/prjs/cc/nose/bench/repos/vim/src/userfunc.c:6064",
+   "structurally_near": false,
+   "vj": 0.10666666666666667,
+   "repo": "vim",
+   "lang": "C",
+   "band": "<0.5",
+   "evidence_tier": "oracle-suggested",
+   "spans": [
+    {
+     "file": "bench/repos/vim/src/regexp.c",
+     "start_line": 460,
+     "end_line": 482,
+     "name": "get_equi_class",
+     "kind": "Function",
+     "tokens": 47
+    },
+    {
+     "file": "bench/repos/vim/src/userfunc.c",
+     "start_line": 6064,
+     "end_line": 6075,
+     "name": "eval_fname_script",
+     "kind": "Function",
+     "tokens": 36
+    }
+   ],
+   "trivial": false,
+   "text_similarity": 0.364,
+   "unreported": true
+  }
+ ]
+}
