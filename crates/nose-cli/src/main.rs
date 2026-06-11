@@ -1866,17 +1866,24 @@ fn func_span_index(il: &nose_il::Il) -> std::collections::HashMap<(u32, u32), no
 
 /// Interpret `root` on every battery row (under the unit's pointer-length contracts);
 /// `None` when any input fails to run — the unit is not interpretable on this battery.
+/// A row whose execution forks on symbolic If/ternary conditions contributes one
+/// behavior per explored path (#244, deterministic order, assumptions recorded in
+/// each trace); `path_cap` reports a fail-closed bail on the per-execution
+/// symbolic-site cap so the census can distinguish it from other bails.
 fn run_battery(
     il: &nose_il::Il,
     interner: &Interner,
     root: nose_il::NodeId,
     battery: &[Vec<nose_normalize::Value>],
     contracts: &[(u32, u32)],
+    path_cap: &mut bool,
 ) -> Option<Vec<nose_normalize::Behavior>> {
     let mut beh = Vec::with_capacity(battery.len());
     for inputs in battery {
         let row = apply_contracts(inputs, contracts);
-        beh.push(nose_normalize::run_unit(il, interner, root, &row)?);
+        beh.extend(nose_normalize::run_unit_paths(
+            il, interner, root, &row, path_cap,
+        )?);
     }
     Some(beh)
 }
@@ -1936,8 +1943,15 @@ fn gate_units(
             if fp.is_empty() {
                 continue;
             }
-            let Some(beh) = run_battery(&core, &corpus.interner, core_root, battery, &contracts)
-            else {
+            let mut path_cap = false;
+            let Some(beh) = run_battery(
+                &core,
+                &corpus.interner,
+                core_root,
+                battery,
+                &contracts,
+                &mut path_cap,
+            ) else {
                 continue;
             };
             let trivial = is_trivial_behavior(&beh);
@@ -2266,6 +2280,9 @@ enum VerifyExclusionReason {
     BatteryBail,
     EmptyFingerprint,
     Uninterpretable,
+    /// #244 fail-closed: the unit forked on more symbolic If/ternary sites than
+    /// the per-execution exploration cap allows.
+    PathBail,
 }
 
 impl VerifyExclusionReason {
@@ -2275,6 +2292,7 @@ impl VerifyExclusionReason {
             VerifyExclusionReason::BatteryBail => "battery-bail",
             VerifyExclusionReason::EmptyFingerprint => "empty-fingerprint",
             VerifyExclusionReason::Uninterpretable => "uninterpretable",
+            VerifyExclusionReason::PathBail => "path-bail",
         }
     }
 }
@@ -2293,6 +2311,7 @@ struct VerifyExclusions {
     battery_bail: usize,
     empty_fingerprint: usize,
     uninterpretable: usize,
+    path_bail: usize,
     units: Vec<VerifyExcludedUnit>,
 }
 
@@ -2309,6 +2328,7 @@ impl VerifyExclusions {
             VerifyExclusionReason::BatteryBail => self.battery_bail += 1,
             VerifyExclusionReason::EmptyFingerprint => self.empty_fingerprint += 1,
             VerifyExclusionReason::Uninterpretable => self.uninterpretable += 1,
+            VerifyExclusionReason::PathBail => self.path_bail += 1,
         }
         self.units.push(VerifyExcludedUnit {
             reason,
@@ -2324,11 +2344,16 @@ impl VerifyExclusions {
         self.battery_bail += other.battery_bail;
         self.empty_fingerprint += other.empty_fingerprint;
         self.uninterpretable += other.uninterpretable;
+        self.path_bail += other.path_bail;
         self.units.extend(other.units);
     }
 
     fn total(&self) -> usize {
-        self.core_missing + self.battery_bail + self.empty_fingerprint + self.uninterpretable
+        self.core_missing
+            + self.battery_bail
+            + self.empty_fingerprint
+            + self.uninterpretable
+            + self.path_bail
     }
 }
 
@@ -2525,14 +2550,22 @@ fn collect_file_verify_recs(
             continue;
         }
         // Run the battery; the unit is interpretable only if every input runs.
-        let Some(beh) = run_battery(core, interner, core_root, battery, &contracts) else {
-            push_verify_census(oracle, loc, core, core_root, &fp, "battery-bail");
-            oracle.exclusions.record(
-                VerifyExclusionReason::Uninterpretable,
-                file_path,
-                span0,
-                tokens,
-            );
+        let mut path_cap = false;
+        let Some(beh) = run_battery(
+            core,
+            interner,
+            core_root,
+            battery,
+            &contracts,
+            &mut path_cap,
+        ) else {
+            let (census_reason, reason) = if path_cap {
+                ("path-bail", VerifyExclusionReason::PathBail)
+            } else {
+                ("battery-bail", VerifyExclusionReason::Uninterpretable)
+            };
+            push_verify_census(oracle, loc, core, core_root, &fp, census_reason);
+            oracle.exclusions.record(reason, file_path, span0, tokens);
             continue;
         };
         push_verify_census(oracle, loc, core, core_root, &fp, "interpretable");
@@ -2542,7 +2575,14 @@ fn collect_file_verify_recs(
         // Canon preservation is judged on CONCRETE behaviors only: symbolic identity
         // is keyed on syntax, and canonicalization legitimately rewrites syntax, so a
         // Sym-bearing mismatch here is expected, not a behavior change.
-        if let Some(full_beh) = run_battery(n, interner, root, battery, &contracts) {
+        let mut full_path_cap = false;
+        if let Some(full_beh) =
+            run_battery(n, interner, root, battery, &contracts, &mut full_path_cap)
+        {
+            // Path-explored behaviors always carry the Sym assume markers, so the
+            // concrete-only filter below also keeps canon preservation away from
+            // path alignment questions (canonicalization may merge or split the
+            // very branches exploration forks on).
             let concrete = !beh.iter().any(nose_normalize::behavior_has_sym)
                 && !full_beh.iter().any(nose_normalize::behavior_has_sym);
             if concrete {
@@ -2645,6 +2685,7 @@ fn print_verify_json(oracle: &VerifyOracle) -> Result<()> {
                 "battery-bail": oracle.exclusions.battery_bail,
                 "empty-fingerprint": oracle.exclusions.empty_fingerprint,
                 "uninterpretable": oracle.exclusions.uninterpretable,
+                "path-bail": oracle.exclusions.path_bail,
             },
             "excluded_units": excluded_json,
         }))?
@@ -2664,6 +2705,11 @@ fn print_verify_exclusions(exclusions: &VerifyExclusions) {
     );
     println!("  empty-fingerprint: {}", exclusions.empty_fingerprint);
     println!("  uninterpretable: {}", exclusions.uninterpretable);
+    println!(
+        "  path-bail: {} (> {} symbolic branch sites)",
+        exclusions.path_bail,
+        nose_normalize::MAX_SYM_BRANCH_SITES
+    );
 }
 
 /// Soundness: fingerprint-equal ⟹ behavior-equal. Prints the section and returns the

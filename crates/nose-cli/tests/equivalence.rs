@@ -6723,3 +6723,109 @@ fn ruby_for_in_loop_converges_with_python_for() {
     );
     assert_eq!(rb, py, "ruby for-in ≡ python for (no Raw iterable wrapper)");
 }
+
+/// #244 — bounded symbolic-condition path exploration. Branching on an opaque
+/// call's symbolic result no longer bails the unit under `run_unit_paths`: both
+/// arms run, each path's trace records its assumption as a Sym marker (so the
+/// behaviors stay symbolic → advisory lane), and the strict `run_unit` contract
+/// is unchanged (still bails).
+#[test]
+fn symbolic_condition_paths_explore_both_arms() {
+    use nose_normalize::{run_unit, Value};
+    let i = Interner::new();
+    let src = "def f(x):\n    if g(x):\n        return 1\n    return 2\n";
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), Lang::Python, &i).unwrap();
+    let oracle = normalize(
+        &il,
+        &i,
+        &NormalizeOptions {
+            oracle: true,
+            ..NormalizeOptions::default()
+        },
+    );
+    let root = first_func(&oracle);
+
+    // Strict contract unchanged: a symbolic condition bails run_unit.
+    assert!(
+        run_unit(&oracle, &i, root, &[Value::Int(3)]).is_none(),
+        "strict run_unit must still bail on a symbolic condition"
+    );
+
+    let mut cap = false;
+    let paths = nose_normalize::run_unit_paths(&oracle, &i, root, &[Value::Int(3)], &mut cap)
+        .expect("two-arm exploration interprets the unit");
+    assert!(!cap, "one site is within the exploration cap");
+    assert_eq!(paths.len(), 2, "one symbolic site forks exactly two paths");
+    assert_eq!(
+        paths[0].ret,
+        Value::Int(1),
+        "true arm first (deterministic)"
+    );
+    assert_eq!(paths[1].ret, Value::Int(2), "false arm second");
+    for p in &paths {
+        assert!(
+            nose_normalize::behavior_has_sym(p),
+            "every explored path carries its Sym assumption marker: {p:?}"
+        );
+    }
+    assert_ne!(
+        paths[0].effects, paths[1].effects,
+        "the two arms record different assumptions"
+    );
+
+    // Differential alignment: the SAME shape over the same opaque call agrees…
+    let twin = nose_normalize::run_unit_paths(&oracle, &i, root, &[Value::Int(3)], &mut cap)
+        .expect("twin run");
+    assert_eq!(paths, twin, "deterministic across runs");
+    // …while branching on a DIFFERENT opaque call yields different assumptions.
+    let src_other = "def f(x):\n    if h(x):\n        return 1\n    return 2\n";
+    let il2 = nose_frontend::lower_source(FileId(0), "t", src_other.as_bytes(), Lang::Python, &i)
+        .unwrap();
+    let oracle2 = normalize(
+        &il2,
+        &i,
+        &NormalizeOptions {
+            oracle: true,
+            ..NormalizeOptions::default()
+        },
+    );
+    let other = nose_normalize::run_unit_paths(
+        &oracle2,
+        &i,
+        first_func(&oracle2),
+        &[Value::Int(3)],
+        &mut cap,
+    )
+    .expect("other unit");
+    assert_ne!(
+        paths, other,
+        "a different opaque condition must not align (different assumption markers)"
+    );
+}
+
+/// #244 fail-closed: more symbolic decision sites than the cap → path-bail,
+/// reported via the out-flag, never guessed.
+#[test]
+fn symbolic_condition_paths_fail_closed_past_the_cap() {
+    use nose_normalize::Value;
+    let i = Interner::new();
+    // 4 sequential symbolic decisions > MAX_SYM_BRANCH_SITES (3).
+    let src = "def f(x):\n    a = 1 if g(x) else 2\n    b = 1 if h(x) else 2\n    c = 1 if p(x) else 2\n    d = 1 if q(x) else 2\n    return a + b + c + d\n";
+    let il = nose_frontend::lower_source(FileId(0), "t", src.as_bytes(), Lang::Python, &i).unwrap();
+    let oracle = normalize(
+        &il,
+        &i,
+        &NormalizeOptions {
+            oracle: true,
+            ..NormalizeOptions::default()
+        },
+    );
+    let root = first_func(&oracle);
+    let mut cap = false;
+    let out = nose_normalize::run_unit_paths(&oracle, &i, root, &[Value::Int(3)], &mut cap);
+    assert!(out.is_none(), "past the site cap the unit fails closed");
+    assert!(
+        cap,
+        "the bail is reported as a path-cap bail for the census"
+    );
+}

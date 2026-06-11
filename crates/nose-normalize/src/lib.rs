@@ -32,7 +32,9 @@ mod recursion;
 mod value_graph;
 
 pub use commutative::{node_tag, node_tag_valued, subtree_hashes};
-pub use interp::{behavior_has_sym, run_unit, Behavior, Value};
+pub use interp::{
+    behavior_has_sym, run_unit, run_unit_paths, Behavior, Value, MAX_SYM_BRANCH_SITES,
+};
 pub use value_graph::{
     value_anchors, value_fingerprint, value_fingerprint_and_contracts,
     value_fingerprint_and_contracts_with_context, value_fingerprint_contracts,

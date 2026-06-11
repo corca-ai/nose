@@ -1039,8 +1039,10 @@ least 517ad5c. Filed as #210 (the exact channel is protected by `exact_safe`; th
 `near` value-accept path is exposed). The remaining census leaders after this round:
 `lit:unretained:Other` stays product-irrelevant (lossy-lowered), and the residual
 battery-bail mass concentrates in branch-on-symbolic units (`kind:If` excl-share 92%) —
-i.e. the next coverage unit is symbolic-condition path exploration, a much harder,
-deliberately-not-taken step (control flow is never guessed).
+i.e. the next coverage unit is symbolic-condition path exploration, a much harder
+step deliberately not taken at the time (control flow is never guessed). *Taken,
+boundedly, in §BU (#244): both arms explored under recorded assumptions — conditioned,
+not guessed — with a fail-closed site cap.*
 
 ### BL.2 — raylib verify budget: bound the oracle, don't hang it
 
@@ -1573,3 +1575,49 @@ Ruby corpus repos: **zero locations lost, zero gained** — idiomatic Ruby uses
 a corpus-recall gap (the §BO macro-arm shape). Builder ≡ comprehension now holds
 in the exact channel for python/js/ts/rust/go/java + ruby-for-in; C has no
 comparable idiom.
+
+## BU. Bounded symbolic-condition path exploration — conditioned, never guessed
+
+The §BL census's top residual — branch-on-symbolic units (`kind:If` excl-share
+92%) — named a step deliberately not taken: control flow is never guessed. #244
+takes it without guessing: when an If/ternary condition evaluates to a symbolic
+value, the oracle now explores BOTH arms (depth-first, true-arm first,
+deterministic), recording each assumption in the effect trace as a `Sym` marker
+(`assume ⊕ cond ⊕ arm`). The decision is *conditioned*, not guessed: two units
+compare equal only when their assumptions AND outcomes align. Three design locks:
+
+- **advisory by construction** — the assume marker keeps every explored path's
+  behavior symbolic, so a cross-unit disagreement involving an explored path can
+  only ever reach the advisory lane (`has_sym`), never the hard SOUND gate; canon
+  preservation likewise stays concrete-only (canonicalization may merge the very
+  branches exploration forks on);
+- **fail-closed cap** — at most 3 symbolic decision sites per execution (≤ 8
+  paths per battery row); past it the unit bails as a new, census-visible
+  `path-bail` (2,101 units corpus-wide). While/ForEach conditions stay strict —
+  an assumption per iteration is an unbounded chain, not a bounded fork;
+- **the strict contract is untouched** — `run_unit` (canon validation, the
+  fragment oracle) still bails on a symbolic condition; only `nose verify`'s
+  battery uses the exploring `run_unit_paths`.
+
+**Result** (105-repo census, both binaries, same corpus:
+`oracle_exclusion_census_post_paths_2026_06_11.json`; verify **SOUND on all
+105 repos**, canon PRESERVED, raylib within its §BL.2 budget):
+
+| | pre-#244 | post-#244 | Δ |
+|---|---:|---:|---|
+| interpretable units | 174,881 (29.2%) | 187,650 (31.3%) | **+12,769 (+2.1pp)** |
+| verified merge pairs | 1,073,454 (31.5%) | 1,076,080 (31.6%) | +2,626 (+0.1pp) |
+| path-bail (fail-closed, visible) | — | 2,101 | |
+
+**The honest read is double-edged.** The instrument gain is real — ~12.8k units
+that bailed on a symbolic branch now interpret, and the behavior-keyed mining arm
+(§BS) gets a wider candidate source for its cheap re-runs. But the *pair-mass*
+needle barely moves: the unverified 68.5% → 68.4%. The §BL attribution listed
+`kind:If` at 92% excl-share, yet conditioning on branches recovers only 0.1pp of
+pair mass — i.e. the units behind the unverified bulk are excluded for SEVERAL
+reasons at once (opaque statements, unsupported shapes, sheer size), and no single
+construct unlock will move it. That refines the campaign order the census set in
+§BL: the remaining oracle-completeness work is broad-spectrum statement coverage,
+not another control-flow mechanism — and given §BS measured the frontier this
+instrument feeds at one worthy pair per 105 repos, further oracle-completeness
+investment should wait for a consumer that needs it.

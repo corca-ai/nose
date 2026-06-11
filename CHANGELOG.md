@@ -7,6 +7,15 @@ break.
 ## [Unreleased]
 
 ### Added
+- `nose verify`'s oracle now explores BOTH arms of a symbolic If/ternary
+  condition under recorded assumptions instead of bailing the unit (#244,
+  experiments §BU): conditioned, never guessed — each path's trace carries a
+  symbolic assume marker, so explored-path disagreements can only reach the
+  advisory lane, never the hard SOUND gate. Bounded fail-closed at 3 symbolic
+  decision sites per execution (a new census-visible `path-bail` reason; 2,101
+  units corpus-wide). Interpretable units 29.2% → 31.3% on the 105-repo corpus
+  with verify SOUND everywhere; loop conditions and the strict `run_unit`
+  contract (canon validation, fragment oracle) are unchanged.
 - Ruby `for x in xs … out << e` builder loops now converge with comprehensions
   and builder loops across languages in the exact semantic channel (#247,
   experiments §BT). The shovel is admitted as an append only through the

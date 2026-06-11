@@ -208,6 +208,27 @@ enum Flow {
 
 const STEP_BUDGET: u64 = 200_000;
 
+/// Symbolic-condition path exploration cap (#244): at most this many symbolic
+/// If/ternary decision SITES per execution, so a row explores ≤ 2^cap paths.
+/// Beyond it the unit fails closed (path-bail), never guessed.
+pub const MAX_SYM_BRANCH_SITES: usize = 3;
+
+/// Effect-trace marker for an assumed symbolic condition: `Sym(assume ⊕ cond ⊕ arm)`.
+/// Because the marker is symbolic, every path-explored behavior carries `Sym`, which
+/// routes any cross-unit disagreement to verify's ADVISORY lane by construction —
+/// path exploration can never create a hard SOUND violation.
+const SYM_ASSUME: u64 = 0xA55E_0011;
+
+/// State for bounded symbolic-condition path exploration. `prescribed` replays
+/// decisions for sites already enumerated (depth-first, true-arm first); past its
+/// end a new site assumes `true` and appends to `taken`.
+#[derive(Default)]
+struct Explore {
+    prescribed: Vec<bool>,
+    taken: Vec<bool>,
+    cap_hit: bool,
+}
+
 struct Interp<'a> {
     il: &'a Il,
     interner: &'a Interner,
@@ -221,16 +242,14 @@ struct Interp<'a> {
     /// evidence record admits the exact call occurrence. This lets the oracle interpret proven
     /// recursive and interprocedural calls without treating raw callee spelling as proof.
     callable_roots: Vec<NodeId>,
+    /// `None` = strict (a symbolic condition bails the unit — `run_unit`'s contract,
+    /// kept for canon validation and the fragment oracle). `Some` = #244 bounded
+    /// two-arm exploration with each assumption recorded in the effect trace.
+    explore: Option<Explore>,
 }
 
-/// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
-/// Returns its [`Behavior`], or `None` if the unit is uninterpretable.
-pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
-    if il.kind(root) != NodeKind::Func {
-        return None;
-    }
-    let callable_roots = il
-        .units
+fn callable_roots(il: &Il) -> Vec<NodeId> {
+    il.units
         .iter()
         .filter(|u| {
             matches!(
@@ -239,7 +258,72 @@ pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> O
             )
         })
         .map(|u| u.root)
-        .collect();
+        .collect()
+}
+
+/// Run the `Func` unit at `root` with `args` bound to its parameters (in order).
+/// Returns its [`Behavior`], or `None` if the unit is uninterpretable. A symbolic
+/// branch condition bails (strict contract; see [`run_unit_paths`] for the
+/// exploring variant).
+pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> Option<Behavior> {
+    run_unit_once(il, interner, root, args, callable_roots(il), None).0
+}
+
+/// Every behavior of the unit on `args`, one per explored symbolic-condition path
+/// (deterministic depth-first order, true-arm first; a unit with no symbolic
+/// conditions yields exactly one). Each path's effect trace records its assumed
+/// conditions as `Sym` markers, so two units compare equal only when their
+/// assumptions AND outcomes align. Returns `None` when any path is
+/// uninterpretable or the per-execution symbolic-site cap is exceeded
+/// (fail-closed); `path_cap` reports the cap case for the exclusion census.
+pub fn run_unit_paths(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+    path_cap: &mut bool,
+) -> Option<Vec<Behavior>> {
+    let roots = callable_roots(il);
+    let mut out = Vec::new();
+    let mut prescribed: Vec<bool> = Vec::new();
+    loop {
+        let explore = Explore {
+            prescribed: prescribed.clone(),
+            ..Explore::default()
+        };
+        let (beh, ex) = run_unit_once(il, interner, root, args, roots.clone(), Some(explore));
+        let ex = ex.expect("explore state survives the run");
+        if ex.cap_hit {
+            *path_cap = true;
+            return None;
+        }
+        out.push(beh?);
+        // Advance depth-first: flip the deepest `true` decision to `false`,
+        // dropping exhausted (`false`) tails — a binary counter over sites.
+        let mut next = ex.taken;
+        while next.last() == Some(&false) {
+            next.pop();
+        }
+        match next.last_mut() {
+            Some(last) => *last = false,
+            None => break,
+        }
+        prescribed = next;
+    }
+    Some(out)
+}
+
+fn run_unit_once(
+    il: &Il,
+    interner: &Interner,
+    root: NodeId,
+    args: &[Value],
+    callable_roots: Vec<NodeId>,
+    explore: Option<Explore>,
+) -> (Option<Behavior>, Option<Explore>) {
+    if il.kind(root) != NodeKind::Func {
+        return (None, explore);
+    }
     let mut it = Interp {
         il,
         interner,
@@ -248,6 +332,7 @@ pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> O
         fields: FxHashMap::default(),
         params: FxHashSet::default(),
         callable_roots,
+        explore,
     };
     let mut env: FxHashMap<u32, Value> = FxHashMap::default();
     let kids = il.children(root).to_vec();
@@ -273,20 +358,23 @@ pub fn run_unit(il: &Il, interner: &Interner, root: NodeId, args: &[Value]) -> O
             }
         }
     }
-    let body = *kids.last()?;
+    let Some(&body) = kids.last() else {
+        return (None, it.explore);
+    };
     let ret = match it.exec(body, &mut env) {
         Ok(Flow::Ret(v)) => v,
         Ok(Flow::Err) => Value::Err,
         Ok(_) => Value::Null,
-        Err(_) => return None,
+        Err(_) => return (None, it.explore),
     };
     let mut fields: Vec<(FieldKey, Value)> = it.fields.into_iter().collect();
     fields.sort_by(|(left, _), (right, _)| left.cmp(right));
-    Some(Behavior {
+    let behavior = Behavior {
         ret,
         effects: it.effects,
         fields,
-    })
+    };
+    (Some(behavior), it.explore)
 }
 
 impl<'a> Interp<'a> {
@@ -297,6 +385,36 @@ impl<'a> Interp<'a> {
         } else {
             Ok(())
         }
+    }
+
+    /// Truthiness of an If/ternary condition. A concrete value decides as usual.
+    /// A symbolic condition bails in strict mode; under #244 exploration it takes
+    /// the prescribed arm (or assumes `true` at a new site, depth-first) and
+    /// RECORDS the assumption as a `Sym` effect marker — so the decision is
+    /// conditioned, never guessed, and any cross-unit disagreement involving an
+    /// explored path stays in the advisory lane (the marker keeps the behavior
+    /// symbolic). Loop conditions deliberately stay strict: an assumption per
+    /// iteration is an unbounded chain, not a bounded fork.
+    fn cond_truthy(&mut self, v: &Value) -> R<bool> {
+        if let Some(t) = truthy(v) {
+            return Ok(t);
+        }
+        let Value::Sym(h) = v else {
+            return Err(Unsupported);
+        };
+        let h = *h;
+        let Some(ex) = self.explore.as_mut() else {
+            return Err(Unsupported);
+        };
+        if ex.taken.len() >= MAX_SYM_BRANCH_SITES {
+            ex.cap_hit = true;
+            return Err(Unsupported);
+        }
+        let taken = ex.prescribed.get(ex.taken.len()).copied().unwrap_or(true);
+        ex.taken.push(taken);
+        self.effects
+            .push(Value::Sym(sym_id(SYM_ASSUME, &[h, u64::from(taken)])));
+        Ok(taken)
     }
 
     fn exact_field_place(&self, node: NodeId) -> Option<FieldPlace> {
@@ -407,7 +525,7 @@ impl<'a> Interp<'a> {
                 if matches!(cond, Value::Err) {
                     return Ok(Flow::Err);
                 }
-                if truthy(&cond).ok_or(Unsupported)? {
+                if self.cond_truthy(&cond)? {
                     if let Some(&t) = kids.get(1) {
                         return self.exec(t, env);
                     }
@@ -675,7 +793,7 @@ impl<'a> Interp<'a> {
                 if matches!(c, Value::Err) {
                     return Ok(Value::Err);
                 }
-                if truthy(&c).ok_or(Unsupported)? {
+                if self.cond_truthy(&c)? {
                     self.eval(kids[1], env)
                 } else {
                     self.eval(kids[2], env)
