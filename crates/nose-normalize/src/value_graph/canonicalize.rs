@@ -70,11 +70,37 @@ impl<'a> Builder<'a> {
             if is_commutative(o)
                 && args.len() == 2
                 && !concat
+                && self.reorder_safe(args[0])
+                && self.reorder_safe(args[1])
                 && self.vhash[args[0] as usize] > self.vhash[args[1] as usize]
             {
                 args.swap(0, 1);
             }
         }
+    }
+
+    /// Effect-free ⇒ safe to reorder past a sibling operand. A subtree with a
+    /// call/HOF/lambda/opaque node can carry an observable effect whose order the
+    /// interpreter tracks, so it is held in place (coevo §CE / §AS).
+    pub(super) fn reorder_safe(&self, v: ValueId) -> bool {
+        let mut seen = FxHashSet::default();
+        let mut stack = vec![v];
+        while let Some(n) = stack.pop() {
+            if !seen.insert(n) {
+                continue;
+            }
+            match self.nodes[n as usize].op {
+                ValOp::Call(_)
+                | ValOp::Hof(_)
+                | ValOp::Lambda(_)
+                | ValOp::Loop(_)
+                | ValOp::Recurrence(_)
+                | ValOp::Opaque(_) => return false,
+                _ => {}
+            }
+            stack.extend(self.nodes[n as usize].args.iter().copied());
+        }
+        true
     }
 
     fn u16_byte_pack(&mut self, op: &ValOp, args: &[ValueId]) -> Option<ValueId> {
@@ -306,7 +332,7 @@ impl<'a> Builder<'a> {
                 for &a in args {
                     self.flatten_into(a, o, &mut leaves);
                 }
-                if leaves.len() > 2 {
+                if leaves.len() > 2 && leaves.iter().all(|&v| self.reorder_safe(v)) {
                     leaves.sort_unstable_by_key(|&v| self.vhash[v as usize]);
                     return Some(self.intern_ac_chain(o, &leaves));
                 }

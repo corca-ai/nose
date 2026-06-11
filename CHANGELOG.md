@@ -6,6 +6,17 @@ break.
 
 ## [Unreleased]
 
+### Fixed
+- **Soundness: effectful operands of a commutative operator no longer false-merge**
+  (#283 sub-finding A, experiments §CE). The value-graph canonicalizer sorted a
+  commutative/AC operator's operands by structural hash, so `print(a) + print(b)`
+  converged with `print(b) + print(a)` though their observable effect order
+  differs (a false merge `nose verify` confirms). It now sorts only when every
+  operand is effect-free (no call/HOF/lambda/loop/opaque node in the subtree);
+  effect-free numeric operands still converge (`a+b+1 ≡ 1+b+a`). The remaining
+  #283 sub-findings (optimistic-Number rewrites, untyped `+` commutativity, the
+  language-blind verify interpreter) are root-caused in the issue and remain open.
+
 ### Security
 - **Adversarial co-evolution series 5 found latent false merges in the soundness
   core (P0 #283, experiments §CE)** — the cardinal sin (design §1). The
