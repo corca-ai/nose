@@ -1,0 +1,198 @@
+{
+  "per_arm": {
+    "default": {
+      "replays": 347,
+      "errors": 3,
+      "fired": 115,
+      "fire_rate": 0.3314,
+      "findings_total": 266,
+      "findings_per_fire_p50": 1,
+      "findings_per_fire_p90": 4,
+      "findings_per_fire_max": 38,
+      "review_s_p50": 2.94,
+      "review_s_p90": 6.84
+    },
+    "near": {
+      "replays": 347,
+      "errors": 3,
+      "fired": 143,
+      "fire_rate": 0.4121,
+      "findings_total": 347,
+      "findings_per_fire_p50": 1,
+      "findings_per_fire_p90": 5,
+      "findings_per_fire_max": 33,
+      "review_s_p50": 3.36,
+      "review_s_p90": 7.73
+    }
+  },
+  "per_repo": {
+    "clap": {
+      "default": {
+        "replays": 25,
+        "fired": 11,
+        "findings": 21
+      },
+      "near": {
+        "replays": 25,
+        "fired": 13,
+        "findings": 29
+      }
+    },
+    "git": {
+      "default": {
+        "replays": 25,
+        "fired": 6,
+        "findings": 9
+      },
+      "near": {
+        "replays": 25,
+        "fired": 8,
+        "findings": 13
+      }
+    },
+    "hugo": {
+      "default": {
+        "replays": 25,
+        "fired": 4,
+        "findings": 6
+      },
+      "near": {
+        "replays": 25,
+        "fired": 4,
+        "findings": 14
+      }
+    },
+    "jest": {
+      "default": {
+        "replays": 25,
+        "fired": 6,
+        "findings": 9
+      },
+      "near": {
+        "replays": 25,
+        "fired": 8,
+        "findings": 11
+      }
+    },
+    "minio": {
+      "default": {
+        "replays": 25,
+        "fired": 11,
+        "findings": 24
+      },
+      "near": {
+        "replays": 25,
+        "fired": 14,
+        "findings": 27
+      }
+    },
+    "netty": {
+      "default": {
+        "replays": 25,
+        "fired": 8,
+        "findings": 20
+      },
+      "near": {
+        "replays": 25,
+        "fired": 13,
+        "findings": 26
+      }
+    },
+    "redis": {
+      "default": {
+        "replays": 25,
+        "fired": 12,
+        "findings": 17
+      },
+      "near": {
+        "replays": 25,
+        "fired": 13,
+        "findings": 30
+      }
+    },
+    "rubocop": {
+      "default": {
+        "replays": 25,
+        "fired": 6,
+        "findings": 9
+      },
+      "near": {
+        "replays": 25,
+        "fired": 8,
+        "findings": 14
+      }
+    },
+    "rxjava": {
+      "default": {
+        "replays": 24,
+        "fired": 19,
+        "findings": 80
+      },
+      "near": {
+        "replays": 24,
+        "fired": 21,
+        "findings": 90
+      }
+    },
+    "rxjs": {
+      "default": {
+        "replays": 25,
+        "fired": 6,
+        "findings": 23
+      },
+      "near": {
+        "replays": 25,
+        "fired": 6,
+        "findings": 23
+      }
+    },
+    "scrapy": {
+      "default": {
+        "replays": 25,
+        "fired": 12,
+        "findings": 26
+      },
+      "near": {
+        "replays": 25,
+        "fired": 13,
+        "findings": 36
+      }
+    },
+    "sidekiq": {
+      "default": {
+        "replays": 23,
+        "fired": 2,
+        "findings": 2
+      },
+      "near": {
+        "replays": 23,
+        "fired": 3,
+        "findings": 3
+      }
+    },
+    "sympy": {
+      "default": {
+        "replays": 25,
+        "fired": 7,
+        "findings": 10
+      },
+      "near": {
+        "replays": 25,
+        "fired": 12,
+        "findings": 19
+      }
+    },
+    "tokio": {
+      "default": {
+        "replays": 25,
+        "fired": 5,
+        "findings": 10
+      },
+      "near": {
+        "replays": 25,
+        "fired": 7,
+        "findings": 12
+      }
+    }
+  }
+}

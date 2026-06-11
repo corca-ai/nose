@@ -1454,3 +1454,42 @@ build (blocks dominate by count), no longer accidental quadratics. The design
 lesson matches §T: hot-path evidence/node lookups must be index-backed by
 default — a raw `il.evidence`/`il.nodes` iteration in a per-node helper is a
 red flag in review.
+
+## BR. Review fire-precision benchmark — consumer 2 gets its first measurement
+
+[design](design.md) §3 raised "review-as-gate: harden it past v1 and define a
+conservative fire policy" — but nothing measured the gate product itself: the v5
+labelset owns the scan surface, and §BG measured hazard *ranking*, not whether
+`nose review` fires correctly on a real change stream. #243 built that measurement
+(`eval/review_fire/replay.py`): replay `nose review --base <parent>` at 25 sampled
+first-parent commits in each of 14 corpus repos (7 languages × dev/heldout) — the
+working tree holds the merged change, exactly the PR-gate situation — in two arms
+(review's default `syntax,semantic`, and `+near`). Labeling unit: a fired change's
+**top-ranked finding** (`--fail` is a per-change decision); 120 findings, §BG-gold
+method — judge labels, then two adversarial refuters on every positive, a positive
+survives only if both sustain.
+
+**Result** (artifacts `eval/review_fire/{replay_summary,verdicts}_2026_06_11.*`,
+narrative [eval/review_fire/RESULTS.md](../eval/review_fire/RESULTS.md)): the default
+arm fires on **33.1%** of replayed merged changes (near arm 41.2%) at **4.2%** strict
+top-1 precision (default 3.1%, near 5.5%). The five confirmed positives are three
+unique, externally-validated misses — rubocop's `DataInheritance#correct_parent`
+autocorrect bug (still latent upstream), rxjs's missing `AnimationFrameAction` guard
+(**upstream later merged the equivalent fix, rxjs #7444, citing the same root
+cause**), and tokio #7675 fixing five identical socket `Debug` impls but missing
+`UdpSocket`. The false-fire taxonomy is the #245 gap list: **51%
+`no_propagation_needed`** — the diff overlaps the member's *span* but not the
+*shared logic* (review's overlap test is span-level; requiring overlap with the
+family's shared/invariant lines targets exactly this bucket), 32% intentional
+divergence (variant pairs — an ignore/ergonomics problem, not a threshold), 12%
+not-a-clone (grouping artifacts).
+
+Two reads. The gate problem is **dilution, not absence**: real un-propagated changes
+exist in the wild at a useful rate (3 in 350 merged changes) and review's ordering
+put them at top-1 — but a 33–41% fire rate at ~4% precision means `--fail` must stay
+an explicitly-opted, policy-tuned gate ("a gate that cries wolf gets disabled" is now
+a measured fact). And half the noise is one mechanical bucket, so the first #245
+policy lever (shared-line overlap) is cheap and targeted, not judgment-deep. Protocol
+limits recorded in RESULTS.md: top-1 only, 14 repos, and merged-PR replay sees only
+the surviving change stream. A side catch: `--format json|sarif` printed a human
+sentence on empty reviewable diffs (adds-only PRs) — fixed in #252.
