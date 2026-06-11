@@ -696,6 +696,13 @@ pub enum Op {
     /// any negative operand (`-5 // 2 == -3` vs `-5 / 2 == -2`), so conflating
     /// them is a false merge.
     FloorDiv,
+    /// Floored modulo (remainder takes the sign of the DIVISOR): Python/Ruby `%`.
+    /// DISTINCT from [`Op::Mod`], the C-family truncated remainder (sign of the
+    /// DIVIDEND) used by JS/Go/Java/Rust/C — they differ on any sign-disagreeing
+    /// operands (`-1 % 3 == 2` floored vs `== -1` truncated), so conflating them
+    /// (as a single `Op::Mod` for all languages did) is a false merge the verify
+    /// interpreter was blind to (#283-D).
+    FloorMod,
 }
 
 impl Op {

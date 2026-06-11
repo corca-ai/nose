@@ -448,7 +448,12 @@ fn lower_binary(lo: &mut Lowering, node: TsNode) -> NodeId {
     let op = node
         .child_by_field_name("operator")
         .map(|o| lo.text(o))
-        .and_then(common_bin_op);
+        .and_then(|t| match t {
+            // Ruby `%` is FLOORED (remainder takes the divisor's sign), unlike the
+            // C-family truncated `%` in `common_bin_op` (#283-D).
+            "%" => Some(Op::FloorMod),
+            other => common_bin_op(other),
+        });
     match (l, r, op) {
         (Some(l), Some(r), Some(op)) => lo.add(NodeKind::BinOp, Payload::Op(op), span, &[l, r]),
         _ => raw_kids(lo, node),

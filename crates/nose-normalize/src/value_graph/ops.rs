@@ -188,6 +188,7 @@ pub(super) fn op_from_code(opc: u32) -> Option<Op> {
         Op::Div,
         Op::FloorDiv,
         Op::Mod,
+        Op::FloorMod,
         Op::Pow,
         Op::Eq,
         Op::Ne,
