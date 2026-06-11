@@ -1708,3 +1708,35 @@ never-loosen ratchet. **Verdict: default stays 20; the knob ships.** A
 recall-first consumer (design §2's agent) can set `NOSE_ANCHOR_MIN_WEIGHT=8` for
 +0.9pp held-out worthy-recall at no measured precision cost; gate-shaped
 surfaces keep the conservative floor.
+
+## BX. The agent recipe, validated the #227 way — and sharpened by its own failures
+
+#249 closes the consumer-1 loop the #227 audit opened: scan JSON now carries the
+evidence (witness #230, varying spots #231, generated markers #232, enclosing
+names #233), and [docs/agent-recipe.md](agent-recipe.md) is the protocol an LLM
+agent follows to act on it — field reading order, the v5 rubric's core question,
+verdict actions (propose / structured-ignore / leave), and the #245 gate fields
+for PR-time findings.
+
+**Validation** (artifact `bench/labels/agent_recipe_validation_2026_06_11.json`):
+3 repos (clap, sympy, netty) × top-10 default-surface families on the current
+binary; a judge agent followed the recipe with the family JSON ONLY (no source
+access — that is the point), span-matched against the v5 labels (19 of 30
+sampled families are in the v5 pool; the rest are post-pool surface). Round 1:
+**12/19 (63%)** agreement, with a clear under-call bias (6 of 7 errors judged
+worthy families not-worthy) in two patterns — example/fixture-directory families
+dismissed by location, and near-identical per-variant siblings (covariant return
+types) mislabeled `parallel-by-design`. Both are calibrations the v5 RUBRIC
+already states; the recipe gained two explicit step-6 bullets. Round 2 (fresh
+agent, sharpened recipe): **14/19 (74%)**, worthy-recall within the sample
+7/13 → **12/13**, over-calls up 1 → 4. The five residual disagreements are
+trivial-vs-extract-base borderline calls on small sibling families — the
+§AV judgment-deep shape, where the human labels themselves needed a 3-persona
+panel.
+
+Honest limits: one tuning iteration on this same sample (dev-fit; the held-out
+test is the next fresh sample), 19 labeled decisions, top-10 only. The durable
+read: the JSON surface is sufficient for the protocol (no decision needed source
+access), the recipe's failure modes are *calibration* failures fixable in the
+document, and the residual is the same judgment frontier the scanner itself
+deliberately leaves to the caller.

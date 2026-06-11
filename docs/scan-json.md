@@ -4,7 +4,9 @@
 dashboards, editor integrations, and baselines that need clone families as data.
 For the command context see [usage](usage.md); for CI-oriented formats see
 [continuous-integration](continuous-integration.md). Tools can discover supported
-scan JSON schema versions with [capabilities](capabilities.md).
+scan JSON schema versions with [capabilities](capabilities.md). An LLM agent
+consuming this schema should follow the validated triage protocol in
+[agent-recipe](agent-recipe.md).
 
 ## Version 1
 
