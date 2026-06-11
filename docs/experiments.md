@@ -2135,3 +2135,62 @@ tightening (call-shaped false declarations removed) and the S4-C3 loosening
 neither shape is common there; the value of both fixes is in the field
 (destructured CommonJS requires; Windows-authored BOM files) and the unit
 battery, not the corpus count.
+
+## CE. Adversarial co-evolution, series 5 — the moat's first attack finds the cardinal sin
+
+Fifth runbook execution (#282), the first against the soundness CORE
+(canonicalizer, exact-channel gate, oracle). It paid out the highest-value
+result the project can produce: **confirmed false merges** — the cardinal sin
+(design §1). All are LATENT: `nose verify bench/repos` stays green because the
+pinned corpus lacks these shapes, exactly the §AS scenario design.md cites as
+the whole reason adversarial batteries exist. Reproducers checked in at
+`bench/coevo/false_merges/`; tracked P0 #283.
+
+**S5-C1 (blind soundness-skeptic → canonicalizer).** Two false-merge families,
+both verify-confirmed (the offline oracle's `--max-violations 0` gate fires):
+(a) **effectful operands of a commutative/AC op** — `print(a)+print(b)` ≡
+`print(b)+print(a)` (and AC chains, `*`, `^`); (b) **optimistic-Number
+rewrites** — `-(-a)`≡`a`, `a&a`≡`a`, `a|a`≡`a` because the value domain infers
+`Number` for a bare param *from the operation applied to it*, so the
+"type-PROVEN" gate passes untyped. Root-causing (a) corrected a wrong first fix:
+the merge is NOT via operand reordering in the canonicalizer (disabling the
+reorder swap leaves them merged) — the exact-channel **node-multiset
+fingerprint is inherently blind to a commutative op's operand order**, and
+effectful calls in value position never emit ordered effect sinks. The fix is
+the value-graph effect model, not a reorder guard — a speculative reorder-guard
+patch was written, shown not to fix it, and reverted.
+
+**S5-C2 (blind gate-skeptic → exact gate).** `a+b`≡`b+a` and `(a+b)+c`≡
+`a+(b+c)` for untyped params: `+` commutativity/associativity treats Unknown
+operands as numeric optimistically; wrong for strings (`"x"+"y"`) and floats
+(`1e100`-cancellation). The detector merges; the verify oracle is BLIND
+(below), so these evade the hard gate.
+
+**S5-C3 (blind oracle-skeptic → `nose verify`).** The safety net itself has
+holes: the interpreter maps every `Op` to one Rust `i64` operation, so Python
+`%` (floored) ≡ JS `%` (truncated), Python `/` (true) ≡ Ruby `/` (floored),
+JS `(x|0)+1` ≡ `x+1` (no int32 narrowing) — it declares non-equivalent
+cross-language units behavior-equal, masking the very class of merge it exists
+to catch. Index-store mutation is dropped and faked as a generic effect instead
+of bailing. This is why S5-C2 evades detection and must be fixed first.
+
+**S5-C4 (blind convergence-skeptic → recall).** Four oracle-confirmed
+behaviorally-equal misses: `abs(abs x)`≡`abs x` and `~(a&b)`≡`~a|~b` (both
+fully sound to add, #284); `max(max(a,b),c)`≡`max(a,max(b,c))` (compositional —
+MIN/MAX are commutative but not AC-flatten-eligible in `ops.rs`; the cleanest
+e-graph-revisit trigger); `x+x`≡`x*2` (the documented §BA gap).
+
+**S5-C5 (informed coverage auditor).** 15 gaps; the byte-pack (u16/u32) and
+low-bit-toggle rules have NO Lean proof (positive tests only), and many
+type-gated rules have positive tests but no hard-negative proving the gate
+holds — the AC-chain hard-negative gap is highest-risk and overlaps the #283
+cluster.
+
+**Verdict.** Series 5 is the validation of the entire adversarial paradigm: the
+moat read clean on 105 repos while five distinct latent false merges (and a
+holed oracle) sat in the core — found only by white-box crafting (§AS, exactly).
+No same-session code fix shipped: every fix is moat work requiring a Lean
+obligation and dev/heldout corpus pricing (defense-deferral is a first-class
+verdict, and a rushed soundness patch that misidentifies the mechanism — as the
+first reorder-guard attempt did — is worse than an honest P0). The deliverables
+are the confirmed-reproducer battery, P0 #283, recall #284, and this ledger.

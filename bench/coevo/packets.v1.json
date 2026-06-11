@@ -396,6 +396,78 @@
    "summary": "14 gaps; adopted rows for Rust extern crate, Go package clause, Ruby require_relative; AST code-poison (gap 6) and the languages all-members selector (gap 12) already locked by the migration + the partial-path test sharing the same .all() code path",
    "verdict": "violation-fixed",
    "defense": "coverage rows (this PR)"
+  },
+  {
+   "packet_id": "s5-c1-effectful-commute",
+   "series": 5,
+   "campaign": "S5-C1",
+   "persona": "soundness-skeptic",
+   "mode": "blind-executable",
+   "surface": "canonicalizer",
+   "claim": "equal fingerprint \u27f9 equal behavior",
+   "summary": "FALSE MERGE (cardinal sin): print(a)+print(b) \u2261 print(b)+print(a), AC chains, *, ^ \u2014 verify-confirmed; node-multiset fingerprint blind to operand order of a commutative op, effectful calls in value position not emitted as ordered effect sinks",
+   "verdict": "deferred-issue",
+   "defense": "#283 P0 (value-graph effect model)"
+  },
+  {
+   "packet_id": "s5-c1-optimistic-num",
+   "series": 5,
+   "campaign": "S5-C1",
+   "persona": "soundness-skeptic",
+   "mode": "blind-executable",
+   "surface": "canonicalizer",
+   "claim": "type-gated rewrites are sound because the type is PROVEN",
+   "summary": "FALSE MERGE: -(-a)\u2261a, a&a\u2261a, a|a\u2261a \u2014 value domain infers Number from the op itself, so the gate passes for untyped params; differs on list input; verify canon-preservation violation",
+   "verdict": "deferred-issue",
+   "defense": "#283 P0 (genuine vs optimistic Num proof)"
+  },
+  {
+   "packet_id": "s5-c2-untyped-add-commute",
+   "series": 5,
+   "campaign": "S5-C2",
+   "persona": "gate-skeptic",
+   "mode": "blind-executable",
+   "surface": "exact-channel-gates",
+   "claim": "missing type evidence blocks exact acceptance",
+   "summary": "FALSE MERGE (oracle-blind): a+b\u2261b+a and (a+b)+c\u2261a+(b+c) for untyped params admitted to exact channel + commuted/associated; wrong for strings/floats; verify can't witness (battery never feeds 2 distinct strings, models i64)",
+   "verdict": "deferred-issue",
+   "defense": "#283 P0 (require proven-numeric)"
+  },
+  {
+   "packet_id": "s5-c3-interp-language-blind",
+   "series": 5,
+   "campaign": "S5-C3",
+   "persona": "oracle-skeptic",
+   "mode": "blind-executable",
+   "surface": "oracle",
+   "claim": "verify declares behavior-equal only when truly equal",
+   "summary": "the soundness net has holes: py % (floored) \u2261 js % (truncated), py / \u2261 ruby / , js (x|0)+1 \u2261 x+1; interp maps every Op to one Rust i64 op; index-store mutation dropped+faked as effect. Masks cross-language false merges",
+   "verdict": "deferred-issue",
+   "defense": "#283 P0 (interpreter language-awareness)"
+  },
+  {
+   "packet_id": "s5-c4-recall-misses",
+   "series": 5,
+   "campaign": "S5-C4",
+   "persona": "convergence-skeptic",
+   "mode": "blind-executable",
+   "surface": "canonicalizer",
+   "claim": "behaviorally-equal forms converge",
+   "summary": "4 oracle-confirmed recall misses: abs(abs x)\u2261abs x and ~(a&b)\u2261~a|~b (both fully sound, no gate needed \u2014 worth adding); max(max(a,b),c)\u2261max(a,max(b,c)) (compositional: MIN/MAX in is_commutative but not is_assoc_comm_code \u2014 clean e-graph-ledger trigger); x+x\u2261x*2 (documented \u00a7BA gap)",
+   "verdict": "recorded-low-prevalence",
+   "defense": "#284 (sound recall rules: abs-idem, bitwise-DeMorgan, min/max AC)"
+  },
+  {
+   "packet_id": "s5-c5-coverage",
+   "series": 5,
+   "campaign": "S5-C5",
+   "persona": "coverage-auditor",
+   "mode": "informed",
+   "surface": "canonicalizer",
+   "claim": "canon rules are proven or tested",
+   "summary": "15 gaps: byte-pack u16/u32 + low-bit-toggle have NO Lean proof (positive-only tests); many type-gated rules (abs, minmax, idempotence, negation-distrib) have positive tests but NO hard-negative proving the gate holds \u2014 the AC-chain hard-negative gap is highest risk and overlaps the #283 cardinal-sin cluster",
+   "verdict": "recorded-low-prevalence",
+   "defense": "#283 hard-negative + Lean backlog"
   }
  ]
 }

@@ -6,6 +6,21 @@ break.
 
 ## [Unreleased]
 
+### Security
+- **Adversarial co-evolution series 5 found latent false merges in the soundness
+  core (P0 #283, experiments §CE)** — the cardinal sin (design §1). The
+  value-graph node-multiset fingerprint is blind to a commutative operator's
+  operand order, so `print(a)+print(b)` and `print(b)+print(a)` get one exact
+  fingerprint though their observable effect order differs (`nose verify`
+  confirms); optimistic `Number` inference makes `-(-a)≡a` / `a&a≡a` merge
+  untyped params; untyped `a+b≡b+a` is wrong for string/list concat; and the
+  verify interpreter is language-blind (Python `%` ≡ JS `%`), so the oracle
+  itself masks cross-language merges. All LATENT — `nose verify bench/repos`
+  stays green (the corpus lacks these shapes, the §AS scenario). Reproducers
+  checked in at `bench/coevo/false_merges/`. Fixes are moat work (value-graph
+  effect sinks, genuine-Num proofs, interpreter language-awareness) tracked in
+  #283; no behavior change shipped this entry.
+
 ### Fixed
 - **Adversarial co-evolution, series 4** (experiments §CD, issue #279) — the AST
   declaration classifier's first attack plus the difference-evidence and
