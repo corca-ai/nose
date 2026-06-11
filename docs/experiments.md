@@ -1493,3 +1493,44 @@ policy lever (shared-line overlap) is cheap and targeted, not judgment-deep. Pro
 limits recorded in RESULTS.md: top-1 only, 14 repos, and merged-PR replay sees only
 the surviving change stream. A side catch: `--format json|sarif` printed a human
 sentence on empty reviewable diffs (adds-only PRs) — fixed in #252.
+
+## BS. Behavior-keyed miss mining — the vj<0.8 frontier, measured (go/no-go: NO-GO)
+
+§BK's structural arm is blind below vj 0.8 by construction; #246 built the
+complementary behavior-keyed arm (`bench/type4/behavior_miss_mining.py`) — §AU's
+"oracle as generator" executed: candidates come from `nose verify --leads`
+(units grouped by concrete battery behavior, under-merged groups exported with
+their max-vj cross-fingerprint pair), so structure plays no part in candidate
+generation. Run on all 105 corpus repos on the post-§BP/§BQ binary (raylib
+included for the first time; zero mining failures), then classified: span/size
+via file-scoped `nose features`, unreported = no maximal-surface
+(`syntax,semantic,near --min-value 0`) family co-reports the pair, trivial =
+below the 5-line/24-token product floor.
+
+**Result** (`bench/type4/behavior_miss_mining_2026_06_11.json`): 163 leads
+corpus-wide → **11** unreported non-trivial vj<0.8 pairs (5 Go, 5 C, 1 Python;
+10 of 11 at text-similarity < 0.5). Judge + adversarial-refuter labeling of all
+11 (`behavior_miss_verdicts_2026_06_11.jsonl`): **10 battery artifacts** —
+agreement only on degenerate battery behavior (both echo the input, both
+return 0/false/reject on non-matching inputs, both hit empty-input fast
+paths) while the success branches compute unrelated things — and **one genuine
+worthy miss**, refuter-sustained: redis `deps/hiredis/sds.c`
+`hi_sdsll2str` ↔ `hi_sdsull2str` (vj 0.33), token-identical digit-emit/reverse
+helpers whose own comment says "Identical …, but for unsigned long long type";
+redis's mainline `ll2string` already ships the merged form this pair refactors
+to. (Why even near misses it: vj 0.33 is far below value-accept and the sign
+branch changes the shape enough to split candidates — and at text 0.88 it is
+not even the deep-Type-4 shape this arm was hunting.)
+
+**Verdict — NO-GO for a recall mechanism, the §BJ discipline answer.** The
+oracle-visible different-algorithm Type-4 frontier is one worthy pair per 105
+repos; everything else the behavior key surfaces is degenerate-agreement noise.
+Combined with §BJ (sub-DAG ceiling 0.6–2.0%) and §BK (~600 mostly-scaffolding
+pairs at vj ≥ 0.8), every measured recall frontier is now small: worthy-recall
+is bounded by unit extraction and judgment, not by missing matching machinery.
+Instrument limits, stated: only interpretable units participate (~29% of units,
+concrete-trace lane; §BL.1), and each behavior group contributes one
+representative pair — so this measures the *oracle-visible* frontier, not the
+absolute one. The cheap re-run path when #244 widens the oracle (symbolic-
+condition path exploration raises interpretable coverage): re-run `mine` —
+the arm is corpus-pinned, deterministic, and now ~30 minutes wall.
