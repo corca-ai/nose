@@ -7,6 +7,22 @@ break.
 ## [Unreleased]
 
 ### Fixed
+- **Adversarial co-evolution, series 2** (experiments §CA, issue #272): first run
+  with fresh-subagent attackers (blind/informed modes, persona rotation — now in
+  the runbook). The blind grammar-lawyer found what two authored passes missed:
+  open multi-line declarations consumed interior lines unvalidated and closers
+  were suffix checks (`os.Exit(1))` could "close" a Go import block;
+  `require 'fs' + 1` rode arithmetic on a require; `#include <stdio.h> int x = 1;`
+  rode a definition on a directive) — interiors now validate as per-language
+  specifiers, closers match strict shapes, and C/Ruby arguments must be lone
+  string literals. The "call the existing helper" hint no longer bypasses the
+  high-parameter caution. Seven untested-but-supported declaration shapes locked
+  as fixtures (incl. ASI imports, `pub(crate) use`); the scan-JSON contract
+  checker now requires the `generated`/`declaration` surface-count keys and the
+  checked-in v1 example was refreshed. The review `--fail` gate and the scan-JSON
+  contract survived their blind attackers with zero violations. Corpus price
+  after all tightening: unchanged (2,265 declaration families, zero
+  reclassification).
 - **Adversarial co-evolution, series 1** (experiments §BZ, issue #268): five
   white-box campaigns against nose's own claims. Claim-violation fixes — the
   declaration filter now enforces a *single-statement discipline* (a line mixing

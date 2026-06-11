@@ -378,7 +378,15 @@ fn assert_scan_json_surface_counts_contract(
     let surface_counts = ranking["surface_counts"]
         .as_object()
         .expect("ranking.surface_counts object");
-    for key in ["default", "review", "hidden", "debug", "fragments"] {
+    for key in [
+        "default",
+        "review",
+        "hidden",
+        "debug",
+        "generated",
+        "declaration",
+        "fragments",
+    ] {
         assert!(
             surface_counts.contains_key(key),
             "ranking.surface_counts.{key} missing: {json}"

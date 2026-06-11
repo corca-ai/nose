@@ -4188,10 +4188,15 @@ fn span_is_only_declarations(lines: &[String], lang: DeclLang) -> bool {
             continue;
         }
         if open {
-            // Inside a multi-line declaration only specifier lines can occur
-            // in code that parsed; consume until the statement closes.
+            // Series-2 hardening: tree-sitter is error-tolerant, so "the file
+            // parsed" does NOT guarantee the interior of an open declaration
+            // holds only specifiers. Every interior line must itself be a
+            // valid specifier, and the close must be the strict closer shape
+            // (`os.Exit(1))` is not `)`; `} || x();` is not `};`).
             if declaration_closes(line, lang) {
                 open = false;
+            } else if !declaration_interior(line, lang) {
+                return false;
             }
             continue;
         }
@@ -4206,6 +4211,69 @@ fn span_is_only_declarations(lines: &[String], lang: DeclLang) -> bool {
     }
     // An unclosed statement means the span cut through code we did not prove.
     !open && any
+}
+
+/// A line INSIDE an open multi-line declaration: import/use specifiers only.
+fn declaration_interior(line: &str, lang: DeclLang) -> bool {
+    match lang {
+        // `from x import (` interiors: names, commas, `as` aliases.
+        DeclLang::Python => is_module_list(line),
+        // `import {` / `export {` interiors: specifiers incl. `$`, `as`, `type`.
+        DeclLang::JsTs => {
+            !line.is_empty()
+                && line
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '$' | ',' | ' '))
+        }
+        // `import (` interiors: optional alias (`name`, `_`, `.`) + quoted path.
+        DeclLang::Go => go_import_spec(line),
+        // `use x::{` interiors: path segments, nested groups, `*`, `as`.
+        DeclLang::Rust => {
+            !line.is_empty()
+                && line.chars().all(|c| {
+                    c.is_alphanumeric() || matches!(c, '_' | ':' | ',' | ' ' | '{' | '}' | '*')
+                })
+        }
+        // No multi-line declarations open for these.
+        DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
+    }
+}
+
+/// `[alias ]"path"` with nothing after the closing quote.
+fn go_import_spec(line: &str) -> bool {
+    let rest = match line.find('"') {
+        Some(0) => line,
+        Some(i) => {
+            let alias = &line[..i];
+            let alias = alias.trim();
+            if !alias.is_empty()
+                && !alias
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.'))
+            {
+                return false;
+            }
+            &line[i..]
+        }
+        None => return false,
+    };
+    let inner = rest.strip_prefix('"').and_then(|r| r.strip_suffix('"'));
+    matches!(inner, Some(path) if !path.contains('"'))
+}
+
+/// A bare string-literal argument (`'lit'` / `"lit"`, optionally parenthesized)
+/// with nothing riding after it — `require 'fs' + 1` is arithmetic, not wiring.
+fn lone_string_argument(arg: &str) -> bool {
+    let arg = arg.trim();
+    let arg = arg
+        .strip_prefix('(')
+        .and_then(|a| a.strip_suffix(')'))
+        .map(str::trim)
+        .unwrap_or(arg);
+    arg.len() >= 2
+        && ((arg.starts_with('\'') && arg.ends_with('\''))
+            || (arg.starts_with('"') && arg.ends_with('"')))
+        && !arg[1..arg.len() - 1].contains(['\'', '"'])
 }
 
 fn is_full_line_comment(line: &str, lang: DeclLang) -> bool {
@@ -4338,9 +4406,19 @@ fn java_declaration(line: &str) -> DeclLine {
 
 fn c_declaration(line: &str) -> DeclLine {
     if let Some(rest) = line.strip_prefix("#include") {
-        if rest.starts_with([' ', '<', '"']) {
-            return DeclLine::Complete;
+        if !rest.starts_with([' ', '<', '"']) {
+            return DeclLine::No;
         }
+        let arg = rest.trim();
+        let angle = arg.starts_with('<')
+            && arg.ends_with('>')
+            && !arg[1..arg.len() - 1].contains(['<', '>']);
+        return if angle || lone_string_argument(arg) {
+            DeclLine::Complete
+        } else {
+            // `#include <stdio.h> int x = 1;` rides code on the directive.
+            DeclLine::No
+        };
     }
     if line == "#pragma once" {
         return DeclLine::Complete;
@@ -4351,10 +4429,20 @@ fn c_declaration(line: &str) -> DeclLine {
 fn ruby_declaration(line: &str) -> DeclLine {
     // A modifier conditional (`require 'x' if cond`) rides an expression on
     // the declaration — more than a bare require, so it fails open (C5).
+    // Series 2: the argument must be a lone string literal — `require 'fs' + 1`
+    // is arithmetic on the require's return value, not wiring.
     let conditional = line.contains(" if ") || line.contains(" unless ");
-    for head in ["require ", "require_relative ", "require("] {
-        if line.starts_with(head) && semicolon_free(line) && !conditional {
-            return DeclLine::Complete;
+    if conditional || !semicolon_free(line) {
+        return DeclLine::No;
+    }
+    for head in ["require_relative", "require"] {
+        if let Some(rest) = line.strip_prefix(head) {
+            return if (rest.starts_with(' ') || rest.starts_with('(')) && lone_string_argument(rest)
+            {
+                DeclLine::Complete
+            } else {
+                DeclLine::No
+            };
         }
     }
     DeclLine::No
@@ -4362,13 +4450,33 @@ fn ruby_declaration(line: &str) -> DeclLine {
 
 fn declaration_closes(line: &str, lang: DeclLang) -> bool {
     match lang {
-        DeclLang::Python | DeclLang::Go => line.ends_with(')'),
+        // The strict closer shapes (series 2): `os.Exit(1))` is not `)`,
+        // `} || x();` is not `};` or `} from 'lit';`. Python's closer may
+        // carry the final import names (`    b)`) — the corpus re-price
+        // caught the bare-`)` rule leaking 4 real parenthesized imports.
+        DeclLang::Python => match line.strip_suffix(')') {
+            Some(body) => {
+                let body = body.trim();
+                body.is_empty() || is_module_list(body)
+            }
+            None => false,
+        },
+        DeclLang::Go => line == ")",
         DeclLang::JsTs => {
-            line.starts_with('}')
-                && (line.ends_with(';') || line.ends_with('\'') || line.ends_with('"'))
-                && lone_terminal_semicolon(line)
+            let Some(rest) = line.strip_prefix('}') else {
+                return false;
+            };
+            let rest = rest.trim();
+            if rest == ";" || rest.is_empty() {
+                return true;
+            }
+            let Some(src) = rest.strip_prefix("from ") else {
+                return false;
+            };
+            let src = src.strip_suffix(';').unwrap_or(src);
+            lone_string_argument(src)
         }
-        DeclLang::Rust => line.ends_with("};"),
+        DeclLang::Rust => line == "};",
         // Java/C/Ruby declarations are single-line; nothing opens.
         DeclLang::Java | DeclLang::C | DeclLang::Ruby => false,
     }
@@ -4658,10 +4766,21 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
             } else {
                 format!("{inline_copies} sites reimplement")
             };
-            return format!(
+            let base = format!(
                 "{sites} `{name}` — call the existing helper ({})",
                 helper.file
             );
+            // Series 2: many varying spots mean the copies diverge from the
+            // helper — the early return must not bypass the caution.
+            return if f.params >= HIGH_PARAM_SPOTS && f.languages == 1 {
+                format!(
+                    "{base} — high-parameter ({} varying spots): verify the \
+                     copies really match the helper before swapping in calls",
+                    f.params
+                )
+            } else {
+                base
+            };
         }
     }
 
@@ -5810,6 +5929,29 @@ mod tests {
     }
 
     #[test]
+    fn helper_hint_carries_the_high_parameter_caution() {
+        // S2-C2: the early return must not bypass the params caution — six
+        // varying spots mean the inline copies diverge from the helper.
+        let mut f = fam(1, 2, &[None, None, None]);
+        f.params = 8;
+        f.shared_lines = 12;
+        f.locations = vec![
+            {
+                let mut l = loc_at("core/math.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("clamp".to_string());
+                l
+            },
+            loc_at("ui/model.ts", 80, 84, nose_il::UnitKind::Block),
+            loc_at("worker/job.ts", 33, 37, nose_il::UnitKind::Block),
+        ];
+        let hint = family_hint(&f);
+        assert!(
+            hint.contains("call the existing helper") && hint.contains("high-parameter (8"),
+            "helper advice at 8 varying spots must carry the caution: {hint}"
+        );
+    }
+
+    #[test]
     fn helper_hint_never_points_at_generated_code() {
         let mut f = fam(1, 2, &[None, None]);
         f.locations = vec![
@@ -5894,6 +6036,21 @@ mod tests {
                 "#include <stdio.h>\n#include \"x.h\"\n#pragma once",
             ),
             (DeclLang::Ruby, "require 'json'\nrequire_relative 'x'"),
+            // S2-C3 coverage rows: shapes the code supports but no test locked.
+            (DeclLang::Rust, "pub(crate) use crate::x::Y;"),
+            (DeclLang::Go, "import http \"net/http\""),
+            (DeclLang::Python, "from os import path"),
+            (DeclLang::Ruby, "require('json')"),
+            (DeclLang::C, "#include<stdio.h>"),
+            (DeclLang::JsTs, "import{a} from './a';"),
+            // ASI: a multi-line import may close without a semicolon.
+            (DeclLang::JsTs, "import {\n  a,\n} from './ab'"),
+            // The closer may carry the final import names (corpus re-price
+            // regression in series 2: bare-`)` leaked real Python imports).
+            (
+                DeclLang::Python,
+                "from typing import (\n    Any,\n    Mapping)",
+            ),
         ];
         for (lang, src) in yes {
             assert!(
@@ -5931,6 +6088,14 @@ mod tests {
             // C5 boundary re-attack on the C1 defense itself.
             (DeclLang::JsTs, "import { a } from './a';;"),
             (DeclLang::Ruby, "require 'x' if expensive_check()"),
+            // S2-C1 blind-attacker packets: open-block interiors and closers
+            // were unvalidated (tree-sitter error tolerance voids any "the
+            // file parsed, so interiors are specifiers" assumption).
+            (DeclLang::Ruby, "require 'fs' + 1"),
+            (DeclLang::C, "#include <stdio.h> int x = 1;"),
+            (DeclLang::JsTs, "import {\n  a,\n} || x();"),
+            (DeclLang::Go, "import (\n\t\"fmt\"\n\tos.Exit(1))"),
+            (DeclLang::Rust, "use std::{\ninvalid;\n};"),
         ];
         for (lang, src) in no {
             assert!(

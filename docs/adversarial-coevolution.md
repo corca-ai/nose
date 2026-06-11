@@ -34,6 +34,32 @@ proof obligation, and false-merge risk surface. Hence three parties:
 An attack **counts only if it prices**. The attacker's fitness function is priced misses,
 not misses.
 
+### Attacker modes (added by series 2)
+
+The attacker is a **fresh subagent**, not the session that authored the surface: spawn
+it with the surface's source, the claim sentence, and the packet format — and nothing
+else. Authoring context is attack-bias (series 1's Ruby modifier-if hole survived the
+author's own C1 sweep and fell only to the boundary re-attack); a clean context removes
+exactly that bias.
+
+- **Blind mode** (the default): the attacker must NOT be shown the existing tests,
+  batteries, or the author's reasoning — anchoring on tested cases reintroduces the
+  staleness the isolation exists to remove. Inputs: source of the surface, the claim
+  with its doc pointer, the packet format.
+- **Informed mode**: a separate attacker gets the test suite *as the target* and
+  attacks its coverage — untested language rows, boundary values, asymmetries between
+  the yes and no fixture sets. Blind and informed find different things; keep their
+  packet pools separate until assessment so neither anchors the other.
+- **Persona rotation**: vary the attacker's stance per campaign — grammar lawyer,
+  performance attacker, soundness skeptic, language specialist, docs-vs-code auditor —
+  and record in the ledger which persona found what, so the rotation itself can be
+  tuned on evidence.
+- **The limit, unchanged**: subagents share the base model's priors. Isolation removes
+  *authoring-context* bias, not *model* blind spots — the mechanical generator
+  ([design §4b](design.md)) and the distribution adversary ([design §2c](design.md)
+  fresh-repo audits, field feedback) remain the decorrelation arms that no amount of
+  subagent spawning replaces.
+
 ## Attack surfaces
 
 Rotate campaigns across these; each entry names what to read and what claim to attack.
