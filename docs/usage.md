@@ -62,6 +62,15 @@ CI gate must fail loudly. A path that exists but contains no supported source
 files warns on stderr and reports an empty scan. The same rule applies to
 `nose review` and `nose stats`.
 
+Families whose members are overlapping slices of the same source regions are
+one refactoring *opportunity*: the best-ranked family keeps its numbered entry
+and the others fold into a `↳ N overlapping slice families…` note under it
+(`--format json` keeps every family, with `overlap_primary_id` marking the
+slices). Each entry also names its equivalence evidence — `exact behavior
+match` (value-graph proof), `shared core computation`, `copy-paste`, or
+`near-duplicate` — so a *shared decision* reads differently from a *shared
+shape*.
+
 ### Flags
 
 Grouped by what they do. Config-backed scan defaults are listed in
@@ -76,6 +85,7 @@ Grouped by what they do. Config-backed scan defaults are listed in
 | `--min-members N` | only families with at least N duplicated sites (default 2) |
 | `--min-value V` | hide families below this finite non-negative refactoring value (noise floor on large repos) |
 | `--min-size N` | ignore units or syntax copy-paste runs smaller than this size, in IL tokens (default 24) |
+| `--scope prod\|test\|all` | keep one side of the test boundary: `prod` drops all-test families (test↔prod leaks stay), `test` keeps only them (default `all`). Applies to every output format and `--fail-on` |
 | `--mode MODE` | one or more of `syntax`, `semantic`, `near[:T]`; comma-list or repeatable; when present, replaces the default. Experimental `abstraction[:T]` is accepted but not a stable capabilities mode. |
 | `--exclude <glob>` | skip paths matching a gitignore-syntax glob (repeatable) |
 | `--ignore-file <file>` | suppress reviewed families using a structured ignore file with reason/owner/expiry metadata |

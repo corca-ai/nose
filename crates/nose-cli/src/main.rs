@@ -186,6 +186,11 @@ enum Cmd {
         /// --min-size). [default: 5]
         #[arg(long, hide = true)]
         min_lines: Option<u32>,
+        /// Keep only one side of the test boundary: `prod` (drop all-test
+        /// families; test↔prod leaks stay), `test` (only all-test families),
+        /// or `all` (default). Applies to every output format and `--fail-on`.
+        #[arg(long, value_enum, default_value_t = ScopeFilter::All)]
+        scope: ScopeFilter,
     },
     /// Flag a change applied to one clone copy but not its siblings (PR/CI check).
     ///
@@ -1123,6 +1128,11 @@ struct ScanJsonFamily<'a> {
     #[serde(flatten)]
     family: &'a nose_detect::RefactorFamily,
     recommended_surface: &'static str,
+    /// Present when this family is an overlapping slice of another default-
+    /// surface family: the id of that primary. Consumers triaging
+    /// opportunities can fold slices under their primary.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    overlap_primary_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     baseline_status: Option<&'static str>,
 }
@@ -1149,6 +1159,7 @@ struct ScanJsonInput<'a> {
     ignored_families: &'a [IgnoredFamily],
     semantic_packs: &'a nose_semantics::SemanticPackSet,
     overrides: &'a SurfaceOverrides,
+    opportunities: &'a OpportunityGroups,
 }
 
 impl<'a> ScanJsonReport<'a> {
@@ -1217,13 +1228,17 @@ impl<'a> ScanJsonReport<'a> {
             families: input
                 .shown
                 .iter()
-                .map(|family| ScanJsonFamily {
-                    family_id: baseline::family_id(family),
-                    family,
-                    recommended_surface: effective_surface(family, input.overrides),
-                    baseline_status: statuses
-                        .and_then(|s| s.get(&baseline::family_key(family)))
-                        .map(BaselineStatus::as_str),
+                .map(|family| {
+                    let family_id = baseline::family_id(family);
+                    ScanJsonFamily {
+                        overlap_primary_id: input.opportunities.primary_of.get(&family_id).cloned(),
+                        family_id,
+                        family,
+                        recommended_surface: effective_surface(family, input.overrides),
+                        baseline_status: statuses
+                            .and_then(|s| s.get(&baseline::family_key(family)))
+                            .map(BaselineStatus::as_str),
+                    }
                 })
                 .collect(),
             ignored_families: input
@@ -1405,8 +1420,19 @@ fn family_summary(f: &nose_detect::RefactorFamily) -> String {
         "mixed" => "  · same code in tests and prod",
         _ => "",
     };
+    // WHY the members merged, in reader words (issue #264's "shared decision
+    // vs shared shape"): an exact value-graph proof is behavioral evidence; a
+    // token run is surface likeness. The JSON has carried this since #222 —
+    // the human report should too.
+    let evidence = match f.witness.as_ref().map(|w| w.kind) {
+        Some("exact-value-graph") => " · exact behavior match",
+        Some("shared-sub-dag") => " · shared core computation",
+        Some("copy-paste-run") => " · copy-paste",
+        Some("structural-similarity") => " · near-duplicate",
+        _ => "",
+    };
     format!(
-        "{} copies · {detail} · ~{} lines removable{scope}",
+        "{} copies · {detail} · ~{} lines removable{evidence}{scope}",
         f.members,
         removable_lines(f)
     )
@@ -1632,6 +1658,7 @@ fn run_scan_cmd(cmd: Cmd) -> Result<()> {
         exclude,
         min_size,
         min_lines,
+        scope,
     } = cmd
     else {
         unreachable!("run_scan_cmd requires Cmd::Scan")
@@ -1656,6 +1683,7 @@ fn run_scan_cmd(cmd: Cmd) -> Result<()> {
         exclude,
         min_size,
         min_lines,
+        scope,
     })
 }
 
@@ -3193,6 +3221,33 @@ struct ScanArgs {
     exclude: Vec<String>,
     min_size: Option<usize>,
     min_lines: Option<u32>,
+    scope: ScopeFilter,
+}
+
+/// `--scope`: which test-boundary side of the report to keep. An explicit
+/// consumer choice (issue #264 asked to read production findings first), not a
+/// worthiness call — the rubric's "location never excuses duplication" governs
+/// labels, while this governs what one invocation displays and gates on.
+#[derive(Clone, Copy, PartialEq, Default, clap::ValueEnum)]
+enum ScopeFilter {
+    /// Everything (the default).
+    #[default]
+    All,
+    /// Drop all-test families; keep prod and mixed (a test↔prod leak is prod's
+    /// problem).
+    Prod,
+    /// Only all-test families (e.g. hunting scaffolding to consolidate).
+    Test,
+}
+
+impl ScopeFilter {
+    fn keeps(self, family: &nose_detect::RefactorFamily) -> bool {
+        match self {
+            ScopeFilter::All => true,
+            ScopeFilter::Prod => family.scope != "test",
+            ScopeFilter::Test => family.scope == "test",
+        }
+    }
 }
 
 struct ChannelDetector {
@@ -3409,6 +3464,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         families.retain(|f| f.abstraction_witness.is_some());
     }
     families.retain(|f| f.members >= settings.min_members && f.value >= settings.min_value);
+    families.retain(|f| args.scope.keeps(f));
     // Show paths relative to the working directory — absolute paths are unreadable
     // in CI logs and reviews, and relative ones are clickable and portable.
     if let Ok(cwd) = std::env::current_dir() {
@@ -3456,8 +3512,15 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
         .iter()
         .filter(|f| is_default_report_family(f, &overrides))
         .collect::<Vec<_>>();
+    // Overlapping slices of one duplicated region read as separate findings
+    // (issues #263/#264's top ask): group them so a numbered entry is one
+    // *opportunity*, with its slices folded underneath. Grouping is scoped to
+    // the default surface so a diagnostic family can never swallow a default
+    // one.
+    let opportunities = OpportunityGroups::from_ranked(&reportable_families);
     let shown_reportable = reportable_families
         .iter()
+        .filter(|f| !opportunities.is_slice(f))
         .take(limit)
         .copied()
         .collect::<Vec<_>>();
@@ -3476,6 +3539,7 @@ fn cmd_scan(args: ScanArgs) -> Result<()> {
             ignored_families: &ignored_families,
             omitted_note: omitted_note.as_deref(),
             overrides: &overrides,
+            opportunities: &opportunities,
         },
     )?;
     if args.show.contains(&ShowView::Hotspots)
@@ -3673,6 +3737,7 @@ struct ScanReportView<'a> {
     ignored_families: &'a [IgnoredFamily],
     omitted_note: Option<&'a str>,
     overrides: &'a SurfaceOverrides,
+    opportunities: &'a OpportunityGroups,
 }
 
 fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
@@ -3690,6 +3755,7 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
                 ignored_families: view.ignored_families,
                 semantic_packs: &settings.semantic_packs,
                 overrides: view.overrides,
+                opportunities: view.opportunities,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
@@ -3729,6 +3795,7 @@ fn render_scan_report(args: &ScanArgs, view: &ScanReportView) -> Result<()> {
                 args.show.contains(&ShowView::Diff),
                 args.show.contains(&ShowView::Proposal),
                 view.omitted_note,
+                view.opportunities,
             )
         }
         ReportFormat::Sarif => println!(
@@ -3852,6 +3919,123 @@ fn classify_surface_overrides(
         generated_sources,
         declaration_run_ids: declaration_run_ids(families),
     }
+}
+
+/// Overlap grouping (issues #263/#264): families whose members are
+/// overlapping slices of the same source regions are one refactoring
+/// *opportunity*, not several. The primary (best-ranked) family keeps its
+/// numbered entry; its slices fold into a one-line note under it and carry
+/// `overlap_primary_id` in JSON. Grouping is presentation policy: every
+/// family stays in JSON, baselines, ignores, and `--fail-on` exactly as
+/// before.
+#[derive(Default)]
+struct OpportunityGroups {
+    /// Slice family id → its primary's family id.
+    primary_of: std::collections::HashMap<String, String>,
+    /// Primary family id → slice family ids, in rank order.
+    slices_of: std::collections::HashMap<String, Vec<String>>,
+}
+
+impl OpportunityGroups {
+    /// Group `families` (already in rank order — the first family of a group
+    /// is its primary). Two families join when at least two distinct member
+    /// pairs overlap on the same file by ≥ half of the shorter span: one
+    /// shared region can be coincidence, two parallel shared regions are the
+    /// same opportunity sliced (the craken-cli shape — six families, two
+    /// insights). Conservative by construction: 2-member families must
+    /// overlap on *both* members.
+    fn from_ranked(families: &[&nose_detect::RefactorFamily]) -> Self {
+        // A file listing implausibly many families would make candidate
+        // generation quadratic; skip it rather than risk the scan's speed.
+        const PER_FILE_CAP: usize = 200;
+        let mut by_file: std::collections::HashMap<&str, Vec<usize>> =
+            std::collections::HashMap::new();
+        for (i, f) in families.iter().enumerate() {
+            let mut files: Vec<&str> = f.locations.iter().map(|l| l.file.as_str()).collect();
+            files.sort_unstable();
+            files.dedup();
+            for file in files {
+                by_file.entry(file).or_default().push(i);
+            }
+        }
+        let mut candidates = std::collections::BTreeSet::new();
+        for idxs in by_file.values().filter(|v| v.len() <= PER_FILE_CAP) {
+            for (p, &i) in idxs.iter().enumerate() {
+                for &j in &idxs[p + 1..] {
+                    candidates.insert((i.min(j), i.max(j)));
+                }
+            }
+        }
+        // Union-find keyed so each set's root is its smallest (best-ranked)
+        // index — that root is the opportunity's primary.
+        let mut parent: Vec<usize> = (0..families.len()).collect();
+        fn find(parent: &mut [usize], mut x: usize) -> usize {
+            while parent[x] != x {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            x
+        }
+        for (i, j) in candidates {
+            if overlapping_member_pairs(families[i], families[j]) >= 2 {
+                let (ri, rj) = (find(&mut parent, i), find(&mut parent, j));
+                let (lo, hi) = (ri.min(rj), ri.max(rj));
+                parent[hi] = lo;
+            }
+        }
+        let mut groups = Self::default();
+        for i in 0..families.len() {
+            let root = find(&mut parent, i);
+            if root != i {
+                let primary = baseline::family_id(families[root]);
+                let slice = baseline::family_id(families[i]);
+                groups.primary_of.insert(slice.clone(), primary.clone());
+                groups.slices_of.entry(primary).or_default().push(slice);
+            }
+        }
+        groups
+    }
+
+    fn is_slice(&self, family: &nose_detect::RefactorFamily) -> bool {
+        self.primary_of.contains_key(&baseline::family_id(family))
+    }
+
+    fn slices(&self, family: &nose_detect::RefactorFamily) -> Option<&[String]> {
+        self.slices_of
+            .get(&baseline::family_id(family))
+            .map(Vec::as_slice)
+    }
+}
+
+/// Greedy one-to-one count of member pairs that overlap on the same file by
+/// at least half of the shorter span.
+fn overlapping_member_pairs(
+    a: &nose_detect::RefactorFamily,
+    b: &nose_detect::RefactorFamily,
+) -> usize {
+    let mut used = vec![false; b.locations.len()];
+    let mut pairs = 0;
+    for la in &a.locations {
+        for (j, lb) in b.locations.iter().enumerate() {
+            if used[j] || la.file != lb.file {
+                continue;
+            }
+            let lo = la.start_line.max(lb.start_line);
+            let hi = la.end_line.min(lb.end_line);
+            if lo > hi {
+                continue;
+            }
+            let overlap = hi - lo + 1;
+            let len_a = la.end_line - la.start_line + 1;
+            let len_b = lb.end_line - lb.start_line + 1;
+            if overlap * 2 >= len_a.min(len_b) {
+                used[j] = true;
+                pairs += 1;
+                break;
+            }
+        }
+    }
+    pairs
 }
 
 /// The mechanically-decidable non-actionable classes (design.md §2b: the
@@ -4368,6 +4552,40 @@ fn family_langs(f: &nose_detect::RefactorFamily) -> String {
 /// number of modules), never a guess about semantics.
 fn family_hint(f: &nose_detect::RefactorFamily) -> String {
     use nose_il::UnitKind;
+    // Exactly one member is a whole named function/method while every other
+    // member is an inline block or fragment: the family itself proves the
+    // inline copies compute what the existing helper computes (issue #263's
+    // local-`clamp` case) — the action is "call it", not "extract a second
+    // one". Stronger and safer than a fresh extraction, so it wins the hint.
+    let named_units: Vec<&nose_detect::Loc> = f
+        .locations
+        .iter()
+        .filter(|l| {
+            matches!(l.kind, UnitKind::Function | UnitKind::Method)
+                && l.name.is_some()
+                && !l.is_fragment
+        })
+        .collect();
+    let inline_copies = f
+        .locations
+        .iter()
+        .filter(|l| l.kind == UnitKind::Block || l.is_fragment)
+        .count();
+    if let [helper] = named_units[..] {
+        if inline_copies >= 1 && inline_copies == f.locations.len() - 1 {
+            let name = helper.name.as_deref().unwrap_or("the helper");
+            let sites = if inline_copies == 1 {
+                "1 site reimplements".to_string()
+            } else {
+                format!("{inline_copies} sites reimplement")
+            };
+            return format!(
+                "{sites} `{name}` — call the existing helper ({})",
+                helper.file
+            );
+        }
+    }
+
     // If every named site shares one identifier, it's the same thing copied.
     let mut names = f.locations.iter().filter_map(|l| l.name.as_deref());
     let shared_name = names.next().filter(|first| {
@@ -4398,7 +4616,7 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
         "extract a helper"
     };
 
-    match (shared_name, f.modules) {
+    let base = match (shared_name, f.modules) {
         (Some(name), _) => format!("consolidate `{name}` — {} copies{cross}", f.members),
         (None, m) if m >= 3 && all_classes => {
             format!("repeated across {m} modules — {extract}{cross}")
@@ -4408,9 +4626,25 @@ fn family_hint(f: &nose_detect::RefactorFamily) -> String {
         }
         (None, m) if m >= 2 => format!("duplicated across {m} modules — {extract}{cross}"),
         (None, _) => format!("local duplication — {extract}{cross}"),
+    };
+    // "Extract a method" overclaims when the helper would take many parameters
+    // (issue #264 hit 6–16 varying spots): keep the fact-grounded action but
+    // flag the readability price instead of asserting a clean extraction.
+    if f.params >= HIGH_PARAM_SPOTS && f.languages == 1 {
+        return format!(
+            "{base} — high-parameter ({} varying spots): review readability; \
+             a smaller helper for the invariant core may fit better",
+            f.params
+        );
     }
+    base
 }
 
+/// At this many varying spots an extraction stops being clean (issue #264's
+/// triage experience: 6+ spots read as scenario-shaped, not helper-shaped).
+const HIGH_PARAM_SPOTS: u32 = 6;
+
+#[allow(clippy::too_many_arguments)]
 fn print_refactor_human(
     all: &[&nose_detect::RefactorFamily],
     shown: &[&nose_detect::RefactorFamily],
@@ -4419,6 +4653,7 @@ fn print_refactor_human(
     diff: bool,
     proposal: bool,
     omitted_note: Option<&str>,
+    opportunities: &OpportunityGroups,
 ) {
     if all.is_empty() {
         println!(
@@ -4452,6 +4687,23 @@ fn print_refactor_human(
             family_summary(f)
         );
         println!("    → {}", family_hint(f));
+        if let Some(slices) = opportunities.slices(f) {
+            let listed = slices
+                .iter()
+                .take(4)
+                .map(String::as_str)
+                .collect::<Vec<_>>()
+                .join(", ");
+            let more = if slices.len() > 4 { ", …" } else { "" };
+            let (n, noun, verb) = match slices.len() {
+                1 => (1, "family", "folds"),
+                n => (n, "families", "fold"),
+            };
+            println!(
+                "    ↳ {n} overlapping slice {noun} {verb} into this entry (id{} {listed}{more})",
+                if n == 1 { ":" } else { "s:" }
+            );
+        }
         if let Some(witness) = &f.abstraction_witness {
             println!("    witness {}", abstraction_witness_summary(witness));
         }
@@ -5363,6 +5615,96 @@ mod tests {
         assert_eq!(
             family_hint(&f),
             "local duplication — extract a method from the repeated block"
+        );
+    }
+
+    fn loc_at(file: &str, start: u32, end: u32, kind: nose_il::UnitKind) -> Loc {
+        Loc::new(LocInit {
+            file: file.to_string(),
+            source_span: LineSpan::new(start, end),
+            lang: "go".into(),
+            kind,
+            name: None,
+            sem: 50,
+            span_tokens: 50,
+        })
+    }
+
+    fn fam_at(spans: &[(&str, u32, u32)]) -> RefactorFamily {
+        let mut f = fam_kind(1, 1, &vec![None; spans.len()], nose_il::UnitKind::Block);
+        f.locations = spans
+            .iter()
+            .map(|(file, s, e)| loc_at(file, *s, *e, nose_il::UnitKind::Block))
+            .collect();
+        f
+    }
+
+    #[test]
+    fn overlapping_slices_fold_under_their_primary() {
+        // B's members are both shifted slices of A's regions → one opportunity.
+        // C shares only ONE region with A (its other member lives elsewhere) —
+        // a single shared region can be coincidence, so C stays its own entry.
+        let a = fam_at(&[("t/a.go", 100, 130), ("t/b.go", 50, 70)]);
+        let b = fam_at(&[("t/a.go", 105, 128), ("t/b.go", 52, 66)]);
+        let c = fam_at(&[("t/a.go", 100, 130), ("t/z.go", 5, 25)]);
+        let ranked = [&a, &b, &c];
+        let groups = OpportunityGroups::from_ranked(&ranked);
+        assert!(groups.is_slice(&b), "b is a slice of a");
+        assert!(
+            !groups.is_slice(&a),
+            "the best-ranked family is the primary"
+        );
+        assert!(!groups.is_slice(&c), "one shared region must not group");
+        assert_eq!(
+            groups.slices(&a),
+            Some(&[baseline::family_id(&b)][..]),
+            "a lists exactly b as its folded slice"
+        );
+    }
+
+    #[test]
+    fn hint_prefers_calling_the_existing_helper() {
+        let mut f = fam(1, 2, &[None, None, None]);
+        f.locations = vec![
+            {
+                let mut l = loc_at("core/math.ts", 10, 14, nose_il::UnitKind::Function);
+                l.name = Some("clamp".to_string());
+                l
+            },
+            loc_at("ui/model.ts", 80, 84, nose_il::UnitKind::Block),
+            loc_at("worker/job.ts", 33, 37, nose_il::UnitKind::Block),
+        ];
+        assert_eq!(
+            family_hint(&f),
+            "2 sites reimplement `clamp` — call the existing helper (core/math.ts)"
+        );
+    }
+
+    #[test]
+    fn hint_flags_high_parameter_extractions() {
+        let mut f = fam(1, 1, &[None, None]);
+        f.params = 8;
+        f.shared_lines = 12;
+        let hint = family_hint(&f);
+        assert!(
+            hint.contains("high-parameter (8 varying spots)"),
+            "an 8-spot extraction must carry the readability caution: {hint}"
+        );
+    }
+
+    #[test]
+    fn summary_names_the_equivalence_evidence() {
+        let mut f = fam(1, 1, &[None, None]);
+        f.witness = Some(nose_detect::EquivalenceWitness {
+            kind: "exact-value-graph",
+            value_nodes: Some(12),
+            mean_value_jaccard: None,
+            mean_shape_jaccard: None,
+        });
+        assert!(
+            family_summary(&f).contains("· exact behavior match"),
+            "the human line names WHY the members merged: {}",
+            family_summary(&f)
         );
     }
 

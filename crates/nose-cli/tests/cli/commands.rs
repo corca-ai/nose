@@ -2067,3 +2067,56 @@ fn mixed_import_and_code_span_stays_on_the_default_surface() {
     );
     let _ = fs::remove_dir_all(&dir);
 }
+
+/// `--scope prod` drops all-test families (issue #264: read production
+/// findings first); `--scope test` keeps only them; the default shows both.
+#[test]
+fn scope_flag_filters_by_test_boundary() {
+    let dir = std::env::temp_dir().join(format!("nose_scope_{}", std::process::id()));
+    let _ = fs::remove_dir_all(&dir);
+    let prod_fn = "def total_positive(items):\n    total = 0\n    for x in items:\n        if x > 0:\n            total = total + x * x\n    return total\n";
+    let test_fn = "def check_round_trip(payload):\n    encoded = encode(payload)\n    decoded = decode(encoded)\n    assert decoded == payload\n    assert len(encoded) > 0\n    return decoded\n";
+    fs::create_dir_all(dir.join("src/a")).unwrap();
+    fs::create_dir_all(dir.join("src/b")).unwrap();
+    fs::create_dir_all(dir.join("tests")).unwrap();
+    fs::write(dir.join("src/a/calc.py"), prod_fn).unwrap();
+    fs::write(dir.join("src/b/calc.py"), prod_fn).unwrap();
+    fs::write(dir.join("tests/test_one.py"), test_fn).unwrap();
+    fs::write(dir.join("tests/test_two.py"), test_fn).unwrap();
+    let p = dir.to_str().unwrap();
+
+    let all = run(&["scan", p, "--min-size", "8", "--min-lines", "3"]);
+    assert!(
+        all.contains("src/a/calc.py") && all.contains("tests/test_one.py"),
+        "default shows both scopes: {all}"
+    );
+    let prod = run(&[
+        "scan",
+        p,
+        "--min-size",
+        "8",
+        "--min-lines",
+        "3",
+        "--scope",
+        "prod",
+    ]);
+    assert!(
+        prod.contains("src/a/calc.py") && !prod.contains("tests/test_one.py"),
+        "--scope prod drops the all-test family: {prod}"
+    );
+    let test = run(&[
+        "scan",
+        p,
+        "--min-size",
+        "8",
+        "--min-lines",
+        "3",
+        "--scope",
+        "test",
+    ]);
+    assert!(
+        test.contains("tests/test_one.py") && !test.contains("src/a/calc.py"),
+        "--scope test keeps only the all-test family: {test}"
+    );
+    let _ = fs::remove_dir_all(&dir);
+}

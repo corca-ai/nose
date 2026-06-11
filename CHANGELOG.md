@@ -6,6 +6,28 @@ break.
 
 ## [Unreleased]
 
+### Added
+- **Triage ergonomics from the 0.6.0 field feedback** (issues #263/#264):
+  - **Opportunity grouping**: families whose members are overlapping slices of
+    the same source regions fold under their best-ranked family in the human
+    report (`↳ N overlapping slice families fold into this entry`); scan JSON
+    keeps every family and marks slices with `overlap_primary_id` (additive).
+    Grouping is presentation policy — baselines, ignores, `--fail-on`, and the
+    JSON family list are unchanged.
+  - **`--scope prod|test|all`** on `nose scan`: keep one side of the test
+    boundary (`prod` drops all-test families but keeps test↔prod leaks).
+    An explicit consumer choice; the default stays `all`.
+  - **"Call the existing helper" hint**: when exactly one family member is a
+    whole named function and the rest are inline blocks/fragments, the hint
+    becomes `N sites reimplement `name` — call the existing helper (file)` —
+    the family's own equivalence already proves the replacement is safe.
+  - **High-parameter caution**: extraction hints at ≥6 varying spots add
+    "review readability; a smaller helper for the invariant core may fit
+    better" instead of overclaiming a clean extract.
+  - **Evidence tags in the human report**: each family line now names its
+    equivalence witness (`exact behavior match`, `shared core computation`,
+    `copy-paste`, `near-duplicate`) — the JSON has carried this since #222.
+
 ### Changed
 - **Declaration runs leave the default surface** (experiments §BY, design §2b):
   a family whose every member span is only import/include/`use`/re-export

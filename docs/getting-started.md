@@ -82,6 +82,17 @@ shared helper, base class, or data table). Read it left to right:
 **Scope tags.** A family may end with `· in test code` (all copies in test code) or
 `· same code in tests and prod` (the same logic in a test *and* in production). These are context
 for *where* to refactor, not a penalty — duplication in tests is still a smell.
+(`--scope prod` or `--scope test` keeps one side only.)
+
+**Evidence tags.** Each entry names *why* its members merged: `exact behavior
+match` is a value-graph proof (the copies compute the same thing), `shared core
+computation` is a common heavy sub-computation, `copy-paste` is a
+token-identical run, and `near-duplicate` is fuzzy structural similarity. A
+shared *decision* reads differently from a shared *shape*.
+
+**Folded slices.** A `↳ N overlapping slice families fold into this entry` note
+means nearby families are overlapping slices of the same duplicated region —
+read the numbered entry as one refactoring opportunity, not several.
 
 ### See more per family
 
